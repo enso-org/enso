@@ -15,6 +15,7 @@ import io.helidon.websocket.WsSession;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -270,6 +271,7 @@ final class WebSocket implements ProxyExecutable {
     private final Value handleUpgrade;
 
     private WsSession session;
+    private final List<byte[]> fragments = new ArrayList<>();
 
     private WebSocketConnection(
         ScheduledExecutorService executor,
@@ -300,9 +302,34 @@ final class WebSocket implements ProxyExecutable {
     @Override
     public void onMessage(WsSession session, BufferData buffer, boolean last) {
       log.debug("onMessage\n{}", buffer.debugDataHex(true));
+      var rawBytes = buffer.readBytes();
+
+      if (!last) {
+        fragments.add(rawBytes);
+        return;
+      }
+
+      final byte[] messageBytes;
+      if (fragments.isEmpty()) {
+        messageBytes = rawBytes;
+      } else {
+        fragments.add(rawBytes);
+        var totalLength = 0;
+        for (var fragment : fragments) {
+          totalLength += fragment.length;
+        }
+        messageBytes = new byte[totalLength];
+        var offset = 0;
+        for (var fragment : fragments) {
+          System.arraycopy(fragment, 0, messageBytes, offset, fragment.length);
+          offset += fragment.length;
+        }
+        log.debug("Reassembled {} fragments into {} bytes", fragments.size(), totalLength);
+        fragments.clear();
+      }
 
       // Passing byte sequence to JS requires `HostAccess.allowBufferAccess()`
-      var bytes = ByteSequence.create(buffer.readBytes());
+      var bytes = ByteSequence.create(messageBytes);
       handleCallback(() -> handleMessage.executeVoid(bytes));
     }
 

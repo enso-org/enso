@@ -55,12 +55,16 @@ type Suite
         - `should_exit`: If true, executes `System.exit` at the end, so the
           method does not return. If false, return boolean from the method
           indicating whether some tests failed.
+        - `output`: A function to print out textual info about progress of execution.
+          By default it uses `IO.println` output
 
        ## Returns
        Boolean if `should_exit` is False, otherwise exits the process.
-    run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
+    run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) (output:Text->Nothing=IO.println) -> (Boolean | Nothing) =
         config = Suite_Config.from_environment
+        self.run_impl output config filter should_exit
 
+    private run_impl self println config:Suite_Config (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
         # List of pairs of groups and their specs that match the filter
         matching_specs = self.groups.flat_map group->
             group_matches = Helpers.name_matches group.name filter
@@ -93,10 +97,10 @@ type Suite
                 case group.is_pending of
                     False ->
                         results = Helpers.run_specs_from_group specs group progress_reporter
-                        Test_Reporter.print_report results config junit_sb_builder
+                        Test_Reporter.print_report println results config junit_sb_builder
                         all_results_bldr.append_vector_range results
                     True ->
-                        Test_Reporter.print_pending_group group config junit_sb_builder
+                        Test_Reporter.print_pending_group println group config junit_sb_builder
 
         all_results = all_results_bldr.to_vector
         succ_tests = all_results.filter (r-> r.is_success) . length
@@ -112,16 +116,16 @@ type Suite
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
             True ->
-                IO.println ""
-                IO.println <| succ_tests.to_text + " tests succeeded."
-                IO.println <| failed_tests_number.to_text + " tests failed."
-                IO.println <| skipped_tests.to_text + " tests skipped."
-                IO.println <| pending_groups.to_text + " groups skipped."
-                IO.println ""
+                println ""
+                println <| succ_tests.to_text + " tests succeeded."
+                println <| failed_tests_number.to_text + " tests failed."
+                println <| skipped_tests.to_text + " tests skipped."
+                println <| pending_groups.to_text + " groups skipped."
+                println ""
                 if failed_tests_number > 0 then
-                    IO.println <| "Failed tests: '" + failed_tests_names + "'"
+                    println <| "Failed tests: '" + failed_tests_names + "'"
                     if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
-                    IO.println ""
+                    println ""
                 exit_code = if failed_tests_number > 0 then 1 else 0
                 System.exit exit_code
             False ->

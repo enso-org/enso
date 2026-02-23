@@ -91,7 +91,7 @@ final class MockCompilerContext implements CompilerContext {
 
   @Override
   public RuntimeException formatDiagnostic(
-      Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
+      Module module, Diagnostic diagnostic, boolean isOutputRedirected, Object src) {
     return new DiagnosticException((MockModule) module, diagnostic, isOutputRedirected);
   }
 

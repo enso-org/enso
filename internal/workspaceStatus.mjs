@@ -1,11 +1,15 @@
 import { execSync } from 'child_process'
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'url'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = path.resolve(scriptDir, '..')
+
+const require = createRequire(import.meta.url)
+const { readDependenciesVersions } = require('./dependenciesVersions.cjs')
 
 // Determine the active environment profile (mode) from NODE_ENV, defaulting to 'production'.
 // This determines which .env files are used.
@@ -68,6 +72,38 @@ function resolveIdeCommitHash() {
   }
 }
 
+/**
+ * Resolve git ref as current branch, exact tag, or fallback to HEAD.
+ * Mirrors BuildInfo.scala behavior.
+ * @returns {string} branch or tag name, or `HEAD`
+ */
+function resolveGitRef() {
+  try {
+    const out = execSync('git symbolic-ref -q --short HEAD', { cwd: workspaceRoot })
+    return String(out).trim()
+  } catch {
+    try {
+      const out = execSync('git describe --tags --exact-match', { cwd: workspaceRoot })
+      return String(out).trim()
+    } catch {
+      return 'HEAD'
+    }
+  }
+}
+
+/**
+ * Resolve the latest commit date for HEAD.
+ * @returns {string} latest commit date, or an empty string if not found
+ */
+function resolveGitLatestCommitDate() {
+  try {
+    const out = execSync('git log HEAD -1 --format=%cd', { cwd: workspaceRoot })
+    return String(out).trim()
+  } catch {
+    return ''
+  }
+}
+
 // Read env files in order and merge (later files override earlier ones).
 const fileMaps = envFilesInOrder.map(parseEnvFile)
 let variables = Object.assign({}, ...fileMaps)
@@ -82,6 +118,15 @@ for (const key of Object.keys(variables)) {
 variables['ENSO_IDE_VERSION'] = process.env.ENSO_IDE_VERSION || buildDefaultIdeVersion()
 variables['ENSO_IDE_EDITION'] = process.env.ENSO_IDE_EDITION || variables['ENSO_IDE_VERSION']
 variables['ENSO_IDE_COMMIT_HASH'] = resolveIdeCommitHash()
+variables['ENSO_GIT_REF'] = resolveGitRef()
+variables['ENSO_GIT_LATEST_COMMIT_DATE'] = resolveGitLatestCommitDate()
+
+// Project-wide version constants (authoritative source: project/Dependencies.scala).
+const deps = readDependenciesVersions({ workspaceRoot })
+variables['ENSO_SCALAC_VERSION'] = deps.scalacVersion
+variables['ENSO_GRAAL_VERSION'] = deps.graalVersion
+variables['ENSO_GRAAL_MAVEN_PACKAGES_VERSION'] = deps.graalMavenPackagesVersion
+variables['ENSO_DEFAULT_DEV_VERSION'] = deps.defaultDevEnsoVersion
 
 // Emit all variables to the `stable-status.txt` file.
 for (const [key, value] of Object.entries(variables)) {

@@ -12,5 +12,17 @@
     "META-INF/resources/nfi-native/libnfi/darwin/amd64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/darwin/aarch64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/windows/amd64/bin/trufflenfi.dll"
+  ],
+  "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/snowflake-jdbc-thin-4.0.1.jar": [
+    "META-INF/native/libnetty_transport_native_epoll_x86_64.so",
+    "minicore/libsf_mini_core_aix_ppc64.so",
+    "minicore/libsf_mini_core_linux_aarch64_glibc.so",
+    "minicore/libsf_mini_core_linux_aarch64_musl.so",
+    "minicore/libsf_mini_core_linux_x86_64_glibc.so",
+    "minicore/libsf_mini_core_linux_x86_64_musl.so",
+    "minicore/libsf_mini_core_macos_aarch64.dylib",
+    "minicore/libsf_mini_core_macos_x86_64.dylib",
+    "minicore/libsf_mini_core_windows_aarch64.dll",
+    "minicore/libsf_mini_core_windows_x86_64.dll"
   ]
 }

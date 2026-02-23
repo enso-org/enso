@@ -280,6 +280,8 @@ public class OtherJvmObjectTest {
       case 3 -> new int[20];
       case 4 -> "Hello";
       case 5 -> "Hello".repeat(100000);
+      case 6 -> wrap("Hello");
+      case 7 -> wrap("Hello".repeat(100000));
       default -> null;
     };
   }
@@ -348,6 +350,16 @@ public class OtherJvmObjectTest {
   @Test
   public void isStringLong() throws Exception {
     checkString(5);
+  }
+
+  @Test
+  public void isTruffleStringShort() throws Exception {
+    checkString(6);
+  }
+
+  @Test
+  public void isTruffleStringLong() throws Exception {
+    checkString(7);
   }
 
   private void checkString(int kind) throws Exception {

@@ -91,7 +91,6 @@ jobs:
           fail-on-warning: false
 
       - name: 📥 Download Enso Engine
-        continue-on-error: true
         working-directory: app/project-manager-shim
         run: pnpm run download-engine
         env:

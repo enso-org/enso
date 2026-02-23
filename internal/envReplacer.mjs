@@ -7,16 +7,15 @@
  * assets, so that the appropriate environment configuration can be applied without any
  * source code changes.
  *
- * If stamping is disabled, the script just copies the files to the output directory.
+ * If stamping is disabled, the script just copies files to the output path.
  *
  * Otherwise, we read `stable-status.txt` file produced by `workspaceStatus` script,
  * and use the environment variables from it to replace the placeholders in the files.
  *
- * Because some of the changed files can be produced by vite build, we also need to update
- * their hash in the filename, and recursively rewrite references to them in other files.
+ * For bundles that use hashed output filenames (for example GUI assets), the script can also
+ * recalculate filename hashes and recursively rewrite references to renamed files.
  *
- * Finally, we perform a validation sweep over the output directory to ensure that no placeholders
- * are present in unexpected locations.
+ * Finally, we perform validation to ensure that no placeholders are present in unexpected locations.
  */
 
 /* eslint-disable jsdoc/check-tag-names */
@@ -26,18 +25,36 @@ import { createHash } from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path/posix'
 import * as process from 'node:process'
+import { readStableStatusFile } from './stableStatus.mjs'
 
 if (process.env.JS_BINARY__EXECROOT) {
   process.chdir(process.env.JS_BINARY__EXECROOT)
 }
 
-if (process.argv.length < 4 || process.argv[2] == null || process.argv[3] == null)
+if (
+  process.argv.length < 5 ||
+  process.argv[2] == null ||
+  process.argv[3] == null ||
+  process.argv[4] == null
+)
   throw new Error(
-    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} <inputDirectory> <outputDirectory> [statusFilePath]`,
+    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} <inputPath> <outputPath> <recalculateHashes:true|false> [statusFilePath]`,
   )
-const inputDirectory = process.argv[2]
-const outputDirectory = process.argv[3]
-const statusFilePath = process.argv[4]
+const inputPath = process.argv[2]
+const outputPath = process.argv[3]
+const recalculateHashesArg = process.argv[4]
+const statusFilePath = process.argv[5]
+
+/**
+ * @param {string} value
+ */
+function parseBooleanArg(value) {
+  if (value === 'true') return true
+  if (value === 'false') return false
+  throw new Error(`Invalid boolean argument: "${value}". Expected "true" or "false".`)
+}
+
+const recalculateHashes = parseBooleanArg(recalculateHashesArg)
 
 /**
  * Match files that should have environment variable replacements applied.
@@ -45,6 +62,7 @@ const statusFilePath = process.argv[4]
  * - config.js or config-<hash>.js (GUI config files)
  * - index.html (GUI entry point)
  * - index.mjs or preload.mjs (Electron client entry points)
+ * - electron-builder-config.cjs (Electron Builder config)
  *
  * @param {string} projectPath
  */
@@ -56,6 +74,7 @@ function isEnvReplacementFile(projectPath) {
   if (base === 'index.html') return true
   if (base === 'index.mjs') return true
   if (base === 'preload.mjs') return true
+  if (base === 'electron-builder-config.cjs') return true
   if (configFileRegex.test(base)) return true
   return false
 }
@@ -94,25 +113,30 @@ function assertNoErrors() {
 }
 
 /** @type {Record<string, string>} */
-const envs = {}
+let envs = {}
 
 // When stamping, the status file contains environment variables to replace.
 // We only consider variables starting with `ENSO_` prefix, and we only consider `stable-status.txt` file,
 // so each variable is expected to start with `STABLE_ENSO_` prefix.
 if (statusFilePath != null) {
   try {
-    const statusFile = await fs.readFile(statusFilePath, 'utf8')
-    for (const line of statusFile.split('\n')) {
-      const [key, value] = line.split(' ', 2)
-      if (key && key.startsWith('STABLE_ENSO_')) {
-        const envName = key.slice('STABLE_'.length)
-        envs[envName] = value
-      }
-    }
+    envs = await readStableStatusFile(statusFilePath)
   } catch (e) {
     errors.push(new Error(`Failed to read status file "${statusFilePath}": ${e.message}`))
   }
 }
+
+let inputStats
+try {
+  inputStats = await fs.stat(inputPath)
+} catch (e) {
+  errors.push(new Error(`Failed to stat input path "${inputPath}": ${e.message}`))
+  assertNoErrors()
+}
+
+const inputIsDirectory = inputStats.isDirectory()
+const inputDirectory = inputIsDirectory ? inputPath : null
+const outputDirectory = inputIsDirectory ? outputPath : null
 
 const patternRegex = /\(\(%__(.*?)__%\)\)/g
 
@@ -156,20 +180,19 @@ function readOriginalFile(projectPath) {
 }
 
 /**
- * Writes given project file to the output directory.
- * @param {string} projectPath File path relative to input directory
- * @param {string | Buffer} fileContents What to write to the new file.
+ * Writes file to the output path, creating parent directory when needed.
+ * @param {string} filePath Absolute or execroot-relative output file path.
+ * @param {string | Buffer} fileContents What to write to the output file.
  */
-async function writeProjectFile(projectPath, fileContents) {
-  const outputPath = path.join(outputDirectory, projectPath)
-  const outputDir = path.dirname(outputPath)
+async function writeFileEnsuringDirectory(filePath, fileContents) {
+  const outputDir = path.dirname(filePath)
   let mkdirPromise = mkdirPromises.get(outputDir)
   if (mkdirPromise == null) {
     mkdirPromise = fs.mkdir(outputDir, { recursive: true })
     mkdirPromises.set(outputDir, mkdirPromise)
   }
   await mkdirPromise
-  await fs.writeFile(outputPath, fileContents)
+  await fs.writeFile(filePath, fileContents)
 }
 
 function readOutputFile(projectPath) {
@@ -188,24 +211,30 @@ async function deleteOutputFile(projectPath) {
  * Recompute file's content hash in case it is present in original filename.
  * Note that this always uses sha256, which may disagree with hasher used during bundle building,
  * therefore calling this function is likely to update the filename even for unchanged files.
+ * The behavior is controlled by the `recalculateHashes` argument.
  * @param {string} projectPath File path relative to input directory
  * @param {string | Buffer} fileContents Content from which the file hash is computed.
  */
 async function updateHashInFilename(projectPath, fileContents) {
-  const fixedPath = projectPath.replace(/-([0-9a-zA-Z]+).([a-z]+)$/, (_, oldHash, ext) => {
-    const contentHash = createHash('sha256')
-      .update(fileContents)
-      .digest()
-      .toString('base64url')
-      .substring(0, oldHash.length)
-    return `-${contentHash}.${ext}`
-  })
-  if (projectPath != fixedPath) {
-    const oldBase = path.basename(projectPath)
-    const newBase = path.basename(fixedPath)
-    fileRenames.set(oldBase, newBase)
-  }
-  return fixedPath
+  if (!recalculateHashes) return projectPath
+
+  const base = path.basename(projectPath)
+  const dir = path.dirname(projectPath)
+
+  const match = base.match(/^(.*)-([0-9A-Za-z]{8,})(\.[^./]+(?:\.[^./]+)*)$/)
+  if (!match || !match[1] || !match[2] || !match[3]) return projectPath
+
+  const namePrefix = match[1]
+  const oldHash = match[2]
+  const extension = match[3]
+  const contentHash = createHash('sha256')
+    .update(fileContents)
+    .digest()
+    .toString('base64url')
+    .substring(0, oldHash.length)
+  const newBase = `${namePrefix}-${contentHash}${extension}`
+  fileRenames.set(base, newBase)
+  return path.join(dir, newBase)
 }
 
 // Enumerate files under a directory (recursively) returning project-relative paths.
@@ -247,7 +276,7 @@ function rewriteReferencesInText(content) {
 /**
  * Initial pass: copy from input to output, applying replacements for matching files.
  */
-async function initialPassWriteToOutput() {
+async function initialPassWriteToOutput(outputDir) {
   const inputFiles = await enumerateFiles(inputDirectory)
   await Promise.all(
     inputFiles.map(async (projectPath) => {
@@ -256,19 +285,42 @@ async function initialPassWriteToOutput() {
       if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
         const newContent = applyReplacements(buf.toString(), projectPath)
         const newPath = await updateHashInFilename(projectPath, newContent)
-        await writeProjectFile(newPath, newContent)
+        await writeFileEnsuringDirectory(path.join(outputDir, newPath), newContent)
       } else {
-        await writeProjectFile(projectPath, buf)
+        await writeFileEnsuringDirectory(path.join(outputDir, projectPath), buf)
       }
     }),
   )
 }
 
 /**
- * One cascade pass over the output directory: rewrite references and rename changed files.
- * @returns {number} The number of changed files.
+ * Single-file flow: copy one file, optionally apply replacements, and validate.
  */
-async function cascadePassOnce() {
+async function processSingleFile() {
+  const fileContents = await fs.readFile(inputPath, { encoding: null })
+  const projectPath = path.basename(inputPath)
+  const isText = Buffer.isUtf8(fileContents)
+
+  if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
+    await writeFileEnsuringDirectory(
+      outputPath,
+      applyReplacements(fileContents.toString(), projectPath),
+    )
+  } else {
+    await writeFileEnsuringDirectory(outputPath, fileContents)
+  }
+
+  const writtenContents = await fs.readFile(outputPath, { encoding: null })
+  if (Buffer.isUtf8(writtenContents) && !isEnvReplacementFile(projectPath)) {
+    await reportUnexpectedPatterns(writtenContents, projectPath)
+  }
+}
+
+/**
+ * One cascade pass over the output directory: rewrite references and rename changed files.
+ * @returns {Promise<number>} The number of changed files.
+ */
+async function cascadePassOnce(outputDir) {
   const outFiles = await enumerateFiles(outputDirectory)
   let changedCount = 0
   for (const projectPath of outFiles) {
@@ -280,7 +332,7 @@ async function cascadePassOnce() {
       if (newPath !== projectPath) {
         await deleteOutputFile(projectPath)
       }
-      await writeProjectFile(newPath, content)
+      await writeFileEnsuringDirectory(path.join(outputDir, newPath), content)
       changedCount++
     }
   }
@@ -304,19 +356,23 @@ async function finalValidationSweep() {
   )
 }
 
-// Execute new cascading flow
-await initialPassWriteToOutput()
+if (inputIsDirectory) {
+  // Execute directory flow with cascading rewrites.
+  await initialPassWriteToOutput(outputDirectory)
 
-if (statusFilePath != null) {
-  let passes = 0
-  while (passes < 10) {
-    const changed = await cascadePassOnce()
-    if (changed === 0) break
-    passes++
+  if (statusFilePath != null && recalculateHashes) {
+    let passes = 0
+    while (passes < 10) {
+      const changed = await cascadePassOnce(outputDirectory)
+      if (changed === 0) break
+      passes++
+    }
   }
-}
 
-await finalValidationSweep()
+  await finalValidationSweep()
+} else {
+  await processSingleFile()
+}
 
 assertNoErrors()
 process.exit(0)

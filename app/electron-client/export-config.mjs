@@ -20,7 +20,13 @@ if (!configPath) {
 
 const require = createRequire(import.meta.url)
 
-const config = require(path.resolve(configPath))
+const execroot = process.env.JS_BINARY__EXECROOT
+if (!execroot) {
+  throw new Error('JS_BINARY__EXECROOT is not set.')
+}
+const resolvedConfigPath = path.resolve(execroot, configPath)
+
+const config = require(resolvedConfigPath)
 
 // Map file associations to the extended format required by the Rust installer.
 // The Rust code expects: { progId, mimeType, ext, name }.

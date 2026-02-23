@@ -16,7 +16,7 @@ import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
 import { maybeRedirectToProject, openProjectFromPath } from '$/router/initialProject'
 import { reactComponent } from '@/util/react'
-import { createRouter, createWebHistory, type RouteLocation, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
@@ -119,10 +119,11 @@ const router = createRouter({
 })
 
 router.beforeEach(async () => {
-  await useConfig().waitForRemoteConfig()
+  const config = useConfig()
+  await config.waitForRemoteConfig()
 })
-router.beforeEach(async (to: RouteLocation) => {
-  if (to.meta.access === 'anyLoggedIn') {
+router.beforeEach(async (to, from) => {
+  if (to.meta.access !== from.meta.access) {
     await useAuth().waitForSession()
   }
 })

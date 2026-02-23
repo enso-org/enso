@@ -3,20 +3,17 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useConfig, type RemoteConfig } from '$/providers/config'
 import { useFeatureFlag } from '$/providers/featureFlags'
-import { useText } from '$/providers/text'
 import type { ToValue } from '$/utils/reactivity'
 import { parseEnsoDeeplink } from '@/util/url'
-import * as amplify from '@aws-amplify/auth'
+import { Amplify } from 'aws-amplify'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
-import * as toastify from 'react-toastify'
 import { computed, toRef, toValue, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -32,13 +29,13 @@ export interface AmplifyConfig {
   readonly endpoint: string | undefined
   readonly userPoolId: string
   readonly userPoolWebClientId: string
-  readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
+  readonly urlOpener: ((url: string) => void) | null
   readonly saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null
   readonly domain: string
   readonly scope: string[]
-  readonly redirectSignIn: string
-  readonly redirectSignOut: string
-  readonly responseType: string
+  readonly redirectsSignIn: string[]
+  readonly redirectsSignOut: string[]
+  readonly responseType: 'code' | 'token'
 }
 
 /** Configuration options for a {@link OauthAmplifyConfig}. */
@@ -61,7 +58,7 @@ export interface NestedAmplifyConfig {
   readonly region: string
   readonly endpoint: string | undefined
   readonly userPoolId: string
-  readonly userPoolWebClientId: string
+  readonly userPoolClientId: string
   readonly oauth: OauthAmplifyConfig
 }
 
@@ -71,21 +68,27 @@ export interface NestedAmplifyConfig {
  * We use a flattened form of the config for easier object manipulation, but the AWS Amplify library
  * expects a nested form.
  */
-export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfig {
+export function toNestedAmplifyConfig(
+  config: AmplifyConfig,
+): Parameters<typeof Amplify.configure>[0] {
   return {
-    region: config.region,
-    // endpoint: config.endpoint,
-    // TODO: Use the endpoint when it is working.
-    endpoint: undefined,
-    userPoolId: config.userPoolId,
-    userPoolWebClientId: config.userPoolWebClientId,
-    oauth: {
-      options: config.urlOpener ? { urlOpener: config.urlOpener } : {},
-      domain: config.domain,
-      scope: config.scope,
-      redirectSignIn: config.redirectSignIn,
-      redirectSignOut: config.redirectSignOut,
-      responseType: config.responseType,
+    Auth: {
+      Cognito: {
+        // TODO: Use the endpoint when it is working.
+        // userPoolEndpointndpoint: config.endpoint,
+        userPoolId: config.userPoolId,
+        userPoolClientId: config.userPoolWebClientId,
+        loginWith: {
+          username: true,
+          oauth: {
+            domain: config.domain,
+            scopes: config.scope,
+            redirectSignIn: config.redirectsSignIn,
+            redirectSignOut: config.redirectsSignOut,
+            responseType: config.responseType,
+          },
+        },
+      },
     },
   }
 }
@@ -120,12 +123,7 @@ export function useInitAuthService(): AuthService {
   const router = useRouter()
   const config = useConfig()
 
-  const amplifyConfig = loadAmplifyConfig(
-    console,
-    toRef(config, 'remoteConfig'),
-    enableDeepLinks.value,
-    (url) => void router.push(url),
-  )
+  const amplifyConfig = loadAmplifyConfig(toRef(config, 'remoteConfig'), enableDeepLinks.value)
   const cognito = computed<Cognito | undefined>((oldValue) => {
     if (oldValue != undefined) {
       console.error('Remote config changed, but cannot update once initialized Cognito client.')
@@ -137,15 +135,17 @@ export function useInitAuthService(): AuthService {
     }
   })
 
+  if (detect.isOnElectron()) {
+    setDeepLinkHandler((url) => void router.push(url), cognito)
+  }
+
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
-  logger: Logger,
   remoteConfig: ToValue<RemoteConfig | undefined>,
   supportsDeepLinks: boolean,
-  navigate: (url: string) => void,
 ): Ref<AmplifyConfig | undefined> {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
@@ -175,32 +175,30 @@ function loadAmplifyConfig(
       authentication.openUrlInSystemBrowser(url)
     }
   }
-  if (detect.isOnElectron()) {
-    // To handle redirects back to the application from the system browser, a custom URL handler
-    // needs to be registered.
-    setDeepLinkHandler(logger, navigate)
-  }
 
-  /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect =
-    supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
+  // Even when using deeplinks, we register a current location as origin to handle sign-outs.
+  // (See Cognito.signInWithRedirectOptions method).
+  const signInOutRedirect = [
+    ...(supportsDeepLinks ? [`${common.DEEP_LINK_SCHEME}://auth`] : []),
+    window.location.origin,
+  ]
   return computed(() => {
     const cfg = toValue(remoteConfig)
-    if (cfg != null)
+    if (cfg != null) {
       return {
         endpoint: cfg.ENSO_IDE_AUTH_ENDPOINT,
         userPoolId: cfg.ENSO_IDE_COGNITO_USER_POOL_ID ?? '',
         userPoolWebClientId: cfg.ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
         domain: cfg.ENSO_IDE_COGNITO_DOMAIN ?? '',
         region: cfg.ENSO_IDE_COGNITO_REGION ?? '',
-        redirectSignIn: signInOutRedirect,
-        redirectSignOut: signInOutRedirect,
+        redirectsSignIn: signInOutRedirect,
+        redirectsSignOut: signInOutRedirect,
         scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
         responseType: 'code',
         urlOpener,
         saveAccessToken,
       }
-    else return undefined
+    } else return undefined
   })
 }
 
@@ -223,11 +221,11 @@ function loadAmplifyConfig(
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler.
  */
-function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
+function setDeepLinkHandler(navigate: (url: string) => void, cognito: Ref<Cognito | undefined>) {
   window.api?.authentication.setDeepLinkHandler((urlString: string) => {
     const result = parseEnsoDeeplink(urlString)
     if (!result.ok) {
-      logger.log(result.error.message())
+      console.error(result.error.message())
       return
     }
     const deeplink = result.value
@@ -258,39 +256,8 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
           navigate(appUtils.LOGIN_PATH)
         } else {
           // Signing in.
-          void (async () => {
-            // Try to find `error_description` and `error` in search params. This means something went wrong e.g
-            // missing user email address while using microsoft account.
-            const queryParams = new URLSearchParams(deeplink.search)
-            const error = queryParams.get('error')
-            const errorDescription = queryParams.get('error_description')
-            const text = useText()
-            if (error && errorDescription) {
-              if (errorDescription?.includes('Missing required user email value')) {
-                toastify.toast.error(text.getText('missingEmailError'))
-              } else {
-                toastify.toast.error(text.getText('registrationError'))
-              }
-            } else {
-              // Temporarily override the `history` object so that Amplify doesn't try to call
-              // `history.replaceState` (which doesn't work in the renderer process because of
-              // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
-              // work with a custom URL protocol in Electron.
-              // `history.replaceState` is only being saved here to be restored later.
-              // It will never be called without a bound `this`.
-              const replaceState = history.replaceState
-              history.replaceState = () => false
-              try {
-                // `_handleAuthResponse` is a private method without typings.
-                await amplify.Auth['_handleAuthResponse'](urlString)
-
-                navigate(appUtils.DASHBOARD_PATH)
-              } finally {
-                // Restore the original `history.replaceState` function.
-                history.replaceState = replaceState
-              }
-            }
-          })()
+          cognito.value?.resolveOngoingLogin({ type: 'success', url: urlString })
+          break
         }
         break
       }
