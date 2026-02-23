@@ -9,12 +9,10 @@ from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 from Standard.Table import Table, Value_Type
 
 import project.Internal.In_Transaction.In_Transaction
-import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 from project.Errors import SQL_Error, SQL_Timeout
-from project.Internal.Result_Set import result_set_to_table
 
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
@@ -105,30 +103,25 @@ type JDBC_Connection
           enabled. This is used to avoid logging a query that is not really run
           (e.g. `ensure_query_has_no_holes` which prepares a statement but does
           not execute it).
-    with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
-    with_prepared_statement self query statement_setter action skip_log=False = _synchronized self <| _profile_sql_if_enabled self query.to_text skip_log=skip_log <|
+    with_prepared_statement : Text | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
+    with_prepared_statement self query:(Text | SQL_Statement) statement_setter action skip_log=False = _synchronized self <| _profile_sql_if_enabled self query.to_text skip_log=skip_log <|
         prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
-            handle_illegal_state caught_panic =
-                Error.throw (Illegal_Argument.Error caught_panic.payload.message)
+
             handle_any caught_panic =
                 stmt.close
-                Panic.throw caught_panic
-            result = Panic.catch Illegal_State handler=handle_illegal_state <|
-                Panic.catch Any handler=handle_any <|
-                    _set_statement_values stmt statement_setter values
-            result.if_not_error <|
-                stmt
+                mapped_panic = if caught_panic.payload.is_a Illegal_State . not then caught_panic else
+                    Illegal_Argument.Error caught_panic.payload.message
+                Panic.throw mapped_panic
 
-        go template values =
-            self.sql_error_handler related_query=template <|
-                Managed_Resource.bracket (prepare template values) .close action
+            result = Panic.catch Any handler=handle_any <|
+                _set_statement_values stmt statement_setter values
+            Error.return_if_error result
+            stmt
 
-        case query of
-            _ : Text -> go query []
-            SQL_Statement.Value _ ->
-                compiled = query.prepare
-                go compiled.first compiled.second
+        prepared = if query.is_a Text then [query, []] else query.prepare
+        self.sql_error_handler related_query=prepared.first <|
+            Managed_Resource.bracket (prepare prepared.first prepared.second) .close action
 
     ## ---
        private: true
@@ -159,58 +152,18 @@ type JDBC_Connection
     ## ---
        private: true
        ---
-       Given a prepared statement, gets the column names and types for the result
-       set.
-    raw_fetch_columns : Text | SQL_Statement -> Boolean -> Statement_Setter -> Any
-    raw_fetch_columns self statement execute_query statement_setter =
-        self.with_prepared_statement statement statement_setter stmt->
-            metadata = case execute_query of
-                True ->
-                    rs = stmt.executeQuery
-                    SQL_Warning_Helper.process_warnings rs <|
-                        rs.getMetaData
-                False ->
-                    stmt.getMetaData
-
-            resolve_column ix =
-                name = metadata.getColumnLabel ix+1
-                sql_type = SQL_Type.from_metadata metadata ix+1
-                [name, sql_type]
-
-            columns = Vector.new metadata.getColumnCount resolve_column
-            SQL_Warning_Helper.process_warnings stmt <|
-                columns
-
-    ## ---
-       private: true
-       ---
-       Reads a raw SQL statement, using a very simple dialect-agnostic type
-       mapping.
-       It may be used for accessing simple database metadata. It should never be
-       used for proper queries.
-    raw_read_statement : Text -> Any -> Table
-    raw_read_statement self raw_sql column_fetcher_factory =
-        self.with_prepared_statement raw_sql Statement_Setter.null stmt->
-            rs = stmt.executeQuery
-            table = result_set_to_table rs column_fetcher_factory
-            SQL_Warning_Helper.process_warnings stmt <|
-                table
-
-    ## ---
-       private: true
-       ---
        Checks that the query has no holes, and if it does, throws an error.
     ensure_query_has_no_holes : Text -> Nothing ! Illegal_Argument
-    ensure_query_has_no_holes self raw_sql =
-        self.with_prepared_statement raw_sql Statement_Setter.null skip_log=True stmt->
-            ## We cannot run this check on every query, because in some
-              backends (e.g. Postgres) running `getParameterMetaData`
-              seems to trigger logic for figuring out types of the holes.
-              In some of our generated queries, the driver is unable to
-              figure out the types and fails with an exception.
-            expected_parameter_count = stmt.getParameterMetaData.getParameterCount
-            if expected_parameter_count != 0 then
-                Error.throw <| Illegal_Argument.Error 'The provided raw SQL query should not contain any holes ("?").'
+    ensure_query_has_no_holes self raw_sql:Text = self.with_connection java_connection->
+        ## We cannot run this check on every query, because in some
+           backends (e.g. Postgres) running `getParameterMetaData`
+           seems to trigger logic for figuring out types of the holes.
+           In some of our generated queries, the driver is unable to
+           figure out the types and fails with an exception.
+        stmt = java_connection.prepareStatement raw_sql
+        expected_parameter_count = stmt.getParameterMetaData.getParameterCount
+        if expected_parameter_count != 0 then
+            Error.throw <| Illegal_Argument.Error 'The provided raw SQL query should not contain any holes ("?").'
 
     ## ---
        private: true

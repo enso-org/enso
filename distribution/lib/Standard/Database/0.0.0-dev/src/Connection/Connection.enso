@@ -358,12 +358,22 @@ type Connection
     ## ---
        private: true
        ---
-       Given a prepared statement, gets the column names and types for the result
-       set.
+       Given a statement, gets the column names and types for the result set.
     fetch_columns : Text | SQL_Statement -> Any
     fetch_columns self statement =
         needs_execute_query = self.dialect.needs_execute_query_for_type_inference statement
-        self.jdbc_connection.raw_fetch_columns statement needs_execute_query self.type_mapping.statement_setter
+        self.jdbc_connection.with_prepared_statement statement self.type_mapping.statement_setter stmt->
+            metadata = if needs_execute_query.not then stmt.getMetaData else
+                rs = stmt.executeQuery
+                SQL_Warning_Helper.process_warnings rs <|
+                    rs.getMetaData
+
+            columns = 0.up_to metadata.getColumnCount . map ix->
+                name = metadata.getColumnLabel ix+1
+                sql_type = SQL_Type.from_metadata metadata ix+1
+                [name, sql_type]
+
+            SQL_Warning_Helper.process_warnings stmt columns
 
     ## ---
        private: true
