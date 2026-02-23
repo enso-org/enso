@@ -1318,5 +1318,7 @@
   "developerBindingCategory": "Developer",
   "syncingProjectsTitle": "Syncing projects",
   "syncingProjectsMessage": "Syncing projects with Cloud…",
-  "switchingOrganization": "Switching organization…"
+  "switchingOrganization": "Switching organization…",
+  "organizationSwitched": "Organization switched.",
+  "switchingOrganizationError": "Could not switch organization."
 }

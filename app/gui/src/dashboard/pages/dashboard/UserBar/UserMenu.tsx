@@ -15,7 +15,7 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
-import { Plan } from 'enso-common/src/services/Backend'
+import { NetworkError, Plan } from 'enso-common/src/services/Backend'
 import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { toast } from 'react-toastify'
 
@@ -46,14 +46,20 @@ export function UserMenu(props: UserMenuProps) {
           isSelected: user.organizationId === organization.id,
           action: 'switchOrganization',
           doAction: () => {
-            const toastId = toast.loading(getText('switchingOrganization'), { isLoading: true })
-
             if (user.organizationId !== organization.id) {
-              void updateUser([{ organizationId: organization.id, switchOrganization: true }]).then(
-                () => {
-                  toast.done(toastId)
+              const update = updateUser([
+                { organizationId: organization.id, switchOrganization: true },
+              ])
+              toast.promise(update, {
+                success: getText('organizationSwitched'),
+                pending: getText('switchingOrganization'),
+                error: {
+                  render: ({ data: err }) =>
+                    err instanceof NetworkError ?
+                      err.message
+                    : getText('switchingOrganizationError'),
                 },
-              )
+              })
             }
           },
           label: `${organization.name} (${user.organizationId === organization.id ? 'current' : 'switch'})`,
