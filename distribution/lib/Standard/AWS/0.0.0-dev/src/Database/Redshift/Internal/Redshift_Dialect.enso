@@ -280,9 +280,8 @@ type Redshift_Dialect
             True ->
                 db_type = mapping.sql_type_to_value_type column.sql_type_reference.get
                 case db_type of
-                    Value_Type.Char _ _ -> case db_type == approximate_result_type of
-                        True -> column
-                        False ->
+                    Value_Type.Char _ _ ->
+                        if db_type == approximate_result_type then column else
                             type_override = mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
                             type_override.catch Inexact_Type_Coercion _->
                                 Panic.throw <|
