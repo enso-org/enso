@@ -1345,7 +1345,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     val editFileResponses =
-      context.receiveNIgnoreExpressionUpdates(4)
+      context.receiveNIgnoreExpressionUpdates(3)
 
     editFileResponses should contain(
       context.executionComplete(contextId)
@@ -1396,11 +1396,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
     val modifyVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(4)
+      context.receiveNIgnoreExpressionUpdates(2)
 
-    modifyVisualizationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualizationModified()),
-      context.executionComplete(contextId)
+    modifyVisualizationResponses should contain (
+      Api.Response(requestId, Api.VisualizationModified())
     )
     val visualizationUpdates2 =
       modifyVisualizationResponses.collect {

@@ -23,7 +23,7 @@ class ExecuteJob(
   stack: List[InstrumentFrame],
   val executionEnvironment: Option[Api.ExecutionEnvironment],
   triggerContext: String,
-  val visualizationTriggered: Option[UUID] = None
+  val visualizationTriggered: Iterable[UUID] = Seq()
 ) extends Job[Unit](
       List(contextId),
       isCancellable = executionEnvironment.forall(ee =>
@@ -156,27 +156,43 @@ class ExecuteJob(
                   )
                 )
                 throw e;
+            } finally {
+              // Check for unprocessed visualizations and reschedule if needed
+              if (mayInterruptIfRunning) {
+                val holder =
+                  ctx.contextManager.getVisualizationHolder(contextId)
+                val unevaluatedVisualizationIds =
+                  holder.getAllUnevaluated.map(_.id)
+                if (unevaluatedVisualizationIds.nonEmpty) {
+                  if (
+                    visualizationTriggered == unevaluatedVisualizationIds &&
+                    triggerContext == ExecuteJob.PendingVisualizationsTriggerContext
+                  ) {
+                    ExecuteJob.logger.error(
+                      "Rescheduled ExecuteJob[{}] failed to process pending visualizations {}",
+                      _jobId,
+                      unevaluatedVisualizationIds
+                    )
+                  } else {
+                    ExecuteJob.logger.debug(
+                      "Rescheduling ExecuteJob[{}] to process pending visualizations {}",
+                      _jobId,
+                      unevaluatedVisualizationIds
+                    )
+                    ctx.jobProcessor.run(
+                      new ExecuteJob(
+                        contextId,
+                        stack,
+                        executionEnvironment,
+                        ExecuteJob.PendingVisualizationsTriggerContext,
+                        unevaluatedVisualizationIds
+                      )
+                    )
+                  }
+                }
+              }
             }
         )
-        // Check for unprocessed visualizations and reschedule if needed
-        if (mayInterruptIfRunning) {
-          val holder = ctx.contextManager.getVisualizationHolder(contextId)
-          if (holder.hasPendingVisualizations) {
-            ExecuteJob.logger.debug(
-              "Rescheduling ExecuteJob[{}] to process pending visualizations",
-              _jobId
-            )
-            ctx.jobProcessor.run(
-              new ExecuteJob(
-                contextId,
-                stack,
-                executionEnvironment,
-                "pending visualizations",
-                None
-              )
-            )
-          }
-        }
       }
     )
   }
@@ -190,6 +206,8 @@ class ExecuteJob(
 object ExecuteJob {
   final private lazy val logger: Logger =
     LoggerFactory.getLogger(classOf[ExecuteJob])
+
+  private val PendingVisualizationsTriggerContext = "pending visualizations"
 
   /** Create execute job from the executable.
     *
@@ -208,7 +226,7 @@ object ExecuteJob {
       executable.stack.toList,
       None,
       triggerContext,
-      visualizationTriggered
+      visualizationTriggered.toSeq
     )
 
   /** Create execute job from the context and stack.

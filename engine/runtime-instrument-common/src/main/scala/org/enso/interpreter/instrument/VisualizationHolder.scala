@@ -148,7 +148,7 @@ class VisualizationHolder {
     unevaluatedMap(expressionId)
   }
 
-  /** Gets ALL unevaluated visualizations across all expressions. */
+  /** Gets all unevaluated visualizations across all expressions. */
   @CompilerDirectives.TruffleBoundary
   def getAllUnevaluated: Iterable[UnevaluatedVisualization] = synchronized {
     unevaluatedMap.values.flatten.toList
