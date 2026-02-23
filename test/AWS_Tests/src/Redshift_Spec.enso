@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table, Value_Type, Bits
+import Standard.AWS.Database.Redshift.Redshift_Connection.Redshift_Connection
 
 from Standard.Database import all
 import Standard.Database.Dialects.Feature.Feature
@@ -82,7 +83,7 @@ add_database_specs suite_builder create_connection_fn =
         default_connection.get.create_literal_table (Table.new columns) "literal_table"
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config run_advanced_edge_case_tests_by_default=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Redshift_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False first_last_row_order=False aggregation_problems=False date_support=False multi_distinct=False
     agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
     agg_table_fn = _->
