@@ -271,7 +271,7 @@ export function createSessionStore(
   })
   onScopeDispose(unregister)
 
-  const organizationId = () => toValue(authService)?.organizationId
+  const organizationId = () => toValue(authService)?.organizationId()
 
   const getMFAPreference = async () => {
     const result = await assertAuthService().getMFAPreference()
