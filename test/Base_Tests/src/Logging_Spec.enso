@@ -1,12 +1,18 @@
 private
 
 from Standard.Base.Logging import all
+from Standard.Base import File, Nothing
 from Standard.Test import all
+
+import Standard.Base.System.Process
+import project.Enso_Bin_Utils
 
 type Type_In_Private_Module
 
 add_specs suite_builder = suite_builder.group "Logging" group_builder->
     value = 42
+
+    tmp_root = Enso_Bin_Utils.create_tmp_dir
 
     group_builder.specify "should do nothing on logging" <|
         value.log_message "Hidden message" Log_Level.Finest
@@ -15,3 +21,39 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
     group_builder.specify "should do nothing on logging" <|
         Type_In_Private_Module.log_message "Hidden message" Log_Level.Finest
         Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine
+
+    group_builder.specify "default logging into a file" <|
+        prj_dir = tmp_root / "default_logging"
+        prj_dir.create_directory
+
+        prj = Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+            from Standard.Base.Logging import all
+
+            type Typ
+
+            main msg="This is a log!" =
+                log level =
+                    fmt = level.to_text + ":" + msg.to_text
+                    Typ.log_message fmt level
+
+                log Log_Level.Finest
+                log Log_Level.Fine
+                log Log_Level.Info
+                log Log_Level.Warning
+                log Log_Level.Severe
+
+        proc = Process.new_builder "enso"
+            . set_arguments ["--run", prj.to_text]
+            . set_directory prj_dir
+            . create
+
+        ENSO_LOG_DIRECTORY="/tmp/elog/"
+
+        # TBD: check output of console
+        # TBD: check output in the file
+        Test.fail proc.stdout+proc.stderr+proc.exit_code.to_text
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
