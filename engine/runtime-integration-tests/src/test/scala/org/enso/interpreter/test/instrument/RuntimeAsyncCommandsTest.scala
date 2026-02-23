@@ -656,12 +656,12 @@ class RuntimeAsyncCommandsTest
   }
 
   it should "interrupt running execution context without sending Panic in visualization updates" in {
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
+    val contextId        = UUID.randomUUID()
+    val requestId        = UUID.randomUUID()
     val visualizationId1 = UUID.randomUUID()
     val visualizationId2 = UUID.randomUUID()
-    val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+    val moduleName       = "Enso_Test.Test.Main"
+    val metadata         = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val visualizationFile =
       context.writeInSrcDir("Visualization", Visualization.code)
