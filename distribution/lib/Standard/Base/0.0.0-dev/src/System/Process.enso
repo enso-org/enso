@@ -62,4 +62,4 @@ new_builder command:Text arguments=[]:(Vector Text) stdin="":Text -> Process_Bui
          File_Utils.getExecutableLocation
       else
          command
-   Process_Builder.Value cmd arguments stdin Nothing
+   Process_Builder.new cmd arguments stdin

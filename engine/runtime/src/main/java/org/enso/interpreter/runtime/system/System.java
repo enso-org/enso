@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 
@@ -65,7 +66,7 @@ public class System {
   @Builtin.WrapException(from = InterruptedException.class)
   @CompilerDirectives.TruffleBoundary
   @ExplodeLoop
-  public static Atom createProcess(
+  public static Atom create_process(
       EnsoContext ctx,
       Object command,
       Object arguments,
@@ -74,6 +75,7 @@ public class System {
       boolean redirectOut,
       boolean redirectErr,
       Object cwdOrNothing,
+      EnsoHashMap env,
       @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
@@ -93,6 +95,8 @@ public class System {
     var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
     var out = new ByteArrayOutputStream();
     var err = new ByteArrayOutputStream();
+
+    java.lang.System.err.println("Got env: " + env);
 
     boolean startedWritingtoOut = false;
     try (OutputStream processIn = p.getOutputStream()) {

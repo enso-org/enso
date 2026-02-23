@@ -1,7 +1,7 @@
 private
 
 from Standard.Base.Logging import all
-from Standard.Base import File, Nothing
+from Standard.Base import File, Nothing, Data
 from Standard.Test import all
 
 import Standard.Base.System.Process
@@ -26,6 +26,9 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         prj_dir = tmp_root / "default_logging"
         prj_dir.create_directory
 
+        logs_dir = prj_dir / "logs"
+        logs_dir.create_directory
+
         prj = Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
             from Standard.Base.Logging import all
 
@@ -45,12 +48,18 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         proc = Process.new_builder "enso"
             . set_arguments ["--run", prj.to_text]
             . set_directory prj_dir
+            . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
             . create
 
-        ENSO_LOG_DIRECTORY="/tmp/elog/"
+        arr = logs_dir.list 
+        arr.length . should_equal 1
+
+        log = Data.read (arr.at 0)
+
+        # TBD: check output in the file
+        Test.fail log.to_text
 
         # TBD: check output of console
-        # TBD: check output in the file
         Test.fail proc.stdout+proc.stderr+proc.exit_code.to_text
 
 main filter=Nothing =
