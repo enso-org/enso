@@ -156,7 +156,7 @@ add_column_operation_specs suite_builder setup =
     light_table_builder = setup.light_table_builder
     pending_datetime = if (setup.flagged ..Date_Time).not then "Date/Time operations are not supported by this backend."
 
-    suite_builder.group prefix+"(ColumnOperations_Spec) Rounding numeric tests" group_builder->
+    suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
         round_one rounding_method n dp=0 rounding_mode=Rounding_Mode.Half_Up =
             table = light_table_builder [["x", [n]]]
             result = rounding_method (table.at "x") dp rounding_mode
