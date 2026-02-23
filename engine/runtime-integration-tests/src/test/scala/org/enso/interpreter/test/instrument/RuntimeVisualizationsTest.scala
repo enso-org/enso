@@ -1398,7 +1398,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     val modifyVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(2)
 
-    modifyVisualizationResponses should contain (
+    modifyVisualizationResponses should contain(
       Api.Response(requestId, Api.VisualizationModified())
     )
     val visualizationUpdates2 =
