@@ -15,6 +15,4 @@
     - with_metadata self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_prepared_statement self query:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any action:Standard.Base.Any.Any skip_log:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - create types_record:Standard.Base.Any.Any url:Standard.Base.Data.Text.Text properties:Standard.Base.Data.Vector.Vector catalog:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
-- log_sql_if_enabled jdbc_connection:Standard.Base.Any.Any ~query_text:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- profile_sql_if_enabled jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection ~query_text:Standard.Base.Data.Text.Text ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - set_statement_values stmt:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any values:Standard.Base.Any.Any expected_type_hints:Standard.Base.Any.Any= -> Standard.Base.Any.Any
