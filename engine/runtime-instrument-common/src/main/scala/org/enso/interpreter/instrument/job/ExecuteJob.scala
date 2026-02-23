@@ -19,8 +19,8 @@ import java.util.concurrent.ExecutionException
   * @param visualizationTriggered the UUID of an expression that triggered this execution when executing an expression
   */
 class ExecuteJob(
-  contextId: UUID,
-  stack: List[InstrumentFrame],
+  val contextId: UUID,
+  val stack: List[InstrumentFrame],
   val executionEnvironment: Option[Api.ExecutionEnvironment],
   triggerContext: String,
   val visualizationTriggered: Iterable[UUID] = Seq()
@@ -34,7 +34,8 @@ class ExecuteJob(
       mayInterruptIfRunning = executionEnvironment.forall(ee =>
         ee.name != Api.ExecutionEnvironment.Live().name
       )
-    ) {
+    )
+    with UniqueJob[Unit] {
 
   private var _threadName: String            = "<unknown>"
   @volatile private var _hasStarted: Boolean = false
@@ -46,6 +47,16 @@ class ExecuteJob(
 
   override def setJobId(id: UUID): Unit = {
     _jobId = id
+  }
+
+  override def equalsTo(that: UniqueJob[_]): Boolean = {
+    that match {
+      case e: ExecuteJob =>
+        e.contextId == contextId &&
+        e.stack.map(_.item) == stack.map(_.item) &&
+        e.executionEnvironment == executionEnvironment
+      case _ => false
+    }
   }
 
   /** @inheritdoc */

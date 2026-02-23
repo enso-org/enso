@@ -311,7 +311,7 @@ final class JobExecutionEngine(
       .flatMap { runningJob =>
         if (
           runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
-            .contains(runningJob.getClass))
+            .contains(runningJob.job.getClass))
         ) {
           logger.debug(
             "Aborting job {} because {}",

@@ -47,7 +47,7 @@ class AttachVisualizationCmd(
         ctx.jobProcessor.run(
           ExecuteJob(
             executable,
-            "attach/upsert visualization (id=" + request.visualizationId + ")"
+            s"attach/upsert visualization (id=${request.visualizationId})"
           )
         )
     }
