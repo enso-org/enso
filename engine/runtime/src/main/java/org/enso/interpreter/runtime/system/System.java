@@ -79,7 +79,7 @@ public class System {
       boolean redirectOut,
       boolean redirectErr,
       Object cwdOrNothing,
-      EnsoHashMap env,
+      Object envOrNothing,
       @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
@@ -96,19 +96,21 @@ public class System {
       pb.directory(tPath);
     }
 
-    var vectorOfPairs = HashMapToVectorNode.getUncached().execute(env);
-    var len = ArrayLikeLengthNode.getUncached().executeLength(vectorOfPairs);
-    for (var i = 0L; i < len; i++) {
-      try {
-        var pair = ArrayLikeAtNode.getUncached().executeAt(vectorOfPairs, i);
-        var key = ArrayLikeAtNode.getUncached().executeAt(pair, 0);
-        var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
+    if (envOrNothing instanceof EnsoHashMap env) {
+      var vectorOfPairs = HashMapToVectorNode.getUncached().execute(env);
+      var len = ArrayLikeLengthNode.getUncached().executeLength(vectorOfPairs);
+      for (var i = 0L; i < len; i++) {
+        try {
+          var pair = ArrayLikeAtNode.getUncached().executeAt(vectorOfPairs, i);
+          var key = ArrayLikeAtNode.getUncached().executeAt(pair, 0);
+          var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
 
-        var strKey = expectStringNode.execute(key);
-        var strValue = expectStringNode.execute(value);
-        pb.environment(strKey, strValue);
-      } catch (InvalidArrayIndexException ex) {
-        throw ctx.raiseAssertionPanic(expectStringNode, null, ex);
+          var strKey = expectStringNode.execute(key);
+          var strValue = expectStringNode.execute(value);
+          pb.environment(strKey, strValue);
+        } catch (InvalidArrayIndexException ex) {
+          throw ctx.raiseAssertionPanic(expectStringNode, null, ex);
+        }
       }
     }
 
