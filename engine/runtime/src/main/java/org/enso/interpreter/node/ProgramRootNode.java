@@ -10,6 +10,8 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -110,11 +112,11 @@ public final class ProgramRootNode extends RootNode {
 
   private static String findName(Source src) {
     var segs = src.getName().split("\\.");
-    if (segs.length == 0) {
-      return "Unnamed";
-    } else {
-      return segs[0];
-    }
+    return switch (segs.length) {
+      case 0 -> "Unnamed";
+      case 1 -> segs[0];
+      default -> Stream.of(segs).limit(segs.length - 1).collect(Collectors.joining("."));
+    };
   }
 
   private static QualifiedName findQualifiedNameInPackage(
