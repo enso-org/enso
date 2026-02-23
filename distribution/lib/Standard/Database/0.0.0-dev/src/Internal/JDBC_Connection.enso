@@ -116,7 +116,7 @@ type JDBC_Connection
                 Panic.throw caught_panic
             result = Panic.catch Illegal_State handler=handle_illegal_state <|
                 Panic.catch Any handler=handle_any <|
-                    set_statement_values stmt statement_setter values
+                    _set_statement_values stmt statement_setter values
             result.if_not_error <|
                 stmt
 
@@ -277,7 +277,7 @@ type JDBC_Connection
                                 Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                 0.up_to num_rows . each row_id->
                     values = columns.map col-> col.at row_id
-                    set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
+                    _set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
                     stmt.addBatch
                     if (row_id+1) % batch_size == 0 then check_rows stmt.executeBatch batch_size
                 if num_rows % batch_size != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -341,8 +341,7 @@ private close_connection connection:Connection -> Nothing =
    A list of expected value types can be passed as `expected_type_hints` to add
    these hints to the `Statement_Setter` to customize the behaviour for some
    specific target value types.
-set_statement_values : PreparedStatement -> Statement_Setter -> Vector -> Vector Value_Type | Nothing -> Nothing
-set_statement_values stmt statement_setter values expected_type_hints=Nothing =
+private _set_statement_values stmt:PreparedStatement statement_setter:Statement_Setter values:Vector (expected_type_hints : (Vector Value_Type | Nothing) = Nothing) -> Nothing =
     values.each_with_index ix-> value->
         type_hint = case expected_type_hints of
             Nothing -> Nothing
@@ -382,8 +381,8 @@ private _profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text
    ---
    Runs the provided action ensuring that no other thread is working with
    this Connection concurrently.
-private _synchronized connection ~action =
+private _synchronized (jdbc_connection : JDBC_Connection) ~action =
     ## Workaround for https://github.com/enso-org/enso/issues/7117
        Once the bug is fixed, we should prefer `runSynchronizedAction`.
-    connection.operation_synchronizer.enterSynchronizedAction
-    Panic.with_finalizer connection.operation_synchronizer.exitSynchronizedAction action
+    jdbc_connection.operation_synchronizer.enterSynchronizedAction
+    Panic.with_finalizer jdbc_connection.operation_synchronizer.exitSynchronizedAction action
