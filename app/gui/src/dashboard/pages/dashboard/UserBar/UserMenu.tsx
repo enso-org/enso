@@ -51,7 +51,7 @@ export function UserMenu(props: UserMenuProps) {
               const update = updateUser([
                 { organizationId: organization.id, switchOrganization: true },
               ])
-              toast.promise(update, {
+              void toast.promise(update, {
                 success: getText('organizationSwitched'),
                 pending: getText('switchingOrganization'),
                 error: {
