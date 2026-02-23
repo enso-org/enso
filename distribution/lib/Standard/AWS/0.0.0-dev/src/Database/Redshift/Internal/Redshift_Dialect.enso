@@ -122,45 +122,45 @@ type Redshift_Dialect
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
-       # Amazon Redshift does not support using VALUES(...) as a table expression
-       # in the FROM clause. To represent inline literal tables, we therefore
-       # generate a SELECT ... UNION ALL SELECT ... construct instead, which
-       # Redshift accepts and which preserves the same semantics.
-       rows = vecs.transpose
-       if rows.is_empty then
-           Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
-       first_row = rows.at 0
-       column_types = vecs.map column_values->
-           Value_Type_Helpers.find_common_type_for_arguments column_values
+        # Amazon Redshift does not support using VALUES(...) as a table expression
+        # in the FROM clause. To represent inline literal tables, we therefore
+        # generate a SELECT ... UNION ALL SELECT ... construct instead, which
+        # Redshift accepts and which preserves the same semantics.
+        rows = vecs.transpose
+        if rows.is_empty then
+            Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
+        first_row = rows.at 0
+        column_types = vecs.map column_values->
+            Value_Type_Helpers.find_common_type_for_arguments column_values
 
-       wrapped_name = self.wrap_identifier as_name
-       column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
+        wrapped_name = self.wrap_identifier as_name
+        column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
 
-       format_value value column_type =
-           if column_type.is_boolean then SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS bool)" else 
-               if column_type.is_text then SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS varchar(65535))" else 
-                   if column_type.is_floating_point then SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS float)" else 
-                       if column_type.is_integer then SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS int)" else 
-                           SQL_Builder.interpolation value
+        format_value value column_type = case column_type of
+            Value_Type.Boolean -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS bool)"
+            Value_Type.Char _ _ -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS varchar(65535))"
+            Value_Type.Float _ -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS float)"
+            Value_Type.Integer _ -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS int)"
+            _ -> SQL_Builder.interpolation value
  
-       cols = 0.up_to column_names.length . map i->
-           value = first_row.at i
-           column_type = column_types.at i
-           col_name = column_names.at i
-           format_value value column_type ++ SQL_Builder.code " AS " ++ self.wrap_identifier col_name
+        cols = 0.up_to column_names.length . map i->
+            value = first_row.at i
+            column_type = column_types.at i
+            col_name = column_names.at i
+            format_value value column_type ++ SQL_Builder.code " AS " ++ self.wrap_identifier col_name
 
-       # SELECT <v1> AS col1, <v2> AS col2, ...
-       first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
+        # SELECT <v1> AS col1, <v2> AS col2, ...
+        first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
  
-       # UNION ALL SELECT <v1>, <v2>, ...
-       rest_selects = rows.drop 1 . map row->
-           values = 0.up_to column_names.length . map i->
-               format_value (row.at i) (column_types.at i)
-           SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " values)
+        # UNION ALL SELECT <v1>, <v2>, ...
+        rest_selects = rows.drop 1 . map row->
+            values = 0.up_to column_names.length . map i->
+                format_value (row.at i) (column_types.at i)
+            SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " values)
  
-       union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
+        union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
  
-       SQL_Builder.code "(" ++ union_body ++ ") AS " ++ wrapped_name ++ column_list
+        SQL_Builder.code "(" ++ union_body ++ ") AS " ++ wrapped_name ++ column_list
 
     ## ---
        private: true
