@@ -143,7 +143,7 @@ export interface UserInfo {
    */
   readonly maintainerAccount?: boolean
   /** Array containing all `OrganizationInfo` that `User` belongs to. */
-  readonly organizations: readonly OrganizationInfo[]
+  readonly organizations?: readonly OrganizationInfo[]
 }
 
 /** A user in the application. These are the primary owners of a project. */

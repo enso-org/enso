@@ -38,8 +38,9 @@ export function UserMenu(props: UserMenuProps) {
   const toggleEnsoDevtools = useToggleEnsoDevtools()
   const updateUser = useMutationCallback(backendMutationOptions(remoteBackend, 'updateUser'))
 
+  const userOrganizations = user.organizations ?? []
   const organizationsSwitcher = useMenuEntries(
-    user.organizations
+    userOrganizations
       .filter((organization) => organization.name != null)
       .map((organization) => {
         return {
