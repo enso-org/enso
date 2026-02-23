@@ -1,10 +1,9 @@
 private
 
 from Standard.Base.Logging import all
-from Standard.Base import File, Nothing, Data
+from Standard.Base import all
 from Standard.Test import all
 
-import Standard.Base.System.Process
 import project.Enso_Bin_Utils
 
 type Type_In_Private_Module
@@ -46,21 +45,45 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
                 log Log_Level.Severe
 
         proc = Process.new_builder "enso"
-            . set_arguments ["--run", prj.to_text]
+            . set_arguments ["--run", prj.to_text, "Ahoj"]
             . set_directory prj_dir
             . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
+            . set_env "JAVA_TOOL_OPTIONS" "-ea"
             . create
 
         arr = logs_dir.list 
         arr.length . should_equal 1
 
-        log = Data.read (arr.at 0)
+        log = Data.read (arr.at 0) : Text
 
-        # TBD: check output in the file
-        Test.fail log.to_text
+        log . not_contains_line "*Finest:Ahoj"
+        log . contains_line "DEBUG.*Fine:Ahoj"
+        log . contains_line "INFO.*Info:Ahoj"
+        log . contains_line "WARN.*Warning:Ahoj"
+        log . contains_line "ERROR.*Severe:Ahoj"
 
-        # TBD: check output of console
-        Test.fail proc.stdout+proc.stderr+proc.exit_code.to_text
+        console_log = proc.stdout+proc.stderr
+        console_log . not_contains_line "*Finest:Ahoj"
+        console_log . not_contains_line "DEBUG.*Fine:Ahoj"
+        console_log . not_contains_line "INFO.*Info:Ahoj"
+        console_log . contains_line "WARN.*Warning:Ahoj"
+        console_log . contains_line "ERROR.*Severe:Ahoj"
+
+Text.contains_line self regex:Text =
+    r = Regex.compile regex
+    found = self.split "\n" . find \line->
+        subline = r.find line
+        subline.is_nothing.not
+    if found.is_error then
+        Test.fail "Cannot find "+regex+" among:\n"+self
+
+Text.not_contains_line self regex:Text =
+    r = Regex.compile regex
+    found = self.split "\n" . find \line->
+        subline = r.find line
+        subline.is_nothing.not
+    if found.is_error.not then
+        Test.fail "Unexpectedly found "+regex+" among:\n"+self
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.system;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import java.io.ByteArrayInputStream;
@@ -16,8 +17,11 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapToVectorNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 
 public class System {
 
@@ -91,12 +95,27 @@ public class System {
       var tPath = ctx.getPublicTruffleFile(path);
       pb.directory(tPath);
     }
+
+    var vectorOfPairs = HashMapToVectorNode.getUncached().execute(env);
+    var len = ArrayLikeLengthNode.getUncached().executeLength(vectorOfPairs);
+    for (var i = 0L; i < len; i++) {
+      try {
+        var pair = ArrayLikeAtNode.getUncached().executeAt(vectorOfPairs, i);
+        var key = ArrayLikeAtNode.getUncached().executeAt(pair, 0);
+        var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
+
+        var strKey = expectStringNode.execute(key);
+        var strValue = expectStringNode.execute(value);
+        pb.environment(strKey, strValue);
+      } catch (InvalidArrayIndexException ex) {
+        throw ctx.raiseAssertionPanic(expectStringNode, null, ex);
+      }
+    }
+
     var p = pb.start();
     var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
     var out = new ByteArrayOutputStream();
     var err = new ByteArrayOutputStream();
-
-    java.lang.System.err.println("Got env: " + env);
 
     boolean startedWritingtoOut = false;
     try (OutputStream processIn = p.getOutputStream()) {
