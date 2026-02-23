@@ -41,22 +41,11 @@ type JDBC_Connection
     ## ---
        private: true
        ---
-       Runs the provided action ensuring that no other thread is working with
-       this Connection concurrently.
-    synchronized self ~action =
-        ## Workaround for https://github.com/enso-org/enso/issues/7117
-           Once the bug is fixed, we should prefer `runSynchronizedAction`.
-        self.operation_synchronizer.enterSynchronizedAction
-        Panic.with_finalizer self.operation_synchronizer.exitSynchronizedAction action
-
-    ## ---
-       private: true
-       ---
        Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
        The connection is not usable afterwards.
     close : Nothing
-    close self = self.synchronized <|
+    close self = _synchronized self <|
         self.connection_resource . finalize
 
     ## ---
@@ -65,7 +54,7 @@ type JDBC_Connection
        Open the connection to the database, then run the action wrapping any SQL
        errors.
     with_connection : (Connection -> Any) -> Any
-    with_connection self action = self.synchronized <|
+    with_connection self action = _synchronized self <|
         self.connection_resource.with action
 
     ## ---
@@ -117,7 +106,7 @@ type JDBC_Connection
           (e.g. `ensure_query_has_no_holes` which prepares a statement but does
           not execute it).
     with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
-    with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <| profile_sql_if_enabled self query.to_text <|
+    with_prepared_statement self query statement_setter action skip_log=False = _synchronized self <| profile_sql_if_enabled self query.to_text <|
         prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
             handle_illegal_state caught_panic =
@@ -151,7 +140,7 @@ type JDBC_Connection
        It is needed for SQLServer temp table creation where we need to execute a
        raw SQL statement outside of a stored procedure.
     execute : Text | SQL_Statement -> Any
-    execute self query:(Text | SQL_Statement) = self.synchronized <| profile_sql_if_enabled self query.to_text <|
+    execute self query:(Text | SQL_Statement) = _synchronized self <| profile_sql_if_enabled self query.to_text <|
         compiled_query = case query of
             _ : Text -> query
             SQL_Statement.Value _ -> query.prepare.first
@@ -343,8 +332,7 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
 
    ## Arguments
     - `connection`: The connection to close.
-close_connection : Connection -> Nothing
-close_connection connection =
+private close_connection connection:Connection -> Nothing =
     connection.close
 
 ## ---
@@ -406,3 +394,15 @@ profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) 
                 Context.Output.with_enabled <|
                     log_line.write path on_existing_file=Existing_File_Behavior.Append
                 result
+
+
+## ---
+   private: true
+   ---
+   Runs the provided action ensuring that no other thread is working with
+   this Connection concurrently.
+private _synchronized connection ~action =
+    ## Workaround for https://github.com/enso-org/enso/issues/7117
+       Once the bug is fixed, we should prefer `runSynchronizedAction`.
+    connection.operation_synchronizer.enterSynchronizedAction
+    Panic.with_finalizer connection.operation_synchronizer.exitSynchronizedAction action
