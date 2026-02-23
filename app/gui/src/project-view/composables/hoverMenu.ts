@@ -1,4 +1,5 @@
-import { computed, onUnmounted, ref, type Ref } from 'vue'
+import { proxyRefs } from '$/utils/reactivity'
+import { computed, onUnmounted, ref } from 'vue'
 
 const HOVER_OPEN_DELAY_MS = 200
 const HOVER_CLOSE_DELAY_MS = 150
@@ -103,14 +104,14 @@ export function useHoverMenu(options: UseHoverMenuOptions = {}) {
     clearMenuCloseTimeout()
   })
 
-  return {
+  return proxyRefs({
     /** Whether the menu is currently open */
-    menuOpen: menuOpen as Ref<boolean>,
+    menuOpen,
     /** Two-way binding model for v-model:open that respects hover state */
     menuOpenModel,
     /** Call this when pointer enters the hover area */
     handleMenuEnter,
     /** Call this when pointer leaves the hover area */
     handleMenuLeave,
-  }
+  })
 }

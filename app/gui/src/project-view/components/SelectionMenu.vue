@@ -28,12 +28,7 @@ watch(
   },
 )
 
-const {
-  menuOpen: alignmentMenuOpen,
-  menuOpenModel: alignmentMenuOpenModel,
-  handleMenuEnter: handleAlignmentMenuEnter,
-  handleMenuLeave: handleAlignmentMenuLeave,
-} = useHoverMenu()
+const alignmentMenu = useHoverMenu()
 </script>
 
 <template>
@@ -51,12 +46,12 @@ const {
       />
     </span>
     <DropdownMenu
-      v-model:open="alignmentMenuOpenModel"
+      v-model:open="alignmentMenu.menuOpenModel"
       placement="bottom-start"
       title="Align"
       alwaysShowArrow
-      @pointerenter="handleAlignmentMenuEnter"
-      @pointerleave="handleAlignmentMenuLeave"
+      @pointerenter="alignmentMenu.handleMenuEnter"
+      @pointerleave="alignmentMenu.handleMenuLeave"
     >
       <template #button>
         <SvgIcon name="align_left" />
@@ -64,18 +59,18 @@ const {
       <template #menu>
         <div
           class="alignmentMenuHover"
-          @pointerenter="handleAlignmentMenuEnter"
-          @pointerleave="handleAlignmentMenuLeave"
+          @pointerenter="alignmentMenu.handleMenuEnter"
+          @pointerleave="alignmentMenu.handleMenuLeave"
         >
           <MenuPanel class="alignmentMenu">
             <div class="alignmentMenuRow horizontal">
-              <ActionButton action="components.alignLeft" @click="alignmentMenuOpen = false" />
-              <ActionButton action="components.alignCenter" @click="alignmentMenuOpen = false" />
-              <ActionButton action="components.alignRight" @click="alignmentMenuOpen = false" />
+              <ActionButton action="components.alignLeft" @click="alignmentMenu.menuOpen = false" />
+              <ActionButton action="components.alignCenter" @click="alignmentMenu.menuOpen = false" />
+              <ActionButton action="components.alignRight" @click="alignmentMenu.menuOpen = false" />
             </div>
             <div class="alignmentMenuRow vertical">
-              <ActionButton action="components.alignTop" @click="alignmentMenuOpen = false" />
-              <ActionButton action="components.alignBottom" @click="alignmentMenuOpen = false" />
+              <ActionButton action="components.alignTop" @click="alignmentMenu.menuOpen = false" />
+              <ActionButton action="components.alignBottom" @click="alignmentMenu.menuOpen = false" />
             </div>
           </MenuPanel>
         </div>

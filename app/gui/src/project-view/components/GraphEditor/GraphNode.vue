@@ -454,12 +454,7 @@ const contextMenuActions = computed<DisplayableActionName[]>(() =>
   nodeSelection.selected.size > 1 ? multiSelectionMenuActions : nodeMenuActions,
 )
 
-const {
-  menuOpen: alignmentMenuOpen,
-  menuOpenModel: alignmentMenuOpenModel,
-  handleMenuEnter: handleAlignmentMenuEnter,
-  handleMenuLeave: handleAlignmentMenuLeave,
-} = useHoverMenu()
+const alignmentMenu = useHoverMenu()
 
 const contextMenuTrigger = ref<InstanceType<typeof ContextMenuTrigger>>()
 const alignmentMenuTrigger = ref<HTMLElement>()
@@ -475,13 +470,16 @@ const { floatingStyles: alignmentMenuStyles, update: updateAlignmentMenu } = use
   },
 )
 
-watch(alignmentMenuOpen, (open) => {
+watch(
+  () => alignmentMenu.menuOpen,
+  (open) => {
   if (open) nextTick(updateAlignmentMenu)
-})
+  },
+)
 
 function closeAllMenus() {
   // Close both menus
-  alignmentMenuOpen.value = false
+  alignmentMenu.menuOpen = false
   contextMenuTrigger.value?.close()
 }
 
@@ -546,29 +544,29 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       ref="contextMenuTrigger"
       :actions="contextMenuActions"
       @contextmenu="ensureSelected"
-      @hidden="(alignmentMenuOpen = false)"
+      @hidden="(alignmentMenu.menuOpen = false)"
     >
       <template #menuElements>
         <div v-if="nodeSelection.selected.size > 1">
           <div
             ref="alignmentMenuTrigger"
             class="alignmentSubmenuTrigger"
-            @pointerenter="handleAlignmentMenuEnter"
-            @pointerleave="handleAlignmentMenuLeave"
+            @pointerenter="alignmentMenu.handleMenuEnter"
+            @pointerleave="alignmentMenu.handleMenuLeave"
           >
-            <MenuButton v-model="alignmentMenuOpenModel" class="alignmentSubmenuEntry">
+            <MenuButton v-model="alignmentMenu.menuOpenModel" class="alignmentSubmenuEntry">
               <SvgIcon name="align_left" class="rowIcon" />
               <span>Align</span>
               <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
             </MenuButton>
           </div>
           <div
-            v-if="alignmentMenuOpen"
+            v-if="alignmentMenu.menuOpen"
             ref="alignmentMenuPanel"
             class="alignmentSubmenuPanel"
             :style="alignmentMenuStyles"
-            @pointerenter="handleAlignmentMenuEnter"
-            @pointerleave="handleAlignmentMenuLeave"
+            @pointerenter="alignmentMenu.handleMenuEnter"
+            @pointerleave="alignmentMenu.handleMenuLeave"
           >
             <ActionMenu class="alignmentMenu" :actions="alignmentMenuActions" @close="closeAllMenus" />
           </div>

@@ -725,6 +725,7 @@
     "./src/project-view/composables/dragging.ts",
     "./src/project-view/composables/events.ts",
     "./src/project-view/composables/focus.ts",
+    "./src/project-view/composables/hoverMenu.ts",
     "./src/project-view/composables/keyboard.ts",
     "./src/project-view/composables/navigator.ts",
     "./src/project-view/composables/nodeColors.ts",
