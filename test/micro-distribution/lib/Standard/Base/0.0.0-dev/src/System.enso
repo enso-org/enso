@@ -1,4 +1,10 @@
-create_process command arguments input redirect_in redirect_out redirect_err = @Builtin_Method "System.create_process"
+import project.Nothing.Nothing
+import project.Data.Dictionary.Dictionary
+
+create_process command arguments input redirect_in redirect_out redirect_err =
+    create_process_impl command arguments input redirect_in redirect_out redirect_err Nothing Dictionary.empty
+
+private create_process_impl command arguments input redirect_in redirect_out redirect_err cwd env = @Builtin_Method "System.create_process"
 
 type System_Process_Result
     Result exit_code stdout stderr
