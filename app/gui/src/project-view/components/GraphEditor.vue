@@ -7,7 +7,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { useContainerData } from '$/providers/container'
+import { panelEquals, useContainerData } from '$/providers/container'
 import type { Node, NodeId } from '$/providers/openedProjects/graph'
 import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
@@ -344,6 +344,7 @@ const actionHandlers = registerHandlers({
         ),
       ),
     () => detachInfo.value.ok && detachInfo.value.value.length > 0,
+    () => panelEquals(container.focusedPanel, { type: 'project', id: assetId.value }),
     {
       collapseNodes,
       copyNodesToClipboard,
