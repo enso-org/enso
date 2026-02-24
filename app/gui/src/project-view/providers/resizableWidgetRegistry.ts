@@ -1,7 +1,8 @@
 import type { ToValue } from '$/utils/reactivity'
+import type { ResizeHandlesEventRegistry } from '@/components/resizeHandles'
 import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
-import { Rect, type BoundsSet } from '@/util/data/rect'
+import type { BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { ref, toValue, watch, type Ref } from 'vue'
 
@@ -23,22 +24,32 @@ export function useResizableWidgetRegistry(
   nodePadding: ToValue<number>,
   widgetTreeDomWidth: ToValue<number>,
 ) {
-  const registeredResizables = new Map<PortId, { bounds: Ref<Rect>; domSize: Ref<Vec2> }>()
+  const registeredResizables = new Map<PortId, { bounds: Ref<Vec2>; domSize: Ref<Vec2> }>()
   const resizablesCount = ref(0)
+
+  const preferredHeight = ref()
+
+  function computePreferredHeight() {
+    let max = 0
+    for (const { bounds } of registeredResizables.values()) max = Math.max(max, bounds.value.y)
+    return max
+  }
 
   /**
    * Register new resizable component.
    * @param bounds The "target" widget bounds, to which DOM is updated.
    * @param domSize The actual current DOM size, obtained from {@link useResizeObserver}
    */
-  function register(portId: PortId, bounds: Ref<Rect>, domSize: Ref<Vec2>) {
+  function register(portId: PortId, bounds: Ref<Vec2>, domSize: Ref<Vec2>) {
     registeredResizables.set(portId, { bounds, domSize })
     resizablesCount.value = registeredResizables.size
+    preferredHeight.value = computePreferredHeight()
   }
 
   function unregister(portId: PortId) {
     registeredResizables.delete(portId)
     resizablesCount.value = registeredResizables.size
+    preferredHeight.value = computePreferredHeight()
   }
 
   /**
@@ -53,7 +64,7 @@ export function useResizableWidgetRegistry(
       const widgetBounds = registeredResizables.values().next().value
       if (widgetBounds != null) {
         const { bounds, domSize } = widgetBounds
-        bounds.value = new Rect(Vec2.Zero, new Vec2(domSize.value.x + change, bounds.value.height))
+        bounds.value = new Vec2(domSize.value.x + change, bounds.value.y)
       }
     }
   }
@@ -73,23 +84,21 @@ export function useResizableWidgetRegistry(
   return {
     register,
     unregister,
-    visResizeHandleEventHandlers: {
-      'update:modelValue': (newRect: Rect) => {
-        adjustToNodeWidth(newRect.width)
-      },
-    },
-    widgetResizeHandleEventHandlers: {
-      'update:resizing': (bounds: BoundsSet) => {
+    connectVisResizeHandleEventHandlers: (callbacks: ResizeHandlesEventRegistry) =>
+      callbacks.onResizeWidth(adjustToNodeWidth),
+    connectWidgetResizeHandleEventHandlers: (callbacks: ResizeHandlesEventRegistry) => {
+      callbacks.onResizingChange((bounds: BoundsSet) => {
         if (bounds.left || bounds.right) {
           initialNodeWidthOnWidgetDrag = nodeWidth.value
         }
-      },
-      'update:modelValue': (_: Rect, delta: Vec2) => {
+      })
+      callbacks.onResizeWidth((_width, delta) => {
         if (resizablesCount.value === 1 && initialNodeWidthOnWidgetDrag != null) {
-          nodeWidth.value = initialNodeWidthOnWidgetDrag + delta.x
+          nodeWidth.value = initialNodeWidthOnWidgetDrag + delta
         }
-      },
+      })
     },
+    preferredHeight,
   }
 }
 

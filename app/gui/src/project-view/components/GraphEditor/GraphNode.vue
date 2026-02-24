@@ -28,6 +28,8 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useResizeHandles } from '@/components/resizeHandles'
+import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useClickableDraggable } from '@/composables/dragging'
@@ -71,8 +73,8 @@ const emit = defineEmits<{
   toggleDocPanel: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
+  'update:height': [height: number | undefined]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
-  'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
@@ -209,7 +211,7 @@ watch(isVisualizationPreviewed, (newVal) => {
   }
 })
 
-provideResizableWidgetRegistry(
+const { preferredHeight } = provideResizableWidgetRegistry(
   computed({
     get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
     set: (width) => (visualizationWidth.value = width && width / scale.value),
@@ -257,12 +259,15 @@ const nodeEditHandler = nodeEditBindings.handler({
   edit: () => actionHandlers['component.startEditing'].action(),
 })
 
-const graphSelectionSize = computed(() => visRect.value?.size ?? nodeSize.value)
+/// The visualization's contribution to the node's height.
+const vizBelowNode = computed(() => (visRect.value ? visRect.value.size.y - nodeSize.value.y : 0))
 
-const nodeOuterRect = computed(() => visRect.value ?? nodeRect.value)
+const nodeOuterRect = ref<Rect>()
 watchEffect(() => {
-  if (!nodeOuterRect.value.size.isZero()) {
-    emit('update:rect', nodeOuterRect.value)
+  const newValue = visRect.value ?? nodeRect.value
+  if (!newValue.size.isZero() && !nodeOuterRect.value?.equals(newValue)) {
+    nodeOuterRect.value = newValue
+    emit('update:rect', newValue)
   }
 })
 
@@ -286,13 +291,15 @@ function useRecomputation() {
 
 // === Style and colors ===
 
+const nodeHeight = computed(() => props.node.height ?? preferredHeight.value)
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
     minWidth: isVisualizationEnabled.value ? `${visualizationWidth.value ?? 200}px` : undefined,
+    height: nodeHeight.value ? `${nodeHeight.value}px` : undefined,
     '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
-    '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
+    '--viz-below-node': `${vizBelowNode.value}px`,
   }
 })
 
@@ -426,6 +433,14 @@ onWindowBlur(() => {
 })
 
 const nodeName = computed(() => props.node.pattern?.code())
+
+// === Node resizing ===
+
+const resizeHandles = useResizeHandles({
+  size: nodeSize,
+  scale,
+})
+resizeHandles.onResizeHeight((value) => emit('update:height', value))
 </script>
 
 <template>
@@ -479,6 +494,7 @@ const nodeName = computed(() => props.node.pattern?.code())
         @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
         @pointermove="updateNodeHover"
       >
+        <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
         <ComponentWidgetTree
           ref="widgetTree"
           :ast="props.node.innerExpr"
@@ -490,6 +506,7 @@ const nodeName = computed(() => props.node.pattern?.code())
           :showDetails="detailedView"
           :expanded="expanded"
         />
+        <ResizeHandles v-if="isExpanded" bottom v-on="resizeHandles.events" />
       </div>
     </ContextMenuTrigger>
     <div class="statuses">
@@ -500,7 +517,6 @@ const nodeName = computed(() => props.node.pattern?.code())
       v-bind="visibleMessage"
       class="afterNode shiftWhenMenuVisible"
     />
-    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
 </template>
 
@@ -510,6 +526,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  min-height: var(--node-base-height);
   --z-index-component: 24;
   --z-index-component-menu: 20;
   --z-index-selection-submenu: 25;
@@ -526,15 +543,20 @@ const nodeName = computed(() => props.node.pattern?.code())
   transition: background-color 0.2s ease;
 }
 
+.ComponentWidgetTree {
+  height: 100%;
+}
+
 .content {
   font-family: var(--font-code);
   position: relative;
   top: 0;
   left: 0;
+  height: 100%;
   border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: start;
   white-space: nowrap;
   z-index: var(--z-index-component);
 }
