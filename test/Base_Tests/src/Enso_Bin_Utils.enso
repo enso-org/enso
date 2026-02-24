@@ -4,6 +4,7 @@ from Standard.Test import all
 
 polyglot java import java.lang.ProcessBuilder as J_ProcessBuilder
 polyglot java import java.lang.Process as J_Process
+polyglot java import java.lang.ProcessHandle as J_ProcessHandle
 polyglot java import java.lang.String as J_String
 polyglot java import java.lang.System as J_System
 polyglot java import java.io.File as J_File
@@ -11,9 +12,13 @@ polyglot java import java.io.File as J_File
 
 ## Returns True if current process runs in AOT mode (Native Image).
 runs_in_aot =
-    prop = J_System.getProperty "org.graalvm.nativeimage.imagecode"
-    prop == "runtime"
-
+    info = J_ProcessHandle.current.info
+    cmd = info.command
+    if cmd.isPresent && (cmd.get.ends_with "java" || cmd.get.ends_with "java.exe") then False else
+        args = info.arguments
+        if args.isPresent && args.get.contains "--jvm" then False else
+            # running in AOT mode
+            True
 
 ## Create temporary directory
 create_tmp_dir -> File =
