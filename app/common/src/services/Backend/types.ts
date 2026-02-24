@@ -11,7 +11,7 @@ export type OrganizationId = Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtypeConstructor<OrganizationId>()
 /** Whether a given {@link string} is an {@link OrganizationId}. */
 export function isOrganizationId(id: string): id is OrganizationId {
-  return typeof id === 'string' && id.startsWith('organization-')
+  return id.startsWith('organization-')
 }
 
 /** Unique identifier for a user in an organization. */
@@ -19,7 +19,7 @@ export type UserId = Newtype<string, 'UserId'>
 export const UserId = newtypeConstructor<UserId>()
 /** Whether a given {@link string} is an {@link UserId}. */
 export function isUserId(id: string): id is UserId {
-  return typeof id === 'string' && id.startsWith('user-')
+  return id.startsWith('user-')
 }
 
 /** Unique identifier for a user group. */
@@ -27,7 +27,7 @@ export type UserGroupId = Newtype<`usergroup-${string}`, 'UserGroupId'>
 export const UserGroupId = newtypeConstructor<UserGroupId>()
 /** Whether a given {@link string} is an {@link UserGroupId}. */
 export function isUserGroupId(id: string): id is UserGroupId {
-  return typeof id === 'string' && id.startsWith('usergroup-')
+  return id.startsWith('usergroup-')
 }
 
 /** Unique identifier for a directory. */
@@ -35,7 +35,7 @@ export type DirectoryId = Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtypeConstructor<DirectoryId>()
 /** Whether a given {@link unknown} is an {@link DirectoryId}. */
 export function isDirectoryId(id: string): id is DirectoryId {
-  return typeof id === 'string' && id.startsWith('directory-')
+  return id.startsWith('directory-')
 }
 
 /**
@@ -64,7 +64,7 @@ export type ProjectId = Newtype<string, 'ProjectId'>
 export const ProjectId = newtypeConstructor<ProjectId>()
 /** Whether a given {@link unknown} is an {@link ProjectId}. */
 export function isProjectId(id: string): id is ProjectId {
-  return typeof id === 'string' && id.startsWith('project-')
+  return id.startsWith('project-')
 }
 
 /** Unique identifier for an uploaded file. */
