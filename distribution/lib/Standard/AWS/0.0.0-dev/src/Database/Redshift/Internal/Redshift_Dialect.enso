@@ -381,11 +381,10 @@ type Redshift_Dialect
                 self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
             reversed = if reverse then order_descriptors.map .reverse else order_descriptors
             order_with_nulls =
-                if ignore_null then
+                if ignore_null.not then reversed else
                     is_null = SQL_IR_Expression.Operation "IS_NULL" [result_expr]
                     null_order = Order_Descriptor.Value is_null Sort_Direction.Ascending Nothing Nothing
                     [null_order] + reversed
-                else reversed
             key_expressions_for_orderings = key_columns.map .expression
             expression = Row_Number_Helpers.make_row_number 1 1 order_with_nulls key_expressions_for_orderings
             Pair.new "row-number" expression
@@ -406,9 +405,7 @@ type Redshift_Dialect
 
         create_helper_expressions aggregate_column key_columns =
             make_helper_for_first_last order_by ignore_null reverse result_expr =
-                if Aggregate_Helper.is_non_empty_selector order_by then
-                    [create_row_number_for order_by key_columns reverse ignore_null result_expr]
-                else []
+                if Aggregate_Helper.is_non_empty_selector order_by then [create_row_number_for order_by key_columns reverse ignore_null result_expr] else []
             case aggregate_column of
                 Aggregate_Column.First column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null False column.expression
                 Aggregate_Column.Last column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null True column.expression
@@ -419,9 +416,7 @@ type Redshift_Dialect
 
         make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
             make_first_last op_kind =
-                if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then
-                    Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title)
-                else
+                if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title) else
                     Runtime.assert (helper_expressions.length == 1)
                     row_number = helper_expressions.first
                     op = case aggregate_column.ignore_nothing of
