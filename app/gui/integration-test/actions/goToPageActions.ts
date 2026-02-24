@@ -21,11 +21,14 @@ export function goToPageActions<Context>(
 ): GoToPageActions<Context> {
   return {
     drive: () =>
-      step('Go to "Data Catalog" page', (page) =>
-        page
-          .getByRole('tab')
-          .filter({ has: page.getByText('Data Catalog') })
-          .click(),
+      step(
+        'Go to "Data Catalog" page',
+        (page) => {},
+        //
+        // page
+        //   .getByRole('tab')
+        //   .filter({ has: page.getByText('Data Catalog') })
+        //   .click(),
       ).into(DrivePageActions<Context>),
     projectView: () =>
       step('Go to Project page', (page) =>

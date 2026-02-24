@@ -9,6 +9,7 @@ import * as locate from './locate'
 async function goToGraphAndGetDocs(editorPage: EditorPageActions) {
   let docsContent: Locator
   let docsScroller: Locator
+  await editorPage.toggleDocsAssetPanel()
   await editorPage.do(async (page) => {
     docsContent = page.getByTestId('documentation-editor-content')
     docsScroller = page.getByTestId('documentation-editor-scroller')

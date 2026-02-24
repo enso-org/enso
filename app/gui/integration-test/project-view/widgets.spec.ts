@@ -851,8 +851,7 @@ test('Manage aggregates in `aggregate` node', async ({ editorPage, page }) => {
     notAppliedArguments: [1, 2, 3],
   })
 
-  // Hide docpanel to not obscure long node.
-  await page.getByRole('tab', { name: 'Documentation' }).click()
+  page.getByRole('button', { name: 'Toggle Drive Panel' }).click()
 
   await editorPage
     // Check initially visible arguments

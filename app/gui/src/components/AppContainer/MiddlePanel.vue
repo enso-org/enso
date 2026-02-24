@@ -4,12 +4,14 @@ import { useOpenedProjects, type Project } from '$/providers/openedProjects'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import type { SpinnerPhase } from '@/components/shared/LoadingSpinner.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { computed, ref, toRefs, watchEffect } from 'vue'
+import { computed, ref, toRefs, useTemplateRef, watch } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
 const { isCurrentTab, currentTab, tabList, closeTab, focusedPanel, setFocusedPanel } =
   toRefs(useContainerData())
 const openedProjects = useOpenedProjects()
+
+const root = useTemplateRef('root')
 
 type TabViewInfo = Tab & {
   dataTestId?: string
@@ -71,9 +73,14 @@ function projectIcon(project: Project): Icon | undefined {
 
 const isFocused = ref(false)
 
-watchEffect(() => {
-  if ((isFocused.value || focusedPanel.value.type !== 'drive') && currentTab.value != null) {
-    setFocusedPanel.value(currentTab.value)
+watch(isFocused, (isFocused) => {
+  if (isFocused && currentTab.value != null) setFocusedPanel.value(currentTab.value)
+})
+
+watch(currentTab, (currentTab) => {
+  if (currentTab != null) setFocusedPanel.value(currentTab)
+  if (!isFocused.value) {
+    root.value?.focus()
   }
 })
 
@@ -84,6 +91,7 @@ const cssClass = computed(() => ({
 
 <template>
   <div
+    ref="root"
     class="MiddlePanel"
     :class="cssClass"
     tabindex="-1"

@@ -4,7 +4,7 @@
 let counter = Number(new Date()) >>> 2
 
 /** Returns a new, mostly unique string. */
-export function uniqueString(): string {
+export function uniqueString(minLength?: number): string {
   counter += 1
-  return counter.toString()
+  return counter.toString().padStart(minLength ?? 0, 'a')
 }

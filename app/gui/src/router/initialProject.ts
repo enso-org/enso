@@ -27,6 +27,7 @@ type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
 export async function redirectFromPath(to: RouteLocation) {
   if (to.params.path == null) return false
+  console.debug('Opening path', to.params.path)
   const auth = useAuth()
   const { localBackend, remoteBackend } = useBackends()
 
@@ -93,7 +94,9 @@ export async function welcomeProjectPath(
  * It may be a project specified in CLI arguments or the Welcome project on fresh installs.
  */
 export async function maybeRedirectToProject(to: RouteLocation): Promise<NavigationGuardReturn> {
-  if (to.name !== 'dashboard') return
+  console.debug('>>', to.name, to.redirectedFrom != null, JSON.stringify(to.redirectedFrom))
+  // Do not look for project if we already redirecting from somewhere to avoid redirect loop.
+  if (to.name !== 'dashboard' || to.redirectedFrom != null) return
   const backends = useBackends()
   const config = useConfig()
   const auth = useAuth()
@@ -111,6 +114,7 @@ export async function maybeRedirectToProject(to: RouteLocation): Promise<Navigat
     pathFromOptions ??
     (await welcomeProjectPath(config.params.startup.project, auth.session.user, backends))
 
+  console.debug('>>>', initialPath)
   return initialPath ? { name: 'ensoPath', params: { path: initialPath.split('/') } } : true
 }
 

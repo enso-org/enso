@@ -2,41 +2,65 @@
 import { useContainerData } from '$/providers/container'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, toRef, useTemplateRef } from 'vue'
+import { computed, ref, toRef, useTemplateRef } from 'vue'
 import { Drive } from './reactTabs'
 
 const containerData = useContainerData()
 const width = toRef(containerData, 'leftPanelWidth')
+const visible = ref(true)
 
-const root = useTemplateRef('root')
+const root = useTemplateRef('content')
 const size = useResizeObserver(root)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 const cssClass = computed(() => ({
   focusedPanel: containerData.focusedPanel.type === 'drive',
 }))
-const style = computed(() => (width.value == null ? {} : { width: `${width.value}px` }))
+const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
 </script>
 
 <template>
-  <SizeTransition width :duration="250">
-    <div ref="root" class="LeftPanel" :class="cssClass" :style="style">
-      <Drive />
-      <div class="shadow" />
-      <ResizeHandles right :modelValue="bounds" @update:modelValue="width = $event.width" />
-    </div>
-  </SizeTransition>
+  <div class="LeftPanel" :style="style">
+    <SizeTransition width :duration="250">
+      <div v-if="visible" class="panel">
+        <div ref="content" class="content" :class="cssClass">
+          <Drive />
+        </div>
+        <ResizeHandles right :modelValue="bounds" @update:modelValue="width = $event.width" />
+      </div>
+    </SizeTransition>
+    <div class="shadow" />
+    <SvgButton
+      v-model="visible"
+      class="toggleVisibilityButton"
+      name="right_side_panel"
+      title="Toggle Drive Panel"
+    />
+  </div>
 </template>
 
 <style scoped>
 .LeftPanel {
+  --panel-width: 400px;
   flex-shrink: 1;
   flex-grow: 1;
+  min-width: 48px;
   height: 100%;
   position: relative;
   z-index: 1;
+}
+
+.panel {
+  height: 100%;
+  min-width: 200px;
+}
+
+.content {
+  height: 100%;
+  width: var(--panel-width);
 }
 
 .shadow {
@@ -54,5 +78,11 @@ const style = computed(() => (width.value == null ? {} : { width: `${width.value
     0 18px 85px 0 rgb(0 0 0 / 3%);
   /* clip-path: polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%); */
   z-index: -1;
+}
+
+.toggleVisibilityButton {
+  position: absolute;
+  left: 16px;
+  top: 20px;
 }
 </style>

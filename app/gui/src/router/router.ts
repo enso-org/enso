@@ -41,6 +41,7 @@ async function openTab(to: RouteLocation) {
     case 'project': {
       if (!isProjectId(to.params.id)) return false
       const id = to.params.id
+      console.debug('Opening project', id)
       const tab: Tab = { type: 'project', id }
       if (container.isTabOpened(tab)) {
         break
@@ -49,6 +50,7 @@ async function openTab(to: RouteLocation) {
       const queryClient = useQueryClient()
 
       const backend = isLocalProjectId(id) ? localBackend : remoteBackend
+      console.debug('BACKEND', backend?.type)
       if (backend == null) return false
 
       const options = backendQueryOptions('getAssetDetails', [id, undefined], backend)
@@ -186,6 +188,6 @@ router.beforeEach(async (to, from) => {
   }
 })
 
-router.onError((error) => console.error('Router error', error))
+router.onError((error) => console.trace('Router error', error))
 
 export default router
