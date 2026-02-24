@@ -13,6 +13,8 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
 
     tmp_root = Enso_Bin_Utils.create_tmp_dir
 
+    jvm_args = if Enso_Bin_Utils.runs_in_aot then [] else [ "--jvm" ]
+
     group_builder.specify "should do nothing on logging" <|
         value.log_message "Hidden message" Log_Level.Finest
         value.log_message "Less hidden message" Log_Level.Fine
@@ -45,7 +47,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
                 log Log_Level.Severe
 
         proc = Process.new_builder "enso"
-            . set_arguments ["--run", prj.to_text, "Ahoj"]
+            . set_arguments jvm_args+["--run", prj.to_text, "Ahoj"]
             . set_directory prj_dir
             . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
             . set_env "JAVA_TOOL_OPTIONS" "-ea"
@@ -98,7 +100,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
                 log Level.ERROR
 
         proc = Process.new_builder "enso"
-            . set_arguments ["--run", prj.to_text, "Hola"]
+            . set_arguments jvm_args+["--run", prj.to_text, "Hola"]
             . set_directory prj_dir
             . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
             . set_env "JAVA_TOOL_OPTIONS" "-ea"
