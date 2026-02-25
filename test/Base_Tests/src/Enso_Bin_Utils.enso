@@ -14,7 +14,6 @@ runs_in_aot =
     prop = J_System.getProperty "org.graalvm.nativeimage.imagecode"
     prop == "runtime"
 
-
 ## Create temporary directory
 create_tmp_dir -> File =
     tmp_file = File.create_temporary_file
@@ -28,6 +27,7 @@ create_tmp_dir -> File =
 enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
     proc_bldr = Process.new_builder "enso"
         . set_arguments args
+        . set_env "JAVA_TOOL_OPTIONS" "-ea"
         . set_directory (File.new cwd)
     proc = proc_bldr.create
     if proc.exit_code != Exit_Code.Success then
@@ -39,8 +39,7 @@ create_new_project parent_dir:File proj_name:Text main_src:Text -> File =
     Runtime.assert parent_dir.is_directory
     proj_dir = parent_dir / proj_name
     args = ["--new", proj_dir.path, "--new-project-name", proj_name]
-    ret = Process.new_builder "enso" args . create
-    ret.exit_code . should_equal Exit_Code.Success
+    enso_run args
     main = proj_dir / "src" / "Main.enso"
     Runtime.assert main.exists
     main_src.write main
