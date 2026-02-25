@@ -355,6 +355,7 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `locking-test-helper`,
     `logging-config`,
+    `logging-system2slf4j`,
     `logging-service`,
     `logging-service-logback`,
     `logging-service-common`,
@@ -1057,6 +1058,24 @@ lazy val `logging-service` = project
   .dependsOn(`logging-config`)
   .dependsOn(`logging-utils`)
 
+lazy val `logging-system2slf4j` = project
+  .in(file("lib/scala/logging-system2slf4j"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    annotationProcSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
+    Compile / internalModuleDependencies ++= Seq(
+    )
+  )
+
 lazy val `logging-config` = project
   .in(file("lib/scala/logging-config"))
   .enablePlugins(JPMSPlugin)
@@ -1077,10 +1096,12 @@ lazy val `logging-config` = project
     ),
     Compile / internalModuleDependencies ++= Seq(
       (`engine-common` / Compile / exportedModule).value,
-      (`logging-utils` / Compile / exportedModule).value
+      (`logging-utils` / Compile / exportedModule).value,
+      (`logging-system2slf4j` / Compile / exportedModule).value
     )
   )
   .dependsOn(`engine-common` % "provided")
+  .dependsOn(`logging-system2slf4j`)
 
 lazy val `logging-service-logback` = project
   .in(file("lib/scala/logging-service-logback"))
@@ -4313,7 +4334,6 @@ lazy val `jvm-interop` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
-        (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
       )
     )
