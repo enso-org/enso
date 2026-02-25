@@ -242,6 +242,8 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     }
     commandAndArgs.add("--module-path=" + component.getPath());
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
+    commandAndArgs.add("-Dslf4j.provider=org.enso.jvm.interop.impl.OtherJvmLogger");
+    // commandAndArgs.add("-Djdk.module.showModuleResolution=true");
     return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
   }
 
