@@ -10,9 +10,15 @@ import org.slf4j.helpers.AbstractLogger;
 import org.slf4j.spi.MDCAdapter;
 
 public final class OtherJvmLogger implements org.slf4j.spi.SLF4JServiceProvider {
+  private static ILoggerFactory delegate;
+
+  public static void registerLoggerFactory(ILoggerFactory factory) {
+    delegate = factory;
+  }
+
   @Override
   public ILoggerFactory getLoggerFactory() {
-    return new OtherJvmFactory();
+    return delegate;
   }
 
   @Override
@@ -72,32 +78,32 @@ public final class OtherJvmLogger implements org.slf4j.spi.SLF4JServiceProvider 
 
     @Override
     public boolean isTraceEnabled() {
-      return true;
+      return false;
     }
 
     @Override
     public boolean isTraceEnabled(Marker marker) {
-      return true;
+      return false;
     }
 
     @Override
     public boolean isDebugEnabled() {
-      return true;
+      return false;
     }
 
     @Override
     public boolean isDebugEnabled(Marker marker) {
-      return true;
+      return false;
     }
 
     @Override
     public boolean isInfoEnabled() {
-      return true;
+      return false;
     }
 
     @Override
     public boolean isInfoEnabled(Marker marker) {
-      return true;
+      return false;
     }
 
     @Override
