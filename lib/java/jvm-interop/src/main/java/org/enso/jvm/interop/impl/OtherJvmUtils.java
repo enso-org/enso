@@ -2,11 +2,10 @@ package org.enso.jvm.interop.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.module.ModuleFinder;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Set;
-import java.util.stream.Stream;
 
 public final class OtherJvmUtils {
   private OtherJvmUtils() {}
@@ -54,25 +53,25 @@ public final class OtherJvmUtils {
     if (moduleNamesOrNull == null) {
       modulePath = component.getPath();
     } else {
-      var moduleNames =
-          Set.of(
-              "jvm-interop.jar",
-              "logging-system2slf4j.jar",
-              "polyglot-25.0.1.jar",
-              "jvm-channel.jar",
-              "persistance.jar",
-              "slf4j-api-2.0.16.jar",
-              "truffle-api-25.0.1.jar",
-              "engine-common.jar");
-      var files = component.listFiles((n) -> moduleNames.contains(n.getName()));
-      assert files.length == moduleNames.size() : "Found all names: " + Arrays.toString(files);
-      var paths = Stream.of(files).map(File::getPath);
+      var finder = ModuleFinder.of(component.toPath());
+      var paths =
+          moduleNamesOrNull.stream()
+              .map(
+                  (n) -> {
+                    var opt = finder.find(n);
+                    if (opt.isEmpty() && opt.get().location().isEmpty()) {
+                      throw new IllegalStateException(
+                          "Cannot find module " + n + " at " + component);
+                    }
+                    return opt.get().location().get();
+                  })
+              .map(File::new)
+              .map(File::getPath);
       modulePath = String.join(File.pathSeparator, paths.toArray(String[]::new));
     }
     commandAndArgs.add("--module-path=" + modulePath);
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
-    // commandAndArgs.add("-Dslf4j.provider=org.enso.jvm.interop.impl.OtherJvmLogger");
-    commandAndArgs.add("-Djdk.module.showModuleResolution=true");
+    // commandAndArgs.add("-Djdk.module.showModuleResolution=true");
     return commandAndArgs.toArray(String[]::new);
   }
 }
