@@ -28,11 +28,11 @@ final class OtherJvmBoot {
 
     var allArgs =
         Stream.concat(
+                Stream.of(java.getAbsolutePath()), // java executable
                 Stream.concat(
-                    Stream.of(java.getAbsolutePath()), // java executable
-                    Stream.of(jvmArgs)), // JVM arguments
-                Stream.of("--list-modules") // print out all modules and exit
-                )
+                    Stream.of(jvmArgs), // JVM arguments
+                    Stream.of("--list-modules") // print out all modules and exit
+                    ))
             .toArray(String[]::new);
 
     System.err.println("Executing: " + Arrays.toString(allArgs));
@@ -40,6 +40,8 @@ final class OtherJvmBoot {
     var pb = new ProcessBuilder(allArgs);
     pb.inheritIO();
     var p = pb.start();
-    System.exit(p.waitFor());
+    var res = p.waitFor();
+    System.err.println("JVM exited with code " + res);
+    System.exit(res);
   }
 }

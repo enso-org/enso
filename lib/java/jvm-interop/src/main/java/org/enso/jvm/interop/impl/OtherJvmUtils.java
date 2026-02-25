@@ -59,7 +59,7 @@ public final class OtherJvmUtils {
               .map(
                   (n) -> {
                     var opt = finder.find(n);
-                    if (opt.isEmpty() && opt.get().location().isEmpty()) {
+                    if (opt.isEmpty() || opt.get().location().isEmpty()) {
                       throw new IllegalStateException(
                           "Cannot find module " + n + " at " + component);
                     }
