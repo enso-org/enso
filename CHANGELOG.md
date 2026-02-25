@@ -96,6 +96,7 @@
   twice][14507]
 - [Add `Date_Time_Column.set_time_zone` and `.at_time_zone` to in-memory
   tables.][14591]
+- [Fixed copying projects from Team directory to Local][14797]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -130,6 +131,7 @@
 [14500]: https://github.com/enso-org/enso/pull/14500
 [14507]: https://github.com/enso-org/enso/pull/14507
 [14591]: https://github.com/enso-org/enso/pull/14591
+[14797]: https://github.com/enso-org/enso/pull/14797
 
 #### Enso Standard Library
 
