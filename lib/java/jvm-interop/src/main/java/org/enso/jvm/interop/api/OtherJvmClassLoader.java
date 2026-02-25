@@ -16,8 +16,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
 import org.enso.jvm.interop.impl.OtherJvmMessage;
@@ -240,10 +243,24 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     if (!component.isDirectory()) {
       throw new IOException("Cannot find " + component + " directory");
     }
-    commandAndArgs.add("--module-path=" + component.getPath());
+    var moduleNames =
+        Set.of(
+            "jvm-interop.jar",
+            "logging-system2slf4j.jar",
+            "polyglot-25.0.1.jar",
+            "jvm-channel.jar",
+            "persistance.jar",
+            "slf4j-api-2.0.16.jar",
+            "truffle-api-25.0.1.jar",
+            "engine-common.jar");
+    var files = component.listFiles((n) -> moduleNames.contains(n.getName()));
+    assert files.length == moduleNames.size() : "Found all names: " + Arrays.toString(files);
+    var paths = Stream.of(files).map(File::getPath);
+    var modulePath = String.join(File.pathSeparator, paths.toArray(String[]::new));
+    commandAndArgs.add("--module-path=" + modulePath);
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
-    commandAndArgs.add("-Dslf4j.provider=org.enso.jvm.interop.impl.OtherJvmLogger");
-    // commandAndArgs.add("-Djdk.module.showModuleResolution=true");
+    // commandAndArgs.add("-Dslf4j.provider=org.enso.jvm.interop.impl.OtherJvmLogger");
+    commandAndArgs.add("-Djdk.module.showModuleResolution=true");
     return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
   }
 
