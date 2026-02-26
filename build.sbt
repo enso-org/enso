@@ -5595,6 +5595,32 @@ lazy val `zstd-jni-wrapper` = project
     )
   )
 
+lazy val `snowflake-jdbc-thin-wrapper` = project
+  .in(file("lib/java/snowflake-jdbc-thin-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion
+    ),
+    inputJar := "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds"),
+    jarExtractor := JarExtractor(
+      Map(
+        "minicore/libsf_mini_core_linux_x86_64_glibc.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "minicore/libsf_mini_core_macos_aarch64.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "minicore/libsf_mini_core_windows_x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "net/**/*.class"       -> CopyToOutputJar
+      )
+    )
+  )
+
 lazy val `conscrypt-wrapper` = project
   .in(file("lib/java/constrypt-wrapper"))
   .enablePlugins(JarExtractPlugin)
@@ -5924,9 +5950,7 @@ lazy val `std-snowflake` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
-    libraryDependencies ++= Seq(
-      "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds")
-    ),
+    libraryDependencies ++= bouncyCastle,
     Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5957,11 +5981,13 @@ lazy val `std-snowflake` = project
             (`netty-tc-native-wrapper` / extractedFilesDir).value,
             (`netty-epoll-native-wrapper` / extractedFilesDir).value,
             (`conscrypt-wrapper` / extractedFilesDir).value,
+            (`snowflake-jdbc-thin-wrapper` / extractedFilesDir).value,
             (`zstd-jni-wrapper` / extractedFilesDir).value
           ),
           extraJars = Seq(
             (`grpc-wrapper-newer` / thinJarOutput).value,
             (`conscrypt-wrapper` / thinJarOutput).value,
+            (`snowflake-jdbc-thin-wrapper` / thinJarOutput).value,
             (`zstd-jni-wrapper` / thinJarOutput).value
           )
         )
