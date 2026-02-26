@@ -16,11 +16,13 @@ public final class SystemLoggerViaSlf4j extends System.LoggerFinder
   @Override
   public System.Logger getLogger(String name, Module module) {
     if (delegate != null) {
-      return delegate.getLogger(name, module);
-    } else {
-      var logger = LoggerFactory.getLogger(name);
-      return new Bridge(logger);
+      var logger = delegate.getLogger(name, module);
+      if (logger != null) {
+        return logger;
+      }
     }
+    var logger = LoggerFactory.getLogger(name);
+    return new Bridge(logger);
   }
 
   @Override
