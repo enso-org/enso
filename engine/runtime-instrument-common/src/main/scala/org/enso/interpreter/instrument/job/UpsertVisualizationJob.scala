@@ -161,19 +161,8 @@ class UpsertVisualizationJob(
       expressionId
     )
 
-    val cachedValue = stack.headOption
-      .flatMap(frame => Option(frame.cache))
-      .flatMap(c => Option(c.runQuery(null, _.get(expressionId))))
-    cachedValue match {
-      case Some(_) =>
-        None
-      case None =>
-        UpsertVisualizationJob.logger.trace(
-          "Cached value for expresion {}: missing",
-          expressionId
-        )
-        Some(Executable(config.executionContextId, stack))
-    }
+    // Reschedule the program execution
+    Some(Executable(config.executionContextId, stack))
   }
 
   /** Attempts to evaluate the visualization expression associated with this job.
