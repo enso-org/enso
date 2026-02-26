@@ -355,7 +355,6 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `locking-test-helper`,
     `logging-config`,
-    `logging-system2slf4j`,
     `logging-service`,
     `logging-service-logback`,
     `logging-service-common`,
@@ -540,7 +539,6 @@ lazy val componentModulesPaths =
     (`library-manager` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
-    (`logging-system2slf4j` / Compile / exportedModuleBin).value,
     (`logging-service` / Compile / exportedModuleBin).value,
     (`logging-service-common` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
@@ -1059,24 +1057,6 @@ lazy val `logging-service` = project
   .dependsOn(`logging-config`)
   .dependsOn(`logging-utils`)
 
-lazy val `logging-system2slf4j` = project
-  .in(file("lib/scala/logging-system2slf4j"))
-  .enablePlugins(JPMSPlugin)
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    annotationProcSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % slf4jVersion
-    ),
-    Compile / moduleDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % slf4jVersion
-    ),
-    Compile / internalModuleDependencies ++= Seq(
-    )
-  )
-
 lazy val `logging-config` = project
   .in(file("lib/scala/logging-config"))
   .enablePlugins(JPMSPlugin)
@@ -1097,12 +1077,10 @@ lazy val `logging-config` = project
     ),
     Compile / internalModuleDependencies ++= Seq(
       (`engine-common` / Compile / exportedModule).value,
-      (`logging-utils` / Compile / exportedModule).value,
-      (`logging-system2slf4j` / Compile / exportedModule).value
+      (`logging-utils` / Compile / exportedModule).value
     )
   )
   .dependsOn(`engine-common` % "provided")
-  .dependsOn(`logging-system2slf4j`)
 
 lazy val `logging-service-logback` = project
   .in(file("lib/scala/logging-service-logback"))
@@ -3365,7 +3343,6 @@ lazy val `runtime-compiler` =
           (`logging-service` / Compile / exportedModule).value,
           (`logging-service-logback` / Compile / exportedModule).value,
           (`logging-service-logback` / Test / exportedModule).value,
-          (`logging-system2slf4j` / Compile / exportedModule).value,
           (`logging-utils` / Compile / exportedModule).value,
           (`semver` / Compile / exportedModule).value
         )
@@ -3727,7 +3704,6 @@ lazy val `engine-runner` = project
       (`jvm-channel` / Compile / exportedModule).value,
       (`jvm-interop` / Compile / exportedModule).value,
       (`library-manager` / Compile / exportedModule).value,
-      (`logging-system2slf4j` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
       (`os-environment` / Compile / exportedModule).value,
@@ -4322,7 +4298,7 @@ lazy val `jvm-interop` =
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion,
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk"      % "graal-sdk"             % graalMavenPackagesVersion % Test,
         "junit"                % "junit"                 % junitVersion              % Test,
@@ -4336,8 +4312,8 @@ lazy val `jvm-interop` =
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
-        (`engine-common` / Compile / exportedModule).value,
         (`jvm-channel` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
       )
     )

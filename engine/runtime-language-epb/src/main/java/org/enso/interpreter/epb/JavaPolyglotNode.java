@@ -26,8 +26,11 @@ final class JavaPolyglotNode {
               "org.graalvm.polyglot",
               "org.graalvm.truffle",
               "org.enso.engine.common",
-              "org.enso.logging.system2slf4j",
-              "org.slf4j");
+              "org.slf4j",
+              "org.enso.logging.utils",
+              "org.enso.logging.config",
+              "scala.library", // please remove in the future
+              "typesafe.config");
       var loader =
           OtherJvmClassLoader.create(
               "org.enso.jvm.interop",
