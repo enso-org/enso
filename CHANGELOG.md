@@ -2,6 +2,65 @@
 
 #### Enso IDE
 
+- [Add component alignment options][14590].
+- [Components have Expanded/Collapsed modes][14678]. The effect is visible in
+  Table.input components.
+- [Text widgets have a fixed maximum size in collapsed mode][14775]
+- [Fixed uploading corrupted projects to the cloud storage][14805]
+
+[14590]: https://github.com/enso-org/enso/pull/14590
+[14678]: https://github.com/enso-org/enso/pull/14678
+[14775]: https://github.com/enso-org/enso/pull/14775
+[14805]: https://github.com/enso-org/enso/pull/14805
+
+#### Enso Standard Library
+
+- [Multiline if_then_else][14522].
+- [Using dual JVM mode for `Standard.Microsoft`][14476].
+- [Standard.Test pending field is lazy][14536].
+- [Using dual JVM mode for `Standard.AWS`][14568].
+- [Running `Standard.Tableau` in dual JVM mode][14607].
+- [Polishing Standard.Test API][14599].
+- [Add Amazon SES email provider][14597]
+- [Support for reading Alteryx YXDB files][14602].
+- [Salesforce OAuth support.][14550]
+- [Launching another Enso process via `Process_Builder`][14753]
+- [Redshift schema support.][14735]
+- [`Process_Builder.set_env`.][14799]
+
+[14522]: https://github.com/enso-org/enso/pull/14522
+[14476]: https://github.com/enso-org/enso/pull/14476
+[14536]: https://github.com/enso-org/enso/pull/14536
+[14568]: https://github.com/enso-org/enso/pull/14568
+[14607]: https://github.com/enso-org/enso/pull/14607
+[14599]: https://github.com/enso-org/enso/pull/14599
+[14597]: https://github.com/enso-org/enso/pull/14597
+[14602]: https://github.com/enso-org/enso/pull/14602
+[14550]: https://github.com/enso-org/enso/pull/14550
+[14753]: https://github.com/enso-org/enso/pull/14753
+[14735]: https://github.com/enso-org/enso/pull/14735
+[14799]: https://github.com/enso-org/enso/pull/14799
+
+#### Enso Language & Runtime
+
+- [`Panic.rethrow` keeps original location][14480]
+- [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
+- [Lazily initialized local variables with `Ref.new lazy=True`][14554].
+- [Flush system caches via `Runtime.gc`][14557]
+- [Removing `catch_primitive` from the API][14676]
+- [`polyglot java import` loads classes from HotSpot JVM][14798]
+
+[14480]: https://github.com/enso-org/enso/pull/14480
+[14490]: https://github.com/enso-org/enso/pull/14490
+[14536]: https://github.com/enso-org/enso/pull/14554
+[14557]: https://github.com/enso-org/enso/pull/14557
+[14676]: https://github.com/enso-org/enso/pull/14676
+[14798]: https://github.com/enso-org/enso/pull/14798
+
+# Enso 2025.3
+
+#### Enso IDE
+
 - [Resizing the right panel no longer causes content reflow][13976].
 - [Allow selecting target type for Any.to method][13685].
 - [Command Palette to search for arbitrary actions][13658]
