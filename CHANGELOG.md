@@ -6,10 +6,12 @@
 - [Components have Expanded/Collapsed modes][14678]. The effect is visible in
   Table.input components.
 - [Text widgets have a fixed maximum size in collapsed mode][14775]
+- [Fixed uploading corrupted projects to the cloud storage][14805]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
 [14775]: https://github.com/enso-org/enso/pull/14775
+[14805]: https://github.com/enso-org/enso/pull/14805
 
 #### Enso Standard Library
 
