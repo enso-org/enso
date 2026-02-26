@@ -28,6 +28,7 @@ create_tmp_dir -> File =
 enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
     proc_bldr = Process.new_builder "enso"
         . set_arguments args
+        . set_env "JAVA_TOOL_OPTIONS" "-ea"
         . set_directory (File.new cwd)
     proc = proc_bldr.create
     if proc.exit_code != Exit_Code.Success then

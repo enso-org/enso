@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -8,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,9 +23,11 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.DebugAtomWrapper;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * This class serves as a basic support for debugging with Chrome inspector. Currently, only
@@ -287,6 +291,7 @@ public class DebugLocalScope extends EnsoObject {
 
   /** Simple interop wrapper for a list of strings. */
   @ExportLibrary(InteropLibrary.class)
+  @ExportLibrary(TypesLibrary.class)
   static final class ScopeMembers extends EnsoObject {
     private final List<String> memberNames;
 
@@ -324,6 +329,17 @@ public class DebugLocalScope extends EnsoObject {
     @TruffleBoundary
     public Object toDisplayString(boolean allowSideEffects) {
       return toString();
+    }
+
+    @ExportMessage
+    Type getType(@Bind Node node) {
+      var ctx = EnsoContext.get(node);
+      return ctx.getBuiltins().vector();
+    }
+
+    @ExportMessage
+    boolean hasType() {
+      return true;
     }
   }
 }

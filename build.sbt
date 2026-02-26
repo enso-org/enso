@@ -5362,14 +5362,14 @@ lazy val `netty-tc-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+      "io.netty" % "netty-tcnative-boringssl-static" % nettyTcNativeBorringSSL
     ),
     // We have to explicitly select correct jar based on the current platform.
     inputJarResolved := {
       val tcNativeJars = JPMSUtils.filterModulesFromUpdate(
         updateReport = (Compile / update).value,
         modules = Seq(
-          "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+          "io.netty" % "netty-tcnative-boringssl-static" % nettyTcNativeBorringSSL
         ),
         log                = streams.value.log,
         projName           = moduleName.value,
@@ -5419,9 +5419,9 @@ lazy val `netty-epoll-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
+      "io.netty" % "netty-transport-native-epoll" % nettyTransportEpollVersion
     ),
-    inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
+    inputJar := "io.netty" % "netty-transport-native-epoll" % nettyTransportEpollVersion,
     jarExtractor := JarExtractor(
       Map(
         "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(
@@ -5529,16 +5529,16 @@ lazy val `grpc-wrapper` = project
     )
   )
 
-/** Same as `grpc-wrapper`, but uses an older version of gRPC.
+/** Same as `grpc-wrapper`, but uses a newer version of gRPC.
   */
-lazy val `grpc-wrapper-older` = project
-  .in(file("lib/java/grpc-wrapper-older"))
+lazy val `grpc-wrapper-newer` = project
+  .in(file("lib/java/grpc-wrapper-newer"))
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.grpc" % "grpc-netty-shaded" % "1.60.0"
+      "io.grpc" % "grpc-netty-shaded" % "1.77.0"
     ),
-    inputJar := "io.grpc" % "grpc-netty-shaded" % "1.60.0",
+    inputJar := "io.grpc" % "grpc-netty-shaded" % "1.77.0",
     jarExtractor := (`grpc-wrapper` / jarExtractor).value
   )
 
@@ -5565,6 +5565,32 @@ lazy val `jline-wrapper` = project
         "META-INF/MANIFEST.MF"     -> CopyToOutputJar,
         "META-INF/maven/**"        -> CopyToOutputJar,
         "META-INF/native-image/**" -> CopyToOutputJar
+      )
+    )
+  )
+
+lazy val `zstd-jni-wrapper` = project
+  .in(file("lib/java/zstd-jni-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.luben" % "zstd-jni" % zstdVersion
+    ),
+    inputJar := "com.github.luben" % "zstd-jni" % zstdVersion,
+    jarExtractor := JarExtractor(
+      Map(
+        s"linux/amd64/libzstd-jni-$zstdVersion.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        s"darwin/aarch64/libzstd-jni-$zstdVersion.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        s"win/amd64/libzstd-jni-$zstdVersion.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "com/**/*.class"       -> CopyToOutputJar
       )
     )
   )
@@ -5909,11 +5935,16 @@ lazy val `std-snowflake` = project
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
-          ignoreScalaLibrary                = true,
-          ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.60.0"),
+          ignoreScalaLibrary = true,
+          ignoreDependencies = Some((fileName: String) => {
+            fileName.startsWith("netty-tcnative-boringssl-static") ||
+            fileName.startsWith("netty-transport-native-epoll")
+          }),
+          ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
           ignoreDependenciesByModuleID = Some(
             Seq(
-              "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2"
+              "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
+              "com.github.luben" % "zstd-jni"               % zstdVersion
             )
           ),
           libraryUpdates     = (Compile / update).value,
@@ -5922,12 +5953,16 @@ lazy val `std-snowflake` = project
           unmanagedClasspath = (Compile / unmanagedJars).value,
           polyglotLibDir     = Some(`std-snowflake-native-libs`),
           extractedNativeLibsDirs = Seq(
-            (`grpc-wrapper-older` / extractedFilesDir).value,
-            (`conscrypt-wrapper` / extractedFilesDir).value
+            (`grpc-wrapper-newer` / extractedFilesDir).value,
+            (`netty-tc-native-wrapper` / extractedFilesDir).value,
+            (`netty-epoll-native-wrapper` / extractedFilesDir).value,
+            (`conscrypt-wrapper` / extractedFilesDir).value,
+            (`zstd-jni-wrapper` / extractedFilesDir).value
           ),
           extraJars = Seq(
-            (`grpc-wrapper-older` / thinJarOutput).value,
-            (`conscrypt-wrapper` / thinJarOutput).value
+            (`grpc-wrapper-newer` / thinJarOutput).value,
+            (`conscrypt-wrapper` / thinJarOutput).value,
+            (`zstd-jni-wrapper` / thinJarOutput).value
           )
         )
       stdSnowflakeJar

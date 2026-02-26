@@ -10,6 +10,7 @@ import org.enso.compiler.pass.PassConfiguration
   *
   * @param moduleContext the module in which the expression is being executed
   * @param compilerConfig the compiler configuration
+  * @param src inline context may need reference to special source
   * @param localScope the local scope in which the expression is being executed
   * @param isInTailPosition whether or not the inline expression occurs in tail
   *                         position ([[None]] indicates no information)
@@ -20,6 +21,7 @@ import org.enso.compiler.pass.PassConfiguration
 case class InlineContext(
   private val moduleContext: ModuleContext,
   compilerConfig: CompilerConfig,
+  src: Object                                  = null,
   localScope: Option[LocalScope]               = None,
   isInTailPosition: Option[Boolean]            = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
@@ -45,6 +47,7 @@ object InlineContext {
     *                         tail position
     * @param compilerConfig the compiler configuration
     * @param pkgRepo the compiler's package repository
+    * @param src inline context may need reference to special source
     * @return the [[InlineContext]] instance corresponding to the arguments
     */
   def fromJava(
@@ -52,14 +55,16 @@ object InlineContext {
     module: CompilerContext.Module,
     isInTailPosition: Option[Boolean],
     compilerConfig: CompilerConfig,
-    pkgRepo: Option[PackageRepository]
+    pkgRepo: Option[PackageRepository],
+    src: Object
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
       moduleContext    = ModuleContext(module, compilerConfig),
       isInTailPosition = isInTailPosition,
       compilerConfig   = compilerConfig,
-      pkgRepo          = pkgRepo
+      pkgRepo          = pkgRepo,
+      src              = src
     )
   }
 
@@ -77,7 +82,8 @@ object InlineContext {
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,
       compilerConfig    = moduleContext.compilerConfig,
-      pkgRepo           = moduleContext.pkgRepo
+      pkgRepo           = moduleContext.pkgRepo,
+      src               = null
     )
   }
 }

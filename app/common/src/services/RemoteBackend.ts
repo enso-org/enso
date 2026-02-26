@@ -136,7 +136,7 @@ export class RemoteBackend extends backend.Backend {
     }
   }
 
-  /** Change the username of the current user. */
+  /** Change the username and organization of the current user. */
   override async updateUser(body: backend.UpdateUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
     const response = await this.put(path, body)
