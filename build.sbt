@@ -4320,7 +4320,7 @@ lazy val `jvm-interop` =
       crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= slf4jApi ++ Seq(
+      libraryDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion,
         "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk"      % "graal-sdk"             % graalMavenPackagesVersion % Test,
@@ -4328,14 +4328,13 @@ lazy val `jvm-interop` =
         "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
         "org.graalvm.polyglot" % "js-community"          % graalMavenPackagesVersion % Test
       ),
-      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
-        (`logging-system2slf4j` / Compile / exportedModule).value,
         (`engine-common` / Compile / exportedModule).value,
         (`jvm-channel` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value

@@ -5,17 +5,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.slf4j.ILoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.event.Level;
-import org.slf4j.helpers.AbstractLogger;
 
 public class OtherJvmLoggerTest {
   @ClassRule
@@ -46,98 +45,39 @@ public class OtherJvmLoggerTest {
 
   @Test
   public void registerLoggerObtainALog() throws Exception {
-    var otherLogger = loadOtherJvmClass(OtherJvmLogger.class.getName());
-    var createdLoggerName = new String[1];
-    var loggedLevel = new Level[1];
-    var loggedMsg = new String[1];
-    var mockFactory =
-        (ILoggerFactory)
-            (n) -> {
-              Assert.assertNull("No logger name assigned yet", createdLoggerName[0]);
-              createdLoggerName[0] = n;
-              return new AbstractLogger() {
-                @Override
-                protected String getFullyQualifiedCallerName() {
-                  throw new AssertionError();
-                }
-
-                @Override
-                protected void handleNormalizedLoggingCall(
-                    Level level,
-                    Marker marker,
-                    String msg,
-                    Object[] arguments,
-                    Throwable throwable) {
-                  assertNull("No level yet", loggedLevel[0]);
-                  assertNotNull("Level provided", level);
-                  assertNotNull("Some message provided", msg);
-                  assertNull("No arguments", arguments);
-                  assertNull("No throwable", throwable);
-                  assertNull("No marker", marker);
-
-                  loggedLevel[0] = level;
-                  loggedMsg[0] = msg;
-                }
-
-                @Override
-                public boolean isTraceEnabled() {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isTraceEnabled(Marker marker) {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isDebugEnabled() {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isDebugEnabled(Marker marker) {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isInfoEnabled() {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isInfoEnabled(Marker marker) {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isWarnEnabled() {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isWarnEnabled(Marker marker) {
-                  throw new AssertionError();
-                }
-
-                @Override
-                public boolean isErrorEnabled() {
-                  return true;
-                }
-
-                @Override
-                public boolean isErrorEnabled(Marker marker) {
-                  throw new AssertionError();
-                }
-              };
-            };
-    otherLogger.invokeMember("registerLoggerFactory", mockFactory);
-
     var otherTest = loadOtherJvmClass(OtherJvmLoggerTest.class.getName());
-    otherTest.invokeMember("logError", "test.log.error", "I got logged!");
 
-    assertEquals("Logger created", "test.log.error", createdLoggerName[0]);
-    assertEquals("Logging at error level", Level.ERROR, loggedLevel[0]);
-    assertEquals("The right message", "I got logged!", loggedMsg[0]);
+    class CapturingHandler extends Handler {
+      String loggerName;
+      Level loggedLevel;
+      String loggedMsg;
+
+      @Override
+      public void publish(LogRecord lr) {
+        assertNull("No log record yet", loggerName);
+        loggerName = lr.getLoggerName();
+        assertNotNull("Logger name set", loggerName);
+        loggedLevel = lr.getLevel();
+        loggedMsg = lr.getMessage();
+      }
+
+      @Override
+      public void flush() {}
+
+      @Override
+      public void close() {}
+    }
+    var capture = new CapturingHandler();
+    withLogHandler(
+        Logger.getLogger(""),
+        capture,
+        () -> {
+          otherTest.invokeMember("logError", "test.log.error", "I got logged!");
+        });
+
+    assertEquals("Logger created", "test.log.error", capture.loggerName);
+    assertEquals("Logging at error level maps to severe", Level.SEVERE, capture.loggedLevel);
+    assertEquals("The right message", "I got logged!", capture.loggedMsg);
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
@@ -150,9 +90,25 @@ public class OtherJvmLoggerTest {
     return value;
   }
 
+  private static void withLogHandler(Logger l, Handler h, Runnable r) {
+    var previous = l.getHandlers();
+    try {
+      for (var p : previous) {
+        l.removeHandler(p);
+      }
+      l.addHandler(h);
+      r.run();
+    } finally {
+      l.removeHandler(h);
+      for (var p : previous) {
+        l.addHandler(p);
+      }
+    }
+  }
+
   public static void logError(String logName, String msg) {
-    var factory = new OtherJvmLogger().getLoggerFactory();
-    var log = factory.getLogger(logName);
-    log.error(msg);
+    var factory = new OtherJvmLogger(CHANNEL);
+    var log = factory.getLogger(logName, null);
+    log.log(System.Logger.Level.ERROR, msg);
   }
 }

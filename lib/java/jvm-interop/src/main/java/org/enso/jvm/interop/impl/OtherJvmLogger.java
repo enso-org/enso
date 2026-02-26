@@ -1,129 +1,79 @@
 package org.enso.jvm.interop.impl;
 
-import java.util.Arrays;
-import org.slf4j.ILoggerFactory;
-import org.slf4j.IMarkerFactory;
-import org.slf4j.Logger;
-import org.slf4j.Marker;
-import org.slf4j.event.Level;
-import org.slf4j.helpers.AbstractLogger;
-import org.slf4j.spi.MDCAdapter;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import org.enso.jvm.channel.Channel;
+import org.enso.persist.Persistable;
 
-public final class OtherJvmLogger implements org.slf4j.spi.SLF4JServiceProvider {
-  private static ILoggerFactory delegate;
+public final class OtherJvmLogger extends System.LoggerFinder {
+  private final Channel<OtherJvmPool> channel;
 
-  public static void registerLoggerFactory(ILoggerFactory factory) {
-    delegate = factory;
+  public OtherJvmLogger(Channel<OtherJvmPool> channel) {
+    this.channel = channel;
   }
 
   @Override
-  public ILoggerFactory getLoggerFactory() {
-    return delegate;
+  public System.Logger getLogger(String name, Module module) {
+    return new LoggerImpl(name);
   }
 
-  @Override
-  public IMarkerFactory getMarkerFactory() {
-    throw new UnsupportedOperationException("getMarkerFactory");
-  }
-
-  @Override
-  public MDCAdapter getMDCAdapter() {
-    throw new UnsupportedOperationException("getMDCAdapter");
-  }
-
-  @Override
-  public String getRequestedApiVersion() {
-    return "2.0.1";
-  }
-
-  @Override
-  public void initialize() {}
-
-  private static class OtherJvmFactory implements ILoggerFactory {
-    public OtherJvmFactory() {}
+  @Persistable(id = 81913)
+  record LogMsg(String name, int severity, String format, List<Object> args, List<Throwable> thrown)
+      implements Function<Channel<OtherJvmPool>, Void> {
 
     @Override
-    public Logger getLogger(String name) {
-      return new LoggerImpl(name);
+    public Void apply(Channel<OtherJvmPool> t) {
+      var log = System.getLogger(name);
+      var level =
+          Stream.of(System.Logger.Level.values())
+              .filter(l -> l.getSeverity() == severity)
+              .findAny()
+              .get();
+      if (thrown.size() == 1) {
+        assert args.isEmpty();
+        log.log(level, format, thrown.get(0));
+      } else {
+        log.log(level, format, args.toArray());
+      }
+      return null;
     }
   }
 
-  private static class LoggerImpl extends AbstractLogger {
+  private final class LoggerImpl implements System.Logger {
+    private final String name;
+
     LoggerImpl(String name) {
       this.name = name;
     }
 
     @Override
-    protected String getFullyQualifiedCallerName() {
+    public String getName() {
       return name;
     }
 
     @Override
-    protected void handleNormalizedLoggingCall(
-        Level level,
-        Marker marker,
-        String messagePattern,
-        Object[] arguments,
-        Throwable throwable) {
-      System.err.println(
-          "handleNormalizedLoggingCall: "
-              + level
-              + " messagePattern "
-              + messagePattern
-              + " args: "
-              + Arrays.toString(arguments)
-              + " th: "
-              + throwable);
+    public boolean isLoggable(Level level) {
+      return level.compareTo(Level.WARNING) >= 0;
     }
 
     @Override
-    public boolean isTraceEnabled() {
-      return false;
+    public void log(Level level, ResourceBundle bundle, String msg, Throwable thrown) {
+      var log = new LogMsg(name, level.getSeverity(), msg, List.of(), List.of(thrown));
+      channel.execute(Void.class, log);
     }
 
     @Override
-    public boolean isTraceEnabled(Marker marker) {
-      return false;
-    }
-
-    @Override
-    public boolean isDebugEnabled() {
-      return false;
-    }
-
-    @Override
-    public boolean isDebugEnabled(Marker marker) {
-      return false;
-    }
-
-    @Override
-    public boolean isInfoEnabled() {
-      return false;
-    }
-
-    @Override
-    public boolean isInfoEnabled(Marker marker) {
-      return false;
-    }
-
-    @Override
-    public boolean isWarnEnabled() {
-      return true;
-    }
-
-    @Override
-    public boolean isWarnEnabled(Marker marker) {
-      return true;
-    }
-
-    @Override
-    public boolean isErrorEnabled() {
-      return true;
-    }
-
-    @Override
-    public boolean isErrorEnabled(Marker marker) {
-      return true;
+    public void log(Level level, ResourceBundle bundle, String format, Object... params) {
+      var log =
+          new LogMsg(
+              name,
+              level.getSeverity(),
+              format,
+              params == null ? List.of() : List.of(params),
+              List.of());
+      channel.execute(Void.class, log);
     }
   }
 }
