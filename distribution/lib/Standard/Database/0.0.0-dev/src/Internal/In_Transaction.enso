@@ -25,5 +25,5 @@ type In_Transaction
        ---
        Runs the provided action, failing if the call is not made from within a
        transaction.
-    ensure_in_transaction ~action =
-        if In_Transaction.is_in_transaction then action else Error.throw (Illegal_State.Error "`ensure_in_transaction` called outside of a transaction.")
+    ensure_in_transaction =
+        if In_Transaction.is_in_transaction.not then Error.throw (Illegal_State.Error "`ensure_in_transaction` called outside of a transaction.")
