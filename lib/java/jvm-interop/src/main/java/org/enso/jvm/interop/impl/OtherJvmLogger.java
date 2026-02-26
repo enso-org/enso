@@ -2,6 +2,7 @@ package org.enso.jvm.interop.impl;
 
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.enso.jvm.channel.Channel;
@@ -12,6 +13,14 @@ public final class OtherJvmLogger extends System.LoggerFinder {
 
   public OtherJvmLogger(Channel<OtherJvmPool> channel) {
     this.channel = channel;
+  }
+
+  @SuppressWarnings("unchecked")
+  static void initialize(Channel<OtherJvmPool> channel) {
+    if (System.LoggerFinder.getLoggerFinder() instanceof Consumer delegatingFinder) {
+      var logger = new OtherJvmLogger(channel);
+      delegatingFinder.accept(logger);
+    }
   }
 
   @Override
