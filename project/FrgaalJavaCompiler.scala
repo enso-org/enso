@@ -28,8 +28,8 @@ import xsbti.Position
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
 
-  val frgaal      = "org.frgaal" % "compiler" % "24.0.0" % "provided"
-  val sourceLevel = "24"
+  val frgaal      = "org.frgaal" % "compiler" % "25.0.0" % "provided"
+  val sourceLevel = "25"
 
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
