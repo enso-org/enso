@@ -13,6 +13,7 @@ import type { PaywallFeatureName } from '#/hooks/billing'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import type * as text from 'enso-common/src/text'
@@ -20,12 +21,18 @@ import * as detect from 'enso-common/src/utilities/detect'
 import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
-  base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
+  base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active',
   variants: {
     variant: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'context-menu': 'px-context-menu-entry-x',
     },
+    hasHoverBackground: {
+      true: 'group-enabled:hover:bg-hover-bg',
+    },
+  },
+  defaultVariants: {
+    hasHoverBackground: true,
   },
 })
 
@@ -38,9 +45,11 @@ export function actionToTextId(action: inputBindings.DashboardBindingKey): text.
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
+  readonly picture?: JSX.Element
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
+  readonly truncateLabel?: boolean | undefined
   readonly tooltip?: string | null | undefined
   /** When true, the button is not clickable. */
   readonly isDisabled?: boolean | undefined
@@ -48,6 +57,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
   readonly isUnderPaywall?: boolean
+  readonly isSelected?: boolean
   readonly feature?: PaywallFeatureName
 }
 
@@ -60,6 +70,8 @@ export default function MenuEntry(props: MenuEntryProps) {
     title,
     doAction,
     icon: iconRaw,
+    picture,
+    truncateLabel = false,
     tooltip: tooltipValueRaw,
     color,
     isUnderPaywall = false,
@@ -115,14 +127,26 @@ export default function MenuEntry(props: MenuEntryProps) {
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
             <div
               title={title}
-              className="flex items-center gap-menu-entry whitespace-nowrap"
+              className={twMerge(
+                'flex min-w-0 items-center gap-menu-entry whitespace-nowrap',
+                truncateLabel && 'w-0 flex-1',
+              )}
               style={{ color: info.color }}
             >
-              <Icon
-                icon={icon ?? info.icon ?? BlankIcon}
-                className={info.color != null ? undefined : 'text-primary'}
-              />
-              <Text color={color} slot="label">
+              {picture === undefined && (
+                <Icon
+                  icon={icon ?? info.icon ?? BlankIcon}
+                  className={info.color != null ? undefined : 'text-primary'}
+                />
+              )}
+              {picture}
+              <Text
+                color={color}
+                slot="label"
+                className={truncateLabel ? 'min-w-0 flex-1' : undefined}
+                truncate={truncateLabel ? '1' : undefined}
+                disableLineHeightCompensation={truncateLabel}
+              >
                 {label ?? getText(labelTextId)}
               </Text>
             </div>

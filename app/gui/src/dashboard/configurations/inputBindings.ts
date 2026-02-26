@@ -33,6 +33,7 @@ const BINDINGS_AND_CATEGORIES = inputBindings.defineBindings(
   ],
   {
     settings: { bindings: ['Mod+,'], icon: 'settings', category: 'navigation' },
+    switchOrganization: { bindings: [], category: 'other' },
     open: { bindings: ['Enter'], icon: 'open', category: 'other' },
     run: { bindings: ['Shift+Enter'], icon: 'workflow_play', category: 'other' },
     runAsTask: { bindings: ['Mod+Shift+Enter'], icon: 'workflow_play', category: 'fileManagement' },

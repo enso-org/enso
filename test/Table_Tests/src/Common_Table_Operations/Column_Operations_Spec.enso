@@ -238,35 +238,34 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "iif" <|
             t = build_sorted_table [["X", [True, False, Nothing, True]]]
             c1 = t.at "X" . iif 22 33
-            c1.to_vector . should_equal [22, 33, Nothing, 22]
+            c1.to_vector . should_equal_ignoring_order [22, 33, Nothing, 22]
             setup.expect_integer_type <| c1
 
             c2 = t.at "X" . iif 22 33.0
-            c2.to_vector . should_equal [22, 33, Nothing, 22]
+            c2.to_vector . should_equal_ignoring_order [22, 33, Nothing, 22]
             c2.value_type . should_be_a (Value_Type.Float ...)
 
             c3 = t.at "X" . iif "A" "B"
-            c3.to_vector . should_equal ["A", "B", Nothing, "A"]
+            c3.to_vector . should_equal_ignoring_order ["A", "B", Nothing, "A"]
             c3.value_type . should_be_a (Value_Type.Char ...)
 
             c4 = t.at "X" . iif Nothing "B"
-            c4.to_vector . should_equal [Nothing, "B", Nothing, Nothing]
+            c4.to_vector . should_equal_ignoring_order [Nothing, "B", Nothing, Nothing]
             c4.value_type . should_be_a (Value_Type.Char ...)
 
             c5 = t.at "X" . iif 42 Nothing
-            c5.to_vector . should_equal [42, Nothing, Nothing, 42]
+            c5.to_vector . should_equal_ignoring_order [42, Nothing, Nothing, 42]
             setup.expect_integer_type <| c5
 
             c6 = t.at "X" . iif Nothing Nothing
-            c6.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-
+            c6.to_vector . should_equal_ignoring_order [Nothing, Nothing, Nothing, Nothing]
             t.at "X" . iif 22.0 False . should_fail_with No_Common_Type
             t.at "X" . iif 22 "0" . should_fail_with No_Common_Type
 
         group_builder.specify "iif on Columns" <|
             with_mixed_columns_if_supported [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.0, 3.5, 4.0]]] t1->
                 c1 = t1.at "X" . iif (t1.at "Y") (t1.at "Z")
-                c1.to_vector . should_equal [1, 2.0, Nothing, 4.0]
+                c1.to_vector . should_equal_ignoring_order [1, 2.0, Nothing, 4.0]
                 is_mixed = (t1.at "Y" . value_type == Value_Type.Mixed) || (t1.at "Z" . value_type == Value_Type.Mixed)
                 case is_mixed of
                     True  -> c1.value_type . should_equal Value_Type.Mixed
@@ -274,7 +273,7 @@ add_column_operation_specs suite_builder setup =
 
             with_mixed_columns_if_supported [["X", [True, False]], ["Y", [1, 2]], ["Z", [1.5, 3.0]]] t2->
                 c2 = t2.at "X" . iif (t2.at "Y") (t2.at "Z")
-                c2.to_vector . should_equal [1, 3]
+                c2.to_vector . should_equal_ignoring_order [1, 3]
                 is_mixed = (t2.at "Y" . value_type == Value_Type.Mixed) || (t2.at "Z" . value_type == Value_Type.Mixed)
                 case is_mixed of
                     True  -> c2.value_type . should_equal Value_Type.Mixed
@@ -326,13 +325,13 @@ add_column_operation_specs suite_builder setup =
             with_mixed_columns_if_supported [["X", [True, False, True]], ["Y", [True, False, False]]] t->
                 x = t.at "X"
                 y = t.at "Y"
-                (x || False).to_vector . should_equal [True, False, True]
-                (x || True).to_vector . should_equal [True, True, True]
-                (x || y).to_vector . should_equal [True, False, True]
-                (x && False).to_vector . should_equal [False, False, False]
-                (x && True).to_vector . should_equal [True, False, True]
-                (x && y).to_vector . should_equal [True, False, False]
-                (x || y.not).to_vector . should_equal [True, True, True]
+                (x || False).to_vector . should_equal_ignoring_order [True, False, True]
+                (x || True).to_vector . should_equal_ignoring_order [True, True, True]
+                (x || y).to_vector . should_equal_ignoring_order [True, False, True]
+                (x && False).to_vector . should_equal_ignoring_order [False, False, False]
+                (x && True).to_vector . should_equal_ignoring_order [True, False, True]
+                (x && y).to_vector . should_equal_ignoring_order [True, False, False]
+                (x || y.not).to_vector . should_equal_ignoring_order [True, True, True]
 
         group_builder.specify "should handle nulls correctly in not" <|
             t = table_builder [["A", [True, False, Nothing]]]
@@ -393,18 +392,18 @@ add_column_operation_specs suite_builder setup =
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
-                (x == y).to_vector . should_equal [False, False, True, Nothing]
-                (x != y).to_vector . should_equal [True, True, False, Nothing]
-                (x == 4).to_vector . should_equal [False, True, False, Nothing]
-                (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+                (x == y).to_vector . should_equal_ignoring_order [False, False, True, Nothing]
+                (x != y).to_vector . should_equal_ignoring_order [True, True, False, Nothing]
+                (x == 4).to_vector . should_equal_ignoring_order [False, True, False, Nothing]
+                (x == Nothing).to_vector . should_equal_ignoring_order [Nothing, Nothing, Nothing, Nothing]
 
         group_builder.specify "should allow to check which values are null" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]]] t->
                 x = t.at "x"
-                x.is_nothing.to_vector . should_equal [False, False, False, True]
-                (x + Nothing).is_nothing.to_vector . should_equal [True, True, True, True]
-                x.is_present.to_vector . should_equal [True, True, True, False]
-                (x + Nothing).is_present.to_vector . should_equal [False, False, False, False]
+                x.is_nothing.to_vector . should_equal_ignoring_order [False, False, False, True]
+                (x + Nothing).is_nothing.to_vector . should_equal_ignoring_order [True, True, True, True]
+                x.is_present.to_vector . should_equal_ignoring_order [True, True, True, False]
+                (x + Nothing).is_present.to_vector . should_equal_ignoring_order [False, False, False, False]
 
         group_builder.specify "Column equality should handle nulls correctly" <|
             a = [2, 3, Nothing, Nothing]
@@ -426,9 +425,9 @@ add_column_operation_specs suite_builder setup =
 
             with_mixed_columns_if_supported [["X", x], ["Y", y]] t->
                 c = (t.at "X") . equals_ignore_case (t.at "Y")
-                c.to_vector . should_equal r
+                c.to_vector . should_equal_ignoring_order r
                 c.value_type.should_equal Value_Type.Boolean
-                (t.at "X") . equals_ignore_case "Def" . to_vector . should_equal [False, False, False, True]
+                (t.at "X") . equals_ignore_case "Def" . to_vector . should_equal_ignoring_order [False, False, False, True]
 
         group_builder.specify "equals_ignore_case should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -640,15 +639,15 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "should allow to replace values in a table" <|
             with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
                 actual = t.text_replace ["col0", "col1"] "ab" "xy"
-                actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
-                actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+                actual.at "col0" . to_vector . should_equal_ignoring_order ["xyc", "def", "ghi"]
+                actual.at "col1" . to_vector . should_equal_ignoring_order ["nxyc", "ndef", "asdf"]
         
         group_builder.specify "should allow to replace values in a table selecting columns with regex" <|
             with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["zzz", ["nabc", "ndef", "asdf"]]] t->
                 actual = t.text_replace [(regex "col.*")] "ab" "xy"
-                actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
-                actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
-                actual.at "zzz" . to_vector . should_equal ["nabc", "ndef", "asdf"]
+                actual.at "col0" . to_vector . should_equal_ignoring_order ["xyc", "def", "ghi"]
+                actual.at "col1" . to_vector . should_equal_ignoring_order ["nxyc", "ndef", "asdf"]
+                actual.at "zzz" . to_vector . should_equal_ignoring_order ["nabc", "ndef", "asdf"]
 
         group_builder.specify "should allow to replace values in a table selecting columns by type" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["zzz", [1, 2, 3]]]
@@ -973,22 +972,22 @@ add_column_operation_specs suite_builder setup =
 
                 group_builder.specify "should support is_infinite" <|
                     t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
-                    t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, Nothing]
-                    t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, Nothing]
+                    t.at "X" . is_infinite . to_vector . should_equal_ignoring_order [False, False, True, True, Nothing]
+                    t.at "Y" . is_infinite . to_vector . should_equal_ignoring_order [False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
 
                 group_builder.specify "should support is_finite" <|
                     t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
-                    t.at "X" . is_finite . to_vector . should_equal [True, True, False, False, Nothing]
-                    t.at "Y" . is_finite . to_vector . should_equal [True, True, True, True, Nothing]
+                    t.at "X" . is_finite . to_vector . should_equal_ignoring_order [True, True, False, False, Nothing]
+                    t.at "Y" . is_finite . to_vector . should_equal_ignoring_order [True, True, True, True, Nothing]
                     t.at "Z" . is_finite . to_vector . should_fail_with Invalid_Value_Type
 
         group_builder.specify "should support is_blank" <|
             t = build_sorted_table [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
             x = t.at "X" . is_blank treat_nans_as_blank=True
-            x . to_vector . should_equal [False, False, True, True]
+            x . to_vector . should_equal_ignoring_order [False, False, True, True]
             y = t.at "Y" . is_blank treat_nans_as_blank=True
-            y . to_vector . should_equal [False, True, False, False]
+            y . to_vector . should_equal_ignoring_order [False, True, False, False]
 
         group_builder.specify "division should be aligned with the Enso arithmetic" <|
             a = [1, 5, 10, 100]
@@ -1001,11 +1000,11 @@ add_column_operation_specs suite_builder setup =
             setup.expect_integer_type <| t.at "B"
 
             r2 = (t.at "A") / (t.at "B")
-            r2 . to_vector . should_equal r
+            r2 . to_vector . should_equal_ignoring_order r
             is_float_or_decimal r2
 
             r3 = (t.at "A") / 2
-            r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
+            r3 . to_vector . should_equal_ignoring_order [0.5, 2.5, 5.0, 50.0]
             is_float_or_decimal r3
 
             a2 = [1.2, 5, 10.2, 100]
@@ -1018,11 +1017,11 @@ add_column_operation_specs suite_builder setup =
             t2.at "B" . value_type . is_floating_point . should_be_true
 
             r5 = (t2.at "A") / (t2.at "B")
-            r5 . to_vector . should_equal r4
+            r5 . to_vector . should_equal_ignoring_order r4
             is_float_or_decimal r5
 
             r6 = (t2.at "A") / 2
-            r6 . to_vector . should_equal [0.6, 2.5, 5.1, 50.0]
+            r6 . to_vector . should_equal_ignoring_order [0.6, 2.5, 5.1, 50.0]
             is_float_or_decimal r6
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
@@ -1128,7 +1127,7 @@ add_column_operation_specs suite_builder setup =
             group_builder.specify "should allow floor on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast typ . floor
-                result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
+                result.to_vector.should_equal_ignoring_order [0, 0, 3, 3, -1, -1, -4, -4]
                 result.name . should_equal "floor([x])"
 
             group_builder.specify "should handle Nothing in rounding on a "+typ.to_text+" column" <|
@@ -1231,12 +1230,11 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "should work with mixed type columns" <|
             with_mixed_columns_if_supported [["X", [112, 210, 222]]] t->
                 x = t.at "X"
-                x.floor . to_vector . should_equal [112, 210, 222]
-                x.ceil . to_vector . should_equal [112, 210, 222]
-                x.round . to_vector . should_equal [112, 210, 222]
-                x.truncate . to_vector . should_equal [112, 210, 222]
-                x.round (-1) . to_vector . should_equal [110, 210, 220]
-
+                x.floor . to_vector . should_equal_ignoring_order [112, 210, 222]
+                x.ceil . to_vector . should_equal_ignoring_order [112, 210, 222]
+                x.round . to_vector . should_equal_ignoring_order [112, 210, 222]
+                x.truncate . to_vector . should_equal_ignoring_order [112, 210, 222]
+                x.round (-1) . to_vector . should_equal_ignoring_order [110, 210, 220]
             with_mixed_columns_if_supported [["X", [1.0, -2.4, 3.8]]] t->
                 x = t.at "X"
                 x.floor . to_vector . should_equal [1, -3, 3]
@@ -1308,7 +1306,7 @@ add_column_operation_specs suite_builder setup =
                 resMid = col.text_mid 3 1
                 resMid.name . should_equal "text_mid([strings], 3, 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
-                resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
+                resRight . to_vector . should_equal_ignoring_order ["a", "r", "", Nothing, "é", "."]
                 resMid . to_vector . should_equal ["", "b", "", Nothing, "é", "w"]
 
                 expected_new_size = case setup.flagged ..Char_Max_Size_After_Substring_Kept of
@@ -1340,9 +1338,9 @@ add_column_operation_specs suite_builder setup =
                         resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
                         resMid . to_vector . should_equal ["", "bar", "", Nothing, "👩‍🔬👩‍🔬", "é", "was "] # Grapheme Length
                     True ->
-                        resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
-                        resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
-                        resMid . to_vector . should_equal ["", "bar", "", Nothing, "👩‍🔬V", "é", "was "]  # Storage Length
+                        resLeft . to_vector . should_equal_ignoring_order ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
+                        resRight . to_vector . should_equal_ignoring_order ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
+                        resMid . to_vector . should_equal_ignoring_order ["", "bar", "", Nothing, "👩‍🔬V", "é", "was "]  # Storage Length
 
         group_builder.specify "text_left, _right, and _mid should error on non integer parameters" <|
             t = table_builder [["numbers", [1, 2, 3]]]
@@ -1363,9 +1361,9 @@ add_column_operation_specs suite_builder setup =
                 resRight.name . should_equal "text_right([strings], 0)"
                 resMid = col.text_mid 3 0
                 resMid.name . should_equal "text_mid([strings], 3, 0)"
-                resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
-                resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
-                resMid . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                resLeft . to_vector . should_equal_ignoring_order ["", "", "", Nothing, "", "", ""]
+                resRight . to_vector . should_equal_ignoring_order ["", "", "", Nothing, "", "", ""]
+                resMid . to_vector . should_equal_ignoring_order ["", "", "", Nothing, "", "", ""]
 
         if setup.is_database.not then
             group_builder.specify "text_left, _right, and _mid should error on non-string columns" <|
@@ -1427,17 +1425,17 @@ add_column_operation_specs suite_builder setup =
                 resLeft = col.text_left
                 resRight = col.text_right
                 resMid = col.text_mid 3
-                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
-                resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "s"]
-                resMid . to_vector . should_equal ["", "bar", "", Nothing, "é", "was the best of times"]
+                resLeft . to_vector . should_equal_ignoring_order ["a", "f", "", Nothing, "c", "I"]
+                resRight . to_vector . should_equal_ignoring_order ["a", "r", "", Nothing, "é", "s"]
+                resMid . to_vector . should_equal_ignoring_order ["", "bar", "", Nothing, "é", "was the best of times"]
 
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"
-                s.is_empty . to_vector . should_equal [True, False, False, True, False]
-                s.is_blank . to_vector . should_equal [True, False, False, True, False]
-                s.fill_empty "<>" . to_vector . should_equal ["<>", " ", "  ", "<>", "foo"]
-                s.fill_empty (t.at "letters") . to_vector . should_equal ["a", " ", "  ", "d", "foo"]
+                s.is_empty . to_vector . should_equal_ignoring_order [True, False, False, True, False]
+                s.is_blank . to_vector . should_equal_ignoring_order [True, False, False, True, False]
+                s.fill_empty "<>" . to_vector . should_equal_ignoring_order ["<>", " ", "  ", "<>", "foo"]
+                s.fill_empty (t.at "letters") . to_vector . should_equal_ignoring_order ["a", " ", "  ", "d", "foo"]
 
         group_builder.specify "should check types" <|
             t4 = table_builder [["str", ['a', 'b']], ["int", [1, 2]]]
@@ -1491,15 +1489,15 @@ add_column_operation_specs suite_builder setup =
                 s1 = t3.at "s1"
                 s2 = t3.at "s2"
                 c1 = s1 + s2
-                c1.to_vector . should_equal ["foobarfoo", "barar", "baza", "BABb", Nothing]
+                c1.to_vector . should_equal_ignoring_order ["foobarfoo", "barar", "baza", "BABb", Nothing]
                 c1.value_type.should_be_a (Value_Type.Char ...)
 
                 c2 = s1 + "_SUF"
-                c2.to_vector . should_equal ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
+                c2.to_vector . should_equal_ignoring_order ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
                 c2.value_type.should_be_a (Value_Type.Char ...)
 
                 c3 = s1 + Nothing
-                c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
+                c3.to_vector . should_equal_ignoring_order [Nothing, Nothing, Nothing, Nothing, Nothing]
                 c3.value_type.should_be_a (Value_Type.Char ...)
 
     suite_builder.group prefix+"(Column_Operations_Spec) Min/Max Operations" group_builder->

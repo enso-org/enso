@@ -1317,5 +1317,9 @@
   "navigationBindingCategory": "Navigation",
   "developerBindingCategory": "Developer",
   "syncingProjectsTitle": "Syncing projects",
-  "syncingProjectsMessage": "Syncing projects with Cloud…"
+  "syncingProjectsMessage": "Syncing projects with Cloud…",
+  "switchOrganizationShortcut": "Switch organization",
+  "switchingOrganization": "Switching organization…",
+  "organizationSwitched": "Organization switched.",
+  "switchingOrganizationError": "Could not switch organization."
 }

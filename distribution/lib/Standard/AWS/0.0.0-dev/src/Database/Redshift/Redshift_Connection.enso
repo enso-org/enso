@@ -58,7 +58,7 @@ type Redshift_Connection
             stmt.close
 
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=False
 
         Redshift_Connection.Value (Connection.new jdbc_connection Redshift_Connection.get_dialect Redshift_Type_Mapping entity_naming_properties) make_new
 
@@ -210,7 +210,7 @@ type Redshift_Connection
             SQL_Query.Raw_SQL sql -> SQL_Query_With_Schema.Raw_SQL sql
             _ : SQL_Query_With_Schema -> query
         used_query.to_db_table self alias
-        
+
     ## ---
        aliases: [import, load, open, query, sql]
        group: Standard.Base.Input
