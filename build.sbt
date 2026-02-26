@@ -5173,6 +5173,7 @@ lazy val `snowflake-test-java-helpers` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    libraryDependencies ++= bouncyCastle.map(_ % "provided"),
     Compile / packageBin / artifactPath :=
       file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar")
   )
@@ -5616,7 +5617,33 @@ lazy val `snowflake-jdbc-thin-wrapper` = project
         ),
         "META-INF/MANIFEST.MF" -> CopyToOutputJar,
         "META-INF/maven/**"    -> CopyToOutputJar,
-        "net/**/*.class"       -> CopyToOutputJar
+        "META-INF/services/**" -> CopyToOutputJar,
+        "net/**/*.class"       -> CopyToOutputJar,
+        "net/**/*.properties"  -> CopyToOutputJar
+      )
+    ),
+    relevantDependencies := StdBits.relevantDependecies(
+      ignoreScalaLibrary = true,
+      ignoreDependencies = Some((fileName: String) => {
+        fileName.startsWith("netty-tcnative-boringssl-static") ||
+        fileName.startsWith("netty-transport-native-epoll") ||
+        fileName.startsWith("snowflake-jdbc-thin") ||
+        fileName.startsWith("conscrypt-openjdk-uber") ||
+        fileName.startsWith("zstd-jni")
+      }),
+      ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
+      ignoreDependenciesByModuleID = Some(
+        Seq(
+          "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
+          "com.github.luben" % "zstd-jni"               % zstdVersion
+        )
+      ),
+      libraryUpdates     = (Compile / update).value,
+      unmanagedClasspath = (Compile / unmanagedJars).value,
+      extraJars = Seq(
+        (`grpc-wrapper-newer` / thinJarOutput).value,
+        (`conscrypt-wrapper` / thinJarOutput).value,
+        (`zstd-jni-wrapper` / thinJarOutput).value
       )
     )
   )
@@ -5950,7 +5977,7 @@ lazy val `std-snowflake` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
-    libraryDependencies ++= bouncyCastle,
+    libraryDependencies ++= bouncyCastle.map(_ % "provided"),
     Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5960,17 +5987,6 @@ lazy val `std-snowflake` = project
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
           ignoreScalaLibrary = true,
-          ignoreDependencies = Some((fileName: String) => {
-            fileName.startsWith("netty-tcnative-boringssl-static") ||
-            fileName.startsWith("netty-transport-native-epoll")
-          }),
-          ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
-          ignoreDependenciesByModuleID = Some(
-            Seq(
-              "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
-              "com.github.luben" % "zstd-jni"               % zstdVersion
-            )
-          ),
           libraryUpdates     = (Compile / update).value,
           logger             = streams.value.log,
           cacheStoreFactory  = cacheStoreFactory,
@@ -5985,11 +6001,10 @@ lazy val `std-snowflake` = project
             (`zstd-jni-wrapper` / extractedFilesDir).value
           ),
           extraJars = Seq(
-            (`grpc-wrapper-newer` / thinJarOutput).value,
-            (`conscrypt-wrapper` / thinJarOutput).value,
-            (`snowflake-jdbc-thin-wrapper` / thinJarOutput).value,
-            (`zstd-jni-wrapper` / thinJarOutput).value
-          )
+            (`snowflake-jdbc-thin-wrapper` / thinJarOutput).value
+          ),
+          dependenciesOfWrappers =
+            (`snowflake-jdbc-thin-wrapper` / relevantDependencies).value
         )
       stdSnowflakeJar
     },
