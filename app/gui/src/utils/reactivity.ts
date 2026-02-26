@@ -27,6 +27,7 @@ import {
   queuePostFlushCb,
   reactive,
   ReactiveEffect,
+  ref,
   shallowReactive,
   shallowRef,
   toRaw,
@@ -147,14 +148,16 @@ export class LazySyncEffectSet {
  */
 export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHandle } {
   const queued = new Set<object>()
-  const jobs = reactive(new Array<() => void>())
-  watch(jobs, () => {
+  // Do not make the queue reactive: `watch(reactiveArray, ...)` deep-traverses its contents, and
+  // our queued runners reference large/cyclic graphs (effects, deps, Maps/Sets), which can blow
+  // the call stack inside Vue's `traverse()`.
+  const jobs: Array<() => void> = []
+  const flushTick = ref(0)
+  watch(flushTick, () => {
     while (jobs.length > 0) {
       const job = jobs.pop()!
       // Do not run scheduled job if it's stopped. It's consistent with vue's "watchEffect" (checked in tests)
-      if (queued.delete(job)) {
-        job()
-      }
+      if (queued.delete(job)) job()
     }
   })
   function watchEffect(f: () => void) {
@@ -163,6 +166,7 @@ export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHa
         if (!queued.has(runner)) {
           jobs.push(runner)
           queued.add(runner)
+          flushTick.value += 1
         }
       },
       allowRecurse: true,
