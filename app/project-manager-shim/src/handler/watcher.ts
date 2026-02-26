@@ -132,9 +132,9 @@ export async function handleWatcherRequest(
           delay: PROJECT_WATCHER_CALLBACK_DELAY,
           timeout: PROJECT_WATCHER_CALLBACK_TIMEOUT,
           callback: async () => {
-            const responseBody = await projectManagement.createBundle(projectDir)
-            const file = new File([responseBody.buffer as ArrayBuffer], fileName)
-            // Overvwite uploads to create one version per session
+            const projectBundle = await projectManagement.createBundle(projectDir)
+            const file = new File([projectBundle], fileName)
+            // Overwrite uploads to create one version per session
             await uploadFile(backend, { ...uploadParams, overwrite: uploadCount > 0 }, file)
             uploadCount += 1
           },
