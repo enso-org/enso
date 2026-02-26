@@ -5,8 +5,6 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,
   Literal,
-  LiteralNumberGen,
-  LiteralTextGen,
   Location,
   Name
 }
@@ -110,16 +108,14 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             .flatMap(_ match {
               case ir: Literal.Number =>
                 Some(
-                  LiteralNumberGen
-                    .builder(ir)
+                  ir.copyBuilder()
                     .location(oldIr.location.orNull)
                     .id(oldIr.getId)
                     .build()
                 )
               case ir: Literal.Text =>
                 Some(
-                  LiteralTextGen
-                    .builder(ir)
+                  ir.copyBuilder()
                     .location(oldIr.location.orNull)
                     .id(oldIr.getId)
                     .build()
