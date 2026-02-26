@@ -107,7 +107,7 @@ type Connection
        Returns the name of the current database (or catalog).
     database : Text
     database self =
-        self.jdbc_connection.with_connection connection->connection.getCatalog
+        self.jdbc_connection.with_connection .getCatalog
 
     ## ---
        icon: data_input
@@ -431,7 +431,8 @@ type Connection
                 _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True ->
-                        unsupported_exception = self.jdbc_connection.types_record.unsupportedExceptionClass
+                        ## Don't like this
+                        unsupported_exception = self.jdbc_connection.unsupportedExceptionClass
                         Panic.catch unsupported_exception stmt.executeLargeUpdate _->
                             self.supports_large_update.put False
                             stmt.executeUpdate
@@ -453,10 +454,11 @@ type Connection
     execute : Text | SQL_Statement -> Integer
     execute self query =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
-            result = self.jdbc_connection.execute query
-            stmt = result.second
-            _check_statement_is_allowed self stmt
-            stmt.getUpdateCount
+            self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
+                _check_statement_is_allowed self stmt
+                result = stmt.execute
+                Error.return_if_error result
+                stmt.getUpdateCount
 
     ## ---
        private: true

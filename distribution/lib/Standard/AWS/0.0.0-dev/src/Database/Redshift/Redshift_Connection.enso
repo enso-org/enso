@@ -50,12 +50,10 @@ type Redshift_Connection
     create : Text -> Vector -> (Text -> Redshift_Connection) -> Redshift_Connection
     create url properties make_new =
         types_record = JDBCDriverTypes.create "Redshift"
-        jdbc_connection = JDBC_Connection.create types_record url properties
 
-        set_result = jdbc_connection.execute "SET enable_case_sensitive_identifier TO true"
-        set_result.if_not_error <|
-            stmt = set_result.at 1
-            stmt.close
+        jdbc_connection = JDBC_Connection.create types_record url properties
+        jdbc_connection.with_prepared_statement "SET enable_case_sensitive_identifier TO true" Redshift_Type_Mapping.statement_setter skip_log=True stmt->
+            stmt.execute
 
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=False
