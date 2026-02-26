@@ -84,7 +84,9 @@ export const getAgGridProperties = (): [Properties, Properties, Properties] => {
 
         _processOnChange({ rowData: currentValue }, this.api)
       },
-      deep: true,
+      // `deep: true` can recurse through nested Maps/Sets and blow the stack. We only need to
+      // observe the immediate shape (top-level fields / array elements) for prop updates.
+      deep: 1,
     },
   }
 
@@ -114,7 +116,9 @@ export const getAgGridProperties = (): [Properties, Properties, Properties] => {
             }, 0)
           }
         },
-        deep: true,
+        // `deep: true` can recurse through nested Maps/Sets and blow the stack. We only need to
+        // observe the immediate shape (top-level fields / array elements) for prop updates.
+        deep: 1,
       }
     })
 
