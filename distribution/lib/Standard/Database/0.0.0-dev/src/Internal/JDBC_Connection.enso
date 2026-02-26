@@ -11,7 +11,6 @@ from Standard.Table import Table, Value_Type
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Statement
-import project.SQL.SQL_Type
 from project.Errors import SQL_Error, SQL_Timeout
 
 polyglot java import java.sql.Connection
