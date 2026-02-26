@@ -783,7 +783,7 @@ class RuntimeRecomputeTest
       )
     )
     context.receiveNIgnoreStdLib(
-      5,
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
