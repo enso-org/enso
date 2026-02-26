@@ -3365,6 +3365,7 @@ lazy val `runtime-compiler` =
           (`logging-service` / Compile / exportedModule).value,
           (`logging-service-logback` / Compile / exportedModule).value,
           (`logging-service-logback` / Test / exportedModule).value,
+          (`logging-system2slf4j` / Compile / exportedModule).value,
           (`logging-utils` / Compile / exportedModule).value,
           (`semver` / Compile / exportedModule).value
         )
