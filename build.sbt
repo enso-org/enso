@@ -5976,6 +5976,11 @@ lazy val `std-snowflake` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
+    // `snowflake-jdbc-thin` dependency is added only to be excluded during repackaging.
+    // It's not a bug — it's a way to make our licensing extraction tool pick up all the necessary
+    // dependencies.
+    // The actual artifact (without native libs) and all its transitive dependencies are then
+    // included via the re-packaging done in `snowflake-jdbc-thin-wrapper`.
     libraryDependencies += "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds"),
     Compile / packageBin := {
       val logger            = streams.value.log
