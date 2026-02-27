@@ -51,15 +51,11 @@ type Connection
           connected to.
         - `entity_naming_properties`: a helper allowing to manage properties of
           entity naming rules of the given backend.
-        - `supports_large_update`: whether the connection should try to use
-          `executeLargeUpdate`. Set to `True` by default and if the operation
-          fails with `UnsupportedOperationException`, it is updated to be
-          `False`.
         - `hidden_table_registry`: a registry of hidden tables that are not shown
           to the user, but are used internally by the dry-run system.
         - `data_link_setup`: an optional setup allowing for saving the connection
           as a data link.
-    Value jdbc_connection dialect type_mapping (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
+    Value jdbc_connection dialect type_mapping (entity_naming_properties : Entity_Naming_Properties) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
 
     ## ---
        private: true
@@ -77,11 +73,9 @@ type Connection
           entity naming rules of the given backend.
         - `data_link_setup`: an optional setup allowing for saving the connection
           as a data link.
-        - `try_large_update`: whether the connection should try to use
-          `executeLargeUpdate`.
-    new jdbc_connection:JDBC_Connection dialect type_mapping entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) -> Connection =
+    new jdbc_connection:JDBC_Connection dialect type_mapping entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) -> Connection =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect type_mapping entity_naming_properties (Ref.new try_large_update) registry data_link_setup
+        Connection.Value jdbc_connection dialect type_mapping entity_naming_properties registry data_link_setup
 
     ## ---
        private: true
@@ -429,14 +423,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
                 _check_statement_is_allowed self stmt
-                result = case self.supports_large_update.get of
-                    True ->
-                        ## Don't like this
-                        unsupported_exception = self.jdbc_connection.unsupportedExceptionClass
-                        Panic.catch unsupported_exception stmt.executeLargeUpdate _->
-                            self.supports_large_update.put False
-                            stmt.executeUpdate
-                    False -> stmt.executeUpdate
+                result = stmt.executeUpdate
                 SQL_Warning_Helper.process_warnings stmt <|
                     result
 
