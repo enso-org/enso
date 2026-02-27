@@ -26,6 +26,8 @@ final class JavaPolyglotNode {
               "org.graalvm.polyglot",
               "org.graalvm.truffle",
               "org.enso.engine.common",
+              "java.net.http", // needed by Audit_Logs
+              "java.rmi", // needed by Snowflake
               "org.slf4j",
               "org.enso.logging.utils",
               "org.enso.logging.config",

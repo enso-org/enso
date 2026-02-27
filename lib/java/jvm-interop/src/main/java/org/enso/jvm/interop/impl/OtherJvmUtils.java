@@ -53,18 +53,21 @@ public final class OtherJvmUtils {
     if (moduleNamesOrNull == null) {
       modulePath = component.getPath();
     } else {
-      var finder = ModuleFinder.of(component.toPath());
+      var components = ModuleFinder.of(component.toPath());
+      var finder = ModuleFinder.compose(components, ModuleFinder.ofSystem());
       var paths =
           moduleNamesOrNull.stream()
               .map(
                   (n) -> {
                     var opt = finder.find(n);
-                    if (opt.isEmpty() || opt.get().location().isEmpty()) {
+                    if (opt.isEmpty()) {
                       throw new IllegalStateException(
-                          "Cannot find module " + n + " at " + component);
+                          "Cannot find module " + n + " at " + component + " result: " + opt);
                     }
-                    return opt.get().location().get();
+                    commandAndArgs.add("--add-modules=" + n);
+                    return opt.get().location().orElse(null);
                   })
+              .filter(u -> u != null && "file".equals(u.getScheme()))
               .map(File::new)
               .map(File::getPath);
       modulePath = String.join(File.pathSeparator, paths.toArray(String[]::new));
