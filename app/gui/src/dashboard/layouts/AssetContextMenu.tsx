@@ -286,7 +286,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             doAction: () => {
               const tab: Tab = { type: 'project', id: asset.id }
               if (isTabOpened(tab)) closeTab(tab)
-              // If we have no tab opened, we allow closing it on cloud.
+              // If we have no tab opened, we try to close it in backend.
               else closeProject(asset.id, { asset, backendType: backend.type })
             },
           },

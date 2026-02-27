@@ -17,7 +17,7 @@ type TabViewInfo = Tab & {
   dataTestId?: string
   icon: Icon | undefined
   label: string
-  loadingPhase?: SpinnerPhase
+  loadingPhase?: SpinnerPhase | undefined
 }
 
 const tabsViewInfos = computed(() =>
@@ -26,6 +26,8 @@ const tabsViewInfos = computed(() =>
       case 'project': {
         const project = openedProjects.get(tab.id)
         if (!project) return []
+        const showSpinner =
+          project.nextTask?.process === 'opening' || project.nextTask?.process === 'restoring'
         return [
           {
             ...tab,
@@ -35,13 +37,12 @@ const tabsViewInfos = computed(() =>
               project.state.status === 'initialized' ?
                 project.state.name.value
               : project.state.info.title,
-            ...((
-              project.nextTask?.process === 'opening' || project.nextTask?.process === 'restoring'
-            ) ?
-              {
-                loadingPhase: project.state.info.mode === 'cloud' ? 'loading-slow' : 'loading-fast',
-              }
-            : {}),
+            loadingPhase:
+              showSpinner ?
+                project.state.info.mode === 'cloud' ?
+                  'loading-slow'
+                : 'loading-fast'
+              : undefined,
           },
         ]
       }
@@ -131,6 +132,7 @@ const cssClass = computed(() => ({
   flex-direction: column;
   width: 100%;
   min-width: 0;
+  /* Middle Panel should first give up place when user is shrinking the window. */
   flex-shrink: 1000000;
 }
 .tablist {

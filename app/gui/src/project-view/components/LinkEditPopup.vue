@@ -23,7 +23,7 @@ const navigationType = computed(() => {
 function navigateInternally() {
   navigating.value = true
   router
-    .push({ params: { path: props.href.split('/') }, query: route.query })
+    .push({ name: 'ensoPath', params: { path: props.href.split('/') }, query: route.query })
     .finally(() => (navigating.value = false))
 }
 

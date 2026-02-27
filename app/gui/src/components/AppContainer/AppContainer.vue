@@ -39,7 +39,7 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 
 const openedProjects = useOpenedProjects()
 const containerData = useContainerData()
-const { setFocusedPanel, openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
+const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
 const anyTabs = computed(() => containerData.tabList.length > 0)
 provideAsyncResources(openedProjects)
 provideRightPanelData(toRef(containerData, 'focusedPanel'), props.isFeatureUnderPaywall)
@@ -60,7 +60,6 @@ const keydownHandler = appContainerBindings.handler(
 
 function goToSettingsPage() {
   openSettingsTab()
-  setFocusedPanel({ type: 'settings' })
 }
 
 const { globalEventRegistry } = useGlobalEventRegistry()

@@ -90,7 +90,6 @@ const widthStyle = computed(() =>
     0 4px 19px 0 rgb(0 0 0 / 1.79%),
     0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%),
     0 18px 85px 0 rgb(0 0 0 / 3%);
-  /* clip-path: polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%); */
   z-index: -1;
 }
 
