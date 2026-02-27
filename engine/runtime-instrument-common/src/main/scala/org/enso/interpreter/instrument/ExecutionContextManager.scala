@@ -153,23 +153,6 @@ class ExecutionContextManager {
       contexts.values.flatMap(_.visualizations.findByModule(module))
     }
 
-  /** Returns a visualization with the provided id.
-    *
-    * @param contextId the identifier of the execution context
-    * @param visualizationId the identifier of visualization
-    * @return an option with visualization
-    */
-  def getVisualizationById(
-    contextId: ContextId,
-    visualizationId: VisualizationId
-  ): Option[Visualization] =
-    synchronized {
-      for {
-        state         <- contexts.get(contextId)
-        visualization <- state.visualizations.getById(visualizationId)
-      } yield visualization
-    }
-
   /** Finds all visualizations attached to an expression.
     *
     * @param contextId the identifier of the execution context

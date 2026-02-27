@@ -146,7 +146,7 @@ class UpsertVisualizationJob(
 
     val holder =
       ctx.contextManager.getVisualizationHolder(config.executionContextId)
-    holder.addUnevaluated(unevaluated)
+    holder.upsertUnevaluated(unevaluated)
 
     // Mark as needing sync so it will be processed
     val stack = ctx.contextManager.getStack(config.executionContextId)

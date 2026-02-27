@@ -112,8 +112,20 @@ class VisualizationHolder {
         .put(oneshotExpression.expressionId, oneshotExpression)
     }
 
-  /** Adds an unevaluated visualization. Multiple can exist per expression. */
-  def addUnevaluated(unevaluated: UnevaluatedVisualization): Unit =
+  /** Returns an unevaluated visualization with the provided id.
+    *
+    * @param visualizationId the identifier of visualization
+    * @return an option with unevaluated visualization
+    */
+  def getUnevaluatedById(
+    visualizationId: VisualizationId
+  ): Option[UnevaluatedVisualization] =
+    synchronized {
+      unevaluatedMap.values.flatten.find(_.id == visualizationId)
+    }
+
+  /** Upserts an unevaluated visualization. Multiple can exist per expression. */
+  def upsertUnevaluated(unevaluated: UnevaluatedVisualization): Unit =
     synchronized {
       val existing = unevaluatedMap(unevaluated.expressionId)
       val rest     = existing.filterNot(_.id == unevaluated.id)
