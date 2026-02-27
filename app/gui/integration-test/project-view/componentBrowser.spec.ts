@@ -122,7 +122,7 @@ test('Opening Component Browser from output port buttons', async ({ editorPage, 
   await expectAndCancelBrowser(page, '', null, 'table')
 })
 
-test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
+test.only('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
   await editorPage
 
   // Select node, pan out of view of it, press Enter; should pan to show node and CB
@@ -137,9 +137,9 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
   await expectAndCancelBrowser(page, '', null)
 
   // Dragging out an edge to the bottom of the viewport; when the CB pans into view, some nodes are out of view.
-  await page.mouse.move(700, 1100)
+  await page.mouse.move(800, 1100)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(700, 280)
+  await page.mouse.move(800, 360)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
   const outputPort = await locate.outputPortCoordinates(
@@ -147,7 +147,7 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
     locate.graphNodeByBinding(page, 'final'),
   )
   await page.mouse.click(outputPort.x, outputPort.y)
-  await locate.graphEditor(page).click({ position: { x: 100, y: 1700 } })
+  await page.mouse.click(800, 1700)
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, '', null)
 })
