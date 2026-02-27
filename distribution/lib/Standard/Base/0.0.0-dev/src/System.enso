@@ -27,7 +27,7 @@ polyglot java import java.lang.System as Java_System
       process should be redirected to the program's standard error output.
 create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
 create_process command arguments input redirect_in redirect_out redirect_err =
-    Runtime_Helpers.create_process command arguments input redirect_in redirect_out redirect_err Nothing
+    Runtime_Helpers.create_process command arguments input redirect_in redirect_out redirect_err Nothing Nothing
 
 ## ---
    private: true

@@ -1,6 +1,5 @@
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Nothing.Nothing
 import project.System.Process.Process_Builder.Process_Builder
 import project.System.Process.Process_Builder.Process_Result
 from project.Data.Boolean import Boolean, False
@@ -62,4 +61,4 @@ new_builder command:Text arguments=[]:(Vector Text) stdin="":Text -> Process_Bui
          File_Utils.getExecutableLocation
       else
          command
-   Process_Builder.Value cmd arguments stdin Nothing
+   Process_Builder.new cmd arguments stdin

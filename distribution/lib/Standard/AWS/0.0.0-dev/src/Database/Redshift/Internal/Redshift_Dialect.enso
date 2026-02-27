@@ -2,20 +2,30 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Aggregate_Column, Value_Type
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column, Column, Table, Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
+import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import Standard.Database.Internal.Internals_Access
+import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -24,6 +34,9 @@ import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
+import Standard.Table.Internal.Value_Type_Helpers
+
+polyglot java import java.sql.Types
 
 ## ---
    private: true
@@ -109,31 +122,45 @@ type Redshift_Dialect
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
-       # Amazon Redshift does not support using VALUES(...) as a table expression
-       # in the FROM clause. To represent inline literal tables, we therefore
-       # generate a SELECT ... UNION ALL SELECT ... construct instead, which
-       # Redshift accepts and which preserves the same semantics.
-       rows = vecs.transpose
-       if rows.is_empty then
-           Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
-       first_row = rows.at 0
+        # Amazon Redshift does not support using VALUES(...) as a table expression
+        # in the FROM clause. To represent inline literal tables, we therefore
+        # generate a SELECT ... UNION ALL SELECT ... construct instead, which
+        # Redshift accepts and which preserves the same semantics.
+        rows = vecs.transpose
+        if rows.is_empty then
+            Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
+        first_row = rows.at 0
+        column_types = vecs.map column_values->
+            Value_Type_Helpers.find_common_type_for_arguments column_values
 
-       wrapped_name = self.wrap_identifier as_name
-       column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
- 
-       cols = (first_row.zip column_names).map pair->
-           SQL_Builder.interpolation pair.first ++ SQL_Builder.code " AS " ++ self.wrap_identifier pair.second
+        wrapped_name = self.wrap_identifier as_name
+        column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
 
-       # SELECT <v1> AS col1, <v2> AS col2, ...
-       first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
+        format_value value column_type = case column_type of
+            Value_Type.Boolean -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS bool)"
+            Value_Type.Char _ _ -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS varchar(65535))"
+            Value_Type.Float _ -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS float)"
+            Value_Type.Integer _ -> SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS int)"
+            _ -> SQL_Builder.interpolation value
  
-       # UNION ALL SELECT <v1>, <v2>, ...
-       rest_selects = rows.drop 1 . map row->
-           SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " (row.map SQL_Builder.interpolation))
+        cols = 0.up_to column_names.length . map i->
+            value = first_row.at i
+            column_type = column_types.at i
+            col_name = column_names.at i
+            format_value value column_type ++ SQL_Builder.code " AS " ++ self.wrap_identifier col_name
+
+        # SELECT <v1> AS col1, <v2> AS col2, ...
+        first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
  
-       union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
+        # UNION ALL SELECT <v1>, <v2>, ...
+        rest_selects = rows.drop 1 . map row->
+            values = 0.up_to column_names.length . map i->
+                format_value (row.at i) (column_types.at i)
+            SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " values)
  
-       SQL_Builder.code "(" ++ union_body ++ ") AS " ++ wrapped_name ++ column_list
+        union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
+ 
+        SQL_Builder.code "(" ++ union_body ++ ") AS " ++ wrapped_name ++ column_list
 
     ## ---
        private: true
@@ -155,9 +182,73 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
+       Prepares a distinct operation.
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
+        _ = self
+        table_connection = Internals_Access.get_connection table
+        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator.mark_used table.name
+        inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
+
+        table_context = Internals_Access.get_context table
+        table_internal_columns = Internals_Access.internal_columns table
+        setup = table_context.as_subquery inner_table_alias [table_internal_columns]
+        new_columns = setup.new_columns.first
+
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
+        new_key_columns = key_columns.map key_column->
+            column_mapping.get key_column.name if_missing=(Panic.throw <| Illegal_State.Error "Missing key column in distinct setup. This is a bug in the Database library.")
+
+        mapping = table_connection.type_mapping
+        distinct_expressions = new_key_columns.map column->
+            value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
+
+        remap_ordering_expression ir =
+            case ir of
+                SQL_IR_Expression.Column _ name ->
+                    mapped_column = column_mapping.get name if_missing=Nothing
+                    case mapped_column of
+                        Nothing -> ir
+                        c : Internal_Column -> c.expression
+                _ -> ir
+        remapped_default_ordering =
+            case table.default_ordering of
+                Nothing -> [Order_Descriptor.Value (new_columns.at 0).expression Sort_Direction.Ascending Nothing Nothing]
+                orderings : Vector -> orderings.map ordering-> ordering.traverse remap_ordering_expression
+
+        row_number_expression = Row_Number_Helpers.make_row_number 1 1 remapped_default_ordering distinct_expressions
+        row_number_name = "__enso_distinct_row_number_helper"
+        infer_from_database_callback expression =
+            SQL_Type_Reference.new table_connection (SQL_IR_Source.for_subquery setup.subquery) expression
+        row_number_type_ref = mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] row_number_expression
+        row_number_column = Internal_Column.Value row_number_name row_number_type_ref row_number_expression
+
+        context_with_row_number = SQL_IR_Source.for_subquery setup.subquery
+        table_with_row_number = table.updated_context_and_columns context_with_row_number (new_columns + [row_number_column]) subquery=True
+
+        staged_context = Internals_Access.get_context table_with_row_number
+        staged_columns = Internals_Access.internal_columns table_with_row_number
+        staged_row_number_column = staged_columns.at (staged_columns.length - 1)
+        keep_first_row = SQL_IR_Expression.Operation "==" [staged_row_number_column.expression, SQL_IR_Expression.Literal "1"]
+
+        filtered_context = staged_context.add_where_filters [keep_first_row]
+        filtered_columns = staged_columns.filter c-> c.name != row_number_name
+        table_with_row_number.updated_context_and_columns filtered_context filtered_columns subquery=True
+
+    ## ---
+       private: true
+       ---
     make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column mapping target_type infer_result_type_from_database_callback =
-        sql_type_text = mapping.sql_type_to_text target_type
+        sql_type_text =
+            # Redshift interprets plain `decimal` as scale 0, which rounds values
+            # during cast. Keep fractional precision for unbounded Decimal casts.
+            is_unbounded_decimal =
+                target_type.typeid == Types.DECIMAL && target_type.precision.is_nothing && target_type.scale.is_nothing
+            if is_unbounded_decimal then "decimal(38,12)" else
+                mapping.sql_type_to_text target_type
         new_expression = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal sql_type_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
@@ -182,8 +273,23 @@ type Redshift_Dialect
        ---
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
-        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
-        column
+        needs_char_length_override_check = case approximate_result_type of
+            Value_Type.Char _ _ -> True
+            _ -> False
+        case needs_char_length_override_check of
+            True ->
+                db_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+                case db_type of
+                    Value_Type.Char _ _ ->
+                        if db_type == approximate_result_type then column else
+                            type_override = mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
+                            type_override.catch Inexact_Type_Coercion _->
+                                Panic.throw <|
+                                    Illegal_State.Error "The target type ("+db_type.to_display_text+") that we need to cast to seems to not be supported by the Dialect. This is not expected. It is a bug in the Database library."
+                            self.make_cast column mapping type_override infer_result_type_from_database_callback
+                    _ -> Panic.throw <|
+                        Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
+            False -> column
 
     ## ---
        private: true
@@ -196,8 +302,24 @@ type Redshift_Dialect
        used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
-        _ = [op_kind, args]
-        expression
+        is_int8 ic:Internal_Column = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic:Internal_Column =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+
+        cast_to = case op_kind of
+            "SUM" ->
+                if is_int8 (args.at 0) then "numeric(37,0)" else Nothing
+            "AVG" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_POP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_SAMP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            _ -> Nothing
+
+        if cast_to.is_nothing then expression else
+            SQL_IR_Expression.Operation "CAST" [expression, SQL_IR_Expression.Literal cast_to]
 
     ## ---
        private: true
@@ -205,7 +327,19 @@ type Redshift_Dialect
        Add an extra cast to adjust the output type of aggregate operations. Some
        DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->(c:Internal_Column).expression))
+        is_int ic:Internal_Column =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+
+        expressions = case op_kind of
+            "AVG" ->
+                columns.map c->
+                    case is_int c of
+                        True ->
+                            SQL_IR_Expression.Operation "CAST" [c.expression, SQL_IR_Expression.Literal "float8"]
+                        False -> c.expression
+            _ -> columns.map c->(c:Internal_Column).expression
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind expressions)
 
     ## ---
        private: true
@@ -226,8 +360,106 @@ type Redshift_Dialect
     check_aggregate_support self aggregate =
         _ = self
         case aggregate of
+            Aggregate_Column.Count_Distinct columns _ _ ->
+                if columns.length == 1 then True else
+                    Error.throw (Unsupported_Database_Operation.Error "Count_Distinct on multiple columns")
             Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
+            Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
+            Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
             _ -> True
+
+    ## ---
+       private: true
+       ---
+       We need custom handling for First and Last, as Redshift does not support
+       array_agg or FIRST/LAST aggregates. We implement them by adding a helper
+       row_number column in a subquery and aggregating via CASE in the outer
+       query.
+    custom_build_aggregate self base_table key_columns resolved_aggregates problem_builder =
+        create_row_number_for orderings key_columns reverse ignore_null result_expr =
+            order_descriptors = orderings.map o->
+                self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
+            reversed = if reverse then order_descriptors.map .reverse else order_descriptors
+            order_with_nulls =
+                if ignore_null then
+                    is_null = SQL_IR_Expression.Operation "IS_NULL" [result_expr]
+                    null_order = Order_Descriptor.Value is_null Sort_Direction.Ascending Nothing Nothing
+                    [null_order] + reversed
+                else reversed
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 order_with_nulls key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_row_number_for_shortest_longest key_columns result_expr reverse =
+            length_expr = SQL_IR_Expression.Operation "LENGTH" [result_expr]
+            direction = if reverse then Sort_Direction.Descending else Sort_Direction.Ascending
+            order_descriptor = Order_Descriptor.Value length_expr direction (Nulls_Order.Last) Nothing
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 [order_descriptor] key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_row_number_for_concat key_columns result_expr =
+            order_descriptors = if base_table.default_ordering.is_nothing then [Order_Descriptor.Value result_expr Sort_Direction.Ascending Nothing Nothing] else base_table.default_ordering
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_helper_expressions aggregate_column key_columns =
+            make_helper_for_first_last order_by ignore_null reverse result_expr =
+                if Aggregate_Helper.is_non_empty_selector order_by then
+                    [create_row_number_for order_by key_columns reverse ignore_null result_expr]
+                else []
+            case aggregate_column of
+                Aggregate_Column.First column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null False column.expression
+                Aggregate_Column.Last column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null True column.expression
+                Aggregate_Column.Shortest column _ -> [create_row_number_for_shortest_longest key_columns column.expression False]
+                Aggregate_Column.Longest column _ -> [create_row_number_for_shortest_longest key_columns column.expression True]
+                Aggregate_Column.Concatenate column _ _ _ _ _ -> [create_row_number_for_concat key_columns column.expression]
+                _ -> []
+
+        make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
+            make_first_last op_kind =
+                if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then
+                    Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title)
+                else
+                    Runtime.assert (helper_expressions.length == 1)
+                    row_number = helper_expressions.first
+                    op = case aggregate_column.ignore_nothing of
+                        False -> op_kind
+                        True  -> op_kind + "_NOT_NULL"
+                    sql_type_reference = aggregate_column.column.sql_type_reference
+                    Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+
+            make_shortest_longest op_kind column =
+                Runtime.assert (helper_expressions.length == 1)
+                row_number = helper_expressions.first
+                sql_type_reference = column.sql_type_reference
+                Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op_kind [column.expression, row_number.expression])
+
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
+                Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                Aggregate_Column.Shortest column _ -> make_shortest_longest "FIRST" column
+                Aggregate_Column.Longest column _ -> make_shortest_longest "LAST" column
+                Aggregate_Column.Concatenate column _ separator prefix suffix quote_char ->
+                    Runtime.assert (helper_expressions.length == 1)
+                    row_number = helper_expressions.first
+                    base_args = [column.expression, SQL_IR_Expression.Constant separator, SQL_IR_Expression.Constant prefix, SQL_IR_Expression.Constant suffix]
+                    op_kind = case quote_char.is_empty of
+                        True -> "CONCAT_ORDERED"
+                        False -> "CONCAT_QUOTE_IF_NEEDED_ORDERED"
+                    effective_args = case op_kind of
+                        "CONCAT_QUOTE_IF_NEEDED_ORDERED" ->
+                            base_args + [SQL_IR_Expression.Constant quote_char, row_number.expression]
+                        "CONCAT_ORDERED" ->
+                            base_args + [row_number.expression]
+                    expression = SQL_IR_Expression.Operation op_kind effective_args
+                    sql_type_reference = infer_return_type op_kind [column] expression
+                    Internal_Column.Value as sql_type_reference expression
+                _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
+
+        setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
+        setup.build self base_table key_columns resolved_aggregates problem_builder
 
     ## ---
        private: true
@@ -257,8 +489,7 @@ type Redshift_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> False
             Dialect_Flag.Use_Builtin_Bankers -> False
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
-            ## TODO: Check if Redshift supports NaN
-            Dialect_Flag.Supports_Separate_NaN -> False
+            Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Nested_With_Clause -> False
             Dialect_Flag.Supports_Case_Sensitive_Columns -> False
             Dialect_Flag.Supports_Infinity -> True
@@ -276,9 +507,9 @@ type Redshift_Dialect
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> True
             Dialect_Flag.Text_Length_Limited_Columns -> False
-            Dialect_Flag.Fixed_Length_Text_Columns -> False
+            Dialect_Flag.Fixed_Length_Text_Columns -> True
             Dialect_Flag.Length_Restricted_Text_Columns -> True
-            Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> False
+            Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> True
             Dialect_Flag.Char_Max_Size_After_Substring_Kept -> True
             Dialect_Flag.Different_Size_Integer_Types -> True
             Dialect_Flag.Supports_8bit_Integer -> False
@@ -300,11 +531,37 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
+
+    ## ---
+       private: true
+       ---
+       Returns true if the `replace` parameters are supported by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported redshift_dialect_name
+
+    ## ---
+       private: true
+       ---
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
-    value_type_for_upload_of_existing_column self column =
-        ## TODO special behaviour for big integer columns should be added here, once we start testing this dialect again
-           See: https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html#r_Numeric_types201-decimal-or-numeric-type
-        column.value_type
+    value_type_for_upload_of_existing_column self column = case column of
+        # Return the type as-is for database columns.
+        _ : DB_Column -> column.value_type
+        _ : Column ->
+            base_type = column.value_type
+            case base_type of
+                Value_Type.Decimal precision scale ->
+                    used_scale = scale.if_nothing 12
+                    used_precision = Math.min 38 (precision.if_nothing 38)
+                    new_type = Value_Type.Decimal used_precision used_scale
+                    if used_scale==scale && used_precision==precision then new_type else
+                        Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
+                _ -> base_type
 
     ## ---
        private: true
@@ -312,7 +569,10 @@ type Redshift_Dialect
     needs_literal_table_cast : Value_Type -> Boolean
     needs_literal_table_cast self value_type =
         _ = value_type
-        False
+        # Redshift is strict about placeholders with unresolved `unknown` type
+        # (OID 705). Force casts for all typed literals/constants so bind
+        # parameters are materialized with a concrete SQL type.
+        True
 
     ## ---
        private: true
@@ -333,9 +593,9 @@ type Redshift_Dialect
    ---
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
-    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], ln, log10, sinh, cosh, tanh]
     stats = [agg_median, agg_percentile]
-    my_mappings = overrides + stats
+    my_mappings = overrides + stats + first_last_aggregators + concat_ops
     postgres_ops.extend_with my_mappings
 
 ## ---
@@ -343,17 +603,35 @@ make_dialect_operations =
    ---
 agg_count_distinct args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
-      count = SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
-      are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-      all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
-      (count ++ all_nulls_filter).paren
+        SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
 
 ## ---
    private: true
    ---
 agg_count_distinct_include_null args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT_INCLUDE_NULL requires at least one argument.")) else
-        SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+        case args.length == 1 of
+            True ->
+                arg = args.first
+                count = SQL_Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
+                all_nulls_case = SQL_Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+                count ++ " + " ++ all_nulls_case
+            False ->
+                SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+
+## ---
+   private: true
+   ---
+make_runtime_error_op arguments =
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
+    error_message = arguments.at 0
+    variable_to_defer = arguments.at 1
+
+    ## Redshift does not allow casting arbitrary text to boolean.
+       Use an integer cast and compare to zero to produce a boolean expression,
+       while preserving the runtime failure when this branch is executed.
+    SQL_Builder.code "(CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS INTEGER) = 0)"
 
 ## ---
    private: true
@@ -387,6 +665,48 @@ make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector
 ## ---
    private: true
    ---
+log10 = Base_Generator.lift_unary_op "LOG10" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE DLOG10(" ++ x ++ ") END").paren
+
+## ---
+   private: true
+   ---
+ln = Base_Generator.lift_unary_op "LN" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE DLOG1(" ++ x ++ ") END").paren
+
+## ---
+   private: true
+   ---
+sinh = Base_Generator.lift_unary_op "SINH" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    exp_x = SQL_Builder.code "EXP(" ++ x ++ ")"
+    exp_neg_x = SQL_Builder.code "EXP(-(" ++ x ++ "))"
+    SQL_Builder.code "((" ++ exp_x ++ " - " ++ exp_neg_x ++ ") / 2.0)"
+
+## ---
+   private: true
+   ---
+cosh = Base_Generator.lift_unary_op "COSH" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    exp_x = SQL_Builder.code "EXP(" ++ x ++ ")"
+    exp_neg_x = SQL_Builder.code "EXP(-(" ++ x ++ "))"
+    SQL_Builder.code "((" ++ exp_x ++ " + " ++ exp_neg_x ++ ") / 2.0)"
+
+## ---
+   private: true
+   ---
+tanh = Base_Generator.lift_unary_op "TANH" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    abs_x = SQL_Builder.code "ABS(" ++ x ++ ")"
+    exp_term = SQL_Builder.code "EXP(-2 * (" ++ abs_x ++ "))"
+    ratio = SQL_Builder.code "(1 - " ++ exp_term ++ ") / (1 + " ++ exp_term ++ ")"
+    SQL_Builder.code "CASE WHEN " ++ x ++ " < 0 THEN -(" ++ ratio ++ ") ELSE " ++ ratio ++ " END"
+
+## ---
+   private: true
+   ---
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
     SQL_Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
 
@@ -395,3 +715,82 @@ agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
    ---
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
+
+## ---
+   private: true
+   ---
+concat_ops =
+    make_raw_concat_expr expr separator =
+        sep = SQL_Builder.code "CAST(" ++ separator ++ " AS VARCHAR)"
+        agg_with_sep = SQL_Builder.code "listagg(" ++ expr ++ " || " ++ sep ++ ", '')"
+        agg_no_sep = SQL_Builder.code "listagg(" ++ expr ++ ", '')"
+        SQL_Builder.code "CASE WHEN " ++ agg_with_sep.paren ++ " IS NULL THEN NULL WHEN " ++ sep ++ " = '' THEN " ++ agg_no_sep ++ " ELSE left(" ++ agg_with_sep.paren ++ ", length(" ++ agg_with_sep.paren ++ ") - length(" ++ sep ++ ")) END"
+    concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
+
+    make_raw_concat_expr_ordered expr separator order_by =
+        sep = SQL_Builder.code "CAST(" ++ separator ++ " AS VARCHAR)"
+        agg_with_sep = SQL_Builder.code "listagg(" ++ expr ++ " || " ++ sep ++ ", '') WITHIN GROUP (ORDER BY " ++ order_by ++ ")"
+        agg_no_sep = SQL_Builder.code "listagg(" ++ expr ++ ", '') WITHIN GROUP (ORDER BY " ++ order_by ++ ")"
+        SQL_Builder.code "CASE WHEN " ++ agg_with_sep.paren ++ " IS NULL THEN NULL WHEN " ++ sep ++ " = '' THEN " ++ agg_no_sep ++ " ELSE left(" ++ agg_with_sep.paren ++ ", length(" ++ agg_with_sep.paren ++ ") - length(" ++ sep ++ ")) END"
+
+    make_concat_ordered has_quote args append_char="||" =
+        expected_args = if has_quote then 6 else 5
+        if args.length != expected_args then Error.throw (Illegal_State.Error "Unexpected number of arguments for the concat operation.") else
+            expr = args.at 0
+            separator = args.at 1
+            prefix = args.at 2
+            suffix = args.at 3
+            order_by = if has_quote then args.at 5 else args.at 4
+            append = " " + append_char + " "
+            possibly_quoted = case has_quote of
+                True ->
+                    quote = args.at 4
+                    includes_separator = separator ++ " != '' AND " ++ make_contains_expr expr separator
+                    ## We use the assumption that `has_quote` is True iff `quote` is not empty.
+                    includes_quote = make_contains_expr expr quote
+                    is_empty = expr ++ " = ''"
+                    needs_quoting = includes_separator.paren ++ " OR " ++ includes_quote.paren ++ " OR " ++ is_empty.paren
+                    escaped = SQL_Builder.code "replace(" ++ expr ++ ", " ++ quote ++ ", " ++ quote ++ append ++ quote ++ ")"
+                    quoted = quote ++ append ++ escaped ++ append ++ quote
+                    SQL_Builder.code "CASE WHEN " ++ needs_quoting ++ " THEN " ++ quoted ++ " ELSE " ++ expr ++ " END"
+                False -> expr
+            transformed_expr = SQL_Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ " END"
+            concatenated = make_raw_concat_expr_ordered transformed_expr separator order_by
+            prefix.paren ++ append ++ concatenated ++ append ++ suffix.paren
+
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)], ["CONCAT_ORDERED", make_concat_ordered False], ["CONCAT_QUOTE_IF_NEEDED_ORDERED", make_concat_ordered True]]
+
+## ---
+   private: true
+   ---
+make_contains_expr expr substring =
+    SQL_Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
+
+## ---
+   private: true
+   ---
+   These are written in a not most-efficient way, but a way that makes them
+   compatible with other group-by aggregations out-of-the-box. In the future, we
+   may want to consider some alternative solutions.
+first_last_aggregators =
+    make_first_last_agg args =
+        if args.length != 2 then
+            Error.throw (Illegal_State.Error "Expected exactly 2 arguments.")
+        column = args.first
+        row_number = args.second
+        ## MAX is used as an aggregating variant of COALESCE - it will select the single non-null value.
+        SQL_Builder.code "MAX(CASE WHEN " ++ row_number ++ " = 1 THEN " ++ column ++ " END)"
+    [["FIRST", make_first_last_agg], ["FIRST_NOT_NULL", make_first_last_agg], ["LAST", make_first_last_agg], ["LAST_NOT_NULL", make_first_last_agg]]
+
+## ---
+   private: true
+   ---
+supported_replace_params : Hashset Replace_Params
+supported_replace_params =
+    e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive False]
+    Hashset.from_vector e
+
+## ---
+   private: true
+   ---
+redshift_dialect_name = "Redshift"

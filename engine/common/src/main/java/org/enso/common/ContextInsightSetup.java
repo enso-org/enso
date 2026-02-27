@@ -161,6 +161,9 @@ final class ContextInsightSetup {
     if (insightFile.getFileName().toString().endsWith(".py")) {
       language = "python";
     }
+    if (insightFile.getFileName().toString().endsWith(".enso")) {
+      language = "enso";
+    }
     var insightSrc =
         Source.newBuilder("epb", insightFile.toFile())
             .content(language + ":0#" + insightCode)

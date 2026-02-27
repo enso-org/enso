@@ -650,10 +650,10 @@ round_float this_column decimal_places rounding_mode =
 
     round_base = scaled.floor
     (round_base:DB_Column).let "round_base" round_base->
-        round_midpoint = round_base + 0.5
+        round_midpoint = (round_base:Column) + 0.5
         (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
             do_round_up = (scaled > round_midpoint) || (half_goes_up && scaled == round_midpoint)
-            scaled_result = round_base + (do_round_up.iif 1 0)
+            scaled_result = (round_base:Column) + (do_round_up.iif 1 0)
             result = if decimal_places == 0 then scaled_result else scaled_result / scale
             result.rename new_name
 
@@ -695,18 +695,17 @@ round_integer this_column decimal_places rounding_mode =
     (remainder:DB_Column).let "remainer" remainder->
         scaled_down = (this_column / scale).truncate . cast Value_Type.Integer
         (scaled_down:DB_Column).let "scaled_down" scaled_down->
-            result_unnudged = scaled_down * scale
+            result_unnudged = (scaled_down:Column) * scale
             (result_unnudged:DB_Column).let "result_unnudged" result_unnudged->
                 if_non_neg =
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else this_column >= 0
-                    round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
-                    (round_up:DB_Column).let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
+                    round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> (x:Column).iif ((remainder:Column) >= halfway) ((remainder:Column) > halfway)
+                    (round_up:DB_Column).let "round_up" x-> (x:Column).iif ((result_unnudged:Column) + scale) result_unnudged
                 if_neg =
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else this_column >= 0
-                    round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
-                    (round_up:DB_Column).let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
-
-                result = ((this_column >= 0):DB_Column).let "self_gt_0" x-> x.iif if_non_neg if_neg
+                    round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> (x:Column).iif ((remainder:Column) < -halfway) ((remainder:Column) <= -halfway)
+                    (round_up:DB_Column).let "round_up" x-> (x:Column).iif ((result_unnudged:Column) - scale) result_unnudged
+                result = ((this_column >= 0):DB_Column).let "self_gt_0" x-> (x:Column).iif if_non_neg if_neg
                 result.cast Value_Type.Float . rename new_name
 
 short_circuit_special_floating_point (this_column : Column & DB_Column) exp =

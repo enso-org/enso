@@ -3,7 +3,11 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.util.ArrayList;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -53,6 +57,7 @@ public class TypeOfNodeTest {
     }
     data.add(new Object[] {UnresolvedSymbol.build("unknown_name", null), "Function"});
     data.add(new Object[] {UnresolvedConstructor.build(null, "Unknown_Name"), "Function"});
+    data.add(new Object[] {new PolyArray(), "Array"});
     ctxRule.context().leave();
     return data.toArray(new Object[0][]);
   }
@@ -98,5 +103,28 @@ public class TypeOfNodeTest {
     var symbolTypeValue = ctxRule.asValue(symbolType);
     assertTrue("It is meta object: " + symbolTypeValue, symbolTypeValue.isMetaObject());
     assertEquals(expectedTypeName, symbolTypeValue.getMetaSimpleName());
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class PolyArray implements TruffleObject {
+    @ExportMessage
+    boolean hasArrayElements() {
+      return true;
+    }
+
+    @ExportMessage
+    Object readArrayElement(long index) throws InvalidArrayIndexException {
+      throw InvalidArrayIndexException.create(index);
+    }
+
+    @ExportMessage
+    long getArraySize() {
+      return 0L;
+    }
+
+    @ExportMessage
+    boolean isArrayElementReadable(long index) {
+      return false;
+    }
   }
 }
