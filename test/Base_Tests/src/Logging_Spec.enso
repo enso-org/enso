@@ -100,13 +100,13 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         log = pair.first
         console_log = pair.second
 
-        log . not_contains_line "*Finest:Ahoj"
+        log . not_contains_line "Finest:Ahoj"
         log . contains_line "DEBUG.*Fine:Ahoj"
         log . contains_line "INFO.*Info:Ahoj"
         log . contains_line "WARN.*Warning:Ahoj"
         log . contains_line "ERROR.*Severe:Ahoj"
 
-        console_log . not_contains_line "*Finest:Ahoj"
+        console_log . not_contains_line "Finest:Ahoj"
         console_log . not_contains_line "DEBUG.*Fine:Ahoj"
         console_log . not_contains_line "INFO.*Info:Ahoj"
         console_log . contains_line "WARN.*Warning:Ahoj"
@@ -117,13 +117,13 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         file_log = pair.first
         console_log = pair.second
 
-        file_log . not_contains_line "*Finest:Ciao"
+        file_log . not_contains_line "Finest:Ciao"
         file_log . contains_line "DEBUG.*Fine:Ciao"
         file_log . contains_line "INFO.*Info:Ciao"
         file_log . contains_line "WARN.*Warning:Ciao"
         file_log . contains_line "ERROR.*Severe:Ciao"
 
-        console_log . not_contains_line "*Finest:Ciao"
+        console_log . not_contains_line "Finest:Ciao"
         console_log . not_contains_line "DEBUG.*Fine:Ciao"
         console_log . contains_line "INFO.*Info:Ciao"
         console_log . contains_line "WARN.*Warning:Ciao"
@@ -134,17 +134,34 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         file_log = pair.first
         console_log = pair.second
 
-        file_log . not_contains_line "*Finest:Hello"
+        file_log . not_contains_line "Finest:Hello"
         file_log . contains_line "DEBUG.*Fine:Hello"
         file_log . contains_line "INFO.*Info:Hello"
         file_log . contains_line "WARN.*Warning:Hello"
         file_log . contains_line "ERROR.*Severe:Hello"
 
-        console_log . not_contains_line "*Finest:Hello"
+        console_log . not_contains_line "Finest:Hello"
         console_log . contains_line "DEBUG.*Fine:Hello"
         console_log . contains_line "INFO.*Info:Hello"
         console_log . contains_line "WARN.*Warning:Hello"
         console_log . contains_line "ERROR.*Severe:Hello"
+
+    group_builder.specify "log level trace via enso" <|
+        pair = perform_logging enso_logging_prj ["--log-level", "trace", "Nazdar"]
+        file_log = pair.first
+        console_log = pair.second
+
+        file_log . contains_line "Finest:Nazdar"
+        file_log . contains_line "DEBUG.*Fine:Nazdar"
+        file_log . contains_line "INFO.*Info:Nazdar"
+        file_log . contains_line "WARN.*Warning:Nazdar"
+        file_log . contains_line "ERROR.*Severe:Nazdar"
+
+        console_log . contains_line "Finest:Nazdar"
+        console_log . contains_line "DEBUG.*Fine:Nazdar"
+        console_log . contains_line "INFO.*Info:Nazdar"
+        console_log . contains_line "WARN.*Warning:Nazdar"
+        console_log . contains_line "ERROR.*Severe:Nazdar"
 
     group_builder.specify "java.lang.System logging into a file" <|
         pair = perform_logging system_logging_prj ["Hola"]
