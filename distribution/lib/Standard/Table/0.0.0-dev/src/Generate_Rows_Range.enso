@@ -74,7 +74,7 @@ type Generate_Rows_Range
         date_range = Option "..Date_Range" "..Date_Range" [["from", date_input_column], ["to", date_input_column]]
         Single_Choice [integer_range, date_range] display=display
 
-    _make_empty_column_of_correct_type self -> Column =
+    private _make_empty_column_of_correct_type self -> Column =
         case self of
             Generate_Rows_Range.Integer_Range _ _ _ _ -> Column.from_vector "Empty" [] Value_Type.Integer
             Generate_Rows_Range.Date_Range _ _ _ _ -> Column.from_vector "Empty" [] Value_Type.Date
