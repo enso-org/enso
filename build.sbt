@@ -5600,6 +5600,7 @@ lazy val `snowflake-jdbc-thin-wrapper` = project
   .in(file("lib/java/snowflake-jdbc-thin-wrapper"))
   .enablePlugins(JarExtractPlugin)
   .settings(
+    autoScalaLibrary := false,
     libraryDependencies ++= Seq(
       "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion
     ),
