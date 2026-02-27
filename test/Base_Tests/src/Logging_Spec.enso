@@ -24,7 +24,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         Type_In_Private_Module.log_message "Hidden message" Log_Level.Finest
         Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine
 
-    default_logging_prj_lazy = Ref.new lazy=True <|
+    enso_logging_prj_lazy = Ref.new lazy=True <|
         prj_dir = tmp_root / "default_logging"
         prj_dir.create_directory
 
@@ -44,8 +44,8 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
                 log Log_Level.Warning
                 log Log_Level.Severe
 
-    default_logging_prj -> File =
-        default_logging_prj_lazy.get
+    enso_logging_prj -> File =
+        enso_logging_prj_lazy.get
 
     system_logging_prj_lazy = Ref.new lazy=True <|
         prj_dir = tmp_root / "system_logging"
@@ -95,8 +95,8 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
 
         Pair.new log console_log
 
-    group_builder.specify "default logging into a file" <|
-        pair = perform_logging default_logging_prj ["Ahoj"]
+    group_builder.specify "default log level via enso" <|
+        pair = perform_logging enso_logging_prj ["Ahoj"]
         log = pair.first
         console_log = pair.second
 
@@ -111,6 +111,40 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log . not_contains_line "INFO.*Info:Ahoj"
         console_log . contains_line "WARN.*Warning:Ahoj"
         console_log . contains_line "ERROR.*Severe:Ahoj"
+
+    group_builder.specify "log level info via enso" <|
+        pair = perform_logging enso_logging_prj ["--log-level", "info", "Ciao"]
+        file_log = pair.first
+        console_log = pair.second
+
+        file_log . not_contains_line "*Finest:Ciao"
+        file_log . contains_line "DEBUG.*Fine:Ciao"
+        file_log . contains_line "INFO.*Info:Ciao"
+        file_log . contains_line "WARN.*Warning:Ciao"
+        file_log . contains_line "ERROR.*Severe:Ciao"
+
+        console_log . not_contains_line "*Finest:Ciao"
+        console_log . not_contains_line "DEBUG.*Fine:Ciao"
+        console_log . contains_line "INFO.*Info:Ciao"
+        console_log . contains_line "WARN.*Warning:Ciao"
+        console_log . contains_line "ERROR.*Severe:Ciao"
+
+    group_builder.specify "log level debug via enso" <|
+        pair = perform_logging enso_logging_prj ["--log-level", "debug", "Hello"]
+        file_log = pair.first
+        console_log = pair.second
+
+        file_log . not_contains_line "*Finest:Hello"
+        file_log . contains_line "DEBUG.*Fine:Hello"
+        file_log . contains_line "INFO.*Info:Hello"
+        file_log . contains_line "WARN.*Warning:Hello"
+        file_log . contains_line "ERROR.*Severe:Hello"
+
+        console_log . not_contains_line "*Finest:Hello"
+        console_log . contains_line "DEBUG.*Fine:Hello"
+        console_log . contains_line "INFO.*Info:Hello"
+        console_log . contains_line "WARN.*Warning:Hello"
+        console_log . contains_line "ERROR.*Severe:Hello"
 
     group_builder.specify "java.lang.System logging into a file" <|
         pair = perform_logging system_logging_prj ["Hola"]
