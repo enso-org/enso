@@ -73,6 +73,10 @@ add_generate_rows_specs suite_builder setup =
             t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) "MyColumnName" . should_equal
                 Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["MyColumnName", [1, 2, 3, 0, 2, 3]]]
 
+        group_builder.specify "Empty table adds empty column of correct type" <|
+            t3.take 0 . generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) . should_equal
+                Table.new [["Text Values", []], ["Start", []], ["Stop", []], ["Generated Row", []]]
+
         suite_builder.group prefix+"Table.generate_rows from existing objects" group_builder->
             t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
             group_builder.specify "Can pass in a integer to create quick duplicated rows" <|
