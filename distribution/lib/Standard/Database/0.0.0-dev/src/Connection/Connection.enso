@@ -5,7 +5,6 @@ import Standard.Base.Metadata.File_Type
 import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input, Vector_Editor
 
