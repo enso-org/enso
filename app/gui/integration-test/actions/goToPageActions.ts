@@ -1,11 +1,13 @@
 /** @file Actions for going to a different page. */
 import type { PageCallback } from './BaseActions'
 import BaseActions from './BaseActions'
+import DrivePageActions from './DrivePageActions'
 import EditorPageActions from './EditorPageActions'
 import SettingsPageActions from './SettingsPageActions'
 
 /** Actions for going to a different page. */
 export interface GoToPageActions<Context> {
+  readonly drive: () => DrivePageActions<Context>
   readonly projectView: () => EditorPageActions<Context>
   readonly settings: () => SettingsPageActions<Context>
 }
@@ -18,6 +20,11 @@ export function goToPageActions<Context>(
   ) => BaseActions<Context>,
 ): GoToPageActions<Context> {
   return {
+    drive: () =>
+      step('Go to Drive', (page) =>
+        // Drive is not a separate tab, we focus left panel instead.
+        page.getByTestId('assets-table-assets-unselector').first().click(),
+      ).into(DrivePageActions<Context>),
     projectView: () =>
       step('Go to Project page', (page) =>
         page.getByTestId('project-view-tab-button').click(),

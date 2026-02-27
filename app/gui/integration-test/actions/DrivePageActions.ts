@@ -73,12 +73,9 @@ function locateCategoryButton(page: Page, category: string): Locator {
 }
 
 /** Actions for the "drive" page. */
-export default class DrivePageActions<
-  Context = object,
-  Subpage extends string = '',
-> extends PageActions<Context> {
+export default class DrivePageActions<Context = object> extends PageActions<Context> {
   /** Actions for navigating to another page. */
-  get goToPage(): Omit<GoToPageActions<Context>, 'drive' | Subpage> {
+  get goToPage(): Omit<GoToPageActions<Context>, 'drive'> {
     return goToPageActions(this.step.bind(this))
   }
 
@@ -121,7 +118,7 @@ export default class DrivePageActions<
   /** Actions specific to the Drive table. */
   get driveTable() {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self: DrivePageActions<Context, Subpage> = this
+    const self: DrivePageActions<Context> = this
     const locateNameColumnHeading = (page: Page) =>
       page
         .getByLabel(TEXT.sortByName)

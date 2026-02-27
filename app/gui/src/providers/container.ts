@@ -52,8 +52,6 @@ export function tabFromRoute(route: RouteLocation) {
   switch (route.name) {
     case 'project': {
       if (!isProjectId(route.params.id)) return null
-      // const project = openedProjects.get(route.params.id)
-      // if (!project) return null
       return { type: 'project' as const, id: route.params.id }
     }
     case 'settings':
@@ -224,6 +222,8 @@ function createContainerStore() {
   function syncWithLocalStorage() {
     for (const tab of localStorage.get('openedTabs') ?? []) {
       if (tab.runningProject != null) openedProjects.restoreProject(tab.runningProject)
+      // If there is no project info, we cannot open tab.
+      else if (tab.type === 'project') continue
       tabs.set(panelKey(tab), tab)
     }
 
