@@ -12,6 +12,31 @@ import scala.jdk.CollectionConverters.asScalaBufferConverter
 
 object StdBits {
 
+  /** Resolves and filters the relevant dependency JARs for a project.
+    *
+    * This is the pure resolution logic extracted from [[copyDependencies]].
+    * It applies configuration, module, and user-supplied filters to produce
+    * the list of JAR files that a std-bits component actually needs at
+    * runtime, without performing any filesystem operations.
+    *
+    * @param ignoreScalaLibrary whether to ignore Scala dependencies that are
+    *                           added by default by SBT and are not relevant in
+    *                           pure-Java projects
+    * @param libraryUpdates resolution report
+    * @param unmanagedClasspath classpath of unmanaged jars, if any
+    * @param ignoreDependenciesByModuleID dependencies that should be ignored
+    *                                     — not included in the result
+    * @param ignoreDependencies dependencies that should be ignored based on a
+    *                           plain file name filter
+    * @param ignoreDependencyIncludeTransitive an optional filter to indicate
+    *                                          that a direct dependency should
+    *                                          be ignored except for its
+    *                                          (transitive) dependencies
+    * @param ignoreUnmanagedDependency an optional filter that tests if an
+    *                                  unmanaged dependency should be ignored
+    * @param extraJars additional JARs to append to the result
+    * @return the filtered collection of dependency JAR files
+    */
   def relevantDependecies(
     ignoreScalaLibrary: Boolean,
     libraryUpdates: UpdateReport,
