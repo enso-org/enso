@@ -203,7 +203,6 @@ function createContainerStore() {
 
   function setFocusedPanel(panel: Panel) {
     if (!panelEquals(panel, focusedPanel.value)) {
-      console.debug('Setting focusedPanel', panelKey(panel))
       focusedPanel.value = panel
     }
   }
@@ -242,8 +241,6 @@ function createContainerStore() {
 
   const stopSyncing = syncWithLocalStorage()
   onScopeDispose(stopSyncing)
-
-  watchEffect(() => console.debug('FOCUS', JSON.stringify(focusedPanel.value)))
 
   return proxyRefs({
     currentTab,

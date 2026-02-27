@@ -103,7 +103,7 @@ onUnmounted(() => {
         <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
       </div>
       <div class="mainView">
-        <LeftPanel />
+        <LeftPanel :middlePanelShown="anyTabs" />
         <MiddlePanel v-if="anyTabs" />
         <RightPanel />
         <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />

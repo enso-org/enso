@@ -9,6 +9,10 @@ import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, toRef, useTemplateRef } from 'vue'
 import { Drive } from './reactTabs'
 
+const DEFAULT_WIDTH_PX = 400
+
+const props = defineProps<{ middlePanelShown: boolean }>()
+
 const containerData = useContainerData()
 const width = toRef(containerData, 'leftPanelWidth')
 const visible = ref(true)
@@ -19,17 +23,30 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 const cssClass = computed(() => ({
   focusedPanel: containerData.focusedPanel.type === 'drive',
 }))
-const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
+const widthStyle = computed(() =>
+  visible.value && props.middlePanelShown ?
+    { width: `${width.value ?? DEFAULT_WIDTH_PX}px` }
+  : { width: '100%' },
+)
 </script>
 
 <template>
-  <div class="LeftPanel" :style="style">
+  <div class="LeftPanel">
     <SizeTransition width :duration="250">
-      <div v-if="visible" class="panel">
-        <div ref="content" class="content" :class="cssClass">
-          <Drive />
-        </div>
-        <ResizeHandles right :modelValue="bounds" @update:modelValue="width = $event.width" />
+      <div
+        v-if="visible || !middlePanelShown"
+        ref="content"
+        class="panel"
+        :class="cssClass"
+        :style="widthStyle"
+      >
+        <Drive />
+        <ResizeHandles
+          v-if="middlePanelShown"
+          right
+          :modelValue="bounds"
+          @update:modelValue="width = $event.width"
+        />
       </div>
     </SizeTransition>
     <div class="shadow" />
@@ -38,29 +55,26 @@ const style = computed(() => (width.value == null ? {} : { '--panel-width': `${w
       class="toggleVisibilityButton"
       name="right_side_panel"
       title="Toggle Drive Panel"
+      :disabled="!middlePanelShown"
     />
   </div>
 </template>
 
 <style scoped>
 .LeftPanel {
-  --panel-width: 400px;
+  position: relative;
   flex-shrink: 1;
   flex-grow: 1;
   min-width: 48px;
   height: 100%;
-  position: relative;
   z-index: 1;
 }
 
 .panel {
+  position: relative;
   height: 100%;
+  width: 100%;
   min-width: 200px;
-}
-
-.content {
-  height: 100%;
-  width: var(--panel-width);
 }
 
 .shadow {
