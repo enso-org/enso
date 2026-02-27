@@ -59,7 +59,7 @@ async function openTab(to: RouteLocation) {
       break
     }
     case 'settings': {
-      container.openSettingsTab()
+      container.openSettingsTab(false)
     }
   }
 }
@@ -88,7 +88,7 @@ const routes = [
           {
             name: 'dashboard',
             path: '/',
-            beforeEnter: [maybeRedirectToProject, maybeRedirectToTab, openTab],
+            beforeEnter: [maybeRedirectToProject, maybeRedirectToTab],
             component: () =>
               import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
                 reactComponent(mod.Dashboard),
@@ -97,11 +97,13 @@ const routes = [
               {
                 name: 'project',
                 path: 'project/:id',
+                beforeEnter: openTab,
                 component: () => import('$/project-view/ProjectView.vue'),
               },
               {
                 name: 'settings',
                 path: 'settings',
+                beforeEnter: openTab,
                 component: () =>
                   import('#/layouts/Settings').then((mod) => suspendedReactComponent(mod.Settings)),
               },

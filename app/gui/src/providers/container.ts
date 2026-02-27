@@ -184,12 +184,14 @@ function createContainerStore() {
     }
   }
 
-  function openSettingsTab() {
+  function openSettingsTab(userAction = true) {
     const tab: Tab = { type: 'settings' }
     if (!isTabOpened(tab)) {
       tabs.set(panelKey(tab), tab)
     }
-    currentTab.value = tab
+    if (userAction) {
+      currentTab.value = tab
+    }
   }
 
   function closeTab(tab: Tab) {
