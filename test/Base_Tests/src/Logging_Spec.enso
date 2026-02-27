@@ -168,17 +168,34 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         log = pair.first
         console_log = pair.second
 
-        log . not_contains_line "*TRACE:.*Hola"
+        log . not_contains_line "TRACE:.*Hola"
         log . contains_line "DEBUG.*DEBUG:.*Hola"
         log . contains_line "INFO.*INFO:.*Hola"
         log . contains_line "WARN.*WARNING:.*Hola"
         log . contains_line "ERROR.*ERROR:.*Hola"
 
-        console_log . not_contains_line "*TRACE:.*Hola"
+        console_log . not_contains_line "TRACE:.*Hola"
         console_log . not_contains_line "DEBUG.*Hola"
         console_log . not_contains_line "INFO.*Hola"
         console_log . contains_line "WARN.*WARNING:.*Hola"
         console_log . contains_line "ERROR.*ERROR:.*Hola"
+
+    group_builder.specify "java.lang.System logging with log level debug" <|
+        pair = perform_logging system_logging_prj ["--log-level", "debug", "Hail"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "TRACE:.*Hail"
+        log . contains_line "DEBUG.*DEBUG:.*Hail"
+        log . contains_line "INFO.*INFO:.*Hail"
+        log . contains_line "WARN.*WARNING:.*Hail"
+        log . contains_line "ERROR.*ERROR:.*Hail"
+
+        console_log . not_contains_line "TRACE:.*Hail"
+        console_log . contains_line "DEBUG.*Hail"
+        console_log . contains_line "INFO.*Hail"
+        console_log . contains_line "WARN.*WARNING:.*Hail"
+        console_log . contains_line "ERROR.*ERROR:.*Hail"
 
 Text.contains_line self regex:Text =
     r = Regex.compile regex
