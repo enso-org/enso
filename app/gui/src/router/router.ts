@@ -15,12 +15,12 @@ import { useBackends } from '$/providers/backends'
 import { useConfig } from '$/providers/config'
 import { useContainerData, type Tab } from '$/providers/container'
 import { flagsStore } from '$/providers/featureFlags'
-import { withDataLoader } from '$/router/dataLoader'
 import {
   maybeRedirectToProject,
   maybeRedirectToTab,
   redirectFromPath,
-} from '$/router/initialProject'
+} from '$/router/dashboardGuards'
+import { withDataLoader } from '$/router/dataLoader'
 import { backendQueryOptions } from '@/composables/backend'
 import { reactComponent, suspendedReactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
@@ -41,7 +41,6 @@ async function openTab(to: RouteLocation) {
     case 'project': {
       if (!isProjectId(to.params.id)) return false
       const id = to.params.id
-      console.debug('Opening project', id)
       const tab: Tab = { type: 'project', id }
       if (container.isTabOpened(tab)) {
         break
@@ -50,7 +49,6 @@ async function openTab(to: RouteLocation) {
       const queryClient = useQueryClient()
 
       const backend = isLocalProjectId(id) ? localBackend : remoteBackend
-      console.debug('BACKEND', backend?.type)
       if (backend == null) return false
 
       const options = backendQueryOptions('getAssetDetails', [id, undefined], backend)
@@ -188,6 +186,6 @@ router.beforeEach(async (to, from) => {
   }
 })
 
-router.onError((error) => console.trace('Router error', error))
+router.onError((error) => console.error('Router error', error))
 
 export default router

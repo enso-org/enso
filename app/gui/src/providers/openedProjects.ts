@@ -10,8 +10,6 @@ import {
 import { Err, Ok, type Result, type ResultError } from 'enso-common/src/utilities/data/result'
 import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { ref, shallowReactive } from 'vue'
-import { useAuth } from './auth'
-import { useBackends } from './backends'
 import { type ProjectInfo, type RunningProjectInfo } from './openedProjects/projectInfo'
 import {
   useProjectStates,
@@ -51,11 +49,9 @@ export type OpenedProjectsStore = ReturnType<typeof useOpenedProjects>
  * Constructor of Opened Project Store.
  */
 export function createOpenedProjectsStore() {
-  const auth = useAuth()
   const projects = shallowReactive(new Map<ProjectId, Project>())
 
   const projectStates = useProjectStates()
-  const backends = useBackends()
   const closingOnAppExit = ref(false)
   const projectReadyCallbacks: ((project: Project) => void)[] = []
 

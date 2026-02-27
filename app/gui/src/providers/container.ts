@@ -26,10 +26,13 @@ const OPENED_TAB_SCHEMA = z.intersection(
   z.object({ runningProject: z.optional(RUNNING_PROJECT_INFO_SCHEMA) }),
 )
 
-export type ProjectTab = z.infer<typeof PROJECT_TAB_SCHEMA>
+/** A structure identifying tab displayed in the TabView. */
 export type Tab = z.infer<typeof TAB_SCHEMA>
+/** A structure identifying a project tab displayed in the TabView. */
+export type ProjectTab = z.infer<typeof PROJECT_TAB_SCHEMA>
 type OpenedTab = z.infer<typeof OPENED_TAB_SCHEMA>
 
+/** A structure identifying one of the GUI panels. */
 export type Panel = Tab | { type: 'drive' }
 
 declare module '#/utilities/LocalStorage' {
@@ -44,6 +47,7 @@ LocalStorage.registerKey('openedTabs', { schema: z.array(OPENED_TAB_SCHEMA) })
 LocalStorage.registerKey('rightPanelWidth', { schema: z.number() })
 LocalStorage.registerKey('leftPanelWidth', { schema: z.number() })
 
+/** Get tab which should be displayed when navigated to this route. */
 export function tabFromRoute(route: RouteLocation) {
   switch (route.name) {
     case 'project': {
@@ -59,6 +63,7 @@ export function tabFromRoute(route: RouteLocation) {
   }
 }
 
+/** Get route to navigate to show given tab. Keeps the query from previous route. */
 export function routeFromTab(tab: Opt<Tab>, from: RouteLocation): RouteLocationRaw {
   switch (tab?.type) {
     case 'project':
@@ -71,6 +76,7 @@ export function routeFromTab(tab: Opt<Tab>, from: RouteLocation): RouteLocationR
   }
 }
 
+/** A key string of panel. May be used as Set element or Map key. */
 export function panelKey(panel: Opt<Panel>) {
   switch (panel?.type) {
     case 'project':
@@ -85,6 +91,10 @@ export function panelKey(panel: Opt<Panel>) {
 
 type PanelKey = ReturnType<typeof panelKey>
 
+/**
+ * Compare two panels.
+ * `null` and `undefined` are considered equal.
+ */
 export function panelEquals(a: Opt<Panel>, b: Opt<Panel>) {
   return panelKey(a) === panelKey(b)
 }

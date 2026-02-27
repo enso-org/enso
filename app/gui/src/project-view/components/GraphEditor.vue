@@ -68,7 +68,6 @@ import {
   onActivated,
   onDeactivated,
   onMounted,
-  onUnmounted,
   ref,
   toRaw,
   toRef,
@@ -86,7 +85,7 @@ const rightPanel = useRightPanelData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { id: assetId, info, module } = useCurrentProject()
+const { id: assetId, module } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -698,11 +697,6 @@ const contextMenuActions: DisplayableActionName[] = [
   'graph.toggleCodeEditor',
   'graph.toggleDocumentationEditor',
 ]
-
-onMounted(() => console.debug('GRAPH EDITOR MOUNTED'))
-onUnmounted(() => console.debug('GRAPH EDITOR UNMOUNTED'))
-onActivated(() => console.debug('GRAPH EDITOR ACTIVATED'))
-onDeactivated(() => console.debug('GRAPH EDITOR DEACTIVATED'))
 </script>
 
 <template>

@@ -9,7 +9,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, toRef, useTemplateRef } from 'vue'
 import { Drive } from './reactTabs'
 
-const DEFAULT_WIDTH_PX = 400
+const DEFAULT_WIDTH_PX = 600
 
 const props = defineProps<{ middlePanelShown: boolean }>()
 

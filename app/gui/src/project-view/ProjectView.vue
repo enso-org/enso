@@ -7,7 +7,7 @@ import GraphEditor from '@/components/GraphEditor.vue'
 import { provideVisibility } from '@/providers/visibility'
 import { provideSettings } from '@/stores/settings'
 import { ResultComponent } from '@/util/react'
-import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, ref } from 'vue'
 
 const props = defineProps<{ tab: ProjectTab }>()
 
@@ -23,11 +23,6 @@ provideVisibility(visible)
 onMounted(() => (visible.value = true))
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
-
-onMounted(() => console.debug('PROJECT VIEW MOUNTED'))
-onUnmounted(() => console.debug('PROJECT VIEW UNMOUNTED'))
-onActivated(() => console.debug('PROJECT VIEW ACTIVATED'))
-onDeactivated(() => console.debug('PROJECT VIEW DEACTIVATED'))
 </script>
 
 <template>
