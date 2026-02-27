@@ -2,6 +2,7 @@ private
 
 from Standard.Base.Logging import all
 from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 from Standard.Test import all
 
 import project.Enso_Bin_Utils
@@ -23,14 +24,11 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         Type_In_Private_Module.log_message "Hidden message" Log_Level.Finest
         Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine
 
-    group_builder.specify "default logging into a file" <|
+    default_logging_prj_lazy = Ref.new lazy=True <|
         prj_dir = tmp_root / "default_logging"
         prj_dir.create_directory
 
-        logs_dir = prj_dir / "logs"
-        logs_dir.create_directory
-
-        prj = Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+        Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
             from Standard.Base.Logging import all
 
             type Typ
@@ -46,42 +44,14 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
                 log Log_Level.Warning
                 log Log_Level.Severe
 
-        proc = Process.new_builder "enso"
-            . set_arguments jvm_args+["--run", prj.to_text, "Ahoj"]
-            . set_directory prj_dir
-            . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
-            . set_env "JAVA_TOOL_OPTIONS" "-ea"
-            . create
+    default_logging_prj -> File =
+        default_logging_prj_lazy.get
 
-        if proc.exit_code != Exit_Code.Success then
-            Test.fail proc.stdout+proc.stderr+proc.exit_code.to_text
-
-        arr = logs_dir.list 
-        arr.length . should_equal 1
-
-        log = Data.read (arr.at 0) : Text
-
-        log . not_contains_line "*Finest:Ahoj"
-        log . contains_line "DEBUG.*Fine:Ahoj"
-        log . contains_line "INFO.*Info:Ahoj"
-        log . contains_line "WARN.*Warning:Ahoj"
-        log . contains_line "ERROR.*Severe:Ahoj"
-
-        console_log = proc.stdout+proc.stderr
-        console_log . not_contains_line "*Finest:Ahoj"
-        console_log . not_contains_line "DEBUG.*Fine:Ahoj"
-        console_log . not_contains_line "INFO.*Info:Ahoj"
-        console_log . contains_line "WARN.*Warning:Ahoj"
-        console_log . contains_line "ERROR.*Severe:Ahoj"
-
-    group_builder.specify "java.lang.System logging into a file" <|
+    system_logging_prj_lazy = Ref.new lazy=True <|
         prj_dir = tmp_root / "system_logging"
         prj_dir.create_directory
 
-        logs_dir = prj_dir / "logs"
-        logs_dir.create_directory
-
-        prj = Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+        Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
             polyglot java import java.lang.System as JSystem
             polyglot java import java.lang.System.Logger as Logger
             polyglot java import java.lang.System.Logger.Level as Level
@@ -99,9 +69,17 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
                 log Level.WARNING
                 log Level.ERROR
 
+    system_logging_prj -> File =
+        system_logging_prj_lazy.get
+
+    perform_logging prj_dir:File (args:Vector Text)-> Pair Text Text =
+        logs_dir = prj_dir / "logs"
+        _ = logs_dir.delete recursive=True
+        logs_dir.create_directory
+
         proc = Process.new_builder "enso"
-            . set_arguments jvm_args+["--run", prj.to_text, "Hola"]
-            . set_directory prj_dir
+            . set_arguments jvm_args+["--run", prj_dir.to_text]+args
+            . set_directory prj_dir.parent
             . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
             . set_env "JAVA_TOOL_OPTIONS" "-ea"
             . create
@@ -113,6 +91,31 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         arr.length . should_equal 1
 
         log = Data.read (arr.at 0) : Text
+        console_log = proc.stdout+proc.stderr
+
+        Pair.new log console_log
+
+    group_builder.specify "default logging into a file" <|
+        pair = perform_logging default_logging_prj ["Ahoj"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "*Finest:Ahoj"
+        log . contains_line "DEBUG.*Fine:Ahoj"
+        log . contains_line "INFO.*Info:Ahoj"
+        log . contains_line "WARN.*Warning:Ahoj"
+        log . contains_line "ERROR.*Severe:Ahoj"
+
+        console_log . not_contains_line "*Finest:Ahoj"
+        console_log . not_contains_line "DEBUG.*Fine:Ahoj"
+        console_log . not_contains_line "INFO.*Info:Ahoj"
+        console_log . contains_line "WARN.*Warning:Ahoj"
+        console_log . contains_line "ERROR.*Severe:Ahoj"
+
+    group_builder.specify "java.lang.System logging into a file" <|
+        pair = perform_logging system_logging_prj ["Hola"]
+        log = pair.first
+        console_log = pair.second
 
         log . not_contains_line "*TRACE:.*Hola"
         log . contains_line "DEBUG.*DEBUG:.*Hola"
@@ -120,7 +123,6 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         log . contains_line "WARN.*WARNING:.*Hola"
         log . contains_line "ERROR.*ERROR:.*Hola"
 
-        console_log = proc.stdout+proc.stderr
         console_log . not_contains_line "*TRACE:.*Hola"
         console_log . not_contains_line "DEBUG.*Hola"
         console_log . not_contains_line "INFO.*Hola"
