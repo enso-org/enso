@@ -5628,9 +5628,7 @@ lazy val `snowflake-jdbc-thin-wrapper` = project
       ignoreDependencies = Some((fileName: String) => {
         fileName.startsWith("netty-tcnative-boringssl-static") ||
         fileName.startsWith("netty-transport-native-epoll") ||
-        fileName.startsWith("snowflake-jdbc-thin") ||
-        fileName.startsWith("conscrypt-openjdk-uber") ||
-        fileName.startsWith("zstd-jni")
+        fileName.startsWith("snowflake-jdbc-thin")
       }),
       ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
       ignoreDependenciesByModuleID = Some(
@@ -5978,7 +5976,7 @@ lazy val `std-snowflake` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
-    libraryDependencies ++= bouncyCastle.map(_ % "provided"),
+    libraryDependencies += "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds"),
     Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5988,6 +5986,18 @@ lazy val `std-snowflake` = project
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
           ignoreScalaLibrary = true,
+          ignoreDependencies = Some((fileName: String) => {
+            fileName.startsWith("netty-tcnative-boringssl-static") ||
+            fileName.startsWith("netty-transport-native-epoll")
+          }),
+          ignoreDependenciesByModuleID = Some(
+            Seq(
+              "net.snowflake"    % "snowflake-jdbc-thin"    % snowflakeJDBCVersion,
+              "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
+              "com.github.luben" % "zstd-jni"               % zstdVersion,
+              "io.grpc"          % "grpc-netty-shaded"      % "1.77.0"
+            )
+          ),
           libraryUpdates     = (Compile / update).value,
           logger             = streams.value.log,
           cacheStoreFactory  = cacheStoreFactory,
