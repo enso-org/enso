@@ -276,21 +276,23 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
     var unevaluatedVisualizations = holder.getAllUnevaluated();
     var unevaluatedVisualizationIds = unevaluatedVisualizations.toList().map(v -> v.id());
     if (unevaluatedVisualizationIds.nonEmpty()) {
-      if (!unevaluatedVisualizationIds.equals(visualizationTriggered)
-          && !PENDING_VISUALIZATIONS_TRIGGER_CONTEXT.equals(triggerContext)) {
-        logger.debug(
-            "Rescheduling ExecuteJob[{}] to process pending visualizations {}",
-            jobId,
-            unevaluatedVisualizationIds);
-        ctx.jobProcessor()
-            .run(
-                new ExecuteJob(
-                    contextId,
-                    stack,
-                    executionEnvironment,
-                    PENDING_VISUALIZATIONS_TRIGGER_CONTEXT,
-                    unevaluatedVisualizationIds));
+      if (unevaluatedVisualizationIds.equals(visualizationTriggered)
+          || PENDING_VISUALIZATIONS_TRIGGER_CONTEXT.equals(triggerContext)) {
+        // This is a retry that made no progress
+        return;
       }
+      logger.trace(
+          "Rescheduling ExecuteJob[{}] to process pending visualizations {}",
+          jobId,
+          unevaluatedVisualizationIds);
+      ctx.jobProcessor()
+          .run(
+              new ExecuteJob(
+                  contextId,
+                  stack,
+                  executionEnvironment,
+                  PENDING_VISUALIZATIONS_TRIGGER_CONTEXT,
+                  unevaluatedVisualizationIds));
     }
   }
 

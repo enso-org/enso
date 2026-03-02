@@ -84,12 +84,6 @@ object ProgramExecutionSupport {
           executionFrame.syncState,
           value
         )
-
-        processAllUnevaluatedVisualizations(
-          contextId,
-          executionFrame.cache,
-          executionFrame.syncState
-        )
       }
     }
 
@@ -255,6 +249,12 @@ object ProgramExecutionSupport {
               )
             }
           }
+        )
+        // Process unevaluated visualizations once after the program finishes
+        processAllUnevaluatedVisualizations(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState
         )
       case item :: tail =>
         val callInfo = executionFrame.cache
