@@ -34,7 +34,7 @@ add_specs suite_builder =
             messages = Vector.build builder->
                 test_suite = Test.build suite_builder->
                     failing_teardown_suite builder.append suite_builder
-                result = test_suite.run_with_filter should_exit=False
+                result = test_suite.run_with_filter should_exit=False output=(\_->Nothing)
                 # tear down fails, but doesn't crash
                 result:Boolean . should_be_false
 

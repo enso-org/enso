@@ -806,6 +806,7 @@
     "./src/project-view/util/codemirror/persistence/persistableStatePlugin.ts",
     "./src/project-view/util/codemirror/persistence/scroll.ts",
     "./src/project-view/util/codemirror/reactivity.ts",
+    "./src/project-view/util/codemirror/singleLineDisplay.ts",
     "./src/project-view/util/codemirror/stateEffect.ts",
     "./src/project-view/util/codemirror/testSupport.ts",
     "./src/project-view/util/codemirror/text.ts",

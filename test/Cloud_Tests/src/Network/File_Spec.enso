@@ -8,6 +8,7 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import enso_dev.Base_Tests.Data.Data_Spec
+from enso_dev.Base_Tests.Enso_Bin_Utils import runs_in_aot
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
@@ -123,10 +124,6 @@ add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
             r_move.should_equal file
             file.exists . should_be_true
             file.read . should_equal "Foo"
-
-runs_in_aot =
-    prop = Java_System.getProperty "org.graalvm.nativeimage.imagecode"
-    prop == "runtime"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

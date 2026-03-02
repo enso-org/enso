@@ -25,6 +25,8 @@
     - Single_Choice values:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.Choice) label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= allow_custom:Standard.Base.Data.Boolean.Boolean=
     - Text_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= quote_values:Standard.Base.Data.Boolean.Boolean= suggestions:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)= syntax:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)=
     - Vector_Editor item_editor:Standard.Base.Metadata.Widget item_default:Standard.Base.Data.Text.Text label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
+    - With_JSON_Cache parent:Standard.Base.Metadata.Widget json:Standard.Base.Data.Text.Text
     - to_js_object self -> Standard.Base.Any.Any
     - to_json self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
 - make_single_choice values:Standard.Base.Data.Vector.Vector display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget

@@ -351,6 +351,8 @@ public class JsonOperation {
     return _tableVizCache;
   }
 
+  private static final int MAX_CELLS_FOR_INLINE = 2500;
+
   /**
    * Creates a JSON string representing the table visualization metadata, including column headers,
    * value types, and various properties related to the table's structure and behavior.
@@ -394,7 +396,7 @@ public class JsonOperation {
 
     boolean isColumn = !"get_row".equals(getChildMethod);
     boolean isDBMode = !useServerMode;
-    boolean useServer = useServerMode && allRowsCount > 1000;
+    boolean useServer = useServerMode && (allRowsCount * columns.length) > MAX_CELLS_FOR_INLINE;
 
     var jsonBuilder = new StringBuilder();
     jsonBuilder.append("{");

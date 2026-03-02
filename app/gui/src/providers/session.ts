@@ -12,6 +12,7 @@ import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
+import type { SignInOutput } from 'aws-amplify/auth'
 import { NotAuthorizedError } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Err } from 'enso-common/src/utilities/data/result'
@@ -140,22 +141,20 @@ export function createSessionStore(
   }
 
   const resendSignUp = async (username: string): Promise<void> => {
-    await authService.resendSignUp(username)
+    await assertAuthService().resendSignUp(username)
   }
 
-  function challengeStepRequired(
-    user: cognito.CognitoUser,
-  ): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
-    switch (user.challengeName) {
-      case 'SMS_MFA':
-      case 'SOFTWARE_TOKEN_MFA': {
-        return user.challengeName
-      }
-      case undefined:
-      case 'CUSTOM_CHALLENGE':
-      case 'MFA_SETUP':
-      case 'NEW_PASSWORD_REQUIRED':
-      case 'SELECT_MFA_TYPE':
+  /**
+   * Return an identifier of required challenge step, if any.
+   *
+   * This function is used for analytics log, so it returns "old" SOFTWARE_TOKEN_MFA identifier.
+   */
+  function challengeStepRequired(user: SignInOutput): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
+    switch (user.nextStep.signInStep) {
+      case 'CONFIRM_SIGN_IN_WITH_SMS_CODE':
+        return 'SMS_MFA'
+      case 'CONFIRM_SIGN_IN_WITH_TOTP_CODE':
+        return 'SOFTWARE_TOKEN_MFA'
       default: {
         return null
       }
@@ -165,7 +164,7 @@ export function createSessionStore(
   const signInWithPassword = async (
     email: string,
     password: string,
-  ): Promise<{ user: cognito.CognitoUser; challenge: boolean }> => {
+  ): Promise<{ challenge: boolean }> => {
     const auth = assertAuthService()
     analytics.signIn.before('Email')
     const result = await auth.signInWithPassword(email, password)
@@ -180,20 +179,12 @@ export function createSessionStore(
     } else {
       await queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     }
-    return { user, challenge: challengeType != null }
+    return { challenge: challengeType != null }
   }
 
-  function useSignIn(
-    signIn: () => Promise<void>,
-    provider: analytics.AuthProvider,
-  ): () => Promise<boolean> {
+  function useSignIn(signIn: () => Promise<void>, provider: analytics.AuthProvider) {
     analytics.signIn.before(provider)
-
-    return () =>
-      signIn().then(
-        () => true,
-        () => false,
-      )
+    return signIn
   }
 
   const signInWithApple = useSignIn(() => assertAuthService().signInWithApple(), 'Apple')
@@ -204,13 +195,10 @@ export function createSessionStore(
     'Microsoft',
   )
 
-  const confirmSignIn = async (
-    user: cognito.CognitoUser,
-    otp: string,
-  ): cognito.ConfirmSignInReturn => {
+  const confirmSignIn = async (challengeResponse: string): cognito.ConfirmSignInReturn => {
     const auth = assertAuthService()
     analytics.signIn.confirm.before()
-    return auth.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+    return auth.confirmSignIn(challengeResponse)
   }
 
   const forgotPassword = async (email: string) => {
@@ -258,15 +246,15 @@ export function createSessionStore(
   // means the login screen (which is a child of this provider) should render.
   const unregister = registerAuthEventListener((event) => {
     switch (event) {
-      case AuthEvent.signIn: {
+      case AuthEvent.signedIn: {
         analytics.signIn.after()
         break
       }
-      case AuthEvent.signOut: {
+      case AuthEvent.signedOut: {
         break
       }
       case AuthEvent.customOAuthState:
-      case AuthEvent.cognitoHostedUi: {
+      case AuthEvent.signInWithRedirect: {
         // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
         // we have to hack it by replacing the URL in the browser's history. This is done
         // because otherwise the user will be redirected to a URL like `enso://auth`, which
@@ -283,7 +271,7 @@ export function createSessionStore(
   })
   onScopeDispose(unregister)
 
-  const organizationId = () => toValue(authService)?.organizationId
+  const organizationId = () => toValue(authService)?.organizationId()
 
   const getMFAPreference = async () => {
     const result = await assertAuthService().getMFAPreference()

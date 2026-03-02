@@ -53,7 +53,7 @@ public class OtherJvmJavaScriptTest {
         };
 
     var returnedResult = testClassValue.invokeMember("multiString", "Hello", 3, result);
-    // assertOtherJvmObject("Represents object from the other JVM", otherValue);
+    assertTrue("Represents a string", returnedResult.isString());
 
     assertEquals("HelloHelloHello", returnedResult.asString());
     assertEquals("HelloHelloHello", result.value.toString());

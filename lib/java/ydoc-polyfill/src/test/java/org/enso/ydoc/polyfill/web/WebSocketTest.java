@@ -307,6 +307,57 @@ public class WebSocketTest extends ExecutorSetup {
     Assert.assertTrue(res.get());
   }
 
+  @Test
+  public void reassembleFragmentedBinaryMessage() throws Exception {
+    var fragmentServer =
+        WebServer.builder()
+            .host("localhost")
+            .port(22335)
+            .addRouting(WsRouting.builder().endpoint("/", new FragmentingWsListener()))
+            .build();
+    fragmentServer.start();
+
+    try {
+      var lock = new Semaphore(0);
+      var res = new AtomicReference<>();
+
+      var code =
+          """
+          const ws = new WebSocket('ws://localhost:22335');
+          ws.on('open', () => {
+            ws.send('trigger');
+          });
+          ws.on('message', (data) => {
+            res.set(new Uint8Array(data).toString());
+            lock.release();
+          });
+          """;
+
+      context.getBindings("js").putMember("lock", lock);
+      context.getBindings("js").putMember("res", res);
+
+      CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+      lock.acquire();
+
+      Assert.assertEquals("1,2,3,4,5,6", res.get());
+    } finally {
+      fragmentServer.stop();
+    }
+  }
+
+  private static final class FragmentingWsListener implements WsListener {
+    FragmentingWsListener() {}
+
+    @Override
+    public void onMessage(WsSession session, String text, boolean last) {
+      // Reply with a single logical binary message split across 3 WebSocket frames
+      session.send(BufferData.create(new byte[] {1, 2}), false);
+      session.send(BufferData.create(new byte[] {3, 4}), false);
+      session.send(BufferData.create(new byte[] {5, 6}), true);
+    }
+  }
+
   private static final class TestWsListener implements WsListener {
     TestWsListener() {}
 

@@ -13,8 +13,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.enso.base.Text_Utils;
@@ -38,17 +36,6 @@ import org.enso.table.data.table.Table;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
-  // A thread pool for executing data quality metrics computations asynchronously.
-  private static ExecutorService _threadFactory;
-
-  private static ExecutorService threadFactory() {
-    if (_threadFactory == null) {
-      _threadFactory =
-          Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
-    }
-    return _threadFactory;
-  }
-
   public static final String IS_INCOMPLETE = "_Is Incomplete";
   public static final String IS_INCOMPLETE_TEXT = "_Is Incomplete Text";
   public static final String NOTHING_COUNT = "# Nothing";
@@ -78,14 +65,11 @@ public abstract class DataQualityMetrics {
   // Default sample size for counting untrimmed cells.
   public static final long DEFAULT_SAMPLE_SIZE = 10000;
 
-  private static Map<Long, DataQualityMetrics> _cachedMetrics;
-
-  private static Map<Long, DataQualityMetrics> cachedMetrics() {
-    if (_cachedMetrics == null) {
-      _cachedMetrics = new LeastRecentlyUsedCache<>(1000);
-    }
-    return _cachedMetrics;
-  }
+  /**
+   * @GuardedBy("cachedMetrics")
+   */
+  private static final Map<Long, DataQualityMetrics> cachedMetrics =
+      new LeastRecentlyUsedCache<>(1000);
 
   /**
    * Triggers the computation of data quality metrics for the given table. This method is a no-op if
@@ -139,9 +123,18 @@ public abstract class DataQualityMetrics {
    * @return a DataQualityMetrics instance
    */
   public static DataQualityMetrics get(ColumnStorage<?> columnStorage) {
-    return cachedMetrics()
-        .computeIfAbsent(
-            columnStorage.uniqueKey(), k -> DataQualityMetrics.createMetrics(columnStorage));
+    var key = columnStorage.uniqueKey();
+    synchronized (cachedMetrics) {
+      var previousResult = cachedMetrics.get(key);
+      if (previousResult != null) {
+        return previousResult;
+      }
+    }
+    var newResult = DataQualityMetrics.createMetrics(columnStorage);
+    synchronized (cachedMetrics) {
+      var previousResult = cachedMetrics.putIfAbsent(key, newResult);
+      return previousResult == null ? newResult : previousResult;
+    }
   }
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
@@ -237,13 +230,12 @@ public abstract class DataQualityMetrics {
         result = CompletableFuture.completedFuture(new Result(0, 0, ""));
       } else {
         result =
-            CompletableFuture.supplyAsync(
+            DataQualityExecutor.supplyAsync(
                 () -> {
                   Accumulator accumulator = new Accumulator();
                   DataQualityMetrics.loopOverAll(storage, accumulator::process);
                   return accumulator.getResult();
-                },
-                threadFactory());
+                });
       }
     }
 
@@ -308,13 +300,12 @@ public abstract class DataQualityMetrics {
     public MinMaxQualityMetrics(ColumnStorage<T> storage, Comparator<T> comparator) {
       super(storage);
       result =
-          CompletableFuture.supplyAsync(
+          DataQualityExecutor.supplyAsync(
               () -> {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              },
-              threadFactory());
+              });
     }
 
     @Override
@@ -383,13 +374,12 @@ public abstract class DataQualityMetrics {
     public StringQualityMetrics(ColumnStorage<String> storage) {
       super(storage, String::compareTo);
       result =
-          CompletableFuture.supplyAsync(
+          DataQualityExecutor.supplyAsync(
               () -> {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
-              },
-              threadFactory());
+              });
     }
 
     @Override
@@ -537,13 +527,12 @@ public abstract class DataQualityMetrics {
     public AnyObjectQualityMetric(ColumnStorage<Object> storage) {
       super(storage);
       result =
-          CompletableFuture.supplyAsync(
+          DataQualityExecutor.supplyAsync(
               () -> {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              },
-              threadFactory());
+              });
     }
 
     @Override

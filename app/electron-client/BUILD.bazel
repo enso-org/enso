@@ -95,23 +95,17 @@ stamp_files(
     srcs = [":bundle"],
     out = "bundle_stamped",
     input_dir = "$(location :bundle)",
+    recalculate_hashes = False,
     visibility = ["//visibility:public"],
 )
 
-alias(
-    name = "selected_bundle",
-    actual = select({
-        "//:stamping": ":bundle_stamped",
-        "//conditions:default": ":bundle",
-    }),
-)
-
-alias(
-    name = "selected_gui_dist",
-    actual = select({
-        "//:stamping": "//app/gui:dist_stamped",
-        "//conditions:default": "//app/gui:dist",
-    }),
+stamp_files(
+    name = "electron_builder_config_stamped",
+    srcs = ["electron-builder-config.cjs"],
+    out = "electron_builder_config_stamped/electron-builder-config.cjs",
+    input_path = "$(location electron-builder-config.cjs)",
+    output_is_directory = False,
+    recalculate_hashes = False,
 )
 
 genrule(
@@ -126,16 +120,18 @@ electron_builder_bin.electron_builder(
     name = "dist",
     srcs = npm_link_targets() + [
         "package.json",
-        ":electron-builder-config.cjs",
+        ":bundle_stamped",
+        ":electron_builder_config_stamped",
         ":enso_bundle_marker",
-        ":selected_bundle",
-        ":selected_gui_dist",
+        "//:dependencies_scala_bin",
         "//:sbt_build_native_engine_distribution",
         "//:sbt_build_small_jdk",
+        "//app/gui:dist_stamped",
+        "//internal:dependencies_versions_in_bin",
     ],
     args = [
         "build",
-        "--config electron-builder-config.cjs",
+        "--config electron_builder_config_stamped/electron-builder-config.cjs",
     ],
     chdir = package_name(),
     env = {
@@ -177,9 +173,13 @@ js_binary(
 )
 
 js_run_binary(
-    name = "electron_builder_config",
-    srcs = ["electron-builder-config.cjs"],
-    args = ["$(location electron-builder-config.cjs)"],
+    name = "exported_config",
+    srcs = [
+        ":electron_builder_config_stamped",
+        "//:dependencies_scala_bin",
+        "//internal:dependencies_versions_in_bin",
+    ],
+    args = ["$(location :electron_builder_config_stamped)"],
     stdout = "electron-builder-config.json",
     tool = ":export_config_script",
     visibility = ["//visibility:public"],

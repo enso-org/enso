@@ -238,6 +238,7 @@ stamp_files(
     ],
     out = "dist_stamped",
     input_dir = "$(location :dist)",
+    recalculate_hashes = True,
     visibility = ["//visibility:public"],
 )
 

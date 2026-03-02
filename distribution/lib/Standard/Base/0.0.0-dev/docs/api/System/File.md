@@ -23,7 +23,7 @@
     - is_writable self -> Standard.Base.Any.Any
     - join self subpaths:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - last_modified_time self -> Standard.Base.Any.Any
-    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Base.System.File.File)
     - move_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - new path:Standard.Base.Any.Any -> Standard.Base.Any.Any

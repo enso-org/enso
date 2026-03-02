@@ -7,7 +7,6 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Logging import all
 from Standard.Base.Runtime import assert
 
-import project.Group.Group
 import project.Internal.Stack_Trace_Helpers
 import project.Spec_Result.Spec_Result
 import project.Suite_Config.Suite_Config
@@ -64,8 +63,7 @@ maybe_grey_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (grey text) else text
 
 ## Print result for a single Spec run
-print_single_result : Text -> Test_Result -> Suite_Config -> Nothing
-print_single_result (group_name : Text) (test_result : Test_Result) (config : Suite_Config) =
+print_single_result (println:Text->Nothing) (group_name : Text) (test_result : Test_Result) (config : Suite_Config) =
     times_suffix =
         times = test_result.time_taken.total_milliseconds.to_text + "ms"
         "[" + times + "]"
@@ -78,29 +76,29 @@ print_single_result (group_name : Text) (test_result : Test_Result) (config : Su
         Spec_Result.Success ->
             if config.print_only_failures.not then
                 txt = "    - " + test_result.spec_name + " " + times_suffix
-                IO.println (maybe_green_text txt config)
+                println (maybe_green_text txt config)
         Spec_Result.Failure msg details ->
-            report_github_error_message group_name+": "+test_result.spec_name msg
-            IO.println ""
+            report_github_error_message println group_name+": "+test_result.spec_name msg
+            println ""
             txt = "    - [FAILED] " + test_result.spec_name + " " + times_suffix
-            IO.println (maybe_red_text txt config)
-            IO.println ("        Reason: " + msg)
+            println (maybe_red_text txt config)
+            println ("        Reason: " + msg)
             if details.is_nothing.not then
-                IO.println (decorate_stack_trace details)
-            IO.println ""
+                println (decorate_stack_trace details)
+            println ""
         Spec_Result.Pending reason ->
-            IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
-            IO.println ("        Reason: " + reason)
+            println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
+            println ("        Reason: " + reason)
 
 ## ---
    private: true
    ---
    Reports an error message to show up as a note in GitHub Actions, only if
    running in the GitHub Actions environment.
-report_github_error_message (~title : Text) (~message : Text) =
+private report_github_error_message println (~title : Text) (~message : Text) =
     is_enabled = Environment.get "GITHUB_ACTIONS" == "true"
     if is_enabled then
-        IO.println (generate_github_error_annotation title message)
+        println (generate_github_error_annotation title message)
 
 ## ---
    private: true
@@ -142,8 +140,7 @@ generate_github_error_annotation (title : Text) (message : Text) =
       from multiple groups.
     - `builder`: StringBuilder or Nothing. If StringBuilder, then a jUnit XML
       format is appended to that StringBuilder.
-print_report : Vector Test_Result -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
-print_report (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
+private print_report (println:Text->Nothing) (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
     distinct_group_names = test_results.map (_.group_name) . distinct
     results_per_group = distinct_group_names.fold Dictionary.empty acc-> group_name->
         group_results = test_results.filter res->
@@ -151,11 +148,10 @@ print_report (test_results : Vector Test_Result) (config : Suite_Config) (builde
         assert (group_results.length > 0)
         acc.insert group_name group_results
     results_per_group.each_with_key group_name-> group_results->
-        print_group_report group_name group_results config builder
+        print_group_report println group_name group_results config builder
 
 ## Prints a pending group, optionally writing it to a jUnit XML output.
-print_pending_group : Group -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
-print_pending_group group config builder =
+private print_pending_group println group config builder =
     assert group.pending.is_nothing.not "Group in print_pending_group should be pending"
     if config.should_output_junit then
         assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
@@ -165,15 +161,14 @@ print_pending_group group config builder =
         builder.append ('            <skipped message="Reason: '+(escape_xml group.pending inside_attribute=True)+'"/>\n')
         builder.append ('        </testcase>\n')
         builder.append '    </testsuite>\n'
-    IO.println <| maybe_grey_text ("[PENDING] " + group.name) config
-    IO.println ("    Reason: " + group.pending)
+    println <| maybe_grey_text ("[PENDING] " + group.name) config
+    println ("    Reason: " + group.pending)
 
 ## Prints report for test_results from a single group.
 
    ## Arguments
     - `test_results`: Test test_results from a single group
-print_group_report : Text -> Vector Test_Result -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
-print_group_report group_name test_results config builder =
+private print_group_report (println:Text->Nothing) group_name test_results config builder =
     distinct_groups = test_results.distinct (res-> res.group_name)
     assert (distinct_groups.length == 1)
     total_time = test_results.fold Duration.zero acc-> res->
@@ -216,11 +211,11 @@ print_group_report group_name test_results config builder =
             counts = tests_succeeded.to_text + "/" + tests_executed.to_text
             times = total_time.total_milliseconds.to_text + "ms"
             group_name + ": " + "[" + counts + ", " + times + "]"
-        IO.println <| case some_test_failed of
+        println <| case some_test_failed of
             True -> maybe_red_text ("[FAILED] " + group_description) config
             False -> maybe_green_text group_description config
         test_results.each result->
-            print_single_result group_name result config
+            print_single_result println group_name result config
 
 ## ---
    private: true

@@ -177,13 +177,13 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
             Problems.expect_only_warning Implicit_DB_Table_Read v
 
         group_builder.specify "should allow getting specific elements" <|
-            test_column = data.t1.at 'a'
+            test_column = data.t1.sort 0 . at 'a'
             test_column.get 0 . should_equal 1
             test_column.get 3 . should_equal Nothing
             test_column.get 4 -1 . should_equal -1
 
         group_builder.specify "should allow getting specific elements (with at)" <|
-            test_column = data.t1.at 'a'
+            test_column = data.t1.sort 0 . at 'a'
             test_column.at 0 . should_equal 1
             test_column.at 1 . should_equal 4
             test_column.at 3 . should_fail_with Index_Out_Of_Bounds
@@ -216,7 +216,7 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
         group_builder.specify "should allow direct read by execute_query" <|
             name = data.t1.name
             tmp = data.connection.execute_query ('SELECT * FROM "' + name + '"')
-            tmp.read . should_equal data.t1.read
+            tmp.read . sort 0 . should_equal data.t1.read
 
         group_builder.specify "should allow to access a Table by an SQL query" <|
             name = data.t1.name

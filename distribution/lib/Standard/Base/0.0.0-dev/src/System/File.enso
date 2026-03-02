@@ -1039,8 +1039,7 @@ type File
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
        ```
     @name_filter File_Format.name_filter_widget
-    list : Text -> Boolean -> Vector File
-    list self name_filter:Text="" recursive:Boolean=False = 
+    list self name_filter:Text="" recursive:Boolean=False -> Vector File =
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . list name_filter=name_filter recursive=recursive else
             if (_is_directory self).not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
                 all_files = if recursive then list_descendants self else self.list_immediate_children
