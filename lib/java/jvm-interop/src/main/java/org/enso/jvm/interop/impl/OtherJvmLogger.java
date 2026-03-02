@@ -48,7 +48,7 @@ public final class OtherJvmLogger extends System.LoggerFinder {
   record LogMsg(
       String name,
       int severity,
-      String format,
+      List<String> format,
       List<Object> args,
       List<OtherJvmResult<?, java.lang.Throwable>> thrown)
       implements Function<Channel<OtherJvmPool>, Void> {
@@ -66,14 +66,23 @@ public final class OtherJvmLogger extends System.LoggerFinder {
         try {
           thrown.get(0).value(null);
         } catch (Throwable ex) {
-          log.log(level, format, ex);
+          log.log(level, formatMsg(), ex);
           return null;
         }
         assert false : "Should throw an exception: " + thrown;
       } else {
-        log.log(level, format, args.toArray());
+        log.log(level, formatMsg(), args.toArray());
       }
       return null;
+    }
+
+    private String formatMsg() {
+      if (format.isEmpty()) {
+        return null;
+      } else {
+        assert format.size() == 1;
+        return format.get(0);
+      }
     }
   }
 
@@ -97,17 +106,19 @@ public final class OtherJvmLogger extends System.LoggerFinder {
     @Override
     public void log(Level level, ResourceBundle bundle, String msg, java.lang.Throwable thrown) {
       var ex = OtherJvmMessage.ThrowException.create(thrown);
-      var log = new LogMsg(name, level.getSeverity(), msg, List.of(), List.of(ex));
+      List<String> msgOpt = msg == null ? List.of() : List.of(msg);
+      var log = new LogMsg(name, level.getSeverity(), msgOpt, List.of(), List.of(ex));
       channel.execute(Void.class, log);
     }
 
     @Override
     public void log(Level level, ResourceBundle bundle, String format, Object... params) {
+      assert format != null;
       var log =
           new LogMsg(
               name,
               level.getSeverity(),
-              format,
+              List.of(format),
               params == null ? List.of() : List.of(params),
               List.of());
       channel.execute(Void.class, log);

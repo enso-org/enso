@@ -122,6 +122,48 @@ public class OtherJvmLoggerTest {
         "Exception has the right message", "I got thrown!", capture.loggedThrown.getMessage());
   }
 
+  @Test
+  public void registerLoggerObtainALogOnExceptionWithNoMessage() throws Exception {
+    var otherTest = loadOtherJvmClass(OtherJvmLoggerTest.class.getName());
+
+    class CapturingHandler extends Handler {
+      String loggerName;
+      Level loggedLevel;
+      String loggedMsg;
+      Throwable loggedThrown;
+
+      @Override
+      public void publish(LogRecord lr) {
+        assertNull("No log record yet", loggerName);
+        loggerName = lr.getLoggerName();
+        assertNotNull("Logger name set", loggerName);
+        loggedLevel = lr.getLevel();
+        loggedMsg = lr.getMessage();
+        loggedThrown = lr.getThrown();
+      }
+
+      @Override
+      public void flush() {}
+
+      @Override
+      public void close() {}
+    }
+    var capture = new CapturingHandler();
+    withLogHandler(
+        Logger.getLogger(""),
+        capture,
+        () -> {
+          otherTest.invokeMember("logException", "test.log.error", null, "I got thrown!");
+        });
+
+    assertEquals("Logger created", "test.log.error", capture.loggerName);
+    assertEquals("Logging at error level maps to severe", Level.SEVERE, capture.loggedLevel);
+    assertNull("The right message", capture.loggedMsg);
+    assertNotNull("Exception is transfered", capture.loggedThrown);
+    assertEquals(
+        "Exception has the right message", "I got thrown!", capture.loggedThrown.getMessage());
+  }
+
   private static Value loadOtherJvmClass(String name) throws Exception {
     var msg = new OtherJvmMessage.LoadClass(name);
     var raw = CHANNEL.execute(OtherJvmResult.class, msg).value(null);
