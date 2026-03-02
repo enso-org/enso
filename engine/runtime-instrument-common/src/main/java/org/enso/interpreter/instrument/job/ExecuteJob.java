@@ -282,6 +282,12 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
             "Rescheduled ExecuteJob[{}] failed to process pending visualizations {}",
             jobId,
             unevaluatedVisualizationIds);
+        unevaluatedVisualizations.foreach(
+            v -> {
+              ctx.jobProcessor()
+                  .run(new DetachVisualizationJob(v.id(), v.expressionId(), v.contextId()));
+              return null;
+            });
       } else {
         logger.debug(
             "Rescheduling ExecuteJob[{}] to process pending visualizations {}",
