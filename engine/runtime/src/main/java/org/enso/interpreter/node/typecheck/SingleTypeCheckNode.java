@@ -34,12 +34,19 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
     this.expectedType = expectedType;
   }
 
-  abstract Object executeConversion(
-      VirtualFrame frame, Object value, AbstractTypeCheckNode[] failingCheck);
+  final Object executeConversion(
+      VirtualFrame frame, Object value, AbstractTypeCheckNode[] failingCheck) {
+    var res = executeHandleConversion(frame, value);
+    if (res == null && failingCheck != null) {
+      failingCheck[0] = this;
+    }
+    return res;
+  }
+
+  abstract Object executeHandleConversion(VirtualFrame frame, Object value);
 
   @Specialization
-  Object doPanicSentinel(
-      VirtualFrame frame, PanicSentinel panicSentinel, AbstractTypeCheckNode[] noFailingCheck) {
+  Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
     throw panicSentinel;
   }
 
@@ -47,14 +54,9 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
   Object doUnresolvedConstructor(
       VirtualFrame frame,
       UnresolvedConstructor unresolved,
-      AbstractTypeCheckNode[] failingCheck,
       @Cached UnresolvedConstructor.ConstructNode construct) {
     var state = EnsoContext.get(this).currentState();
-    var res = construct.execute(frame, state, expectedType, unresolved);
-    if (res == null && failingCheck != null) {
-      failingCheck[0] = this;
-    }
-    return res;
+    return construct.execute(frame, state, expectedType, unresolved);
   }
 
   @Specialization(
@@ -63,29 +65,17 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
   Object doWithConversionCached(
       VirtualFrame frame,
       Object v,
-      AbstractTypeCheckNode[] failingCheck,
       @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Cached(value = "findType(typeOfNode, v)", dimensions = 1) Type[] cachedType,
       @Cached("findConversionNode(cachedType)") TypeToConvertNode node) {
-    var res = handleWithConversion(frame, v, node);
-    if (res == null && failingCheck != null) {
-      failingCheck[0] = this;
-    }
-    return res;
+    return handleWithConversion(frame, v, node);
   }
 
   @Specialization(replaces = "doWithConversionCached")
   Object doWithConversionUncached(
-      VirtualFrame frame,
-      Object v,
-      AbstractTypeCheckNode[] failingCheck,
-      @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode) {
+      VirtualFrame frame, Object v, @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode) {
     var type = findType(typeOfNode, v);
-    var res = doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
-    if (res == null && failingCheck != null) {
-      failingCheck[0] = this;
-    }
-    return res;
+    return doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
   }
 
   @Override
