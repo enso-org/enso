@@ -64,7 +64,12 @@ public final class SystemLoggerForSlf4j implements SLF4JServiceProvider, ILogger
           String messagePattern,
           Object[] arguments,
           Throwable throwable) {
-        delegate.log(at(level), messagePattern);
+        var at = at(level);
+        if (throwable != null) {
+          delegate.log(at, messagePattern, throwable);
+        } else {
+          delegate.log(at, messagePattern);
+        }
       }
 
       @Override
