@@ -75,6 +75,9 @@ public final class OtherJvmUtils {
     commandAndArgs.add("--module-path=" + modulePath);
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
     // commandAndArgs.add("-Djdk.module.showModuleResolution=true");
+    commandAndArgs.add(
+        "-Dslf4j.provider=org.enso.logging.config.systemlogger.SystemLoggerForSlf4j");
+    commandAndArgs.add("-Dslf4j.internal.verbosity=WARN");
     return commandAndArgs.toArray(String[]::new);
   }
 }

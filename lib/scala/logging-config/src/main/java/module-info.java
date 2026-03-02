@@ -17,4 +17,6 @@ module org.enso.logging.config {
       ContextLoggingViaSlf4j;
   provides java.lang.System.LoggerFinder with
       SystemLoggerViaSlf4j;
+
+  opens org.enso.logging.config.systemlogger;
 }
