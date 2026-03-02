@@ -276,19 +276,8 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
     var unevaluatedVisualizations = holder.getAllUnevaluated();
     var unevaluatedVisualizationIds = unevaluatedVisualizations.toList().map(v -> v.id());
     if (unevaluatedVisualizationIds.nonEmpty()) {
-      if (unevaluatedVisualizationIds.equals(visualizationTriggered)
-          && PENDING_VISUALIZATIONS_TRIGGER_CONTEXT.equals(triggerContext)) {
-        logger.error(
-            "Rescheduled ExecuteJob[{}] failed to process pending visualizations {}",
-            jobId,
-            unevaluatedVisualizationIds);
-        unevaluatedVisualizations.foreach(
-            v -> {
-              ctx.jobProcessor()
-                  .run(new DetachVisualizationJob(v.id(), v.expressionId(), v.contextId()));
-              return null;
-            });
-      } else {
+      if (!unevaluatedVisualizationIds.equals(visualizationTriggered)
+          && !PENDING_VISUALIZATIONS_TRIGGER_CONTEXT.equals(triggerContext)) {
         logger.debug(
             "Rescheduling ExecuteJob[{}] to process pending visualizations {}",
             jobId,
