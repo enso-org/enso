@@ -45,7 +45,12 @@ public final class OtherJvmLogger extends System.LoggerFinder {
   }
 
   @Persistable(id = 81913)
-  record LogMsg(String name, int severity, String format, List<Object> args, List<Throwable> thrown)
+  record LogMsg(
+      String name,
+      int severity,
+      String format,
+      List<Object> args,
+      List<OtherJvmResult<?, java.lang.Throwable>> thrown)
       implements Function<Channel<OtherJvmPool>, Void> {
 
     @Override
@@ -58,7 +63,13 @@ public final class OtherJvmLogger extends System.LoggerFinder {
               .get();
       if (thrown.size() == 1) {
         assert args.isEmpty();
-        log.log(level, format, thrown.get(0));
+        try {
+          thrown.get(0).value(null);
+        } catch (Throwable ex) {
+          log.log(level, format, ex);
+          return null;
+        }
+        assert false : "Should throw an exception: " + thrown;
       } else {
         log.log(level, format, args.toArray());
       }
@@ -84,8 +95,9 @@ public final class OtherJvmLogger extends System.LoggerFinder {
     }
 
     @Override
-    public void log(Level level, ResourceBundle bundle, String msg, Throwable thrown) {
-      var log = new LogMsg(name, level.getSeverity(), msg, List.of(), List.of(thrown));
+    public void log(Level level, ResourceBundle bundle, String msg, java.lang.Throwable thrown) {
+      var ex = OtherJvmMessage.ThrowException.create(thrown);
+      var log = new LogMsg(name, level.getSeverity(), msg, List.of(), List.of(ex));
       channel.execute(Void.class, log);
     }
 

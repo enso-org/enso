@@ -75,7 +75,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81909, allowInlining = false)
-  record ThrowValue<T, E extends Exception>(Optional<String> msg, TruffleObject exception)
+  record ThrowValue<T, E extends Throwable>(Optional<String> msg, TruffleObject exception)
       implements OtherJvmResult<T, E> {
     @Override
     @SuppressWarnings("unchecked")
@@ -92,7 +92,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81910, allowInlining = false)
-  record ThrowException<V, E extends Exception>(int kind, Optional<String> msg)
+  record ThrowException<V, E extends Throwable>(int kind, Optional<String> msg)
       implements OtherJvmResult<V, E> {
     private static final Map<Class<? extends Throwable>, Integer> kinds;
 
@@ -106,7 +106,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     }
 
     @SuppressWarnings("unchecked")
-    static <T, E extends Exception> OtherJvmResult<T, E> create(E ex) {
+    static <T, E extends Throwable> OtherJvmResult<T, E> create(E ex) {
       var msg = Optional.ofNullable(ex.getMessage());
       if (ex instanceof OtherJvmTruffleException truffleEx) {
         var original = truffleEx.delegate;
