@@ -84,6 +84,12 @@ object ProgramExecutionSupport {
           executionFrame.syncState,
           value
         )
+
+        processAllUnevaluatedVisualizations(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState
+        )
       }
     }
 
@@ -768,14 +774,12 @@ object ProgramExecutionSupport {
       val exprModuleOpt = context.findModule(exprModuleName)
 
       if (visModuleOpt.isEmpty) {
-        holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
         ctx.endpoint.sendToClient(
           Api.Response(Api.ModuleNotFound(visModuleName))
         )
         return
       }
       if (exprModuleOpt.isEmpty) {
-        holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
         ctx.endpoint.sendToClient(
           Api.Response(Api.ModuleNotFound(exprModuleName))
         )
@@ -797,13 +801,11 @@ object ProgramExecutionSupport {
 
       maybeCallable match {
         case Left(UpsertVisualizationJob.ModuleNotFound(moduleName)) =>
-          holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
           ctx.endpoint.sendToClient(
             Api.Response(Api.ModuleNotFound(moduleName))
           )
 
         case Left(UpsertVisualizationJob.EvaluationFailed(message, result)) =>
-          holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
           ctx.endpoint.sendToClient(
             Api.Response(
               Api.VisualizationExpressionFailed(
@@ -827,16 +829,28 @@ object ProgramExecutionSupport {
 
         case Right(evaluatedExpression) =>
           val visualization =
-            UpsertVisualizationJob.updateAttachedVisualization(
-              unevaluated.id,
-              unevaluated.expressionId,
-              unevaluated.parentExpressionId,
-              evaluatedExpression.module,
-              unevaluated.config,
-              evaluatedExpression.callback,
-              evaluatedExpression.arguments
-            )
-          holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+            try {
+              UpsertVisualizationJob.updateAttachedVisualization(
+                unevaluated.id,
+                unevaluated.expressionId,
+                unevaluated.parentExpressionId,
+                evaluatedExpression.module,
+                unevaluated.config,
+                evaluatedExpression.callback,
+                evaluatedExpression.arguments
+              )
+            } finally {
+              val removed =
+                holder.removeUnevaluated(
+                  unevaluated.id,
+                  unevaluated.expressionId
+                )
+              if (removed.isEmpty) {
+                // The visualization was detached, cleanup
+                holder.remove(unevaluated.id, unevaluated.expressionId)
+                return
+              }
+            }
 
           executeAndSendVisualizationUpdate(
             contextId,
@@ -855,7 +869,6 @@ object ProgramExecutionSupport {
           e.getMessage,
           e
         )
-        holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualizationExpressionFailed(
