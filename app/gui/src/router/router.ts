@@ -11,57 +11,23 @@ import {
   SUBSCRIBE_PATH,
 } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
-import { useBackends } from '$/providers/backends'
 import { useConfig } from '$/providers/config'
-import { useContainerData, type Tab } from '$/providers/container'
 import { flagsStore } from '$/providers/featureFlags'
 import {
   maybeRedirectToProject,
   maybeRedirectToTab,
+  openTab,
   redirectFromPath,
 } from '$/router/dashboardGuards'
 import { withDataLoader } from '$/router/dataLoader'
-import { backendQueryOptions } from '@/composables/backend'
 import { reactComponent, suspendedReactComponent } from '@/util/react'
-import { useQueryClient } from '@tanstack/vue-query'
-import { isProjectId, ProjectId, type AssetDetailsResponse } from 'enso-common/src/services/Backend'
-import { isLocalProjectId } from 'enso-common/src/services/LocalBackend'
-import { createRouter, createWebHistory, type RouteLocation, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
 function requireCloudBrowserEnabled() {
   const isCloudExecutionEnabled = flagsStore.getState().featureFlags.enableCloudExecution
   if (!isCloudExecutionEnabled) return { name: 'cloudDisabled' }
-}
-
-async function openTab(to: RouteLocation) {
-  const container = useContainerData()
-  switch (to.name) {
-    case 'project': {
-      if (!isProjectId(to.params.id)) return false
-      const id = to.params.id
-      const tab: Tab = { type: 'project', id }
-      if (container.isTabOpened(tab)) {
-        break
-      }
-      const { localBackend, remoteBackend } = useBackends()
-      const queryClient = useQueryClient()
-
-      const backend = isLocalProjectId(id) ? localBackend : remoteBackend
-      if (backend == null) return false
-
-      const options = backendQueryOptions('getAssetDetails', [id, undefined], backend)
-      const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
-      if (!assetResponse) return false
-
-      container.openProjectLocally(assetResponse, backend.type, false)
-      break
-    }
-    case 'settings': {
-      container.openSettingsTab(false)
-    }
-  }
 }
 
 const routes = [
@@ -97,13 +63,11 @@ const routes = [
               {
                 name: 'project',
                 path: 'project/:id',
-                beforeEnter: openTab,
                 component: () => import('$/project-view/ProjectView.vue'),
               },
               {
                 name: 'settings',
                 path: 'settings',
-                beforeEnter: openTab,
                 component: () =>
                   import('#/layouts/Settings').then((mod) => suspendedReactComponent(mod.Settings)),
               },
@@ -187,6 +151,7 @@ router.beforeEach(async (to, from) => {
     await useAuth().waitForSession()
   }
 })
+router.beforeEach(openTab)
 
 router.onError((error) => console.error('Router error', error))
 

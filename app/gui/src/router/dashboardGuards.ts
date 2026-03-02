@@ -1,19 +1,27 @@
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { useConfig } from '$/providers/config'
-import { routeFromTab, useContainerData } from '$/providers/container'
-import { onlineManager } from '@tanstack/vue-query'
+import { routeFromTab, useContainerData, type Tab } from '$/providers/container'
+import { backendQueryOptions } from '@/composables/backend'
+import { onlineManager, useQueryClient } from '@tanstack/vue-query'
 import {
   AssetType,
   Backend,
   EnsoPath,
   extractTypeFromId,
+  isProjectId,
   isRemoteAssetPath,
   Path,
   Plan,
+  ProjectId,
+  type AssetDetailsResponse,
   type User,
 } from 'enso-common/src/services/Backend'
-import { newDirectoryId, type LocalBackend } from 'enso-common/src/services/LocalBackend'
+import {
+  isLocalProjectId,
+  newDirectoryId,
+  type LocalBackend,
+} from 'enso-common/src/services/LocalBackend'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { platform, Platform } from 'enso-common/src/utilities/detect'
 import { getFileName } from 'enso-common/src/utilities/file'
@@ -195,5 +203,35 @@ function fileURLToPath(url: string): string | null {
     }
   } else {
     return null
+  }
+}
+
+/** If routing to a view assigned to some tab, open this tab. */
+export async function openTab(to: RouteLocation) {
+  const container = useContainerData()
+  switch (to.name) {
+    case 'project': {
+      if (!isProjectId(to.params.id)) return false
+      const id = to.params.id
+      const tab: Tab = { type: 'project', id }
+      if (container.isTabOpened(tab)) {
+        break
+      }
+      const { localBackend, remoteBackend } = useBackends()
+      const queryClient = useQueryClient()
+
+      const backend = isLocalProjectId(id) ? localBackend : remoteBackend
+      if (backend == null) return false
+
+      const options = backendQueryOptions('getAssetDetails', [id, undefined], backend)
+      const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
+      if (!assetResponse) return false
+
+      container.openProjectLocally(assetResponse, backend.type, false)
+      break
+    }
+    case 'settings': {
+      container.openSettingsTab(false)
+    }
   }
 }
