@@ -424,56 +424,6 @@ class ReentrantLocking extends Locking {
   private case class ContextLockImpl(lock: ReentrantReadWriteLock, uuid: UUID)
       extends ContextLock
 
-  override def tryWithReadCompilationLock(
-    where: Class[_],
-    action: Runnable
-  ): Boolean = {
-    // Verify lock ordering (no file/pending locks held)
-    try {
-      assertNoFileLock(
-        s"Cannot acquire read compilation lock [${where.getSimpleName}]"
-      )
-      assertNotLocked(
-        pendingEditsLock,
-        s"Cannot acquire compilation read lock when having pending edits lock [${where.getSimpleName}]"
-      )
-    } catch {
-      case e: IllegalStateException =>
-        logger.trace(
-          "tryWithReadCompilationLock [{}] failed due to lock ordering: {}",
-          where.getSimpleName,
-          e.getMessage
-        )
-        return false
-    }
-
-    val readLock = compilationLock.readLock()
-    if (readLock.tryLock()) {
-      val now = System.currentTimeMillis()
-      logger.trace(
-        "tryWithReadCompilationLock [{}] acquired",
-        where.getSimpleName
-      )
-      try {
-        action.run()
-        true
-      } finally {
-        readLock.unlock()
-        logger.trace(
-          "Kept read compilation lock (try) [{}] for {}ms",
-          where.getSimpleName,
-          System.currentTimeMillis - now
-        )
-      }
-    } else {
-      logger.trace(
-        "tryWithReadCompilationLock [{}] not acquired (lock busy)",
-        where.getSimpleName
-      )
-      false
-    }
-  }
-
   override def tryWithWriteCompilationLock(
     where: Class[_],
     action: Runnable
