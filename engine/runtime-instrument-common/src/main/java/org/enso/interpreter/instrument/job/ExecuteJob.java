@@ -29,8 +29,7 @@ import scala.Option;
 public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
 
   private static final Logger logger = LoggerFactory.getLogger(ExecuteJob.class);
-  private static final String PENDING_VISUALIZATIONS_TRIGGER_CONTEXT =
-      "pending visualizations";
+  private static final String PENDING_VISUALIZATIONS_TRIGGER_CONTEXT = "pending visualizations";
 
   private final UUID contextId;
   private final scala.collection.immutable.List<InstrumentFrame> stack;
@@ -81,12 +80,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
       scala.collection.immutable.List<InstrumentFrame> stack,
       Option<?> executionEnvironment,
       String triggerContext) {
-    this(
-        contextId,
-        stack,
-        executionEnvironment,
-        triggerContext,
-        ScalaConversions.nil());
+    this(contextId, stack, executionEnvironment, triggerContext, ScalaConversions.nil());
   }
 
   /**
@@ -97,9 +91,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
     if (executionEnvironment.isEmpty()) {
       return true;
     }
-    return !((Runtime$Api$ExecutionEnvironment) executionEnvironment.get())
-        .name()
-        .equals("live");
+    return !((Runtime$Api$ExecutionEnvironment) executionEnvironment.get()).name().equals("live");
   }
 
   /**
@@ -110,9 +102,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
     if (executionEnvironment.isEmpty()) {
       return true;
     }
-    return !((Runtime$Api$ExecutionEnvironment) executionEnvironment.get())
-        .name()
-        .equals("live");
+    return !((Runtime$Api$ExecutionEnvironment) executionEnvironment.get()).name().equals("live");
   }
 
   public UUID contextId() {
@@ -171,8 +161,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
               Runtime$Api$Response$.MODULE$.apply(
                   new Runtime$Api$ExecutionFailed(
                       contextId,
-                      new Runtime$Api$ExecutionResult$Failure(
-                          errorMsg, scala.Option.empty()))));
+                      new Runtime$Api$ExecutionResult$Failure(errorMsg, scala.Option.empty()))));
     } finally {
       logger.trace("Finished ExecuteJob[{}]", jobId);
     }
@@ -208,8 +197,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
                         try {
                           ExecutionEnvironment originalExecutionEnvironment = null;
                           if (executionEnvironment.isDefined()) {
-                            var env =
-                                (Runtime$Api$ExecutionEnvironment) executionEnvironment.get();
+                            var env = (Runtime$Api$ExecutionEnvironment) executionEnvironment.get();
                             originalExecutionEnvironment =
                                 ctx.executionService()
                                     .setExecutionInstrument(
@@ -220,8 +208,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
                           Option<?> outcome;
                           try {
                             outcome =
-                                ProgramExecutionSupport$.MODULE$.runProgram(
-                                    contextId, stack, ctx);
+                                ProgramExecutionSupport$.MODULE$.runProgram(contextId, stack, ctx);
                           } finally {
                             if (originalExecutionEnvironment != null) {
                               ctx.executionService()
@@ -262,8 +249,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
               .sendToClient(
                   Runtime$Api$Response$.MODULE$.apply(
                       new Runtime$Api$ExecutionUpdate(
-                          contextId,
-                          ScalaConversions.seq(List.of(diagnostic)))));
+                          contextId, ScalaConversions.seq(List.of(diagnostic)))));
           ctx.endpoint()
               .sendToClient(
                   Runtime$Api$Response$.MODULE$.apply(
@@ -278,8 +264,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
     } else {
       ctx.endpoint()
           .sendToClient(
-              Runtime$Api$Response$.MODULE$.apply(
-                  new Runtime$Api$ExecutionComplete(contextId)));
+              Runtime$Api$Response$.MODULE$.apply(new Runtime$Api$ExecutionComplete(contextId)));
     }
   }
 
@@ -289,10 +274,7 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
     }
     var holder = ctx.contextManager().getVisualizationHolder(contextId);
     var unevaluatedVisualizations = holder.getAllUnevaluated();
-    var unevaluatedVisualizationIds =
-        unevaluatedVisualizations
-            .toList()
-            .map(v -> v.id());
+    var unevaluatedVisualizationIds = unevaluatedVisualizations.toList().map(v -> v.id());
     if (unevaluatedVisualizationIds.nonEmpty()) {
       if (unevaluatedVisualizationIds.equals(visualizationTriggered)
           && PENDING_VISUALIZATIONS_TRIGGER_CONTEXT.equals(triggerContext)) {
