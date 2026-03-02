@@ -934,6 +934,7 @@
     "./src/utils/data/set.ts",
     "./src/utils/data/string.ts",
     "./src/utils/dom.ts",
+    "./src/utils/links.ts",
     "./src/utils/load.ts",
     "./src/utils/queryClient.ts",
     "./src/utils/reactivity.ts",
