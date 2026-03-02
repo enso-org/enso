@@ -80,7 +80,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         system_logging_prj_lazy.get
 
     slf4j_logging_prj_lazy = Ref.new lazy=True <|
-        prj_dir = tmp_root / "system_logging"
+        prj_dir = tmp_root / "slf4j_logging"
         prj_dir.create_directory
 
         Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
