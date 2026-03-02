@@ -132,7 +132,8 @@ public abstract class DataQualityMetrics {
     }
     var newResult = DataQualityMetrics.createMetrics(columnStorage);
     synchronized (cachedMetrics) {
-      return cachedMetrics.putIfAbsent(key, newResult);
+      var previousResult = cachedMetrics.putIfAbsent(key, newResult);
+      return previousResult == null ? newResult : previousResult;
     }
   }
 
