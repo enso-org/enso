@@ -122,7 +122,7 @@ class RenameProjectCmd(
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
               _ <- ctx.jobProcessor.run(
-                ExecuteJob(contextId, stack.toList, "rename project cmd")
+                ExecuteJob.apply(contextId, stack.toList, "rename project cmd")
               )
             } yield ()
         }

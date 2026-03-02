@@ -81,7 +81,7 @@ class ModifyVisualizationCmd(
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
               _ <- ctx.jobProcessor.run(
-                ExecuteJob(
+                ExecuteJob.apply(
                   exec,
                   "modify/upsert visualization (id=" + request.visualizationId + ")"
                 )

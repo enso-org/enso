@@ -45,11 +45,11 @@ class AttachVisualizationCmd(
       case None | null => Future.successful(())
       case Some(executable) =>
         ctx.jobProcessor.run(
-          ExecuteJob(
+          ExecuteJob.apply(
             executable,
             s"attach/upsert visualization (id=${request.visualizationId})"
           )
-        )
+        ).map(_ => ())
     }
   }
 

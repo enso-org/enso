@@ -77,7 +77,7 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx.contextManager.getAllContexts
       .collect {
         case (contextId, stack) if stack.nonEmpty =>
-          ExecuteJob(contextId, stack.toList, "edit file cmd")
+          ExecuteJob.apply(contextId, stack.toList, "edit file cmd")
       }
   }
 
