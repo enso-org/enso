@@ -35,6 +35,7 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
         return result;
       }
     }
+    failingCheck[0] = null;
     return null;
   }
 
