@@ -100,6 +100,9 @@ public final class OtherJvmLogger extends System.LoggerFinder {
 
     @Override
     public boolean isLoggable(Level level) {
+      if ("org.enso.persist".equals(name)) {
+        return level.compareTo(Level.INFO) >= 0;
+      }
       return level.compareTo(Level.WARNING) >= 0;
     }
 
