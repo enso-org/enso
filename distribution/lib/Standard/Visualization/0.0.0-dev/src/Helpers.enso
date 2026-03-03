@@ -260,11 +260,7 @@ private time_visualization module ~name ~action =
         if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
         result
 
-    level = case Environment.get "ENSO_TIME_VIZZES" of
-        Nothing -> Nothing
-        "warning" -> ..Warning
-        "info" -> ..Info
-        _ -> ..Trace
+    level = Log_Level.viz_timing_level
     if level . is_nothing then wrapped else
         pair = Duration.time_execution wrapped
         suffix = if pair.second.is_a Text then " length="+(Text_Utils.char_length pair.second).to_text else ""

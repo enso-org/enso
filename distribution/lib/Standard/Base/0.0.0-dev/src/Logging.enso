@@ -133,6 +133,13 @@ type Log_Level
     ## Severe level log message.
     Severe
 
+    ## ---
+       private: true
+       ---
+       Check to see if the timing of visualization is enabled and log the message if it is.
+    viz_timing_level -> (Log_Level | Nothing) =
+        State.get Log_Level if_missing=_viz_timing_level
+
 private log_impl logger ~message level args =
     builder = case level of
         Log_Level.Finest -> logger.atTrace
@@ -146,3 +153,11 @@ private log_impl logger ~message level args =
         builder.addArgument a
 
     builder.log
+
+private _viz_timing_level =
+    case Environment.get "ENSO_TIME_VIZZES" of
+        "warning" -> ..Warning
+        "info" -> ..Info
+        "debug" -> ..Fine
+        "trace" -> ..Finest
+        _ -> Nothing

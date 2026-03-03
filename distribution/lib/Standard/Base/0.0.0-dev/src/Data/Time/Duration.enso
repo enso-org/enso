@@ -162,11 +162,12 @@ type Duration
        ## Arguments
         - `function`: Function to execute.
     log_execution_time : Any -> Text -> Any
-    log_execution_time ~function label="execution_time" =
-        pair = Duration.time_execution function
-        duration = pair.first
-        Duration.log_message ("Execution time for " + label + ": " + duration.to_display_text) ..Info
-        pair.second
+    log_execution_time ~function label="execution_time" level:(Log_Level | Nothing)=Log_Level.viz_timing_level =
+        if Nothing == level then function else
+            pair = Duration.time_execution function
+            duration = pair.first
+            Duration.log_message ("Execution time for " + label + ": " + duration.to_display_text) level
+            pair.second
 
     ## ---
        aliases: [add duration]
