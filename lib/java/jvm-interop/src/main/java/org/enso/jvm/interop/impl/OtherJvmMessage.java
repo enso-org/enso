@@ -103,6 +103,8 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       kinds.put(UnknownIdentifierException.class, 3);
       kinds.put(UnsupportedTypeException.class, 4);
       kinds.put(InvalidArrayIndexException.class, 5);
+      kinds.put(IllegalArgumentException.class, 6);
+      kinds.put(IllegalStateException.class, 7);
     }
 
     @SuppressWarnings("unchecked")
@@ -116,30 +118,37 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         return new ThrowValue<>(msg, truffleEx);
       } else {
         var kind = kinds.getOrDefault(ex.getClass(), 0);
-        return new ThrowException<>(kind, msg);
+        if (kind == 0) {
+            var classWithMsg = ex.getClass().getName() + ": " + ex.getMessage();
+            return new ThrowException<>(kind, Optional.of(classWithMsg));
+        } else {
+            return new ThrowException<>(kind, msg);
+        }
       }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public V value(Node who) throws E {
-      var msg = msg().isPresent() ? msg().get() : null;
+      var msgOrNull = msg().isPresent() ? msg().get() : null;
       switch (kind) {
-        case 1 -> throw (E) new ClassNotFoundException(msg);
+        case 1 -> throw (E) new ClassNotFoundException(msgOrNull);
         case 2 -> throw (E) UnsupportedMessageException.create();
-        case 3 -> throw (E) UnknownIdentifierException.create(msg);
-        case 4 -> throw (E) UnsupportedTypeException.create(new Object[0], msg);
+        case 3 -> throw (E) UnknownIdentifierException.create(msgOrNull);
+        case 4 -> throw (E) UnsupportedTypeException.create(new Object[0], msgOrNull);
         case 5 -> {
           int index;
           try {
-            var words = msg.split("[ \\.]");
+            var words = msgOrNull.split("[ \\.]");
             index = Integer.parseInt(words[3]);
           } catch (NullPointerException | NumberFormatException | IndexOutOfBoundsException ex) {
             index = -1;
           }
           throw (E) InvalidArrayIndexException.create(index);
         }
-        default -> throw new OtherJvmException(msg);
+        case 6 -> throw (E) new IllegalArgumentException(msgOrNull);
+        case 7 -> throw (E) new IllegalStateException(msgOrNull);
+        default -> throw new OtherJvmException(msgOrNull);
       }
     }
   }
