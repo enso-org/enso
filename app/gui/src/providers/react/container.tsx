@@ -10,27 +10,20 @@ import { useInReactFunction, useVueValue } from './common'
 const RightPanelDataContext = react.createContext<RightPanelData | null>(null)
 export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 
-const ContainerDataContext = react.createContext<ContainerData | null>(null)
-export const useContainerData = useInReactFunction(ContainerDataContext)
-
 export const ContainerProviderForReact = reactComponent(
   ({
-    container,
     rightPanel,
     children,
-  }: react.PropsWithChildren<{ container: ContainerData; rightPanel: RightPanelData }>) => {
+  }: react.PropsWithChildren<{ rightPanel: RightPanelData }>) => {
     return (
-      <ContainerDataContext.Provider value={container}>
-        <RightPanelDataContext.Provider value={rightPanel}>
-          {children}
-        </RightPanelDataContext.Provider>
-      </ContainerDataContext.Provider>
+      <RightPanelDataContext.Provider value={rightPanel}>
+        {children}
+      </RightPanelDataContext.Provider>
     )
   },
   {
     useInjectPropsFromWrapper: () => {
       const result = {
-        container: useContainerDataVue(),
         rightPanel: useRightPanelDataVue(),
       }
       // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
