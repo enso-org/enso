@@ -67,8 +67,8 @@ function decorateLink(
   if (!makeAttributes) return
   const parsed =
     nodeRef.name === 'Link' ? parseLinkLike(nodeRef, doc)
-      : nodeRef.name === 'Autolink' ? parseAutolink(nodeRef, doc)
-        : undefined
+    : nodeRef.name === 'Autolink' ? parseAutolink(nodeRef, doc)
+    : undefined
   if (!parsed) return
   const { linkOrImage: link, text, url, title } = parsed
   if (text.empty) return
@@ -133,7 +133,7 @@ export function decorateImageWithRendered(
 }
 
 class MediaWidget extends VueDecorationWidget<{ alt: string; src: string }> {
-  constructor(props: { alt: string; src: string, title?: string | undefined }, vueHost: VueHost) {
+  constructor(props: { alt: string; src: string; title?: string | undefined }, vueHost: VueHost) {
     const isVideo = props.src.match(/https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[^/]+/)
     const component = isVideo ? DocumentationVideo : DocumentationImage
     if (!isVideo) delete props.title
