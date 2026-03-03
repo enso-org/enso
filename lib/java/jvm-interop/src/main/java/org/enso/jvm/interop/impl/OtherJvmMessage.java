@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
+import org.enso.persist.Persistance;
 import org.graalvm.polyglot.Value;
 
 /** Sends a message to the other side with ReflectionLibrary-like arguments. */
@@ -92,7 +94,8 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81910, allowInlining = false)
-  record ThrowException<V, E extends Throwable>(int kind, Optional<String> msg)
+  record ThrowException<V, E extends Throwable>(
+      int kind, Optional<String> msg, List<StackTraceElement> stack)
       implements OtherJvmResult<V, E> {
     private static final Map<Class<? extends Throwable>, Integer> kinds;
 
@@ -118,11 +121,12 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         return new ThrowValue<>(msg, truffleEx);
       } else {
         var kind = kinds.getOrDefault(ex.getClass(), 0);
+        var stack = List.of(ex.getStackTrace());
         if (kind == 0) {
-            var classWithMsg = ex.getClass().getName() + ": " + ex.getMessage();
-            return new ThrowException<>(kind, Optional.of(classWithMsg));
+          var classWithMsg = ex.getClass().getName() + ": " + ex.getMessage();
+          return new ThrowException<>(kind, Optional.of(classWithMsg), stack);
         } else {
-            return new ThrowException<>(kind, msg);
+          return new ThrowException<>(kind, msg, stack);
         }
       }
     }
@@ -131,25 +135,30 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @SuppressWarnings("unchecked")
     public V value(Node who) throws E {
       var msgOrNull = msg().isPresent() ? msg().get() : null;
-      switch (kind) {
-        case 1 -> throw (E) new ClassNotFoundException(msgOrNull);
-        case 2 -> throw (E) UnsupportedMessageException.create();
-        case 3 -> throw (E) UnknownIdentifierException.create(msgOrNull);
-        case 4 -> throw (E) UnsupportedTypeException.create(new Object[0], msgOrNull);
-        case 5 -> {
-          int index;
-          try {
-            var words = msgOrNull.split("[ \\.]");
-            index = Integer.parseInt(words[3]);
-          } catch (NullPointerException | NumberFormatException | IndexOutOfBoundsException ex) {
-            index = -1;
-          }
-          throw (E) InvalidArrayIndexException.create(index);
-        }
-        case 6 -> throw (E) new IllegalArgumentException(msgOrNull);
-        case 7 -> throw (E) new IllegalStateException(msgOrNull);
-        default -> throw new OtherJvmException(msgOrNull);
-      }
+      var ex =
+          switch (kind) {
+            case 1 -> new ClassNotFoundException(msgOrNull);
+            case 2 -> UnsupportedMessageException.create();
+            case 3 -> UnknownIdentifierException.create(msgOrNull);
+            case 4 -> UnsupportedTypeException.create(new Object[0], msgOrNull);
+            case 5 -> {
+              int index;
+              try {
+                var words = msgOrNull.split("[ \\.]");
+                index = Integer.parseInt(words[3]);
+              } catch (NullPointerException
+                  | NumberFormatException
+                  | IndexOutOfBoundsException recover) {
+                index = -1;
+              }
+              yield InvalidArrayIndexException.create(index);
+            }
+            case 6 -> new IllegalArgumentException(msgOrNull);
+            case 7 -> new IllegalStateException(msgOrNull);
+            default -> new OtherJvmException(msgOrNull);
+          };
+      ex.setStackTrace(stack().toArray(StackTraceElement[]::new));
+      throw (E) ex;
     }
   }
 
@@ -208,6 +217,32 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @Override
     public Object apply(Channel<OtherJvmPool> t) {
       return t.getConfig().getBindings(name);
+    }
+  }
+
+  @Persistable(id = 81914)
+  static final class PersistStackTraceElement extends Persistance<java.lang.StackTraceElement> {
+    public PersistStackTraceElement() {
+      super(java.lang.StackTraceElement.class, false, 81914);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected java.lang.StackTraceElement readObject(Persistance.Input in) throws IOException {
+      var declaringClass = in.readUTF();
+      var methodName = in.readUTF();
+      var fileName = in.readUTF();
+      var lineNumber = in.readInt();
+      return new java.lang.StackTraceElement(declaringClass, methodName, fileName, lineNumber);
+    }
+
+    @Override
+    protected void writeObject(java.lang.StackTraceElement obj, Persistance.Output out)
+        throws IOException {
+      out.writeUTF(obj.getClassName());
+      out.writeUTF(obj.getMethodName());
+      out.writeUTF(obj.getFileName());
+      out.writeInt(obj.getLineNumber());
     }
   }
 }

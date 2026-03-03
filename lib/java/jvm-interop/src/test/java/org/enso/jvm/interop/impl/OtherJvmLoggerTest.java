@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -120,6 +121,22 @@ public class OtherJvmLoggerTest {
     assertNotNull("Exception is transfered", capture.loggedThrown);
     assertEquals(
         "Exception has the right message", "I got thrown!", capture.loggedThrown.getMessage());
+
+    FOUND_STACK_ELEMENT:
+    {
+      for (var elem : capture.loggedThrown.getStackTrace()) {
+        if (elem.getClassName().equals(OtherJvmLoggerTest.class.getName())) {
+          if (elem.getMethodName().equals("logException")) {
+            break FOUND_STACK_ELEMENT;
+          }
+        }
+        if (elem.getClassName().equals("java.lang.System$Logger")) {
+          break;
+        }
+      }
+      capture.loggedThrown.printStackTrace();
+      fail("Expecting `logException` in the stack but without any reference to System.Logger!");
+    }
   }
 
   @Test
