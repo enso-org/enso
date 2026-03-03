@@ -9,6 +9,7 @@
     - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - between start_inclusive:Standard.Base.Any.Any end_exclusive:Standard.Base.Any.Any timezone_aware:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - hours self -> Standard.Base.Any.Any
+    - log_execution_time ~function:Standard.Base.Any.Any label:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - milliseconds self -> Standard.Base.Any.Any
     - minutes self -> Standard.Base.Any.Any
     - nanoseconds self -> Standard.Base.Any.Any

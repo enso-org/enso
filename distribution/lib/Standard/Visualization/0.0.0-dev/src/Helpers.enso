@@ -241,7 +241,9 @@ private short_display value = case value of
     _ : Dictionary -> "Dictionary(" + value.length.to_text + ")"
     _ : Vector -> "Vector(" + value.length.to_text + ")"
     _ : Array -> "Array(" + value.length.to_text + ")"
-    _ : Text -> value.length > 20 ? value.take 20 + "..." : value
+    _ : Text ->
+        sub = value.take 20
+        if sub != value then sub + "..." else sub
     _ : File -> "File(" + value.name + ")"
     _ : Enso_File -> "Enso_File(" + value.name + ")"
     _ -> value.to_display_text
