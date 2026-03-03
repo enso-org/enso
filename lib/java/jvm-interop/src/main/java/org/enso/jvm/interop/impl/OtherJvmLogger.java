@@ -44,7 +44,25 @@ public final class OtherJvmLogger extends System.LoggerFinder {
     }
   }
 
-  @Persistable(id = 81913)
+  private static System.Logger.Level findLevel(int s) {
+    return Stream.of(System.Logger.Level.values())
+        .filter(l -> l.getSeverity() == s)
+        .findAny()
+        .get();
+  }
+
+  @Persistable(id = 81918)
+  record LogCheck(String name, int severity) implements Function<Channel<OtherJvmPool>, Boolean> {
+
+    @Override
+    public Boolean apply(Channel<OtherJvmPool> t) {
+      var log = getRealSystemLogger(name);
+      var level = findLevel(severity());
+      return log.isLoggable(level);
+    }
+  }
+
+  @Persistable(id = 81919)
   record LogMsg(
       String name,
       int severity,
@@ -56,11 +74,7 @@ public final class OtherJvmLogger extends System.LoggerFinder {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
       var log = getRealSystemLogger(name);
-      var level =
-          Stream.of(System.Logger.Level.values())
-              .filter(l -> l.getSeverity() == severity)
-              .findAny()
-              .get();
+      var level = findLevel(severity());
       if (thrown.size() == 1) {
         assert args.isEmpty();
         try {
@@ -103,7 +117,9 @@ public final class OtherJvmLogger extends System.LoggerFinder {
       if ("org.enso.persist".equals(name)) {
         return level.compareTo(Level.INFO) >= 0;
       }
-      return level.compareTo(Level.WARNING) >= 0;
+      var check = new LogCheck(name, level.getSeverity());
+      var b = channel.execute(Boolean.class, check);
+      return b;
     }
 
     @Override
