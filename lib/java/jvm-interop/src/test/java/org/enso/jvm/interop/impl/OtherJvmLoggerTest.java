@@ -73,12 +73,56 @@ public class OtherJvmLoggerTest {
         Logger.getLogger(""),
         capture,
         () -> {
-          otherTest.invokeMember("logError", "test.log.error", "I got logged!");
+          otherTest.invokeMember("logMessage", "test.log.error", "I got logged!");
         });
 
     assertEquals("Logger created", "test.log.error", capture.loggerName);
     assertEquals("Logging at error level maps to severe", Level.SEVERE, capture.loggedLevel);
     assertEquals("The right message", "I got logged!", capture.loggedMsg);
+  }
+
+  @Test
+  public void logWithArguments() throws Exception {
+    var otherTest = loadOtherJvmClass(OtherJvmLoggerTest.class.getName());
+
+    class CapturingHandler extends Handler {
+      String loggerName;
+      Level loggedLevel;
+      String loggedMsg;
+      Object[] loggedArgs;
+
+      @Override
+      public void publish(LogRecord lr) {
+        assertNull("No log record yet", loggerName);
+        loggerName = lr.getLoggerName();
+        assertNotNull("Logger name set", loggerName);
+        loggedLevel = lr.getLevel();
+        loggedMsg = lr.getMessage();
+        loggedArgs = lr.getParameters();
+      }
+
+      @Override
+      public void flush() {}
+
+      @Override
+      public void close() {}
+    }
+    var capture = new CapturingHandler();
+    withLogHandler(
+        Logger.getLogger(""),
+        capture,
+        () -> {
+          otherTest.invokeMember(
+              "logWithArguments", "test.log.error", "One {0}, two {1}, when {2}");
+        });
+
+    assertEquals("Logger created", "test.log.error", capture.loggerName);
+    assertEquals("Logging at error level maps to severe", Level.SEVERE, capture.loggedLevel);
+    assertEquals("The right message", "One {0}, two {1}, when {2}", capture.loggedMsg);
+    assertEquals("Three args", 3, capture.loggedArgs.length);
+    assertEquals(1, capture.loggedArgs[0]);
+    assertEquals(2.0, capture.loggedArgs[1]);
+    assertEquals(new java.util.Date(43021432432423L).toString(), capture.loggedArgs[2]);
   }
 
   @Test
@@ -207,10 +251,16 @@ public class OtherJvmLoggerTest {
     }
   }
 
-  public static void logError(String logName, String msg) {
+  public static void logMessage(String logName, String msg) {
     var factory = new OtherJvmLogger(CHANNEL);
     var log = factory.getLogger(logName, null);
     log.log(System.Logger.Level.ERROR, msg);
+  }
+
+  public static void logWithArguments(String logName, String format) {
+    var factory = new OtherJvmLogger(CHANNEL);
+    var log = factory.getLogger(logName, null);
+    log.log(System.Logger.Level.ERROR, format, 1, 2.0, new java.util.Date(43021432432423L));
   }
 
   public static void logException(String logName, String msg, String ex) {

@@ -1,5 +1,7 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
@@ -67,7 +69,7 @@ public final class OtherJvmLogger extends System.LoggerFinder {
       String name,
       int severity,
       List<String> format,
-      List<Object> args,
+      List<? extends Object> args,
       List<OtherJvmResult<?, java.lang.Throwable>> thrown)
       implements Function<Channel<OtherJvmPool>, Void> {
 
@@ -133,13 +135,17 @@ public final class OtherJvmLogger extends System.LoggerFinder {
     @Override
     public void log(Level level, ResourceBundle bundle, String format, Object... params) {
       assert format != null;
-      var log =
-          new LogMsg(
-              name,
-              level.getSeverity(),
-              List.of(format),
-              params == null ? List.of() : List.of(params),
-              List.of());
+      var validArgs = new ArrayList<Object>();
+      if (params != null) {
+        for (var p : params) {
+          if (InteropLibrary.isValidProtocolValue(p)) {
+            validArgs.add(p);
+          } else {
+            validArgs.add(p == null ? null : p.toString());
+          }
+        }
+      }
+      var log = new LogMsg(name, level.getSeverity(), List.of(format), validArgs, List.of());
       channel.execute(Void.class, log);
     }
   }
