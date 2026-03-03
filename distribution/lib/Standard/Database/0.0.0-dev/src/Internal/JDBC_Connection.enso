@@ -62,11 +62,7 @@ type JDBC_Connection
        `synchronized` critical section (including the current thread).
     run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
     run_maintenance_action_if_possible self callback =
-        # TODO The wrapping is a workaround for https://github.com/enso-org/enso/issues/7117
-        wrapped_callback x =
-            Context.Output.with_enabled <|
-                callback x
-        self.operation_synchronizer.runMaintenanceActionIfPossible wrapped_callback
+        self.operation_synchronizer.runMaintenanceActionIfPossible callback
 
     ## ---
        private: true
@@ -289,7 +285,4 @@ private _profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text
    Runs the provided action ensuring that no other thread is working with
    this Connection concurrently.
 private _synchronized (jdbc_connection : JDBC_Connection) ~action =
-    ## Workaround for https://github.com/enso-org/enso/issues/7117
-       Once the bug is fixed, we should prefer `runSynchronizedAction`.
-    jdbc_connection.operation_synchronizer.enterSynchronizedAction
-    Panic.with_finalizer jdbc_connection.operation_synchronizer.exitSynchronizedAction action
+    jdbc_connection.operation_synchronizer.runSynchronizedAction action
