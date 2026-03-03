@@ -98,9 +98,8 @@ type JDBC_Connection
 
             handle_any caught_panic =
                 stmt.close
-                mapped_panic = if caught_panic.payload.is_a Illegal_State . not then caught_panic else
-                    Illegal_Argument.Error caught_panic.payload.message
-                Panic.throw mapped_panic
+                if caught_panic.payload.is_a Illegal_State . not then Panic.throw caught_panic else
+                    Error.throw Illegal_Argument.Error caught_panic.payload.message
 
             result = Panic.catch Any handler=handle_any <|
                 _set_statement_values stmt statement_setter prepared.second
@@ -285,4 +284,4 @@ private _profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text
    Runs the provided action ensuring that no other thread is working with
    this Connection concurrently.
 private _synchronized (jdbc_connection : JDBC_Connection) ~action =
-    jdbc_connection.operation_synchronizer.runSynchronizedAction action
+    jdbc_connection.operation_synchronizer.runSynchronizedAction _->action
