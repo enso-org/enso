@@ -84,7 +84,7 @@ export async function runLocalProjectByUuid(
     return exitCode
   } catch (error) {
     console.error(`Error starting local project '${projectId}':`, error)
-    await projectService.closeProject(projectId)
+    await projectService.closeProject(projectId, projectsDirectory)
     throw error
   }
 }

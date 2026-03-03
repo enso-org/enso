@@ -216,7 +216,8 @@ public class ExecStrictCompilerTest {
       assertThat(
           ex.getMessage(),
           AllOf.allOf(
-              containsString("expected `b` to be Text"), containsString("but got Integer")));
+              containsString("expected `b` to be Text | Nothing"),
+              containsString("but got Integer")));
     }
     assertTrue("Default value is Nothing. Returns Nothing.", def.execute(3).isNull());
     assertTrue("Passing null is OK.", def.execute(4, null).isNull());

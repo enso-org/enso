@@ -44,12 +44,14 @@ class AttachVisualizationCmd(
     maybeFutureExecutable.flatMap {
       case None | null => Future.successful(())
       case Some(executable) =>
-        ctx.jobProcessor.run(
-          ExecuteJob(
-            executable,
-            "attach/upsert visualization (id=" + request.visualizationId + ")"
+        ctx.jobProcessor
+          .run(
+            ExecuteJob.apply(
+              executable,
+              s"attach/upsert visualization (id=${request.visualizationId})"
+            )
           )
-        )
+          .map(_ => ())
     }
   }
 

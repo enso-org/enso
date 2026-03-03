@@ -73,6 +73,8 @@ func2 a =
 
    Here is a link: <https://example.com>
 
+   [A reference to another project](enso://Users/user%20name/MockProject)
+
    Nested lists:
     - List element
       - Nested list element

@@ -325,7 +325,8 @@ class EnsureCompiledJob(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
         invalidateExpressionsCommand,
-        Set(CacheInvalidation.IndexSelector.Weights)
+        if (changeset.simpleUpdate.isDefined) Set()
+        else Set(CacheInvalidation.IndexSelector.Weights)
       ),
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,

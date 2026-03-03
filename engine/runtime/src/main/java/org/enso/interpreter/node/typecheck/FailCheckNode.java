@@ -13,7 +13,8 @@ final class FailCheckNode extends AbstractTypeCheckNode {
   }
 
   @Override
-  Object executeConversion(VirtualFrame frame, Object value) {
+  Object executeConversion(
+      VirtualFrame frame, Object value, AbstractTypeCheckNode[] noFailingCheck) {
     return null;
   }
 

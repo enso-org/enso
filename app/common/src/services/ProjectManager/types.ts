@@ -204,6 +204,7 @@ export interface OpenProjectParams {
 /** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
   readonly projectId: UUID
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "create project" endpoint. */

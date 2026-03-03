@@ -95,6 +95,10 @@ public interface Literal extends Expression, IRKind.Primitive {
       super(text, identifiedLocation, passData);
     }
 
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
     public static Text fromString(String str) {
       return builder().text(str).build();
     }
