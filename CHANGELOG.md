@@ -7,11 +7,13 @@
   Table.input components.
 - [Text widgets have a fixed maximum size in collapsed mode][14775]
 - [Fixed uploading corrupted projects to the cloud storage][14805]
+- [Drive is now a separate panel instead of tab.][14807]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
 [14775]: https://github.com/enso-org/enso/pull/14775
 [14805]: https://github.com/enso-org/enso/pull/14805
+[14807]: https://github.com/enso-org/enso/pull/14807
 
 #### Enso Standard Library
 
