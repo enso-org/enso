@@ -1,4 +1,3 @@
-import { useContainerData as useContainerDataVue, type ContainerData } from '$/providers/container'
 import {
   useRightPanelData as useRightPanelDataVue,
   type RightPanelData,
@@ -11,14 +10,9 @@ const RightPanelDataContext = react.createContext<RightPanelData | null>(null)
 export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 
 export const ContainerProviderForReact = reactComponent(
-  ({
-    rightPanel,
-    children,
-  }: react.PropsWithChildren<{ rightPanel: RightPanelData }>) => {
+  ({ rightPanel, children }: react.PropsWithChildren<{ rightPanel: RightPanelData }>) => {
     return (
-      <RightPanelDataContext.Provider value={rightPanel}>
-        {children}
-      </RightPanelDataContext.Provider>
+      <RightPanelDataContext.Provider value={rightPanel}>{children}</RightPanelDataContext.Provider>
     )
   },
   {

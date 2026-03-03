@@ -41,8 +41,8 @@ export const convertToRaw = (value: any) =>
   value ?
     Object.isFrozen(value) ?
       value
-      : markRaw(toRaw(value))
-    : value
+    : markRaw(toRaw(value))
+  : value
 
 export interface Properties {
   [propertyName: string]: any
