@@ -12,7 +12,6 @@ import org.enso.persist.Persistable;
 
 public final class OtherJvmLogger extends System.LoggerFinder {
   private final Channel<OtherJvmPool> channel;
-  private static final ThreadLocal<Boolean> REAL_LOGGER = new ThreadLocal<>();
 
   public OtherJvmLogger(Channel<OtherJvmPool> channel) {
     this.channel = channel;
@@ -28,22 +27,12 @@ public final class OtherJvmLogger extends System.LoggerFinder {
 
   @Override
   public System.Logger getLogger(String name, Module module) {
-    if (Boolean.TRUE.equals(REAL_LOGGER.get())) {
-      return null;
-    } else {
-      return new LoggerImpl(name);
-    }
+    return new LoggerImpl(name);
   }
 
   private static System.Logger getRealSystemLogger(String n) {
-    var prev = REAL_LOGGER.get();
-    try {
-      REAL_LOGGER.set(true);
-      var log = System.getLogger(n);
-      return log;
-    } finally {
-      REAL_LOGGER.set(prev);
-    }
+    var log = System.getLogger(n);
+    return log;
   }
 
   private static System.Logger.Level findLevel(int s) {
