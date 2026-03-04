@@ -10,6 +10,7 @@ import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import False, True
+from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.ProgressHandle
 polyglot java import org.slf4j.LoggerFactory
@@ -136,7 +137,7 @@ type Log_Level
     Severe
 
 Log_Level.from (that:Text) =
-    case that.to_lower of
+    case that.to_case ..Lower of
         "finest" -> ..Finest
         "trace" -> ..Finest
         "fine" -> ..Fine
