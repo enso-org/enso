@@ -19,7 +19,6 @@ import project.Runtime
 import project.System
 from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
-from project.Logging import all
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
@@ -152,22 +151,6 @@ type Duration
         end = System.nano_time
         duration = Duration.new nanoseconds=(end - start)
         Pair.new duration result
-
-    ## ---
-       advanced: true
-       icon: time
-       ---
-       Time the evaluation of a function, log the duration and return the result.
-
-       ## Arguments
-        - `function`: Function to execute.
-    log_execution_time : Any -> Text -> Any
-    log_execution_time ~function label="execution_time" level:(Log_Level | Nothing)=Log_Level.viz_timing_level =
-        if Nothing == level then @Tail_Call function else
-            pair = Duration.time_execution function
-            duration = pair.first
-            Duration.log_message ("Execution time for " + label + ": " + duration.to_display_text) level
-            pair.second
 
     ## ---
        aliases: [add duration]

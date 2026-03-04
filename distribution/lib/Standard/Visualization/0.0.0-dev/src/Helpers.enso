@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Runtime.State
 from Standard.Base.Data.Json import render
 from Standard.Base.Logging import all
 
@@ -260,9 +261,17 @@ private time_visualization module ~name ~action =
         if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
         result
 
-    level = Log_Level.viz_timing_level
-    if level . is_nothing then wrapped else
-        pair = Duration.time_execution wrapped
-        suffix = if pair.second.is_a Text then " length="+(Text_Utils.char_length pair.second).to_text else ""
-        module.log_message ("Execution time for " + name + ": " + pair.first.to_text + suffix) level
-        pair.second
+    Profile.time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
+
+private _profile_suffix value = case value of
+    _:Text -> " length=" + (Text_Utils.char_length value).to_text
+    Nothing -> " result=Nothing"
+    _ -> " result=" + (Meta.meta value).qualified_name
+
+private _profile_level = State.get Helpers if_missing=_profile_level_from_env
+
+private _profile_level_from_env =
+    env_val = Environment.get "ENSO_PROFILE_VIZZES"
+    if env_val == Nothing then Nothing else
+        level = Log_Level.from env_val
+        if level.is_error then Nothing else level

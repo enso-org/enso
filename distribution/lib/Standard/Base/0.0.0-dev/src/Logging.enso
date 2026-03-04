@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Data.Time.Duration.Duration
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Meta_Helpers
@@ -133,12 +134,44 @@ type Log_Level
     ## Severe level log message.
     Severe
 
+Log_Level.from (that:Text) =
+    case that.to_lower of
+        "finest" -> ..Finest
+        "trace" -> ..Finest
+        "fine" -> ..Fine
+        "debug" -> ..Fine
+        "info" -> ..Info
+        "warning" -> ..Warning
+        "severe" -> ..Severe
+        "critical" -> ..Severe
+        _ -> Error.throw (Illegal_Argument.Error ("Unknown log level: " + that))
+
+## Utility type for profiling
+type Profile
     ## ---
-       private: true
+       advanced: true
+       icon: time
        ---
-       Check to see if the timing of visualization is enabled and log the message if it is.
-    viz_timing_level -> (Log_Level | Nothing) =
-        State.get Log_Level if_missing=_viz_timing_level
+       Time the evaluation of a function, log the duration and return the result.
+
+       ## Arguments
+        - `level`: Log level to log the duration at. If `Nothing`, the duration is not logged.
+        - `label`: Label to log with the duration.
+        - `function`: Function to execute.
+        - `suffix_callback`: Optional callback to generate a suffix for the log message based
+           on the result of the function. The callback is only called if `level` is not `Nothing`.
+        - `module`: Module to log the message to. Defaults to `Profile`.
+    time_execution level:(Log_Level | Nothing) ~label:Text ~function suffix_callback=Nothing module=Profile =
+        if Nothing == level then @Tail_Call function else
+            pair = Duration.time_execution function
+
+            ## If the function threw an error, we just return the error
+            Error.return_if_error pair.second
+
+            duration = pair.first
+            suffix = if suffix_callback == Nothing then "" else suffix_callback pair.second
+            module.log_message ("Execution time for " + label + ": " + duration.to_text + suffix) level
+            pair.second
 
 private log_impl logger ~message level args =
     builder = case level of
@@ -153,11 +186,3 @@ private log_impl logger ~message level args =
         builder.addArgument a
 
     builder.log
-
-private _viz_timing_level =
-    case Environment.get "ENSO_TIME_VIZZES" of
-        "warning" -> ..Warning
-        "info" -> ..Info
-        "debug" -> ..Fine
-        "trace" -> ..Finest
-        _ -> Nothing
