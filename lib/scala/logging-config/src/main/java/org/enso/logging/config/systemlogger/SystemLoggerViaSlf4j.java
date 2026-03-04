@@ -1,6 +1,7 @@
 package org.enso.logging.config.systemlogger;
 
 import java.text.MessageFormat;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -9,7 +10,7 @@ import org.slf4j.LoggerFactory;
 /** Bridges logs sent to {@link System.Logger} to slf4j logger. */
 public final class SystemLoggerViaSlf4j extends System.LoggerFinder
     implements Consumer<System.LoggerFinder> {
-  private System.LoggerFinder delegate;
+  private volatile System.LoggerFinder delegate;
 
   public SystemLoggerViaSlf4j() {}
 
@@ -27,6 +28,8 @@ public final class SystemLoggerViaSlf4j extends System.LoggerFinder
 
   @Override
   public void accept(System.LoggerFinder t) {
+    Objects.requireNonNull(t);
+    assert this.delegate == null;
     this.delegate = t;
   }
 
