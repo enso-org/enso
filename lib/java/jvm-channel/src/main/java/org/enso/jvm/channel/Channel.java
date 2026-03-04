@@ -364,11 +364,11 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   }
 
   private long toSubstrateMessage(MemorySegment seg) {
+    Long isolate = otherIsolateThread.get();
+    if (isolate == null) {
+      throw new WrongThreadException("There is no associated other isolate thread!");
+    }
     try {
-      Long isolate = otherIsolateThread.get();
-      if (isolate == null) {
-        throw new IllegalStateException("There is no associated other isolate thread!");
-      }
       var isoRef = MemorySegment.ofAddress(isolate);
       if (callbackFn instanceof MethodHandle handle) {
         var res = handle.invoke(isoRef, id, seg, seg.byteSize());

@@ -3,7 +3,9 @@ package org.enso.jvm.interop.impl;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.ResourceBundle;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -12,6 +14,7 @@ import org.enso.persist.Persistable;
 
 final class OtherJvmLogger extends System.LoggerFinder {
   private final Channel<OtherJvmPool> channel;
+  private final Queue<LogMsg> pending = new ConcurrentLinkedQueue<>();
 
   OtherJvmLogger(Channel<OtherJvmPool> channel) {
     this.channel = channel;
@@ -40,6 +43,22 @@ final class OtherJvmLogger extends System.LoggerFinder {
         .filter(l -> l.getSeverity() == s)
         .findAny()
         .get();
+  }
+
+  private void submitMsg(LogMsg log) {
+    try {
+      while (true) {
+        var prev = pending.poll();
+        if (prev == null) {
+          break;
+        }
+        channel.execute(Void.class, prev);
+      }
+      channel.execute(Void.class, log);
+    } catch (WrongThreadException ex) {
+      // signals unability to call into the primary JVM
+      pending.add(log);
+    }
   }
 
   @Persistable(id = 81918)
@@ -118,7 +137,7 @@ final class OtherJvmLogger extends System.LoggerFinder {
       var ex = OtherJvmMessage.ThrowException.create(thrown);
       List<String> msgOpt = msg == null ? List.of() : List.of(msg);
       var log = new LogMsg(name, level.getSeverity(), msgOpt, List.of(), List.of(ex));
-      channel.execute(Void.class, log);
+      submitMsg(log);
     }
 
     @Override
@@ -135,7 +154,7 @@ final class OtherJvmLogger extends System.LoggerFinder {
         }
       }
       var log = new LogMsg(name, level.getSeverity(), List.of(format), validArgs, List.of());
-      channel.execute(Void.class, log);
+      submitMsg(log);
     }
   }
 }
