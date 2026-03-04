@@ -25,6 +25,7 @@ const OPENED_TAB_SCHEMA = z.intersection(
   TAB_SCHEMA,
   z.object({ runningProject: z.optional(RUNNING_PROJECT_INFO_SCHEMA) }),
 )
+const DEFAULT_FOCUS: Panel = { type: 'drive' }
 
 /** A structure identifying tab displayed in the TabView. */
 export type Tab = z.infer<typeof TAB_SCHEMA>
@@ -106,7 +107,7 @@ function createContainerStore() {
   const modesForBackend = useModesForBackend()
   const tabs = reactive(new Map<PanelKey, Tab>())
   const visitingOrder = reactive(new Set<PanelKey>())
-  const focusedPanel = ref<Panel>({ type: 'drive' })
+  const focusedPanel = ref<Panel>(DEFAULT_FOCUS)
 
   const currentTab = computed<Tab | null>({
     get: () => tabFromRoute(route),
@@ -211,9 +212,10 @@ function createContainerStore() {
     if (currentTab.value != null) closeTab(currentTab.value)
   }
 
-  function setFocusedPanel(panel: Panel) {
-    if (!panelEquals(panel, focusedPanel.value)) {
-      focusedPanel.value = panel
+  function setFocusedPanel(panel: Opt<Panel>) {
+    const newPanel = panel ?? DEFAULT_FOCUS
+    if (!panelEquals(newPanel, focusedPanel.value)) {
+      focusedPanel.value = newPanel
     }
   }
 

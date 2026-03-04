@@ -75,12 +75,12 @@ function projectIcon(project: Project): Icon | undefined {
 const isFocused = ref(false)
 
 watch(isFocused, (isFocused) => {
-  if (isFocused && currentTab.value != null) setFocusedPanel.value(currentTab.value)
+  if (isFocused) setFocusedPanel.value(currentTab.value)
 })
 
 watch(currentTab, (currentTab) => {
-  if (currentTab != null) setFocusedPanel.value(currentTab)
-  if (!isFocused.value) {
+  setFocusedPanel.value(currentTab)
+  if (!isFocused.value && currentTab != null) {
     root.value?.focus()
   }
 })
