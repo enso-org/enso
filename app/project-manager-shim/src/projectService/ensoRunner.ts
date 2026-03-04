@@ -63,6 +63,7 @@ export interface Socket {
  */
 export interface ShutdownHookRegistry {
   'rename-project-directory': true
+  'remove-from-list': true
 }
 
 export type ShutdownHookType = keyof ShutdownHookRegistry
@@ -83,6 +84,7 @@ class OpenedProject {
     private spawner: () => Promise<childProcess.ChildProcess>,
   ) {
     this.loaded = this.loadingRoutine()
+    this.loaded.then(this.runWatchdog.bind(this))
   }
 
   static async create(
@@ -102,10 +104,23 @@ class OpenedProject {
     return new OpenedProject(path, process, sockets, spawner)
   }
 
-  close() {
+  async close() {
+    console.debug('Closing Project', this.path)
     this.closed = true
     clearInterval(this.watchdogInterval)
-    this.terminateProcess()
+    await this.terminateProcess()
+
+    for (const [hookType, hook] of this.shutdownHooks) {
+      try {
+        this.shutdownHooks.delete(hookType)
+        await hook()
+      } catch (error) {
+        console.error(
+          `Error executing shutdown hook '${hookType}' for project ${this.path}:`,
+          error,
+        )
+      }
+    }
   }
 
   private loadingRoutine(): Promise<void> {
@@ -140,32 +155,49 @@ class OpenedProject {
   }
 
   private runWatchdog() {
+    const restart = async (processExited = false) => {
+      clearInterval(this.watchdogInterval)
+      this.watchdogInterval = undefined
+      if (!processExited) await this.terminateProcess()
+      if (!this.closed) {
+        this.process = await this.spawner()
+        this.loaded = this.loadingRoutine()
+        this.loaded.then(this.runWatchdog.bind(this))
+      }
+    }
+
+    this.process.on('exit', () => {
+      if (this.closed) return
+      console.error(
+        'Language Server process for project',
+        this.path,
+        ' exited unexpectadly, restarting',
+      )
+      restart(true)
+    })
+
     let failures = 0
     this.watchdogInterval = setInterval(async () => {
+      if (this.closed) return
       if (await this.checkServerHealth()) {
         failures = 0
       } else {
         failures += 1
         if (failures > 3) {
-          clearInterval(this.watchdogInterval)
-          this.watchdogInterval = undefined
-          await this.terminateProcess()
-          if (!this.closed) {
-            this.process = await this.spawner()
-            this.loaded = this.loadingRoutine()
-            this.loaded.then(() => this.runWatchdog())
-          }
+          restart()
         }
       }
-    })
+    }, 3000)
   }
 
   private terminateProcess(): Promise<void> {
+    console.debug('Terminating Process', this.path)
     const process = this.process
     return new Promise((resolve) => {
       // Set a timeout in case the process doesn't exit gracefully
       const timeout = setTimeout(async () => {
         if (!process.killed) {
+          console.debug('Hard-killing')
           process.kill('SIGKILL')
         }
         resolve()
@@ -173,12 +205,14 @@ class OpenedProject {
 
       // Listen for the process to exit
       process.on('exit', async () => {
+        console.debug('Process exited')
         clearTimeout(timeout)
         resolve()
       })
 
       // Send line break to stdin to trigger graceful shutdown
       if (process.stdin && !process.stdin.destroyed) {
+        console.debug('Writing enter to stdin')
         process.stdin.write('\n')
       } else {
         process.kill('SIGTERM')
@@ -192,9 +226,10 @@ class OpenedProject {
       const response = await fetch(
         `http://${this.sockets.jsonSocket.host}:${this.sockets.jsonSocket.port}/_health`,
       )
+      console.debug('Healthcheck; response', response.ok)
       return response.ok
-    } catch (err) {
-      console.error(`Could not check health of ${this.path}: ${err}`)
+    } catch {
+      console.debug('Healthcheck; response', false)
       return false
     }
   }
@@ -348,13 +383,21 @@ export class EnsoRunner implements Runner {
               }),
             ),
         )
+        project.shutdownHooks.set('remove-from-list', () => {
+          this.runningProjects.delete(projectPath)
+          this.loadingProjects.delete(projectPath)
+        })
         return project.loaded.then(() => project)
       },
     )
 
     this.loadingProjects.set(projectPath, openedProject)
-    openedProject.then((project) => this.runningProjects.set(this.ensoPath, project))
-    openedProject.finally(() => this.loadingProjects.delete(projectPath))
+    openedProject.then((project) => {
+      this.runningProjects.set(projectPath, project)
+    })
+    openedProject.finally(() => {
+      this.loadingProjects.delete(projectPath)
+    })
     return openedProject.then((project) => project.sockets)
   }
 
@@ -369,49 +412,7 @@ export class EnsoRunner implements Runner {
       return
     }
 
-    const { process, shutdownHooks } = runningProject
-
-    return new Promise((resolve) => {
-      // Function to execute shutdown hooks
-      const executeShutdownHooks = async () => {
-        for (const [hookType, hook] of shutdownHooks) {
-          try {
-            shutdownHooks.delete(hookType)
-            await hook()
-          } catch (error) {
-            console.error(
-              `Error executing shutdown hook '${hookType}' for project ${projectPath}:`,
-              error,
-            )
-          }
-        }
-      }
-
-      // Set a timeout in case the process doesn't exit gracefully
-      const timeout = setTimeout(async () => {
-        if (!process.killed) {
-          process.kill('SIGKILL')
-        }
-        await executeShutdownHooks()
-        this.runningProjects.delete(projectPath)
-        resolve()
-      }, 10000)
-
-      // Listen for the process to exit
-      process.on('exit', async () => {
-        clearTimeout(timeout)
-        await executeShutdownHooks()
-        this.runningProjects.delete(projectPath)
-        resolve()
-      })
-
-      // Send line break to stdin to trigger graceful shutdown
-      if (process.stdin && !process.stdin.destroyed) {
-        process.stdin.write('\n')
-      } else {
-        process.kill('SIGTERM')
-      }
-    })
+    return runningProject.close()
   }
 
   /** Checks if a project's language server is currently running. */
