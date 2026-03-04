@@ -275,7 +275,7 @@ private _profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text
 
             # E.g. [Start] [End] [SQLite] SELECT * FROM "test"
             padded_query = make_label.pad 100
-            log_line = "[" + start + "] [" + Date_Time.now.to_text + "] " + padded_query '\n'
+            log_line = "[" + start + "] [" + Date_Time.now.to_text + "] " + padded_query + '\n'
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
 
