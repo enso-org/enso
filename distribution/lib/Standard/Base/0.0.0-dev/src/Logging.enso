@@ -6,6 +6,7 @@ import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Meta_Helpers
 import project.Meta
+import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import False, True
@@ -147,6 +148,11 @@ Log_Level.from (that:Text) =
         _ -> Error.throw (Illegal_Argument.Error ("Unknown log level: " + that))
 
 ## Utility type for profiling
+
+   Should be control by an environment variable set to the log level:
+   - `ENSO_PROFILE_VIZZES` - for visualizations.
+   - `ENSO_PROFILE_SQL` - for SQL queries.
+   - `ENSO_PROFILE_TABLE` - for table function calls.
 type Profile
     ## ---
        advanced: true
