@@ -10,10 +10,10 @@ import java.util.stream.Stream;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
 
-public final class OtherJvmLogger extends System.LoggerFinder {
+final class OtherJvmLogger extends System.LoggerFinder {
   private final Channel<OtherJvmPool> channel;
 
-  public OtherJvmLogger(Channel<OtherJvmPool> channel) {
+  OtherJvmLogger(Channel<OtherJvmPool> channel) {
     this.channel = channel;
   }
 
