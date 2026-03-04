@@ -29,6 +29,7 @@
 - [Launching another Enso process via `Process_Builder`][14753]
 - [Redshift schema support.][14735]
 - [`Process_Builder.set_env`.][14799]
+- [New `Profile` API for timing code execution.][14827]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -42,6 +43,7 @@
 [14753]: https://github.com/enso-org/enso/pull/14753
 [14735]: https://github.com/enso-org/enso/pull/14735
 [14799]: https://github.com/enso-org/enso/pull/14799
+[14827]: https://github.com/enso-org/enso/pull/14827
 
 #### Enso Language & Runtime
 
