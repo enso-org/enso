@@ -133,7 +133,7 @@ export function withDataLoader<
         DEV: assert(scope != null)
         return scope?.run(() => dataLoader.beforeRouteUpdate?.(to, from, data))
       },
-      unmounted() {
+      beforeRouteLeave() {
         scope?.stop()
       },
       render() {

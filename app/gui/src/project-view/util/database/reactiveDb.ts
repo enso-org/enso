@@ -356,12 +356,15 @@ export class ReactiveMapping<K, V, M> {
       const handler = db.on('entryAdded', (key, value, onDelete) => {
         const scope = effectScope()
         const mappedValue = scope.run(() =>
-          computed(() => scope.run(() => indexer(key, value)), debugOptions),
+          computed(
+            () => (scope.active ? scope.run(() => indexer(key, value)) : undefined),
+            debugOptions,
+          ),
         )! // This non-null assertion is SAFE, as the scope is initially active.
         this.computed.set(key, mappedValue)
         onDelete(() => {
-          scope.stop()
           this.computed.delete(key)
+          scope.stop()
         })
       })
       onScopeDispose(() => db.off('entryAdded', handler))
