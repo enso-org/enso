@@ -3322,8 +3322,8 @@ class RuntimeServerTest
         mainFoo,
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        fromCache   = false,
-        typeChanged = false
+        fromCache   = true,
+        typeChanged = true
       ),
       Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)

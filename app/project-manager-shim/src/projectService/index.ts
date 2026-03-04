@@ -219,9 +219,14 @@ export class ProjectService {
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(projectId: UUID): Promise<void> {
-    this.logger.debug('Closing project', projectId)
-    await this.runner.closeProject(projectId)
+  async closeProject(projectId: UUID, projectsDirectory: Path): Promise<void> {
+    const repo = this.getProjectRepository(projectsDirectory)
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project '${projectId}' not found`)
+    }
+    this.logger.debug('Closing project', projectId, projectsDirectory)
+    await this.runner.closeProject(project.path)
   }
 
   /** Deletes a user project. */
@@ -301,10 +306,10 @@ export class ProjectService {
     // Rename in the repository (updates metadata)
     await repo.rename(projectId, newName)
     // Check if language server is running for this project
-    const isRunning = await this.runner.isProjectRunning(projectId)
+    const isRunning = await this.runner.isProjectRunning(project.path)
     if (isRunning) {
       // Register a shutdown hook to rename the directory after the server stops
-      await this.runner.registerShutdownHook(projectId, 'rename-project-directory', async () => {
+      await this.runner.registerShutdownHook(project.path, 'rename-project-directory', async () => {
         this.logger.info(`Executing deferred directory rename for project ${projectId}`)
         try {
           await repo.renameProjectDirectory(project.path, newNormalizedName)
@@ -314,7 +319,7 @@ export class ProjectService {
         }
       })
       // Send rename command to the running server
-      await this.runner.renameProject(projectId, namespace, oldNormalizedName, newNormalizedName)
+      await this.runner.renameProject(project.path, namespace, oldNormalizedName, newNormalizedName)
     } else {
       // If server is not running, rename the directory immediately
       await repo.renameProjectDirectory(project.path, newNormalizedName)

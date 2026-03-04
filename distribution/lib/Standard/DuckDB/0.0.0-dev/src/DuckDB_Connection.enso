@@ -589,7 +589,7 @@ type DuckDB_Connection
                             if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
                         _ -> from_value_type c.value_type ..Ignore
                     column_storages = In_Memory_Helpers.get_java_column_storages in_memory
-                    self.jdbc_connection.with_handled_connection connection->
+                    self.jdbc_connection.with_connection connection->
                         Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
                             DuckDBUtils.append connection column_storages table_name java_column_types
                             created_table

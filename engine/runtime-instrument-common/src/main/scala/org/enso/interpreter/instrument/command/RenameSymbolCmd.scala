@@ -66,7 +66,7 @@ class RenameSymbolCmd(
           .collect {
             case (contextId, stack) if stack.nonEmpty =>
               ctx.jobProcessor.run(
-                ExecuteJob(contextId, stack.toList, "rename symbol cmd")
+                ExecuteJob.apply(contextId, stack.toList, "rename symbol cmd")
               )
           }
       }

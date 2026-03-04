@@ -178,6 +178,20 @@ add_specs suite_builder =
             Test.expect_panic Type_Error <|
                 a : C
 
+    suite_builder.group "MultiValue type error" group_builder->
+        group_builder.specify "Conversion to B & X is OK" <|
+            a = A
+            x = (a : B & X)
+            x.is_nothing . should_be_false 
+            
+        group_builder.specify "Missing conversion to C error" <|
+            a = A
+            extract_err_msg caught_panic =
+                caught_panic.payload.to_text
+            err = Panic.catch Type_Error handler=extract_err_msg <|
+                (a : B & X & C)
+            err . should_equal 'Type error: expected expression to be C, but got A.'
+
     suite_builder.group "MultiValue with warnings" group_builder->
         group_builder.specify "warning is propagated to the outer MultiValue" <|
             field_with_warn = Warning.attach "warn" 42

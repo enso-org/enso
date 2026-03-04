@@ -79,7 +79,7 @@ class PushContextCmd(
         _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
         _ <-
           if (request.execute)
-            ctx.jobProcessor.run(ExecuteJob(executable, "push context"))
+            ctx.jobProcessor.run(ExecuteJob.apply(executable, "push context"))
           else Future.successful(())
       } yield ()
     } else {
