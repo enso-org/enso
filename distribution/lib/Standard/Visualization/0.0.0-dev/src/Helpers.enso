@@ -193,7 +193,7 @@ Text.to_lazy_visualization_data self text_window_position text_window_size chunk
    benefit of visualization in the IDE.
 Column.to_default_visualization_data : Text
 Column.to_default_visualization_data self =
-    size = ['length', self.length]
+    size = ['length', self.row_count]
     name = ['name', self.name]
     max_data = 100
     data = ['data', self.to_vector.take (..First max_data)]
@@ -260,8 +260,8 @@ private time_visualization module ~name ~action =
             Panic.throw caught_panic
         if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
         result
-
-    Profile.time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
+Profile.time_execution _profile_level
+     label=name module=module suffix_callback=_profile_suffix wrapped
 
 private _profile_suffix value = case value of
     _:Text -> " length=" + (Text_Utils.char_length value).to_text
