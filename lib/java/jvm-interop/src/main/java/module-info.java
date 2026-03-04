@@ -5,9 +5,6 @@ module org.enso.jvm.interop {
   requires org.enso.jvm.channel;
   requires org.enso.engine.common;
 
-  // Needed for Snowflake to work.
-  requires java.rmi;
-
   exports org.enso.jvm.interop.api;
 
   opens org.enso.jvm.interop.impl to
