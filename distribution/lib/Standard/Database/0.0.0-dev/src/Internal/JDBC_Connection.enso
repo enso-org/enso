@@ -64,7 +64,7 @@ type JDBC_Connection
        Runs the provided callback only if no thread is currently inside a
        `synchronized` critical section (including the current thread).
     run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
-    run_maintenance_action_if_possible self callback =
+    run_maintenance_action_if_possible self callback = Context.Output.with_enabled <|
         self.operation_synchronizer.runMaintenanceActionIfPossible callback
 
     ## ---
