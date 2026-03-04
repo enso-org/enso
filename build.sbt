@@ -6452,10 +6452,8 @@ lazy val buildEngineDistributionNoIndex =
   )
 buildEngineDistributionNoIndex := Def.taskIf {
   createEnginePackageNoIndex.value
-  if (shouldBuildYdocNativeImage.value) {
-    (`ydoc-server` / buildNativeImage).value
-  }
   if (shouldBuildNativeImage.value) {
+    (`ydoc-server` / buildNativeImage).value
     (`engine-runner` / buildNativeImage).value
     (`engine-runner` / checkNativeImageSize).value
   }
@@ -6473,14 +6471,6 @@ lazy val shouldBuildNativeImage = taskKey[Boolean](
 
 ThisBuild / shouldBuildNativeImage := {
   GraalVM.EnsoLauncher.native
-}
-
-lazy val shouldBuildYdocNativeImage = taskKey[Boolean](
-  "Whether Ydoc native image should be build within buildEngineDistribution task"
-)
-
-ThisBuild / shouldBuildYdocNativeImage := {
-  GraalVM.EnsoLauncher.native && !GraalVM.EnsoLauncher.disableLanguageServer
 }
 
 ThisBuild / NativeImage.additionalOpts := {
