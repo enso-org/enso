@@ -4,7 +4,7 @@ import { useOpenedProjects, type Project } from '$/providers/openedProjects'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import type { SpinnerPhase } from '@/components/shared/LoadingSpinner.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { computed, ref, toRefs, useTemplateRef, watch } from 'vue'
+import { computed, onUnmounted, ref, toRefs, useTemplateRef, watch } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
 const { isCurrentTab, currentTab, tabList, closeTab, focusedPanel, setFocusedPanel } =
@@ -72,15 +72,15 @@ function projectIcon(project: Project): Icon | undefined {
   return 'graph_editor'
 }
 
-const isFocused = ref(false)
+const focusedInBrowser = ref(false)
 
-watch(isFocused, (isFocused) => {
+watch(focusedInBrowser, (isFocused) => {
   if (isFocused) setFocusedPanel.value(currentTab.value)
 })
 
 watch(currentTab, (currentTab) => {
   setFocusedPanel.value(currentTab)
-  if (!isFocused.value && currentTab != null) {
+  if (!focusedInBrowser.value && currentTab != null) {
     root.value?.focus()
   }
 })
@@ -88,6 +88,12 @@ watch(currentTab, (currentTab) => {
 const cssClass = computed(() => ({
   focusedPanel: isCurrentTab.value(focusedPanel.value),
 }))
+
+onUnmounted(() => {
+  if (isCurrentTab.value(focusedPanel.value)) {
+    setFocusedPanel.value(null)
+  }
+})
 </script>
 
 <template>
@@ -96,8 +102,8 @@ const cssClass = computed(() => ({
     class="MiddlePanel"
     :class="cssClass"
     tabindex="-1"
-    @focusin="isFocused = true"
-    @focusout="isFocused = false"
+    @focusin="focusedInBrowser = true"
+    @focusout="focusedInBrowser = false"
   >
     <div class="tablist" role="tablist">
       <SelectableTab
