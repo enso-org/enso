@@ -30,7 +30,7 @@ export function selectionActionHandlers(
     iter.some(toValue(selectedNodes), (node) => node.type === 'component'),
   )
   function action(action: keyof typeof actions): () => void {
-    return () => (isPanelFocused ? actions[action](toValue(selectedNodesArray)) : false)
+    return () => (toValue(isPanelFocused) ? actions[action](toValue(selectedNodesArray)) : false)
   }
   return {
     'components.collapse': {
