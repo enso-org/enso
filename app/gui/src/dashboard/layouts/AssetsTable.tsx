@@ -85,6 +85,7 @@ import {
   BackendType,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
+  isUnauthorizedError,
   LabelName,
   type AnyAsset,
 } from 'enso-common/src/services/Backend'
@@ -278,7 +279,10 @@ function AssetsTable(props: AssetsTableProps) {
       lastPage.assets.length === pageSize && category.type !== 'recent' ?
         lastPage.paginationToken
       : null,
-    retry: () => {
+    retry: (_count, error) => {
+      if (isUnauthorizedError(error)) {
+        return false
+      }
       if (queryDirectoryId === queryDirectoryIdRef.current) {
         setDriveLocation(null, category.id)
       }

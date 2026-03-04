@@ -1694,6 +1694,18 @@ export class NetworkError extends Error {
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
 
+/** Check whether an error represents HTTP 401 (Not Authorized). */
+export function isUnauthorizedError(error: unknown): boolean {
+  return (
+    error instanceof NotAuthorizedError ||
+    (typeof error === 'object' &&
+      error != null &&
+      'status' in error &&
+      typeof error.status === 'number' &&
+      error.status === STATUS_NOT_AUTHORIZED)
+  )
+}
+
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {
   abstract readonly type: BackendType

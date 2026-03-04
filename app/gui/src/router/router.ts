@@ -25,6 +25,10 @@ function requireCloudBrowserEnabled() {
   if (!isCloudExecutionEnabled) return { name: 'cloudDisabled' }
 }
 
+function requiresResolvedSession(access: 'guest' | 'anyLoggedIn' | 'deleted' | undefined) {
+  return access === 'anyLoggedIn' || access === 'deleted'
+}
+
 const routes = [
   {
     path: UNAVAILABLE_PATH,
@@ -123,7 +127,7 @@ router.beforeEach(async () => {
   await config.waitForRemoteConfig()
 })
 router.beforeEach(async (to, from) => {
-  if (to.meta.access !== from.meta.access) {
+  if (to.meta.access !== from.meta.access && requiresResolvedSession(to.meta.access)) {
     await useAuth().waitForSession()
   }
 })

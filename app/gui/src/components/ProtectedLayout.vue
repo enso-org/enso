@@ -19,6 +19,7 @@ import { useUserAgreements } from '$/composables/userAgreements'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useSession } from '$/providers/session'
+import { LOGOUT_EVENT } from '$/providers/session/constants'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
 import { useAppClass } from '@/providers/appClass'
@@ -26,7 +27,16 @@ import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
-import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
+import {
+  computed,
+  effectScope,
+  EffectScope,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+  watchPostEffect,
+} from 'vue'
 import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 
 declare module 'vue-router' {
@@ -136,12 +146,49 @@ const debugHoverAreas = useFeatureFlag('debugHoverAreas')
 useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
 
 const allowed = computed(() => routeAllowed(route, auth))
+const isRedirecting = ref(false)
+
+const redirectTo = (redirectValue: { path: string }) => {
+  if (isRedirecting.value) {
+    return
+  }
+
+  isRedirecting.value = true
+  void router
+    .replace(redirectValue)
+    .then(async (navigationFailure) => {
+      if (navigationFailure && router.currentRoute.value.path !== redirectValue.path) {
+        await router.replace(redirectValue)
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to redirect from protected route.', error)
+    })
+    .finally(() => {
+      isRedirecting.value = false
+    })
+}
+
+const onLogout = () => {
+  redirectTo({ path: LOGIN_PATH })
+}
+
+onMounted(() => {
+  document.addEventListener(LOGOUT_EVENT, onLogout)
+})
+
+onUnmounted(() => {
+  document.removeEventListener(LOGOUT_EVENT, onLogout)
+})
+
 watch(
   allowed,
   (allowed) => {
     if (!allowed) {
       const redirectValue = redirect(auth, LocalStorage.getInstance())
-      if (redirectValue) router.push(redirectValue)
+      if (redirectValue) {
+        redirectTo(redirectValue)
+      }
     }
   },
   { immediate: true },
@@ -156,7 +203,10 @@ watchPostEffect(() => {
   }
 })
 
-const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const logoutModalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const reconnectingModalProps = computed(() => ({
+  isOpen: session.isReconnectingSession && !session.isLoggingOut,
+}))
 const displayDevTools = computed(() => auth.session != null)
 
 const shouldDisplayAgreementsModal = computed(
@@ -181,9 +231,19 @@ useAppTitle(computed(() => auth.session))
     :isDismissable="false"
     :isKeyboardDismissDisabled="true"
     :hideCloseButton="true"
-    :modalProps="modalProps"
+    :modalProps="logoutModalProps"
   >
     <ResultComponent status="loading" :title="text.getText('loggingOut')" />
+  </Dialog>
+
+  <Dialog
+    :aria-label="text.getText('reconnectingSession')"
+    :isDismissable="false"
+    :isKeyboardDismissDisabled="true"
+    :hideCloseButton="true"
+    :modalProps="reconnectingModalProps"
+  >
+    <ResultComponent status="loading" :title="text.getText('reconnectingSession')" />
   </Dialog>
 
   <AgreementsModal

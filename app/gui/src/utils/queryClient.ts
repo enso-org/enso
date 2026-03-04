@@ -6,6 +6,7 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createQueryPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
+import { isUnauthorizedError } from 'enso-common/src/services/Backend'
 import { toRaw } from 'vue'
 
 declare module '@tanstack/query-core' {
@@ -242,8 +243,8 @@ export async function createQueryClient<TStorageValue = string>(
               error.status
             : -1
 
-          if (errorStatus === 401) {
-            return true
+          if (isUnauthorizedError(error)) {
+            return false
           }
 
           if (statusesToIgnore.includes(errorStatus)) {

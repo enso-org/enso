@@ -24,6 +24,7 @@ import {
   AssetDoesNotExistError,
   BackendType,
   isDirectoryId,
+  isUnauthorizedError,
   NetworkError as OtherNetworkError,
 } from 'enso-common/src/services/Backend'
 import { parseDirectoriesPath, type PathItem } from 'enso-common/src/services/Backend/utilities'
@@ -73,6 +74,10 @@ export function DriveBarNavigation() {
       ),
     meta: { persist: false },
     retry: (count, error) => {
+      if (isUnauthorizedError(error)) {
+        return false
+      }
+
       if (
         error instanceof AssetDoesNotExistError ||
         error instanceof NetworkError ||
