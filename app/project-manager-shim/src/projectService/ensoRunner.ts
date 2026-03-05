@@ -10,6 +10,8 @@ import * as portfinder from 'portfinder'
 import { extract } from 'tar'
 import { Path } from './types.js'
 
+const HEALTHCHECK_FAILURES_TO_RESTART = 3
+
 export interface Runner {
   runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<number>
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
@@ -84,7 +86,6 @@ class OpenedProject {
     private spawner: () => Promise<childProcess.ChildProcess>,
   ) {
     this.loaded = this.loadingRoutine()
-    this.loaded.then(this.runWatchdog.bind(this))
   }
 
   static async create(
@@ -105,7 +106,7 @@ class OpenedProject {
   }
 
   async close() {
-    console.debug('Closing Project', this.path)
+    console.log('Closing Project', this.path)
     this.closed = true
     clearInterval(this.watchdogInterval)
     await this.terminateProcess()
@@ -132,6 +133,7 @@ class OpenedProject {
           if (isReady) {
             clearInterval(pollInterval)
             resolved = true
+            this.runWatchdog()
             resolve()
           }
         }, 250)
@@ -156,13 +158,13 @@ class OpenedProject {
 
   private runWatchdog() {
     const restart = async (processExited = false) => {
+      // Stop current interval; the `loadingRoutine` will run new watchdog for a new process.
       clearInterval(this.watchdogInterval)
       this.watchdogInterval = undefined
       if (!processExited) await this.terminateProcess()
       if (!this.closed) {
         this.process = await this.spawner()
         this.loaded = this.loadingRoutine()
-        this.loaded.then(this.runWatchdog.bind(this))
       }
     }
 
@@ -171,7 +173,7 @@ class OpenedProject {
       console.error(
         'Language Server process for project',
         this.path,
-        ' exited unexpectadly, restarting',
+        ' exited unexpectedly, restarting',
       )
       restart(true)
     })
@@ -182,8 +184,16 @@ class OpenedProject {
       if (await this.checkServerHealth()) {
         failures = 0
       } else {
+        console.error('Healthcheck failed! Project:', this.path)
         failures += 1
-        if (failures > 3) {
+        if (failures >= HEALTHCHECK_FAILURES_TO_RESTART) {
+          console.error(
+            'Healthcheck of ',
+            this.path,
+            'failed',
+            HEALTHCHECK_FAILURES_TO_RESTART,
+            'times in a row, restarting.',
+          )
           restart()
         }
       }
@@ -191,13 +201,13 @@ class OpenedProject {
   }
 
   private terminateProcess(): Promise<void> {
-    console.debug('Terminating Process', this.path)
+    console.log('Terminating language server process of', this.path)
     const process = this.process
     return new Promise((resolve) => {
       // Set a timeout in case the process doesn't exit gracefully
       const timeout = setTimeout(async () => {
         if (!process.killed) {
-          console.debug('Hard-killing')
+          console.error('Language Server process of', this.path, "didn't finish in time. Killing.")
           process.kill('SIGKILL')
         }
         resolve()
@@ -205,14 +215,13 @@ class OpenedProject {
 
       // Listen for the process to exit
       process.on('exit', async () => {
-        console.debug('Process exited')
+        console.log('Language server process of ', this.path, 'exited')
         clearTimeout(timeout)
         resolve()
       })
 
       // Send line break to stdin to trigger graceful shutdown
       if (process.stdin && !process.stdin.destroyed) {
-        console.debug('Writing enter to stdin')
         process.stdin.write('\n')
       } else {
         process.kill('SIGTERM')
@@ -226,10 +235,8 @@ class OpenedProject {
       const response = await fetch(
         `http://${this.sockets.jsonSocket.host}:${this.sockets.jsonSocket.port}/_health`,
       )
-      console.debug('Healthcheck; response', response.ok)
       return response.ok
     } catch {
-      console.debug('Healthcheck; response', false)
       return false
     }
   }
