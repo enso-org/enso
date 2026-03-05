@@ -46,7 +46,6 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
   private readonly array: Y.Array<T>
   private readonly handlers: Set<MessageHandler<T>> = new Set()
   private readonly observeHandler: (event: Y.YArrayEvent<T>, tr: Y.Transaction) => void
-  private hasMessageListeners = false
 
   /**
    * Creates a new YjsChannel.
@@ -64,7 +63,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       if (transaction.origin !== this.senderId) {
         // If no handlers are subscribed, leave items in the array for later processing.
         // This handles the race condition where messages arrive before handlers are attached.
-        if (this.handlers.size === 0 && !this.hasMessageListeners) {
+        if (this.handlers.size === 0 && !this.hasActiveEventListeners()) {
           return
         }
 
@@ -177,10 +176,8 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       }
     }
 
-    // If subscribing to 'message' event, mark that we have listeners and process existing items.
+    // If subscribing to 'message' event, process any existing items in the array.
     if (type === 'message') {
-      this.hasMessageListeners = true
-
       // Process any existing items in the array that arrived before subscription.
       // This handles the race condition where messages arrive before observers are attached.
       if (this.array.length > 0) {
@@ -264,6 +261,15 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
         this.emitError(error)
       }
     }
+  }
+
+  /**
+   * Returns true if there are active 'message' event listeners registered via on/addEventListener.
+   * Queries the ObservableV2 internal observer map for a live count.
+   */
+  private hasActiveEventListeners(): boolean {
+    const observers = (this as any)._observers as Map<string, Set<Function>> | undefined
+    return (observers?.get('message')?.size ?? 0) > 0
   }
 
   /**

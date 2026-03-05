@@ -363,6 +363,42 @@ describe('YjsChannel', () => {
       expect(receivedMessages).toEqual(['First message'])
     })
 
+    it('should not silently discard messages after all message listeners are removed', () => {
+      const doc = new Y.Doc()
+      const channel1 = new YjsChannel<string>(doc, 'test-channel')
+      const channel2 = new YjsChannel<string>(doc, 'test-channel')
+
+      const received: string[] = []
+      const listener = (event: MessageEvent) => {
+        received.push(event.data)
+      }
+
+      // Add then remove a message listener.
+      // This sets hasMessageListeners = true, which is never reset to false.
+      channel2.addEventListener('message', listener)
+      channel1.send('First')
+      expect(received).toEqual(['First'])
+
+      channel2.removeEventListener('message', listener)
+
+      // Send a message while no listeners are attached.
+      // BUG: because hasMessageListeners is stuck true, the observer enters the
+      // processing branch, deletes the item from the array, and calls notifyHandlers
+      // which emits to zero listeners — the message is silently lost.
+      channel1.send('Second')
+
+      // The message should still be in the array, waiting for a future subscriber.
+      // With the bug, it has already been deleted.
+      expect(doc.getArray<string>('test-channel').toArray()).toContain('Second')
+
+      // A new listener added later should receive the preserved message.
+      const lateReceived: string[] = []
+      channel2.addEventListener('message', (event) => {
+        lateReceived.push(event.data)
+      })
+      expect(lateReceived).toEqual(['Second'])
+    })
+
     it('should support on/off methods', () => {
       const doc = new Y.Doc()
       const channel1 = new YjsChannel<string>(doc, 'test-channel')
