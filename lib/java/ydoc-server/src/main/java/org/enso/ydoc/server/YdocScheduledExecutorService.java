@@ -266,10 +266,22 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
   /** A ScheduledFuture for Callable tasks that holds the result. */
   private static final class CallableScheduledFuture<V> implements ScheduledFuture<V> {
     private final long executeAtNanos;
-    private volatile V result;
-    private volatile Throwable exception;
-    private volatile boolean done = false;
     private final Object lock = new Object();
+
+    /**
+     * @GuardedBy("lock")
+     */
+    private V result;
+
+    /**
+     * @GuardedBy("lock")
+     */
+    private Throwable exception;
+
+    /**
+     * @GuardedBy("lock")
+     */
+    private boolean done = false;
 
     CallableScheduledFuture(Callable<V> task, long executeAtNanos) {
       this.executeAtNanos = executeAtNanos;
@@ -326,7 +338,9 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
 
     @Override
     public boolean isDone() {
-      return done;
+      synchronized (lock) {
+        return done;
+      }
     }
 
     @Override
