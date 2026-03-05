@@ -23,6 +23,7 @@ public final class Ydoc implements AutoCloseable {
   private final int port;
   private final YjsChannelCallbacks jsonChannelCallbacks;
   private final YjsChannelCallbacks binaryChannelCallbacks;
+  private final boolean debug;
 
   private Context context;
 
@@ -33,7 +34,8 @@ public final class Ydoc implements AutoCloseable {
       String hostname,
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks) {
+      YjsChannelCallbacks binaryChannelCallbacks,
+      boolean debug) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
@@ -41,6 +43,7 @@ public final class Ydoc implements AutoCloseable {
     this.port = port;
     this.jsonChannelCallbacks = jsonChannelCallbacks;
     this.binaryChannelCallbacks = binaryChannelCallbacks;
+    this.debug = debug;
   }
 
   public static final class Builder {
@@ -201,7 +204,8 @@ public final class Ydoc implements AutoCloseable {
               : jsonChannelCallbacks,
           debug
               ? new DelegateYjsChannelCallbacks("binary", binaryChannelCallbacks)
-              : binaryChannelCallbacks);
+              : binaryChannelCallbacks,
+          debug);
     }
   }
 
@@ -242,7 +246,7 @@ public final class Ydoc implements AutoCloseable {
                   "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
               bindings.putMember(
                   "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
-              bindings.putMember("YDOC_LS_DEBUG", "false");
+              bindings.putMember("YDOC_LS_DEBUG", debug);
 
               ctx.eval(ydocJs);
 

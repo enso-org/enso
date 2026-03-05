@@ -2,7 +2,7 @@ import { configureAllDebugLogs, docName, setupGatewayClient } from 'ydoc-server'
 
 const host = typeof YDOC_HOST == 'string' ? YDOC_HOST : 'localhost'
 const port = typeof YDOC_PORT == 'number' ? YDOC_PORT : 1234
-const debug = typeof YDOC_LS_DEBUG != 'undefined'
+const debug = typeof YDOC_LS_DEBUG == 'boolean' ? YDOC_LS_DEBUG : false
 
 configureAllDebugLogs(debug)
 
