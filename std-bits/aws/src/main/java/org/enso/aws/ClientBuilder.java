@@ -16,6 +16,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Bucket;
 import software.amazon.awssdk.services.ses.SesClient;
 
 public class ClientBuilder {
@@ -26,6 +27,14 @@ public class ClientBuilder {
   public ClientBuilder(AwsCredential credential, AWSRegion awsRegion) {
     this.awsCredential = credential;
     this.awsRegion = awsRegion;
+  }
+
+  public static ClientBuilder forBucket(AwsCredential credential, String bucketName, AWSRegion defaultRegion) {
+    var bucketRegion = BucketLocator.getBucketRegion(bucketName, credential);
+    if (bucketRegion == null) {
+      bucketRegion = defaultRegion;
+    }
+    return new ClientBuilder(credential, bucketRegion);
   }
 
   /** Checks if the default credential is available. */

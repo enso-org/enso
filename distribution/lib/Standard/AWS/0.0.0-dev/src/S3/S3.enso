@@ -12,7 +12,6 @@ import project.Errors.S3_Error
 import project.Internal.Request_Body
 import project.S3.S3_File.S3_File
 
-polyglot java import org.enso.aws.BucketLocator
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import org.enso.aws.file_system.S3Utils
 polyglot java import org.enso.aws.S3ClientWrapper
@@ -36,8 +35,10 @@ polyglot java import org.enso.aws.S3ClientWrapper
 list_buckets : AWS_Credential -> Vector Text ! S3_Error
 list_buckets credentials:AWS_Credential=..Default =
     client = _make_client credentials
+
     buckets = client.listBuckets
     Error.return_if_error buckets
+
     Vector.from_polyglot_array buckets
 
 ## ---
@@ -177,28 +178,14 @@ private raw_head bucket:Text key:Text credentials:AWS_Credential =
     - `credentials`: The credentials for the AWS resource.
     - `delimiter`: The delimiter used to deduce common prefixes.
 read_bucket : Text -> Text -> AWS_Credential -> Integer -> Text -> Pair Vector Vector ! S3_Error
-read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 = _handle_s3_errors bucket=bucket <|
+read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 =
     client = _make_client_for_bucket bucket credentials
 
-    per_request = Math.min max_count 1000
-    request = S3Utils.list_objects_request bucket per_request delimiter prefix
+    result = client.readBucket bucket prefix delimiter max_count
+    Error.return_if_error result
 
-    iterator request count current prefixes first =
-        response = client.listObjectsV2 request
-
-        if response.is_error then response else
-            ## Note the AWS API does not limit the count of common prefixes.
-            common_prefixes = if first then response.commonPrefixes.map _.prefix else prefixes
-            result = current + (response.contents.map _.key)
-
-            if response.isTruncated.not then Pair.new common_prefixes result else
-                new_count = count + result.length
-                if new_count >= max_count then (Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") (Pair.new common_prefixes result)) else
-                    new_items = Math.min (Math.max 0 max_count-new_count) 1000
-                    new_request = request.toBuilder.continuationToken response.nextContinuationToken . maxKeys new_items . build
-                    @Tail_Call iterator new_request new_count result common_prefixes False
-
-    iterator request 0 [] [] True
+    pair = Pair.new result.prefixes result.keys
+    if result.finished then pair else Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") pair
 
 ## ---
    private: true
@@ -260,10 +247,7 @@ private _make_client credentials:AWS_Credential -> S3ClientWrapper =
    `PermanentRedirect` errors.
 private _make_client_for_bucket bucket_name:Text credentials:AWS_Credential -> S3ClientWrapper =
     java_credential = credentials.as_java
-    # We get the region in which the bucket is located, or if it is somehow not available, we fall back to the default region.
-    java_region = BucketLocator.getBucketRegion bucket_name java_credential
-        . if_nothing credentials.get_default_region.as_java
-    builder = ClientBuilder.new java_credential java_region
+    builder = ClientBuilder.forBucket java_credential bucket_name credentials.get_default_region.as_java
     builder.buildS3Client
 
 ## ---

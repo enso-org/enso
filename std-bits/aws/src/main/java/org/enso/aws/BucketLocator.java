@@ -2,7 +2,6 @@ package org.enso.aws;
 
 import java.util.HashMap;
 import java.util.Optional;
-import org.enso.aws.file_system.S3Utils;
 import org.enso.aws.regions.AWSRegion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,15 +19,11 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
  * and usually the new bucket with the same name cannot be created immediately, so requiring a
  * restart of the engine in such a case seems OK.
  */
-public class BucketLocator {
+class BucketLocator {
   private static final HashMap<String, AWSRegion> cache = new HashMap<>();
   private static final Logger LOGGER = LoggerFactory.getLogger(BucketLocator.class);
 
-  public static void flushCache() {
-    cache.clear();
-  }
-
-  public static AWSRegion getBucketRegion(String bucketName, AwsCredential associatedCredential) {
+  static AWSRegion getBucketRegion(String bucketName, AwsCredential associatedCredential) {
     if (cache.containsKey(bucketName)) {
       return cache.get(bucketName);
     }

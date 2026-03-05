@@ -1,5 +1,7 @@
 package org.enso.aws;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.aws.file_system.S3Utils;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -59,7 +61,8 @@ public class S3ClientWrapper implements AutoCloseable {
     }
   }
 
-  HeadBucketResponse headBucketInternal(String bucket) throws NoSuchBucketException, AwsServiceException, SdkClientException {
+  HeadBucketResponse headBucketInternal(String bucket)
+      throws NoSuchBucketException, AwsServiceException, SdkClientException {
     var request = HeadBucketRequest.builder().bucket(bucket).build();
     return client.headBucket(request);
   }
@@ -74,6 +77,54 @@ public class S3ClientWrapper implements AutoCloseable {
     }
   }
 
+  public record ReadBucketResult(List<String> keys, List<String> prefixes, boolean finished) {}
+
+  public Value readBucket(String bucket, String prefix, String delimiter, int maxCounts) {
+    try {
+      int perRequest = Math.min(1000, Math.max(0, maxCounts));
+      if (perRequest == 0) {
+        return Value.asValue(new String[0]);
+      }
+
+      var request =
+          ListObjectsV2Request.builder()
+              .bucket(bucket)
+              .prefix(prefix)
+              .delimiter(delimiter)
+              .maxKeys(maxCounts)
+              .build();
+
+      List<String> prefixes = null;
+      var keys = new ArrayList<String>();
+      boolean finished = false;
+
+      while (!finished && keys.size() < maxCounts) {
+        var response = client.listObjectsV2(request);
+
+        if (prefixes == null) {
+          // Note the AWS API does not limit the count of common prefixes.
+          prefixes = response.commonPrefixes().stream().map(CommonPrefix::prefix).toList();
+        }
+
+        keys.addAll(response.contents().stream().map(S3Object::key).toList());
+        finished = !response.isTruncated();
+
+        if (!finished) {
+          perRequest = Math.min(1000, Math.max(0, maxCounts - keys.size()));
+          request =
+              request.toBuilder()
+                  .continuationToken(response.nextContinuationToken())
+                  .maxKeys(perRequest)
+                  .build();
+        }
+      }
+
+      return Value.asValue(new ReadBucketResult(keys, prefixes, finished));
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, prefix, exception);
+    }
+  }
+
   public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest)
       throws NoSuchKeyException,
           InvalidObjectStateException,
@@ -81,11 +132,6 @@ public class S3ClientWrapper implements AutoCloseable {
           SdkClientException,
           S3Exception {
     return client.getObject(getObjectRequest);
-  }
-
-  public ListObjectsV2Response listObjectsV2(ListObjectsV2Request listObjectsV2Request)
-      throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
-    return client.listObjectsV2(listObjectsV2Request);
   }
 
   public PutObjectResponse putObject(PutObjectRequest putObjectRequest, RequestBody requestBody)
