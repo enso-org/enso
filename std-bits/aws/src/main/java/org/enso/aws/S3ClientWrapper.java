@@ -25,7 +25,7 @@ public class S3ClientWrapper implements AutoCloseable {
   }
 
   public static S3ClientWrapper forBucket(
-          AwsCredential credential, String bucketName, AWSRegion defaultRegion) {
+      AwsCredential credential, String bucketName, AWSRegion defaultRegion) {
     var bucketRegion = BucketLocator.getBucketRegion(bucketName, credential);
     if (bucketRegion == null) {
       bucketRegion = defaultRegion;
@@ -159,9 +159,11 @@ public class S3ClientWrapper implements AutoCloseable {
     }
   }
 
-  public Value copyObject(String destinationBucket, String destinationKey, String sourceBucket, String sourceKey) {
+  public Value copyObject(
+      String destinationBucket, String destinationKey, String sourceBucket, String sourceKey) {
     try {
-      var request = CopyObjectRequest.builder()
+      var request =
+          CopyObjectRequest.builder()
               .destinationBucket(destinationBucket)
               .destinationKey(destinationKey)
               .sourceBucket(sourceBucket)

@@ -50,7 +50,8 @@ class BucketLocator {
    */
   private static AWSRegion locateBucketUsingHead(
       String bucketName, AwsCredential associatedCredential) {
-    try (var client = S3ClientWrapper.forCredential(associatedCredential, AWSRegion.from(Region.US_EAST_1))) {
+    try (var client =
+        S3ClientWrapper.forCredential(associatedCredential, AWSRegion.from(Region.US_EAST_1))) {
       var response = client.headBucketInternal(bucketName);
       return findRegionInResponse(response.sdkHttpResponse());
     } catch (S3Exception error) {
@@ -79,7 +80,8 @@ class BucketLocator {
    */
   private static AWSRegion locateBucketLegacy(
       String bucketName, AwsCredential associatedCredential) {
-    try (var client = S3ClientWrapper.forCredential(associatedCredential, AWSRegion.from(Region.US_EAST_1))) {
+    try (var client =
+        S3ClientWrapper.forCredential(associatedCredential, AWSRegion.from(Region.US_EAST_1))) {
       var request = GetBucketLocationRequest.builder().bucket(bucketName).build();
       var locationConstraint = client.client.getBucketLocation(request).locationConstraint();
       if (locationConstraint == null) {

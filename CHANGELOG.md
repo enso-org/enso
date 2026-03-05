@@ -32,6 +32,7 @@
 - [Redshift schema support.][14735]
 - [`Process_Builder.set_env`.][14799]
 - [New `Profile` API for timing code execution.][14827]
+- [Expanded S3 API with versions and signed uri][14831]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -46,6 +47,7 @@
 [14735]: https://github.com/enso-org/enso/pull/14735
 [14799]: https://github.com/enso-org/enso/pull/14799
 [14827]: https://github.com/enso-org/enso/pull/14827
+[14831]: https://github.com/enso-org/enso/pull/14831
 
 #### Enso Language & Runtime
 

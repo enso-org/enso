@@ -55,9 +55,9 @@ public class ClientBuilder {
 
   S3Client buildS3Client() {
     return S3Client.builder()
-            .credentialsProvider(unsafeBuildCredentialProvider())
-            .region(AWSRegion.underlying(awsRegion))
-            .build();
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
   }
 
   public SesClient buildSESClient() {
