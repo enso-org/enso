@@ -3,24 +3,34 @@ package org.enso.aws;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.aws.file_system.S3Utils;
+import org.enso.aws.regions.AWSRegion;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
 public class S3ClientWrapper implements AutoCloseable {
   S3Client client;
 
-  private S3ClientWrapper(S3Client client) {
+  S3ClientWrapper(S3Client client) {
     this.client = client;
   }
 
-  public static S3ClientWrapper from(S3ClientBuilder builder) {
-    return new S3ClientWrapper(builder.build());
+  public static S3ClientWrapper forCredential(AwsCredential credential, AWSRegion region) {
+    var builder = new ClientBuilder(credential, region);
+    return new S3ClientWrapper(builder.buildS3Client());
+  }
+
+  public static S3ClientWrapper forBucket(
+          AwsCredential credential, String bucketName, AWSRegion defaultRegion) {
+    var bucketRegion = BucketLocator.getBucketRegion(bucketName, credential);
+    if (bucketRegion == null) {
+      bucketRegion = defaultRegion;
+    }
+    return forCredential(credential, bucketRegion);
   }
 
   public Value listBuckets() {

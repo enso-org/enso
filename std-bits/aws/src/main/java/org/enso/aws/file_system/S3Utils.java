@@ -4,7 +4,6 @@ import com.amazonaws.SdkClientException;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
@@ -49,7 +48,7 @@ public class S3Utils {
    * @return a Value representing the Enso dataflow error corresponding to the exception
    * @throws RuntimeException if the exception cannot be wrapped into an Enso error atom
    */
-  public static @NonNull Value handleS3ClientError(String bucket, String key, Exception exception) {
+  public static Value handleS3ClientError(String bucket, String key, Exception exception) {
     var ensoAtom =
         Optional.ofNullable(wrapS3Errors(bucket, key, exception))
             .or(() -> Optional.ofNullable(wrapSDKErrors(exception)))
