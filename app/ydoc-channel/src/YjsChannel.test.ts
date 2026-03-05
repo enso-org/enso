@@ -211,6 +211,116 @@ describe('YjsChannel', () => {
     expect(doc.getArray('test-channel').length).toEqual(0)
   })
 
+  describe('message deletion race condition', () => {
+    // These tests use separate Y.Doc instances synced via Y.applyUpdate to simulate
+    // real network conditions where each party has its own document replica.
+
+    it('should not delete local pending message when processing a remote message', () => {
+      const docA = new Y.Doc()
+      const docB = new Y.Doc()
+      const channelA = new YjsChannel<string>(docA, 'chan')
+      const channelB = new YjsChannel<string>(docB, 'chan')
+
+      const receivedByA: string[] = []
+      channelA.subscribe((m) => receivedByA.push(m))
+      // B intentionally has no subscriber yet, so it won't consume/delete
+
+      // A sends a message — it's in docA's array
+      channelA.send('A1')
+
+      // Sync A → B so docB also has 'A1'
+      Y.applyUpdate(docB, Y.encodeStateAsUpdate(docA, Y.encodeStateVector(docB)), 'sync')
+
+      // B sends a message — appended after 'A1' in docB
+      channelB.send('B1')
+
+      // Sync B → A — docA now has both 'A1' and 'B1'.
+      // A's observer fires for the remote insert of 'B1'.
+      // BUG: the observer does this.array.delete(0), which deletes 'A1' instead of 'B1'.
+      Y.applyUpdate(docA, Y.encodeStateAsUpdate(docB, Y.encodeStateVector(docA)), 'sync')
+
+      // A should have received B's message
+      expect(receivedByA).toEqual(['B1'])
+
+      // A's own message 'A1' should still be in the array — B hasn't consumed it yet.
+      // With the bug, 'A1' gets deleted and only 'B1' (or nothing) remains.
+      const remaining = docA.getArray<string>('chan').toArray()
+      expect(remaining).toContain('A1')
+    })
+
+    it('should preserve message ordering across interleaved sends', () => {
+      const docA = new Y.Doc()
+      const docB = new Y.Doc()
+      const channelA = new YjsChannel<string>(docA, 'chan')
+      const channelB = new YjsChannel<string>(docB, 'chan')
+
+      const receivedByA: string[] = []
+      const receivedByB: string[] = []
+      channelA.subscribe((m) => receivedByA.push(m))
+      channelB.subscribe((m) => receivedByB.push(m))
+
+      // A sends two messages before any sync
+      channelA.send('A1')
+      channelA.send('A2')
+
+      // Sync A → B
+      Y.applyUpdate(docB, Y.encodeStateAsUpdate(docA, Y.encodeStateVector(docB)), 'sync')
+
+      // B should receive both messages in order
+      expect(receivedByB).toEqual(['A1', 'A2'])
+
+      // B sends a reply
+      channelB.send('B1')
+
+      // Sync B → A
+      Y.applyUpdate(docA, Y.encodeStateAsUpdate(docB, Y.encodeStateVector(docA)), 'sync')
+
+      // A should receive B's reply
+      expect(receivedByA).toEqual(['B1'])
+
+      // The array should be empty — all messages consumed by their respective receivers
+      expect(docA.getArray<string>('chan').toArray()).toEqual([])
+    })
+
+    it('should handle concurrent sends from both parties without message loss', () => {
+      const docA = new Y.Doc()
+      const docB = new Y.Doc()
+      const channelA = new YjsChannel<string>(docA, 'chan')
+      const channelB = new YjsChannel<string>(docB, 'chan')
+
+      const receivedByA: string[] = []
+      const receivedByB: string[] = []
+      channelA.subscribe((m) => receivedByA.push(m))
+      channelB.subscribe((m) => receivedByB.push(m))
+
+      // Both parties send before any sync (true concurrent scenario)
+      channelA.send('A1')
+      channelB.send('B1')
+
+      // Sync both ways — each side receives the other's message and deletes it locally
+      const updateFromA = Y.encodeStateAsUpdate(docA, Y.encodeStateVector(docB))
+      const updateFromB = Y.encodeStateAsUpdate(docB, Y.encodeStateVector(docA))
+      Y.applyUpdate(docB, updateFromA, 'sync')
+      Y.applyUpdate(docA, updateFromB, 'sync')
+
+      // Each party should receive exactly the other's message, not their own
+      expect(receivedByA).toEqual(['B1'])
+      expect(receivedByB).toEqual(['A1'])
+
+      // After first sync, each doc still has its own locally-sent item because
+      // the remote's deletion hasn't been synced back yet.
+      // A second sync round propagates the deletions.
+      const deletionsFromA = Y.encodeStateAsUpdate(docA, Y.encodeStateVector(docB))
+      const deletionsFromB = Y.encodeStateAsUpdate(docB, Y.encodeStateVector(docA))
+      Y.applyUpdate(docB, deletionsFromA, 'sync')
+      Y.applyUpdate(docA, deletionsFromB, 'sync')
+
+      // Now all messages should be consumed — arrays empty on both sides
+      expect(docA.getArray<string>('chan').toArray()).toEqual([])
+      expect(docB.getArray<string>('chan').toArray()).toEqual([])
+    })
+  })
+
   describe('WebSocket-compatible API', () => {
     it('should support addEventListener for message events', () => {
       const doc = new Y.Doc()

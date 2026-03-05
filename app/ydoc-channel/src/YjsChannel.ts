@@ -67,18 +67,38 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
         if (this.handlers.size === 0 && !this.hasMessageListeners) {
           return
         }
-        doc.transact(() => {
-          // Process all added items
-          for (const delta of event.changes.delta) {
-            if (delta.insert) {
-              const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
-              for (const item of items) {
-                this.notifyHandlers(item)
-                this.array.delete(0)
-              }
+
+        // Compute indices and values of remotely-inserted items from the delta.
+        // Delta positions refer to the post-update array state:
+        //   retain N: skip N unchanged items (advances position)
+        //   insert:   new items at current position (advances position)
+        //   delete N: removed items (does NOT advance position in new state)
+        const inserted: { index: number; value: T }[] = []
+        let pos = 0
+        for (const delta of event.changes.delta) {
+          if (delta.retain) {
+            pos += delta.retain
+          }
+          if (delta.insert) {
+            const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
+            for (const item of items) {
+              inserted.push({ index: pos, value: item })
+              pos++
             }
           }
+        }
+
+        doc.transact(() => {
+          // Delete the processed items in reverse index order to preserve correct positions
+          for (let i = inserted.length - 1; i >= 0; i--) {
+            this.array.delete(inserted[i]!.index, 1)
+          }
         }, this.senderId)
+
+        // Notify handlers after deletion
+        for (const { value } of inserted) {
+          this.notifyHandlers(value)
+        }
       }
     }
 
