@@ -1,6 +1,5 @@
 package org.enso.aws;
 
-import java.util.function.Consumer;
 import org.enso.aws.file_system.S3Utils;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -12,7 +11,7 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
 public class S3ClientWrapper implements AutoCloseable {
-  private S3Client client;
+  S3Client client;
 
   private S3ClientWrapper(S3Client client) {
     this.client = client;
@@ -32,55 +31,71 @@ public class S3ClientWrapper implements AutoCloseable {
     }
   }
 
+  public Value listObjectVersions(String bucket, String key) {
+    try {
+      var request = ListObjectVersionsRequest.builder().bucket(bucket).prefix(key).build();
+      var response = client.listObjectVersions(request);
+
+      if (!response.hasVersions()) {
+        throw new IllegalArgumentException("No versions found for s3://" + bucket + "/" + key);
+      }
+
+      var array =
+          response.versions().stream()
+              .map(v -> "null".equals(v.versionId()) ? null : v.versionId())
+              .toArray(String[]::new);
+      return Value.asValue(array);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, key, exception);
+    }
+  }
+
+  public Value headBucket(String bucket) {
+    try {
+      var response = headBucketInternal(bucket);
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, "", exception);
+    }
+  }
+
+  HeadBucketResponse headBucketInternal(String bucket) throws NoSuchBucketException, AwsServiceException, SdkClientException {
+    var request = HeadBucketRequest.builder().bucket(bucket).build();
+    return client.headBucket(request);
+  }
+
+  public Value headObject(String bucket, String key) {
+    try {
+      var request = HeadObjectRequest.builder().bucket(bucket).key(key).build();
+      var response = client.headObject(request);
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, key, exception);
+    }
+  }
+
   public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest)
       throws NoSuchKeyException,
           InvalidObjectStateException,
           AwsServiceException,
           SdkClientException,
           S3Exception {
-    return this.client.getObject(getObjectRequest);
-  }
-
-  public HeadBucketResponse headBucket(HeadBucketRequest headBucketRequest)
-      throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
-    return this.client.headBucket(headBucketRequest);
-  }
-
-  public HeadBucketResponse headBucket(Consumer<HeadBucketRequest.Builder> headBucketRequest)
-      throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
-    return this.client.headBucket(headBucketRequest);
-  }
-
-  public GetBucketLocationResponse getBucketLocation(
-      Consumer<GetBucketLocationRequest.Builder> getBucketLocationRequest)
-      throws AwsServiceException, SdkClientException, S3Exception {
-    return this.client.getBucketLocation(getBucketLocationRequest);
-  }
-
-  public HeadObjectResponse headObject(HeadObjectRequest headObjectRequest)
-      throws NoSuchKeyException, AwsServiceException, SdkClientException, S3Exception {
-    return this.client.headObject(headObjectRequest);
+    return client.getObject(getObjectRequest);
   }
 
   public ListObjectsV2Response listObjectsV2(ListObjectsV2Request listObjectsV2Request)
       throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
-    return this.client.listObjectsV2(listObjectsV2Request);
-  }
-
-  public ListObjectVersionsResponse listObjectVersions(
-      ListObjectVersionsRequest listObjectVersionsRequest)
-      throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
-    return this.client.listObjectVersions(listObjectVersionsRequest);
+    return client.listObjectsV2(listObjectsV2Request);
   }
 
   public PutObjectResponse putObject(PutObjectRequest putObjectRequest, RequestBody requestBody)
       throws AwsServiceException, SdkClientException, S3Exception {
-    return this.client.putObject(putObjectRequest, requestBody);
+    return client.putObject(putObjectRequest, requestBody);
   }
 
   public DeleteObjectResponse deleteObject(DeleteObjectRequest deleteObjectRequest)
       throws AwsServiceException, SdkClientException, S3Exception {
-    return this.client.deleteObject(deleteObjectRequest);
+    return client.deleteObject(deleteObjectRequest);
   }
 
   public CopyObjectResponse copyObject(CopyObjectRequest copyObjectRequest)
@@ -88,11 +103,11 @@ public class S3ClientWrapper implements AutoCloseable {
           AwsServiceException,
           SdkClientException,
           S3Exception {
-    return this.client.copyObject(copyObjectRequest);
+    return client.copyObject(copyObjectRequest);
   }
 
   @Override
   public void close() throws Exception {
-    this.client.close();
+    client.close();
   }
 }

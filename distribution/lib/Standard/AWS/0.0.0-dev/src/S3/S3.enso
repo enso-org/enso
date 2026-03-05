@@ -69,6 +69,25 @@ list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" cr
     names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
 
 ## ---
+   advanced: true
+   icon: data_input
+   ---
+   Gets the versions of an object from an S3 bucket.
+
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `key`: the key of the object.
+    - `credentials`: AWS credentials. If not provided, the default credentials
+      will be used.
+list_object_versions bucket:Text key:Text credentials:AWS_Credential=..Default -> Vector Text =
+    client = _make_client_for_bucket bucket credentials
+
+    response = client.listObjectVersions bucket key
+    Error.return_if_error response
+
+    Vector.from_polyglot_array response
+
+## ---
    private: true
    advanced: true
    icon: data_input
@@ -141,16 +160,10 @@ head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:A
     - `bucket`: the name of the bucket.
     - `key`: the key of the object.
     - `credentials`: AWS credentials.
-raw_head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
-raw_head bucket key credentials = _handle_s3_errors bucket=bucket key=key <|
+private raw_head bucket:Text key:Text credentials:AWS_Credential =
     client = _make_client_for_bucket bucket credentials
-    case key == "" of
-        True ->
-            request = S3Utils.head_bucket_request bucket
-            client.headBucket request
-        False ->
-            request = S3Utils.head_object_request bucket key
-            client.headObject request
+    if key == "" then client.headBucket bucket else
+        client.headObject bucket key
 
 ## ---
    private: true
@@ -220,28 +233,6 @@ copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (t
     client.copyObject request . if_not_error Nothing
 
 
-## ---
-   advanced: true
-   icon: data_input
-   ---
-   Gets the versions of an object from an S3 bucket.
-
-   ## Arguments
-    - `bucket`: the name of the bucket.
-    - `key`: the key of the object.
-    - `credentials`: AWS credentials. If not provided, the default credentials
-      will be used.
-list_versions : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
-list_versions bucket key credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=bucket key=key <|
-    client = _make_client_for_bucket bucket credentials
-    request = S3Utils.list_object_versions_request bucket key
-
-    response = client.listObjectVersions request
-    Error.return_if_error response
-
-    if response.hasVersions.not then Error.throw (S3_Error.Error "Object doesn't not have versions." (uri_prefix + bucket + "/" + key))
-
-    response.versions.map v-> v.versionId
 
 ## ---
    private: true

@@ -14,7 +14,6 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -119,14 +118,6 @@ public class S3Utils {
         .build();
   }
 
-  public static HeadBucketRequest head_bucket_request(String bucket) {
-    return HeadBucketRequest.builder().bucket(bucket).build();
-  }
-
-  public static HeadObjectRequest head_object_request(String bucket, String key) {
-    return HeadObjectRequest.builder().bucket(bucket).key(key).build();
-  }
-
   public static GetObjectRequest get_object_request(String bucket, String key) {
     return GetObjectRequest.builder().bucket(bucket).key(key).build();
   }
@@ -143,9 +134,5 @@ public class S3Utils {
 
   public static PutObjectRequest put_object_request(String bucket, String key) {
     return PutObjectRequest.builder().bucket(bucket).key(key).build();
-  }
-
-  public static ListObjectVersionsRequest list_object_versions_request(String bucket, String key) {
-    return ListObjectVersionsRequest.builder().bucket(bucket).prefix(key).build();
   }
 }

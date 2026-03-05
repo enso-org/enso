@@ -2,13 +2,14 @@ package org.enso.aws;
 
 import java.util.HashMap;
 import java.util.Optional;
+import org.enso.aws.file_system.S3Utils;
 import org.enso.aws.regions.AWSRegion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
-import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.model.GetBucketLocationRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 /**
@@ -56,7 +57,7 @@ public class BucketLocator {
       String bucketName, AwsCredential associatedCredential) {
     var clientBuilder = new ClientBuilder(associatedCredential, null);
     try (var client = clientBuilder.buildGlobalS3Client()) {
-      HeadBucketResponse response = client.headBucket(builder -> builder.bucket(bucketName));
+      var response = client.headBucketInternal(bucketName);
       return findRegionInResponse(response.sdkHttpResponse());
     } catch (S3Exception error) {
       var details = error.awsErrorDetails();
@@ -86,8 +87,8 @@ public class BucketLocator {
       String bucketName, AwsCredential associatedCredential) {
     var clientBuilder = new ClientBuilder(associatedCredential, null);
     try (var client = clientBuilder.buildGlobalS3Client()) {
-      BucketLocationConstraint locationConstraint =
-          client.getBucketLocation(builder -> builder.bucket(bucketName)).locationConstraint();
+      var request = GetBucketLocationRequest.builder().bucket(bucketName).build();
+      var locationConstraint = client.client.getBucketLocation(request).locationConstraint();
       if (locationConstraint == null) {
         // Weird edge case: documentation says that buckets in region us-east-1 return null
         return AWSRegion.from(Region.US_EAST_1);
@@ -99,15 +100,16 @@ public class BucketLocator {
       }
 
       var inferredRegion = AWSRegion.of(locationConstraint.toString());
+
       boolean isKnown = AWSRegion.all().contains(inferredRegion);
-      if (isKnown) {
-        return inferredRegion;
-      } else {
+      if (!isKnown) {
         LOGGER.trace(
             "AWS returned a location constraint that cannot be mapped to a known region: {}",
             locationConstraint);
         return null;
       }
+
+      return inferredRegion;
     } catch (Exception e) {
       LOGGER.trace("Failed to locate a bucket (legacy GetBucketLocation).", e);
       return null;
