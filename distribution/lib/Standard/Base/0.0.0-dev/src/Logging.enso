@@ -144,13 +144,11 @@ Log_Level.from (that:Text) =
         "debug" -> ..Fine
         "info" -> ..Info
         "warning" -> ..Warning
-        "severe" -> ..Severe
-        "critical" -> ..Severe
-        _ -> Error.throw (Illegal_Argument.Error ("Unknown log level: " + that))
+        _ -> ..Severe
 
 ## Utility type for profiling
 
-   Should be control by an environment variable set to the log level:
+   Should be controlled by an environment variable set to the log level:
    - `ENSO_PROFILE_VIZZES` - for visualizations.
    - `ENSO_PROFILE_SQL` - for SQL queries.
    - `ENSO_PROFILE_TABLE` - for table function calls.
