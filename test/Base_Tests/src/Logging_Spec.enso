@@ -1,12 +1,20 @@
 private
 
 from Standard.Base.Logging import all
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 from Standard.Test import all
+
+import project.Enso_Bin_Utils
 
 type Type_In_Private_Module
 
 add_specs suite_builder = suite_builder.group "Logging" group_builder->
     value = 42
+
+    tmp_root = Enso_Bin_Utils.create_tmp_dir
+
+    jvm_args = if Enso_Bin_Utils.runs_in_aot then [] else [ "--jvm" ]
 
     group_builder.specify "should do nothing on logging" <|
         value.log_message "Hidden message" Log_Level.Finest
@@ -15,3 +23,286 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
     group_builder.specify "should do nothing on logging" <|
         Type_In_Private_Module.log_message "Hidden message" Log_Level.Finest
         Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine
+
+    enso_logging_prj_lazy = Ref.new lazy=True <|
+        prj_dir = tmp_root / "default_logging"
+        prj_dir.create_directory
+
+        Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+            from Standard.Base.Logging import all
+
+            type Typ
+
+            main msg="This is a log!" =
+                log level =
+                    fmt = level.to_text + ":" + msg.to_text
+                    Typ.log_message fmt level
+
+                log Log_Level.Finest
+                log Log_Level.Fine
+                log Log_Level.Info
+                log Log_Level.Warning
+                log Log_Level.Severe
+
+    enso_logging_prj -> File =
+        enso_logging_prj_lazy.get
+
+    system_logging_prj_lazy = Ref.new lazy=True <|
+        prj_dir = tmp_root / "system_logging"
+        prj_dir.create_directory
+
+        Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+            polyglot java import java.lang.System as JSystem
+            polyglot java import java.lang.System.Logger as Logger
+            polyglot java import java.lang.System.Logger.Level as Level
+            polyglot java import java.lang.IllegalStateException
+
+            main msg="Here is a log!" type="log" =
+                logger = JSystem.getLogger "test.Base_Tests.Logging_Spec"
+
+                log level =
+                    case type of
+                        "log" ->
+                            fmt = level.to_text + ":" + msg.to_text
+                            logger.log level fmt
+                        _ ->
+                            fmt = level.to_text + ":" + msg.to_text
+                            ex = IllegalStateException.new fmt
+                            logger.log level "Exception for "+level.to_text+":"+msg.to_text ex
+
+                log Level.TRACE
+                log Level.DEBUG
+                log Level.INFO
+                log Level.WARNING
+                log Level.ERROR
+
+    system_logging_prj -> File =
+        system_logging_prj_lazy.get
+
+    slf4j_logging_prj_lazy = Ref.new lazy=True <|
+        prj_dir = tmp_root / "slf4j_logging"
+        prj_dir.create_directory
+
+        Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+            polyglot java import org.slf4j.LoggerFactory
+            polyglot java import java.lang.IllegalStateException
+
+            main msg="Here is a log!" type="log" =
+                logger = LoggerFactory.getLogger "test.Base_Tests.Logging_Spec"
+
+                log level builder =
+                    fmt = level.to_text + ":" + msg.to_text
+                    case type of
+                        "log" ->
+                            builder.setMessage fmt
+                        _ ->
+                            fmt = level.to_text + ":" + msg.to_text
+                            ex = IllegalStateException.new fmt
+                            builder.setCause ex
+                    builder.log
+
+                log "TRACE" logger.atTrace
+                log "DEBUG" logger.atDebug
+                log "INFO" logger.atInfo
+                log "WARN" logger.atWarn
+                log "ERROR" logger.atError
+
+    slf4j_logging_prj -> File =
+        slf4j_logging_prj_lazy.get
+
+    perform_logging prj_dir:File (args:Vector Text)-> Pair Text Text =
+        logs_dir = prj_dir / "logs"
+        _ = logs_dir.delete recursive=True
+        logs_dir.create_directory
+
+        proc = Process.new_builder "enso"
+            . set_arguments jvm_args+["--run", prj_dir.to_text]+args
+            . set_directory prj_dir.parent
+            . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
+            . set_env "JAVA_TOOL_OPTIONS" "-ea"
+            . create
+
+        if proc.exit_code != Exit_Code.Success then
+            Test.fail proc.stdout+proc.stderr+proc.exit_code.to_text
+
+        arr = logs_dir.list 
+        arr.length . should_equal 1
+
+        log = Data.read (arr.at 0) : Text
+        console_log = proc.stdout+proc.stderr
+
+        Pair.new log console_log
+
+    group_builder.specify "default log level via enso" <|
+        pair = perform_logging enso_logging_prj ["Ahoj"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "Finest:Ahoj"
+        log . contains_line "DEBUG.*Fine:Ahoj"
+        log . contains_line "INFO.*Info:Ahoj"
+        log . contains_line "WARN.*Warning:Ahoj"
+        log . contains_line "ERROR.*Severe:Ahoj"
+
+        console_log . not_contains_line "Finest:Ahoj"
+        console_log . not_contains_line "DEBUG.*Fine:Ahoj"
+        console_log . not_contains_line "INFO.*Info:Ahoj"
+        console_log . contains_line "WARN.*Warning:Ahoj"
+        console_log . contains_line "ERROR.*Severe:Ahoj"
+
+    group_builder.specify "log level info via enso" <|
+        pair = perform_logging enso_logging_prj ["--log-level", "info", "Ciao"]
+        file_log = pair.first
+        console_log = pair.second
+
+        file_log . not_contains_line "Finest:Ciao"
+        file_log . contains_line "DEBUG.*Fine:Ciao"
+        file_log . contains_line "INFO.*Info:Ciao"
+        file_log . contains_line "WARN.*Warning:Ciao"
+        file_log . contains_line "ERROR.*Severe:Ciao"
+
+        console_log . not_contains_line "Finest:Ciao"
+        console_log . not_contains_line "DEBUG.*Fine:Ciao"
+        console_log . contains_line "INFO.*Info:Ciao"
+        console_log . contains_line "WARN.*Warning:Ciao"
+        console_log . contains_line "ERROR.*Severe:Ciao"
+
+    group_builder.specify "log level debug via enso" <|
+        pair = perform_logging enso_logging_prj ["--log-level", "debug", "Hello"]
+        file_log = pair.first
+        console_log = pair.second
+
+        file_log . not_contains_line "Finest:Hello"
+        file_log . contains_line "DEBUG.*Fine:Hello"
+        file_log . contains_line "INFO.*Info:Hello"
+        file_log . contains_line "WARN.*Warning:Hello"
+        file_log . contains_line "ERROR.*Severe:Hello"
+
+        console_log . not_contains_line "Finest:Hello"
+        console_log . contains_line "DEBUG.*Fine:Hello"
+        console_log . contains_line "INFO.*Info:Hello"
+        console_log . contains_line "WARN.*Warning:Hello"
+        console_log . contains_line "ERROR.*Severe:Hello"
+
+    group_builder.specify "log level trace via enso" <|
+        pair = perform_logging enso_logging_prj ["--log-level", "trace", "Nazdar"]
+        file_log = pair.first
+        console_log = pair.second
+
+        file_log . contains_line "Finest:Nazdar"
+        file_log . contains_line "DEBUG.*Fine:Nazdar"
+        file_log . contains_line "INFO.*Info:Nazdar"
+        file_log . contains_line "WARN.*Warning:Nazdar"
+        file_log . contains_line "ERROR.*Severe:Nazdar"
+
+        console_log . contains_line "Finest:Nazdar"
+        console_log . contains_line "DEBUG.*Fine:Nazdar"
+        console_log . contains_line "INFO.*Info:Nazdar"
+        console_log . contains_line "WARN.*Warning:Nazdar"
+        console_log . contains_line "ERROR.*Severe:Nazdar"
+
+    group_builder.specify "java.lang.System logging with default log level" <|
+        pair = perform_logging system_logging_prj ["Hola"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "TRACE:.*Hola"
+        log . contains_line "DEBUG.*DEBUG:.*Hola"
+        log . contains_line "INFO.*INFO:.*Hola"
+        log . contains_line "WARN.*WARNING:.*Hola"
+        log . contains_line "ERROR.*ERROR:.*Hola"
+
+        console_log . not_contains_line "TRACE:.*Hola"
+        console_log . not_contains_line "DEBUG.*Hola"
+        console_log . not_contains_line "INFO.*Hola"
+        console_log . contains_line "WARN.*WARNING:.*Hola"
+        console_log . contains_line "ERROR.*ERROR:.*Hola"
+
+    group_builder.specify "java.lang.System logging with log level debug" <|
+        pair = perform_logging system_logging_prj ["--log-level", "debug", "Hail"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "TRACE:.*Hail"
+        log . contains_line "DEBUG.*DEBUG:.*Hail"
+        log . contains_line "INFO.*INFO:.*Hail"
+        log . contains_line "WARN.*WARNING:.*Hail"
+        log . contains_line "ERROR.*ERROR:.*Hail"
+
+        console_log . not_contains_line "TRACE:.*Hail"
+        console_log . contains_line "DEBUG.*Hail"
+        console_log . contains_line "INFO.*Hail"
+        console_log . contains_line "WARN.*WARNING:.*Hail"
+        console_log . contains_line "ERROR.*ERROR:.*Hail"
+
+    group_builder.specify "java.lang.System logging with default log level with exception" <|
+        pair = perform_logging system_logging_prj ["Hej", "exception"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "TRACE:.*Hej"
+        log . contains_line "DEBUG.*java.lang.IllegalStateException.*DEBUG:.*Hej"
+        log . contains_line "INFO.*java.lang.IllegalStateException.*INFO:.*Hej"
+        log . contains_line "WARN.*java.lang.IllegalStateException.*WARNING:.*Hej"
+        log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR:.*Hej"
+
+        console_log . not_contains_line "TRACE:.*Hej"
+        console_log . not_contains_line "DEBUG.*Hej"
+        console_log . not_contains_line "INFO.*Hej"
+        console_log . contains_line "WARN.*java.lang.IllegalStateException.*WARNING:.*Hej"
+        console_log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR:.*Hej"
+
+    group_builder.specify "slf4j with default log level" <|
+        pair = perform_logging slf4j_logging_prj ["Tschuss"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "TRACE.*:.*Tschuss"
+        log . contains_line "DEBUG.*DEBUG.*.*Tschuss"
+        log . contains_line "INFO.*INFO.*:.*Tschuss"
+        log . contains_line "WARN.*WARN.*:.*Tschuss"
+        log . contains_line "ERROR.*ERROR.*:.*Tschuss"
+
+        console_log . not_contains_line "TRACE.*:.*Tschuss"
+        console_log . not_contains_line "DEBUG.*Tschuss"
+        console_log . not_contains_line "INFO.*Tschuss"
+        console_log . contains_line "WARN.*WARN.*:.*Tschuss"
+        console_log . contains_line "ERROR.*ERROR.*:.*Tschuss"
+
+    group_builder.specify "slf4j with default log level with exception" <|
+        pair = perform_logging slf4j_logging_prj ["Pozdrawiam", "exception"]
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "TRACE.*:.*Pozdrawiam"
+        log . contains_line "DEBUG.*java.lang.IllegalStateException.*DEBUG.*.*Pozdrawiam"
+        log . contains_line "INFO.*java.lang.IllegalStateException.*INFO.*:.*Pozdrawiam"
+        log . contains_line "WARN.*java.lang.IllegalStateException.*WARN.*:.*Pozdrawiam"
+        log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR.*:.*Pozdrawiam"
+
+        console_log . not_contains_line "TRACE.*:.*Pozdrawiam"
+        console_log . not_contains_line "DEBUG.*Pozdrawiam"
+        console_log . not_contains_line "INFO.*Pozdrawiam"
+        console_log . contains_line "WARN.*java.lang.IllegalStateException.*WARN.*:.*Pozdrawiam"
+        console_log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR.*:.*Pozdrawiam"
+
+Text.contains_line self regex:Text =
+    r = Regex.compile regex
+    found = self.split "\n" . find \line->
+        subline = r.find line
+        subline.is_nothing.not
+    if found.is_error then
+        Test.fail "Cannot find "+regex+" among:\n"+self
+
+Text.not_contains_line self regex:Text =
+    r = Regex.compile regex
+    found = self.split "\n" . find \line->
+        subline = r.find line
+        subline.is_nothing.not
+    if found.is_error.not then
+        Test.fail "Unexpectedly found "+regex+" among:\n"+self
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

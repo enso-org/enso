@@ -222,11 +222,16 @@ object CacheInvalidation {
     val cache = cacheApi.asInstanceOf[RuntimeCacheImpl]
     command match {
       case Command.InvalidateAll =>
-        logger.trace("Cache - clear all")
+        logger.trace("Cache - clear all, indexes: {}", indexes)
         cache.clear()
         indexes.foreach(clearIndex(_, cache))
       case Command.InvalidateKeys(keys, reason) =>
-        logger.trace("Cache - clear keys: {}, reason: {}", keys, reason)
+        logger.trace(
+          "Cache - clear keys: {}, indexes: {}, reason: {}",
+          keys,
+          indexes,
+          reason
+        )
         keys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
@@ -234,14 +239,23 @@ object CacheInvalidation {
       case Command.InvalidateByKind(kinds) =>
         kinds.foreach { kind =>
           val keys = cache.clear(kind)
-          logger.trace("Cache - clear keys in kind {}: {}", kind, keys)
+          logger.trace(
+            "Cache - clear keys: {} in kind: {}, indexes: {}",
+            keys,
+            kind,
+            indexes
+          )
           keys.forEach { key =>
             indexes.foreach(clearIndexKey(key, _, cache))
           }
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
-        logger.trace("Cache - clear stale keys: {}", staleKeys)
+        logger.trace(
+          "Cache - clear stale keys: {}, indexes: {}",
+          staleKeys,
+          indexes
+        )
         staleKeys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
@@ -249,6 +263,7 @@ object CacheInvalidation {
         }
       case Command.SetMetadata(metadata) =>
         cache.setPreferences(metadata.preferences)
+        logger.trace("Cache - clear set preferences: {}", metadata)
     }
   }
 

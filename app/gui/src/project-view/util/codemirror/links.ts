@@ -12,13 +12,19 @@ export function useLinkTitles(
   { readonly }: { readonly: ToValue<boolean> },
 ) {
   const keyboard = injectKeyboard(true)
-  useStateEffect(editorView, setLinkAttributesFactory, () =>
-    linkAttributeFactory(
+  useStateEffect(editorView, setLinkAttributesFactory, () => {
+    const title =
       toValue(readonly) ? 'Click to open link in a new window.'
       : keyboard?.mod ? `${textEditorsBindings.bindings.openLink.humanReadable} to open link.`
-      : `Click to edit; ${textEditorsBindings.bindings.openLink.humanReadable} to open link.`,
-    ),
-  )
+      : `Click to edit; ${textEditorsBindings.bindings.openLink.humanReadable} to open link.`
+    return (href: string) => {
+      return {
+        href,
+        title,
+        target: '_blank',
+      }
+    }
+  })
 }
 
 export type LinkAttributesFactory = (url: string) => Record<string, string>
@@ -28,11 +34,3 @@ export const {
   changed: linkAttributesFactoryChanged,
   extension: linkDecoratorStateExt,
 } = valueExt<LinkAttributesFactory>((href) => ({ href }))
-
-function linkAttributeFactory(title: string) {
-  return (href: string) => ({
-    href,
-    title,
-    target: '_blank',
-  })
-}

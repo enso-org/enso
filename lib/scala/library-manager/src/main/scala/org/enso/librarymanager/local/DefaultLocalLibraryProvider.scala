@@ -90,7 +90,7 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
             case Success(pkg) => {
               if (checkAot && !pkg.isAotReady()) {
                 pkg.checkAotReady(() => {
-                  logger.warn(
+                  logger.info(
                     "Candidate library {} at [{}] may not be AOT ready! Use --jvm option when encoutering problems.",
                     pkg.libraryName,
                     MaskedPath(potentialPath).applyMasking()

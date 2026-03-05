@@ -27,7 +27,8 @@ abstract sealed class AbstractTypeCheckNode extends Node
 
   abstract Object findDirectMatch(VirtualFrame frame, Object value);
 
-  abstract Object executeConversion(VirtualFrame frame, Object value);
+  abstract Object executeConversion(
+      VirtualFrame frame, Object value, AbstractTypeCheckNode[] failingCheck);
 
   abstract String expectedTypeMessage();
 

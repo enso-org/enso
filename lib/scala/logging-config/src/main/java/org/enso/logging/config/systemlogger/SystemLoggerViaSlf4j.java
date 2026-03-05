@@ -1,18 +1,36 @@
 package org.enso.logging.config.systemlogger;
 
 import java.text.MessageFormat;
+import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Bridges logs sent to {@link System.Logger} to slf4j logger. */
-public final class SystemLoggerViaSlf4j extends System.LoggerFinder {
+public final class SystemLoggerViaSlf4j extends System.LoggerFinder
+    implements Consumer<System.LoggerFinder> {
+  private volatile System.LoggerFinder delegate;
+
   public SystemLoggerViaSlf4j() {}
 
   @Override
   public System.Logger getLogger(String name, Module module) {
+    if (delegate != null) {
+      var logger = delegate.getLogger(name, module);
+      if (logger != null) {
+        return logger;
+      }
+    }
     var logger = LoggerFactory.getLogger(name);
     return new Bridge(logger);
+  }
+
+  @Override
+  public void accept(System.LoggerFinder t) {
+    Objects.requireNonNull(t);
+    assert this.delegate == null;
+    this.delegate = t;
   }
 
   private static final class Bridge implements System.Logger {

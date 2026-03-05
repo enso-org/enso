@@ -73,6 +73,10 @@ add_generate_rows_specs suite_builder setup =
             t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) "MyColumnName" . should_equal
                 Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["MyColumnName", [1, 2, 3, 0, 2, 3]]]
 
+        group_builder.specify "Empty table adds empty column of correct type" <|
+            t3.take 0 . generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) . should_equal
+                Table.new [["Text Values", [], Value_Type.Char], ["Start", [], Value_Type.Integer], ["Stop", [], Value_Type.Integer], ["Generated Row", [], Value_Type.Integer]]
+
         suite_builder.group prefix+"Table.generate_rows from existing objects" group_builder->
             t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
             group_builder.specify "Can pass in a integer to create quick duplicated rows" <|
@@ -82,15 +86,28 @@ add_generate_rows_specs suite_builder setup =
                 range = (0.up_to 2 include_end=True)
                 t1.generate_rows range . should_equal
                     Table.new [["Text Values", ["A", "A", "A", "B", "B", "B", "C", "C", "C"]], ["Generated Row", [0, 1, 2, 0, 1, 2, 0, 1, 2]]]
+            group_builder.specify "Can use an existing integer range with empty table" <|
+                range = (0.up_to 2 include_end=True)
+                t1.take 0 . generate_rows range . should_equal
+                    Table.new [["Text Values", [], Value_Type.Char], ["Generated Row", [], Value_Type.Integer]]
             group_builder.specify "Can use an existing integer column" <|
                 t2 = build_sorted_table [["Counts", [1, 0, 2]]]
                 col = t2.at 0
                 t1.generate_rows col . should_equal
                     Table.new [["Text Values", ["A", "C", "C"]], ["Generated Row", [0, 0, 1]]]
+            group_builder.specify "Can use an existing integer column with empty table" <|
+                t2 = build_sorted_table [["Counts", [1, 0, 2]]]
+                col = t2.at 0
+                t1.take 0 . generate_rows col . should_equal
+                    Table.new [["Text Values", [], Value_Type.Char], ["Generated Row", [], Value_Type.Integer]]
             group_builder.specify "Can use an existing date range" <|
                 range = ((Date.new 2021 3 3).up_to (Date.new 2021 3 4) include_end=True)
                 t1.generate_rows range . should_equal
                     Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [(Date.new 2021 3 3),(Date.new 2021 3 4),(Date.new 2021 3 3),(Date.new 2021 3 4),(Date.new 2021 3 3),(Date.new 2021 3 4)]]]
+            group_builder.specify "Can use an existing date range with empty table" <|
+                range = ((Date.new 2021 3 3).up_to (Date.new 2021 3 4) include_end=True)
+                t1.take 0 . generate_rows range . should_equal
+                    Table.new [["Text Values", [], Value_Type.Char], ["Generated Row", [], Value_Type.Date]]
              
         suite_builder.group prefix+"Table.generate_rows from an Date Range" group_builder->
             t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
@@ -122,6 +139,10 @@ add_generate_rows_specs suite_builder setup =
                 t2 = build_sorted_table [["Text Values", ["A", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1]]]
                 t2.generate_rows (..Date_Range (..Name 'JoinDate') (..Name 'LeaveDate') step=(Period.new years=2)) . should_equal
                     Table.new [["Text Values", ["A", "B", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1, Date.new 2029 1 1]], ["Generated Row", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2027 1 1]]]
+            group_builder.specify "Empty table adds empty column of correct type" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1]]]
+                t2.take 0 . generate_rows (..Date_Range (..Name 'JoinDate') (..Name 'LeaveDate') step=(Period.new years=2)) . should_equal
+                    Table.new [["Text Values", [], Value_Type.Char], ["JoinDate", [], Value_Type.Date], ["LeaveDate", [], Value_Type.Date], ["Generated Row", [], Value_Type.Date]]
             
 
         suite_builder.group prefix+"Table.generate_rows name collisions" group_builder->

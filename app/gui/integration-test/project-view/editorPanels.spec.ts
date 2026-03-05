@@ -56,12 +56,11 @@ test.describe('Main method documentation rendering', () => {
 
   test('Link (rendered and interactive)', async ({ editorPage, page, context }) => {
     const { docsContent } = await goToGraphAndGetDocs(editorPage)
-    await expect(docsContent.locator('a')).toHaveAccessibleDescription(
-      /Click to edit.*Click to open link/,
-    )
+    const link = docsContent.locator('a').first()
+    await expect(link).toHaveAccessibleDescription(/Click to edit.*Click to open link/)
 
-    await expect(docsContent.locator('a')).toHaveText('https://example.com')
-    await docsContent.locator('a').click()
+    await expect(link).toHaveText('https://example.com')
+    await link.click()
     await expect(page.locator('.LinkEditPopup')).toBeVisible()
     await locate.graphEditor(page).click()
     await expect(page.locator('.LinkEditPopup')).toBeHidden()
@@ -69,8 +68,24 @@ test.describe('Main method documentation rendering', () => {
       route.fulfill({ status: 200, body: 'YAY' }),
     )
     const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
-    await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
+    await link.click({ modifiers: ['ControlOrMeta'] })
     await expect(newPagePromise).resolves.toHaveURL('https://example.com')
+  })
+
+  test.use({
+    setupApi: {
+      cloud: (cloudApi) => {
+        cloudApi.addProject({ title: 'MockProject' })
+      },
+    },
+  })
+
+  test('Enso links', async ({ drivePage, editorPage }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
+    const link = docsContent.locator('a').nth(1)
+    await expect(link).toHaveText('A reference to another project')
+    await link.click({ modifiers: ['ControlOrMeta'] })
+    await drivePage.expectProjectEditorOpened('MockProject')
   })
 })
 
