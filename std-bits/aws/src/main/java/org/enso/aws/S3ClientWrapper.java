@@ -1,6 +1,8 @@
 package org.enso.aws;
 
 import java.util.function.Consumer;
+import org.enso.aws.file_system.S3Utils;
+import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -20,9 +22,14 @@ public class S3ClientWrapper implements AutoCloseable {
     return new S3ClientWrapper(builder.build());
   }
 
-  public ListBucketsResponse listBuckets()
-      throws AwsServiceException, SdkClientException, S3Exception {
-    return this.client.listBuckets();
+  public Value listBuckets() {
+    try {
+      var response = client.listBuckets();
+      var array = response.buckets().stream().map(Bucket::name).toArray(String[]::new);
+      return Value.asValue(array);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError("", "", exception);
+    }
   }
 
   public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest)
@@ -58,6 +65,12 @@ public class S3ClientWrapper implements AutoCloseable {
   public ListObjectsV2Response listObjectsV2(ListObjectsV2Request listObjectsV2Request)
       throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
     return this.client.listObjectsV2(listObjectsV2Request);
+  }
+
+  public ListObjectVersionsResponse listObjectVersions(
+      ListObjectVersionsRequest listObjectVersionsRequest)
+      throws NoSuchBucketException, AwsServiceException, SdkClientException, S3Exception {
+    return this.client.listObjectVersions(listObjectVersionsRequest);
   }
 
   public PutObjectResponse putObject(PutObjectRequest putObjectRequest, RequestBody requestBody)

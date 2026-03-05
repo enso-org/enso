@@ -4,10 +4,22 @@ import com.amazonaws.SdkClientException;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 public class S3Utils {
   private S3Utils() {}
@@ -24,15 +36,32 @@ public class S3Utils {
     try {
       return action.apply(bucket, key);
     } catch (Exception exception) {
-      var ensoAtom =
-          Optional.ofNullable(wrapS3Errors(bucket, key, exception))
-              .or(() -> Optional.ofNullable(wrapSDKErrors(exception)))
-              .or(() -> EnsoExceptionWrapper.wrapCommonExceptions(exception));
-      if (ensoAtom.isEmpty()) {
-        throw new RuntimeException(exception);
-      }
-      return EnsoMeta.asDataflowError(ensoAtom.get());
+      return handleS3ClientError(bucket, key, exception);
     }
+  }
+
+  /**
+   * Handles exceptions that may occur during S3 client operations and converts them into Enso
+   * dataflow errors. It checks for specific S3-related exceptions and wraps them into corresponding
+   * Enso error atoms. If the exception does not match any known S3-related exceptions, it attempts
+   * to wrap it as a common exception. If the exception cannot be wrapped, it rethrows it as a
+   * RuntimeException.
+   *
+   * @param bucket the name of the S3 bucket involved in the operation
+   * @param key the key of the S3 object involved in the operation
+   * @param exception the exception that occurred during the S3 client operation
+   * @return a Value representing the Enso dataflow error corresponding to the exception
+   * @throws RuntimeException if the exception cannot be wrapped into an Enso error atom
+   */
+  public static @NonNull Value handleS3ClientError(String bucket, String key, Exception exception) {
+    var ensoAtom =
+        Optional.ofNullable(wrapS3Errors(bucket, key, exception))
+            .or(() -> Optional.ofNullable(wrapSDKErrors(exception)))
+            .or(() -> EnsoExceptionWrapper.wrapCommonExceptions(exception));
+    if (ensoAtom.isEmpty()) {
+      throw new RuntimeException(exception);
+    }
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 
   private static Value wrapSDKErrors(Exception exception) {
@@ -54,6 +83,16 @@ public class S3Utils {
         var code = details == null ? null : details.errorCode();
         yield EnsoMeta.makeInstance(
             "Standard.AWS.Errors", "S3_Error", "Error", s3Exception.getMessage(), code);
+      }
+      case AwsServiceException awsServiceException -> {
+        var details = awsServiceException.awsErrorDetails();
+        var code = details == null ? null : details.errorCode();
+        yield EnsoMeta.makeInstance(
+            "Standard.AWS.Errors",
+            "S3_Error",
+            "Error",
+            "An AWS service error has occurred: " + awsServiceException.getMessage(),
+            code);
       }
       case IOException ioException ->
           EnsoMeta.makeInstance(

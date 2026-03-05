@@ -65,6 +65,22 @@ type S3_File
     private Value (s3_path : S3_Path) credentials:AWS_Credential
 
     ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Returns the bucket of this S3 file.
+    bucket self -> Text =
+        self.s3_path.bucket
+
+    ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Returns the key of this S3 file.
+    key self -> Text =
+        self.s3_path.key
+
+    ## ---
        private: true
        advanced: true
        ---
