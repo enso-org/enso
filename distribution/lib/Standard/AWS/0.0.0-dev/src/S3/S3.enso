@@ -14,15 +14,10 @@ import project.Errors.S3_Key_Not_Found
 import project.Internal.Request_Body
 import project.S3.S3_File.S3_File
 
-polyglot java import java.io.IOException
 polyglot java import org.enso.aws.BucketLocator
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import org.enso.aws.file_system.S3Utils
 polyglot java import org.enso.aws.S3ClientWrapper
-polyglot java import software.amazon.awssdk.core.exception.SdkClientException
-polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
-polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
-polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 
 ## ---
    icon: data_input
@@ -41,7 +36,7 @@ polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
       `AWS_SDK_Error` will be raised.
 @credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential -> Vector Text ! S3_Error
-list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
+list_buckets credentials:AWS_Credential=..Default = _handle_s3_errors <|
     client = make_client credentials
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
@@ -88,7 +83,7 @@ list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" cr
       will be used.
     - `delimiter`: The delimiter to use for deducing the filename from the path.
 get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
-get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
+get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = _handle_s3_errors bucket=bucket key=key <|
     request = S3Utils.get_object_request bucket key
 
     client = make_client_for_bucket bucket credentials
@@ -101,7 +96,13 @@ get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimite
         key.split delimiter . last
     metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
 
-    input_stream = Input_Stream.new response (handle_io_errors s3_uri)
+    handler ~action =
+        wrapped b k =
+            _ = [b, k]
+            action
+        S3Utils.handleExceptions bucket key wrapped
+
+    input_stream = Input_Stream.new response handler
     Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## ---
@@ -142,15 +143,15 @@ head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:A
     - `key`: the key of the object.
     - `credentials`: AWS credentials.
 raw_head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
-raw_head bucket key credentials =
+raw_head bucket key credentials = _handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
     case key == "" of
         True ->
             request = S3Utils.head_bucket_request bucket
-            handle_s3_errors bucket=bucket <| client.headBucket request
+            client.headBucket request
         False ->
             request = S3Utils.head_object_request bucket key
-            handle_s3_errors bucket=bucket key=key <| client.headObject request
+            client.headObject request
 
 ## ---
    private: true
@@ -164,7 +165,7 @@ raw_head bucket key credentials =
     - `credentials`: The credentials for the AWS resource.
     - `delimiter`: The delimiter used to deduce common prefixes.
 read_bucket : Text -> Text -> AWS_Credential -> Integer -> Text -> Pair Vector Vector ! S3_Error
-read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
+read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 = _handle_s3_errors bucket=bucket <|
     client = make_client_for_bucket bucket credentials
 
     per_request = Math.min max_count 1000
@@ -190,7 +191,7 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
 ## ---
    private: true
    ---
-put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = handle_s3_errors bucket=bucket key=key <|
+put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = _handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
     request = S3Utils.put_object_request bucket key
     client.putObject request request_body . if_not_error Nothing
@@ -198,7 +199,7 @@ put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credentia
 ## ---
    private: true
    ---
-upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
+upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=bucket key=key <|
     request_body = Request_Body.from_local_file local_file
     put_object bucket key credentials request_body
 
@@ -206,7 +207,7 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Cre
    private: true
    ---
    Deletes the object. It will not raise any errors if the object does not exist.
-delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
+delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
     request = S3Utils.delete_object_request bucket key
     client.deleteObject request . if_not_error Nothing
@@ -214,7 +215,7 @@ delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Creden
 ## ---
    private: true
    ---
-copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=source_bucket key=source_key <|
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=source_bucket key=source_key <|
     client = make_client_for_bucket source_bucket credentials
     request = S3Utils.copy_object_request target_bucket target_key source_bucket source_key
     client.copyObject request . if_not_error Nothing
@@ -222,21 +223,11 @@ copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (t
 ## ---
    private: true
    ---
-handle_s3_errors : Any -> Text -> Text -> Any ! S3_Error | AWS_SDK_Error
-handle_s3_errors ~action bucket="" key="" =
-    s3_inner_handler caught_panic =
-        error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
-            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then S3_Key_Not_Found.Error bucket key else
-                aws_error = caught_panic.payload
-                aws_error_details = aws_error.awsErrorDetails
-                code = aws_error_details.if_not_nothing <| aws_error_details.errorCode
-                message = aws_error_details
-                    . if_not_nothing aws_error_details.errorMessage
-                    . if_nothing aws_error.getMessage
-                S3_Error.Error message code
-        Error.throw error
-    s3_handler = Panic.catch S3Exception handler=s3_inner_handler
-    AWS_SDK_Error.handle_java_errors <| s3_handler <| action
+private _handle_s3_errors ~action bucket:Text="" key:Text="" -> Any ! S3_Error | AWS_SDK_Error =
+    wrapped b k =
+        _ = [b, k]
+        action
+    S3Utils.handleExceptions wrapped bucket key
 
 ## ---
    private: true
@@ -262,15 +253,6 @@ make_client_for_bucket bucket_name:Text credentials:AWS_Credential =
         . if_nothing credentials.get_default_region.as_java
     builder = ClientBuilder.new java_credential java_region
     builder.buildS3Client
-
-
-## ---
-   private: true
-   ---
-   Utility method for running an action with Java exceptions mapping.
-handle_io_errors uri:URI ~action =
-    Panic.catch IOException action caught_panic->
-        Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text)
 
 ## ---
    private: true
