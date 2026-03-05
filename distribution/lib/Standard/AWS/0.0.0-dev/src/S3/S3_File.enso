@@ -66,7 +66,7 @@ type S3_File
     private Value (s3_path : S3_Path) credentials:AWS_Credential raw_head:Ref
 
     private make_instance s3_path credentials =
-        ref = Ref.new lazy=True value=(S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials)
+        ref = Ref.new lazy=True value=(S3.raw_head s3_path.bucket s3_path.key credentials)
         S3_File.Value s3_path credentials ref
 
     ## ---
@@ -92,7 +92,7 @@ type S3_File
        Returns the current version_id for this S3 file.
     version_id self -> Text | Nothing =
         if self.is_directory then Error.throw (S3_Error.Error "version_id can only be called on files." self.uri) else
-            version = self.raw_head.versionId
+            version = self.raw_head.get.versionId
             if version == "null" then Nothing else version
 
     ## ---
