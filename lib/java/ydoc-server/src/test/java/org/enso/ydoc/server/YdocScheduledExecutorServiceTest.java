@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
@@ -304,6 +305,56 @@ public class YdocScheduledExecutorServiceTest {
 
     // Second task should have executed despite first one throwing
     assertEquals(1, counter.get());
+  }
+
+  @Test
+  public void testScheduledFutureCompareToIsStable() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
+
+    // Schedule tasks with distinct delays so their executeAtNanos values differ
+    ScheduledFuture<?> earlier = service.schedule(() -> {}, 100, TimeUnit.MILLISECONDS);
+    ScheduledFuture<?> later = service.schedule(() -> {}, 200, TimeUnit.MILLISECONDS);
+
+    // Self-comparison must always be 0, regardless of System.nanoTime() drift.
+    // Before the fix, two getDelay() calls inside compareTo could return different
+    // values because each calls System.nanoTime() independently, making
+    // this.compareTo(this) non-zero.
+    for (int i = 0; i < 1000; i++) {
+      assertEquals("self-comparison must be 0 on iteration " + i, 0, earlier.compareTo(earlier));
+      assertEquals("self-comparison must be 0 on iteration " + i, 0, later.compareTo(later));
+    }
+
+    // Relative ordering must be consistent: earlier < later
+    for (int i = 0; i < 1000; i++) {
+      assertTrue(
+          "earlier.compareTo(later) must be negative on iteration " + i,
+          earlier.compareTo(later) < 0);
+      assertTrue(
+          "later.compareTo(earlier) must be positive on iteration " + i,
+          later.compareTo(earlier) > 0);
+    }
+  }
+
+  @Test
+  public void testScheduledCallableCompareToIsStable() throws Exception {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
+
+    ScheduledFuture<String> earlier = service.schedule(() -> "a", 100, TimeUnit.MILLISECONDS);
+    ScheduledFuture<String> later = service.schedule(() -> "b", 200, TimeUnit.MILLISECONDS);
+
+    for (int i = 0; i < 1000; i++) {
+      assertEquals("self-comparison must be 0 on iteration " + i, 0, earlier.compareTo(earlier));
+      assertEquals("self-comparison must be 0 on iteration " + i, 0, later.compareTo(later));
+    }
+
+    for (int i = 0; i < 1000; i++) {
+      assertTrue(
+          "earlier.compareTo(later) must be negative on iteration " + i,
+          earlier.compareTo(later) < 0);
+      assertTrue(
+          "later.compareTo(earlier) must be positive on iteration " + i,
+          later.compareTo(earlier) > 0);
+    }
   }
 
   @Test

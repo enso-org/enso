@@ -231,8 +231,10 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
       if (this == o) {
         return 0;
       }
-      long diff = getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS);
-      return Long.signum(diff);
+      if (o instanceof CancellableTask other) {
+        return Long.compare(this.executeAtNanos, other.executeAtNanos);
+      }
+      return Long.signum(getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS));
     }
 
     @Override
@@ -306,8 +308,10 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
       if (this == o) {
         return 0;
       }
-      long diff = getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS);
-      return Long.signum(diff);
+      if (o instanceof CallableScheduledFuture<?> other) {
+        return Long.compare(this.executeAtNanos, other.executeAtNanos);
+      }
+      return Long.signum(getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS));
     }
 
     @Override
