@@ -67,7 +67,7 @@ type S3_File
 
     private make_instance s3_path credentials =
         ref = Ref.new lazy=True value=(S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials)
-        S3_File.Value s3_path credentials Nothing ref
+        S3_File.Value s3_path credentials ref
 
     ## ---
        icon: metadata
