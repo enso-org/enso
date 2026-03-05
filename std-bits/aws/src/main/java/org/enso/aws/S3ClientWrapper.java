@@ -149,17 +149,29 @@ public class S3ClientWrapper implements AutoCloseable {
     return client.putObject(putObjectRequest, requestBody);
   }
 
-  public DeleteObjectResponse deleteObject(DeleteObjectRequest deleteObjectRequest)
-      throws AwsServiceException, SdkClientException, S3Exception {
-    return client.deleteObject(deleteObjectRequest);
+  public Value deleteObject(String bucket, String key) {
+    try {
+      var request = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
+      var response = client.deleteObject(request);
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, key, exception);
+    }
   }
 
-  public CopyObjectResponse copyObject(CopyObjectRequest copyObjectRequest)
-      throws ObjectNotInActiveTierErrorException,
-          AwsServiceException,
-          SdkClientException,
-          S3Exception {
-    return client.copyObject(copyObjectRequest);
+  public Value copyObject(String destinationBucket, String destinationKey, String sourceBucket, String sourceKey) {
+    try {
+      var request = CopyObjectRequest.builder()
+              .destinationBucket(destinationBucket)
+              .destinationKey(destinationKey)
+              .sourceBucket(sourceBucket)
+              .sourceKey(sourceKey)
+              .build();
+      var response = client.copyObject(request);
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(sourceBucket, sourceKey, exception);
+    }
   }
 
   @Override

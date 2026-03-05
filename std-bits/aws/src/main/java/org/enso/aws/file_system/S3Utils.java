@@ -8,8 +8,6 @@ import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -100,22 +98,8 @@ public class S3Utils {
     };
   }
 
-  public static DeleteObjectRequest delete_object_request(String bucket, String key) {
-    return DeleteObjectRequest.builder().bucket(bucket).key(key).build();
-  }
-
   public static GetObjectRequest get_object_request(String bucket, String key) {
     return GetObjectRequest.builder().bucket(bucket).key(key).build();
-  }
-
-  public static CopyObjectRequest copy_object_request(
-      String destinationBucket, String destinationKey, String sourceBucket, String sourceKey) {
-    return CopyObjectRequest.builder()
-        .destinationBucket(destinationBucket)
-        .destinationKey(destinationKey)
-        .sourceBucket(sourceBucket)
-        .sourceKey(sourceKey)
-        .build();
   }
 
   public static PutObjectRequest put_object_request(String bucket, String key) {

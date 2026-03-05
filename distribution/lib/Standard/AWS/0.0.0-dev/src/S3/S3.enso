@@ -197,7 +197,7 @@ put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credentia
 ## ---
    private: true
    ---
-upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=bucket key=key <|
+upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Credential=..Default = _handle_s3_errors bucket=bucket key=key <|
     request_body = Request_Body.from_local_file local_file
     put_object bucket key credentials request_body
 
@@ -205,20 +205,16 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Cre
    private: true
    ---
    Deletes the object. It will not raise any errors if the object does not exist.
-delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=bucket key=key <|
+delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=..Default =
     client = _make_client_for_bucket bucket credentials
-    request = S3Utils.delete_object_request bucket key
-    client.deleteObject request . if_not_error Nothing
+    client.deleteObject bucket key . if_not_error Nothing
 
 ## ---
    private: true
    ---
-copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = _handle_s3_errors bucket=source_bucket key=source_key <|
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=..Default =
     client = _make_client_for_bucket source_bucket credentials
-    request = S3Utils.copy_object_request target_bucket target_key source_bucket source_key
-    client.copyObject request . if_not_error Nothing
-
-
+    client.copyObject target_bucket target_key source_bucket source_key . if_not_error Nothing
 
 ## ---
    private: true
