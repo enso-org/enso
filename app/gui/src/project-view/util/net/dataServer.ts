@@ -75,7 +75,12 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         return
       }
       const binaryMessage = OutboundMessage.getRootAsOutboundMessage(
-        new ByteBuffer(rawPayload.buffer),
+        new ByteBuffer(
+          rawPayload.buffer.slice(
+            rawPayload.byteOffset,
+            rawPayload.byteOffset + rawPayload.byteLength,
+          ),
+        ),
       )
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
