@@ -603,7 +603,7 @@ type S3_File
     size : Integer
     size self = if self.is_data_link then _s3_file_as_data_link self . size else
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
-            content_length = _translate_file_errors self self.raw_head.contentLength
+            content_length = _translate_file_errors self self.raw_head.get.contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
     ## ---
@@ -645,7 +645,7 @@ type S3_File
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
-            instant = _translate_file_errors self self.raw_head.lastModified
+            instant = _translate_file_errors self self.raw_head.get.lastModified
             if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
                 instant.at_time_zone Time_Zone.system
 
