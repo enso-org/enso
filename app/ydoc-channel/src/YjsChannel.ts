@@ -268,7 +268,9 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    * Queries the ObservableV2 internal observer map for a live count.
    */
   private hasActiveEventListeners(): boolean {
-    const observers = (this as any)._observers as Map<string, Set<Function>> | undefined
+    const observers = (this as any)._observers as
+      | Map<string, Set<(...args: any[]) => void>>
+      | undefined
     return (observers?.get('message')?.size ?? 0) > 0
   }
 
