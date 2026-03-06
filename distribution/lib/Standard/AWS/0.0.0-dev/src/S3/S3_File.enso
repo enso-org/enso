@@ -92,8 +92,9 @@ type S3_File
        Returns the current version_id for this S3 file.
     version_id self -> Text | Nothing =
         if self.is_directory then Error.throw (S3_Error.Error "version_id can only be called on files." self.uri) else
-            version = self.raw_head.get.versionId
-            if version == "null" then Nothing else version
+            if self.internal_version_id != "" then self.internal_version_id else
+                version = self.raw_head.get.versionId
+                if version == "null" then Nothing else version
 
     ## ---
        icon: metadata
@@ -104,7 +105,7 @@ type S3_File
         if self.is_directory then Error.throw (S3_Error.Error "versions can only be called on files." self.uri) else
             versions = S3.list_object_versions self.s3_path.bucket self.s3_path.key self.credentials
             versions.map version_id->
-                ref = Ref.new lazy=True value=(S3.raw_head s3_path.bucket s3_path.key version_id credentials)
+                ref = Ref.new lazy=True value=(S3.raw_head self.s3_path.bucket self.s3_path.key version_id self.credentials)
                 S3_File.Value self.s3_path self.credentials version_id ref
 
     ## ---
@@ -138,7 +139,7 @@ type S3_File
                                 result = tmp_file.with_output_stream [File_Access.Write] action
                                 # Only proceed if the write succeeded
                                 result.if_not_error <|
-                                    (_translate_file_errors self <| S3.upload_file tmp_file self.s3_path.bucket self.s3_path.key self.credentials) . if_not_error <|
+                                    (_translate_file_errors self <| S3.put_object self.s3_path.bucket self.s3_path.key tmp_file self.credentials) . if_not_error <|
                                         result
 
     ## ---
@@ -771,14 +772,15 @@ type S3_File
        ---
        Convert to a display representation of this S3_File.
     to_display_text : Text
-    to_display_text self = "S3_File {" + self.to_text + "}"
+    to_display_text self = "S3_File {" + self.to_text + "}" + (if self.internal_version_id == "" then "" else "@" + self.internal_version_id)
 
     ## ---
        private: true
        ---
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "S3_File"], ["uri", self.uri]]
+        version_pair = if self.internal_version_id == "" then [] else [["version_id", self.internal_version_id]]
+        JS_Object.from_pairs ([["type", "S3_File"], ["uri", self.uri]] + version_pair)
 
 ## ---
    private: true

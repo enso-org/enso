@@ -32,8 +32,7 @@ polyglot java import org.enso.aws.S3ClientWrapper
     - If the credentials are invalid or access to S3 is denied, then an
       `AWS_SDK_Error` will be raised.
 @credentials AWS_Credential.default_widget
-list_buckets : AWS_Credential -> Vector Text ! S3_Error
-list_buckets credentials:AWS_Credential=..Default =
+list_buckets credentials:AWS_Credential=..Default -> Vector Text ! S3_Error =
     client = _make_client credentials
 
     buckets = client.listBuckets
@@ -64,8 +63,7 @@ list_buckets credentials:AWS_Credential=..Default =
       `More_Records_Available` warning is attached to the result.
 @bucket (Text_Input display=..Always)
 @credentials AWS_Credential.default_widget
-list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector S3_File ! S3_Error
-list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" credentials:AWS_Credential=..Default max_count:Integer=1000 =
+list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" credentials:AWS_Credential=..Default max_count:Integer=1000 -> Vector S3_File ! S3_Error =
     names = read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
     names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
 
@@ -80,7 +78,10 @@ list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" cr
     - `key`: the key of the object.
     - `credentials`: AWS credentials. If not provided, the default credentials
       will be used.
-list_object_versions bucket:Text key:Text credentials:AWS_Credential=..Default -> Vector Text =
+@bucket (Text_Input display=..Always)
+@key (Text_Input display=..Always)
+@credentials AWS_Credential.default_widget
+list_object_versions (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") credentials:AWS_Credential=..Default -> Vector Text =
     client = _make_client_for_bucket bucket credentials
 
     response = client.listObjectVersions bucket key
@@ -101,8 +102,10 @@ list_object_versions bucket:Text key:Text credentials:AWS_Credential=..Default -
        string is provided, the latest version will be fetched.
     - `credentials`: AWS credentials. If not provided, the default credentials
       will be used.
-    - `delimiter`: The delimiter to use for deducing the filename from the path.
-get_object bucket:Text key:Text version_id:Text="" credentials:AWS_Credential=..Default delimiter:Text="/" -> Response_Body ! S3_Error =
+@bucket (Text_Input display=..Always)
+@key (Text_Input display=..Always)
+@credentials AWS_Credential.default_widget
+get_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") version_id:Text="" credentials:AWS_Credential=..Default -> Response_Body ! S3_Error =
     client = _make_client_for_bucket bucket credentials
     response = client.getObject bucket key version_id
     _wrap_response bucket key response
@@ -115,7 +118,7 @@ get_object bucket:Text key:Text version_id:Text="" credentials:AWS_Credential=..
 
    ## Arguments
     - `bucket`: the name of the bucket.
-    - `prefix`: the prefix of keys to match.
+    - `key`: the prefix of keys to match.
     - `credentials`: The credentials to use to access the S3 bucket. If not
       specified, the default credentials are used.
 
@@ -129,11 +132,50 @@ get_object bucket:Text key:Text version_id:Text="" credentials:AWS_Credential=..
     - If the object does not exist, an `S3_Key_Not_Found` error is thrown.
 @bucket (Text_Input display=..Always)
 @credentials AWS_Credential.default_widget
-head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
-head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:AWS_Credential=..Default =
+head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:AWS_Credential=..Default -> Dictionary Text Any ! S3_Error =
     response = raw_head bucket key "" credentials
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Dictionary.from_vector pairs
+
+## ---
+   advanced: true
+   icon: data_output
+   ---
+   Puts an object or text onto S3. Returns the metadata of the uploaded object.
+
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `key`: the key of the object.
+    - `credentials`: AWS credentials. If not provided, the default credentials
+      will be used.
+    - `body`: the content to upload, either as a File or as Text. If an S3_File is provided then will use the
+       copy_object. This allows for copying objects within S3 without downloading them first, which is more efficient.
+@bucket (Text_Input display=..Always)
+@key (Text_Input display=..Always)
+@credentials AWS_Credential.default_widget
+put_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") (body:(S3_File | File_Like | Text) = Missing_Argument.throw "body") credentials:AWS_Credential=..Default -> S3_File =
+    result = if body.is_a S3_File then S3.copy_object bucket key body.bucket body.key credentials else
+        client = _make_client_for_bucket bucket credentials
+        if body.is_a Text then client.putObjectFromText bucket key body else
+            Data_Link_Helpers.as_file body file->
+                client.putObjectFromFile bucket key file.path
+    Error.return_if_error result
+    S3_File.new "s3://"+bucket+"/"+key credentials
+
+## ---
+   private: true
+   ---
+   Deletes the object. It will not raise any errors if the object does not exist.
+delete_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") credentials:AWS_Credential=..Default =
+    client = _make_client_for_bucket bucket credentials
+    client.deleteObject bucket key . if_not_error Nothing
+
+## ---
+   private: true
+   ---
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=..Default =
+    client = _make_client_for_bucket source_bucket credentials
+    client.copyObject target_bucket target_key source_bucket source_key . if_not_error Nothing
 
 ## ---
    private: true
@@ -162,8 +204,7 @@ private raw_head bucket:Text key:Text version_id:Text credentials:AWS_Credential
     - `prefix`: The prefix to use when searching for keys to return.
     - `credentials`: The credentials for the AWS resource.
     - `delimiter`: The delimiter used to deduce common prefixes.
-read_bucket : Text -> Text -> AWS_Credential -> Integer -> Text -> Pair Vector Vector ! S3_Error
-read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 =
+read_bucket bucket:Text prefix:Text="" credentials:AWS_Credential=..Default delimiter:Text="/" max_count:Integer=1000 -> Pair Vector Vector ! S3_Error =
     client = _make_client_for_bucket bucket credentials
 
     result = client.readBucket bucket prefix delimiter max_count
@@ -171,42 +212,6 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
 
     pair = Pair.new result.prefixes result.keys
     if result.finished then pair else Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") pair
-
-## ---
-   private: true
-   ---
-   Puts an object or text onto S3. Returns the metadata of the uploaded object.
-
-   ## Arguments
-    - `bucket`: the name of the bucket.
-    - `key`: the key of the object.
-    - `credentials`: AWS credentials. If not provided, the default credentials
-      will be used.
-    - `body`: the content to upload, either as a File or as Text. If an S3_File is provided then will use the
-       copy_object. This allows for copying objects within S3 without downloading them first, which is more efficient.
-put_object (bucket : Text) (key : Text) body:(S3_File | File_Like | Text) credentials:AWS_Credential=..Default -> S3_File =
-    result = if body.is_a S3_File then S3.copy_object bucket key body.bucket body.key credentials else
-        client = _make_client_for_bucket bucket credentials
-        if body.is_a Text then client.putObjectFromText bucket key body else
-            Data_Link_Helpers.as_file body file->
-                client.putObjectFromFile bucket key file.path
-    Error.return_if_error result
-    S3_File.new "s3://"+bucket+"/"+key credentials
-
-## ---
-   private: true
-   ---
-   Deletes the object. It will not raise any errors if the object does not exist.
-delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=..Default =
-    client = _make_client_for_bucket bucket credentials
-    client.deleteObject bucket key . if_not_error Nothing
-
-## ---
-   private: true
-   ---
-copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=..Default =
-    client = _make_client_for_bucket source_bucket credentials
-    client.copyObject target_bucket target_key source_bucket source_key . if_not_error Nothing
 
 ## ---
    private: true
@@ -231,7 +236,7 @@ private _wrap_response bucket key response =
     inner_response = response.response
     content_type = inner_response.contentType
     name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
-        key.split delimiter . last
+        key.split "/" . last
     metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
 
     handler ~action = Panic.catch IOException action caught_panic->

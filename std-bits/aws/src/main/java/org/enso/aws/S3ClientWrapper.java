@@ -79,7 +79,7 @@ public class S3ClientWrapper implements AutoCloseable {
   public Value headObject(String bucket, String key, String versionId) {
     try {
       var request = HeadObjectRequest.builder().bucket(bucket).key(key);
-      if  (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
+      if (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
         request = request.versionId(versionId);
       }
       var response = client.headObject(request.build());
@@ -140,7 +140,7 @@ public class S3ClientWrapper implements AutoCloseable {
   public Value getObject(String bucket, String key, String versionId) {
     try {
       var request = GetObjectRequest.builder().bucket(bucket).key(key);
-      if  (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
+      if (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
         request = request.versionId(versionId);
       }
 
