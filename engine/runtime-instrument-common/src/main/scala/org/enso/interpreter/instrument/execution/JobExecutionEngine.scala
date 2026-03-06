@@ -172,7 +172,7 @@ final class JobExecutionEngine(
         runInternal(job, backgroundJobExecutor, backgroundJobsRef, "background")
       } else {
         job match {
-          case _: SkipSchedulingUniqueJob[_] =>
+          case _: SkipSchedulingUniqueJob =>
             if (hasDuplicateInDelayedQueue(job.asInstanceOf[UniqueJob[_]])) {
               logger.trace(
                 "Skipping duplicate delayed background job [{}].",
@@ -211,7 +211,7 @@ final class JobExecutionEngine(
     runningJobsRef: AtomicReference[Vector[RunningJob]]
   ): Boolean = {
     job match {
-      case _: SkipSchedulingUniqueJob[_] =>
+      case _: SkipSchedulingUniqueJob =>
         hasDuplicateJob(job.asInstanceOf[UniqueJob[_]], runningJobsRef)
       case _ =>
         cancelDuplicateJobs(job, runningJobsRef)

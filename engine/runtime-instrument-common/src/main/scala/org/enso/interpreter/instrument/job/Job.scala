@@ -77,4 +77,4 @@ trait UniqueJob[A] { self: Job[A] =>
   * [[UniqueJob]] which cancels previous duplicates, this trait prevents
   * the new job from being scheduled at all.
   */
-trait SkipSchedulingUniqueJob[A] { self: UniqueJob[A] => }
+trait SkipSchedulingUniqueJob { self: UniqueJob[java.lang.Void] => }
