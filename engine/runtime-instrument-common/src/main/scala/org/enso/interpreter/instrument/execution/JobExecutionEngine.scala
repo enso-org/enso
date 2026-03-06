@@ -192,15 +192,16 @@ final class JobExecutionEngine(
     }
 
   /** @inheritdoc */
-  override def run[A](job: Job[A]): Future[A] = {
-    if (handleDuplicateJobs(job, runningJobsRef)) {
-      logger.trace("Skipping duplicate job [{}].", job)
-      return Future.successful(null.asInstanceOf[A])
+  override def run[A](job: Job[A]): Future[A] =
+    synchronized {
+      if (handleDuplicateJobs(job, runningJobsRef)) {
+        logger.trace("Skipping duplicate job [{}].", job)
+        return Future.successful(null.asInstanceOf[A])
+      }
+      val executor =
+        if (job.highPriority) highPriorityJobExecutor else jobExecutor
+      runInternal(job, executor, runningJobsRef, "regular")
     }
-    val executor =
-      if (job.highPriority) highPriorityJobExecutor else jobExecutor
-    runInternal(job, executor, runningJobsRef, "regular")
-  }
 
   /** Returns `true` if the job should be skipped (not scheduled).
     * For [[SkipSchedulingUniqueJob]], checks if a duplicate exists.
