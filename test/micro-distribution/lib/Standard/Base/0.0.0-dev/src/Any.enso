@@ -5,8 +5,8 @@ type Any
     catch self error_type=Any handler=(x->x) =
         _ = error_type
         handler self
-    to_text self = @Builtin_Method "Any.to_text"
-    to_display_text self = @Builtin_Method "Any.to_display_text"
+    to_text self = any_to_text self
+    to_display_text self = any_to_display_text self
     is_error self = False
     == self other = any_equals self other
     != self other = (self == other).not
