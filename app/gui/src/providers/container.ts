@@ -148,12 +148,12 @@ function createContainerStore() {
    */
   function openProjectTab(info: ProjectInfo, userAction = true) {
     const tab: Tab = { type: 'project', id: info.id }
+    const project = openedProjects.openProject(info)
     if (!isTabOpened(tab)) {
-      const project = openedProjects.openProject(info)
       tabs.set(panelKey(tab), tab)
-      if (userAction) {
-        openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
-      }
+    }
+    if (userAction) {
+      openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
     }
   }
 
