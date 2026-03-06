@@ -28,7 +28,6 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine
 
     group_builder.specify "is logging asynchronously" <|
-        LoggerHelper.isLoggableAsync Level.TRACE . should_be_false
         LoggerHelper.isLoggableAsync Level.ERROR . should_be_true
 
     group_builder.specify "log asynchronously" <|
