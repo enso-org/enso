@@ -1,4 +1,4 @@
-package org.enso.aws.file_system;
+package org.enso.aws;
 
 import com.amazonaws.SdkClientException;
 import java.io.IOException;
@@ -8,13 +8,12 @@ import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-public class S3Utils {
-  private S3Utils() {}
+class AwsExceptionWrapper {
+  private AwsExceptionWrapper() {}
 
   /**
    * Executes the given action and handles any exceptions that may occur during S3 operations.
@@ -95,9 +94,5 @@ public class S3Utils {
               "s3://" + bucket + "/" + key);
       default -> null;
     };
-  }
-
-  public static GetObjectRequest get_object_request(String bucket, String key) {
-    return GetObjectRequest.builder().bucket(bucket).key(key).build();
   }
 }

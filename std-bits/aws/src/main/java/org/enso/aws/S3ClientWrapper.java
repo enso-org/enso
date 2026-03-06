@@ -3,11 +3,9 @@ package org.enso.aws;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.aws.file_system.S3Utils;
 import org.enso.aws.regions.AWSRegion;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -40,7 +38,7 @@ public class S3ClientWrapper implements AutoCloseable {
       var array = response.buckets().stream().map(Bucket::name).toArray(String[]::new);
       return Value.asValue(array);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError("", "", exception);
+      return AwsExceptionWrapper.handleS3ClientError("", "", exception);
     }
   }
 
@@ -59,7 +57,7 @@ public class S3ClientWrapper implements AutoCloseable {
               .toArray(String[]::new);
       return Value.asValue(array);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, key, exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
     }
   }
 
@@ -68,7 +66,7 @@ public class S3ClientWrapper implements AutoCloseable {
       var response = headBucketInternal(bucket);
       return Value.asValue(response);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, "", exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, "", exception);
     }
   }
 
@@ -78,13 +76,16 @@ public class S3ClientWrapper implements AutoCloseable {
     return client.headBucket(request);
   }
 
-  public Value headObject(String bucket, String key) {
+  public Value headObject(String bucket, String key, String versionId) {
     try {
-      var request = HeadObjectRequest.builder().bucket(bucket).key(key).build();
-      var response = client.headObject(request);
+      var request = HeadObjectRequest.builder().bucket(bucket).key(key);
+      if  (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
+        request = request.versionId(versionId);
+      }
+      var response = client.headObject(request.build());
       return Value.asValue(response);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, key, exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
     }
   }
 
@@ -132,17 +133,22 @@ public class S3ClientWrapper implements AutoCloseable {
 
       return Value.asValue(new ReadBucketResult(keys, prefixes, finished));
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, prefix, exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, prefix, exception);
     }
   }
 
-  public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest)
-      throws NoSuchKeyException,
-          InvalidObjectStateException,
-          AwsServiceException,
-          SdkClientException,
-          S3Exception {
-    return client.getObject(getObjectRequest);
+  public Value getObject(String bucket, String key, String versionId) {
+    try {
+      var request = GetObjectRequest.builder().bucket(bucket).key(key);
+      if  (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
+        request = request.versionId(versionId);
+      }
+
+      var response = client.getObject(request.build());
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
+    }
   }
 
   public Value putObjectFromText(String bucket, String key, String content) {
@@ -151,7 +157,7 @@ public class S3ClientWrapper implements AutoCloseable {
       var response = innerPutObject(bucket, key, body);
       return Value.asValue(response);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, key, exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
     }
   }
 
@@ -161,7 +167,7 @@ public class S3ClientWrapper implements AutoCloseable {
       var response = innerPutObject(bucket, key, body);
       return Value.asValue(response);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, key, exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
     }
   }
 
@@ -182,7 +188,7 @@ public class S3ClientWrapper implements AutoCloseable {
       var response = client.deleteObject(request);
       return Value.asValue(response);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(bucket, key, exception);
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
     }
   }
 
@@ -199,7 +205,7 @@ public class S3ClientWrapper implements AutoCloseable {
       var response = client.copyObject(request);
       return Value.asValue(response);
     } catch (Exception exception) {
-      return S3Utils.handleS3ClientError(sourceBucket, sourceKey, exception);
+      return AwsExceptionWrapper.handleS3ClientError(sourceBucket, sourceKey, exception);
     }
   }
 

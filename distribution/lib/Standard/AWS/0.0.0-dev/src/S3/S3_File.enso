@@ -63,11 +63,11 @@ type S3_File
     ## ---
        private: true
        ---
-    private Value (s3_path : S3_Path) credentials:AWS_Credential raw_head:Ref
+    private Value (s3_path : S3_Path) credentials:AWS_Credential internal_version_id:Text raw_head:Ref
 
     private make_instance s3_path credentials =
-        ref = Ref.new lazy=True value=(S3.raw_head s3_path.bucket s3_path.key credentials)
-        S3_File.Value s3_path credentials ref
+        ref = Ref.new lazy=True value=(S3.raw_head s3_path.bucket s3_path.key "" credentials)
+        S3_File.Value s3_path credentials "" ref
 
     ## ---
        icon: metadata
@@ -100,9 +100,12 @@ type S3_File
        group: Standard.Base.Metadata
        ---
        Returns the list of versions for this S3 file.
-    versions self -> Vector (Text | Nothing) =
+    versions self -> Vector S3_File =
         if self.is_directory then Error.throw (S3_Error.Error "versions can only be called on files." self.uri) else
-            S3.list_object_versions self.s3_path.bucket self.s3_path.key self.credentials
+            versions = S3.list_object_versions self.s3_path.bucket self.s3_path.key self.credentials
+            versions.map version_id->
+                ref = Ref.new lazy=True value=(S3.raw_head s3_path.bucket s3_path.key version_id credentials)
+                S3_File.Value self.s3_path self.credentials version_id ref
 
     ## ---
        private: true
@@ -137,7 +140,6 @@ type S3_File
                                 result.if_not_error <|
                                     (_translate_file_errors self <| S3.upload_file tmp_file self.s3_path.bucket self.s3_path.key self.credentials) . if_not_error <|
                                         result
-
 
     ## ---
        private: true

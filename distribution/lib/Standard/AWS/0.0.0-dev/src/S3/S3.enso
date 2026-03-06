@@ -13,7 +13,7 @@ import project.Errors.More_Records_Available
 import project.Errors.S3_Error
 import project.S3.S3_File.S3_File
 
-polyglot java import org.enso.aws.file_system.S3Utils
+polyglot java import java.io.IOException
 polyglot java import org.enso.aws.S3ClientWrapper
 
 ## ---
@@ -89,7 +89,6 @@ list_object_versions bucket:Text key:Text credentials:AWS_Credential=..Default -
     Vector.from_polyglot_array response
 
 ## ---
-   private: true
    advanced: true
    icon: data_input
    ---
@@ -98,31 +97,15 @@ list_object_versions bucket:Text key:Text credentials:AWS_Credential=..Default -
    ## Arguments
     - `bucket`: the name of the bucket.
     - `key`: the key of the object.
+    - `version_id`: the version of the object to get. If `Nothing` or an empty
+       string is provided, the latest version will be fetched.
     - `credentials`: AWS credentials. If not provided, the default credentials
       will be used.
     - `delimiter`: The delimiter to use for deducing the filename from the path.
-get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
-get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = _handle_s3_errors bucket=bucket key=key <|
-    request = S3Utils.get_object_request bucket key
-
+get_object bucket:Text key:Text version_id:Text="" credentials:AWS_Credential=..Default delimiter:Text="/" -> Response_Body ! S3_Error =
     client = _make_client_for_bucket bucket credentials
-    response = client.getObject request
-
-    inner_response = response.response
-    s3_uri = URI.parse (uri_prefix + bucket + "/") / key
-    content_type = inner_response.contentType
-    name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
-        key.split delimiter . last
-    metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
-
-    handler ~action =
-        wrapped b k =
-            _ = [b, k]
-            action
-        S3Utils.handleExceptions bucket key wrapped
-
-    input_stream = Input_Stream.new response handler
-    Response_Body.Raw_Stream input_stream metadata s3_uri
+    response = client.getObject bucket key version_id
+    _wrap_response bucket key response
 
 ## ---
    advanced: true
@@ -148,7 +131,7 @@ get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimite
 @credentials AWS_Credential.default_widget
 head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
 head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:AWS_Credential=..Default =
-    response = raw_head bucket key credentials
+    response = raw_head bucket key "" credentials
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Dictionary.from_vector pairs
 
@@ -160,11 +143,13 @@ head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:A
    ## Arguments
     - `bucket`: the name of the bucket.
     - `key`: the key of the object.
+    - `version_id`: the version of the object to get. If `Nothing` or an empty
+       string is provided, the latest version will be fetched.
     - `credentials`: AWS credentials.
-private raw_head bucket:Text key:Text credentials:AWS_Credential =
+private raw_head bucket:Text key:Text version_id:Text credentials:AWS_Credential =
     client = _make_client_for_bucket bucket credentials
     if key == "" then client.headBucket bucket else
-        client.headObject bucket key
+        client.headObject bucket key version_id
 
 ## ---
    private: true
@@ -226,15 +211,6 @@ copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (t
 ## ---
    private: true
    ---
-private _handle_s3_errors ~action bucket:Text="" key:Text="" -> Any ! S3_Error | AWS_SDK_Error =
-    wrapped b k =
-        _ = [b, k]
-        action
-    S3Utils.handleExceptions wrapped bucket key
-
-## ---
-   private: true
-   ---
    Makes a client for the default region.
 private _make_client credentials:AWS_Credential -> S3ClientWrapper =
     region = credentials.get_default_region.as_java
@@ -249,6 +225,20 @@ private _make_client credentials:AWS_Credential -> S3ClientWrapper =
 private _make_client_for_bucket bucket_name:Text credentials:AWS_Credential -> S3ClientWrapper =
     java_credential = credentials.as_java
     S3ClientWrapper.forBucket java_credential bucket_name credentials.get_default_region.as_java
+
+private _wrap_response bucket key response =
+    s3_uri = URI.parse (uri_prefix + bucket + "/") / key
+    inner_response = response.response
+    content_type = inner_response.contentType
+    name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
+        key.split delimiter . last
+    metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
+
+    handler ~action = Panic.catch IOException action caught_panic->
+        Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) s3_uri.to_text)
+
+    input_stream = Input_Stream.new response handler
+    Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## ---
    private: true
