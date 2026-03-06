@@ -109,6 +109,20 @@ type S3_File
                 S3_File.Value self.s3_path self.credentials version_id ref
 
     ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Gets a presigned URI for the S3_File
+
+       ## Arguments
+       - `duration`: the duration for which the presigned URL will be valid. The
+          default is 1 minute.
+    @duration Duration.default_widget
+    presigned_uri self duration:Duration=(Duration.from_minutes 1) -> URI ! S3_Error | Illegal_Argument =
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Presigned URI cannot be generated for a directory." self.uri) else
+            S3.presigned_url self.s3_path.bucket self.s3_path.key self.internal_version_id self.credentials duration
+
+    ## ---
        private: true
        advanced: true
        ---

@@ -68,6 +68,7 @@ list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" cr
     names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
 
 ## ---
+   private: true
    advanced: true
    icon: data_input
    ---
@@ -90,6 +91,7 @@ list_object_versions (bucket : Text = Missing_Argument.throw "bucket") (key : Te
     Vector.from_polyglot_array response
 
 ## ---
+   private: true
    advanced: true
    icon: data_input
    ---
@@ -109,6 +111,35 @@ get_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missi
     client = _make_client_for_bucket bucket credentials
     response = client.getObject bucket key version_id
     _wrap_response bucket key response
+
+## ---
+   private: true
+   advanced: true
+   icon: metadata
+   ---
+   Creates a presigned URL for an object in an S3 bucket. This URL can be used to
+   access the object without requiring AWS credentials, but it will only be valid
+   for a limited time.
+
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `key`: the key of the object.
+    - `version_id`: the version of the object to get. If `Nothing` or an empty
+       string is provided, the latest version will be fetched.
+    - `duration`: the duration for which the presigned URL will be valid. The
+      default is 1 minute.
+    - `credentials`: AWS credentials. If not provided, the default credentials
+      will be used.
+@bucket (Text_Input display=..Always)
+@key (Text_Input display=..Always)
+@duration Duration.default_widget
+@credentials AWS_Credential.default_widget
+presigned_url (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") version_id:Text="" duration:Duration=(Duration.of_minutes 1) credentials:AWS_Credential=..Default -> URI ! S3_Error =
+    client = _make_client_for_bucket bucket credentials
+    seconds = (duration.total_seconds / 1000.0) . floor
+    presigned = client.signedUri bucket key version_id seconds
+    Error.return_if_error presigned
+    URI.parse presigned
 
 ## ---
    advanced: true

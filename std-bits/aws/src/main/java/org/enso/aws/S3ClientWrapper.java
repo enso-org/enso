@@ -1,6 +1,7 @@
 package org.enso.aws;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.aws.regions.AWSRegion;
@@ -10,6 +11,8 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 public class S3ClientWrapper implements AutoCloseable {
   S3Client client;
@@ -206,6 +209,27 @@ public class S3ClientWrapper implements AutoCloseable {
       return Value.asValue(response);
     } catch (Exception exception) {
       return AwsExceptionWrapper.handleS3ClientError(sourceBucket, sourceKey, exception);
+    }
+  }
+
+  public Value signedUri(String bucket, String key, String versionId, int expirationSeconds) {
+    try {
+      var request = GetObjectRequest.builder().bucket(bucket).key(key);
+      if (versionId != null && !versionId.equals("null") && !versionId.isEmpty()) {
+        request = request.versionId(versionId);
+      }
+
+      var presignRequest =
+          GetObjectPresignRequest.builder()
+              .signatureDuration(Duration.ofSeconds(expirationSeconds))
+              .getObjectRequest(request.build());
+
+      try (var presigner = S3Presigner.builder().s3Client(client).build()) {
+        var presignResponse = presigner.presignGetObject(presignRequest.build());
+        return Value.asValue(presignResponse.url().toExternalForm());
+      }
+    } catch (Exception exception) {
+      return AwsExceptionWrapper.handleS3ClientError(bucket, key, exception);
     }
   }
 
