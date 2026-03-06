@@ -118,9 +118,9 @@ type S3_File
        - `duration`: the duration for which the presigned URL will be valid. The
           default is 1 minute.
     @duration Duration.default_widget
-    presigned_uri self duration:Duration=(Duration.from_minutes 1) -> URI ! S3_Error | Illegal_Argument =
+    presigned_uri self duration:Duration=(Duration.of_minutes 1) -> URI ! S3_Error | Illegal_Argument =
         if self.is_directory then Error.throw (Illegal_Argument.Error "Presigned URI cannot be generated for a directory." self.uri) else
-            S3.presigned_url self.s3_path.bucket self.s3_path.key self.internal_version_id self.credentials duration
+            S3.presigned_url self.s3_path.bucket self.s3_path.key self.internal_version_id duration self.credentials
 
     ## ---
        private: true

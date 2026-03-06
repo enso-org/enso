@@ -136,7 +136,7 @@ get_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missi
 @credentials AWS_Credential.default_widget
 presigned_url (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") version_id:Text="" duration:Duration=(Duration.of_minutes 1) credentials:AWS_Credential=..Default -> URI ! S3_Error =
     client = _make_client_for_bucket bucket credentials
-    seconds = (duration.total_seconds / 1000.0) . floor
+    seconds = duration.total_seconds.floor
     presigned = client.signedUri bucket key version_id seconds
     Error.return_if_error presigned
     URI.parse presigned
