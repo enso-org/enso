@@ -1,5 +1,6 @@
 package org.enso.aws;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.aws.file_system.S3Utils;
@@ -144,9 +145,35 @@ public class S3ClientWrapper implements AutoCloseable {
     return client.getObject(getObjectRequest);
   }
 
-  public PutObjectResponse putObject(PutObjectRequest putObjectRequest, RequestBody requestBody)
-      throws AwsServiceException, SdkClientException, S3Exception {
-    return client.putObject(putObjectRequest, requestBody);
+  public Value putObjectFromText(String bucket, String key, String content) {
+    try {
+      var body = RequestBody.fromString(content);
+      var response = innerPutObject(bucket, key, body);
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, key, exception);
+    }
+  }
+
+  public Value putObjectFromFile(String bucket, String key, String filePath) {
+    try {
+      var body = RequestBody.fromFile(Path.of(filePath));
+      var response = innerPutObject(bucket, key, body);
+      return Value.asValue(response);
+    } catch (Exception exception) {
+      return S3Utils.handleS3ClientError(bucket, key, exception);
+    }
+  }
+
+  private PutObjectResponse innerPutObject(String bucket, String key, RequestBody body) {
+    var request = PutObjectRequest.builder().bucket(bucket).key(key);
+    if (body.optionalContentLength().isPresent()) {
+      request = request.contentLength(body.optionalContentLength().get());
+    }
+    if (null != body.contentType() && !body.contentType().isEmpty()) {
+      request = request.contentType(body.contentType());
+    }
+    return client.putObject(request.build(), body);
   }
 
   public Value deleteObject(String bucket, String key) {
