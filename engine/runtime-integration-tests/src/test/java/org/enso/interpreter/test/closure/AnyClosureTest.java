@@ -11,7 +11,8 @@ public final class AnyClosureTest extends TransitiveInfra {
 
   @Override
   protected String code() {
-    var code = """
+    var code =
+        """
         import Standard.Base.Any.Any
         main = Any
         """;

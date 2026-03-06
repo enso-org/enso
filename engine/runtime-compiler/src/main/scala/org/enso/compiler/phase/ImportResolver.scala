@@ -38,10 +38,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     val logger = org.slf4j.LoggerFactory.getLogger(getClass())
 
     def analyzeModule(current: Module): List[Module] = {
-      if (current.getName().toString().contains("Data.Text")) {
-        System.err.println("Now!!!!")
-        java.lang.Thread.sleep(100);
-      }
+      logger.trace("ANALYZE of {}", current.getName().toString())
 
       val context = compiler.context
       val (ir, currentLocal) =
@@ -120,7 +117,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         targetModules
       }.distinct
 
-      logger.debug(
+      logger.trace(
         "TRANSITIVE of {} is {}",
         current.getName(),
         mods.map(_.getName()).toArray

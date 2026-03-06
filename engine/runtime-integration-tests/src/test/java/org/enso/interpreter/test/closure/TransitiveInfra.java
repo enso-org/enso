@@ -34,6 +34,17 @@ public abstract class TransitiveInfra {
     var log = new StringBuilder();
     Consumer<ObservedMessage> observe =
         (msg) -> {
+          if (msg.getMessage().startsWith("ANALYZE")) {
+            var moduleName = msg.getArguments().get(0).toString();
+            if (moduleName.contains("Data.Text")) {
+              System.err.println("Now!!!! analyzing: " + moduleName);
+              try {
+                java.lang.Thread.sleep(100);
+              } catch (InterruptedException ex) {
+                throw new IllegalStateException(ex);
+              }
+            }
+          }
           if (msg.getMessage().startsWith("TRANSITIVE")) {
             counters[0]++;
             log.append(msg.getFormattedMessage()).append("\n");
