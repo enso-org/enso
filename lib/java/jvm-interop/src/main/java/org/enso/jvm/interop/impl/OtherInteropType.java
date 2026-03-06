@@ -106,7 +106,7 @@ final class OtherInteropType {
     if (iop.isMetaObject(obj)) {
       return IS_META_OBJECT;
     }
-    if (iop.isIterator(iop)) {
+    if (iop.isIterator(obj)) {
       return IS_ITERATOR;
     }
     var m = 0x00;
