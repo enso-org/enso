@@ -175,6 +175,7 @@ export function createOpenedProjectsStore() {
       } else {
         console.error(`${process} process interrupted by error.`, { cause: err })
         project.error = Error(`${process} process interrupted by error.`, { cause: err })
+        project.nextTask = undefined
       }
     }
   }

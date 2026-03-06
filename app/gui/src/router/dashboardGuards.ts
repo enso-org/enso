@@ -208,9 +208,9 @@ function fileURLToPath(url: string): string | null {
 
 /** If routing to a view assigned to some tab, open this tab. */
 export async function openTab(to: RouteLocation) {
-  const container = useContainerData()
   switch (to.name) {
     case 'project': {
+      const container = useContainerData()
       if (!isProjectId(to.params.id)) return false
       const id = to.params.id
       const tab: Tab = { type: 'project', id }
@@ -231,6 +231,7 @@ export async function openTab(to: RouteLocation) {
       break
     }
     case 'settings': {
+      const container = useContainerData()
       container.openSettingsTab(false)
     }
   }

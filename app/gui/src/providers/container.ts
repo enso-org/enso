@@ -140,6 +140,12 @@ function createContainerStore() {
     return panelEquals(tab, currentTab.value)
   }
 
+  /**
+   * Add project tab to list if not already opened.
+   *
+   * If tab is added, the project will be opened in backend, and the tab will be opened once
+   * the project loads.
+   */
   function openProjectTab(info: ProjectInfo, userAction = true) {
     const tab: Tab = { type: 'project', id: info.id }
     if (!isTabOpened(tab)) {
@@ -185,6 +191,7 @@ function createContainerStore() {
     }
   }
 
+  /** Add settings tab to list if missing, and open it. */
   function openSettingsTab(userAction = true) {
     const tab: Tab = { type: 'settings' }
     if (!isTabOpened(tab)) {
@@ -195,6 +202,7 @@ function createContainerStore() {
     }
   }
 
+  /** Close given tab. The project will be closed in backend too. */
   function closeTab(tab: Tab) {
     const key = panelKey(tab)
     const removed = tabs.delete(key)
@@ -208,10 +216,17 @@ function createContainerStore() {
     }
   }
 
+  /** Close current tab. See {@link closeTab} */
   function closeCurrentTab() {
     if (currentTab.value != null) closeTab(currentTab.value)
   }
 
+  /**
+   * Set currently focused panel
+   *
+   * This is different from browser's focus. It decides what is displayed in the Right Panel,
+   * and what shortcuts will be handled in case of conflict.
+   */
   function setFocusedPanel(panel: Opt<Panel>) {
     const newPanel = panel ?? DEFAULT_FOCUS
     if (!panelEquals(newPanel, focusedPanel.value)) {
