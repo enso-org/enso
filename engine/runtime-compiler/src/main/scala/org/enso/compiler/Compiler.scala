@@ -723,12 +723,7 @@ class Compiler(
 
     val exprWithModuleExports =
       if (module.isSynthetic())
-        if (module.getName().toString().equals("Standard.Base.Errors")) {
-          System.err.println("Erasing list of imports and exports")
-          expr.copyWithImportsAndExports(imports = List(), exports = List())
-        } else {
-          expr
-        }
+        expr
       else
         injectSyntheticModuleExports(
           module.getName().toString(),
@@ -858,7 +853,7 @@ class Compiler(
     *   import project.A.B.C
     *   export project.A.B.C
     * ````
-    *
+    * @param n name of module providing the IR
     * @param ir IR to be enhanced
     * @param modules fully qualified names of modules
     * @return enhanced
@@ -869,17 +864,7 @@ class Compiler(
     modules: java.util.List[QualifiedName]
   ): IRModule = {
     import scala.jdk.CollectionConverters._
-
-    if (
-      "Standard.Base.Data.Text".equals(n) ||
-      "Standard.Base.Meta".equals(n) ||
-      "Standard.Base.Errors".equals(n)
-    ) {
-      System.err.println("don't injectSyntheticModuleExports: " + n)
-      return ir
-    }
-    // System.err.println("injectSyntheticModuleExports: " + n)
-
+    n.getClass
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
         List(

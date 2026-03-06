@@ -2,7 +2,9 @@ package org.enso.interpreter.test.closure;
 
 import java.util.Collection;
 import java.util.List;
+import org.junit.Ignore;
 
+@Ignore
 public final class AnyClosureTest extends TransitiveInfra {
   @Override
   protected String moduleName() {

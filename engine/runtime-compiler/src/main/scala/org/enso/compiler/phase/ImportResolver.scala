@@ -198,13 +198,6 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     module: Module,
     resolvedImports: List[BindingsMap.ResolvedImport]
   ): List[(Import, BindingsMap.ResolvedImport)] = {
-    if (
-      "Standard.Base.Data.Text".equals(module.getName()) ||
-      "Standard.Base.Errors".equals(module.getName())
-    ) {
-      System.err.println("empty addSyntheticImports: " + module.getName())
-      return List()
-    }
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
     val curModName          = module.getName.toString
     module.getIr.exports.flatMap {

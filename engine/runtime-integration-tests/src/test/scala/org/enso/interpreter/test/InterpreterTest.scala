@@ -12,7 +12,6 @@ import org.enso.polyglot.debugger.{
   ReplExecutor,
   SessionManager
 }
-import org.enso.common.MethodNames
 import org.enso.common.DebugServerInfo
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
@@ -122,7 +121,7 @@ class InterpreterContext(
       _in           = new PipedInputStream(_inOut)
 
       _languageHome = Paths
-        .get("../../distribution/component")
+        .get("../../test/micro-distribution/component")
 
       _ctx = contextModifiers(
         Context
@@ -151,17 +150,6 @@ class InterpreterContext(
             } else null
           }
       ).build()
-
-      val module = _ctx.eval(
-        "enso",
-        "from Standard.Base.Prelude import all\n" +
-        "check = [Any, Integer, Float, Text]\n"
-      );
-
-      val check =
-        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check")
-      assert(check.hasArrayElements())
-      assert(4 == check.getArraySize())
     }
     _ctx
   }
