@@ -725,7 +725,7 @@ class Compiler(
       if (module.isSynthetic())
         if (module.getName().toString().equals("Standard.Base.Errors")) {
           System.err.println("Erasing list of imports and exports")
-          expr.copy(imports = List(), exports = List())
+          expr.copyWithImportsAndExports(imports = List(), exports = List())
         } else {
           expr
         }
