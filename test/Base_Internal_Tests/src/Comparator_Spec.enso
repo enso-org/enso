@@ -39,10 +39,10 @@ type Attach_Warning
     Value (n : Integer)
     Value2 (n : Integer)
 
-    > self that = Comparable.> self that
-    >= self that = Comparable.>= self that
-    < self that = Comparable.< self that
-    <= self that = Comparable.<= self that
+    > self that = Comparable.> self=self that
+    >= self that = Comparable.>= self=self that
+    < self that = Comparable.< self=self that
+    <= self that = Comparable.<= self=self that
 
 type Attach_Warning_Comparator
     compare (x : Attach_Warning) (y : Attach_Warning) =
@@ -111,6 +111,11 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
             v2 = Attach_Warning.Value 2
             r = v1 == v2
             r
+
+    group_builder.specify "comparator for NaN and 42" <|
+        comp_nan = Comparable.from Number.nan . comparator
+        comp_42 = Comparable.from 42.0 . comparator
+        Meta.is_same_object comp_nan comp_42 . should_be_true
 
 main filter=Nothing =
     suite = Test.build suite_builder->

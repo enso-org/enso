@@ -14,9 +14,9 @@ import java.util.List;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
-import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
@@ -60,7 +60,7 @@ public class MiniPassTraverserTest {
     var root = new MockExpression(null);
     var module = MockModule.createWithSingleMethod(root);
     var miniPass = MockMiniPass.builder().build();
-    MiniIRPass.compile(MockModule.class, module, miniPass);
+    MiniIRPass.compile(Module.class, module, miniPass);
     assertThat(root.isTransformedBy(miniPass), is(true));
   }
 
@@ -175,10 +175,6 @@ public class MiniPassTraverserTest {
     assertThat(visited, containsInAnyOrder(empty1, empty2, caseExpr, branch));
   }
 
-  /**
-   * {@link Operator.Binary} traverses over {@code left} and {@code right}, but not over {@code
-   * operator}.
-   */
   @Test
   public void traverseOver_BinaryOperator() {
     var a = literal("a");
@@ -190,7 +186,7 @@ public class MiniPassTraverserTest {
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, binaryOperator, miniPass);
     var visited = miniPass.getTransformedExpressions();
-    assertThat(visited, containsInAnyOrder(a, b, binaryOperator));
+    assertThat(visited, containsInAnyOrder(a, b, binaryOperator, operator));
   }
 
   @Test

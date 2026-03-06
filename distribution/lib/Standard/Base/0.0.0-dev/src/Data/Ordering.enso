@@ -1,9 +1,9 @@
 import project.Any.Any
-import project.Nothing.Nothing
+import project.Data.Numbers.Integer
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Type_Error
-import project.Data.Numbers.Integer
+import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Ordering_Helpers import all
 
@@ -91,7 +91,6 @@ from project.Internal.Ordering_Helpers import all
        By defining the `Rational_Ordering` and making it available via
        `Comparable.from (that:Rational)` method, all parts of the Enso system will use
        the custom comparator whenever equality or hash code is needed.
-@Builtin_Type
 type Comparable
     ## ---
        private: true
@@ -256,7 +255,6 @@ type Comparable
 Comparable.from (that:Any) = Comparable.new that Default_Comparator
 
 ## Types representing the ordering of values.
-@Builtin_Type
 type Ordering
     ## A representation that the first value orders as less than the second.
     Less

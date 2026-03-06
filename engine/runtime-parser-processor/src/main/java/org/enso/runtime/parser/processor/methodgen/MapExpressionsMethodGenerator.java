@@ -22,6 +22,14 @@ public final class MapExpressionsMethodGenerator {
   private static final String DEF_ARG_CLASS =
       "org.enso.compiler.core.ir.DefinitionArgument.Specified";
   private static final String CALL_ARG_CLASS = "org.enso.compiler.core.ir.CallArgument.Specified";
+  private static final String DEF_TYPE_CLASS =
+      "org.enso.compiler.core.ir.module.scope.Definition.Type";
+  private static final String DEF_DATA_CLASS =
+      "org.enso.compiler.core.ir.module.scope.Definition.Data";
+  private static final String PATTERN_NAME_CLASS = "org.enso.compiler.core.ir.Pattern.Name";
+  private static final String PATTERN_TYPE_CLASS = "org.enso.compiler.core.ir.Pattern.Type";
+  private static final String PATTERN_CONSTRUCTOR_CLASS =
+      "org.enso.compiler.core.ir.Pattern.Constructor";
 
   /**
    * @param mapExpressionsMethod Reference to {@code mapExpressions} method in the interface for
@@ -46,7 +54,7 @@ public final class MapExpressionsMethodGenerator {
 
   public String generateMapExpressionsMethodCode() {
     var sb = new StringBuilder();
-    var subclassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    var subclassType = ctx.getProcessedClassName();
     sb.append(doMapExprCode());
     sb.append(System.lineSeparator());
     sb.append(System.lineSeparator());
@@ -57,7 +65,9 @@ public final class MapExpressionsMethodGenerator {
         .append(" ")
         .append(METHOD_NAME)
         .append("(")
-        .append("java.util.function.Function<Expression, Expression> fn")
+        .append(
+            "java.util.function.Function<org.enso.compiler.core.ir.Expression,"
+                + " org.enso.compiler.core.ir.Expression> fn")
         .append(") {")
         .append(System.lineSeparator());
 
@@ -99,7 +109,7 @@ public final class MapExpressionsMethodGenerator {
                         !typeUtils.isSameType(
                             childTypeParameter.asType(), childsMapExprMethodRetType.asType());
                   }
-                  String newChildType = childsMapExprMethodRetType.getSimpleName().toString();
+                  var newChildType = Utils.qualifiedTypeName(childsMapExprMethodRetType);
 
                   var newChildName = child.getName() + "Mapped";
                   var mapCode =
@@ -135,7 +145,7 @@ public final class MapExpressionsMethodGenerator {
     if (newChildren.isEmpty()) {
       sb.append("  return ")
           .append("(")
-          .append(ctx.getProcessedClass().getClazz().getSimpleName().toString())
+          .append(ctx.getProcessedClassName())
           .append(") this;")
           .append(System.lineSeparator());
       sb.append("}").append(System.lineSeparator());
@@ -159,7 +169,7 @@ public final class MapExpressionsMethodGenerator {
             .append("if (!(")
             .append(newChild.newChildName)
             .append(" instanceof ")
-            .append(newChild.child.getSimpleTypeName())
+            .append(newChild.child.getQualifiedTypeName())
             .append(")) {")
             .append(System.lineSeparator());
         sb.append("      ")
@@ -173,7 +183,7 @@ public final class MapExpressionsMethodGenerator {
       }
       sb.append("    ").append("bldr.").append(newChild.child.getName()).append("(");
       if (newChild.shouldCast) {
-        sb.append("(").append(newChild.child.getSimpleTypeName()).append(") ");
+        sb.append("(").append(newChild.child.getQualifiedTypeName()).append(") ");
       }
       sb.append(newChild.newChildName).append(");").append(System.lineSeparator());
     }
@@ -212,7 +222,7 @@ public final class MapExpressionsMethodGenerator {
         .append(System.lineSeparator());
     sb.append("    return ")
         .append("(")
-        .append(ctx.getProcessedClass().getClazz().getSimpleName().toString())
+        .append(ctx.getProcessedClassName())
         .append(") this;")
         .append(System.lineSeparator());
     sb.append("  }").append(System.lineSeparator());
@@ -226,6 +236,26 @@ public final class MapExpressionsMethodGenerator {
 
   private boolean isProcessingCallArgument() {
     return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(CALL_ARG_CLASS);
+  }
+
+  private boolean isProcessingDefinitionType() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_TYPE_CLASS);
+  }
+
+  private boolean isProcessingDefinitionData() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_DATA_CLASS);
+  }
+
+  private boolean isProcessingPatternName() {
+    return ctx.getProcessedClassName().equals(PATTERN_NAME_CLASS);
+  }
+
+  private boolean isProcessingPatternType() {
+    return ctx.getProcessedClassName().equals(PATTERN_TYPE_CLASS);
+  }
+
+  private boolean isProcessingPatternConstructor() {
+    return ctx.getProcessedClassName().equals(PATTERN_CONSTRUCTOR_CLASS);
   }
 
   private String doMapExprCode() {
@@ -255,17 +285,76 @@ public final class MapExpressionsMethodGenerator {
           """
               .replace("${callArgClass}", CALL_ARG_CLASS));
     }
+    if (isProcessingDefinitionType()) {
+      specialHandling.append(
+          """
+            // Special case - name of Definition.Type is ignored.
+            assert this instanceof ${defTypeClass};
+            if (ir == this.name()) {
+              return ir;
+            }
+          """
+              .replace("${defTypeClass}", DEF_TYPE_CLASS));
+    }
+    if (isProcessingDefinitionData()) {
+      specialHandling.append(
+          """
+            // Special case - name of Definition.Data is not applied.
+            // This means no `fn.apply` call on it.
+            assert this instanceof ${defDataClass};
+            if (ir == this.name()) {
+              return (T) ir.mapExpressions(fn);
+            }
+          """
+              .replace("${defDataClass}", DEF_DATA_CLASS));
+    }
+    if (isProcessingPatternName()) {
+      specialHandling.append(
+          """
+          // Special case - name of `Pattern.Name` is not processed.
+          // This means no `fn.apply` call on it.
+          assert this instanceof ${patternNameClass};
+          if (ir == this.name()) {
+            return (T) ir.mapExpressions(fn);
+          }
+          """
+              .replace("${patternNameClass}", PATTERN_NAME_CLASS));
+    }
+    if (isProcessingPatternType()) {
+      specialHandling.append(
+          """
+          // Special case - `name` and `tpe` of `Pattern.Type` are not processed.
+          // This means no `fn.apply` call on them.
+          assert this instanceof ${patternTypeClass};
+          if (ir == this.name() || ir == this.tpe()) {
+            return (T) ir.mapExpressions(fn);
+          }
+          """
+              .replace("${patternTypeClass}", PATTERN_TYPE_CLASS));
+    }
+    if (isProcessingPatternConstructor()) {
+      specialHandling.append(
+          """
+          // Special case - `constructor` of `Pattern.Constructor` is not processed.
+          // This means no `fn.apply` call on it.
+          assert this instanceof ${patternConstructorClass};
+          if (ir == this.constructor()) {
+            return (T) ir.mapExpressions(fn);
+          }
+          """
+              .replace("${patternConstructorClass}", PATTERN_CONSTRUCTOR_CLASS));
+    }
     var code =
         """
         @SuppressWarnings("unchecked")
         private <T extends IR> T doMapExpr(
             T ir,
-            java.util.function.Function<Expression, Expression> fn) {
+            java.util.function.Function<org.enso.compiler.core.ir.Expression, org.enso.compiler.core.ir.Expression> fn) {
           ${specialHandling}
           // Either recurse to `mapExpression` or call `fn.apply` on the expression.
           return switch(ir) {
             case org.enso.compiler.core.ir.Name.MethodReference nameRef -> (T) nameRef.mapExpressions(fn);
-            case Expression expr -> (T) fn.apply(expr);
+            case org.enso.compiler.core.ir.Expression expr -> (T) fn.apply(expr);
             default -> (T) ir.mapExpressions(fn);
           };
         }
@@ -287,7 +376,9 @@ public final class MapExpressionsMethodGenerator {
 
   private String mapOptionListField(String newVarName, OptionListField field) {
     var newVarType =
-        "Option<List<" + field.getNestedTypeParameter().getSimpleName().toString() + ">>";
+        "Option<scala.collection.immutable.List<"
+            + field.getNestedTypeParameter().getQualifiedName()
+            + ">>";
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
@@ -305,18 +396,19 @@ public final class MapExpressionsMethodGenerator {
   private String mapPersistanceReference(String newVarName, PersistanceReferenceField field) {
     var code =
         """
-        var ${newVarName} = Reference.of(
+        var ${newVarName} = org.enso.persist.Persistance.Reference.of(
             doMapExpr(${fieldName}.get(${type}.class), fn)
         );
         """
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName())
-            .replace("${type}", field.getTypeParameter().getSimpleName().toString());
+            .replace("${type}", field.getTypeParameter().getQualifiedName().toString());
     return code;
   }
 
   private String mapList(String newVarName, ListField field) {
-    var newVarType = "List<" + field.getTypeParameter().getSimpleName().toString() + ">";
+    var newVarType =
+        "scala.collection.immutable.List<" + field.getTypeParameter().getQualifiedName() + ">";
     var code =
         """
         ${newVarType} ${newVarName} = null;
@@ -331,8 +423,8 @@ public final class MapExpressionsMethodGenerator {
   }
 
   private String mapOption(String newVarName, OptionField field) {
-    var newVarType = "Option<" + field.getTypeParameter().getSimpleName().toString() + ">";
-    var type = field.getTypeParameter().getSimpleName();
+    var newVarType = "Option<" + field.getTypeParameter().getQualifiedName() + ">";
+    var type = field.getTypeParameter().getQualifiedName();
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
@@ -361,7 +453,7 @@ public final class MapExpressionsMethodGenerator {
     Utils.hardAssert(!(field instanceof OptionListField));
     Utils.hardAssert(!(field instanceof OptionField));
     var nullableCheck = "";
-    if (field.isNullable()) {
+    if (!field.isNullable()) {
       nullableCheck =
           """
           if (${fieldName} == null) {
@@ -369,7 +461,8 @@ public final class MapExpressionsMethodGenerator {
               "Field ${fieldName} must not be null. It was annotated with "
               + "@IRChild(required = true).");
           }
-          """;
+          """
+              .replace("${fieldName}", field.getName());
     }
     var code =
         """

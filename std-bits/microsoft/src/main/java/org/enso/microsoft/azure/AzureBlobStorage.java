@@ -83,7 +83,7 @@ public final class AzureBlobStorage {
       throw new IllegalArgumentException("Blob does not exist: " + blobName);
     }
 
-    var tempFile = Files.createTempFile("enso-blob-", blobName.replaceAll("[^A-Za-z0-9_]", "_"));
+    var tempFile = Files.createTempFile("enso-blob-", blobName.replaceAll("[^A-Za-z0-9_.]", "_"));
     blob.downloadToFile(tempFile.toString(), true);
     LOGGER.trace("Downloaded blob to: {}", tempFile);
     return tempFile.toString();

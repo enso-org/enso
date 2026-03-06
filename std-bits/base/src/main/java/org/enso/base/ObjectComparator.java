@@ -29,7 +29,7 @@ public final class ObjectComparator implements Comparator<Object> {
       Objects.requireNonNull(hash_callback, "hash_callback");
       ensoHashCodeCallback =
           v -> {
-            var result = hash_callback.execute(null, v);
+            var result = hash_callback.execute(type, v);
             if (result.isNull()) {
               throw new IllegalStateException(
                   "Unable to object hash in EnsoObjectWrapper for " + v.toString());
@@ -42,7 +42,7 @@ public final class ObjectComparator implements Comparator<Object> {
       Objects.requireNonNull(compare_callback, "compare_callback");
       ensoCompareCallback =
           (v, u) -> {
-            var result = compare_callback.execute(null, v, u);
+            var result = compare_callback.execute(type, v, u);
             if (result.isNull()) {
               throw new CompareException(u, v);
             } else {
@@ -51,7 +51,7 @@ public final class ObjectComparator implements Comparator<Object> {
           };
       ensoAreEqualCallback =
           (v, u) -> {
-            var result = compare_callback.execute(null, v, u);
+            var result = compare_callback.execute(type, v, u);
             return !result.isNull() && result.asInt() == 0;
           };
     }

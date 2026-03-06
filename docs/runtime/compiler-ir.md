@@ -29,6 +29,9 @@ enso --no-compile-dependencies --no-ir-caches --vm.D enso.compiler.RemoveUnusedI
 
 ## Dumping IR
 
+Note that to properly dump module from standard library, **it is recommended to
+run with --no-ir-caches**.
+
 The IR can be visualized using the `enso.compiler.dumpIr` system property. The
 property value has format `<module-name>[:<dump-level>]`, where `module-name` is
 a substring of a module to dump and `dump-level` is an optional integer which

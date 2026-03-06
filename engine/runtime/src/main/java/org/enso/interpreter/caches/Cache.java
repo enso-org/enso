@@ -6,14 +6,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
@@ -44,6 +46,18 @@ public final class Cache<T, M> {
   private final boolean needsSourceDigestVerification;
 
   /**
+   * Large cache files will be {@link FileChannel#map(MapMode, long, long, Arena) mmapped} using a
+   * newly created arena via this supplier. Whenever a cache is loaded or saved, the previous arena
+   * will be closed, which will invalidate all byte buffers associated with that arena.
+   *
+   * <p>Note that currently, it is not possible to use {@link Arena#ofConfined()} here. See <a
+   * href="https://github.com/enso-org/enso/pull/13872#discussion_r2313983664">GH discussion</a>.
+   */
+  private final Supplier<Arena> memoryArenaSupplier;
+
+  private Arena memoryArena;
+
+  /**
    * Flag indicating if the de-serialization process should compute the hash of the stored cache and
    * compare it with the stored metadata entry.
    */
@@ -61,16 +75,18 @@ public final class Cache<T, M> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   private Cache(
-      Cache.Spi<T, M> spi,
+      Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
-      boolean needsDataDigestVerification) {
+      boolean needsDataDigestVerification,
+      Supplier<Arena> memoryArenaSupplier) {
     this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
+    this.memoryArenaSupplier = memoryArenaSupplier;
   }
 
   /**
@@ -86,13 +102,34 @@ public final class Cache<T, M> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   static <T, M> Cache<T, M> create(
-      Cache.Spi<T, M> spi,
+      Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
     return new Cache<>(
-        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification);
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        Arena::ofShared);
+  }
+
+  static <T, M> Cache<T, M> create(
+      Spi<T, M> spi,
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification,
+      Supplier<Arena> memoryArenaSupplier) {
+    return new Cache<>(
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        memoryArenaSupplier);
   }
 
   /**
@@ -139,14 +176,12 @@ public final class Cache<T, M> {
       TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
       TruffleFile parentPath = cacheDataFile.getParent();
 
+      closeMemoryArena();
       if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
         logger.log(
             logLevel,
-            "Written cache data ["
-                + logName
-                + "] to ["
-                + toMaskedPath(parentPath).applyMasking()
-                + "].");
+            "Written cache data [{0}] to [{1}] of size [{2}].",
+            new Object[] {logName, toMaskedPath(parentPath).applyMasking(), bytesToWrite.length});
         return true;
       } else {
         // Clean up after ourselves if it fails.
@@ -186,7 +221,7 @@ public final class Cache<T, M> {
               logLevel,
               "Using cache for ["
                   + logName
-                  + " at location ["
+                  + "] at location ["
                   + toMaskedPath(root).applyMasking()
                   + "].");
           return Optional.of(cache);
@@ -234,9 +269,21 @@ public final class Cache<T, M> {
       ByteBuffer blobBytes;
       var threeMbs = 3 * 1024 * 1024;
       if (file.exists() && file.length() > threeMbs) {
-        logger.log(Level.FINEST, "Cache file " + file + " mmapped with " + file.length() + " size");
-        var raf = new RandomAccessFile(file, "r");
-        blobBytes = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length());
+        logger.log(
+            Level.FINEST,
+            "Cache file {0} mmapped with {1} size",
+            new Object[] {file, file.length()});
+        closeMemoryArena();
+        memoryArena = memoryArenaSupplier.get();
+        try (var chan = FileChannel.open(file.toPath())) {
+          assert memoryArena.scope().isAlive();
+          var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
+          assert memSegment.isReadOnly();
+          blobBytes = memSegment.asByteBuffer();
+        } catch (IOException e) {
+          logger.log(Level.SEVERE, "Failed to mmap cache file " + file, e);
+          throw e;
+        }
       } else {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
       }
@@ -275,6 +322,16 @@ public final class Cache<T, M> {
           "Could not load the cache metadata at ["
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
+    }
+  }
+
+  /**
+   * Close any previous arena and creates a new one. Closing the previous arena invalidates all byte
+   * buffers associated with it.
+   */
+  private void closeMemoryArena() {
+    if (memoryArena != null && memoryArena.scope().isAlive()) {
+      memoryArena.close();
     }
   }
 
@@ -366,6 +423,7 @@ public final class Cache<T, M> {
       for (var root : spi.getCacheRoots(context)) {
         invalidateCache(root, logger);
       }
+      closeMemoryArena();
     }
   }
 

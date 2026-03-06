@@ -35,8 +35,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div :class="{ WidgetIcon: true, noGap: props.input[DisplayIcon].noGap === true }">
-    <div class="iconContainer">
+  <div
+    :class="{
+      WidgetIcon: true,
+      widgetParent: true,
+      noGap: props.input[DisplayIcon].noGap === true,
+    }"
+  >
+    <div class="iconContainer widgetSingleLine">
       <Transition>
         <GrowingSpinner
           v-if="icon === '$evaluating'"
@@ -53,22 +59,16 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetIcon {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   gap: var(--widget-token-pad-unit);
   &.noGap {
     gap: 0;
   }
 }
 .iconContainer {
-  position: relative;
-  height: 16px;
-  width: 16px;
-  margin: 0 calc((var(--node-port-height) - 16px) / 2);
+  width: var(--node-port-height);
 }
 .nodeCategoryIcon {
-  position: absolute;
+  margin: auto;
 }
 .LoadingSpinner {
   border-radius: 100%;

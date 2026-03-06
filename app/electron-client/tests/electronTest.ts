@@ -1,6 +1,4 @@
 /** @file Commonly used functions for electron tests */
-/* eslint-disable no-empty-pattern */
-
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -17,22 +15,34 @@ import {
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
+const POSSIBLE_ELECTRON_PATHS = [
+  '../../../dist/ide/linux-unpacked/enso',
+  '../../../dist/ide/win-unpacked/Enso.exe',
+  '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+  '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+]
 
-const credentials = JSON.parse(
-  await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
-    throw Error('Cannot read Test User credentials.', { cause: err })
-  }),
-)
+export const credentials: { readonly user: string; readonly password: string } = await fs
+  .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
+  .then(
+    (contents) => JSON.parse(contents),
+    (error) => {
+      throw new Error(`Cannot read Test User credentials from '${TEST_USER_FILE}'.`, {
+        cause: error,
+      })
+    },
+  )
+  .catch((error) => {
+    throw new Error(`Cannot parse Test User credentials from '${TEST_USER_FILE}'.`, {
+      cause: error,
+    })
+  })
 
-const electronExecutablePath = await (async () => {
-  const POSSIBLE_EXEC_PATHS = [
-    '../../../dist/ide/linux-unpacked/enso',
-    '../../../dist/ide/win-unpacked/Enso.exe',
-    '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
-    '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
-  ].map((p) => path.resolve(import.meta.dirname, p))
+export const electronExecutablePath = await (async () => {
   try {
-    const promises = POSSIBLE_EXEC_PATHS.map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
+    const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
+      (p) => fs.access(p, fs.constants.X_OK).then(() => p),
+    )
     return await Promise.any(promises)
   } catch {
     throw Error('Cannot find Enso package')
@@ -50,6 +60,7 @@ export const test = base.extend<{
   app: ElectronApplication
   page: Page
 }>({
+  // eslint-disable-next-line no-empty-pattern
   testRunId: async function ({}, use, testInfo) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
@@ -58,15 +69,17 @@ export const test = base.extend<{
     await use(projectsDir)
   },
 
-  /**
-   * Setup for all tests: Create an electron-based app instance.
-   */
+  /** Setup for all tests: Create an electron-based app instance. */
   app: async function ({ projectsDir, testRunId }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     const app = await _electron.launch({
       executablePath: electronExecutablePath,
       args,
-      env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
+      env: {
+        ...process.env,
+        ENSO_TEST: 'true',
+        ENSO_TEST_PROJECTS_DIR: projectsDir.replace(/\\/g, '/'),
+      },
     })
     // Set the password as global var before turning on tracing.
     // This way it will be not disclosed to anyone downloading traces of failed tests.
@@ -86,8 +99,8 @@ export const test = base.extend<{
 })
 
 /**
- * Login as test user. This function asserts that page is the login page, and uses
- * credentials from playwright/.auth/user.json file.
+ * Login as test user - assert that page is the login page, and use credentials from
+ * `playwright/.auth/user.json`.
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
@@ -99,6 +112,11 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('textbox', { name: 'password' }).fill('mellon')
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
+  await expect(
+    page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox),
+  ).toBeVisible({ timeout: 60000 })
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
     .getByText(TEXT.licenseAgreementCheckbox)
@@ -111,29 +129,27 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('button', { name: TEXT.accept }).click()
 }
 
-/**
- * The funcion creates a new Enso project
- */
+/** Create a new Enso project */
 export async function createNewProject(page: Page) {
-  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
-
-  await expect(newProjectTab).toBeVisible()
-  await newProjectTab.click()
+  await page.getByRole('button', { name: 'New Project' }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
   const tableViz = page.locator('.TableVisualization')
-  await expect(tableViz).toBeVisible({ timeout: 30000 })
   await expect(tableViz).toContainText('Welcome To Enso!')
 }
 
-/**
- * If welcome project is to be opened, this function takes you back to your dashboard
- */
+/** If welcome project is to be opened, navigate back to the dashboard. */
 export async function closeWelcome(page: Page) {
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso Analytics' })
+  const loadingIndicator = welcomeProjectTab.locator('.LoadingSpinner')
+  await Promise.race([
+    welcomeProjectTab
+      .waitFor({ state: 'visible', timeout: 0 })
+      .then(() => loadingIndicator.waitFor({ state: 'hidden' })),
+    page.waitForTimeout(3000),
+  ])
   if (await welcomeProjectTab.isVisible()) {
-    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+    await welcomeProjectTab.locator('.CloseButton').click()
   }
 }
 
@@ -145,8 +161,11 @@ export async function closeWelcome(page: Page) {
 export async function getNewestProject(page: Page): Promise<Locator> {
   // Returning back to the data catalog
   const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
-  await expect(dataCatalogTab).toBeVisible()
   await dataCatalogTab.click()
+
+  await expect(page.getByTestId('drive-view')).toBeVisible({ timeout: LOADING_TIMEOUT })
+  const projectsLocator = page.getByTestId('drive-view').getByText(/New Project \d+/)
+  await expect(projectsLocator).not.toHaveCount(0)
 
   const projects = await page
     .getByTestId('drive-view')
@@ -160,6 +179,76 @@ export async function getNewestProject(page: Page): Promise<Locator> {
       return { locator: p, num }
     }),
   )
-
   return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+}
+
+/**
+ * Click the eye button, visualizing component data
+ */
+export async function visualizeData(page: Page) {
+  const showViz = page.getByLabel('Show visualization (Space)')
+  await showViz.click({ timeout: 5000 })
+}
+
+/**
+ * Open new component browser refefencing the last created component
+ */
+export async function createNewComponent(page: Page) {
+  const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
+  await moreButton.click()
+
+  await page.keyboard.press('Enter')
+}
+
+/**
+ * Open new component browser based on the name of referenced parent component
+ */
+export async function openComponentBrowser(page: Page, parentComponent: string) {
+  await page.getByText(parentComponent, { exact: true }).click()
+  await page.keyboard.press('Enter')
+}
+
+/**
+ * Find textbox located in parent component and fill in text value
+ */
+export async function fillWidgetText(
+  page: Page,
+  containerName: string,
+  value: string,
+  index?: number,
+) {
+  const cont = page.getByText(containerName)
+
+  const box = cont.getByTestId('widget-text-content')
+  if (index) return box.nth(index).fill(value)
+  else return box.fill(value)
+}
+
+/**
+ * Wait for the Samples folder download
+ * This function retries to access passed file every 5 sec, fails after 1 min
+ */
+export async function waitForDownload(pathToFile: string): Promise<void> {
+  const start = Date.now()
+  while (true) {
+    try {
+      await fs.access(pathToFile) // ✅ file exists
+      return
+    } catch {
+      if (Date.now() - start > 60_000) {
+        throw new Error(`File ${pathToFile} not found within 60 seconds`)
+      }
+      await new Promise((r) => setTimeout(r, 5_000))
+    }
+  }
+}
+
+/** Open drop-down menu in WidgetSelection with given label. */
+export function openDropdownInWidget(page: Page, label: string) {
+  return page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
+}
+
+/** Find and click + button in an empty Vector Widget inside provided locator. */
+export function addFirstElementToWidgetVector(locator: Locator) {
+  return locator.getByRole('list').filter({ hasText: /^$/ }).getByLabel('Add a new item').click()
 }

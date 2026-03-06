@@ -16,8 +16,6 @@ import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
@@ -29,6 +27,8 @@ import {
   type ZonedDateTime,
 } from '@internationalized/date'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,

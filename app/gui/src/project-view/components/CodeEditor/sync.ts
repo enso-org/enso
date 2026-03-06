@@ -1,7 +1,5 @@
 import type { ModuleStore } from '$/providers/openedProjects/module'
-import type { ProjectStore } from '$/providers/openedProjects/project'
 import { changeSetToTextEdits } from '@/util/codemirror/text'
-import { Err, Ok } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import {
   Annotation,
@@ -11,6 +9,7 @@ import {
   type Text,
 } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { createDebouncer } from 'lib0/eventloop'
 import { onUnmounted, type Ref, watch } from 'vue'
 import { type SourceRangeEdit, textChangeToEdits } from 'ydoc-shared/util/data/text'
@@ -21,7 +20,6 @@ const synchronizedModule = Annotation.define<true>()
 
 /** @returns A CodeMirror Extension that synchronizes the editor state with the AST of an Enso module. */
 export function useEnsoSourceSync(
-  projectStore: Ref<Pick<ProjectStore, 'module'>>,
   moduleStore: Ref<Pick<ModuleStore, 'source' | 'ast' | 'edit' | 'onBeforeEdit'>>,
   editorView: EditorView,
 ) {
@@ -76,7 +74,7 @@ export function useEnsoSourceSync(
     try {
       const result = moduleStore.value.edit(
         (editedModule) => {
-          editedModule.applyTextEdits(edits, moduleStore.value.ast)
+          editedModule.applyTextEdits(edits, moduleStore.value.ast ?? undefined)
           if (editedModule.root()?.code() === editorView.state.doc.toString()) {
             return Ok()
           } else
@@ -127,14 +125,13 @@ export function useEnsoSourceSync(
   function connectModuleListener() {
     let cleanup: (() => void) | undefined = undefined
     watch(
-      () => projectStore.value.module,
+      moduleStore,
       (module, _oldValue, onCleanup) => {
-        if (!module) return
-        const beforeEditHandler = moduleStore.value.onBeforeEdit(beforeSourceChange)
-        moduleStore.value.source.observe(observeSourceChange)
+        const beforeEditHandler = module.onBeforeEdit(beforeSourceChange)
+        module.source.observe(observeSourceChange)
         cleanup = () => {
           beforeEditHandler?.unregister()
-          moduleStore.value.source.unobserve(observeSourceChange)
+          module.source.unobserve(observeSourceChange)
           cleanup = undefined
         }
         onCleanup(cleanup)

@@ -15,6 +15,11 @@ public final class NullType implements StorageType<Void> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Null";
+  }
+
+  @Override
   public boolean isNumeric() {
     return true;
   }
@@ -47,7 +52,7 @@ public final class NullType implements StorageType<Void> {
 
   @Override
   public ColumnStorage<Void> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof NullType) {
+    if (StorageType.ofStorage(storage) instanceof NullType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<Void>) storage;
       return output;

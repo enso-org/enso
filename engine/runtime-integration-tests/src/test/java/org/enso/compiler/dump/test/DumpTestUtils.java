@@ -22,7 +22,7 @@ final class DumpTestUtils {
     ProjectUtils.createProject(projName, code, projDir);
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextUtils.newBuilder(),
+        ContextUtils.newBuilder().assertGC(false),
         projDir,
         (context) -> {
           var enso = context.ensoContext();

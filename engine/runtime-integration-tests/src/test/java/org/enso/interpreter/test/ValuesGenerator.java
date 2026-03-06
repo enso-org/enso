@@ -387,16 +387,6 @@ public final class ValuesGenerator implements AutoCloseable {
         .type();
   }
 
-  public Value typeFile() {
-    return v(
-            "typeFile",
-            """
-            import Standard.Base.System.File.File
-            """,
-            "File")
-        .type();
-  }
-
   public Value typeRef() {
     return v(
             "typeRef",
@@ -872,7 +862,8 @@ public final class ValuesGenerator implements AutoCloseable {
   }
 
   public Value typeSumType() {
-    return constructorsAndValuesAndSumType().get(0);
+    var arr = constructorsAndValuesAndSumType();
+    return arr.isEmpty() ? null : arr.get(0);
   }
 
   public List<Value> constructorsAndValuesAndSumType() {
@@ -1047,7 +1038,9 @@ public final class ValuesGenerator implements AutoCloseable {
         if (m.getReturnType() == Value.class) {
           @SuppressWarnings("unchecked")
           var r = (Value) invokeWithCache(m);
-          collect.add(r);
+          if (r != null) {
+            collect.add(r);
+          }
         }
       }
     }

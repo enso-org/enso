@@ -11,3 +11,9 @@ providePopoverRoot(root)
     <slot />
   </div>
 </template>
+
+<style scoped>
+.PopoverRootProvider {
+  display: contents;
+}
+</style>

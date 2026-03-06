@@ -368,7 +368,7 @@ add_filter_specs suite_builder setup =
             t.filter "A" (Filter_Condition.Is_In (Column_Ref.Name "B")) . should_fail_with Illegal_Argument
 
             # If the user really wants this, they pass it as a raw column:
-            t.filter "A" (Filter_Condition.Is_In (t.at "B")) . at "A" . to_vector . should_equal [2, 3]
+            t.filter "A" (Filter_Condition.Is_In (t.at "B")) . at "A" . to_vector . should_equal_ignoring_order [2, 3]
 
         group_builder.specify "by a boolean mask" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]

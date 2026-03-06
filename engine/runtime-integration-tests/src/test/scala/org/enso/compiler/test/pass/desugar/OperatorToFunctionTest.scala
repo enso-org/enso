@@ -12,11 +12,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.ir.expression.{Application, Operator}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 import org.enso.compiler.pass.{
   IRPass,
   IRProcessingPass,
@@ -81,8 +77,13 @@ class OperatorToFunctionTest extends MiniPassTest {
         .location(right.identifiedLocation())
         .build()
 
-    val binOp =
-      Operator.Binary(leftArg, name, rightArg, loc)
+    val binOp = Operator.Binary
+      .builder()
+      .left(leftArg)
+      .operator(name)
+      .right(rightArg)
+      .location(loc)
+      .build()
     val opFn = Application.Prefix
       .builder()
       .function(name)
@@ -95,8 +96,11 @@ class OperatorToFunctionTest extends MiniPassTest {
   }
 
   // === The Tests ============================================================
-  val opName =
-    Name.Literal("=:=", isMethod = true, null)
+  val opName = Name.Literal
+    .builder()
+    .name("=:=")
+    .isMethod(true)
+    .build()
   val left  = new Empty(null)
   val right = new Empty(null)
   val rightArg = CallArgument.Specified
@@ -124,8 +128,11 @@ class OperatorToFunctionTest extends MiniPassTest {
       .build()
 
   "Operators" should {
-    val opName =
-      Name.Literal("=:=", isMethod = true, identifiedLocation = null)
+    val opName = Name.Literal
+      .builder()
+      .name("=:=")
+      .isMethod(true)
+      .build()
     val left  = new Empty(null)
     val right = new Empty(null)
     val rightArg =
@@ -161,8 +168,12 @@ class OperatorToFunctionTest extends MiniPassTest {
     }
 
     "be translated recursively in synthetic IR" in {
-      val recursiveIR =
-        Operator.Binary(oprArg, opName, rightArg, null)
+      val recursiveIR = Operator.Binary
+        .builder()
+        .left(oprArg)
+        .operator(opName)
+        .right(rightArg)
+        .build()
       val recursiveIRResult = Application.Prefix
         .builder()
         .function(opName)
@@ -208,8 +219,12 @@ class OperatorToFunctionTest extends MiniPassTest {
     }
 
     "be translated recursively" in {
-      val recursiveIR =
-        Operator.Binary(oprArg, opName, rightArg, identifiedLocation = null)
+      val recursiveIR = Operator.Binary
+        .builder()
+        .left(oprArg)
+        .operator(opName)
+        .right(rightArg)
+        .build()
       val recursiveIRResult = Application.Prefix
         .builder()
         .function(opName)
@@ -243,7 +258,6 @@ case object OperatorToFunctionTestPass extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis
   )
 
@@ -270,7 +284,7 @@ case object OperatorToFunctionTestPass extends IRPass {
         )
       )
     }
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   /** Executes the conversion pass in an inline context.

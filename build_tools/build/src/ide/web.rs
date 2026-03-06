@@ -6,12 +6,11 @@ use crate::paths::generated;
 use crate::project::IsArtifact;
 use crate::version::ENSO_VERSION;
 
-use anyhow::Context;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::program::command::Manipulator;
-use ide_ci::programs::node::PnpmCommand;
 use ide_ci::programs::Pnpm;
+use ide_ci::programs::node::PnpmCommand;
 use sha2::Digest;
 use std::process::Stdio;
 
@@ -26,14 +25,13 @@ pub mod env {
 
     define_env_var! {
         ENSO_BUILD_IDE, PathBuf;
-        ENSO_BUILD_PROJECT_MANAGER, PathBuf;
+        ENSO_BUILD_BACKEND, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_SIGN, bool;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
-        ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
     }
 
     // === Electron Builder ===
@@ -41,6 +39,9 @@ pub mod env {
 
     // GUI-specific environment variables
     define_env_var! {
+        /// The host URL for the Enso Cloud.
+        ENSO_IDE_HOST, String;
+
         /// The name of the backend environment, typically 'production' for production builds.
         ENSO_IDE_ENVIRONMENT, String;
 
@@ -95,8 +96,14 @@ pub mod env {
         /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
         ENSO_IDE_MS365_OAUTH_CLIENT_ID, String;
 
+        /// The client ID for the Salesforce OAuth integration used for Salesforce Credentials.
+        ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
+
+        /// Vite mode.
+        MODE, String;
     }
 }
 
@@ -131,17 +138,6 @@ pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<P
     Ok(())
 }
 
-/// Get a relative path to the Project Manager executable in the PM bundle.
-pub fn path_to_executable_in_pm_bundle(
-    artifact: &generated::ProjectManagerBundle,
-) -> Result<&Path> {
-    artifact
-        .bin
-        .project_managerexe
-        .strip_prefix(artifact)
-        .context("Failed to generate in-bundle path to Project Manager executable.")
-}
-
 /// When secrets are not available in CI builds (e.g. when building a PR from a fork), the variables
 /// are set to empty strings. This manipulator removes such variables from the environment.
 #[derive(Clone, Copy, Debug)]
@@ -168,31 +164,27 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
     }
 }
 
-/// Context information about Project Manager bundle that we provide to the client.
+/// Context information about Backend bundle that we provide to the client.
 #[derive(Clone, Debug)]
-pub struct ProjectManagerInfo {
+pub struct BackendInfo {
     /// Latest bundled engine version, that will be used as this IDE's default.
     pub latest_bundled_engine: Version,
-    /// Root of the Project Manager bundle.
+    /// Root of the Backend bundle.
     pub bundle_location: PathBuf,
-    /// Relative path from the bundle location.
-    pub pm_executable: PathBuf,
 }
 
-impl ProjectManagerInfo {
+impl BackendInfo {
     /// Collect information about the bundle that the client will need.
     pub fn new(bundle: &crate::project::backend::Artifact) -> Result<Self> {
         let latest_bundled_engine = bundle.latest_engine_version()?.clone();
         let bundle_location = bundle.path.to_path_buf();
-        let pm_executable = path_to_executable_in_pm_bundle(&bundle.path)?.to_path_buf();
-        Ok(Self { latest_bundled_engine, bundle_location, pm_executable })
+        Ok(Self { latest_bundled_engine, bundle_location })
     }
 }
 
-impl FallibleManipulator for ProjectManagerInfo {
+impl FallibleManipulator for BackendInfo {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
-        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER, &self.bundle_location)?;
-        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, &self.pm_executable)?;
+        command.set_env(env::ENSO_BUILD_BACKEND, &self.bundle_location)?;
         command.set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, &self.latest_bundled_engine)?;
         Ok(())
     }
@@ -228,7 +220,7 @@ impl IdeDesktop {
     #[tracing::instrument(name="Preparing distribution of the IDE.", skip_all, fields(
         dest = %output_path.as_ref().display(),
         ?gui,
-        ?project_manager,
+        ?backend,
         ?target_os,
         ?target,
         ?sign,
@@ -238,7 +230,7 @@ impl IdeDesktop {
         version: &Version,
         commit_hash: &str,
         gui: &impl IsArtifact,
-        project_manager: &crate::project::backend::Artifact,
+        backend: &crate::project::backend::Artifact,
         output_path: impl AsRef<Path>,
         target_os: OS,
         target: Option<String>,
@@ -259,7 +251,7 @@ impl IdeDesktop {
 
         let version_string = version.to_string();
         crate::web::install(&self.repo_root).await?;
-        let pm_bundle = ProjectManagerInfo::new(project_manager)?;
+        let backend_bundle = BackendInfo::new(backend)?;
         let sign_artifacts = &sign;
         self.pnpm()?
             .set_env(env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
@@ -267,7 +259,7 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
-            .try_applying(&pm_bundle)?
+            .try_applying(&backend_bundle)?
             .run("build:ide")
             .run_ok()
             .await?;
@@ -284,7 +276,7 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
+            .set_env(env::ENSO_BUILD_BACKEND, backend.as_ref())?
             .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .run("dist:ide")
             .arg("--")

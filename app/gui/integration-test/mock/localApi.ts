@@ -1,4 +1,5 @@
-import * as backend from '#/services/Backend'
+import { capitalizeFirst } from '#/utilities/string'
+import * as backend from 'enso-common/src/services/Backend'
 import {
   Path,
   ProjectName,
@@ -16,12 +17,11 @@ import {
   type ProjectEntry,
   type ProjectMetadata,
   type ProjectState,
-} from '#/services/ProjectManager/types'
-import { unsafeMutable } from '#/utilities/object'
-import { getDirectoryAndName } from '#/utilities/path'
-import { capitalizeFirst } from '#/utilities/string'
-import { uniqueString } from '$/utils/uniqueString'
+} from 'enso-common/src/services/ProjectManager/types'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { unsafeMutable } from 'enso-common/src/utilities/data/object'
+import { getDirectoryAndName } from 'enso-common/src/utilities/file'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'
 import { join } from 'node:path'
@@ -306,6 +306,7 @@ export async function mockLocalApi(page: Page) {
       }
       unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
       const result: OpenProject = {
+        projectId: UUID(crypto.randomUUID()),
         languageServerBinaryAddress,
         languageServerJsonAddress,
         languageServerYdocAddress,

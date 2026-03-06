@@ -12,4 +12,3 @@
     - Truncate_Existing
     - Write
     - ensure_only_allowed_options operation_name:Standard.Base.Data.Text.Text allowed_options:Standard.Base.Data.Vector.Vector got_options:Standard.Base.Data.Vector.Vector ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - to_java self -> Standard.Base.Any.Any

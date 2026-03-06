@@ -1,7 +1,8 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.util.ImmutableBitSet;
 
 /**
  * Implements a storage that computes the ith stored value using some function.
@@ -9,9 +10,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
  * <p>This storage assumes that _all_ values are present.
  */
 public abstract class ComputedLongStorage extends AbstractLongStorage
-    implements ColumnStorageWithNothingMap {
-  private static final BitSet EMPTY = new BitSet();
-
+    implements ColumnStorageWithValidityMap {
   protected abstract long computeItem(long idx);
 
   protected ComputedLongStorage(int size) {
@@ -35,15 +34,16 @@ public abstract class ComputedLongStorage extends AbstractLongStorage
   }
 
   @Override
-  public BitSet getIsNothingMap() {
-    return EMPTY;
+  public ImmutableBitSet getValidityMap() {
+    var size = Math.toIntExact(getSize());
+    return ImmutableBitSet.allTrue(size);
   }
 
   @Override
   public AbstractLongStorage widen(IntegerType widerType) {
     // Currently the implementation only reports 64-bit type so there is no widening to do - we can
     // just return self.
-    assert getType().equals(IntegerType.INT_64);
+    assert StorageType.ofStorage(this).equals(IntegerType.INT_64);
     return this;
   }
 }

@@ -39,6 +39,11 @@ public sealed interface TypeRepresentation
     return reversed.stream().reduce(result, (acc, arg) -> new ArrowType(arg, acc));
   }
 
+  static TypeRepresentation buildStaticMethod(
+      TypeRepresentation.TypeObject selfType, TypeRepresentation instanceMethod) {
+    return new ArrowType(selfType.instanceType(), instanceMethod);
+  }
+
   record TopType() implements TypeRepresentation {
     @Override
     public String toString() {

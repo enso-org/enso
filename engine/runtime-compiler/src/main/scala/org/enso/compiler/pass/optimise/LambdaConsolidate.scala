@@ -2,7 +2,7 @@ package org.enso.compiler.pass.optimise
 
 import scala.jdk.CollectionConverters._
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
@@ -21,12 +21,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
   Graph => AliasGraph
 }
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
@@ -78,7 +73,6 @@ case object LambdaConsolidate extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE
   )
@@ -153,7 +147,7 @@ case object LambdaConsolidate extends IRPass {
         val argIsShadowed = chainedArgList.map {
           case spec: DefinitionArgument.Specified =>
             val aliasInfo = spec
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[AliasAnalysis.Metadata](
                 AliasAnalysis,
                 "Missing aliasing information for an argument definition"
               )
@@ -234,8 +228,11 @@ case object LambdaConsolidate extends IRPass {
               mShadower.getOrElse(new Empty(spec.identifiedLocation))
 
             spec.getDiagnostics.add(
-              warnings.Shadowed
-                .FunctionParam(argName.name, shadower, spec.identifiedLocation)
+              new warnings.Shadowed.FunctionParam(
+                argName.name,
+                shadower,
+                spec.identifiedLocation
+              )
             )
 
             (spec, isShadowed)
@@ -254,8 +251,11 @@ case object LambdaConsolidate extends IRPass {
     */
   private def gatherChainedLambdas(body: Expression): List[Function.Lambda] = {
     body match {
-      case Expression.Block(expressions, lam: Function.Lambda, _, _, _)
-          if expressions.isEmpty =>
+      case block: Expression.Block
+          if block.returnValue().isInstanceOf[Function.Lambda] && block
+            .expressions()
+            .isEmpty =>
+        val lam = block.returnValue().asInstanceOf[Function.Lambda]
         lam :: gatherChainedLambdas(lam.body)
       case l: Function.Lambda =>
         l :: gatherChainedLambdas(l.body())
@@ -325,11 +325,12 @@ case object LambdaConsolidate extends IRPass {
     if (toReplaceExpressionIds.contains(name.getId)) {
       name match {
         case spec: Name.Literal =>
-          spec.copy(
-            name = argument match {
+          spec
+            .copyBuilder()
+            .name(argument match {
               case defSpec: DefinitionArgument.Specified => defSpec.name.name
-            }
-          )
+            })
+            .build()
         case self: Name.Self             => self
         case selfType: Name.SelfType     => selfType
         case special: Name.Special       => special
@@ -358,7 +359,7 @@ case object LambdaConsolidate extends IRPass {
       .map { case spec: DefinitionArgument.Specified =>
         val aliasInfo =
           spec
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Missing aliasing information for an argument definition."
             )
@@ -386,7 +387,7 @@ case object LambdaConsolidate extends IRPass {
       case (spec: DefinitionArgument.Specified, isShadowed) =>
         val aliasInfo =
           spec
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Missing aliasing information for an argument definition."
             )
@@ -438,12 +439,12 @@ case object LambdaConsolidate extends IRPass {
           if (isShadowed) {
             freshNameSupply
               .newName(from = Some(oldName))
-              .copy(
-                location    = oldName.location,
-                passData    = oldName.passData,
-                diagnostics = oldName.diagnostics,
-                id          = oldName.getId
-              )
+              .copyBuilder()
+              .location(oldName.identifiedLocation())
+              .passData(oldName.passData)
+              .diagnostics(oldName.diagnostics())
+              .id(oldName.getId)
+              .build()
           } else oldName
 
         spec.withName(newName)

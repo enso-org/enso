@@ -1,8 +1,8 @@
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { isMacLike, useEvent } from '@/composables/events'
 import { useGlobalEventRegistry, type GlobalEventRegistry } from '@/providers/globalEventRegistry'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { ref, toRef, watch, type Ref } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /** Keyboard modifier state API */
 export interface KeyboardComposable {
@@ -26,7 +26,7 @@ export function useGlobalKeyboard(
   const { state, updateState, resetState } = useKeyboardState()
   const { globalEventRegistryPre } = globalEventRegistry
 
-  useEvent(globalEventRegistryPre, 'keydown', (event) => updateState(event), { capture: true })
+  useEvent(globalEventRegistryPre, 'keydown', updateState, { capture: true })
   useEvent(globalEventRegistryPre, 'keyup', updateState, { capture: true })
   useEvent(globalEventRegistryPre, 'blur', resetState, { capture: true })
 

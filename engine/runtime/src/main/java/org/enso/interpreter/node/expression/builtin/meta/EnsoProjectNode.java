@@ -10,7 +10,6 @@ import com.oracle.truffle.api.nodes.Node;
 import java.lang.ref.WeakReference;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
@@ -96,12 +95,14 @@ public abstract class EnsoProjectNode extends Node {
     return null;
   }
 
+  @TruffleBoundary
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
-    var rootPath = new EnsoFile(pkg.root().normalize());
+    var rootPath = pkg.root().normalize().getAbsoluteFile().getPath();
     var namespace = pkg.getConfig().namespace();
     var name = pkg.getConfig().name();
-    var cons = ctx.getBuiltins().getProjectDescription().getUniqueConstructor();
-
+    var ensoProject = ctx.getTopScope().getModule("Standard.Base.Meta.Enso_Project").get();
+    var projectDescription = ensoProject.getScope().getType("Project_Description", true);
+    var cons = projectDescription.getSingleConstructor();
     return AtomNewInstanceNode.getUncached().newInstance(cons, rootPath, namespace, name);
   }
 

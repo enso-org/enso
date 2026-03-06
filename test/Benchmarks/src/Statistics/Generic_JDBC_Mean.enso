@@ -1,0 +1,69 @@
+private
+
+from Standard.Base import all
+from Standard.Table import Column, Numeric_Column
+from Standard.Generic_JDBC import Generic_JDBC_Connection
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 1 5)
+dual_jvm_options = options . set_jvm_args "-Dpolyglot.enso.classLoading=Standard.Generic_JDBC:guest,hosted"
+
+
+type Seq
+    private Value ~data
+
+    create times count =
+        Seq.Value (Seq.generate times count)
+
+    ints self -> Numeric_Column & Column = self.data.at 0
+    doubles self -> Numeric_Column & Column = self.data.at 1
+
+    private insert_numbers conn arr =
+        as_text n:Integer =
+            d = n*(1.0/3.0)
+            n.to_text+","+d.to_text
+        values = (arr.map \n->'('+(as_text n)+')') . join ','
+        conn.execute 'INSERT INTO seq VALUES '+values
+        Nothing
+
+    private generate times count -> Vector Numeric_Column&Column =
+        dir = Meta.Enso_Project.enso_project.data
+        db = dir.create_directory / "seq.db"
+        if db.exists then
+            db.delete
+
+        jdbc = Generic_JDBC_Connection.connect 'jdbc:sqlite:'+db.to_text
+        jdbc.execute 'CREATE TABLE seq (ints INTEGER, doubles REAL)'
+        0.up_to times-1 . map t->
+            numbers = 1.up_to count . map (+ t*count)
+            Seq.insert_numbers jdbc numbers
+
+        t = jdbc.read (..Table_Name 'seq') ..All_Rows
+        c = t.at "ints" : Numeric_Column&Column
+        mc = c . compute ..Mean
+        Runtime.assert (mc == 45000) "Properly computed mean, was: "+mc.to_text
+
+        d = t.at "doubles" : Numeric_Column&Column
+        md = d . compute ..Mean
+        Runtime.assert (md == 15000.0) "Properly computed mean, was: "+md.to_text
+
+        [c, d]
+
+collect_benches = Bench.build builder->
+    million = Seq.create 10 10000
+
+    builder.group "Single_JVM_Generic_JDBC" options group_builder->
+        group_builder.specify "mean" <|
+            million.ints . compute ..Mean
+
+        group_builder.specify "double_mean" <|
+            million.doubles . compute ..Mean
+
+    builder.group "Dual_JVM_Generic_JDBC" dual_jvm_options group_builder->
+        group_builder.specify "mean" <|
+            million.ints . compute ..Mean
+
+        group_builder.specify "double_mean" <|
+            million.doubles . compute ..Mean
+
+main = collect_benches . run_main

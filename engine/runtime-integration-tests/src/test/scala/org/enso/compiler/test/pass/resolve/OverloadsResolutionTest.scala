@@ -68,10 +68,10 @@ class OverloadsResolutionTest extends CompilerTest {
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[errors.Redefined.Method]
-      ir.bindings(2) shouldBe an[errors.Redefined.Method]
-      val redef1 = ir.bindings(1).asInstanceOf[errors.Redefined.Method]
-      val redef2 = ir.bindings(2).asInstanceOf[errors.Redefined.Method]
+      ir.bindings()(1) shouldBe an[errors.Redefined.Method]
+      ir.bindings()(2) shouldBe an[errors.Redefined.Method]
+      val redef1 = ir.bindings()(1).asInstanceOf[errors.Redefined.Method]
+      val redef2 = ir.bindings()(2).asInstanceOf[errors.Redefined.Method]
 
       redef1.typeName.get.name shouldEqual atomName
       redef2.typeName.get.name shouldEqual atomName
@@ -92,7 +92,7 @@ class OverloadsResolutionTest extends CompilerTest {
 
       ir.bindings.length shouldEqual 2
       ir.bindings.head shouldBe a[definition.Method.Conversion]
-      ir.bindings(1) shouldBe a[definition.Method.Conversion]
+      ir.bindings()(1) shouldBe a[definition.Method.Conversion]
     }
 
     "raise an error if there are multiple definitions with the same source type" in {
@@ -105,10 +105,10 @@ class OverloadsResolutionTest extends CompilerTest {
 
       ir.bindings.length shouldEqual 3
       ir.bindings.head shouldBe a[definition.Method.Conversion]
-      ir.bindings(1) shouldBe a[definition.Method.Conversion]
-      ir.bindings(2) shouldBe an[errors.Redefined.Conversion]
+      ir.bindings()(1) shouldBe a[definition.Method.Conversion]
+      ir.bindings()(2) shouldBe an[errors.Redefined.Conversion]
 
-      val errLoc = ir.bindings(2).location().get
+      val errLoc = ir.bindings()(2).location().get
       val code   = sourceCode.substring(errLoc.start, errLoc.end)
       // The code should be the whole line, but without ending newlines.
       code shouldEqual "Unit.from (that : Boolean) = undefined"
@@ -132,13 +132,13 @@ class OverloadsResolutionTest extends CompilerTest {
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[errors.Redefined.Type]
-      ir.bindings(1)
+      ir.bindings()(1) shouldBe an[errors.Redefined.Type]
+      ir.bindings()(1)
         .asInstanceOf[errors.Redefined.Type]
         .typeName
         .name shouldEqual atomName
-      ir.bindings(2) shouldBe an[errors.Redefined.Type]
-      ir.bindings(2)
+      ir.bindings()(2) shouldBe an[errors.Redefined.Type]
+      ir.bindings()(2)
         .asInstanceOf[errors.Redefined.Type]
         .typeName
         .name shouldEqual atomName

@@ -1,4 +1,4 @@
-import { ProjectId } from '#/services/Backend'
+import { useOpenedProjects } from '$/providers/openedProjects'
 import { ComputedValueRegistry } from '$/providers/openedProjects/project/computedValueRegistry'
 import {
   ExecutionContext,
@@ -7,19 +7,19 @@ import {
 } from '$/providers/openedProjects/project/executionContext'
 import { VisualizationDataRegistry } from '$/providers/openedProjects/project/visualizationDataRegistry'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { proxyRefs } from '$/utils/reactivity'
 import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
 import type { Opt } from '@/util/data/opt'
-import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
+import { ProjectId } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { wait } from 'lib0/promise'
 import type { Ref, WatchSource } from 'vue'
 import {
@@ -37,12 +37,7 @@ import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
 import type { AbortScope } from 'ydoc-shared/util/net'
-import {
-  DistributedProject,
-  localUserActionOrigins,
-  type ExternalId,
-  type Uuid,
-} from 'ydoc-shared/yjsModel'
+import { DistributedProject, type ExternalId, type Uuid } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 export interface LsUrls {
@@ -59,17 +54,6 @@ const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
 export type ProjectStore = ReturnType<typeof createProjectStore>
 
 /**
- * Properties of the project.
- *
- * This is a subset of ProjectView props which is used to set up the store.
- */
-export interface ProjectProps {
-  projectId: string
-  renameProject: (newName: string) => void
-  engine: LsUrls
-}
-
-/**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
  * client, it is submitted to the language server as a document update.
@@ -77,13 +61,14 @@ export interface ProjectProps {
 export function createProjectStore(
   props: {
     projectId: ProjectId
-    renameProject: (newName: string) => Promise<void>
+    projectAssetId: ProjectId
     engine: LsUrls
   },
   projectNames: ProjectNameStore,
 ) {
-  const { projectId, renameProject: renameProjectBackend } = props
+  const { projectId, projectAssetId } = props
   const abort = useAbortScope()
+  const openedProjects = useOpenedProjects()
 
   const observedFileName = ref<string>()
 
@@ -95,6 +80,7 @@ export function createProjectStore(
   const projectRootId = lsRpcConnection.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
+  onScopeDispose(() => lsRpcConnection.release())
 
   const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
   const rpcUrl = new URL(props.engine.rpcUrl)
@@ -132,35 +118,6 @@ export function createProjectStore(
   })
 
   const projectModel = new DistributedProject(doc)
-  const moduleDocGuid = ref<string>()
-
-  function currentDocGuid() {
-    const name = observedFileName.value
-    if (name == null) return
-    return projectModel.modules.get(name)?.guid
-  }
-  function tryReadDocGuid() {
-    const guid = currentDocGuid()
-    if (guid === moduleDocGuid.value) return
-    moduleDocGuid.value = guid
-  }
-
-  projectModel.modules.observe(tryReadDocGuid)
-  watchEffect(tryReadDocGuid)
-
-  const module = computedAsync(
-    async () => {
-      const guid = moduleDocGuid.value
-      if (guid == null) return null
-      const moduleName = projectModel.findModuleByDocId(guid)
-      if (moduleName == null) return null
-      const mod = await projectModel.openModule(moduleName)
-      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod
-    },
-    undefined,
-    { onError: console.error },
-  )
 
   const entryPoint = computed<MethodPointer>(() => {
     const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
@@ -267,10 +224,6 @@ export function createProjectStore(
   })
 
   const isRecordingEnabled = computed(() => executionMode.value === 'live')
-
-  function stopCapturingUndo() {
-    module.value?.undoManager.stopCapturing()
-  }
 
   function executeExpression(
     expressionId: ExternalId,
@@ -432,8 +385,9 @@ export function createProjectStore(
   async function renameProject(newDisplayedName: string) {
     try {
       projectNames.onProjectRenameRequested(newDisplayedName)
-      await renameProjectBackend(newDisplayedName)
-      return Ok()
+      const result = await openedProjects.renameProject(projectAssetId, newDisplayedName)
+      if (!result.ok) projectNames.onProjectRenameFailed()
+      return result
     } catch (err) {
       projectNames.onProjectRenameFailed()
       return Err(err)
@@ -455,7 +409,6 @@ export function createProjectStore(
     executionContext,
     firstExecution,
     diagnostics,
-    module,
     moduleProjectPath,
     entryPoint,
     projectModel,
@@ -466,7 +419,6 @@ export function createProjectStore(
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
     isRecordingEnabled,
-    stopCapturingUndo,
     executionMode,
     recordMode,
     dataflowErrors,

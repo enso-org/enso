@@ -14,7 +14,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -24,10 +24,12 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 /**
  * The IsInOperation class provides a way to check if a value is in a set of values. It checks if
@@ -42,8 +44,7 @@ public final class IsInOperation {
    */
   public static boolean isSupported(Column column) {
     var storage = ColumnStorageWithInferredStorage.resolveStorage(column);
-    var storageType = storage.getType();
-    return !(storageType instanceof AnyObjectType);
+    return !(StorageType.ofStorage(storage) instanceof AnyObjectType);
   }
 
   /**
@@ -70,9 +71,10 @@ public final class IsInOperation {
     }
 
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
+    var leftStorageType = StorageType.ofStorage(leftStorage);
     var result =
-        switch (leftStorage.getType()) {
-          case NullType nt -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
+        switch (leftStorageType) {
+          case NullType _ -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
           case BooleanType bt ->
               applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
           case DateType dt ->
@@ -111,7 +113,7 @@ public final class IsInOperation {
                   IsInOperation::containsBigDecimal);
           default ->
               throw new IllegalArgumentException(
-                  "Unsupported StorageType for `is_in`: " + leftStorage.getType());
+                  "Unsupported StorageType for `is_in`: " + leftStorageType);
         };
 
     return new Column(new_name, result);
@@ -265,8 +267,9 @@ public final class IsInOperation {
 
     // If had both true and false, then return all true when not nothing
     if (flags.hadTrue && flags.hadFalse) {
-      var isNothing = makeIsNothingMap(boolStorage, checkedSize);
-      return new BoolStorage(new BitSet(), isNothing, checkedSize, true);
+      var validityMap = makeValidityMap(boolStorage, checkedSize);
+      return new BoolStorage(
+          ImmutableBitSet.allFalse(checkedSize), validityMap, checkedSize, true, null);
     }
 
     // Only have one of true or false
@@ -295,35 +298,42 @@ public final class IsInOperation {
 
   private static ColumnStorage<?> applyBoolStorage(
       boolean keepValue, BoolStorage boolStorage, int checkedSize) {
-    BitSet values = boolStorage.getValues();
-    BitSet isNothing = boolStorage.getIsNothingMap();
+    BitSet values = boolStorage.getValues().cloneBitSet();
+    BitSet isNothing = boolStorage.getValidityMap().cloneBitSet();
+    isNothing.flip(0, Math.toIntExact(boolStorage.getSize()));
 
     if (keepValue) {
       var newIsNothing =
-          boolStorage.isNegated() ? or(isNothing, values) : orNot(isNothing, values, checkedSize);
+          boolStorage.isNegated()
+              ? or(isNothing, values, checkedSize)
+              : orNot(isNothing, values, checkedSize);
+      newIsNothing.flip(0, checkedSize);
       return new BoolStorage(values, newIsNothing, checkedSize, boolStorage.isNegated());
     } else {
       var newIsNothing =
-          boolStorage.isNegated() ? orNot(isNothing, values, checkedSize) : or(isNothing, values);
+          boolStorage.isNegated()
+              ? orNot(isNothing, values, checkedSize)
+              : or(isNothing, values, checkedSize);
+      newIsNothing.flip(0, checkedSize);
       return new BoolStorage(values, newIsNothing, checkedSize, !boolStorage.isNegated());
     }
   }
 
-  private static BitSet makeIsNothingMap(ColumnStorage<?> storage, int size) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return withNothingMap.getIsNothingMap();
+  private static ImmutableBitSet makeValidityMap(ColumnStorage<?> storage, int size) {
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+      return withNothingMap.getValidityMap();
     }
 
-    BitSet isNothingMap = new BitSet(size);
+    BitSet validityMap = new BitSet(size);
     for (int i = 0; i < size; i++) {
-      if (storage.isNothing(i)) {
-        isNothingMap.set(i);
+      if (!storage.isNothing(i)) {
+        validityMap.set(i);
       }
     }
-    return isNothingMap;
+    return new ImmutableBitSet(validityMap, size);
   }
 
-  private static BitSet or(BitSet left, BitSet right) {
+  private static BitSet or(BitSet left, BitSet right, int sizeIsIgnored) {
     BitSet result = (BitSet) left.clone();
     result.or(right);
     return result;

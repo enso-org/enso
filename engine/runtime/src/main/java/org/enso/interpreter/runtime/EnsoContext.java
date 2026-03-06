@@ -614,7 +614,7 @@ public final class EnsoContext {
   public TruffleObject lookupJavaClass(Package<?> who, String className) {
     var collectedExceptions = new ArrayList<Exception>();
     var polyglotJava = EnsoPolyglotJava.find(this, who);
-    var hostSymbol = polyglotJava.lookupJavaClass(className, collectedExceptions);
+    var hostSymbol = polyglotJava.lookupJavaClass(who, className, collectedExceptions);
     if (hostSymbol instanceof TruffleObject obj) {
       return obj;
     }
@@ -1001,9 +1001,13 @@ public final class EnsoContext {
   private Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
-      extraValues[index] = init.apply(this);
-      assert extraValues[index] != null;
+      synchronized (REFERENCE) {
+        if (index >= extraValues.length) {
+          extraValues = Arrays.copyOf(extraValues, index + 1);
+        }
+        extraValues[index] = init.apply(this);
+        assert extraValues[index] != null;
+      }
     }
     return extraValues[index];
   }

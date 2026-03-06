@@ -1,0 +1,75 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Name_Pattern
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Choice import Option
+
+import project.DuckDB.DuckDB
+
+## Read the file to a `DuckDB_Connection`.
+type DuckDB_File_Format
+    ## ---
+       private: true
+       ---
+       Read DuckDB files (kept for backwards compatibility)
+    DuckDB
+
+    ## ---
+       private: true
+       ---
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> DuckDB_File_Format | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:DuckDB_File_Format) _->Nothing
+
+    ## ---
+       private: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
+    for_read : File_Format_Metadata -> DuckDB_File_Format | Nothing
+    for_read file:File_Format_Metadata =
+        _ = file
+        Nothing
+
+    ## ---
+       private: true
+       ---
+       If the File_Format supports writing to the file, return a configured
+       instance.
+    for_file_write : Writable_File -> DuckDB_File_Format | Nothing
+    for_file_write file:Writable_File =
+        _ = file
+        Nothing
+
+    ## ---
+       private: true
+       ---
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "DuckDB" "..DuckDB"]
+
+    ## ---
+       private: true
+       ---
+    get_name_patterns -> Vector File_Name_Pattern =
+        []
+
+    ## ---
+       private: true
+       ---
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems:Problem_Behavior =
+        _ = [on_problems]
+        DuckDB.From_File file
+
+    ## ---
+       private: true
+       ---
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream metadata =
+        _ = [stream, metadata]
+        Error.throw (Illegal_Argument.Error "Cannot connect to a DuckDB database backed by a stream. Save it to a local file first.")

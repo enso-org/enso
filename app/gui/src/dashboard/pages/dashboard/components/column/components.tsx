@@ -19,6 +19,9 @@ import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
 import { useSelectedAssets } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import {
   AssetType,
   FALLBACK_COLOR,
@@ -26,12 +29,9 @@ import {
   getAssetPermissionName,
   type LabelName,
   type LChColor,
-} from '#/services/Backend'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { PermissionAction } from '#/utilities/permissions'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+} from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import { PermissionAction } from 'enso-common/src/utilities/permissions'
 import { useMemo, useRef, useState } from 'react'
 export { PathColumn } from './PathColumn'
 

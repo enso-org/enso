@@ -6,16 +6,16 @@ import org.slf4j.LoggerFactory
 import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.{expression, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
-  DataflowAnalysis,
   GatherDiagnostics
 }
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
@@ -158,7 +158,7 @@ class EnsureCompiledJob(
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
@@ -325,7 +325,8 @@ class EnsureCompiledJob(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
         invalidateExpressionsCommand,
-        Set(CacheInvalidation.IndexSelector.Weights)
+        if (changeset.simpleUpdate.isDefined) Set()
+        else Set(CacheInvalidation.IndexSelector.Weights)
       ),
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
@@ -354,23 +355,14 @@ class EnsureCompiledJob(
     * @return the set of node ids affected by a resolution error in the module
     */
   private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata(
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during the interactive compilation."
-      )
+    val metadata = DependencyInfo.find(ir)
 
     val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(
       ir,
       {
-        case err @ expression.errors.Resolution(
-              _,
-              expression.errors.Resolution
-                .ResolverError(BindingsMap.ResolutionNotFound),
-              _
-            ) =>
-          val key = DataflowAnalysis.DependencyInfo.Type.Static(
+        case err: expression.errors.Resolution if isResolutionNotFound(err) =>
+          val key = new DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
           )
@@ -380,6 +372,16 @@ class EnsureCompiledJob(
     )
 
     builder.result()
+  }
+
+  private def isResolutionNotFound(
+    err: expression.errors.Resolution
+  ): Boolean = {
+    err.reason match {
+      case resolverErr: expression.errors.Resolution.ResolverError =>
+        resolverErr.explain().isInstanceOf[BindingsMap.ResolutionNotFound.type]
+      case _ => false
+    }
   }
 
   /** Run the invalidation commands.
@@ -492,7 +494,7 @@ class EnsureCompiledJob(
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[CachePreferenceAnalysis.Metadata](
                 CachePreferenceAnalysis,
                 s"Empty cache preference metadata ${module.getName}"
               )

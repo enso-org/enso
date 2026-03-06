@@ -136,6 +136,7 @@ export interface DropdownEntry {
   border-radius: calc(var(--item-height) / 2);
   height: var(--item-height);
   text-align: left;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
   display: flex;
@@ -169,7 +170,7 @@ export interface DropdownEntry {
   display: inline-block;
   max-width: 100%;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: clip;
   vertical-align: middle;
   margin: 3px 0;
   text-wrap: nowrap;

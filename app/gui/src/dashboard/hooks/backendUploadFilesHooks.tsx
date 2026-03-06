@@ -14,7 +14,6 @@ import {
 } from '#/layouts/Drive/Categories'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import type LocalBackend from '#/services/LocalBackend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useUploadsToCloudStore } from '$/providers/react/upload'
@@ -28,12 +27,13 @@ import {
   stripProjectExtension,
   type AnyAsset,
   type AssetId,
-  type default as Backend,
+  type Backend,
   type DirectoryId,
   type FileId,
   type ProjectId,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 
@@ -49,13 +49,11 @@ declare module '$/utils/queryClient' {
  * upload to Cloud.
  */
 function useUploadLocally(backend: Backend) {
-  const localUploadFileStart = useMutationCallback(
-    backendMutationOptions(backend, 'uploadFileStart'),
-  )
+  const uploadFileStart = useMutationCallback(backendMutationOptions(backend, 'uploadFileStart'))
   const uploadFileEnd = useMutationCallback(backendMutationOptions(backend, 'uploadFileEnd'))
 
   return async (file: File, params: UploadFileRequestParams) => {
-    const { uploadId, sourcePath } = await localUploadFileStart([params, file])
+    const { uploadId, sourcePath } = await uploadFileStart([params, file])
     return uploadFileEnd([
       {
         uploadId,

@@ -41,10 +41,13 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
+import { type Watcher } from 'project-manager-shim/fs'
 import {
   handleFilesystemCommand,
   handleProjectServiceRequest,
+  handleWatcherRequest,
   isProjectServiceRequest,
+  isWatcherRequest,
 } from 'project-manager-shim/handler'
 import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
@@ -77,6 +80,7 @@ const COOP_COEP_CORP_HEADERS = [
 /** Middleware for project manager shim. */
 export class ProjectManagerShimMiddleware {
   private projectService?: ProjectService
+  private watchers: Map<AssetId, Watcher> = new Map()
 
   /** Create the new middleware. */
   constructor(private readonly setup: () => Promise<void>) {}
@@ -185,6 +189,8 @@ export class ProjectManagerShimMiddleware {
         () => this.getProjectService(),
         COMMON_HEADERS,
       )
+    } else if (isWatcherRequest(requestPath)) {
+      handleWatcherRequest(request, response, COMMON_HEADERS, this.watchers)
     } else if (requestPath.startsWith('/api/')) {
       switch (`${request.method} ${requestPath}`) {
         case `POST /api/${EXPORT_ARCHIVE_PATH}`: {

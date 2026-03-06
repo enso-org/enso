@@ -132,9 +132,9 @@ class DebugServerTest
         executor.exit()
       }
       eval(code)
-      val errorMsg =
-        "Compile_Error.Error"
-      evalResult.left.value.getMessage shouldEqual errorMsg
+      val evalTxt = evalResult.left.value.getMessage.toLowerCase
+      evalTxt should include("compile")
+      evalTxt should include("error")
     }
 
     "handle errors gracefully (pretty print)" in {

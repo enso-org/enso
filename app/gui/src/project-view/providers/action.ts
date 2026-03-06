@@ -1,3 +1,4 @@
+import type { ToValue } from '$/utils/reactivity'
 import {
   appBindings,
   appContainerBindings,
@@ -12,23 +13,32 @@ import { createContextStore } from '@/providers'
 import { injectActionContext, type ActionContext } from '@/providers/actionContext'
 import { assert } from '@/util/assert'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import type { ToValue } from '@/util/reactivity'
 import type { BindingInfo } from '@/util/shortcuts'
 import { identity } from '@vueuse/core'
-import { ref, type Ref } from 'vue'
+import { ref, toValue, type Ref } from 'vue'
 import type { ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
  * A definition of some action available via shortcut, button, and/or menu entry.
  */
 export interface Action {
-  available?: ToValue<boolean>
-  enabled?: ToValue<boolean>
-  action?: (ctx: ActionContext | undefined) => void
-  shortcut?: BindingInfo
-  icon?: ToValue<Icon>
-  description?: ToValue<string>
-  toggled?: Ref<boolean> | (() => boolean)
+  /** Decide whether the action is even going to be shown in the menu. */
+  available?: ToValue<boolean> | undefined
+  /** Whether the action can be performed. Available but disabled actions will be listed, but grayed out. */
+  enabled?: ToValue<boolean> | undefined
+  /** The action callback, called when action is invoked by the user. */
+  action?: ((ctx: ActionContext | undefined) => void) | undefined
+  /**
+   * The default action keyboard shortcut or mouse action binding. Displayed in dropdown menus and tooltips.
+   * Action handler must be bound through appropriate pointer or keyboard event for this to have any effect.
+   */
+  shortcut?: ToValue<BindingInfo | undefined> | undefined
+  /** Icon displayed on action buttons or next to the description in dropdowns. */
+  icon?: ToValue<Icon | undefined> | undefined
+  /** Short name of the action. Shown in the context menu next to the icon, or as a tooltip hover for icon buttons. */
+  description?: ToValue<string | undefined> | undefined
+  /** When true, action buttons will be highlighted, suggesting that whatever the action represents is currently "on". */
+  toggled?: Ref<boolean> | (() => boolean) | undefined
 }
 export interface DisplayableAction extends Action {
   icon: ToValue<Icon>
@@ -66,6 +76,30 @@ const displayableActions = {
     description: 'Color Selected Components',
     shortcut: graphBindings.bindings['components.pickColorMulti'],
   },
+  'components.alignLeft': {
+    icon: 'align_left',
+    description: 'Align Selected Components Left',
+  },
+  'components.alignRight': {
+    icon: 'align_right',
+    description: 'Align Selected Components Right',
+  },
+  'components.alignTop': {
+    icon: 'align_top',
+    description: 'Align Selected Components Top',
+  },
+  'components.alignBottom': {
+    icon: 'align_bottom',
+    description: 'Align Selected Components Bottom',
+  },
+  'components.alignCenter': {
+    icon: 'align_center',
+    description: 'Center Selected Components Horizontally',
+  },
+  'components.deleteAndConnectAround': {
+    icon: 'graph',
+    description: 'Delete and Connect Around',
+  },
 
   // === Component ===
 
@@ -96,6 +130,10 @@ const displayableActions = {
     description: 'Show/Hide visualization',
     shortcut: graphBindings.bindings['graph.toggleVisualization'],
   },
+  'component.toggleExpanded': {
+    icon: 'expanded_node',
+    description: 'Expand/Collapse Component',
+  },
   'component.recompute': {
     icon: 'workflow_play',
     description: 'Write',
@@ -103,6 +141,12 @@ const displayableActions = {
   'component.pickColor': {
     icon: 'paint_palette',
     description: 'Color Component',
+  },
+
+  // === Widget ===
+  'component.widget.editMethodName': {
+    icon: 'group_rename',
+    description: 'Rename User Defined Component',
   },
 
   // === Component Browser ===
@@ -185,6 +229,16 @@ const displayableActions = {
     icon: 'navigate_up',
     description: 'Navigate Up',
     shortcut: graphBindings.bindings['graph.navigateUp'],
+  },
+  'graph.deleteSelectedEdge': {
+    icon: 'trash',
+    description: 'Delete Selected Connection',
+    shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
+  },
+  'graph.pasteNode': {
+    icon: 'paste',
+    description: 'Paste Component',
+    shortcut: graphBindings.bindings['graph.pasteNode'],
   },
 
   // === File Browser ===
@@ -322,9 +376,6 @@ const undisplayableActions = {
   'graph.deselectAll': {
     shortcut: graphBindings.bindings['graph.deselectAll'],
   },
-  'graph.pasteNode': {
-    shortcut: graphBindings.bindings['graph.pasteNode'],
-  },
   'graph.startProfiling': {
     shortcut: graphBindings.bindings['graph.startProfiling'],
   },
@@ -415,14 +466,41 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
 
   for (const action in handlers) {
     assert(isKey(action), `${action} is not a valid Action name`)
-    newActions[action] = {
-      ...newActions[action],
-      ...handlers[action],
-    } as (typeof newActions)[typeof action]
+    newActions[action] = combineActionDefinitions(
+      newActions[action],
+      handlers[action],
+    ) as (typeof newActions)[typeof action]
   }
   provideActions(newActions)
 
   return newActions as Actions & Handlers
+}
+
+function combineActionDefinitions(existing: Action, overrides: Action | undefined): Action {
+  if (!overrides) return existing
+  return {
+    available: combineToValues(existing.available, overrides.available),
+    enabled: combineToValues(existing.enabled, overrides.enabled),
+    action: overrides.action ?? existing.action,
+    shortcut: combineToValues(existing.shortcut, overrides.shortcut),
+    icon: combineToValues(existing.icon, overrides.icon),
+    description: combineToValues(existing.description, overrides.description),
+    toggled: overrides.toggled ?? existing.toggled,
+  }
+}
+
+function combineToValues<T>(existing: ToValue<T> | undefined, overrides: ToValue<T>): ToValue<T>
+function combineToValues<T>(existing: ToValue<T>, overrides: ToValue<T> | undefined): ToValue<T>
+function combineToValues<T>(
+  existing: ToValue<T> | undefined,
+  overrides: ToValue<T> | undefined,
+): ToValue<T> | undefined
+function combineToValues<T>(
+  existing: ToValue<T> | undefined,
+  overrides: ToValue<T> | undefined,
+): ToValue<T> | undefined {
+  if (existing == null || overrides == null) return overrides ?? existing
+  return () => toValue(overrides) ?? toValue(existing)
 }
 
 /** A helper function for making ActionHandler toggling a boolean ref. */
@@ -441,7 +519,10 @@ interface ResolvedAction extends Action {
   action: () => void
 }
 
-type DisplayableResolvedAction = ResolvedAction & DisplayableAction
+interface DisplayableResolvedAction extends ResolvedAction {
+  icon: ToValue<Icon>
+  description: ToValue<string>
+}
 
 export function resolveAction(actionName: DisplayableActionName): DisplayableResolvedAction
 export function resolveAction(actionName: ActionName): ResolvedAction

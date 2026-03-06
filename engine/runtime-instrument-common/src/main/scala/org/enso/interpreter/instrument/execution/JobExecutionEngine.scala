@@ -2,7 +2,12 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.common.Asserts.assertInJvm
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
+import org.enso.interpreter.instrument.job.{
+  BackgroundJob,
+  ExecuteJob,
+  Job,
+  UniqueJob
+}
 import org.enso.text.Sha3_224VersionCalculator
 import org.enso.runtime.utils.ThreadUtils
 import org.slf4j.Logger
@@ -113,10 +118,16 @@ final class JobExecutionEngine(
             )
           } catch {
             case _: TimeoutException =>
-              val msg = ThreadUtils.dumpAllStacktraces(
-                "Thread dump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
-                  .threadNameExecutingJob() + " to cancel:"
-              )
+              val msg = runningJob.job match {
+                case _: ExecuteJob =>
+                  "Timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
+                    .threadNameExecutingJob() + " to cancel."
+                case _ =>
+                  ThreadUtils.dumpAllStacktraces(
+                    "Thread dump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
+                      .threadNameExecutingJob() + " to cancel:"
+                  )
+              }
               logger.warn(msg)
               runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
             case _: CancellationException =>
@@ -311,7 +322,7 @@ final class JobExecutionEngine(
       .flatMap { runningJob =>
         if (
           runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
-            .contains(runningJob.getClass))
+            .contains(runningJob.job.getClass))
         ) {
           logger.debug(
             "Aborting job {} because {}",

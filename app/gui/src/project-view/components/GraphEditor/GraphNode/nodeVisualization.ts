@@ -1,11 +1,11 @@
 import type { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { type ToValue } from '$/utils/reactivity'
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { injectBubblingKeyboard } from '@/providers/keyboard'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
-import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { VisualizationIdentifier, VisualizationMetadata } from 'ydoc-shared/yjsModel'
@@ -54,17 +54,42 @@ export function useNodeVisualization({
     get: () => metadata.value?.visible ?? false,
     set: (value) => emit('update:visualizationEnabled', value),
   })
+
+  function hoverWithLease(baseHover: ToValue<boolean>) {
+    const hoverWithLease = ref(toValue(baseHover))
+    watch(
+      () => toValue(baseHover),
+      (immediateHovered) => {
+        if (immediateHovered) hoverWithLease.value = true
+        else {
+          requestAnimationFrame(() => {
+            hoverWithLease.value = toValue(baseHover)
+          })
+        }
+      },
+      { flush: 'post' },
+    )
+    return hoverWithLease
+  }
+
   const visualizationHovered = ref(false)
+  const visHoveredWithLease = hoverWithLease(visualizationHovered)
+  const nodeHoveredWithLease = hoverWithLease(nodeHovered)
 
   const isVisualizationPreviewed = computed(
     () =>
       !isVisualizationEnabled.value &&
       keyboard.mod &&
-      (visualizationHovered.value || toValue(nodeHovered)),
+      (visHoveredWithLease.value || nodeHoveredWithLease.value),
   )
+
   const isVisualizationVisible = computed(
     () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
   )
+
+  watch(isVisualizationVisible, (visible) => {
+    if (!visible && visualizationHovered.value) visualizationHovered.value = false
+  })
 
   const visRect = shallowRef<Rect>()
   const visibleVisRect = computed(
@@ -82,7 +107,6 @@ export function useNodeVisualization({
       nodePosition,
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
-      typename: toValue(typeinfo)?.primaryType ?? undefined,
       typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),

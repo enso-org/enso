@@ -6,6 +6,7 @@ module org.enso.downloader {
   requires org.apache.commons.io;
 
   requires org.enso.cli;
+  requires org.enso.engine.common;
   // For com.typesafe.scalalogging.Logger
   requires org.enso.scala.wrapper;
 

@@ -9,14 +9,16 @@ import {
 } from '$/providers/openedProjects/widgetRegistry'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { useLanguageSupport } from '@/util/codemirror/language'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, ref, useTemplateRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
 const { module } = useCurrentProject()
+const tree = injectWidgetTree()
 
 function focusAndSelect() {
   baseEditor.value?.focusAndSelect()
@@ -118,41 +120,62 @@ export const widgetDefinition = defineWidget(
 <template>
   <label
     class="WidgetText widgetRounded widgetPill"
-    :class="{ singleLine: !isMultiline }"
+    :class="{ widgetSingleLine: !isMultiline }"
     :data-text-syntax="syntax"
     @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
   >
-    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
-    <CodeMirrorWidgetBase
-      ref="baseEditor"
-      v-model="textContents"
-      contentTestId="widget-text-content"
-      :placeholder="placeholder"
-      :lineMode="isMultiline ? 'autoMulti' : 'auto'"
-      :extensions="extensions"
-      :widgetTypeId="widgetTypeId"
-      :input="input"
-      :transformUserInput="makeLiteralFromUserInput"
-      :onAccepted="acceptValue"
-      @textEdited="onTextEdited"
-    />
-    <NodeWidget
-      v-if="closeToken"
-      :input="WidgetInput.FromAst(closeToken)"
-      class="delimiter close"
-    />
+    <span class="textValue" :class="{ collapsed: !tree.expanded }">
+      <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
+      <CodeMirrorWidgetBase
+        ref="baseEditor"
+        v-model="textContents"
+        contentTestId="widget-text-content"
+        :placeholder="placeholder"
+        :lineMode="
+          tree.expanded ?
+            isMultiline ? 'autoMulti'
+            : 'auto'
+          : 'single'
+        "
+        :singleLineDisplay="!tree.expanded"
+        :extensions="extensions"
+        :widgetTypeId="widgetTypeId"
+        :input="input"
+        :transformUserInput="makeLiteralFromUserInput"
+        :onAccepted="acceptValue"
+        @textEdited="onTextEdited"
+      />
+      <NodeWidget
+        v-if="closeToken"
+        :input="WidgetInput.FromAst(closeToken)"
+        class="delimiter close"
+      />
+    </span>
   </label>
 </template>
 
 <style scoped>
 .WidgetText {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
 }
 
-.singleLine :deep(.cm-scroller) {
+.textValue {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  overflow-x: auto;
+  &.collapsed {
+    max-width: 300px;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    &:focus-within {
+      max-width: 400px;
+    }
+  }
+}
+
+.widgetSingleLine :deep(.cm-scroller) {
   font-weight: 800;
 }
 
@@ -160,7 +183,7 @@ export const widgetDefinition = defineWidget(
  * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
  * content is padded to be slightly larger than its scroller so that the scrollbar shows.
  */
-.WidgetText:not(.singleLine) {
+.WidgetText:not(.widgetSingleLine) {
   & :deep(.cm-scroller) {
     min-height: 2.5em;
     max-height: 20em;

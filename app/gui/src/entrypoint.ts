@@ -6,17 +6,15 @@ import App from '$/App.vue'
 import { setupLogger } from '$/log'
 import { widgetDevtools } from '$/providers/openedProjects/widgetRegistry/devtools'
 import router from '$/router'
-import * as detect from '$/utils/detect'
 import { createQueryClient } from '$/utils/queryClient'
 import * as sentry from '@sentry/vue'
 import type { Vue } from '@sentry/vue/types/types'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as idbKeyval from 'idb-keyval'
 import { createApp, markRaw } from 'vue'
 
-const HTTP_STATUS_BAD_REQUEST = 400
-const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
 const INITIAL_URL_KEY = `Enso-initial-url`
@@ -26,7 +24,7 @@ markRaw(HttpClient.prototype)
 async function main() {
   setupLogger()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
-  const queryClient = createQueryClientOfPersistCache()
+  const queryClient = await createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
 
   const app = createApp(App)
@@ -40,7 +38,7 @@ async function main() {
 }
 
 function setupSentry(app: Vue) {
-  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN && $config.API_URL != null) {
+  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN) {
     sentry.init({
       dsn: $config.SENTRY_DSN,
       environment: $config.ENVIRONMENT ?? 'dev',
@@ -54,25 +52,8 @@ function setupSentry(app: Vue) {
       app,
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
-      tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
-      beforeSend: (event) => {
-        if (
-          (event.breadcrumbs ?? []).some(
-            (breadcrumb) =>
-              breadcrumb.type === 'http' &&
-              breadcrumb.category === 'fetch' &&
-              breadcrumb.data &&
-              breadcrumb.data.status_code === HTTP_STATUS_BAD_REQUEST &&
-              typeof breadcrumb.data.url === 'string' &&
-              new URL(breadcrumb.data.url).host === API_HOST,
-          )
-        ) {
-          return null
-        }
-        return event
-      },
     })
   }
 }
@@ -84,7 +65,8 @@ function createQueryClientOfPersistCache() {
       getItem: async (key) => idbKeyval.get(key, store),
       setItem: async (key, value) => idbKeyval.set(key, value, store),
       removeItem: async (key) => idbKeyval.del(key, store),
-      clear: async () => idbKeyval.clear(store),
+      clear: () => idbKeyval.clear(store),
+      entries: () => idbKeyval.entries(store),
     },
   })
 }

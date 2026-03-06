@@ -11,6 +11,8 @@ import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
 import java.io.IOException;
+import java.util.List;
+import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.processor.IRProcessor;
 import org.junit.Test;
 
@@ -40,8 +42,12 @@ public class TestIRProcessorInline {
 
   private static Compilation expectCompilationSuccessful(String name, String src) {
     var srcObject = JavaFileObjects.forSourceString(name, src);
+    return expectCompilationSuccessful(List.of(srcObject));
+  }
+
+  private static Compilation expectCompilationSuccessful(List<JavaFileObject> srcs) {
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
-    var compilation = compiler.compile(srcObject);
+    var compilation = compiler.compile(srcs);
     if (compilation.status() != Status.SUCCESS) {
       var failureMsg = new StringBuilder();
       failureMsg.append("Compilation failed with diagnostics: ");
@@ -174,7 +180,9 @@ public class TestIRProcessorInline {
               }
         """;
     var generatedClass = generatedClass("MyIR", src);
-    assertThat(generatedClass, containsString("class MyIRGen implements IR, MySuperIR"));
+    assertThat(
+        generatedClass,
+        containsString("class MyIRGen implements org.enso.compiler.core.IR, MySuperIR"));
   }
 
   @Test
@@ -201,7 +209,9 @@ public class TestIRProcessorInline {
 """;
     var generatedClass = generatedClass("MyIR", src);
     assertThat(
-        generatedClass, containsString("class MyIRGen implements IR, MySuperIR_1, MySuperIR_2"));
+        generatedClass,
+        containsString(
+            "class MyIRGen implements org.enso.compiler.core.IR, MySuperIR_1, MySuperIR_2"));
   }
 
   @Test
@@ -569,7 +579,7 @@ public class TestIRProcessorInline {
               }
             }
             """);
-    assertThat(genSrc, containsString("Expression expression()"));
+    assertThat(genSrc, containsString("org.enso.compiler.core.ir.Expression expression()"));
   }
 
   @Test
@@ -724,7 +734,7 @@ public class TestIRProcessorInline {
               }
             }
             """);
-    assertThat(src, containsString("class JBlankGen implements IR, JName"));
+    assertThat(src, containsString("class JBlankGen implements org.enso.compiler.core.IR, JName"));
     assertThat(src, containsString("String name()"));
   }
 
@@ -754,7 +764,9 @@ public class TestIRProcessorInline {
             }
             """);
     assertThat(src, containsString("class JNameGen"));
-    assertThat(src, containsString("List<IR> expressions"));
+    assertThat(
+        src,
+        containsString("scala.collection.immutable.List<org.enso.compiler.core.IR> expressions"));
   }
 
   @Test
@@ -783,7 +795,9 @@ public class TestIRProcessorInline {
             }
             """);
     assertThat(src, containsString("class JNameGen"));
-    assertThat(src, containsString("List<IR> expressions"));
+    assertThat(
+        src,
+        containsString("scala.collection.immutable.List<org.enso.compiler.core.IR> expressions"));
     // expressions child is not required, so there must be somewhere a check
     // that it is not null.
     assertThat(src, containsString("expressions != null"));
@@ -816,7 +830,10 @@ public class TestIRProcessorInline {
             }
             """);
     assertThat(src, containsString("class JNameGen"));
-    assertThat(src, containsString("Option<List<IR>> expressions"));
+    assertThat(
+        src,
+        containsString(
+            "Option<scala.collection.immutable.List<org.enso.compiler.core.IR>> expressions"));
     assertThat(src, containsString("expressions.isDefined"));
   }
 
@@ -846,7 +863,10 @@ public class TestIRProcessorInline {
             }
             """);
     assertThat(src, containsString("class JNameGen"));
-    assertThat("has getter method for expression", src, containsString("Option<IR> expression()"));
+    assertThat(
+        "has getter method for expression",
+        src,
+        containsString("Option<org.enso.compiler.core.IR> expression()"));
   }
 
   @Test
@@ -878,7 +898,8 @@ public class TestIRProcessorInline {
     assertThat(
         "has getter method for expression with the same return type",
         src,
-        containsString("Reference<IR> expression()"));
+        containsString(
+            "org.enso.persist.Persistance.Reference<org.enso.compiler.core.IR> expression()"));
   }
 
   /** JCase contains JExpr and JBranch, JExpr references JBranch as its IRChild. */
@@ -924,5 +945,68 @@ public class TestIRProcessorInline {
             """);
     var generatedSrcs = compilation.generatedSourceFiles();
     assertThat(generatedSrcs.size(), is(2));
+  }
+
+  @Test
+  public void resolvesSimpleTypeNameClashes() {
+    var pkg = "processor.test";
+
+    var literalNameCode =
+        """
+        package ${pkg};
+
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRField;
+        import org.enso.compiler.core.IR;
+
+        public interface JLiteral extends IR {
+          @GenerateIR(interfaces = {JLiteral.class})
+          final class Name extends LiteralNameGen {
+            @GenerateFields
+            public Name(@IRField String name) {
+              super(name);
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return name();
+            }
+          }
+        }
+        """
+            .replace("${pkg}", pkg);
+
+    var patternNameCode =
+        """
+        package ${pkg};
+
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRField;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import ${pkg}.JLiteral;
+
+        public interface JPattern extends IR {
+          @GenerateIR(interfaces = {JPattern.class})
+          final class Name extends PatternNameGen {
+            @GenerateFields
+            public Name(@IRChild JLiteral.Name litName) {
+              super(litName);
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return litName().name();
+            }
+          }
+        }
+        """
+            .replace("${pkg}", pkg);
+    var litSrc = JavaFileObjects.forSourceString(pkg + ".JLiteral", literalNameCode);
+    var patSrc = JavaFileObjects.forSourceString(pkg + ".JPattern", patternNameCode);
+    var compilation = expectCompilationSuccessful(List.of(litSrc, patSrc));
+    assertThat(compilation.generatedSourceFiles().size(), is(2));
   }
 }

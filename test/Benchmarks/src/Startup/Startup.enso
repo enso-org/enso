@@ -8,7 +8,7 @@ polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
 type Data
-    Value ~enso_bin:File ~empty_world:File ~hello_world:File ~import_world:File
+    Value ~enso_bin:File ~empty_world:File ~hello_world:File ~import_world:File ~size_in_mb:Integer
 
     bench_empty self in_jvm:Boolean =
         self.startup [ "--run", self.empty_world.to_text ] in_jvm
@@ -41,7 +41,7 @@ collect_benches = Bench.build builder->
     options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 3 5)
 
     data =
-        Data.Value find_enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
+        Data.Value find_enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso") (find_enso_bin.size/(1024*1024) . ceil)
 
     [["Native_Image_Startup", False], ["Startup", True]].each \entry->
         group_name = entry.first
@@ -50,7 +50,12 @@ collect_benches = Bench.build builder->
             group_builder.specify "empty_startup" (data.bench_empty in_jvm)
             group_builder.specify "hello_world_startup" (data.bench_hello in_jvm)
             group_builder.specify "import_world_startup" (data.bench_import in_jvm)
-
+            
+    once = Bench.options . set_warmup (Bench.phase_conf 1 1) . set_measure (Bench.phase_conf 1 1)
+    builder.group "Native_Image_Size" once \group_builder->
+        group_builder.specify "enso" <|
+            # turn size into milliseconds
+            Runtime.sleep data.size_in_mb
 
 find_sibling name =
     f = enso_project.root / "src" / "Startup" / name

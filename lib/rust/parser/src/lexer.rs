@@ -737,11 +737,7 @@ fn analyze_user_operator(token: &str) -> OperatorProperties {
         _ => token::Precedence::OtherUserOperator,
     };
     operator = operator.with_binary_infix_precedence(binary);
-    if !has_right_arrow && !has_left_arrow {
-        operator.as_value_operation()
-    } else {
-        operator
-    }
+    if !has_right_arrow && !has_left_arrow { operator.as_value_operation() } else { operator }
 }
 
 // ===============

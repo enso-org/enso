@@ -7,6 +7,7 @@ import {
   type WidgetUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
   createDefaultExpressionOfKind,
@@ -20,18 +21,18 @@ import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
-import { Err, Ok } from '@/util/data/result'
-import { proxyRefs } from '@/util/reactivity'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
-const { definition, updateCallback, portIdBase } = defineProps<{
+const { definition, updateCallback, portIdBase, preprocessName } = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   updateCallback: UpdateHandler
   portIdBase: PortId
+  preprocessName: (input: string) => string
 }>()
 
 const emit = defineEmits<{
@@ -51,7 +52,7 @@ function patternWidget(pattern: Ast.Expression): TreeProps {
     input: {
       portId: pattern.id,
       value: pattern,
-      [EnsoExpression]: {},
+      [EnsoExpression]: { preprocess: preprocessName },
     },
     updateCallback(update: WidgetUpdate) {
       return rewritePortValueUpdate(update, updateCallback, pattern.id, (value) => {
@@ -209,7 +210,6 @@ const defaultEntries = [
         :show="defaultValueDropdownInteraction.isActive()"
         :entries="defaultEntries"
         :topLevel="true"
-        :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
       <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>

@@ -7,9 +7,9 @@ import {
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findExpressions } from '@/util/ast/__tests__/testCase'
-import { unwrap } from '@/util/data/result'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
 import { type Identifier } from 'ydoc-shared/ast'
@@ -236,7 +236,6 @@ test('Perform collapse', () => {
       '    target = extract2',
     ].join('\n'),
   )
-  root.module.setRoot(root)
   const before = findExpressions(root, {
     'keep1 = 1': Ast.Assignment,
     'extract1 = keep1': Ast.Assignment,

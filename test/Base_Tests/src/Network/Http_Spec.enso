@@ -13,9 +13,7 @@ import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import _resolve_headers, _get_follow_redirects, _get_proxy, _get_timeout, _get_version
 
 from Standard.Test import all
-from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
-
-from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url, run_with_and_without_output
 
 type Test_Type
     Aaa (s:Text)
@@ -76,6 +74,8 @@ add_specs suite_builder =
                 r.should_fail_with HTTP_Error
                 r.catch.should_be_a HTTP_Error.Status_Error
                 r.catch.status_code.code . should_equal 302
+                r.catch.uri . should_equal (URI.from (base_url_with_slash+"test_redirect"))
+                r.catch.to_display_text . should_contain "status 302"
 
         group_builder.specify "should create HTTP client with proxy setting" <|
             proxy_setting = Proxy.Address "example.com" 80
@@ -89,8 +89,10 @@ add_specs suite_builder =
 
     url_get = base_url_with_slash.if_not_nothing <| base_url_with_slash + "get"
     suite_builder.group "fetch" pending=pending_has_url group_builder->
-        url_head = base_url_with_slash + "head"
-        url_options = base_url_with_slash + "options"
+        url_head =
+            base_url_with_slash + "head"
+        url_options =
+            base_url_with_slash + "options"
 
         group_builder.specify "Can perform a GET with a JSON response" <| Test.with_retries <|
             response = Data.fetch url_get
@@ -238,10 +240,14 @@ add_specs suite_builder =
             err.catch.message.should_equal "Data.read cannot be used with a Vector. Please use Data.read_many."
 
     suite_builder.group "post" pending=pending_has_url group_builder->
-        url_post = base_url_with_slash + "post"
-        url_put = base_url_with_slash + "put"
-        url_patch = base_url_with_slash + "patch"
-        url_delete = base_url_with_slash + "delete"
+        url_post =
+            base_url_with_slash + "post"
+        url_put =
+            base_url_with_slash + "put"
+        url_patch =
+            base_url_with_slash + "patch"
+        url_delete =
+            base_url_with_slash + "delete"
 
         group_builder.specify "Can perform a Request_Body.Text POST" <| Test.with_retries <|
             response = Data.post url_post (Request_Body.Text "hello world")
@@ -455,7 +461,8 @@ add_specs suite_builder =
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
 
     suite_builder.group "Headers" pending=pending_has_url group_builder->
-        url_post = base_url_with_slash + "post"
+        url_post =
+            base_url_with_slash + "post"
 
         group_builder.specify "Content-type in the body is respected" <| Test.with_retries <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}' content_type="application/json")

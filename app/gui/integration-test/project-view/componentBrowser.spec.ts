@@ -4,11 +4,6 @@ import * as locate from './locate'
 
 const ACCEPT_INPUT_SHORTCUT = `ControlOrMeta+Enter`
 
-async function deselectAllNodes(page: Page) {
-  await page.keyboard.press('Escape')
-  await expect(locate.selectedNodes(page)).toHaveCount(0)
-}
-
 async function expectAndCancelBrowser(
   page: Page,
   expectedText: string,
@@ -66,7 +61,7 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   await locate.graphNodeByBinding(page, 'selected').click()
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
-  // Dragging out an edge
+  // Click-drag the edge (click, move mouse, click again)
   let outputPort = await locate.outputPortCoordinates(
     page,
     locate.graphNodeByBinding(page, 'selected'),
@@ -74,6 +69,7 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
+
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
@@ -81,6 +77,14 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   outputPort = await locate.outputPortCoordinates(page, locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(outputPort.x, outputPort.y)
+  await expectAndCancelBrowser(page, '', 'Table', 'selected')
+
+  // Dragging out an edge (click and hold, move mouse, release)
+  await page.mouse.move(outputPort.x, outputPort.y)
+  await page.waitForTimeout(600) // Avoid double clicks, see TODO above.
+  await page.mouse.down({ button: 'left' })
+  await page.mouse.move(outputPort.x + 300, outputPort.y + 400)
+  await page.mouse.up({ button: 'left' })
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
 })
 
@@ -106,6 +110,15 @@ test('Opening Component Browser from output port buttons', async ({ editorPage, 
   await node.click()
   await expect(createNodeFromPortButton).toBeVisible()
   await createNodeFromPortButton.click({ force: true })
+  await expectAndCancelBrowser(page, '', null, 'table')
+
+  // Small (+) button can be dragged
+  const bbox = await createNodeFromPortButton.boundingBox()
+  if (!bbox) throw new Error('Bounding box not found')
+  await page.mouse.move(bbox.x, bbox.y)
+  await page.mouse.down({ button: 'left' })
+  await page.mouse.move(bbox.x + 300, bbox.y + 400)
+  await page.mouse.up({ button: 'left' })
   await expectAndCancelBrowser(page, '', null, 'table')
 })
 
@@ -139,49 +152,40 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
   await expectAndCancelBrowser(page, '', null)
 })
 
-test('Accepting suggestion', async ({ editorPage, page }) => {
-  // Clicking entry
-  await editorPage
-  await locate.addNewNodeButton(page).click()
-  let nodeCount = await locate.graphNode(page).count()
-  await locate.componentBrowserEntry(page).nth(1).click()
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read_many',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
-
-  // Clicking at highlighted entry
-  nodeCount = await locate.graphNode(page).count()
-  await deselectAllNodes(page)
-  await locate.addNewNodeButton(page).click()
-  await locate.componentBrowserSelectedEntry(page).first().click()
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
-
-  // Accepting with Enter
-  nodeCount = await locate.graphNode(page).count()
-  await deselectAllNodes(page)
-  await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowserInput(page)).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
+test.describe('Accepting suggestion', () => {
+  async function checkAcceptSuggestion(
+    page: Page,
+    acceptSuggestion: () => Promise<void>,
+    expected: string[],
+  ) {
+    await locate.addNewNodeButton(page).click()
+    const nodeCount = await locate.graphNode(page).count()
+    await acceptSuggestion()
+    await expect(locate.componentBrowser(page)).toBeHidden()
+    await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
+    await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(expected)
+    await expect(locate.graphNode(page).last()).toBeSelected()
+  }
+  test('Accept suggestion by clicking entry', async ({ editorPage, page }) => {
+    await editorPage
+    await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click(), [
+      'Data',
+      '.',
+      'read_many',
+    ])
+  })
+  test('Accept suggestion by clicking highlighted entry', async ({ editorPage, page }) => {
+    await editorPage
+    await checkAcceptSuggestion(
+      page,
+      () => locate.componentBrowserSelectedEntry(page).first().click(),
+      ['Data', '.', 'read'],
+    )
+  })
+  test('Accept suggestion with Enter', async ({ editorPage, page }) => {
+    await editorPage
+    await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'), ['Data', '.', 'read'])
+  })
 })
 
 test('Accepting any written input', async ({ editorPage, page }) => {

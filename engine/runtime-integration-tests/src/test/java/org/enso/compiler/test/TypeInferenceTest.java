@@ -485,7 +485,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Optional.of(myType), getInferredTypeOption(ModuleUtils.findAssignment(foo, "x7")));
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void commonIfThenElse() throws Exception {
     final URI uri = new URI("memory://commonIfThenElse.enso");
@@ -667,7 +666,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(ModuleUtils.findAssignment(f, "y"), "My_Type", "Other_Type");
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIf() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -688,7 +686,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(ModuleUtils.findAssignment(f, "y"), "Text", "Integer");
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIfWithoutElse() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -1117,6 +1114,40 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void integerIsSubclassOfNumber() throws Exception {
+    final URI uri = new URI("memory://notInvokable.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import Integer, Number
+
+                foo =
+                    num -> Number = 42
+                    neg n:Integer -> Integer = -n
+                    neg num
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    foo.preorder()
+        .foreach(
+            (ir) -> {
+              if (ir.getDiagnostics().toList().nonEmpty()) {
+                fail(
+                    "There should be no warnings "
+                        + ir.getDiagnostics().toList()
+                        + " at "
+                        + ir.showCode());
+              }
+              return null;
+            });
+  }
+
+  @Test
   public void noTypeErrorIfUnsure() throws Exception {
     final URI uri = new URI("memory://notInvokable.enso");
     final Source src =
@@ -1217,14 +1248,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     x3 = My_Type.static_zero
                     x4 = My_Type.static_one inst
 
-                    # And calling member methods through static syntax:
-                    x5 = My_Type.zero_arg inst
-                    x6 = My_Type.one_arg inst
-
                     # And extension methods
-                    x7 = inst.extension_method
-                    x8 = My_Type.extension_method inst
-                    [x1, x2, x3, x4, x5, x6, x7, x8]
+                    x5 = inst.extension_method
+                    [x1, x2, x3, x4, x5]
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -1241,13 +1267,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x3"));
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x4"));
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x5"));
-
-    // The function in x6 was not fully applied - still expecting 1 arg:
-    assertEquals(
-        "My_Type -> My_Type", getInferredType(ModuleUtils.findAssignment(foo, "x6")).toString());
-
-    assertAtomType(myType, ModuleUtils.findAssignment(foo, "x7"));
-    assertAtomType(myType, ModuleUtils.findAssignment(foo, "x8"));
   }
 
   @Test
@@ -1269,7 +1288,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
                 foo =
                     other = Other_Type.Constructor 44
-                    x1 = My_Type.member_method other
+                    x1 = My_Type.member_method self=other
                     x1
                 """,
                 uri.getAuthority())
@@ -1560,7 +1579,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
   @Test
   public void callingExtensionMethodDefinedElsewhere() throws Exception {
-    final URI uriA = new URI("memory://local.Project1.modA.enso");
+    final URI uriA = new URI("memory://local.Project1.Mod_A.enso");
     final Source srcA =
         Source.newBuilder(
                 "enso",
@@ -1573,12 +1592,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
             .buildLiteral();
     compile(srcA);
 
-    final URI uriB = new URI("memory://local.Project1.modB.enso");
+    final URI uriB = new URI("memory://local.Project1.Mod_B.enso");
     final Source srcB =
         Source.newBuilder(
                 "enso",
                 """
-                import local.Project1.modA.My_Type
+                import local.Project1.Mod_A.My_Type
 
                 type Typ_X
                     Value a
@@ -1593,13 +1612,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
             .buildLiteral();
     compile(srcB);
 
-    final URI uriC = new URI("memory://local.Project1.modC.enso");
+    final URI uriC = new URI("memory://local.Project1.Mod_C.enso");
     final Source srcC =
         Source.newBuilder(
                 "enso",
                 """
-                import local.Project1.modA.My_Type
-                from local.Project1.modB import all
+                import local.Project1.Mod_A.My_Type
+                from local.Project1.Mod_B import all
 
                 foo =
                     inst = My_Type.Value 23
@@ -1613,14 +1632,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var modC = compile(srcC);
     var foo = ModuleUtils.findStaticMethod(modC, "foo");
 
-    assertAtomType("local.Project1.modB.Typ_X", ModuleUtils.findAssignment(foo, "x1"));
-    assertAtomType("local.Project1.modB.Typ_Y", ModuleUtils.findAssignment(foo, "x2"));
+    assertAtomType("local.Project1.Mod_B.Typ_X", ModuleUtils.findAssignment(foo, "x1"));
+    assertAtomType("local.Project1.Mod_B.Typ_Y", ModuleUtils.findAssignment(foo, "x2"));
   }
 
   @Test
   public void callingReexportedExtensionMethods() throws Exception {
     // Base type definition
-    final URI uriA = new URI("memory://local.Project1.modA.enso");
+    final URI uriA = new URI("memory://local.Project1.Mod_A.enso");
     final Source srcA =
         Source.newBuilder(
                 "enso",
@@ -1634,12 +1653,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     compile(srcA);
 
     // Extension methods defined in another module
-    final URI uriB = new URI("memory://local.Project1.modB.enso");
+    final URI uriB = new URI("memory://local.Project1.Mod_B.enso");
     final Source srcB =
         Source.newBuilder(
                 "enso",
                 """
-                import local.Project1.modA.My_Type
+                import local.Project1.Mod_A.My_Type
 
                 type Typ_X
                     Value a
@@ -1655,25 +1674,25 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     compile(srcB);
 
     // Re-exports of the type and the extension method
-    final URI uriC = new URI("memory://local.Project1.modC.enso");
+    final URI uriC = new URI("memory://local.Project1.Mod_C.enso");
     final Source srcC =
         Source.newBuilder(
                 "enso",
                 """
-                export local.Project1.modA.My_Type
-                export local.Project1.modB.member
+                export local.Project1.Mod_A.My_Type
+                export local.Project1.Mod_B.member
                 """,
                 uriC.getAuthority())
             .uri(uriC)
             .buildLiteral();
     compile(srcC);
 
-    final URI uriD = new URI("memory://local.Project1.modD.enso");
+    final URI uriD = new URI("memory://local.Project1.Mod_D.enso");
     final Source srcD =
         Source.newBuilder(
                 "enso",
                 """
-                from local.Project1.modC import all
+                from local.Project1.Mod_C import all
 
                 foo =
                     inst = My_Type.Value 23
@@ -1687,18 +1706,18 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var modD = compile(srcD);
     var foo = ModuleUtils.findStaticMethod(modD, "foo");
 
-    assertAtomType("local.Project1.modB.Typ_X", ModuleUtils.findAssignment(foo, "x1"));
-    assertAtomType("local.Project1.modB.Typ_Y", ModuleUtils.findAssignment(foo, "x2"));
+    assertAtomType("local.Project1.Mod_B.Typ_X", ModuleUtils.findAssignment(foo, "x1"));
+    assertAtomType("local.Project1.Mod_B.Typ_Y", ModuleUtils.findAssignment(foo, "x2"));
   }
 
   @Test
   public void resolveImportedConstructor() throws Exception {
-    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final URI uri = new URI("memory://local.Project1.Mod_A.enso");
     final Source src =
         Source.newBuilder(
                 "enso",
                 """
-                from project.modA.My_Type import My_Constructor
+                from project.Mod_A.My_Type import My_Constructor
 
                 type My_Type
                     My_Constructor v
@@ -1714,13 +1733,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(src);
     var foo = ModuleUtils.findStaticMethod(module, "foo");
     var x1 = ModuleUtils.findAssignment(foo, "x1");
-    assertAtomType("local.Project1.modA.My_Type", x1);
+    assertAtomType("local.Project1.Mod_A.My_Type", x1);
   }
 
   @Ignore("TODO: for later")
   @Test
   public void resolveFQNConstructor() throws Exception {
-    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final URI uri = new URI("memory://local.Project1.Mod_A.enso");
     final Source src =
         Source.newBuilder(
                 "enso",
@@ -1729,7 +1748,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     My_Constructor v
 
                 foo =
-                    x1 = local.Project1.modA.My_Type.My_Constructor 1
+                    x1 = local.Project1.Mod_A.My_Type.My_Constructor 1
                     x1
                 """,
                 uri.getAuthority())
@@ -1739,11 +1758,11 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(src);
     var foo = ModuleUtils.findStaticMethod(module, "foo");
     var x1 = ModuleUtils.findAssignment(foo, "x1");
-    assertAtomType("local.Project1.modA.My_Type", x1);
+    assertAtomType("local.Project1.Mod_A.My_Type", x1);
   }
 
   public static Source anyPrecedenceTestSource() throws URISyntaxException {
-    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final URI uri = new URI("memory://local.Project1.Mod_A.enso");
     final Source src =
         Source.newBuilder(
                 "enso",
@@ -1780,10 +1799,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     x2 = My_Type.Value.method
                     x3 = method
                     x4 = My_Type.method
-                    x5 = Any.method My_Type.Value
-                    x6 = Any.static_method
-                    x7 = My_Type.static_method
-                    [x1, x2, x3, x4, x5, x6, x7]
+                    x5 = Any.static_method
+                    x6 = My_Type.static_method
+                    [x1, x2, x3, x4, x5, x6]
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -1794,7 +1812,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   @Ignore("TODO: missing IR on Numbers")
   @Test
   public void overrideMethodOnNumberThroughAny() throws URISyntaxException {
-    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final URI uri = new URI("memory://local.Project1.Mod_A.enso");
     final Source src =
         Source.newBuilder(
                 "enso",
@@ -1815,7 +1833,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(src);
     var foo = ModuleUtils.findStaticMethod(module, "foo");
     var x1 = ModuleUtils.findAssignment(foo, "x1");
-    assertAtomType("local.Project1.modA.A", x1);
+    assertAtomType("local.Project1.Mod_A.A", x1);
   }
 
   @Test
@@ -1825,31 +1843,26 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     // Other_Type dispatches to parent - Any and gets A
     var x1 = ModuleUtils.findAssignment(foo, "x1");
-    assertAtomType("local.Project1.modA.A", x1);
+    assertAtomType("local.Project1.Mod_A.A", x1);
 
     // My_Type dispatches to overridden and gets B
     var x2 = ModuleUtils.findAssignment(foo, "x2");
-    assertAtomType("local.Project1.modA.B", x2);
+    assertAtomType("local.Project1.Mod_A.B", x2);
 
     // module method overrides Any method - we get C
     var x3 = ModuleUtils.findAssignment(foo, "x3");
-    assertAtomType("local.Project1.modA.C", x3);
+    assertAtomType("local.Project1.Mod_A.C", x3);
 
     // Calling the Any method statically on a type calls the Any implementation (it's not a static
     // syntax for the override)
     var x4 = ModuleUtils.findAssignment(foo, "x4");
-    assertAtomType("local.Project1.modA.A", x4);
+    assertAtomType("local.Project1.Mod_A.A", x4);
 
-    // Calling the Any method statically on a value calls ignores the override because we select the
-    // method explicitly
-    var x5 = ModuleUtils.findAssignment(foo, "x5");
-    assertAtomType("local.Project1.modA.A", x5);
+    var x6 = ModuleUtils.findAssignment(foo, "x5");
+    assertAtomType("local.Project1.Mod_A.D", x6);
 
-    var x6 = ModuleUtils.findAssignment(foo, "x6");
-    assertAtomType("local.Project1.modA.D", x6);
-
-    var x7 = ModuleUtils.findAssignment(foo, "x7");
-    assertAtomType("local.Project1.modA.E", x7);
+    var x7 = ModuleUtils.findAssignment(foo, "x6");
+    assertAtomType("local.Project1.Mod_A.E", x7);
   }
 
   @Test

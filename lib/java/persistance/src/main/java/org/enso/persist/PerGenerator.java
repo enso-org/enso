@@ -235,15 +235,18 @@ final class PerGenerator {
             return a.getValue()[0] - b.getValue()[0];
           });
 
-      log.log(System.Logger.Level.DEBUG, "==== Top Bytes & Counts of Classes =====");
+      log.log(System.Logger.Level.TRACE, "==== Top Bytes & Counts of Classes =====");
       for (var i = 0; i < list.size(); i++) {
         if (i == 30) {
           break;
         }
         var elem = list.get(list.size() - 1 - i);
         log.log(
-            System.Logger.Level.DEBUG,
-            "  " + elem.getValue()[0] + " " + elem.getValue()[1] + " " + elem.getKey().getName());
+            System.Logger.Level.TRACE,
+            "  {0} {1} {2}",
+            elem.getValue()[0],
+            elem.getValue()[1],
+            elem.getKey().getName());
       }
     }
 

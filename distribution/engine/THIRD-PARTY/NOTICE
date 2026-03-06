@@ -1,5 +1,5 @@
 Enso
-Copyright 2020 - 2025 New Byte Order sp. z o. o.
+Copyright 2020 - 2026 New Byte Order sp. z o. o.
 
 'logback-classic', licensed under the GNU Lesser General Public License, is distributed with the engine.
 The license file can be found at `licenses/GNU_Lesser_General_Public_License`.
@@ -331,6 +331,11 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.helidon.logging.helidon-logging-common-4.2.2`.
 
 
+'helidon-logging-slf4j', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.logging.helidon-logging-slf4j-4.2.2`.
+
+
 'helidon-metadata-hson', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.helidon.metadata.helidon-metadata-hson-4.2.2`.
@@ -423,117 +428,122 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'js-language', licensed under the MIT License, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.js.js-language-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.js.js-language-25.0.1`.
 
 
 'llvm-api', licensed under the New BSD License (3-clause BSD license), is distributed with the engine.
 The license file can be found at `licenses/BSD-3-Clause`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.llvm.llvm-api-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.llvm.llvm-api-25.0.1`.
 
 
 'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-25.0.1`.
 
 
 'python-language', licensed under the MIT License, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.python.python-language-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.python.python-language-25.0.1`.
 
 
 'python-resources', licensed under the MIT License, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.python.python-resources-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.python.python-resources-25.0.1`.
 
 
 'regex', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.regex.regex-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.regex.regex-25.0.1`.
 
 
 'collections', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-25.0.1`.
 
 
 'jniutils', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.jniutils-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.jniutils-25.0.1`.
 
 
 'nativeimage', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-25.0.1`.
 
 
 'word', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-25.0.1`.
 
 
 'icu4j', licensed under the Unicode/ICU License, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.icu4j-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.icu4j-25.0.1`.
 
 
 'json', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.json-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.json-25.0.1`.
 
 
 'xz', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.xz-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.xz-25.0.1`.
 
 
 'chromeinspector-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
 The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.chromeinspector-tool-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.chromeinspector-tool-25.0.1`.
 
 
 'dap-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
 The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.dap-tool-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.dap-tool-25.0.1`.
 
 
 'insight-heap-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
 The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.insight-heap-tool-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.insight-heap-tool-25.0.1`.
 
 
 'insight-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
 The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.insight-tool-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.insight-tool-25.0.1`.
 
 
 'profiler-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
 The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.profiler-tool-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.profiler-tool-25.0.1`.
 
 
 'truffle-api', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-api-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-api-25.0.1`.
 
 
 'truffle-compiler', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-compiler-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-compiler-25.0.1`.
 
 
 'truffle-nfi', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-25.0.1`.
 
 
 'truffle-nfi-libffi', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-libffi-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-libffi-25.0.1`.
+
+
+'truffle-nfi-panama', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-panama-25.0.1`.
 
 
 'truffle-runtime', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-runtime-24.2.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-runtime-25.0.1`.
 
 
 'jline-native', licensed under the The BSD License, is distributed with the engine.
@@ -594,6 +604,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'slf4j-api', licensed under the MIT License, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
 Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-2.0.16`.
+
+
+'slf4j-jdk-platform-logging', licensed under the MIT License, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-jdk-platform-logging-2.0.16`.
 
 
 'cats-core_2.13', licensed under the MIT, is distributed with the engine.

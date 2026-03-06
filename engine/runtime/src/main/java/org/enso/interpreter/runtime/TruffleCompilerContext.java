@@ -261,10 +261,15 @@ final class TruffleCompilerContext implements CompilerContext {
     TruffleCompilerModuleScopeBuilder compilerScope = scope.toCompilerBuilder();
     types.foreach(
         tp -> {
+          Type registerConstructorsTo = null;
           if (tp.builtinType()) {
             Builtin builtinType = builtins.getBuiltinType(tp.name());
             if (builtinType == null) {
               throw new CompilerError("Unknown @Builtin_Type " + tp.name());
+            }
+            var rtp = builtinType.getType();
+            if (tp.toString().contains("Missing_Argument")) {
+              registerConstructorsTo = rtp;
             }
             Set tpNames = tp.members().map(c -> c.name()).toSet();
             Set exNames =
@@ -275,8 +280,8 @@ final class TruffleCompilerContext implements CompilerContext {
               throw new CompilerError(
                   "Wrong constructors declared in the builtin " + tp.name() + ".");
             }
-            scope.registerType(builtinType.getType());
-            builtinType.getType().setShadowDefinitions(builtins.getLanguage(), compilerScope, true);
+            scope.registerType(rtp);
+            rtp.setShadowDefinitions(builtins.getLanguage(), compilerScope, true);
           } else {
             boolean hasAllConstructorsPrivate =
                 tp.isPrivate()
@@ -293,11 +298,14 @@ final class TruffleCompilerContext implements CompilerContext {
                         hasAllConstructorsPrivate)
                     : Type.createSingleton(
                         tp.name(), compilerScope, builtins.any(), false, hasAllConstructorsPrivate);
-            Type rtp = scope.registerType(createdType);
+            registerConstructorsTo = scope.registerType(createdType);
+          }
+          if (registerConstructorsTo != null) {
+            var rtp = registerConstructorsTo;
             tp.members()
                 .foreach(
                     cons -> {
-                      AtomConstructor constructor =
+                      var constructor =
                           new AtomConstructor(cons.name(), scope.getModule(), rtp, false);
                       rtp.registerConstructor(constructor);
                       return null;
@@ -340,7 +348,10 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public CompilationAbortedException formatDiagnostic(
-      CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
+      CompilerContext.Module module,
+      Diagnostic diagnostic,
+      boolean isOutputRedirected,
+      Object src) {
     DiagnosticFormatter diagnosticFormatter;
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     if (module != null && diagnostic.location().isDefined()) {
@@ -360,11 +371,21 @@ final class TruffleCompilerContext implements CompilerContext {
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
-    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    Source fallbackSource;
+    if (src instanceof Source s) {
+      fallbackSource = s;
+    } else {
+      try {
+        fallbackSource = m.getSource();
+      } catch (IOException ex) {
+        fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+      }
+    }
     diagnosticFormatter =
         DiagnosticFormatter.create(
-            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
-    return new CompilationAbortedException(diagnosticFormatter.format(), null);
+            diagnostic, fallbackSource, isOutputRedirected, context.isColorTerminalOutput());
+    var ss = fallbackSource.createUnavailableSection();
+    return new CompilationAbortedException(diagnosticFormatter.format(), ss);
   }
 
   @SuppressWarnings("unchecked")
@@ -408,16 +429,18 @@ final class TruffleCompilerContext implements CompilerContext {
     logSerializationManager(
         Level.FINE, "Requesting serialization for module [{0}].", module.getName());
     var ir = module.getIr();
-    var dupl =
-        ir.duplicate(
-            ir.duplicate$default$1(), ir.duplicate$default$2(), ir.duplicate$default$3(), true);
-    var duplicatedIr = compiler.updateMetadata(ir, dupl);
+    org.enso.compiler.core.ir.Module duplicatedIr;
     Source src;
     try {
+      var dupl = ir.duplicate(true, true, true, true);
+      duplicatedIr = compiler.updateMetadata(ir, dupl);
       var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
       src = m.getSource();
     } catch (IOException ex) {
-      logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
+      logSerializationManager(
+          Level.WARNING,
+          "Cannot get source for " + module.getName() + " at stage " + module.getCompilationStage(),
+          ex);
       return CompletableFuture.failedFuture(ex);
     }
     var task =

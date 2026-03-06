@@ -1,5 +1,4 @@
 /** @file Shared application options schema and helpers. */
-
 import { z } from 'zod'
 
 const DEFAULT_PROFILING_TIME = 120
@@ -8,6 +7,7 @@ const DEFAULT_PORT = 8080
 /** Schema for app-wide configuration options. */
 export const OptionsSchema = z.object({
   version: z.boolean().default(false),
+  headless: z.boolean().default(false),
   displayWindow: z.boolean().default(true),
   useServer: z.boolean().default(true),
   engineEnabled: z.boolean().default(true),
@@ -15,7 +15,6 @@ export const OptionsSchema = z.object({
   startup: z
     .object({
       project: z.string().default(''),
-      displayedProjectName: z.string().default(''),
     })
     .default({}),
   authentication: z
@@ -59,7 +58,6 @@ export function defaultOptions(): Options {
  */
 export const PASS_TO_WEB: ReadonlySet<string> = new Set([
   'startup.project',
-  'startup.displayedProjectName',
   'authentication.enabled',
   'authentication.email',
   'engine.ydocUrl',

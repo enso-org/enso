@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -380,8 +381,7 @@ public abstract class SortVectorNode extends Node {
   private String getDefaultComparatorQualifiedName() {
     return EnsoContext.get(this)
         .getBuiltins()
-        .defaultComparator()
-        .getType()
+        .defaultComparatorType()
         .getQualifiedName()
         .toString();
   }
@@ -492,7 +492,7 @@ public abstract class SortVectorNode extends Node {
   }
 
   boolean isDefaultComparator(Object object, EnsoContext ctx) {
-    return ctx.getBuiltins().defaultComparator().getType() == object;
+    return ctx.getBuiltins().defaultComparatorType() == object;
   }
 
   private boolean isNan(Object object) {
@@ -705,6 +705,8 @@ public abstract class SortVectorNode extends Node {
      */
     abstract boolean hasFunctionSelfArgument(Object definedOn);
 
+    abstract Object getPreappliedSelfArgument();
+
     /**
      * Return a comparator function.
      *
@@ -728,6 +730,18 @@ public abstract class SortVectorNode extends Node {
         return function.getSchema().getArgumentInfos()[0].getName().equals("self");
       } else {
         return false;
+      }
+    }
+
+    @Override
+    Object getPreappliedSelfArgument() {
+      var preappliedArgs = function.getPreAppliedArguments();
+      if (preappliedArgs != null) {
+        assert preappliedArgs.length > 0;
+        // Note that the first argument should always be `self`.
+        return preappliedArgs[0];
+      } else {
+        return null;
       }
     }
 
@@ -758,7 +772,16 @@ public abstract class SortVectorNode extends Node {
           methodResolverNode.expectNonNull(
               definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
       return resolvedFunction.getSchema().getArgumentsCount() > 0
-          && resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
+          && resolvedFunction
+              .getSchema()
+              .getArgumentInfos()[0]
+              .getName()
+              .equals(ConstantsNames.SELF_ARGUMENT);
+    }
+
+    @Override
+    Object getPreappliedSelfArgument() {
+      return null;
     }
 
     @Override
@@ -841,7 +864,10 @@ public abstract class SortVectorNode extends Node {
         yConverted = y;
       }
       Object[] args;
-      if (compareFunc.hasFunctionSelfArgument(xConverted)) {
+      var preappliedSelfArg = compareFunc.getPreappliedSelfArgument();
+      if (preappliedSelfArg != null) {
+        args = new Object[] {preappliedSelfArg, xConverted, yConverted};
+      } else if (compareFunc.hasFunctionSelfArgument(xConverted)) {
         args = new Object[] {comparator, xConverted, yConverted};
       } else {
         args = new Object[] {xConverted, yConverted};

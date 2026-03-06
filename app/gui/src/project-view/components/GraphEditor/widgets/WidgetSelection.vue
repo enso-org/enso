@@ -9,6 +9,7 @@ import {
 } from '$/providers/openedProjects/widgetRegistry'
 import { singleChoiceConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import type { ToValue } from '$/utils/reactivity'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SelectionArrow from '@/components/GraphEditor/widgets/WidgetSelection/SelectionArrow.vue'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
@@ -34,7 +35,6 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import type { ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toRef, toValue, useTemplateRef, type VNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -95,8 +95,6 @@ const expressionTags = useExpressionTags({
   projectNames,
 })
 
-const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
-
 const customTags = computed(
   () =>
     props.input[CustomDropdownItemsKey]?.map((entry) =>
@@ -146,7 +144,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 
 const selectionArrow = provideSelectionArrow({
   node: () => props.input.value,
-  show: toRef(tree, 'extended'),
+  show: toRef(tree, 'showDetails'),
   isHovered,
 })
 
@@ -272,7 +270,7 @@ declare module '$/providers/openedProjects/widgetRegistry' {
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetSelection clickable"
+    class="WidgetSelection widgetParent clickable"
     @pointerdown.prevent
     @click.stop="toggleDropdownWidget"
     @keydown.enter.stop
@@ -287,7 +285,6 @@ declare module '$/providers/openedProjects/widgetRegistry' {
       :show="dropDownInteraction.isActive() && activity == null && entries.length > 0"
       :entries="entries"
       :topLevel="true"
-      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
 
@@ -309,11 +306,7 @@ declare module '$/providers/openedProjects/widgetRegistry' {
 
 <style scoped>
 .WidgetSelection {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   position: relative;
-  min-height: var(--node-port-height);
 }
 
 .activityElement {

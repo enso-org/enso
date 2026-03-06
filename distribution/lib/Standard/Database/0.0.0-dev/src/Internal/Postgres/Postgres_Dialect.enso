@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -6,7 +8,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Column, Table, Value_Type
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.DB_Column.DB_Column
@@ -17,9 +18,9 @@ import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
 import project.Internal.Base_Generator
+import project.Internal.Base_Generator.Dialect_Operations
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
-import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.Internals_Access
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -30,7 +31,6 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
-import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
@@ -59,7 +59,14 @@ type Postgres_Dialect
        private: true
        ---
        The dialect of PostgreSQL databases.
-    Value dialect_operations
+    private Value dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Access underlying dialect operations.
+    get_dialect_operations : Dialect_Operations
+    get_dialect_operations self = self.dialect_operations
 
     ## ---
        private: true
@@ -209,9 +216,7 @@ type Postgres_Dialect
        this situations and overrides the type to make it correct.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
-        needs_char_length_override_check = case approximate_result_type of
-            Value_Type.Char _ _ -> True
-            _ -> False
+        needs_char_length_override_check = approximate_result_type.is_text
         case needs_char_length_override_check of
             True ->
                 db_type = mapping.sql_type_to_value_type column.sql_type_reference.get
@@ -246,7 +251,7 @@ type Postgres_Dialect
 
         cast_to = case op_kind of
             "SUM" ->
-                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
+                if is_int8 (args.at 0) then "numeric(37,0)" else Nothing
             "AVG" ->
                 if is_int (args.at 0) then "float8" else Nothing
             "STDDEV_POP" ->
@@ -276,7 +281,8 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-    generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name
+    generate_collate self collation_name:Text -> Text =
+        Base_Generator.default_generate_collate collation_name
 
     ## ---
        private: true
@@ -300,6 +306,7 @@ type Postgres_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -354,18 +361,21 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = Postgres_Error_Mapper
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true
@@ -426,15 +436,15 @@ type Postgres_Dialect
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, ["SUBSTR", _make_mid], regex_match, index_of]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
+    arith_extensions = [power, sqrt, exp, ln, log10, is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "day_of_week" "isodow", make_extract_as_int "day_of_year" "doy", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "day_of_week" "isodow", make_extract_as_int "day_of_year" "doy", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day], ["first_of_month", make_first_of_month], ["end_of_month", make_end_of_month]]
     special_overrides = [is_null, is_empty]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
@@ -673,6 +683,12 @@ contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 ## ---
    private: true
    ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "position(" ++ substr ++ " in " ++ str ++ ") - 1"
+
+## ---
+   private: true
+   ---
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
     SQL_Builder.code "left(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
@@ -681,6 +697,22 @@ left = Base_Generator.lift_binary_op "LEFT" str-> n->
    ---
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
+
+## ---
+   private: true
+   ---
+private _make_mid arguments:Vector -> SQL_Builder =
+    case arguments.length of
+        2 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            SQL_Builder.code "substr(" ++ str ++ ", (" ++ start ++ ")::integer)"
+        3 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            length = arguments.at 2
+            SQL_Builder.code "substr(" ++ str ++ ", (" ++ start ++ ")::integer, (" ++ length ++ ")::integer)"
+        _ -> Error.throw (Illegal_Argument.Error "SUBSTR requires 2 or 3 arguments.")
 
 ## ---
    private: true
@@ -707,6 +739,36 @@ make_order_descriptor internal_column:Internal_Column sort_direction text_orderi
                             upper = SQL_IR_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_IR_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
+
+## ---
+   private: true
+   ---
+sqrt = Base_Generator.lift_unary_op "SQRT" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ "< 0 THEN (double precision 'NaN') ELSE SQRT(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+ln = Base_Generator.lift_unary_op "LN" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE LN(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+log10 = Base_Generator.lift_unary_op "LOG10" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE LOG10(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+power = Base_Generator.lift_binary_op "^" x-> y->
+    (SQL_Builder.code "CASE WHEN " ++ x ++ " < 0 AND " ++ y ++ " != FLOOR(" ++ y ++ ") THEN (double precision 'NaN') WHEN " ++ x ++ " = 0 AND " ++ y ++ " < 0 THEN (double precision 'Infinity') ELSE POWER(" ++ x ++ ", " ++ y ++ ") END").paren
+
+## ---
+   private: true
+   ---
+exp = Base_Generator.lift_unary_op "EXP" arg->
+    SQL_Builder.code "EXP(CAST(" ++ arg ++ " AS double precision))"
 
 ## ---
    private: true
@@ -777,7 +839,7 @@ replace args metadata =
     pattern = args.at 1
     replacement = args.at 2
 
-    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+    ## `raw_pattern` is a `Text` or `Regex`; it's the same value as `input`, but not
        embedded in IR.
     raw_pattern = metadata.at 0
     replace_params = metadata.at 1
@@ -947,6 +1009,22 @@ make_date_trunc_to_day arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
         SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
+
+## ---
+   private: true
+   ---
+make_first_of_month arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "first_of_month expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "(select date_trunc('MONTH'," ++ expr ++ ")::DATE)"
+
+## ---
+   private: true
+   ---
+make_end_of_month arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "end_of_month expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "(select date( date_trunc ('month', ((" ++ expr ++ ") + INTERVAL '1 Month '))) - 1)"
 
 ## ---
    private: true

@@ -20,9 +20,7 @@ import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
-import * as backend from '#/services/Backend'
 import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
-import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
@@ -34,8 +32,10 @@ import {
 import { useLocalStorage, useText } from '$/providers/react'
 import { useUserSession } from '$/providers/react/auth'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
-import { IS_DEV_MODE } from '$/utils/detect'
 import { useQueryClient } from '@tanstack/react-query'
+import * as backend from 'enso-common/src/services/Backend'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
@@ -68,7 +68,6 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
-  const queryClient = useQueryClient()
   const { getText } = useText()
   const showEnsoDevtools = useShowEnsoDevtools()
   const versionCheckerEnabled = useEnableVersionChecker() ?? false
@@ -81,8 +80,6 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
     enableAdvancedProjectExecutionOptions,
-    overrideProfilePicture,
-    multiplyUserList,
     listDirectoryPageSize,
     getLogEventsPageSize,
     fileChunkUploadPoolSize,
@@ -111,8 +108,6 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
     !enableCloudExecution ||
     showDeveloperIds ||
-    overrideProfilePicture ||
-    multiplyUserList ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
     listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE ||
@@ -188,25 +183,6 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('showingDeveloperIds')}
-          </DeveloperOverrideEntry>
-        )}
-        {overrideProfilePicture && (
-          <DeveloperOverrideEntry
-            reset={() => {
-              setFeatureFlag('overrideProfilePicture', false)
-            }}
-          >
-            {getText('overridingProfilePicture')}
-          </DeveloperOverrideEntry>
-        )}
-        {multiplyUserList && (
-          <DeveloperOverrideEntry
-            reset={async () => {
-              setFeatureFlag('multiplyUserList', false)
-              await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
-            }}
-          >
-            {getText('multiplyingUserList')}
           </DeveloperOverrideEntry>
         )}
         {enableMultitabs && (
@@ -411,32 +387,20 @@ export function EnsoDevtools() {
               <>
                 <Switch
                   form={form}
+                  name="debugHoverAreas"
+                  label={'Debug hover areas'}
+                  description={'Make all mouse hoverable areas visible on the graph.'}
+                  onChange={(value) => {
+                    setFeatureFlag('debugHoverAreas', value)
+                  }}
+                />
+                <Switch
+                  form={form}
                   name="showDeveloperIds"
                   label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
                   description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
                   onChange={(value) => {
                     setFeatureFlag('showDeveloperIds', value)
-                  }}
-                />
-                <Switch
-                  form={form}
-                  name="overrideProfilePicture"
-                  label={getText('ensoDevtoolsFeatureFlags.overrideProfilePicture')}
-                  description={getText(
-                    'ensoDevtoolsFeatureFlags.overrideProfilePictureDescription',
-                  )}
-                  onChange={(value) => {
-                    setFeatureFlag('overrideProfilePicture', value)
-                  }}
-                />
-                <Switch
-                  form={form}
-                  name="multiplyUserList"
-                  label={getText('ensoDevtoolsFeatureFlags.multiplyUserList')}
-                  description={getText('ensoDevtoolsFeatureFlags.multiplyUserListDescription')}
-                  onChange={async (value) => {
-                    setFeatureFlag('multiplyUserList', value)
-                    await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
                   }}
                 />
                 <Switch

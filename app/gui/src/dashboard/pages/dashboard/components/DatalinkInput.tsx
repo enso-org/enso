@@ -5,7 +5,7 @@ import type * as jsonSchemaInput from '#/components/JSONSchemaInput'
 import JSONSchemaInput from '#/components/JSONSchemaInput'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
-import * as error from '#/utilities/error'
+import * as error from 'enso-common/src/utilities/errors'
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 

@@ -12,7 +12,7 @@ type Complex_Comparator
         if x.im==0 && y.im==0 then Ordering.compare x.re y.re else
             Nothing
     hash x:Complex = if x.im == 0 then Ordering.hash x.re else
-        7*x.re + 11*x.im
+        x.re*7 + x.im*11
 
 ## uses the explicit conversion defined in this private module
 Complex.as_complex_and_float self =

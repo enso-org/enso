@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -20,7 +21,7 @@ public final class CaseOperation implements UnaryOperation {
     this.converter = converter;
   }
 
-  private Function<String, String> converter;
+  private final Function<String, String> converter;
 
   @Override
   public String getName() {
@@ -29,13 +30,13 @@ public final class CaseOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType() instanceof TextType;
+    return StorageType.ofStorage(storage) instanceof TextType;
   }
 
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof TextType textType) {
+    if (StorageType.ofStorage(storage) instanceof TextType textType) {
       ColumnStorage<String> textColumnStorage = textType.asTypedStorage(storage);
       return StorageIterators.mapOverStorage(
           textColumnStorage,
@@ -49,7 +50,7 @@ public final class CaseOperation implements UnaryOperation {
         (builder, index, value) -> builder.append(applyObjectRow(index, value)));
   }
 
-  protected String applyObjectRow(long index, Object value) {
+  private String applyObjectRow(long index, Object value) {
     if (value instanceof String s) {
       return converter.apply(s);
     } else {

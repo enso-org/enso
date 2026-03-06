@@ -3,9 +3,9 @@
   "devDependencies": {
     "@bazel/ibazel": "^0.25.0",
     "@eslint/js": "^9.17.0",
-    "@typescript-eslint/eslint-plugin": "^8.19.0",
-    "@typescript-eslint/parser": "^8.19.0",
-    "@vue/eslint-config-typescript": "^14.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "@vue/eslint-config-typescript": "^14.6.0",
     "eslint": "^9.17.0",
     "eslint-plugin-jsdoc": "^50.6.1",
     "eslint-plugin-prettier": "^5.2.1",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
+    "playwright": "catalog:",
     "tslib": "^2.8.1",
     "typescript": "catalog:"
   },
@@ -40,7 +41,7 @@
     "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
-    "git-clean": "git clean -xfd --exclude='.env*'",
+    "git-clean": "node git-clean.mjs",
     "bazel-clean": "bazel clean --expunge_async",
     "postinstall": "bazel run //:write_all --verbose_failures"
   },
@@ -161,6 +162,9 @@
           "vue": "*"
         }
       }
+    },
+    "patchedDependencies": {
+      "@aws-amplify/auth": "patches/@aws-amplify__auth.patch"
     }
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"

@@ -6,14 +6,17 @@ import { OfflineNotificationManager } from '#/components/OfflineNotificationMana
 import { Suspense } from '#/components/Suspense'
 import UIProviders from '#/components/UIProviders'
 import { useMount } from '#/hooks/mountHooks'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import LoggerProvider from '#/providers/LoggerProvider'
+import { vueComponent } from '#/utilities/vue'
+import LoadingScreenVue from '$/components/LoadingScreen.vue'
 import { useBackends } from '$/providers/backends'
 import { useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { StrictMode, type PropsWithChildren } from 'react'
 import invariant from 'tiny-invariant'
+
+const LoadingScreen = vueComponent(LoadingScreenVue).default
 
 interface ReactRootProps {
   queryClient: QueryClient

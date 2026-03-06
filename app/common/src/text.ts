@@ -2,12 +2,10 @@
 import ENGLISH from './text/english.json' with { type: 'json' }
 
 /** Possible languages in which to display text. */
-export enum Language {
-  english = 'english',
-}
+export type Language = 'english'
 
 export const LANGUAGE_TO_LOCALE: Record<Language, string> = {
-  [Language.english]: 'en-US',
+  english: 'en-US',
 }
 
 /** An object containing the corresponding localized text for each text ID. */
@@ -186,6 +184,15 @@ interface PlaceholderOverrides {
 
   readonly welcomeToTeam: [organizationName: string]
   readonly invitationText: [organizationName: string]
+
+  readonly resolveEnsoPathBackendError: [ensoPath: string]
+  readonly uploadFileStartBackendError: [fileName: string]
+  readonly uploadFileEndBackendError: [fileName: string]
+
+  readonly youCanCreateXMoreApiKeys: [apiKeysLeft: number]
+  readonly deleteApiKeyConfirmation: [tokenName: string]
+
+  readonly confirmRegistrationInstruction: [userEmail: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
@@ -199,7 +206,7 @@ export interface Replacements
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
-  [Language.english]: ENGLISH,
+  english: ENGLISH,
 }
 
 /**
@@ -215,13 +222,26 @@ export type GetText = <K extends TextId>(
   ...replacements: Replacements[K]
 ) => string
 
+/**
+ * A function that gets localized text for a given key, with optional replacements.
+ * @param key - The key of the text to get.
+ * @param replacements - The replacements to insert into the text.
+ * If the text contains placeholders like `$0`, `$1`, etc.,
+ * they will be replaced with the corresponding replacement.
+ */
+export type DefaultGetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+
+export const defaultGetText: DefaultGetText = (key, ...replacements) => {
+  return getText(TEXTS.english, key, ...replacements)
+}
+
 /** Resolves the language texts based on the user's preferred language. */
 export function resolveUserLanguage(): Language {
   const locale = navigator.language
   return (
     (Object.keys(LANGUAGE_TO_LOCALE) as readonly Language[]).find(
       (language) => locale === LANGUAGE_TO_LOCALE[language],
-    ) ?? Language.english
+    ) ?? 'english'
   )
 }
 
@@ -249,9 +269,12 @@ export function resolveDictionary() {
  */
 export const getText: GetText = (dictionary, key, ...replacements) => {
   const template = dictionary[key]
-  return replacements.length === 0 ?
-      template
+  const missingText = `MISSING: ${String(key)}`
+  return (
+    template == null ? missingText
+    : replacements.length === 0 ? template
     : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>
         placeholder === '$' ? '$' : String(replacements[Number(placeholder)] ?? `$${placeholder}`),
       )
+  )
 }

@@ -21,6 +21,7 @@ import org.junit.Test;
 public class BinaryDispatchTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value module;
+  private static final String MOD_NAME = "prelude";
 
   public BinaryDispatchTest() {}
 
@@ -56,7 +57,7 @@ public class BinaryDispatchTest {
                 wrapZText (n : Z & Text) = n
                 wrapTextZ (n : Text & Z) = n
                 """,
-                "prelude.enso")
+                MOD_NAME + ".enso")
             .build();
     module = ctx.eval(prelude);
   }
@@ -192,7 +193,7 @@ public class BinaryDispatchTest {
 
   @Test
   public void staticVerifyZ() {
-    var zOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.---");
+    var zOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "Z", "---");
     assertTrue("It's executable", zOperator.canExecute());
 
     var six = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 6");
@@ -204,7 +205,7 @@ public class BinaryDispatchTest {
 
   @Test
   public void staticVerifyR() {
-    var rOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.---");
+    var rOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "R", "---");
     assertTrue("It's executable", rOperator.canExecute());
 
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
@@ -216,7 +217,7 @@ public class BinaryDispatchTest {
 
   @Test
   public void staticWithRFirstArgumentIsConverted() {
-    var rOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.---");
+    var rOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "R", "---");
 
     var two = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
@@ -227,7 +228,7 @@ public class BinaryDispatchTest {
 
   @Test
   public void staticWithRSecondArgumentIsConverted() {
-    var rOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.---");
+    var rOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "R", "---");
 
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
     var two = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");
@@ -237,25 +238,20 @@ public class BinaryDispatchTest {
   }
 
   @Test
-  public void staticWithZFirstAndRSecondNoConversionHappens() {
-    var zOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.---");
+  public void staticWithZFirstAndRSecondIsConverted() {
+    var zOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "Z", "---");
 
     var two = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
 
-    try {
-      var diff1 = zOperator.execute(two, half);
-      fail("Shouldn't return a value: " + diff1);
-    } catch (PolyglotException ex) {
-      assertThat(
-          ex.getMessage(),
-          AllOf.allOf(containsString("Type error"), containsString("`that` to be Z")));
-    }
+    var diff1 = zOperator.execute(two, half);
+    assertEquals(
+        "Binary dispatch works for static method invocation", diff1.asDouble(), 3.0 / 2, 0.01);
   }
 
   @Test
   public void staticWithRFirstAndZSecondNoConversionHappens() {
-    var zOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.---");
+    var zOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "Z", "---");
 
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
     var two = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");

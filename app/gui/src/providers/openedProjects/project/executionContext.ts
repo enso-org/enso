@@ -2,7 +2,6 @@ import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { assert } from '@/util/assert'
 import { findDifferenceIndex } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
-import { Err, Ok, ResultError, type Result } from '@/util/data/result'
 import {
   methodPointerEquals,
   stackItemsEqual,
@@ -11,6 +10,7 @@ import {
   type StackItem,
 } from '@/util/methodPointer'
 import { AsyncQueue, type AbortScope } from '@/util/net'
+import { Err, Ok, ResultError, type Result } from 'enso-common/src/utilities/data/result'
 import * as array from 'lib0/array'
 import { ObservableV2 } from 'lib0/observable'
 import { reactive } from 'vue'

@@ -64,11 +64,7 @@ impl AsRef<str> for NetworkDriver {
 
 impl Default for NetworkDriver {
     fn default() -> Self {
-        if TARGET_OS == OS::Windows {
-            NetworkDriver::Nat
-        } else {
-            NetworkDriver::Bridge
-        }
+        if TARGET_OS == OS::Windows { NetworkDriver::Nat } else { NetworkDriver::Bridge }
     }
 }
 

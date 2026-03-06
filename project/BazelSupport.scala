@@ -1,6 +1,7 @@
 import org.apache.commons.io.FileUtils
 import sbt.*
 import sbt.Keys.*
+import sbt.internal.util.ManagedLogger
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 
 /** Basic support for Bazel, more specifically, being able to run `sbt` from bazel.
@@ -18,11 +19,13 @@ object BazelSupport extends AutoPlugin {
   val ENABLED_PROP                    = "enso.BazelSupport.enabled"
   val HOME_DIR_PROP                   = "enso.BazelSupport.home"
   val OUT_DIR_PROP                    = "enso.BazelSupport.outDir"
+  val VERSION_INFO_PROP               = "enso.BazelSupport.versionInfo"
   val RUST_PARSER_JAVA_SRC_DIR_PROP   = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP            = "enso.BazelSupport.parser.lib"
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
   val YDOC_SERVER_POLYGLOT_MAIN_JS =
     "enso.BazelSupport.ydocServer.polyglotMainJs"
+  val C_LIBS_PATH = "enso.BazelSupport.CLibraryPath"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -51,6 +54,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val extractedPythonResourceDir = taskKey[File](
       "Directory containing extracted Python resources"
+    )
+    lazy val cLibraryPath = taskKey[Option[File]](
+      "Path to the C libraries. Will be passed to native-image via `-H:CLibraryPath`."
     )
     lazy val ydocServerPolyglotMainJs = taskKey[File](
       "Path to the ydoc-server polyglot main JS file."
@@ -170,7 +176,50 @@ object BazelSupport extends AutoPlugin {
           )
         }
         jsFile
+      },
+      Bazel / cLibraryPath := {
+        val logger = streams.value.log
+        Option(System.getProperty(C_LIBS_PATH)).map(new File(_)).flatMap {
+          lib =>
+            if (lib.exists()) Some(lib)
+            else {
+              logger.error(
+                s"C Library not found at $lib. " +
+                "Make sure to provide a valid C Library."
+              )
+              None
+            }
+        }
       }
     )
+  }
+
+  def generatedVersion(
+    file: File,
+    log: ManagedLogger
+  )(
+    fallback: => Seq[File]
+  ): Seq[File] = {
+    val bazelEnabled = System.getProperty(ENABLED_PROP) != null
+    val generatedFromBazel =
+      Option(System.getProperty(VERSION_INFO_PROP)).filter(_.nonEmpty)
+
+    (bazelEnabled, generatedFromBazel) match {
+      case (true, Some(srcPath)) =>
+        val src = new File(srcPath)
+        if (!src.exists()) {
+          log.error(
+            s"Provided GeneratedVersion.java file does not exist at $srcPath (system property ${BazelSupport.VERSION_INFO_PROP})."
+          )
+          throw new RuntimeException(
+            s"Missing GeneratedVersion.java at $srcPath"
+          )
+        }
+        IO.createDirectory(file.getParentFile)
+        IO.copyFile(src, file)
+        Seq(file)
+      case _ =>
+        fallback
+    }
   }
 }

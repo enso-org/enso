@@ -14,17 +14,20 @@ import {
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
+import { useAppTitle } from '$/composables/appTitle'
 import { useUserAgreements } from '$/composables/userAgreements'
 import { useAuth, type AuthStore } from '$/providers/auth'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
+import { useAppClass } from '@/providers/appClass'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation } from 'vue-router'
-import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -36,7 +39,7 @@ const AgreementsModal = reactComponent(AgreementsModalReact)
 
 function routeAllowed(route: RouteLocation, auth: AuthStore) {
   switch (route.meta.access) {
-    case null:
+    case undefined:
       console.error(
         'A route ',
         route,
@@ -82,7 +85,6 @@ export const dataLoader: DataLoader<Props> = {
     const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
     const auth = useAuth()
-    await auth.waitForSession()
 
     if (!routeAllowed(to, auth)) {
       return Err(redirect(auth, localStorage) ?? false)
@@ -100,7 +102,6 @@ export const dataLoader: DataLoader<Props> = {
       const queryClient = vueQuery.useQueryClient()
       const localStorage = LocalStorage.getInstance()
       const auth = useAuth()
-      await auth.waitForSession()
       if (!routeAllowed(to, auth)) {
         return redirect(auth, localStorage) ?? false
       }
@@ -130,6 +131,10 @@ const text = useText()
 const EnsoDevtools = reactComponent(EnsoDevToolsReact)
 const ReactQueryDevtools = reactComponent(ReactQueryDevtoolsReact)
 
+// Needed by devtools - act on feature flag changes
+const debugHoverAreas = useFeatureFlag('debugHoverAreas')
+useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
+
 const allowed = computed(() => routeAllowed(route, auth))
 watch(
   allowed,
@@ -158,6 +163,8 @@ const shouldDisplayAgreementsModal = computed(
   () =>
     !(props.agreementsModalProps?.agreedToTos && props.agreementsModalProps?.agreedToPrivacyPolicy),
 )
+
+useAppTitle(computed(() => auth.session))
 </script>
 
 <template>

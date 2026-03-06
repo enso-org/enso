@@ -2,8 +2,9 @@
 import type * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Text } from '#/components/Text'
-import * as permissionsModule from '#/utilities/permissions'
+import { PERMISSION_CLASS_NAME } from '#/utilities/permissionsClasses'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as permissionsModule from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 
 /** Props for a {@link PermissionDisplay}. */
@@ -36,7 +37,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           isDisabled={!onPress}
           className={tailwindMerge.twMerge(
             'inline-block h-6 whitespace-nowrap rounded-full px-[7px]',
-            permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+            PERMISSION_CLASS_NAME[permission.type],
             className,
           )}
           onPress={onPress}
@@ -67,7 +68,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           <div
             className={tailwindMerge.twMerge(
               'm-1 flex h-6 items-center rounded-full px-[7px]',
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+              PERMISSION_CLASS_NAME[permission.type],
               (permission.docs || permission.execute) && 'm-1',
             )}
           >

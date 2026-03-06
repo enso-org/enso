@@ -42,8 +42,8 @@ public class TestChangeDirectory {
   }
 
   @Before
-  public void ensureCwdIsAtTmpDir() {
-    var rootPath = TMP_DIR.getRoot().getPath();
+  public void ensureCwdIsAtTmpDir() throws IOException {
+    var rootPath = TMP_DIR.getRoot().getCanonicalPath();
     nativeApi.changeWorkingDir(rootPath);
     assertEquals("CWD is correct", rootPath, nativeApi.currentWorkingDir());
   }

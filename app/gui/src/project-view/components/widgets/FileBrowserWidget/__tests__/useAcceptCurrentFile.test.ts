@@ -1,5 +1,5 @@
-import { AssetType, DirectoryId } from '#/services/Backend'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { AssetType, DirectoryId } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { uuidv4 } from 'lib0/random'
 import { describe, expect, test, vi } from 'vitest'
 import { ref, type Ref } from 'vue'

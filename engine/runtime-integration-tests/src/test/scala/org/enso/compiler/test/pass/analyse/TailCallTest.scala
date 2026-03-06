@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Function, Pattern, Warning}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Application
@@ -96,7 +96,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -108,7 +108,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -205,8 +205,8 @@ class TailCallTest extends MiniPassTest {
         ir => {
           val lambda = ir.asInstanceOf[Function.Lambda]
           val fnBody = lambda.body.asInstanceOf[Expression.Block]
-          fnBody
-            .expressions(0)
+          fnBody.expressions
+            .apply(0)
             .asInstanceOf[Expression.Binding]
             .expression
             .diagnosticsList
@@ -236,13 +236,18 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Function.Lambda]
             .body
-          fnBody
+          val inBlock = fnBody
             .asInstanceOf[Expression.Block]
             .returnValue
-            .asInstanceOf[Application.Prefix]
-            .arguments
-            .apply(2)
-            .value
+          val caseExpr = inBlock
+            .asInstanceOf[Expression.Block]
+            .returnValue
+          val elseBranch = caseExpr
+            .asInstanceOf[Case.Expr]
+            .branches
+            .apply(1)
+            .expression
+          elseBranch
             .asInstanceOf[Expression.Block]
             .returnValue
             .asInstanceOf[Application.Prefix]
@@ -546,8 +551,8 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Expression.Block]
 
           withClue("Mark the arguments as tail") {
-            nonTailCallBody
-              .expressions(0)
+            nonTailCallBody.expressions
+              .apply(0)
               .asInstanceOf[Expression.Binding]
               .expression
               .asInstanceOf[Application.Prefix]
@@ -614,8 +619,8 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Expression.Block]
 
-          block
-            .expressions(1)
+          block.expressions
+            .apply(1)
             .asInstanceOf[Expression.Binding]
             .expression
             .asInstanceOf[Function.Lambda]

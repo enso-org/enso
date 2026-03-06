@@ -88,7 +88,7 @@ public final class ChildrenMethodGenerator {
         list.add(${fieldName}.get(${type}.class));
         """
             .replace("${fieldName}", field.getName())
-            .replace("${type}", field.getTypeParameter().getSimpleName().toString());
+            .replace("${type}", field.getTypeParameter().getQualifiedName().toString());
     return code;
   }
 

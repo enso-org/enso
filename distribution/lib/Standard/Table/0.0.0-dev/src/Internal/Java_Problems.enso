@@ -1,108 +1,8 @@
+private
+
 from Standard.Base import all
-import Standard.Base.Data.Vector.No_Wrap
-import Standard.Base.Errors.Common.Additional_Warnings
-import Standard.Base.Errors.Common.Arithmetic_Error
-import Standard.Base.Errors.Common.Floating_Point_Equality
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Internal.Storage
-from project.Errors import all
-from project.Internal.Storage import java_to_enso
-
-polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecision
-polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
-polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
-polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
-polyglot java import org.enso.table.data.table.problems.ArithmeticError
-polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
-polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
-polyglot java import org.enso.table.data.table.problems.IgnoredNaN
-polyglot java import org.enso.table.data.table.problems.IgnoredNothing
-polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
-polyglot java import org.enso.table.data.table.problems.InvalidAggregation
-polyglot java import org.enso.table.data.table.problems.MapOperationProblemAggregator
-polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
-polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
-polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
-polyglot java import org.enso.table.parsing.problems.InconsistentFixedWidthLengths
-polyglot java import org.enso.table.parsing.problems.InvalidFixedWidthRow
-polyglot java import org.enso.table.parsing.problems.InvalidFormat
-polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.problems.ProblemAggregator
-polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
-polyglot java import org.enso.table.util.problems.DuplicateNames
-polyglot java import org.enso.table.util.problems.InvalidNames
-
-## ---
-   private: true
-   ---
-   Convert a Java problem into its Enso equivalent.
-translate_problem p = case p of
-    _ : InvalidAggregation ->
-        err = Invalid_Aggregation.Error p.getLocationName (Vector.from_polyglot_array p.getRows) p.getMessage
-        Error.throw err
-    _ : ArithmeticError ->
-        Arithmetic_Error.Error p.getMessage
-    _ : IllegalArgumentError ->
-        Illegal_Argument.Error p.getMessage
-    _ : IgnoredNaN ->
-        Ignored_NaN_Values.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : IgnoredNothing ->
-        Ignored_Nothing_Values.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : FloatingPointGrouping ->
-        Floating_Point_Equality.Error p.getLocationName
-    _ : LossOfIntegerPrecision ->
-        Loss_Of_Integer_Precision.Warning p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
-    _ : LossOfBigDecimalPrecision ->
-        Loss_Of_Decimal_Precision.Warning p.getAffectedRowsCount (java_to_enso p.getExampleValue) p.getExampleValueConverted
-    _ : ArithmeticOverflow ->
-        target_type = Storage.to_value_type p.targetType
-        example_operands = case p.exampleOperands of
-            Nothing -> Nothing
-            array -> Vector.from_polyglot_array array
-        Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
-    _ : ConversionFailure ->
-        examples = Vector.from_polyglot_array p.examples
-        target_type = Storage.to_value_type p.targetType
-        related_column = p.relatedColumn
-        affected_rows_count = p.affectedRowCount
-        constructor = if p.errorType == ConversionFailureType.NUMBER_OUT_OF_RANGE then Conversion_Failure.Out_Of_Range else
-            if p.errorType == ConversionFailureType.TEXT_TOO_LONG then Conversion_Failure.Text_Too_Long else
-                Conversion_Failure.Error
-        constructor target_type related_column affected_rows_count examples
-    _ : UnquotedCharactersInOutput ->
-        Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : UnquotedDelimiter ->
-        Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : InvalidRow ->
-        Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
-    _ : InvalidFixedWidthRow ->
-        Invalid_Fixed_Width_Row.Error p.source_line_number p.table_row_number p.line_length p.minimum_line_length
-    _ : InconsistentFixedWidthLengths ->
-        Inconsistent_Fixed_Width_Lengths.Error
-    _ : AdditionalInvalidRows ->
-        Additional_Invalid_Rows.Error p.count
-    _ : DuplicateNames ->
-        Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array p.duplicatedNames)
-    _ : InvalidNames ->
-        Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
-    _ : InvalidFormat ->
-        Invalid_Format.Error p.column p.expectedEnsoValueType p.count (Vector.from_polyglot_array p.cells)
-    _ ->
-        Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
-
-## ---
-   private: true
-   ---
-unpack_problem_summary problem_summary =
-    problems_array = problem_summary.problems
-    count = problem_summary.allProblemsCount
-    ## TODO [RW, GT] In the next iterations we will want to remove
-       `translate_problem` in favour of constructing Enso problem instances
-       directly in Java code. To do so, we will need https://github.com/enso-org/enso/issues/7797
-    parsed = problems_array . map on_problems=No_Wrap.Value translate_problem
-    if count == parsed.length then parsed else
-        parsed + [Additional_Warnings.Error (count - parsed.length)]
 
 ## ---
    private: true
@@ -110,17 +10,12 @@ unpack_problem_summary problem_summary =
    This is the new preferred way of running Java methods that may report
    problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
-with_problem_aggregator on_problems:Problem_Behavior f problem_aggregator=ProblemAggregator =
-    ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
-    aggregator = problem_aggregator.makeTopLevelAggregator
-    result = f aggregator
-    on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
+with_problem_aggregator on_problems:Problem_Behavior f =
+    aggregator = ProblemAggregator.makeTopLevelAggregator
 
-## ---
-   private: true
-   ---
-with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
-with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
-    with_problem_aggregator on_problems java_aggregator->
-        problem_builder = MapOperationProblemAggregator.new java_aggregator location
-        f problem_builder
+    result = f aggregator
+
+    case on_problems of
+        Problem_Behavior.Ignore -> aggregator.throwIfAnyErrors result
+        Problem_Behavior.Report_Warning -> aggregator.attachProblemsToValue result False
+        Problem_Behavior.Report_Error -> aggregator.attachProblemsToValue result True

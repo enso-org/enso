@@ -16,6 +16,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function.Binding;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.Error;
@@ -415,7 +416,7 @@ public class EnsoParserTest {
         """
         type Array
             meaning =
-                catch_primitive handler
+                catch handler
                     42
         """);
   }
@@ -505,6 +506,40 @@ public class EnsoParserTest {
           if java_set.contains PosixFilePermission.OWNER_WRITE then
               owner.append Write
         """);
+  }
+
+  @Test
+  public void testMultiLineIfThenElse() throws Exception {
+    var multiline =
+        """
+        fn a b c =
+          if a then
+              b
+          else
+              c
+        """;
+
+    var simpleIr = compile("fn a b c = if a then b else c");
+    var multilineIr = compile(multiline);
+
+    class RemoveEmptyBlocks implements Function<Expression, Expression> {
+      @Override
+      public Expression apply(Expression ex) {
+        return switch (ex.mapExpressions(this)) {
+          case Expression.Block b -> {
+            if (b.expressions().isEmpty()) {
+              yield b.returnValue();
+            } else {
+              yield b;
+            }
+          }
+          case Expression any -> any;
+        };
+      }
+    }
+
+    var irWithoutBlocks = multilineIr.mapExpressions(new RemoveEmptyBlocks());
+    assertIR("Single and multiline if then else are similar", simpleIr, irWithoutBlocks);
   }
 
   @Test
@@ -654,7 +689,7 @@ public class EnsoParserTest {
         """
         main =
             x = Panic.catch Any () .convert_to_dataflow_error
-            x.catch_primitive err->
+            x.catch Any err->
                 case err of
                     Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
         """);
@@ -1655,7 +1690,7 @@ public class EnsoParserTest {
         .foreach(
             ir -> {
               if (ir instanceof Error err) {
-                fail("Encountered an unexpected error in IR: " + err.pretty());
+                fail("Encountered an unexpected error in IR: " + err.showCode());
               }
               return null;
             });
@@ -1712,7 +1747,7 @@ public class EnsoParserTest {
     if (noLocations) {
       ir = ir.duplicate(false, true, true, true);
     }
-    String txt = ir.pretty();
+    String txt = ir.showCode();
     if (noIds) {
       txt =
           txt.replaceAll(

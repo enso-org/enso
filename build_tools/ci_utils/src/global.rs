@@ -27,11 +27,7 @@ impl GlobalState {
     pub fn tick(&mut self) {
         let mut to_remove = vec![];
         for (index, bar) in self.bars.iter().enumerate() {
-            if let Some(bar) = bar.upgrade() {
-                bar.tick()
-            } else {
-                to_remove.push(index)
-            }
+            if let Some(bar) = bar.upgrade() { bar.tick() } else { to_remove.push(index) }
         }
 
         for to_remove in to_remove.iter().rev() {

@@ -126,6 +126,22 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
+      'lib/Standard/Snowflake/*/polyglot/java/netty-resolver-dns-native-macos-*.jar',
+      ['META-INF/native/libnetty_resolver_dns_native_macos_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Snowflake/*/polyglot/java/netty-transport-native-kqueue-*.jar',
+      ['META-INF/native/libnetty_transport_native_kqueue_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-thin-*.jar',
+      [
+        'META-INF/native/libnetty_resolver_dns_native_macos_*.jnilib',
+        'META-INF/native/libnetty_transport_native_kqueue_*.jnilib',
+        'minicore/libsf_mini_core_macos_*.dylib',
+      ],
+    ],
+    [
       'lib/Standard/Google/*/polyglot/java/grpc-netty-shaded-*.jar',
       ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
@@ -180,7 +196,7 @@ interface Signable {
 const TEMPORARY_ARCHIVE_PATH = 'temporary_archive.zip'
 
 /** Helper to execute a program in a given directory and return the output. */
-function run(cmd: string, args: string[], cwd?: string) {
+export function run(cmd: string, args: string[], cwd?: string) {
   console.log('Running', cmd, args, cwd)
   return childProcess.execFileSync(cmd, args, { cwd }).toString()
 }
@@ -377,7 +393,7 @@ interface Input extends SigningContext {
 }
 
 /** Entry point, meant to be used from an afterSign Electron Builder's hook. */
-export default async function (context: Input) {
+export async function signArchives(context: Input) {
   console.log('Environment: ', process.env)
   const { appOutDir, productFilename } = context
   const appDir = pathModule.join(appOutDir, `${productFilename}.app`)

@@ -1,0 +1,6 @@
+load(":defs.bzl", "resolved_toolchain")
+
+resolved_toolchain(
+    name = "resolved_toolchain",
+    visibility = ["//visibility:public"],
+)

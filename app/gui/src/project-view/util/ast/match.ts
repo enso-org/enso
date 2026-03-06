@@ -1,6 +1,6 @@
-import { assert, assertDefined } from '@/util/assert'
-import { Ast } from '@/util/ast'
+import * as Ast from '@/util/ast/abstract'
 import { zipLongest } from 'enso-common/src/utilities/data/iter'
+import { assert, assertDefined } from 'ydoc-shared/util/assert'
 
 /**
  * A pattern is an AST object with "placeholder" expressions.
@@ -18,16 +18,26 @@ export class Pattern<T extends Ast.Ast = Ast.Expression> {
   private constructor(template: Ast.Owned<Ast.Mutable<T>>, placeholder: string) {
     this.template = Ast.dropMutability(template)
     this.placeholders = findPlaceholders(template, placeholder)
+    if (placeholder !== '' && template.code().includes(placeholder)) {
+      // If a template doesn't contain any placeholder expressions, the placeholder expression's code should not occur
+      // in the template's code, as this is most likely a mistake.
+      assert(this.placeholders.length > 0)
+    }
     this.placeholder = placeholder
   }
 
   /**
-   * Parse an expression template in which a specified identifier (by default `__`)
-   *  may match any arbitrary subtree.
+   * Parse an expression template in which a specified identifier (by default `__`) may match any arbitrary subtree.
+   *
+   * These patterns are expected to be static inputs; they should not be constructed by combining strings. As such, in
+   * case the input is not a valid expression, an exception will be raised.
    */
   static parseExpression(template: string, placeholder: string = '__'): Pattern {
     const ast = Ast.parseExpression(template)
     assertDefined(ast)
+    Ast.visitRecursive(ast, (child) => {
+      if (child instanceof Ast.Invalid) throw new Error(`Invalid expression template: ${template}`)
+    })
     return new Pattern(ast, placeholder)
   }
 

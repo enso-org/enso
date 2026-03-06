@@ -3,6 +3,7 @@ package org.enso.table.data.table;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.JsonOperation;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -13,9 +14,12 @@ import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public final class Column {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Column.class);
   private final String name;
   private final ColumnStorage<?> storage;
 
@@ -28,7 +32,13 @@ public final class Column {
   public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = storage;
+    this.storage = Builder.makeLocal(storage);
+    LOGGER.trace(
+        "Column[{}] of {}:{} type with size: {}",
+        name,
+        storage.typeChar(),
+        storage.typeSize(),
+        storage.getSize());
   }
 
   public static boolean isColumnNameValid(String name) {
@@ -71,8 +81,8 @@ public final class Column {
   /**
    * @return the type of the underlying storage
    */
-  public StorageType<?> getType() {
-    return storage.getType();
+  public StorageType<?> getStorageType() {
+    return StorageType.ofStorage(storage);
   }
 
   /**
@@ -215,5 +225,16 @@ public final class Column {
    */
   public List<?> asList() {
     return new StorageListView(this.getStorage());
+  }
+
+  public String tableVizJSON(
+      List<String> valueTypeDisplay, long allRowsCount, boolean useServerMode) {
+    return JsonOperation.makeTableVizJSON(
+        "Column-" + storage.uniqueKey(),
+        new Column[] {this},
+        allRowsCount,
+        useServerMode,
+        valueTypeDisplay,
+        "at");
   }
 }

@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -85,7 +86,8 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-                @Builtin_Type
+                from Standard.Base import all
+
                 type Compile_Error
                     Error message
 
@@ -101,7 +103,14 @@ public class TypeMembersTest {
     var compileError = module.invokeMember("eval_expression", "v");
     assertEquals(
         "all members",
-        Set.of("to_display_text", "message", "to_text", "==", "catch_primitive", "pretty"),
+        Set.of(
+            ConstantsNames.TO_DISPLAY_TEXT,
+            "message",
+            ConstantsNames.TO_TEXT,
+            "to",
+            "==",
+            "!=",
+            "pretty"),
         compileError.getMemberKeys());
   }
 
@@ -167,9 +176,26 @@ public class TypeMembersTest {
 
             main = My_Type
             """);
-    var displayTextRes = myType.invokeMember("to_display_text");
+    var displayTextRes = myType.invokeMember(ConstantsNames.TO_DISPLAY_TEXT);
     assertThat("Has correct result type", displayTextRes.isString(), is(true));
     assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
+  }
+
+  @Test
+  public void canInvokeInstanceMethod() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+
+            main = My_Type.Cons
+            """);
+    assertTrue(atom.hasMember("method"));
+    assertTrue(atom.canInvokeMember("method"));
+    var res = atom.invokeMember("method");
+    assertThat("Method invocation returns correct result", res.asInt(), is(42));
   }
 
   /**

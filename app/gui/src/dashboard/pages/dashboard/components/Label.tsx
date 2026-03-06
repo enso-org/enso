@@ -3,9 +3,9 @@ import * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import FocusRing from '#/components/styled/FocusRing'
 import { Text } from '#/components/Text'
-import type { Label as BackendLabel } from '#/services/Backend'
-import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import type { Label as BackendLabel } from 'enso-common/src/services/Backend'
+import { lChColorToCssColor, type LChColor } from 'enso-common/src/services/Backend'
 import { forwardRef, type ForwardedRef, type PropsWithChildren } from 'react'
 
 const MAXIMUM_LIGHTNESS_FOR_DARK_COLORS = 50

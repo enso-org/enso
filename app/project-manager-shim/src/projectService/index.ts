@@ -3,6 +3,7 @@
  * This module provides project management functionality including creating, deleting,
  * renaming, opening, closing, and duplicating projects.
  */
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as crypto from 'node:crypto'
 import {
@@ -52,8 +53,10 @@ export interface CreateProject {
 
 /** The return value of the "open project" endpoint. */
 export interface OpenProject {
+  readonly projectId: UUID
   readonly languageServerJsonAddress: Socket
   readonly languageServerBinaryAddress: Socket
+  readonly languageServerYdocAddress: Socket
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectNamespace: string
@@ -74,23 +77,27 @@ export class ProjectService {
   /** Creates a new ProjectService with the specified runner. */
   constructor(
     private readonly runner: Runner,
-    private readonly extraArgs: Array<string>,
+    private readonly extraArgs: readonly string[],
     private readonly logger: Console = console,
   ) {}
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
-  static default(workDir: string = '.', extraArgs: Array<string> = []): ProjectService {
+  static default(workDir: string = '.', extraArgs: readonly string[] = []): ProjectService {
     const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
-      throw new Error('Enso executable not found')
+      throw new Error(`${PRODUCT_NAME} executable not found`)
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner, extraArgs)
+
+    // Read extra arguments from environment variable
+    const envArgs = process.env.ENSO_ENGINE_ARGS
+    const envArgsArray = envArgs ? envArgs.split(/\s+/).filter((arg) => arg.length > 0) : []
+    const allExtraArgs = [...envArgsArray, ...extraArgs]
+
+    return new ProjectService(runner, allExtraArgs)
   }
 
-  /**
-   * Creates a new user project with the specified configuration.
-   */
+  /** Creates a new user project with the specified configuration. */
   async createProject(
     projectName: string,
     projectsDirectory: Path,
@@ -137,7 +144,46 @@ export class ProjectService {
     }
   }
 
-  /** Opens a project and starts its language server. */
+  private async getProject(
+    projectId: UUID,
+    projectsDirectory: Path,
+    update = false,
+  ): Promise<Project> {
+    const repo = this.getProjectRepository(projectsDirectory)
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    if (update) {
+      // Update the lastOpened timestamp
+      const openTime = toRfc3339(new Date())
+      const updatedProject = { ...project, lastOpened: openTime }
+      await this.getProjectRepository(projectsDirectory).update(updatedProject)
+    }
+    return project
+  }
+
+  private projectEnvVars(cloud?: CloudParams): readonly (readonly [string, string])[] | undefined {
+    if (!cloud) {
+      return
+    }
+    return [
+      ['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath],
+      ['ENSO_CLOUD_PROJECT_ID', cloud.cloudProjectId],
+      ['ENSO_CLOUD_PROJECT_SESSION_ID', cloud.cloudProjectSessionId],
+    ]
+  }
+
+  /** Run an existing Enso project at the specified path. */
+  async runProject(projectId: UUID, projectsDirectory: Path, cloud?: CloudParams): Promise<number> {
+    const project = await this.getProject(projectId, projectsDirectory, true)
+    this.logger.debug(`Running project '${project.path}'`)
+    const exitCode = await this.runner.runProject(project.path, this.projectEnvVars(cloud))
+    this.logger.debug(`Project '${project.path}' finished running`)
+    return exitCode
+  }
+
+  /** Open a project and starts its language server. */
   async openProject(
     projectId: UUID,
     projectsDirectory: Path,
@@ -145,40 +191,27 @@ export class ProjectService {
   ): Promise<OpenProject> {
     this.logger.debug('Opening project', projectId)
 
-    // Get the project repository
-    const repo = this.getProjectRepository(projectsDirectory)
-
-    // Get the project from the repository
-    const project = await repo.findById(projectId)
-    if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
-    }
+    const project = await this.getProject(projectId, projectsDirectory, true)
 
     // Update the lastOpened timestamp
     const openTime = toRfc3339(new Date())
     const updatedProject = { ...project, lastOpened: openTime }
-    await repo.update(updatedProject)
-
-    // Prepare cloud environment variables if provided
-    const extraEnv: Array<[string, string]> = []
-    if (cloud) {
-      extraEnv.push(['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath])
-      extraEnv.push(['ENSO_CLOUD_PROJECT_ID', cloud.cloudProjectId])
-      extraEnv.push(['ENSO_CLOUD_PROJECT_SESSION_ID', cloud.cloudProjectSessionId])
-    }
+    await this.getProjectRepository(projectsDirectory).update(updatedProject)
 
     // Start the language server
     const sockets = await this.runner.openProject(
       project.path,
       projectId,
       this.extraArgs.length > 0 ? this.extraArgs : undefined,
-      extraEnv.length > 0 ? extraEnv : undefined,
+      this.projectEnvVars(cloud),
     )
 
     // Return the OpenProject response
     return {
+      projectId,
       languageServerJsonAddress: sockets.jsonSocket,
       languageServerBinaryAddress: sockets.binarySocket,
+      languageServerYdocAddress: sockets.ydocSocket,
       projectName: project.name,
       projectNormalizedName: nameValidation.normalizedName(project.name),
       projectNamespace: project.namespace,
@@ -186,9 +219,14 @@ export class ProjectService {
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(projectId: UUID): Promise<void> {
-    this.logger.debug('Closing project', projectId)
-    await this.runner.closeProject(projectId)
+  async closeProject(projectId: UUID, projectsDirectory: Path): Promise<void> {
+    const repo = this.getProjectRepository(projectsDirectory)
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project '${projectId}' not found`)
+    }
+    this.logger.debug('Closing project', projectId, projectsDirectory)
+    await this.runner.closeProject(project.path)
   }
 
   /** Deletes a user project. */
@@ -268,10 +306,10 @@ export class ProjectService {
     // Rename in the repository (updates metadata)
     await repo.rename(projectId, newName)
     // Check if language server is running for this project
-    const isRunning = await this.runner.isProjectRunning(projectId)
+    const isRunning = await this.runner.isProjectRunning(project.path)
     if (isRunning) {
       // Register a shutdown hook to rename the directory after the server stops
-      await this.runner.registerShutdownHook(projectId, 'rename-project-directory', async () => {
+      await this.runner.registerShutdownHook(project.path, 'rename-project-directory', async () => {
         this.logger.info(`Executing deferred directory rename for project ${projectId}`)
         try {
           await repo.renameProjectDirectory(project.path, newNormalizedName)
@@ -281,7 +319,7 @@ export class ProjectService {
         }
       })
       // Send rename command to the running server
-      await this.runner.renameProject(projectId, namespace, oldNormalizedName, newNormalizedName)
+      await this.runner.renameProject(project.path, namespace, oldNormalizedName, newNormalizedName)
     } else {
       // If server is not running, rename the directory immediately
       await repo.renameProjectDirectory(project.path, newNormalizedName)

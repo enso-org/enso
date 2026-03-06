@@ -832,17 +832,11 @@ function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
       params.value !== null && params.value !== undefined ?
         `<div class='link'> ${params.value} </div>`
       : null,
+    cellStyle: { 'padding-left': '13px', 'border-right': '1px solid #C0C0C0' },
+    headerClass: 'indexColumnHeader',
     filter: fieldName != INDEX_FIELD_NAME,
   }
 }
-
-watchEffect(() => {
-  try {
-    refresh()
-  } catch (error) {
-    console.warn('Error refreshing table.', error)
-  }
-})
 
 const DEFAULT_DATA = {
   type: typeof props.data,
@@ -869,6 +863,14 @@ const DEFAULT_DATA = {
   // eslint-disable-next-line camelcase
   requires_number_format: undefined,
 }
+
+watchEffect(() => {
+  try {
+    refresh()
+  } catch (error) {
+    console.warn('Error refreshing table.', error)
+  }
+})
 
 // Update state computed from the input `data`.
 function refresh() {
@@ -1279,5 +1281,9 @@ config.setToolbar(
   flex-direction: row;
   justify-content: space-between;
   width: inherit;
+}
+
+:deep(.indexColumnHeader) {
+  padding-left: 13px;
 }
 </style>

@@ -1,14 +1,14 @@
 use crate::prelude::*;
 
 use crate::syntax;
+use crate::syntax::Flush;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::consumer::TokenConsumer;
 use crate::syntax::expression::consumer::TreeConsumer;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::Flush;
-use crate::syntax::Token;
-use crate::syntax::Tree;
 
 // ================================
 // === Compound token assembler ===

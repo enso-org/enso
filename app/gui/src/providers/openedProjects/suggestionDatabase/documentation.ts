@@ -5,10 +5,10 @@ import type { Opt } from '@/util/data/opt'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import type { QualifiedName } from '@/util/qualifiedName'
 import type { SyntaxNodeRef } from '@lezer/common'
+import { unwrapOrWithLog } from 'enso-common/src/utilities/data/result'
 import type { DeepReadonly } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
-import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 
 export interface DocumentationData {
   documentation: string

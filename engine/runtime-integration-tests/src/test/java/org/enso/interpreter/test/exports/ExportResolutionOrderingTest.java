@@ -143,7 +143,7 @@ public class ExportResolutionOrderingTest {
   }
 
   private static ContextUtils createContext(Path projDir) {
-    return ContextUtils.newBuilder().withProjectRoot(projDir).build();
+    return ContextUtils.newBuilder().assertGC(false).withProjectRoot(projDir).build();
   }
 
   private static void compile(ContextUtils ctx) {

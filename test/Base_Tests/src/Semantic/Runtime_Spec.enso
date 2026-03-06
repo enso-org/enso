@@ -4,6 +4,7 @@ import Standard.Base.Data.Numbers.Integer
 import Standard.Base.Any.Any
 import Standard.Base.Nothing.Nothing
 import Standard.Base.Panic.Panic
+import Standard.Base.Data.Text.Extensions
 
 from Standard.Base.Runtime.Context import Input, Output
 
@@ -63,6 +64,23 @@ add_specs suite_builder =
     suite_builder.group "Debug" group_builder->
         group_builder.specify "Debug.breakpoint doesn't stop indefinitly" <|
             Debug.breakpoint
+
+        group_builder.specify "Debug.eval long source" <|
+            long = '#                    \n'*1000
+                + """
+                unused = 5
+                do_throw "Here!"
+
+            do_throw msg =
+                Panic.throw msg
+
+            # used to generate following error
+            # java.lang.IllegalArgumentException: Invalid source section bounds.
+            # at <java> com.oracle.truffle.api.source.Source.assertValid(Source.java:771)
+            # at <java> com.oracle.truffle.api.source.Source.createSection(Source.java:705)
+            # at <java> org.enso.interpreter.runtime.util.DiagnosticFormatter.sourceSectionFromDiagnostic(:116)
+            Panic.catch Any (Debug.eval long) \_->
+                do_throw
 
 main filter=Nothing =
     suite = Test.build suite_builder->

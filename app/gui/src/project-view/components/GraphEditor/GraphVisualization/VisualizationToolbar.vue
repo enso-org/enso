@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import ActionButton from '@/components/ActionButton.vue'
-import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
+import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -13,8 +13,6 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
-import { ProjectPath } from '@/util/projectPath'
-import { qnLastSegment } from '@/util/qualifiedName'
 import { toRef, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -27,7 +25,6 @@ const props = defineProps<{
   isFocused: boolean
   allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
-  typename: ProjectPath | undefined
   typeinfo: TypeInfo | undefined
 }>()
 
@@ -86,15 +83,11 @@ const visualizationSelector = useVisualizationSelector({
       </div>
     </template>
     <div class="after-toolbars node-type" data-testid="visualisationNodeType">
-      <ComponentEditorLabel
-        v-if="props.typeinfo"
+      <ComponentTypeLabel
         :unknownLabel="UNKNOWN_TYPE"
         :typeInfo="props.typeinfo"
         testId="visualizationNodeTypeLabel"
       />
-      <span v-else>{{
-        props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE
-      }}</span>
     </div>
   </div>
 </template>
@@ -115,6 +108,8 @@ const visualizationSelector = useVisualizationSelector({
   margin-left: auto;
   margin-right: 8px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
 .node-type {

@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Errors.Common import Not_Invokable, No_Such_Method
 
 from Standard.Test import all
 
@@ -38,75 +39,102 @@ add_specs suite_builder =
             (1 != 1) . should_be_false
 
     suite_builder.group "Any's methods" group_builder->
-        group_builder.specify "should not be overridable when called statically" <|
+        group_builder.specify "Instance method invocation" <|
             My_Type.Value 33 . x . should_equal "Any:(My_Type.Value 33)"
             With_X.Value 44 . x . should_equal "With_X:(With_X.Value 44)"
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
             My_Type.x . should_equal "Any:My_Type"
             With_X.x . to_text . should_equal "Any:With_X"
-            With_X.y.should_be_a Function
+            Test.expect_panic_with (With_X.y) No_Such_Method
             With_Y.x . to_text . should_equal "Any:With_Y"
-            With_Y.y.should_be_a Function
+            Test.expect_panic_with (With_Y.y) No_Such_Method
             With_X.to_text . to_text . should_equal "With_X"
             With_Y.to_text . to_text . should_equal "With_Y"
             Any.x . to_text . should_equal "Any:Any"
+
+        group_builder.specify "Static method invocation (x)" <|
             Any.x self=Any . to_text . should_equal "Any:Any"
             Any.x self=With_X . should_equal "Any:With_X"
             Any.x self=With_Y . should_equal "Any:With_Y"
-            Any.x (My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
-            Any.x (With_X.Value 22) . should_equal "Any:(With_X.Value 22)"
-            Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
+            Test.expect_panic_with (Any.x (My_Type.Value 22)) Not_Invokable
+            Test.expect_panic_with (Any.x (With_X.Value 22)) Not_Invokable
+            Test.expect_panic_with (Any.x (With_Y.Value 22)) Not_Invokable
             Date.to_display_text . should_equal "Date"
+            Any.x self=(My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
+            Any.x self=(With_X.Value 22) . should_equal "Any:(With_X.Value 22)"
+            Any.x self=(With_Y.Value 22) . should_equal "Any:With_Y(22)"
 
-        group_builder.specify "static method calls on Any should have defaulted self argument to Any" <|
+        group_builder.specify "Static method invocation (==)" <|
             # Any.== is a method that takes two arguments (self other)
             (Any.==) . should_be_a Function
             (Any.== self=Boolean) . should_be_a Function
             (Any.== self=Any Boolean) . should_be_false
-            (Any.== Any Any) . should_be_true
+            Test.expect_panic_with (Any.== Any Any) Not_Invokable
             (Any.== Boolean) . should_be_false
             (Any.== Any) . should_be_true
-            (Any == Boolean) . should_be_false
-            (Any == Any) . should_be_true
+            (Any.== self=Any Any) . should_be_true
 
+        group_builder.specify "Instance method invocation (==)" <|
+            (Any == Any) . should_be_true
+            (Any == Boolean) . should_be_false
+
+        group_builder.specify "Static method invocation (to_text)" <|
             # Any.to_text is a method that takes one argument (self)
             Any.to_text . should_equal "Any"
+            Test.expect_panic_with (Any.to_text Any) Not_Invokable
+            Test.expect_panic_with (Any.to_text Vector) Not_Invokable
             Any.to_text self=Any . should_equal "Any"
             Any.to_text self=Vector . should_equal "Vector"
             Any.to_text self=[1,2,3] . should_equal "[1, 2, 3]"
-            Any.to_text Any . should_equal "Any"
-            Any.to_text Vector . should_equal "Vector"
-            Any.to_text [1,2,3] . should_equal "[1, 2, 3]"
+            Test.expect_panic_with (Any.to_text Any) Not_Invokable
+            Test.expect_panic_with (Any.to_text Vector) Not_Invokable
+            Test.expect_panic_with (Any.to_text [1,2,3]) Not_Invokable
 
             Vector.to_text . should_equal "Vector"
             Text.to_text . should_equal "Text"
             Number.to_text . should_equal "Number"
             Integer.to_text . should_equal "Integer"
 
+        group_builder.specify "Static method invocation (spec_method)" <|
             # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
             (Any.spec_method) . should_be_a Function
             (Any.spec_method Boolean) . should_be_a Function
             (Any.spec_method self=Boolean) . should_be_a Function
             (Any.spec_method self=Boolean Vector) . should_be_a Function
             Any.spec_method Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
-            Any.spec_method Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
-            Any.spec_method Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
+            Test.expect_panic_with (Any.spec_method Any Boolean Vector) Not_Invokable
+            Test.expect_panic_with (Any.spec_method Date Boolean Vector) Not_Invokable
             Any.spec_method self=Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
             Any.spec_method self=Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
             Date.spec_method Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
 
 
-        group_builder.specify "instance methods on different types should not have defaulted self argument" <|
+        group_builder.specify "Static method invocation (Vector)" <|
             # Vector.contains has two arguments (self elem)
-            Vector.contains . to_text . contains "Vector.type.contains" . should_be_true
-            (Vector.contains [42]) . to_text . contains "Vector.type.contains" . should_be_true
+            Test.expect_panic_with (Vector.contains) No_Such_Method
+            Test.expect_panic_with (Vector.contains [42]) No_Such_Method
+            Test.expect_panic_with (Vector.contains [42] 1) No_Such_Method
             Vector.contains self=[1,2,3] 1 . should_be_true
-            Vector.contains [1,2,3] 1 . should_be_true
+            Test.expect_panic_with (Vector.contains [1,2,3] 1) No_Such_Method
 
             # Vector.is_empty has just one argument (self)
-            Vector.is_empty . to_text . contains "Vector.type.is_empty" . should_be_true
+            Test.expect_panic_with (Vector.is_empty) No_Such_Method
+            Test.expect_panic_with (Vector.is_empty []) No_Such_Method
             Vector.is_empty self=[] . should_be_true
-            Vector.is_empty [] . should_be_true
+            Test.expect_panic_with (Vector.is_empty) No_Such_Method
+
+        # type of Singleton_Type is Singleton_Type, not its eigen type.
+        # That is why `Singleton_Type.x` will resolve to `Singleton_Type.x` and not
+        # to `Any.x`. This is different to non-singleton types, like `With_X` or `With_Y`.
+        group_builder.specify "Instance method invocation (singleton type)" <|
+            Singleton_Type.x . should_equal "Singleton_Type:Singleton_Type"
+            Singleton_Type.y . should_equal "Singleton_Type:Singleton_Type"
+
+        group_builder.specify "Static method invocation (singleton type)" <|
+            Singleton_Type.x self=Singleton_Type . should_equal "Singleton_Type:Singleton_Type"
+            Singleton_Type.y self=Singleton_Type . should_equal "Singleton_Type:Singleton_Type"
+            Singleton_Type.x self=Any . should_equal "Singleton_Type:Any"
+            Singleton_Type.x self=Boolean . should_equal "Singleton_Type:Boolean"
 
 
 main filter=Nothing =

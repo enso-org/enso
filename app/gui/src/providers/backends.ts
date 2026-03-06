@@ -1,11 +1,14 @@
-import { BackendType } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
-import { Path, ProjectManager } from '#/services/ProjectManager'
-import RemoteBackend from '#/services/RemoteBackend'
-import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
+import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
+import { download } from '#/utilities/download'
+import { useConfig } from '$/providers/config'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { createGlobalState } from '@vueuse/core'
+import { BackendType, DirectoryId, Path } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
+import { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
 import invariant from 'tiny-invariant'
 import { computed, inject, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
@@ -14,7 +17,6 @@ import { useText, type GetText } from './text'
 export type BackendsStore = ReturnType<typeof useBackends>
 function initializeBackends(
   httpClient: HttpClient,
-  config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
   getText: GetText,
 ) {
@@ -28,10 +30,58 @@ function initializeBackends(
     const pm = createProjectManager(toValue(rootDirPath))
     projectManager.value = pm
   })
+  const config = useConfig()
   const localBackend = computed(() =>
-    projectManager.value ? new LocalBackend(getText, projectManager.value) : null,
+    projectManager.value ?
+      new LocalBackend(
+        getText,
+        projectManager.value,
+        undefined,
+        download,
+        () => localRootDirectoryStore.getState().localRootDirectory,
+        window.api?.system?.getFilePath,
+      )
+    : null,
   )
-  const remoteBackend = new RemoteBackend(getText, httpClient)
+  const remoteBackend = new RemoteBackend({
+    apiUrl: config.remoteConfig?.ENSO_IDE_API_URL ?? '',
+    getText,
+    client: httpClient,
+    downloader: download,
+    downloadCloudProject: async function downloadCloudProject(this: RemoteBackend, params) {
+      const queryString = new URLSearchParams(params)
+      const response = await this.get<{
+        readonly projectRootDirectory: string
+        readonly parentDirectory: string
+      }>(new URL(`/api/cloud/download-project?${queryString}`, location.href).toString())
+      if (!response.ok) {
+        return await this.throw(response, 'resolveProjectAssetPathBackendError')
+      }
+      return await response.json()
+    },
+    getProjectArchive: async function getProjectArchive(
+      this: RemoteBackend,
+      directoryId: DirectoryId,
+      fileName: string,
+    ): Promise<File> {
+      const queryString = new URLSearchParams({
+        directory: extractIdFromDirectoryId(directoryId),
+      }).toString()
+      const response = await this.get(
+        new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
+      )
+      if (!response.ok) {
+        return await this.throw(response, 'resolveProjectAssetPathBackendError')
+      }
+      const responseBody = await response.arrayBuffer()
+      return new File([responseBody], fileName)
+    },
+  })
+
+  watch(
+    () => config.remoteConfig?.ENSO_IDE_API_URL ?? '',
+    (newUrl) => remoteBackend.setApiUrl(newUrl),
+  )
 
   watch(
     () => getText,
@@ -63,5 +113,5 @@ function initializeBackends(
 }
 
 export const useBackends = createGlobalState(() =>
-  initializeBackends(useHttpClient(), injectGuiConfig(), inject('rootDirPath'), useText().getText),
+  initializeBackends(useHttpClient(), inject('rootDirPath'), useText().getText),
 )

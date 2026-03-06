@@ -3,9 +3,10 @@
 - type Error
     - catch self error_type:Standard.Base.Any.Any= handler:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - get_stack_trace_text self -> Standard.Base.Any.Any
-    - if_not_error self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - if_not_error self ~passthru:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_error self -> Standard.Base.Any.Any
     - map_error self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - return_if_error flag:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - stack_trace self -> Standard.Base.Any.Any
     - throw payload:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
@@ -13,7 +14,6 @@
     - unwrap error_value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - look_for_wrapped_error error_type:Standard.Base.Any.Any= error_value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.catch self error_type:Standard.Base.Any.Any= handler:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- Standard.Base.Any.Any.catch_primitive self handler:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- Standard.Base.Any.Any.if_not_error self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.if_not_error self ~passthru:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.is_error self -> Standard.Base.Data.Boolean.Boolean
 - Standard.Base.Any.Any.map_error self ~f:Standard.Base.Any.Any -> Standard.Base.Any.Any

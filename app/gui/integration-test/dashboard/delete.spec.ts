@@ -1,7 +1,10 @@
 /** @file Test copying, moving, cutting and pasting. */
 import { expect, test } from 'integration-test/base'
 
+import { UUID } from 'enso-common/src/services/Backend'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { modModifier } from 'integration-test/actions/BaseActions'
+import { uuidv4 } from 'lib0/random.js'
 import { TEXT } from '../actions'
 
 test('delete (local)', async ({ drivePage }) => {
@@ -17,6 +20,35 @@ test('delete (local)', async ({ drivePage }) => {
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     })
+})
+
+test('cannot delete opened project (local)', async ({ localApi, drivePage }) => {
+  localApi.addProject({
+    metadata: {
+      name: 'Another project',
+      namespace: 'local',
+      id: UUID(uuidv4()),
+      created: toRfc3339(new Date()),
+    },
+  })
+
+  await drivePage.goToCategory
+    .cloud()
+    .goToCategory.local()
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(2)
+    })
+    .driveTable.openProject(0)
+    .expectProjectEditorOpened('Another project')
+    .goToPage.drive()
+    .driveTable.clickRow(0)
+    .press('Delete')
+    .expectNoModal()
+    // Additional test to cover https://github.com/enso-org/enso/issues/14253
+    .driveTable.clickRow(1)
+    .driveTable.clickRow(0)
+    .press('Delete')
+    .expectNoModal()
 })
 
 test('delete and restore (remote)', async ({ drivePage }) => {

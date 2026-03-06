@@ -8,7 +8,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Set;
 import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
@@ -83,15 +85,19 @@ public class PrivateConstructorAccessTest {
                 bldr ->
                     bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var myType = mainMod.getType("My_Type");
-      var myTypeUnwrapped = ctx.unwrapValue(myType);
-      var interop = InteropLibrary.getUncached();
-      var members = interop.getMembers(myTypeUnwrapped, false);
-      assertThat(
-          "My_Type should not have any 'public' members", interop.getArraySize(members), is(0L));
+      handlePrivateConstructorIsNotExposedCheck(ctx, mainSrcPath);
     }
+  }
+
+  private void handlePrivateConstructorIsNotExposedCheck(final ContextUtils ctx, Path mainSrcPath)
+      throws UnsupportedMessageException {
+    var mainMod = new PolyglotContext(ctx.context()).evalModule(mainSrcPath.toFile());
+    var myType = mainMod.getType("My_Type");
+    var myTypeUnwrapped = ctx.unwrapValue(myType);
+    var interop = InteropLibrary.getUncached();
+    var members = interop.getMembers(myTypeUnwrapped, false);
+    assertThat(
+        "My_Type should not have any 'public' members", interop.getArraySize(members), is(0L));
   }
 
   @Test
@@ -145,9 +151,8 @@ public class PrivateConstructorAccessTest {
                         .option(RuntimeOptions.STRICT_ERRORS, "true")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
       try {
-        polyCtx.getTopScope().compile(true);
+        ctx.topScope().compile(true);
         fail("Expected compiler error");
       } catch (PolyglotException e) {
         assertThat(

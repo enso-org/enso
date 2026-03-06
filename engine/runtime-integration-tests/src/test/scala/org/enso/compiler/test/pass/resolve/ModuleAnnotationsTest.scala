@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
@@ -68,7 +68,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings.head
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 2
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
       anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
@@ -85,7 +87,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings.head
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 2
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
       anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
@@ -101,7 +105,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[definition.Method.Binding]
       val anns =
-        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings.head
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 2
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
       anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
@@ -115,9 +121,11 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings(1) shouldBe a[Definition.SugaredType]
+      ir.bindings()(1) shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings(1).unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings()(1)
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 1
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation"
     }
@@ -130,8 +138,8 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings(0) shouldBe a[Name.GenericAnnotation]
-      ir.bindings(1) shouldBe a[Name.GenericAnnotation]
+      ir.bindings()(0) shouldBe a[Name.GenericAnnotation]
+      ir.bindings()(1) shouldBe a[Name.GenericAnnotation]
     }
 
   }
@@ -150,9 +158,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 2
-      typ.body(0) shouldBe an[Name.GenericAnnotation]
-      typ.body(1) shouldBe a[Definition.Data]
+      typ.body().length shouldEqual 2
+      typ.body().apply(0) shouldBe an[Name.GenericAnnotation]
+      typ.body().apply(1) shouldBe a[Definition.Data]
     }
 
     "not associate generic annotations with method definitions" in {
@@ -167,9 +175,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 3
-      typ.body(1) shouldBe an[Name.GenericAnnotation]
-      typ.body(2) shouldBe an[Function.Binding]
+      typ.body().length shouldEqual 3
+      typ.body().apply(1) shouldBe an[Name.GenericAnnotation]
+      typ.body().apply(2) shouldBe an[Function.Binding]
     }
 
     "not associate annotations with comments" in {
@@ -184,10 +192,10 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 3
-      typ.body(0) shouldBe an[errors.Syntax]
-      typ.body(1) shouldBe an[Comment]
-      typ.body(2) shouldBe a[Definition.Data]
+      typ.body().length shouldEqual 3
+      typ.body().apply(0) shouldBe an[errors.Syntax]
+      typ.body().apply(1) shouldBe an[Comment]
+      typ.body().apply(2) shouldBe a[Definition.Data]
     }
   }
 }

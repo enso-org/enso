@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -69,7 +69,7 @@ case object GenericAnnotations extends IRPass {
         lastAnnotations = Seq()
         res
     }
-    ir.copy(bindings = newBindings.flatten)
+    ir.copyWithBindings(bindings = newBindings.flatten)
   }
 
   /** Execute the pass on an expression.

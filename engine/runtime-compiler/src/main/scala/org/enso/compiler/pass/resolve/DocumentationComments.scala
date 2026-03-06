@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -86,7 +86,11 @@ case object DocumentationComments extends IRPass {
         val newLines       = resolveList(block.expressions :+ block.returnValue)
         val newExpressions = newLines.init.map(resolveExpression)
         val newReturn      = resolveExpression(newLines.last)
-        block.copy(expressions = newExpressions, returnValue = newReturn)
+        block
+          .copyBuilder()
+          .expressions(newExpressions)
+          .returnValue(newReturn)
+          .build()
       case caseExpr: Case.Expr =>
         val newScrutinee = resolveExpression(caseExpr.scrutinee)
         val newBranches  = resolveBranches(caseExpr.branches)
@@ -181,7 +185,7 @@ case object DocumentationComments extends IRPass {
           )
           .build()
       case tpe: Definition.SugaredType =>
-        tpe.copy(body = resolveList(tpe.body).map(resolveIr))
+        tpe.copyWithBody(resolveList(tpe.body).map(resolveIr))
       case doc: Comment.Documentation  => doc
       case tySig: Type.Ascription      => tySig
       case err: Error                  => err
@@ -222,7 +226,7 @@ case object DocumentationComments extends IRPass {
         resolveList(ir.bindings.drop(1))
       case _ => resolveList(ir.bindings)
     }).map(resolveDefinition)
-    ir.copy(bindings = newBindings)
+    ir.copyWithBindings(newBindings)
   }
 
   /** Resolves documentation comments in an arbitrary IR.
@@ -234,8 +238,8 @@ case object DocumentationComments extends IRPass {
     ir match {
       case module: Module          => resolveModule(module)
       case expr: Expression        => resolveExpression(expr)
-      case df: Definition          => resolveDefinition(df)
       case data: Definition.Data   => data
+      case df: Definition          => resolveDefinition(df)
       case imp: Import             => imp
       case exp: Export.Module      => exp
       case arg: CallArgument       => arg

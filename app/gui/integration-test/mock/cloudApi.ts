@@ -1,15 +1,15 @@
 /** @file The mock API. */
-import * as backend from '#/services/Backend'
+import * as backend from 'enso-common/src/services/Backend'
+import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
-} from '#/services/RemoteBackend/ids'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import { uniqueString } from '$/utils/uniqueString'
-import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
+} from 'enso-common/src/services/RemoteBackend/ids'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import * as object from 'enso-common/src/utilities/data/object'
+import * as permissions from 'enso-common/src/utilities/permissions'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { test, type Page, type Request, type Route } from 'integration-test/base'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -781,6 +781,13 @@ export async function mockCloudApi(page: Page) {
     })
 
     // === Endpoints with dummy implementations ===
+
+    await get(paths.CONFIGURATION_PATH, () => ({
+      ENSO_IDE_API_URL: BASE_URL,
+      ENSO_IDE_COGNITO_USER_POOL_ID: 'mars_AAAAAAAAA',
+      ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID: 'zzzzzzzzzzzzzzzzzzzzzzzzzz',
+    }))
+
     await get(paths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, _, [maybeId], params) => {
       if (!maybeId) return
       const presigned = params.get('presigned') === 'true'
@@ -919,6 +926,7 @@ export async function mockCloudApi(page: Page) {
       return {
         invitations: [],
         availableLicenses: totalSeats - usersMap.size,
+        maxLicenses: totalSeats,
       }
     })
     await post(paths.INVITE_USER_PATH, async (route) => {

@@ -50,7 +50,7 @@ const mainFile = `\
 from Standard.Base import all
 
 ## A User Defined Function
-func1 arg =
+func1 arg1 =
     f2 = Main.func2 arg
     result = f2 - 5
     result
@@ -72,6 +72,8 @@ func2 a =
    ![Video](<https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ>)
 
    Here is a link: <https://example.com>
+
+   [A reference to another project](enso://Users/user%20name/MockProject)
 
    Nested lists:
     - List element

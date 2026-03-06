@@ -7,17 +7,12 @@
  * This is the primary entry point, though its building blocks are also exported,
  * like {@link Logger}.
  */
-
+import * as contentConfig from '@/contentConfig'
+import type { Electron } from '@/electron'
+import * as paths from '@/paths'
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import * as util from 'node:util'
-
-import * as contentConfig from '@/contentConfig'
-import * as paths from '@/paths'
-
-// ================
-// === Log File ===
-// ================
 
 const consoleLog = console.log
 const consoleError = console.error
@@ -36,10 +31,10 @@ type LogLevel = 'log' | 'info' | 'error' | 'warn' | 'debug'
  *
  * The path of the log file is {@link generateUniqueLogFileName automatically generated}.
  *
- * The log file is created in the {@link paths.LOGS_DIRECTORY logs directory}
+ * The log file is created in the {@link paths.logsPath logs directory}
  */
-export function setupLogger() {
-  const dirname = paths.LOGS_DIRECTORY
+export function setupLogger(electron: Electron | undefined): void {
+  const dirname = paths.logsPath(electron)
   const filename = generateUniqueLogFileName()
   const logFilePath = pathModule.join(dirname, filename)
   const consumer = new Logger(logFilePath)

@@ -1,22 +1,27 @@
+<script lang="ts">
+export const EDGE_ARROW_MARKER_ID = 'edge-arrow'
+export const EDGE_ARROW_PATH =
+  'M10.9635 1.5547 L6.83205 7.75193 C6.43623 8.34566 5.56377 8.34566 5.16795 7.75192 L1.03647 1.5547 C0.593431 0.890146 1.06982 0 1.86852 0 L10.1315 0 C10.9302 0 11.4066 0.890147 10.9635 1.5547 Z'
+</script>
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
 import { requiredImports } from '$/providers/openedProjects/module/imports'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useEventConditional } from '@/composables/events'
-import type { GraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { type GraphNavigator } from '@/providers/graphNavigator'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
-import { Err, Ok, unwrapOr, unwrapOrWithLog } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ProjectPath } from '@/util/projectPath'
 import { useToast } from '@/util/toast'
+import { Err, Ok, unwrapOr, unwrapOrWithLog } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
+import ContextMenuTrigger from '../ContextMenuTrigger.vue'
 
 const {
   projectNames: projectNames,
@@ -25,9 +30,8 @@ const {
   graph,
   suggestionDb,
 } = useCurrentProject()
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 const interaction = injectInteractionHandler()
-const nodeSelection = injectGraphSelection(true)
 const connectionToast = useToast.error()
 
 const props = defineProps<{
@@ -36,8 +40,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   createNodeFromEdge: [source: AstId, position: Vec2]
-  createNodeFromPort: [source: NodeId, options: NodeCreationOptions[]]
-  outputPortDoubleClick: [portId: AstId]
+  createNodeFromPort: [portId: AstId]
 }>()
 
 const MIN_DRAG_MOVE = 10
@@ -58,14 +61,17 @@ useEventConditional(
   'pointerup',
   () => interaction.getCurrent() === editingEdge,
   (e: PointerEvent) => {
-    const originEvent = graph.value.mouseEditedEdge?.event
-    if (originEvent?.type === 'pointerdown') {
-      const delta = new Vec2(e.screenX, e.screenY).sub(
-        new Vec2(originEvent.screenX, originEvent.screenY),
-      )
-      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
-        if (edgeInteractionClick()) e.stopPropagation()
-      }
+    const editedEdge = graph.value.mouseEditedEdge
+    if (editedEdge == null) return
+    const delta = new Vec2(e.screenX, e.screenY).sub(
+      new Vec2(editedEdge.startPosition.x, editedEdge.startPosition.y),
+    )
+    if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
+      if (edgeInteractionClick()) e.stopPropagation()
+    } else if (editedEdge.createdFrom === 'newNodeButton' && editedEdge.source != null) {
+      // The distance of a drag is not important when dragging from the new node button.
+      // The button will not initiate editedEdge if the drag is too short.
+      createNewNodeFromPort(editedEdge.source)
     }
   },
   { capture: true },
@@ -194,39 +200,58 @@ const nodeIdsWithOutputPorts = computed(() =>
   [...graph.value.db.nodeOutputPorts.allForward()].map(([id]) => id),
 )
 
-function onNewNodeClick(id: NodeId, position: Vec2) {
-  nodeSelection?.setSelection(new Set([id]))
-  emit('createNodeFromPort', id, [{ commit: false, content: undefined, position }])
+function createNewNodeFromPort(id: AstId) {
+  const nodeId = graph.value.getOutputPortNodeId(id)
+  if (nodeId != null) {
+    selection?.setSelection(new Set([nodeId]))
+  }
+  emit('createNodeFromPort', id)
 }
 </script>
-
 <template>
   <div>
-    <svg :viewBox="props.navigator.viewBox" class="overlay behindNodes">
-      <GraphEdge v-for="edge in graph.connectedEdges" :key="edge.target" :edge="edge" />
-      <GraphEdge v-if="graph.cbEditedEdge" :edge="graph.cbEditedEdge" />
-      <GraphEdge
-        v-if="graph.outputSuggestedEdge"
-        :edge="graph.outputSuggestedEdge"
-        animateFromSourceHover
-      />
-      <GraphEdge
-        v-for="edge in graph.createNodeFromOutputPortButtonEdges"
-        :key="edge.source"
-        :edge="edge"
-        :arrow="false"
-        animateFromSourceHover
-      />
-      <template v-for="id in nodeIdsWithOutputPorts" :key="id">
-        <GraphNodeOutputPorts
-          v-show="id !== graph.editedNodeInfo?.id"
-          :nodeId="id"
-          @newNodeClick="(_portId, position) => onNewNodeClick(id, position)"
-          @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
-          @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
+    <ContextMenuTrigger :actions="['graph.deleteSelectedEdge']">
+      <svg :viewBox="props.navigator.viewBox" class="overlay behindNodes">
+        <marker
+          :id="EDGE_ARROW_MARKER_ID"
+          viewBox="0 0 12 9"
+          refX="6"
+          refY="1"
+          markerWidth="12"
+          markerHeight="9"
+          markerUnits="userSpaceOnUse"
+          orient="0"
+          fill="context-stroke"
+        >
+          <path :d="EDGE_ARROW_PATH" />
+        </marker>
+
+        <GraphEdge v-for="edge in graph.connectedEdges" :key="edge.target" :edge="edge" />
+        <GraphEdge v-if="graph.cbEditedEdge" :edge="graph.cbEditedEdge" />
+        <GraphEdge
+          v-if="graph.outputSuggestedEdge"
+          :edge="graph.outputSuggestedEdge"
+          animateFromSourceHover
         />
-      </template>
-    </svg>
+        <GraphEdge
+          v-for="edge in graph.createNodeFromOutputPortButtonEdges"
+          :key="edge.source"
+          :edge="edge"
+          :arrow="false"
+          animateFromSourceHover
+        />
+        <template v-for="id in nodeIdsWithOutputPorts" :key="id">
+          <GraphNodeOutputPorts
+            v-show="id !== graph.editedNodeInfo?.id"
+            :nodeId="id"
+            @newNodeClick="(portId) => createNewNodeFromPort(portId)"
+            @newNodeDrag="(portId) => graph.createEdgeFromNewButton(portId)"
+            @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
+            @portDoubleClick="(_event, portId) => emit('createNodeFromPort', portId)"
+          />
+        </template>
+      </svg>
+    </ContextMenuTrigger>
     <svg v-if="graph.mouseEditedEdge" :viewBox="props.navigator.viewBox" class="overlay aboveNodes">
       <GraphEdge data-testid="mouse-edited-edge" :edge="graph.mouseEditedEdge" maskSource />
     </svg>

@@ -1,0 +1,17 @@
+private
+
+import project.Network.Email.Email_Provider.Email_Provider_SPI
+import project.Network.Email.Providers.Email_Test_Only.Email_Test_Only_Provider
+import project.Network.Email.Providers.Send_Grid.Send_Grid_Provider
+
+type Send_Grid_Service
+
+type Email_Test_Only_Service
+
+Email_Provider_SPI.from (that:Send_Grid_Service) =
+    _ = that
+    Email_Provider_SPI.new Send_Grid_Provider
+
+Email_Provider_SPI.from (that:Email_Test_Only_Service) =
+    _ = that
+    Email_Provider_SPI.new Email_Test_Only_Provider

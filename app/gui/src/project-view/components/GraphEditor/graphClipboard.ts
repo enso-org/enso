@@ -6,6 +6,7 @@ import {
 import type { NodeCreationOptions } from '@/composables/nodeCreation'
 import { nodeDocumentationText } from '@/util/ast/node'
 import { Vec2 } from '@/util/data/vec2'
+import { useToast } from '@/util/toast'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import type { NodeMetadataFields } from 'ydoc-shared/ast'
 
@@ -64,7 +65,7 @@ export function useGraphEditorClipboard(
     })
     const clipboardData = await nodesFromClipboardContent(clipboardItems)
     if (!clipboardData.length) {
-      console.warn('No valid node in clipboard.')
+      useToast.error().show('No component in clipboard.')
       return
     }
     const firstNodePos = clipboardData[0]!.metadata?.position ?? { x: 0, y: 0 }

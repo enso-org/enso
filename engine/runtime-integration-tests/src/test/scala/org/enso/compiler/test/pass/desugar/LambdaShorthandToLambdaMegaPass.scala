@@ -13,12 +13,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.pass.{IRPass, IRProcessingPass}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   ComplexType,
   FunctionBinding,
@@ -60,7 +55,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     LambdaConsolidate,
@@ -93,7 +87,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         )
       )
     }
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   /** Desugars underscore arguments to lambdas for an arbitrary expression.
@@ -156,11 +150,11 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               DefinitionArgument.Specified
                 .builder()
                 .name(
-                  Name.Literal(
-                    newName.name,
-                    isMethod = false,
-                    null
-                  )
+                  Name.Literal
+                    .builder()
+                    .name(newName.name)
+                    .isMethod(false)
+                    .build()
                 )
                 .suspended(false)
                 .build()
@@ -210,11 +204,11 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
-            .copy(
-              location    = p.function.location,
-              passData    = p.function.passData,
-              diagnostics = p.function.diagnostics
-            )
+            .copyBuilder()
+            .location(p.function.identifiedLocation())
+            .passData(p.function.passData())
+            .diagnostics(p.function().diagnostics())
+            .build()
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
@@ -247,11 +241,12 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
                 DefinitionArgument.Specified
                   .builder()
                   .name(
-                    Name.Literal(
-                      updatedName.get,
-                      isMethod = false,
-                      p.function.location.orNull
-                    )
+                    Name.Literal
+                      .builder()
+                      .name(updatedName.get)
+                      .location(p.function().identifiedLocation())
+                      .isMethod(false)
+                      .build()
                   )
                   .build()
               )
@@ -273,11 +268,11 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           case blank: Name.Blank =>
             val name = freshNameSupply
               .newName()
-              .copy(
-                location    = blank.location,
-                passData    = blank.passData,
-                diagnostics = blank.diagnostics
-              )
+              .copyBuilder()
+              .location(blank.identifiedLocation())
+              .passData(blank.passData)
+              .diagnostics(blank.diagnostics)
+              .build()
             bindings ::= name
             name
           case it => desugarExpression(it, freshNameSupply)
@@ -348,11 +343,11 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         if (isShorthand) {
           val newName = freshNameSupply
             .newName()
-            .copy(
-              location    = s.value.location,
-              passData    = s.value.passData,
-              diagnostics = s.value.diagnostics
-            )
+            .copyBuilder()
+            .location(s.value.identifiedLocation())
+            .passData(s.value.passData())
+            .diagnostics(s.value().diagnostics())
+            .build()
 
           s.copy(newName)
         } else s
@@ -375,12 +370,15 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
       arg match {
         case specified: CallArgument.Specified =>
           // Note [Safe Casting to Name.Literal]
-          val defArgName =
-            Name.Literal(
-              specified.value.asInstanceOf[Name.Literal].name,
-              isMethod = false,
-              null
+          val defArgName = Name.Literal
+            .builder()
+            .name(
+              specified.value
+                .asInstanceOf[Name.Literal]
+                .name
             )
+            .isMethod(false)
+            .build()
 
           Some(
             DefinitionArgument.Specified
@@ -424,15 +422,15 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         val scrutineeName =
           freshNameSupply
             .newName()
-            .copy(
-              location    = nameBlank.location,
-              passData    = nameBlank.passData,
-              diagnostics = nameBlank.diagnostics
-            )
+            .copyBuilder()
+            .location(nameBlank.identifiedLocation())
+            .passData(nameBlank.passData())
+            .diagnostics(nameBlank.diagnostics())
+            .build()
 
         val lambdaArg = DefinitionArgument.Specified
           .builder()
-          .name(scrutineeName.copy(id = null))
+          .name(scrutineeName.copyBuilder().id(null).build())
           .suspended(false)
           .build()
 

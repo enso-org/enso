@@ -90,6 +90,23 @@ public class TimersTest extends ExecutorSetup {
   }
 
   @Test
+  public void clearTimeoutUndefined() throws Exception {
+    var code =
+        """
+        clearTimeout(undefined);
+        clearTimeout(null);
+        globalThis.result = 0;
+        """;
+
+    var result =
+        CompletableFuture.supplyAsync(() -> context.eval("js", code), executor)
+            .thenApplyAsync(v -> context.eval("js", "result"), executor)
+            .get();
+
+    Assert.assertEquals(0, result.asInt());
+  }
+
+  @Test
   public void setInterval() throws Exception {
     var code =
         """
@@ -121,6 +138,23 @@ public class TimersTest extends ExecutorSetup {
         };
         var intervalId = setInterval(p, 0, 4, 2);
         clearInterval(intervalId);
+        """;
+
+    var result =
+        CompletableFuture.supplyAsync(() -> context.eval("js", code), executor)
+            .thenApplyAsync(v -> context.eval("js", "result"), executor)
+            .get();
+
+    Assert.assertEquals(0, result.asInt());
+  }
+
+  @Test
+  public void clearIntervalUndefined() throws Exception {
+    var code =
+        """
+        clearInterval(undefined);
+        clearInterval(null);
+        globalThis.result = 0;
         """;
 
     var result =

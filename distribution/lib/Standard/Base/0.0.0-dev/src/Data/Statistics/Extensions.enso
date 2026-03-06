@@ -13,13 +13,13 @@ import project.Data.Vector.Vector
     - product: ..Product
     - mean: ..Mean
     - variance: ..Variance
-    - standard deviation: ..Standard_Deviation
+    - standard_deviation: ..Standard_Deviation
     - skew: ..Skew
     - kurtosis: ..Kurtosis
     - covariance: ..Covariance
     - pearson: ..Pearson
     - spearman: ..Spearman
-    - r squared: ..R_Squared
+    - r_squared: ..R_Squared
    group: Statistics
    icon: transform4
    ---
@@ -44,8 +44,7 @@ Vector.compute_bulk self statistics:Vector=[..Count, ..Sum] =
     Statistic.compute_bulk self statistics
 
 ## ---
-   aliases:
-    - cumulative
+   aliases: [cumulative]
    macros:
     - count: ..Count
     - minimum: ..Minimum
@@ -55,13 +54,13 @@ Vector.compute_bulk self statistics:Vector=[..Count, ..Sum] =
     - product: ..Product
     - mean: ..Mean
     - variance: ..Variance
-    - standard deviation: ..Standard_Deviation
+    - standard_deviation: ..Standard_Deviation
     - skew: ..Skew
     - kurtosis: ..Kurtosis
     - covariance: ..Covariance
     - pearson: ..Pearson
     - spearman: ..Spearman
-    - r squared: ..R_Squared
+    - r_squared: ..R_Squared
    group: Statistics
    icon: math
    ---

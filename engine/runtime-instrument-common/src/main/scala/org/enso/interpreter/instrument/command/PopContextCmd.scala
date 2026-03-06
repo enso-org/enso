@@ -66,7 +66,7 @@ class PopContextCmd(
       for {
         _ <- Future(requireMethodPointersSynchronization(stack))
         _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
-        _ <- ctx.jobProcessor.run(ExecuteJob(executable, "pop context"))
+        _ <- ctx.jobProcessor.run(ExecuteJob.apply(executable, "pop context"))
       } yield ()
     } else {
       Future.successful(())

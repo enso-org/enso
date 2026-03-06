@@ -1,12 +1,14 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigDecimal;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class FloatType implements StorageType<Double>, NumericType {
   public static final FloatType FLOAT_64 = new FloatType(Bits.BITS_64);
@@ -24,6 +26,18 @@ public final class FloatType implements StorageType<Double>, NumericType {
   @Override
   public char typeChar() {
     return 'F';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    var ensoBits = Bits.asEnsoValue(bits());
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), ensoBits);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Float";
   }
 
   @Override
@@ -53,9 +67,18 @@ public final class FloatType implements StorageType<Double>, NumericType {
 
   @Override
   public Double valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToDouble(value) || value instanceof BigDecimal) {
       return NumericConverter.coerceToDouble(value);
     }
+
+    if (value instanceof Value polyValue && polyValue.isNumber() && polyValue.fitsInDouble()) {
+      return polyValue.asDouble();
+    }
+
     return null;
   }
 
@@ -66,7 +89,7 @@ public final class FloatType implements StorageType<Double>, NumericType {
 
   @Override
   public ColumnDoubleStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof FloatType) {
+    if (StorageType.ofStorage(storage) instanceof FloatType) {
       var output = (ColumnDoubleStorage) storage;
       return output;
     }

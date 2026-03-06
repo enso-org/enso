@@ -4,8 +4,8 @@
 
 use crate::prelude::*;
 
-use crate::ide::web::env as ide_env;
 use crate::ide::web::IdeDesktop;
+use crate::ide::web::env as ide_env;
 use crate::paths::generated::RepoRootAppGuiDist;
 use crate::paths::generated::RepoRootDistGuiAssets;
 use crate::project::Context;
@@ -100,6 +100,7 @@ impl IsTarget for Gui {
                 .current_dir(repo_root)
                 .set_env(ide_env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
                 .set_env(ide_env::ENSO_IDE_VERSION, &version_string)?
+                .set_env(ide_env::MODE, &mode.to_string())?
                 .run("build:gui")
                 .arg(format!("--mode={mode}"))
                 .run_ok()

@@ -10,8 +10,8 @@
  * 3. `ReactiveMapping`: Similar to `ReactiveIndex`, but each key is correlated to one value (`M`) or zero (`undefined`).
  */
 
+import { LazySyncEffectSet, type NonReactiveView } from '$/utils/reactivity'
 import { assert } from '@/util/assert'
-import { LazySyncEffectSet, type NonReactiveView } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
@@ -356,12 +356,15 @@ export class ReactiveMapping<K, V, M> {
       const handler = db.on('entryAdded', (key, value, onDelete) => {
         const scope = effectScope()
         const mappedValue = scope.run(() =>
-          computed(() => scope.run(() => indexer(key, value)), debugOptions),
+          computed(
+            () => (scope.active ? scope.run(() => indexer(key, value)) : undefined),
+            debugOptions,
+          ),
         )! // This non-null assertion is SAFE, as the scope is initially active.
         this.computed.set(key, mappedValue)
         onDelete(() => {
-          scope.stop()
           this.computed.delete(key)
+          scope.stop()
         })
       })
       onScopeDispose(() => db.off('entryAdded', handler))

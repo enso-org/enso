@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Function import const
 
 ## The type that has only a singleton value. Nothing in Enso is used as an

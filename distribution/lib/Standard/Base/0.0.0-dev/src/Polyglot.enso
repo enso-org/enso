@@ -15,7 +15,6 @@ import project.Runtime.Source_Location.Source_Location
    private: true
    ---
    Utilities for working with Polyglot objects.
-@Builtin_Type
 type Polyglot
     ## ---
        private: true

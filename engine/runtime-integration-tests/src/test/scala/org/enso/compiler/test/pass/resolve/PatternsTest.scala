@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Function, Module, Pattern}
 import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.ir.module.scope.definition
@@ -69,7 +69,7 @@ class PatternsTest extends CompilerTest {
 
     "attach resolved atoms to the method definitions" in {
       val patterns = ir
-        .bindings(1)
+        .bindings()(1)
         .asInstanceOf[definition.Method.Explicit]
         .body
         .asInstanceOf[Function.Lambda]

@@ -15,6 +15,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -194,7 +195,7 @@ public final class WithWarnings extends EnsoObject {
     var warns = Warning.fromMapToArray(warnsMap);
     var ctx = EnsoContext.get(where);
     var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
-    var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
+    var toText = UnresolvedSymbol.build(Constants.Names.TO_TEXT, scopeOfAny);
     var node = InteropMethodCallNode.getUncached();
     var state = State.create(ctx);
     var text = Text.empty();

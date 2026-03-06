@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.common.CachePreferences
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.CallArgument.Specified
 import org.enso.compiler.core.{CompilerError, ExternalID}
 import org.enso.compiler.core.ir.{
@@ -57,8 +57,9 @@ case object CachePreferenceAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val weights = WeightInfo()
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
-      .updateMetadata(new MetadataPair(this, weights))
+    ir.copyWithBindings(
+      ir.bindings.map(analyseModuleDefinition(_, weights))
+    ).updateMetadata(new MetadataPair(this, weights))
   }
 
   /** Performs the cache preference analysis on an inline expression.
@@ -148,10 +149,10 @@ case object CachePreferenceAnalysis extends IRPass {
         binding.expression.getExternalId
           .foreach(weights.update(_, CachePreferences.Kind.BINDING_EXPRESSION))
         binding
-          .copy(
-            name       = binding.name.updateMetadata(new MetadataPair(this, weights)),
-            expression = analyseExpression(binding.expression, weights)
-          )
+          .copyBuilder()
+          .name(binding.name.updateMetadata(new MetadataPair(this, weights)))
+          .expression(analyseExpression(binding.expression, weights))
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
       case error: Error =>
         error

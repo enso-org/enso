@@ -414,6 +414,10 @@ final class EnsoModuleAST {
         createEdge(node, litNode, "literal");
         yield node;
       }
+      case Pattern.Bool boolPat -> {
+        Map<String, Object> props = Map.of("condition", boolPat.condition());
+        yield newNode(boolPat, props);
+      }
       case Pattern.Name name -> {
         Map<String, Object> props = Map.of("patternName", name.name().name());
         yield newNode(name, props);
@@ -429,8 +433,11 @@ final class EnsoModuleAST {
   private ASTNode buildTree(CallArgument argument) {
     return switch (argument) {
       case CallArgument.Specified specifiedArg -> {
-        Map<String, Object> props = Map.of("argName", specifiedArg.name());
-        var node = newNode(specifiedArg, props);
+        var node = newNode(specifiedArg);
+        if (specifiedArg.name().isDefined()) {
+          var nameNode = buildTree(specifiedArg.name().get());
+          createEdge(node, nameNode, "name");
+        }
         var valueNode = buildTree(specifiedArg.value());
         createEdge(node, valueNode, "value");
         yield node;

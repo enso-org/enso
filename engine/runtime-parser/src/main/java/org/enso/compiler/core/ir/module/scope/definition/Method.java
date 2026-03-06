@@ -58,8 +58,6 @@ public interface Method extends Definition {
      * @param bodyReference the body of the method
      * @param isStatic true if this method is static, false otherwise
      * @param isPrivate true if this method is private, false otherwise
-     * @param isStaticWrapperForInstanceMethod true if this method represents a static wrapper for
-     *     instance method, false otherwise
      */
     @GenerateFields
     public Explicit(
@@ -67,7 +65,6 @@ public interface Method extends Definition {
         @IRChild Persistance.Reference<Expression> bodyReference,
         @IRField boolean isPrivate,
         @IRField boolean isStatic,
-        @IRField boolean isStaticWrapperForInstanceMethod,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
         DiagnosticStorage diagnostics) {
@@ -76,7 +73,6 @@ public interface Method extends Definition {
           bodyReference,
           isPrivate,
           isStatic,
-          isStaticWrapperForInstanceMethod,
           identifiedLocation,
           passData,
           diagnostics);
@@ -102,8 +98,6 @@ public interface Method extends Definition {
           .bodyReference(Persistance.Reference.of(body, false))
           .isStatic(org.enso.compiler.core.ir.Function.computeIsStatic(body))
           .isPrivate(ir.isPrivate())
-          .isStaticWrapperForInstanceMethod(
-              org.enso.compiler.core.ir.Function.computeIsStaticWrapperForInstanceMethod(body))
           .location(ir.identifiedLocation())
           .passData(ir.passData())
           .diagnostics(ir.diagnostics())

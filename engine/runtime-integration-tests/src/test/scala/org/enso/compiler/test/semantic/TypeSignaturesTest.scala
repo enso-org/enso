@@ -1,6 +1,6 @@
 package org.enso.compiler.test.semantic
 
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.module.scope.definition
@@ -63,7 +63,7 @@ trait TypeMatchers {
       case (Name(n), t: ir.Name.Literal) =>
         Option.when(n != t.name)((sig, expr, "names do not match"))
       case (AnyQualName(n), _) =>
-        val meta = expr.getMetadata(TypeNames)
+        val meta = expr.getMetadata(TypeNames, classOf[TypeNames.Metadata])
         meta match {
           case None =>
             Some((sig, expr, "the expression does not have a resolution"))
@@ -96,9 +96,9 @@ trait TypeMatchers {
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-      case (In(typed, context), Type.Context(irTyped, irContext, _, _)) =>
-        findInequalityWitness(typed, irTyped).orElse(
-          findInequalityWitness(context, irContext)
+      case (In(typed, context), ctx: Type.Context) =>
+        findInequalityWitness(typed, ctx.typed()).orElse(
+          findInequalityWitness(context, ctx.context())
         )
 
       case _ => Some((sig, expr, "constructors are incompatible"))
@@ -206,7 +206,7 @@ class TypeSignaturesTest
         m.methodName.name == methodName
       case _ => false
     }.get
-    m.unsafeGetMetadata(
+    m.unsafeGetMetadata[TypeSignatures.Metadata](
       TypeSignatures,
       s"expected a type signature on method $methodName"
     ).signature

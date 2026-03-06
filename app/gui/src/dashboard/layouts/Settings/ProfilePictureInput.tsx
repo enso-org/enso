@@ -6,9 +6,9 @@ import { HiddenFile } from '#/components/Inputs/HiddenFile'
 import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import type Backend from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
 import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */

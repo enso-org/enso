@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.output.TeeOutputStream
 import org.enso.common.{LanguageInfo, MethodNames, RuntimeOptions}
+import org.enso.compiler.core.ConstantsNames
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
@@ -782,8 +783,7 @@ class RuntimeRecomputeTest
       )
     )
     context.receiveNIgnoreStdLib(
-      5,
-      timeoutSeconds = 10
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
@@ -840,7 +840,7 @@ class RuntimeRecomputeTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.update(
@@ -874,6 +874,12 @@ class RuntimeRecomputeTest
             Vector()
           )
         )
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        "Enso_Test.Test.Main.Test",
+        typeChanged = false
       ),
       context.executionComplete(contextId)
     )
@@ -1299,7 +1305,7 @@ class RuntimeRecomputeTest
           Api.MethodPointer(
             "Standard.Base.Any",
             "Standard.Base.Any.Any",
-            "to_text"
+            ConstantsNames.TO_TEXT
           ),
           Vector()
         )
@@ -1312,7 +1318,7 @@ class RuntimeRecomputeTest
           Api.MethodPointer(
             "Standard.Base.Any",
             "Standard.Base.Any.Any",
-            "to_text"
+            ConstantsNames.TO_TEXT
           ),
           Vector()
         )
@@ -1385,7 +1391,7 @@ class RuntimeRecomputeTest
             Api.MethodPointer(
               "Standard.Base.Any",
               "Standard.Base.Any.Any",
-              "to_text"
+              ConstantsNames.TO_TEXT
             ),
             Vector()
           )
@@ -1402,7 +1408,7 @@ class RuntimeRecomputeTest
             Api.MethodPointer(
               "Standard.Base.Any",
               "Standard.Base.Any.Any",
-              "to_text"
+              ConstantsNames.TO_TEXT
             ),
             Vector()
           )
@@ -1458,7 +1464,7 @@ class RuntimeRecomputeTest
             Api.MethodPointer(
               "Standard.Base.Any",
               "Standard.Base.Any.Any",
-              "to_text"
+              ConstantsNames.TO_TEXT
             ),
             Vector()
           )

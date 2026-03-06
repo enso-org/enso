@@ -19,6 +19,8 @@ import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
@@ -39,6 +41,7 @@ public class OtherJvmObjectTest {
   @ClassRule
   public static final ContextUtils ctx =
       ContextUtils.newBuilder("host") // no dynamic languages needed
+          .assertGC(false) // but then we cannot try to GC EnsoContext!
           .build();
 
   private static Channel<OtherJvmPool> CHANNEL;
@@ -51,6 +54,7 @@ public class OtherJvmObjectTest {
         .getConfig()
         .onEnterLeave(
             FakeLanguage.class,
+            null,
             (__) -> {
               ctx.context().enter();
               return null;
@@ -135,6 +139,7 @@ public class OtherJvmObjectTest {
 
   @Test
   public void parsingException() throws Exception {
+    List<StackTraceElement> singleStack = null;
     var shortClass1 = ctx.asValue(java.lang.Short.class).getMember("static");
     try {
       var value1 = shortClass1.invokeMember("valueOf", "not-a-number");
@@ -143,7 +148,9 @@ public class OtherJvmObjectTest {
       MatcherAssert.assertThat(e.getMessage(), CoreMatchers.containsString("not-a-number"));
       assertTrue("This is host exception", e.isHostException());
       assertNotNull("Host exception found", e.asHostException());
+      singleStack = takeFew(5, e.getStackTrace());
     }
+    assertNotNull("Stacktraces captured", singleStack);
     var shortClass2 = loadOtherJvmClass("java.lang.Short");
     try {
       var value2 = shortClass2.invokeMember("valueOf", "not-a-number");
@@ -151,7 +158,16 @@ public class OtherJvmObjectTest {
     } catch (PolyglotException e) {
       MatcherAssert.assertThat(e.getMessage(), CoreMatchers.containsString("not-a-number"));
       assertFalse("Alas this cannot be host exception", e.isHostException());
+      var stack = e.getGuestObject().invokeMember("getStackTrace");
+      for (var i = 0; i < 5; i++) {
+        var elem = stack.getArrayElement(i);
+        assertEquals(singleStack.get(i).toString(), elem.toString());
+      }
     }
+  }
+
+  private static List<StackTraceElement> takeFew(int n, StackTraceElement[] arr) {
+    return Arrays.asList(arr).subList(0, n);
   }
 
   @Test
@@ -264,6 +280,8 @@ public class OtherJvmObjectTest {
       case 3 -> new int[20];
       case 4 -> "Hello";
       case 5 -> "Hello".repeat(100000);
+      case 6 -> wrap("Hello");
+      case 7 -> wrap("Hello".repeat(100000));
       default -> null;
     };
   }
@@ -332,6 +350,16 @@ public class OtherJvmObjectTest {
   @Test
   public void isStringLong() throws Exception {
     checkString(5);
+  }
+
+  @Test
+  public void isTruffleStringShort() throws Exception {
+    checkString(6);
+  }
+
+  @Test
+  public void isTruffleStringLong() throws Exception {
+    checkString(7);
   }
 
   private void checkString(int kind) throws Exception {

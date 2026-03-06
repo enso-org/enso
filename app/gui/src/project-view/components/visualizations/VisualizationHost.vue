@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ToValue } from '$/utils/reactivity'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
@@ -7,7 +8,6 @@ import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
 import { ProjectPath } from '@/util/projectPath'
-import type { ToValue } from '@/util/reactivity'
 
 export interface VisualizationHostParams {
   visualization?: string | object

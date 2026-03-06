@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.binary;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
@@ -18,15 +17,15 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 public class FillMissingOperation implements BinaryOperation {
   public static FillMissingOperation create(Column column, StorageType<?> resultType) {
-    var storage = column.getStorage();
-    return switch (storage.getType()) {
-      case IntegerType longType -> new LongFillMissingOperation(resultType);
-      case FloatType floatType -> new DoubleFillMissingOperation(resultType);
-      case BooleanType booleanType -> new BooleanFillMissingOperation(resultType);
-      case NullType nullType -> new NullFillMissingOperation(resultType);
+    return switch (StorageType.ofStorage(column.getStorage())) {
+      case IntegerType _ -> new LongFillMissingOperation(resultType);
+      case FloatType _ -> new DoubleFillMissingOperation(resultType);
+      case BooleanType _ -> new BooleanFillMissingOperation(resultType);
+      case NullType _ -> new NullFillMissingOperation(resultType);
       default -> new FillMissingOperation(resultType);
     };
   }
@@ -98,13 +97,18 @@ public class FillMissingOperation implements BinaryOperation {
 
   public static class BooleanFillMissingOperation extends FillMissingOperation {
     public static BoolStorage fillMissingBoolStorage(BoolStorage storage, boolean fillValue) {
-      final var newValues = (BitSet) storage.getValues().clone();
+      var size = (int) storage.getSize();
+      var newValues = storage.getValues().cloneBitSet();
+      var isNothingMap = storage.getValidityMap().cloneBitSet();
+      isNothingMap.flip(0, size);
       if (fillValue != storage.isNegated()) {
-        newValues.or(storage.getIsNothingMap());
+        newValues.or(isNothingMap);
       } else {
-        newValues.andNot(storage.getIsNothingMap());
+        newValues.andNot(isNothingMap);
       }
-      return new BoolStorage(newValues, new BitSet(), (int) storage.getSize(), storage.isNegated());
+      var validity = ImmutableBitSet.allTrue(size);
+      return new BoolStorage(
+          new ImmutableBitSet(newValues, size), validity, size, storage.isNegated(), null);
     }
 
     public BooleanFillMissingOperation(StorageType<?> resultType) {

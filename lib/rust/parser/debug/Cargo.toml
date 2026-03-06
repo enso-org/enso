@@ -2,7 +2,7 @@
 name = "enso-parser-debug"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2021"
+edition = "2024"
 description = "Enso parser debugging tools."
 readme = "README.md"
 homepage = "https://github.com/enso-org/enso"

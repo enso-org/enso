@@ -89,7 +89,7 @@ final class BuiltinsRegistry {
    *     builtin method was ever registerd
    */
   final Optional<BuiltinFunction> getBuiltinFunction(
-      String type, String methodName, EnsoLanguage language, boolean isStaticInstance) {
+      String type, String methodName, EnsoLanguage language) {
     // TODO: move away from String mapping once Builtins is gone
     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) {
@@ -103,7 +103,7 @@ final class BuiltinsRegistry {
     if (builtin == null) {
       return Optional.empty();
     }
-    return builtin.toFunction(language, isStaticInstance);
+    return builtin.toFunction(language);
   }
 
   private static Map<String, LoadedBuiltinMethod> loadBuiltinMethodClassesEarly(
@@ -114,39 +114,6 @@ final class BuiltinsRegistry {
           methods.put(key, value.toMethod());
         });
     return methods;
-  }
-
-  /**
-   * Registers builtin methods with their corresponding Atom Constructor's owners. That way
-   * "special" builtin types have builtin methods in the scope without requiring everyone to always
-   * import full stdlib.
-   *
-   * @param scope Builtins scope
-   * @param language The language the resulting function nodes should be associated with
-   */
-  private void registerBuiltinMethods(ModuleScopeBuilder scope, EnsoLanguage language) {
-    for (Builtin builtin : builtins.values()) {
-      var type = builtin.getType();
-      Map<String, Supplier<LoadedBuiltinMethod>> methods = builtinMethodNodes.get(type.getName());
-      if (methods != null) {
-        // Register a builtin method iff it is marked as auto-register.
-        // Methods can only register under a type or, if we deal with a static method, it's
-        // eigen-type.
-        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any
-        // or Number.
-        methods.forEach(
-            (key, value) -> {
-              LoadedBuiltinMethod meth = value.get();
-              Type tpe =
-                  meth.isAutoRegister ? (!meth.isStatic() ? type : type.getEigentype()) : null;
-              if (tpe != null) {
-                Optional<BuiltinFunction> fun = meth.toFunction(language, false);
-                fun.ifPresent(
-                    f -> scope.registerMethod(tpe, key, CachingSupplier.forValue(f.getFunction())));
-              }
-            });
-      }
-    }
   }
 
   /**
@@ -267,9 +234,7 @@ final class BuiltinsRegistry {
   }
 
   /**
-   * Register builtin methods and initialize them lazily in the provided scope. This method differs
-   * from `registerBuiltinMethods` where all methods are initialized by the time they are
-   * registered..
+   * Register builtin methods and initialize them lazily in the provided scope.
    *
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
@@ -291,7 +256,7 @@ final class BuiltinsRegistry {
           if (constr != null) {
             Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                 getOrUpdate(builtinMethodNodes, constr.getName());
-            atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
+            atomNodes.put(builtinMethodName, CachingSupplier.wrap(meta::toMethod));
 
             Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                 getOrUpdate(builtinMetaMethods, constr.getName());
@@ -299,7 +264,7 @@ final class BuiltinsRegistry {
           } else {
             Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                 getOrUpdate(builtinMethodNodes, builtinMethodOwner);
-            atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
+            atomNodes.put(builtinMethodName, CachingSupplier.wrap(meta::toMethod));
 
             Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                 getOrUpdate(builtinMetaMethods, builtinMethodOwner);
@@ -322,7 +287,7 @@ final class BuiltinsRegistry {
                   value.isAutoRegister() ? (!value.isStatic() ? type : type.getEigentype()) : null;
               if (tpe != null) {
                 Supplier<Function> supplier =
-                    () -> value.toMethod().toFunction(language, false).get().getFunction();
+                    () -> value.toMethod().toFunction(language).get().getFunction();
                 scope.registerMethod(tpe, key, supplier);
               }
             });
@@ -367,7 +332,7 @@ final class BuiltinsRegistry {
         try {
           @SuppressWarnings("unchecked")
           Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
-          Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class, boolean.class);
+          Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class);
           method = new LoadedBuiltinMethod(meth, staticMethod, autoRegister);
         } catch (ClassNotFoundException | NoSuchMethodException e) {
           throw new CompilerError("Invalid builtin method " + className, e);
@@ -378,9 +343,9 @@ final class BuiltinsRegistry {
   }
 
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
-    Optional<BuiltinFunction> toFunction(EnsoLanguage language, boolean isStaticInstance) {
+    Optional<BuiltinFunction> toFunction(EnsoLanguage language) {
       try {
-        var f = (Function) meth.invoke(null, language, isStaticInstance);
+        var f = (Function) meth.invoke(null, language);
         if (f != null) {
           var bf = new BuiltinFunction(f, isAutoRegister);
           return Optional.of(bf);

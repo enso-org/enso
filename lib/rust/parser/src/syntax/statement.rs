@@ -3,20 +3,19 @@
 mod function_def;
 mod type_def;
 
-use crate::empty_tree;
-use crate::expression_to_pattern;
-use crate::is_qualified_name;
 use crate::prelude::*;
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::function_def::FunctionBuilder;
+use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::type_def::try_parse_type_def;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::tree::block;
 use crate::syntax::tree::AnnotationLine;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::DocComment;
@@ -25,9 +24,9 @@ use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignature;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
+use crate::syntax::tree::block;
+use crate::{empty_tree, to_qualified_name};
+use crate::{expression_to_pattern, expression_to_type};
 
 pub use function_def::parse_args;
 
@@ -327,7 +326,7 @@ fn parse_statement<'s>(
                 content: Some(
                     expression_parser.parse_non_section(items).unwrap().with_error(e).into(),
                 ),
-            }
+            };
         }
     };
     match (top_level_operator, statement_context.block_context) {
@@ -495,7 +494,9 @@ fn to_statement<'s>(
         | TypeAnnotated(_)
         | CaseOf(_)
         | Array(_)
-        | Tuple(_) => Ok(Expression),
+        | Tuple(_)
+        | PropertyAccess(_)
+        | Call(_) => Ok(Expression),
         OprApp(app) if app.lhs.is_some() && app.rhs.is_some() => Ok(Expression),
         // Expression, but since it can only occur in tail position, it never needs an
         // `ExpressionStatement` node.
@@ -568,14 +569,16 @@ fn try_parse_annotation<'s>(
     expression_parser: &mut ExpressionParser<'s>,
 ) -> Option<FunctionAnnotation<'s>> {
     match &items[..] {
-        [Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }), Item::Token(Token { variant: token::Variant::Ident(ident), .. }), ..]
-            if !ident.is_type =>
-        {
+        [
+            Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }),
+            Item::Token(Token { variant: token::Variant::Ident(ident), .. }),
+            ..,
+        ] if !ident.is_type => {
             let ident = *ident;
             let opr = *opr;
             let argument = expression_parser.parse_non_section_offset(start + 2, items);
-            let annotation = items.pop().unwrap().into_token().unwrap().with_variant(ident);
-            let operator = items.pop().unwrap().into_token().unwrap().with_variant(opr);
+            let annotation = items.pop().unwrap().try_into_token().unwrap().with_variant(ident);
+            let operator = items.pop().unwrap().try_into_token().unwrap().with_variant(opr);
             Some(FunctionAnnotation { operator, annotation, argument })
         }
         _ => None,
@@ -590,19 +593,22 @@ fn parse_type_annotation_statement<'s>(
 ) -> StatementOrPrefix<'s> {
     let type_ = expression_parser.parse_non_section_offset(operator_index + 1, items);
     let operator: token::TypeAnnotationOperator =
-        items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+        items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
     let lhs = expression_parser.parse_non_section_offset(start, items);
-    let type_ = type_.unwrap_or_else(|| {
+    let type_ = type_.map(expression_to_type).unwrap_or_else(|| {
         empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
     });
     debug_assert!(items.len() <= start);
-    if lhs.as_ref().is_some_and(is_qualified_name) {
-        StatementPrefix::TypeSignature(TypeSignature { name: lhs.unwrap(), operator, type_ }).into()
+    if let Some(lhs) = lhs {
+        match to_qualified_name(lhs) {
+            Ok(lhs) => {
+                StatementPrefix::TypeSignature(TypeSignature { name: lhs, operator, type_ }).into()
+            }
+            Err(lhs) => Tree::type_annotated(lhs, operator, type_).into(),
+        }
     } else {
-        let lhs = lhs.unwrap_or_else(|| {
-            empty_tree(operator.left_offset.code.position_before())
-                .with_error(SyntaxError::ExpectedExpression)
-        });
+        let lhs = empty_tree(operator.left_offset.code.position_before())
+            .with_error(SyntaxError::ExpectedExpression);
         Tree::type_annotated(lhs, operator, type_).into()
     }
 }
@@ -615,7 +621,7 @@ fn apply_private_keywords<'s, U: From<Tree<'s>> + Into<Tree<'s>>>(
     visibility_context: VisibilityContext,
 ) -> Option<U> {
     for item in keywords {
-        let private = Tree::private(item.into_token().unwrap().try_into().unwrap());
+        let private = Tree::private(item.try_into_token().unwrap().try_into().unwrap());
         statement = Some(
             match statement.take() {
                 Some(statement) => Tree::app(
@@ -650,8 +656,8 @@ fn apply_excess_private_keywords<'s>(
     error: SyntaxError,
 ) -> Option<Tree<'s>> {
     for item in keywords {
-        let private =
-            Tree::private(item.into_token().unwrap().try_into().unwrap()).with_error(error.clone());
+        let private = Tree::private(item.try_into_token().unwrap().try_into().unwrap())
+            .with_error(error.clone());
         statement = match statement.take() {
             Some(statement) => Tree::app(private, statement),
             None => private,
@@ -716,7 +722,7 @@ fn parse_assignment_like_statement<'s>(
 
     let mut expression = expression_parser.parse_offset(operator + 1, items);
 
-    let operator = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let operator = items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
 
     let qn_len = match (evaluation_context, scan_qn(&items[start..])) {
         (_, Some(Qn::Binding { len }))
@@ -843,11 +849,11 @@ fn parse_pattern<'s>(
     let pattern = if items.len() - pattern_start == 1 {
         Some(match items.last().unwrap() {
             Item::Token(_) => {
-                let token = items.pop().unwrap().into_token().unwrap();
+                let token = items.pop().unwrap().try_into_token().unwrap();
                 match token.variant {
                     token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
                     token::Variant::Wildcard(variant) => {
-                        Tree::wildcard(token.with_variant(variant), None)
+                        Tree::wildcard(token.with_variant(variant))
                     }
                     _ => tree::to_ast(token).with_error(SyntaxError::ArgDefExpectedPattern),
                 }
@@ -863,7 +869,7 @@ fn parse_pattern<'s>(
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };
     let suspension =
-        have_suspension.then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+        have_suspension.then(|| items.pop().unwrap().try_into_token().unwrap().try_into().unwrap());
     (suspension, pattern)
 }
 
@@ -896,7 +902,7 @@ fn find_top_level_operator(items: &[Item]) -> Result<Option<TopLevelOperator>, S
                         return Err(SyntaxError::StmtLhsInvalidOperatorSpacing);
                     }
                     (Variant::AssignmentOperator(_), Spacing::Spaced, _) => {
-                        return Ok(Some(TopLevelOperator::AssignmentOperator(i)))
+                        return Ok(Some(TopLevelOperator::AssignmentOperator(i)));
                     }
                     (
                         Variant::AssignmentOperator(_),
@@ -958,9 +964,9 @@ fn scan_qn<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>>>) -> Option<
         ExpectingDot { len: usize },
         ExpectingIdent,
     }
-    use token::Variant::*;
     use Item::*;
     use State::*;
+    use token::Variant::*;
     let mut state = ExpectingIdent;
     for (i, item) in items.into_iter().enumerate() {
         match item.as_ref() {

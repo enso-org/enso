@@ -185,12 +185,14 @@ private class DefaultPackageRepository(
     pkg: Package[TruffleFile]
   ): Unit = {
     projectPackage = Some(pkg)
-    registerPackageInternal(
-      libraryName    = libraryName,
-      pkg            = pkg,
-      libraryVersion = LibraryVersion.Local,
-      isLibrary      = false
-    )
+    if (!loadedPackages.contains(libraryName)) {
+      registerPackageInternal(
+        libraryName    = libraryName,
+        pkg            = pkg,
+        libraryVersion = LibraryVersion.Local,
+        isLibrary      = false
+      )
+    }
   }
 
   /** @inheritdoc */

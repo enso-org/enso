@@ -62,7 +62,7 @@ public class IRCacheLocationTest {
   }
 
   @Test
-  public void irCacheIsCreatedAlsoForDependencies() throws IOException {
+  public void irCacheIsNotCreatedForDependencies() throws IOException {
     var libDir = tmpDir.newFolder("Lib");
     ProjectUtils.createProject(
         "Lib",

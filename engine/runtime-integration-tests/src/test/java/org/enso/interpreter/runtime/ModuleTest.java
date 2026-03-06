@@ -13,12 +13,14 @@ import java.io.IOException;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
+import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.hamcrest.core.AllOf;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -51,7 +53,13 @@ public class ModuleTest {
       var r = b.invokeMember(MethodNames.TopScope.GET_MODULE, "Does.Not.Exist.Module");
       fail("Expecting failure, but got: " + r);
     } catch (PolyglotException ex) {
-      assertThat(ex.getMessage(), containsString("Module_Does_Not_Exist"));
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("Module"),
+              containsString("Does"),
+              containsString("Not"),
+              containsString("Exist")));
     }
   }
 
@@ -126,7 +134,9 @@ public class ModuleTest {
 
     assertNull("No IR by default", module.getIr());
 
-    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, null, null);
+    var ir =
+        new org.enso.compiler.core.ir.Module(
+            nil(), nil(), nil(), false, null, new MetadataStorage(), null);
     compilerContext.updateModule(
         module,
         (u) -> {

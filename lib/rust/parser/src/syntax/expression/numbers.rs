@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
-use crate::syntax::token;
-use crate::syntax::tree;
 use crate::syntax::Finish;
 use crate::syntax::Flush;
 use crate::syntax::Token;
 use crate::syntax::TokenConsumer;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
+use crate::syntax::token;
+use crate::syntax::tree;
 
 /// Parses numbers. Assembles number tokens into numbers, and implements precedence of negation
 /// operator.

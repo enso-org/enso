@@ -26,7 +26,7 @@ public class QualifiedNameTest {
 
   @Test
   public void qualifiedTypeNameWorks_WhenRunningSingleFile() throws IOException {
-    var projDir = temporaryFolder.newFolder().toPath();
+    var projDir = temporaryFolder.newFolder().getCanonicalFile().toPath();
     ProjectUtils.createProject("Proj", mainModSrc, projDir);
     ProjectUtils.testProjectRun(
         projDir,

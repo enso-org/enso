@@ -3,9 +3,12 @@ import LogsIcon from '#/assets/logs.svg'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
-import type Backend from '#/services/Backend'
-import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import type {
+  Backend,
+  ProjectSession as BackendProjectSession,
+  ProjectAsset,
+} from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link ProjectSession}. */

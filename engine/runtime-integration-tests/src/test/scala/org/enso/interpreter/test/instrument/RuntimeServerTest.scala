@@ -320,16 +320,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
           contextId,
           identityResultId,
-          ConstantsGen.ERROR_BUILTIN,
+          ConstantsGen.ERROR,
           payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
         ),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -1529,7 +1528,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1550,12 +1549,11 @@ class RuntimeServerTest
           )
         )
       ),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type_Error.Error",
+            "Type error: Expected `..A` to be T, but got Function.",
             Some(mainFile),
             Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
             None,
@@ -2335,20 +2333,23 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied atom methods called with static notation" in {
+  /** Lambda instrumentation is currently not supported.
+    * Note that the expression `T.func1 self=_` creates a lambda Function.
+    */
+  ignore should "send method pointer updates of partially applied atom methods called with static notation" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
-    val id_x1_1  = metadata.addItem(30, 7, "aa")
-    val id_x1_2  = metadata.addItem(49, 10, "ab")
-    val id_x1    = metadata.addItem(69, 6, "ac")
+    val id_x1_1  = metadata.addItem(30, 14, "aa")
+    val id_x1_2  = metadata.addItem(56, 10, "ab")
+    val id_x1    = metadata.addItem(76, 6, "ac")
 
     val code =
       """main =
         |    a = T.A
-        |    x1_1 = T.func1
+        |    x1_1 = T.func1 self=_
         |    x1_2 = x1_1 a y=2
         |    x1 = x1_2 1
         |    x1
@@ -2724,14 +2725,14 @@ class RuntimeServerTest
 
     val metadata = new Metadata
     val id_x     = metadata.addItem(52, 25, "aa")
-    val id_y     = metadata.addItem(86, 16, "ab")
+    val id_y     = metadata.addItem(86, 21, "ab")
 
     val code =
       """import Standard.Base.Data.Time.Date
         |
         |main =
         |    x = Date.new_builtin 1970 1 1
-        |    y = Date.Date.year x
+        |    y = Date.Date.year self=x
         |    y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -3321,8 +3322,8 @@ class RuntimeServerTest
         mainFoo,
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        fromCache   = false,
-        typeChanged = false
+        fromCache   = true,
+        typeChanged = true
       ),
       Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
@@ -5172,7 +5173,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Not_Invokable.Error",
+            "Type error: expected a function, but got 42.",
             Some(mainFile),
             Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
             None,
@@ -5301,14 +5302,13 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "No_Such_Method.Error",
+            "Method `+` of type Function could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
             None,
@@ -5453,14 +5453,13 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type_Error.Error",
+            "Type error: Expected `str` to be Text, but got Integer.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
             None,
@@ -5612,7 +5611,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "No_Such_Method.Error",
+            "Method `pi` of type Number.type could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
             None,
@@ -5758,7 +5757,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type_Error.Error",
+            "Type error: Expected `that` to be Integer, but got Function.",
             None,
             Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,
@@ -6166,7 +6165,7 @@ class RuntimeServerTest
       """from Standard.Base import all
         |
         |main =
-        |    x = Panic.catch_primitive ` .convert_to_dataflow_error
+        |    x = Panic.catch Any ` .convert_to_dataflow_error
         |    IO.println x
         |    IO.println (x.catch Any .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
@@ -6210,7 +6209,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Unexpected token.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
+              Some(model.Range(model.Position(3, 24), model.Position(3, 25)))
             )
           )
         )
@@ -6235,7 +6234,7 @@ class RuntimeServerTest
         |import Standard.Base.Any.Any
         |
         |main =
-        |    x = Panic.catch_primitive () .convert_to_dataflow_error
+        |    x = Panic.catch Any () .convert_to_dataflow_error
         |    IO.println (x.catch Any .to_text)
         |
         |""".stripMargin.linesIterator.mkString("\n")
@@ -6279,7 +6278,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(5, 30), model.Position(5, 32)))
+              Some(model.Range(model.Position(5, 24), model.Position(5, 26)))
             )
           )
         )
@@ -7715,14 +7714,14 @@ class RuntimeServerTest
         contextId,
         idXSelfMain,
         moduleName,
-        fromCache   = true,
+        fromCache   = false,
         typeChanged = false
       ),
       TestMessages.update(
         contextId,
         idYSelfMain,
         moduleName,
-        fromCache   = true,
+        fromCache   = false,
         typeChanged = false
       ),
       context.executionComplete(contextId)

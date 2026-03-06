@@ -14,24 +14,12 @@ on:
           - patch
           - rc
           - nightly
-      ydoc:
-        description: What kind of Ydoc image to build.
-        required: false
-        type: choice
-        default: polyglot
-        options:
-          - polyglot
   workflow_call:
     inputs:
       designator:
         description: What kind of release should be promoted.
         required: true
         type: string
-      ydoc:
-        description: What kind of Ydoc image to build.
-        required: false
-        type: string
-        default: polyglot
 jobs:
   enso-build-ci-gen-promote-release-job-linux-amd64:
     name: Promote release (linux, amd64)
@@ -44,8 +32,9 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
+          bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
@@ -69,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean before
-        run: ./run git-clean
+        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: promote
@@ -78,7 +67,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
-        run: ./run git-clean
+        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
@@ -92,7 +81,6 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       version: ${{ needs.enso-build-ci-gen-promote-release-job-linux-amd64.outputs.ENSO_VERSION }}
-      ydoc: ${{ inputs.ydoc }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

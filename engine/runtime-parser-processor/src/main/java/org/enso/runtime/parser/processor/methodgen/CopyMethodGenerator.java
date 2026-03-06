@@ -3,6 +3,7 @@ package org.enso.runtime.parser.processor.methodgen;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
+import org.enso.runtime.parser.processor.utils.Utils;
 
 public final class CopyMethodGenerator {
   private final GeneratedClassContext ctx;
@@ -64,12 +65,12 @@ public final class CopyMethodGenerator {
   }
 
   private String copyMethodRetType() {
-    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    return ctx.getProcessedClassName();
   }
 
   private List<String> parameters() {
     return ctx.getAllFields().stream()
-        .map(field -> field.getSimpleTypeName() + " " + field.name())
+        .map(field -> field.getTypeName() + " " + field.name())
         .toList();
   }
 
@@ -77,7 +78,18 @@ public final class CopyMethodGenerator {
   private String cond() {
     var inner =
         ctx.getAllFields().stream()
-            .map(field -> "(" + field.name() + " != this." + field.name() + ")")
+            .map(
+                field -> {
+                  if (Utils.isMetadataStorageType(field, ctx.getProcessingEnvironment())) {
+                    return "(" + field.name() + " != this." + field.name() + " )";
+                  } else {
+                    return "!(java.util.Objects.equals("
+                        + field.name()
+                        + ", this."
+                        + field.name()
+                        + "))";
+                  }
+                })
             .collect(Collectors.joining(" || "));
     return "(" + inner + ")";
   }

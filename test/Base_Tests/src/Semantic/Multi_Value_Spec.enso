@@ -178,6 +178,41 @@ add_specs suite_builder =
             Test.expect_panic Type_Error <|
                 a : C
 
+    suite_builder.group "MultiValue type error" group_builder->
+        group_builder.specify "Conversion to B & X is OK" <|
+            a = A
+            x = (a : B & X)
+            x.is_nothing . should_be_false 
+            
+        group_builder.specify "Missing conversion to C error" <|
+            a = A
+            extract_err_msg caught_panic =
+                caught_panic.payload.to_text
+            err = Panic.catch Type_Error handler=extract_err_msg <|
+                (a : B & X & C)
+            err . should_equal 'Type error: expected expression to be C, but got A.'
+
+    suite_builder.group "MultiValue with warnings" group_builder->
+        group_builder.specify "warning is propagated to the outer MultiValue" <|
+            field_with_warn = Warning.attach "warn" 42
+            b = B.B field_with_warn
+            b_and_c = b : B & C
+            Warning.has_warnings b_and_c . should_be_true
+
+        group_builder.specify "warning should be preserved on the field" <|
+            field_with_warn = Warning.attach "warn" 42
+            b = B.B field_with_warn
+            b_and_c = b : B & C
+            b_only = b_and_c : B
+            Warning.has_warnings b_only.v . should_be_true
+
+        group_builder.specify "warning should be preserved on the field after narrowing" <|
+            field_with_warn = Warning.attach "warn" 42
+            b = B.B field_with_warn
+            b_and_c = b : B & C
+            c = b_and_c : C
+            Warning.has_warnings c.v . should_be_true
+
 Any.confuse_me self = self
 
 main filter=Nothing =

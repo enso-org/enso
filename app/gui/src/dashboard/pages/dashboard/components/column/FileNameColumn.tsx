@@ -6,9 +6,9 @@ import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
 import { useStore } from '#/utilities/zustand'
+import { titleSchema, type FileAsset } from 'enso-common/src/services/Backend'
 
 /** Props for a {@link FileNameColumn}. */
 export interface FileNameColumnProps extends AssetNameColumnProps {

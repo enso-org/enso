@@ -53,6 +53,8 @@ export project.Position.Position
 
 export project.Prefix_Name.Prefix_Name
 
+export project.Refined_Types.Date_Column.Date_Column
+export project.Refined_Types.Date_Time_Column.Date_Time_Column
 export project.Refined_Types.Numeric_Column.Numeric_Column
 export project.Refined_Types.Text_Column.Text_Column
 
@@ -69,3 +71,4 @@ export project.Value_Type.Auto
 export project.Value_Type.Bits
 export project.Value_Type.Value_Type
 
+export project.YXDB_Format.YXDB_Format

@@ -13,12 +13,12 @@ import {
 import { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, toRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{
   ast: Ast.Expression
@@ -28,11 +28,12 @@ const props = defineProps<{
   primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
-  extended: boolean
+  showDetails: boolean
+  expanded: boolean
 }>()
 
 const { module, graph } = useCurrentProject()
-const selection = injectGraphSelection()
+const selection = useGraphSelection()
 
 const baseIcon = computed(() => iconOfNode(props.nodeId, graph.value.db))
 const { displayedIcon } = useDisplayedIcon(graph.value.db, toRef(props, 'nodeId'), baseIcon)
@@ -86,7 +87,8 @@ export const ICON_WIDTH = 16
     :input="rootPort"
     :rootElement="rootElement"
     :conditionalPorts="conditionalPorts"
-    :extended="extended"
+    :showDetails="showDetails"
+    :expanded="expanded"
     :updateCallback="handleWidgetUpdates"
     @currentEditChanged="onCurrentEditChange"
   />

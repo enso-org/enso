@@ -91,7 +91,7 @@ export const widgetDefinition = defineWidget(
   -->
   <NumericInputWidget
     ref="inputComponent"
-    class="WidgetNumber"
+    class="WidgetNumber widgetSingleLine"
     :limits="limits"
     :placeholder="placeholder"
     :modelValue="value"
@@ -103,10 +103,3 @@ export const widgetDefinition = defineWidget(
     @input="editHandler.edit($event)"
   />
 </template>
-
-<style scoped>
-.WidgetNumber {
-  display: inline-block;
-  vertical-align: middle;
-}
-</style>

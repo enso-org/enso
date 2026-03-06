@@ -1,11 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
 
 import project.Group.Group
 import project.Group.Group_Builder
-import project.Helpers
+import project.Internal.Helpers
 import project.Suite_Config.Suite_Config
 import project.Test_Reporter
 
@@ -18,7 +17,7 @@ type Suite_Builder
 
        ## Arguments
         - `builder`: Vector builder that holds all the groups.
-    Impl builder
+    private Impl builder
 
     ## Add a group to the suite builder.
 
@@ -31,16 +30,11 @@ type Suite_Builder
         - `pending`: Contains a reason for why the test group should be ignored.
           If Nothing, the test is not ignored.
     group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
-    group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
+    group self (name:Text) (fn : (Group_Builder -> Any)) (~pending : (Text | Nothing) = Nothing) =
         group_builder = Group_Builder.Impl name
-        case pending of
-            Nothing ->
-                fn group_builder
-                group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
-                self.builder.append group
-            pend_reason : Text ->
-                group = Group.Impl name group_builder.teardown_ref.get [] pend_reason
-                self.builder.append group
+        fn group_builder
+        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
+        self.builder.append group
 
 
 ## A testing suite that holds all the groups with test specs.
@@ -50,7 +44,7 @@ type Suite
     ## ---
        private: true
        ---
-    Impl (groups : Vector Group)
+    private Impl (groups : Vector Group)
 
     ## Run only tests that match the provided filter.
 
@@ -61,15 +55,19 @@ type Suite
         - `should_exit`: If true, executes `System.exit` at the end, so the
           method does not return. If false, return boolean from the method
           indicating whether some tests failed.
+        - `output`: A function to print out textual info about progress of execution.
+          By default it uses `IO.println` output
 
        ## Returns
        Boolean if `should_exit` is False, otherwise exits the process.
-    run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
+    run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) (output:Text->Nothing=IO.println) -> (Boolean | Nothing) =
         config = Suite_Config.from_environment
+        self.run_impl output config filter should_exit
 
+    private run_impl self println config:Suite_Config (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
         # List of pairs of groups and their specs that match the filter
         matching_specs = self.groups.flat_map group->
-            group_matches = name_matches group.name filter
+            group_matches = Helpers.name_matches group.name filter
             case group_matches of
                 True ->
                     # Include all the specs from the group
@@ -77,7 +75,7 @@ type Suite
                 False ->
                     # Try to include only some specs from the group
                     matched_specs = group.specs.filter spec->
-                        name_matches spec.name filter
+                        Helpers.name_matches spec.name filter
                     case matched_specs.is_empty of
                         True -> []
                         False ->
@@ -99,10 +97,10 @@ type Suite
                 case group.is_pending of
                     False ->
                         results = Helpers.run_specs_from_group specs group progress_reporter
-                        Test_Reporter.print_report results config junit_sb_builder
+                        Test_Reporter.print_report println results config junit_sb_builder
                         all_results_bldr.append_vector_range results
                     True ->
-                        Test_Reporter.print_pending_group group config junit_sb_builder
+                        Test_Reporter.print_pending_group println group config junit_sb_builder
 
         all_results = all_results_bldr.to_vector
         succ_tests = all_results.filter (r-> r.is_success) . length
@@ -118,16 +116,16 @@ type Suite
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
             True ->
-                IO.println ""
-                IO.println <| succ_tests.to_text + " tests succeeded."
-                IO.println <| failed_tests_number.to_text + " tests failed."
-                IO.println <| skipped_tests.to_text + " tests skipped."
-                IO.println <| pending_groups.to_text + " groups skipped."
-                IO.println ""
+                println ""
+                println <| succ_tests.to_text + " tests succeeded."
+                println <| failed_tests_number.to_text + " tests failed."
+                println <| skipped_tests.to_text + " tests skipped."
+                println <| pending_groups.to_text + " groups skipped."
+                println ""
                 if failed_tests_number > 0 then
-                    IO.println <| "Failed tests: '" + failed_tests_names + "'"
+                    println <| "Failed tests: '" + failed_tests_names + "'"
                     if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
-                    IO.println ""
+                    println ""
                 exit_code = if failed_tests_number > 0 then 1 else 0
                 System.exit exit_code
             False ->
@@ -146,13 +144,3 @@ type Suite
                 IO.println <| "    " + spec.name
 
 
-## ---
-   private: true
-   ---
-name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
-    case filter of
-        text : Text ->
-            regex = Regex.compile text
-            if regex.is_error.not then regex.match name != Nothing else
-                Panic.throw (Illegal_Argument.Error ("Filter " + text.pretty + " cannot be converted to regex"))
-        Nothing -> True

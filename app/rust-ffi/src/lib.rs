@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-use enso_parser::syntax::token::TokenOperatorProperties;
 use enso_parser::Parser;
+use enso_parser::syntax::token::TokenOperatorProperties;
 
 thread_local! {
     pub static PARSER: Parser = Parser::new();
@@ -54,11 +54,7 @@ pub fn self_arg_separator(code: &str) -> i32 {
         [token] => (token, 1),
         [] => return -1,
     };
-    if token.operator_properties().is_some() {
-        right_spacing as i32
-    } else {
-        -1
-    }
+    if token.operator_properties().is_some() { right_spacing as i32 } else { -1 }
 }
 
 #[wasm_bindgen]

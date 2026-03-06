@@ -20,6 +20,7 @@ import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.function.InvokeCFunctionPointer;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
@@ -33,9 +34,10 @@ import org.graalvm.word.WordFactory;
  * @param <Data> internal data of the channel
  */
 public final class Channel<Data extends Channel.Config> implements AutoCloseable {
-  private static final long ISOLATE_SVM = -1;
-  private static final long ISOLATE_MOCK_MASTER = -2;
-  private static final long ISOLATE_MOCK_SLAVE = -3;
+  private static final byte TYPE_MASTER_ISOLATE = -1;
+  private static final byte TYPE_SLAVE_ISOLATE = -2;
+  private static final byte TYPE_MOCK_MASTER = -3;
+  private static final byte TYPE_MOCK_SLAVE = -4;
 
   private static final long RET_CODE_EXCEPTION = -2;
   private static final long RET_CODE_OVERFLOW = -3;
@@ -67,20 +69,20 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private final Persistance.Pool pool;
 
   private final long id;
-  private final JNI.JNIEnv env;
-  private final long isolate;
-  private final MethodHandle callbackFn;
+  private final JVM jvm;
+  private final byte type;
+  private final Object callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
   private final Channel<Data> otherMockChannel;
+  private final ThreadLocal<Long> otherIsolateThread = new ThreadLocal<>();
 
   /** The SubstrateVM side of a channel. */
-  private Channel(
-      long id, Data data, JNI.JNIEnv env, JNI.JClass handleClass, JNI.JMethodID handleFn) {
+  private Channel(long id, Data data, JVM jvm, JNI.JClass handleClass, JNI.JMethodID handleFn) {
     this.id = id;
     this.data = data;
-    this.env = env;
-    this.isolate = ISOLATE_SVM;
+    this.jvm = jvm;
+    this.type = TYPE_MASTER_ISOLATE;
     this.callbackFn = null;
     this.channelClass = handleClass;
     this.channelHandle = handleFn;
@@ -88,28 +90,35 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.pool = data.createPool(this);
   }
 
-  /** The HotSpot JVM side of a channel. */
-  private Channel(long id, Data data, long isolate, long callbackFn) {
-    if (ImageInfo.inImageCode()) {
-      throw new IllegalStateException("Only usable in HotSpot");
-    }
+  /**
+   * The other JVM side of a channel. This side can be executed either in HotSpot JVM or also loaded
+   * from an SVM compiled dynamic library.
+   */
+  private Channel(long id, Data data, long callbackFn) {
     this.id = id;
     this.data = data;
-    this.isolate = isolate;
-    this.env = null;
-    this.channelClass = null;
-    this.channelHandle = null;
+    this.type = TYPE_SLAVE_ISOLATE;
     this.otherMockChannel = null;
 
-    var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
-    var fnDescriptor =
-        FunctionDescriptor.of(
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_LONG);
-    this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    if (ImageInfo.inImageRuntimeCode()) {
+      this.jvm = null;
+      this.channelClass = WordFactory.nullPointer();
+      this.channelHandle = WordFactory.nullPointer();
+      this.callbackFn = callbackFn;
+    } else {
+      this.jvm = null;
+      this.channelClass = null;
+      this.channelHandle = null;
+      var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
+      var fnDescriptor =
+          FunctionDescriptor.of(
+              ValueLayout.JAVA_LONG,
+              ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG,
+              ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG);
+      this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    }
     this.pool = data.createPool(this);
   }
 
@@ -117,22 +126,22 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
    * JVM. Useful for testing.
    */
-  private Channel(long isolate, Data myData, Channel<Data> otherOrNull, Data otherData, long id) {
+  private Channel(byte type, Data myData, Channel<Data> otherOrNull, Data otherData, long id) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
     this.data = myData;
-    this.isolate = isolate;
+    this.type = type;
     this.callbackFn = null;
-    this.env = null;
+    this.jvm = null;
     this.channelClass = null;
     this.channelHandle = null;
     this.otherMockChannel =
         otherOrNull != null
             ? otherOrNull // use other channel when provided
             : // otherwise allocate new and pass this reference to it
-            new Channel<>(ISOLATE_MOCK_SLAVE, otherData, this, null, id);
+            new Channel<>(TYPE_MOCK_SLAVE, otherData, this, null, id);
     this.pool = data.createPool(this);
   }
 
@@ -152,7 +161,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     var id = idCounter++;
     if (jvm == null) {
       var otherData = newInstance(configClass);
-      return new Channel<>(ISOLATE_MOCK_MASTER, config, null, otherData, id);
+      return new Channel<>(TYPE_MOCK_MASTER, config, null, otherData, id);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -165,7 +174,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         var createInC = CTypeConversion.toCString("createJvmPeerChannel");
         var createSigInC = CTypeConversion.toCString("(JJJLjava/lang/String;)Z"); //
         var handleInC = CTypeConversion.toCString("handleJvmMessage");
-        var handleSigInC = CTypeConversion.toCString("(JJJ)J"); //
+        var handleSigInC = CTypeConversion.toCString("(JJJJ)J"); //
         ) {
       var fn = e.getFunctions();
       var channelClass = fn.getFindClass().call(e, classInC.get());
@@ -177,7 +186,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var channel = new Channel<>(id, config, e, channelClass, handleMethod);
+      var channel = new Channel<>(id, config, jvm, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
@@ -185,7 +194,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
-      channel.checkForException(e);
+      channel.checkUnexpectedException(e);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
       ID_TO_CHANNEL.put(id, channel);
@@ -212,11 +221,24 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    * @return is master
    */
   public final boolean isMaster() {
-    return isolate == ISOLATE_SVM || isolate == ISOLATE_MOCK_MASTER;
+    return type == TYPE_MASTER_ISOLATE || type == TYPE_MOCK_MASTER;
   }
 
-  final boolean isDirect() {
-    return isolate == ISOLATE_MOCK_MASTER || isolate == ISOLATE_MOCK_SLAVE;
+  /**
+   * Check for <em>"real dual JVM mode"</em>. There is a way to create a channel in a <em>"mock
+   * mode"</em> via {@link #create(org.enso.jvm.channel.JVM, java.lang.Class)} - such emulation is
+   * running both sides of the channel in the same JVM. One can detect such a situation by checking
+   * result of this method.
+   *
+   * @return {@code true} when two different JVMs are on each side of the channel. {@code false}
+   *     otherwise, for example in the <em>"mock mode"</em>.
+   */
+  public boolean isDualJvmMode() {
+    return !isDirect();
+  }
+
+  private final boolean isDirect() {
+    return type == TYPE_MOCK_MASTER || type == TYPE_MOCK_SLAVE;
   }
 
   /**
@@ -238,7 +260,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   @SuppressWarnings("unchecked")
   public final <C, R extends C> R execute(
       Class<C> resultType, Function<? super Channel<Data>, R> msg) {
-    return (R) executeImpl(pool, resultType, (Function) msg);
+    var r = (R) executeImpl(pool, resultType, (Function) msg);
+    return r;
   }
 
   //
@@ -259,7 +282,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
     var configClass = Class.forName(poolClassName);
     var data = (Config) newInstance(configClass);
-    var channel = new Channel<>(id, data, threadId, callbackFn);
+    var channel = new Channel<>(id, data, callbackFn);
     var prev = ID_TO_CHANNEL.put(id, channel);
     return prev == null;
   }
@@ -279,21 +302,24 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
 
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
+    var buf = asNativeByteBuffer(data, size);
+    var len = handleWithChannel(channel, buf);
+    return len;
+  }
+
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) {
     try {
-      var buf = asNativeByteBuffer(data, size);
-      var len = handleWithChannel(channel, buf);
-      return len;
+      return handleWithChannelThrow(channel, buf);
     } catch (Throwable ex) {
-      channel.printStackTrace(ex, true);
-      var bytes = ex.getMessage() == null ? new byte[0] : ex.getMessage().getBytes();
-      var buf = asNativeByteBuffer(data, size);
-      buf.putInt(bytes.length);
-      buf.put(bytes);
+      buf.position(0);
+      ChannelExceptions.exceptionSerialize(buf, ex, Channel.class.getName(), STOP_METHOD_NAME);
       return RET_CODE_EXCEPTION;
     }
   }
 
-  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
+  private static final String STOP_METHOD_NAME = "handleWithChannelThrow";
+
+  private static long handleWithChannelThrow(Channel channel, ByteBuffer buf) throws Throwable {
     // clean any previous overflow buffer
     keepLastOverflowBuffer.set(null);
 
@@ -319,24 +345,42 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   }
 
   private long toHotSpotMessage(long address, long size) {
+    var env = jvm.env();
     var fn = env.getFunctions();
     assert address > 0 : "We need an address";
-    var arg = StackValue.get(3, JNI.JValue.class);
-    arg.addressOf(0).setLong(id);
-    arg.addressOf(1).setLong(address);
-    arg.addressOf(2).setLong(size);
+    var arg = StackValue.get(4, JNI.JValue.class);
+    arg.addressOf(0).setLong(CurrentIsolate.getCurrentThread().rawValue());
+    arg.addressOf(1).setLong(id);
+    arg.addressOf(2).setLong(address);
+    arg.addressOf(3).setLong(size);
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
-    checkForException(env);
+    checkUnexpectedException(env);
     return replySize;
   }
 
+  interface CallbackFn extends CFunctionPointer {
+    @InvokeCFunctionPointer
+    long invoke(long isoRef, long id, long seg, long size);
+  }
+
   private long toSubstrateMessage(MemorySegment seg) {
+    Long isolate = otherIsolateThread.get();
+    if (isolate == null) {
+      throw new WrongThreadException("There is no associated other isolate thread!");
+    }
     try {
       var isoRef = MemorySegment.ofAddress(isolate);
-      var res = callbackFn.invoke(isoRef, id, seg, seg.byteSize());
-      return (long) res;
+      if (callbackFn instanceof MethodHandle handle) {
+        var res = handle.invoke(isoRef, id, seg, seg.byteSize());
+        return (long) res;
+      } else {
+        CallbackFn fn = WordFactory.pointer((Long) callbackFn);
+        var res = fn.invoke(isolate, id, seg.address(), seg.byteSize());
+        return res;
+      }
     } catch (Throwable ex) {
-      printStackTrace(ex, false);
+      // unexpected exception
+      ex.printStackTrace();
       return -1L;
     }
   }
@@ -349,14 +393,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return len;
   }
 
-  private void checkForException(JNI.JNIEnv e) {
+  private void checkUnexpectedException(JNI.JNIEnv e) {
     var fn = e.getFunctions();
-    if (fn.getExceptionCheck().call(e)) {
+    var hasException = fn.getExceptionCheck().call(e);
+    if (hasException) {
       var throwable = fn.getExceptionOccurred().call(e);
       assert throwable.isNonNull() : "There must be a throwable";
-      if (printStackTrace(null, true)) {
-        fn.getExceptionDescribe().call(e);
-      }
+      fn.getExceptionDescribe().call(e);
       fn.getExceptionClear().call(e);
       try (var throwableInC = CTypeConversion.toCString("java/lang/Throwable");
           var messageInC = CTypeConversion.toCString("getMessage");
@@ -380,12 +423,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       Class<R> replyType,
       Function<Channel<? extends Data>, ? extends R> msg) {
     var address = 0L;
+    var useMalloc = isMaster() && !isDirect();
     try {
       var bytes = pool.write(msg);
       var size = Math.max(bytes.length, 4096);
       long len;
       ByteBuffer buffer;
-      if (ImageInfo.inImageRuntimeCode()) {
+      if (useMalloc) {
         var memory = UnmanagedMemory.malloc(size);
         buffer = asNativeByteBuffer(memory, size);
         buffer.put(0, bytes);
@@ -401,11 +445,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       if (len == RET_CODE_EXCEPTION) {
         // signals exception
         buffer.position(0);
-        var msgLen = buffer.getInt();
-        var msgBytes = new byte[msgLen];
-        buffer.get(msgBytes);
-        var exceptionMessage = new String(msgBytes);
-        throw new IllegalStateException(exceptionMessage);
+        throw ChannelExceptions.exceptionDeserialize(RuntimeException.class, buffer);
       }
       if (len == RET_CODE_OVERFLOW) {
         buffer.position(0);
@@ -413,7 +453,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         len = buffer.getLong();
         // read address
         var addr = buffer.getLong();
-        if (ImageInfo.inImageRuntimeCode()) {
+        if (useMalloc) {
           var overflowPtr = WordFactory.pointer(addr);
           buffer =
               CTypeConversion.asByteBuffer(overflowPtr, Math.toIntExact(len))
@@ -431,7 +471,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
     } finally {
-      if (ImageInfo.inImageRuntimeCode()) {
+      if (useMalloc) {
         UnmanagedMemory.free(WordFactory.pointer(address));
       }
     }
@@ -442,31 +482,20 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return CTypeConversion.asByteBuffer(memory, bufferSize).order(ByteOrder.BIG_ENDIAN);
   }
 
-  private static long handleJvmMessage(long id, long address, long size) throws Throwable {
+  @SuppressWarnings("unchecked")
+  private static long handleJvmMessage(long threadId, long id, long address, long size)
+      throws Throwable {
     var channel = ID_TO_CHANNEL.get(id);
+    channel.otherIsolateThread.set(threadId);
     var seg = MemorySegment.ofAddress(address).reinterpret(size);
-    return handleWithChannel(channel, seg.asByteBuffer());
+    var reply = handleWithChannel(channel, seg.asByteBuffer());
+    return reply;
   }
 
   @Override
   public void close() throws Exception {
     ID_TO_CHANNEL.remove(id, this);
     // TBD remove on the peer as well
-  }
-
-  /**
-   * @param ex exception to print stack trace for or {@code null}
-   * @param userCode is the exception from user code or is it unexpected
-   * @return {@code true} if the exception was printed and further details should be printed
-   */
-  private boolean printStackTrace(Throwable ex, boolean userCode) {
-    if (!userCode) {
-      if (ex != null) {
-        ex.printStackTrace();
-      }
-      return true;
-    }
-    return false;
   }
 
   /**

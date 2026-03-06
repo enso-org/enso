@@ -219,6 +219,32 @@ public class ConversionMethodTests {
     assertTypes("Only Foo and Car are visible", fc, false, "Foo", "Car");
   }
 
+  @Test
+  public void testApplyConversionToSelfArgument() {
+    var src =
+        """
+        type A
+            Cons
+
+            method self =
+                B.method self=self
+
+        type B
+            Cons
+
+            method self =
+                self
+
+        B.from (that:A) = B.Cons
+
+        main =
+            a = A.Cons
+            a.method
+        """;
+    var aMethod = ctx.evalModule(src);
+    assertTypes("Should be B", aMethod, false, "B");
+  }
+
   private static void assertTypes(
       String msg, Value value, boolean includeExtraTypes, String... expectedTypes) {
     var v = ctx.unwrapValue(value);

@@ -98,8 +98,12 @@ public class EnsoHTTPResponseCache {
     if (maxAge == null) {
       return DEFAULT_TTL_SECONDS;
     } else {
-      int age = headers.firstValue("age").map(Integer::parseInt).orElse(0);
-      return maxAge - age;
+      try {
+        int age = headers.firstValue("age").map(Integer::parseInt).orElse(0);
+        return maxAge - age;
+      } catch (NumberFormatException e) {
+        return maxAge;
+      }
     }
   }
 
@@ -113,7 +117,11 @@ public class EnsoHTTPResponseCache {
         if (entry.trim().toLowerCase().startsWith("max-age")) {
           var maxAgeBinding = entry.split("=");
           if (maxAgeBinding.length > 1) {
-            maxAge = Integer.valueOf(maxAgeBinding[1]);
+            try {
+              maxAge = Integer.valueOf(maxAgeBinding[1]);
+            } catch (NumberFormatException e) {
+              // Ignore invalid max-age value.
+            }
           }
           break;
         }

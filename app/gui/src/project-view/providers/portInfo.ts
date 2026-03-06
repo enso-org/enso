@@ -19,7 +19,10 @@ export function syntheticPortId(base: PortId, key: string | number): PortId {
 
 interface PortInfo {
   portId: PortId
-  connected: boolean
+  /** Has a persisted connection in the graph database. */
+  hasPersistedConnection: boolean
+  /** An edge visually points to this port, e.g. when hovering with mouse. */
+  isVisualTarget: boolean
 }
 
 export const [providePortInfo, injectPortInfo] = createContextStore('Port info', identity<PortInfo>)

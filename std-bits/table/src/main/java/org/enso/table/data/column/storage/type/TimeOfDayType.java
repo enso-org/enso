@@ -18,6 +18,11 @@ public final class TimeOfDayType implements StorageType<LocalTime> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Time";
+  }
+
+  @Override
   public boolean hasTime() {
     return true;
   }
@@ -41,7 +46,7 @@ public final class TimeOfDayType implements StorageType<LocalTime> {
 
   @Override
   public ColumnStorage<LocalTime> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TimeOfDayType) {
+    if (StorageType.ofStorage(storage) instanceof TimeOfDayType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<LocalTime>) storage;
       return output;

@@ -322,7 +322,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     RuntimeOptions.LOG_MASKING,
     Masking.isMaskingEnabled.toString
   )
-  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, BuildVersion.currentEdition)
   extraOptions.put(
     RuntimeOptions.JOB_PARALLELISM,
     Runtime.getRuntime.availableProcessors().toString
@@ -522,7 +521,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)(system),
       BinaryWebSocketServer.Config(
-        outgoingBufferSize = 100,
+        outgoingBufferSize = 1024,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),

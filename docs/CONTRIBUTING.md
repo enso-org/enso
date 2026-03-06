@@ -573,7 +573,18 @@ sbt:enso> buildEngineDistribution
 
 and will fallback to downloading the latest nightly if not found. You can
 override the location of `enso` executable by providing the absolute path to it
-in the `ENSO_RUNNER_PATH` environment variable.
+in the `ENSO_ENGINE_PATH` environment variable.
+
+```bash
+enso$ ENSO_ENGINE_PATH=/path/to/enso corepack pnpm run dev:gui
+```
+
+You can provide extra arguments to the enso executable using the
+`ENSO_ENGINE_ARGS` environment variable.
+
+```bash
+enso$ ENSO_ENGINE_ARGS='--log-level trace' corepack pnpm run dev:gui
+```
 
 To [debug](debugger/README.md) the language server process of a running project,
 you can set the

@@ -7,14 +7,14 @@ import {
   type BackendMutationMethod,
   type BackendQueryMethod,
 } from '$/utils/backendQuery'
-import type { ToValue } from '@/util/reactivity'
+import type { ToValue } from '$/utils/reactivity'
 import type {
   UseMutationOptions,
   UseMutationReturnType,
   UseQueryOptions,
 } from '@tanstack/vue-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type Backend from 'enso-common/src/services/Backend'
+import type { Backend } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, toValue, type UnwrapRef } from 'vue'
 // eslint-disable-next-line vue/prefer-import-from-vue
@@ -33,6 +33,7 @@ const noFresh = { staleTime: 0 }
 const methodDefaultOptions: Partial<Record<BackendQueryMethod, ExtraOptions>> = {
   listDirectory: { ...noPersist, ...noFresh },
   getFileDetails: { ...noPersist },
+  getAssetDetails: { ...noPersist },
 }
 
 /** Commonly used options for tanstack queries to backend. */
@@ -169,7 +170,7 @@ export function useBackend(which: 'remote' | 'project') {
     Parameters<Backend[Method]>,
     unknown
   > {
-    return useMutation(backendMutationOptions(method, backend, options))
+    return useMutation(backendMutationOptions<Method, Backend | null>(method, backend, options))
   }
 
   return { query, fetch, prefetch, ensureQueryData, mutation }

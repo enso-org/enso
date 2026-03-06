@@ -9,7 +9,7 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,
@@ -882,23 +882,30 @@ class Compiler(
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(Name.Literal(q.item, isMethod = false, identifiedLocation = null))
-      ) { case (part, acc) =>
-        Name.Literal(part, isMethod = false, identifiedLocation = null) :: acc
-      }
-      Name.Qualified(name, identifiedLocation = null)
-    }.toList
-    ir.copy(
-      imports =
-        ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
-      exports = ir.exports ::: moduleNames.map(m =>
-        Export.Module(
-          m,
-          rename             = None,
-          onlyNames          = None,
-          identifiedLocation = null,
-          isSynthetic        = true
+        List(
+          Name.Literal
+            .builder()
+            .name(q.item)
+            .isMethod(false)
+            .build()
         )
+      ) { case (part, acc) =>
+        Name.Literal
+          .builder()
+          .name(part)
+          .isMethod(false)
+          .build() :: acc
+      }
+      Name.Qualified.builder().parts(name).build()
+    }.toList
+    ir.copyWithImportsAndExports(
+      ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
+      ir.exports ::: moduleNames.map(m =>
+        Export.Module
+          .builder()
+          .name(m)
+          .isSynthetic(true)
+          .build()
       )
     )
   }
@@ -1000,13 +1007,13 @@ class Compiler(
   ): Unit = {
     val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
     val module    = inlineContext.getModule()
-    val hasErrors = reportDiagnostics(errors, module)
+    val hasErrors = reportDiagnostics(errors, module, inlineContext.src)
     hasErrors match {
       case error :: _ if inlineContext.compilerConfig.isStrictErrors =>
         throw error
@@ -1029,7 +1036,7 @@ class Compiler(
       List((module, errors))
     }
 
-    val hasErrors = reportDiagnostics(diagnostics)
+    val hasErrors = reportDiagnostics(diagnostics, null)
     if (hasErrors.nonEmpty && config.isStrictErrors) {
       val count =
         diagnostics.map(_._2.collect { case e: Error => e }.length).sum
@@ -1053,7 +1060,7 @@ class Compiler(
         module.getIr(),
         ModuleContext(module, compilerConfig = config)
       )
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
@@ -1121,11 +1128,12 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[(Module, List[Diagnostic])]
+    diagnostics: List[(Module, List[Diagnostic])],
+    src: Object
   ): List[RuntimeException] = {
     diagnostics.flatMap { diags =>
       if (diags._2.nonEmpty) {
-        reportDiagnostics(diags._2, diags._1)
+        reportDiagnostics(diags._2, diags._1, src)
       } else {
         List()
       }
@@ -1141,13 +1149,19 @@ class Compiler(
     */
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
-    compilerModule: CompilerContext.Module
+    compilerModule: CompilerContext.Module,
+    src: Object
   ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
     val exceptions = diagnostics
       .flatMap { diag =>
         val formattedDiag =
-          context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+          context.formatDiagnostic(
+            compilerModule,
+            diag,
+            isOutputRedirected,
+            src
+          )
         printDiagnostic(formattedDiag.getMessage)
         if (diag.isInstanceOf[Error] || config.treatWarningsAsErrors) {
           Some(formattedDiag)

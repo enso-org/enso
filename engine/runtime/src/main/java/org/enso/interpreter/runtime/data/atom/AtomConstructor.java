@@ -296,7 +296,7 @@ public final class AtomConstructor extends EnsoObject {
     if (section != null) {
       instantiateNode.setSourceLocation(section.start(), section.length());
     }
-    BlockNode instantiateBlock = BlockNode.buildRoot(assignments, instantiateNode);
+    BlockNode instantiateBlock = BlockNode.buildRootBody(assignments, instantiateNode);
     RootNode rootNode =
         MethodRootNode.buildConstructor(
             language,
@@ -420,6 +420,9 @@ public final class AtomConstructor extends EnsoObject {
    * @return the accessor function of this constructor.
    */
   public Function getAccessorFunction() {
+    if (accessor == null) {
+      throw new NullPointerException("No accessor for " + name + " in " + getType());
+    }
     return accessor.get();
   }
 

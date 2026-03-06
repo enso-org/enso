@@ -68,7 +68,7 @@ type Different_Connections
     to_display_text self -> Text =
         self.to_text
 
-type Aggregagtion_Requires_Order
+type Aggregation_Requires_Order
     ## ---
        private: true
        ---

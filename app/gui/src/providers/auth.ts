@@ -1,16 +1,15 @@
-import * as backendModule from '#/services/Backend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
+import * as backendModule from 'enso-common/src/services/Backend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
@@ -95,7 +94,6 @@ function createAuthStore(
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
   const planOverride = useFeatureFlag('developerPlanOverride')
-  const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -226,18 +224,11 @@ function createAuthStore(
     }
   })
 
-  const effectiveUserData = computed(() => {
-    const intermediate =
-      userData.value && planOverride.value != null ?
-        { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
-      : userData.value
-    return intermediate && overrideProfilePicture.value ?
-        {
-          ...intermediate,
-          user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
-        }
-      : intermediate
-  })
+  const effectiveUserData = computed(() =>
+    userData.value && planOverride.value != null ?
+      { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
+    : userData.value,
+  )
 
   return proxyRefs({
     refetchSession,

@@ -40,8 +40,8 @@
  * credentials.
  *
  * To redirect the user from the IDE to an external source:
- * 1. Register a listener for {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
- * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in step
+ * 1. Register a listener for {@link Channel.openUrlInSystemBrowser} IPC events.
+ * 2. Emit an {@link Channel.openUrlInSystemBrowser} event. The listener registered in step
  * 1 will use the {@link opener} library to open the event's {@link URL}
  * argument in the system web browser, in a cross-platform way.
  *
@@ -58,7 +58,7 @@
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
  * - Define a listener for Electron `OPEN_URL_EVENT`s.
- * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
+ * - Define a listener for {@link Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
  * - The OS redirects the user to the application.
@@ -66,28 +66,26 @@
  * - The `OPEN_URL_EVENT` listener checks if the {@link URL} is a deep link.
  * - If the {@link URL} is a deep link, the `OPEN_URL_EVENT` listener prevents Electron from
  * handling the event.
- * - The `OPEN_URL_EVENT` listener then emits an {@link ipc.Channel.openDeepLink} event.
- * - The {@link ipc.Channel.openDeepLink} listener registered by the dashboard receives the event.
+ * - The `OPEN_URL_EVENT` listener then emits an {@link Channel.openDeepLink} event.
+ * - The {@link Channel.openDeepLink} listener registered by the dashboard receives the event.
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`.
  */
-import * as fs from 'node:fs'
-import * as os from 'node:os'
-import * as path from 'node:path'
-
-import * as electron from 'electron'
+import { CREDENTIALS_PATH } from '@/paths'
+import type { BrowserWindow } from 'electron'
+import type { AccessToken, RawAccessToken } from 'enso-common/src/accessToken'
+import { DEEP_LINK_SCHEME } from 'enso-common/src/constants'
+import { setDefaultResultOrder } from 'node:dns'
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import opener from 'opener'
+import type { Electron } from './electron.js'
+import { Channel } from './ipc.js'
+import { registerUrlCallback } from './urlAssociations.js'
 
-import * as common from 'enso-common'
-import type * as accessToken from 'enso-common/src/accessToken'
-
-import * as ipc from '@/ipc'
-import * as urlAssociations from '@/urlAssociations'
-
-// ========================================
-// === Initialize Authentication Module ===
-// ========================================
+/** How much longer the access token should be valid for before refreshing. */
+const REFRESH_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
  * Configure all the functionality that must be set up in the Electron app to support
@@ -97,70 +95,117 @@ import * as urlAssociations from '@/urlAssociations'
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
  * theory, it never will in practice.
  */
-export function initAuthentication(window: () => electron.BrowserWindow) {
+export function initAuthentication(electron: Electron, window: () => BrowserWindow) {
   // Listen for events to open a URL externally in a browser the user trusts. This is used for
   // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
   // browser's saved passwords).
-  electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
+  electron.ipcMain.on(Channel.openUrlInSystemBrowser, (_event, url: string) => {
     console.log(`Opening URL '${url}' in the default browser.`)
     opener(url)
   })
 
   // Listen for events to handle deep links.
-  urlAssociations.registerUrlCallback((url) => {
+  registerUrlCallback(electron, (url) => {
     console.log(`Received 'open-url' event for '${url.toString()}'.`)
-    if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
+    if (url.protocol !== `${DEEP_LINK_SCHEME}:`) {
       console.error(`'${url.toString()}' is not a deep link, ignoring.`)
     } else {
       console.log(`'${url.toString()}' is a deep link, sending to renderer.`)
-      window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+      window().webContents.send(Channel.openDeepLink, url.toString())
     }
   })
 
   // Listen for events to save the given user credentials to `~/.enso/credentials`.
-  electron.ipcMain.on(
-    ipc.Channel.saveAccessToken,
-    (event, accessTokenPayload: accessToken.AccessToken | null) => {
-      event.preventDefault()
+  electron.ipcMain.on(Channel.saveAccessToken, (event, accessTokenPayload: AccessToken | null) => {
+    event.preventDefault()
+    saveAccessToken(accessTokenPayload)
+  })
+}
 
-      /** Home directory for the credentials file.  */
-      const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
-      /** File name of the credentials file. */
-      const credentialsFileName = 'credentials'
-      /** System agnostic credentials directory home path. */
-      const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+/** Read the access token stored in the credentials file. */
+export function readAccessToken(): AccessToken | undefined {
+  try {
+    const raw: RawAccessToken = JSON.parse(readFileSync(CREDENTIALS_PATH, { encoding: 'utf-8' }))
+    return {
+      accessToken: raw.access_token,
+      clientId: raw.client_id,
+      refreshToken: raw.refresh_token,
+      refreshUrl: raw.refresh_url,
+      expireAt: raw.expire_at,
+    }
+  } catch {
+    return
+  }
+}
 
-      if (accessTokenPayload == null) {
-        try {
-          fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
-        } catch {
-          // Ignored, most likely the path does not exist.
-        }
-      } else {
-        fs.mkdir(credentialsHomePath, { recursive: true }, (error) => {
-          if (error) {
-            console.error(`Could not create '${credentialsDirectoryName}' directory.`)
-          } else {
-            fs.writeFile(
-              path.join(credentialsHomePath, credentialsFileName),
-              JSON.stringify({
-                /* eslint-disable camelcase */
-                client_id: accessTokenPayload.clientId,
-                access_token: accessTokenPayload.accessToken,
-                refresh_token: accessTokenPayload.refreshToken,
-                refresh_url: accessTokenPayload.refreshUrl,
-                expire_at: accessTokenPayload.expireAt,
-                /* eslint-enable camelcase */
-              }),
-              (innerError) => {
-                if (innerError) {
-                  console.error(`Could not write to '${credentialsFileName}' file.`)
-                }
-              },
-            )
-          }
-        })
-      }
-    },
+/** Save the access token to the credentials file. */
+export function saveAccessToken(accessToken: AccessToken | null): void {
+  if (accessToken === null) {
+    try {
+      unlinkSync(CREDENTIALS_PATH)
+    } catch {
+      // Ignored, most likely the path does not exist.
+    }
+    return
+  }
+  mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true })
+  writeFileSync(
+    CREDENTIALS_PATH,
+    JSON.stringify({
+      /* eslint-disable camelcase */
+      client_id: accessToken.clientId,
+      access_token: accessToken.accessToken,
+      refresh_token: accessToken.refreshToken,
+      refresh_url: accessToken.refreshUrl,
+      expire_at: accessToken.expireAt,
+      /* eslint-enable camelcase */
+    }),
   )
+}
+
+interface AuthenticationResultType {
+  readonly AccessToken?: string | undefined
+  readonly ExpiresIn?: number | undefined
+  readonly TokenType?: string | undefined
+  readonly RefreshToken?: string | undefined
+  readonly IdToken?: string | undefined
+}
+
+/** Get an up-to-date access token, refreshing it if necessary. */
+export async function getUpToDateAccessToken(): Promise<string> {
+  // This function MUST be kept in sync with the original source at:
+  // distribution/lib/Standard/Base/0.0.0-dev/src/Enso_Cloud/Internal/Authentication.enso
+  const accessToken = readAccessToken()
+  if (!accessToken) {
+    throw new Error('You are not logged in. Please open in windowed mode and login.')
+  }
+  if (Number(Date.now()) < Number(new Date(accessToken.expireAt)) - REFRESH_THRESHOLD_MS) {
+    return accessToken.accessToken
+  }
+  // I don't know why this works
+  setDefaultResultOrder('ipv6first')
+  const response = await fetch(accessToken.refreshUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-amz-json-1.1',
+      'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+    },
+    body: JSON.stringify({
+      ClientId: accessToken.clientId,
+      AuthFlow: 'REFRESH_TOKEN_AUTH',
+      AuthParameters: { REFRESH_TOKEN: accessToken.refreshToken },
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(`Authentication token refresh failed with status ${response.status}`)
+  }
+  const result: AuthenticationResultType = await response
+    .json()
+    .then((res) => res.AuthenticationResult)
+  const newAccessToken = result?.AccessToken
+  if (!newAccessToken) {
+    throw new Error('Failed to refresh access token.')
+  }
+  saveAccessToken({ ...accessToken, accessToken: newAccessToken })
+  return newAccessToken
 }

@@ -1,4 +1,3 @@
-import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,
@@ -6,8 +5,9 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import { Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { assert, assertDefined } from 'ydoc-shared/util/assert'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export type ProjectName = QualifiedName
 

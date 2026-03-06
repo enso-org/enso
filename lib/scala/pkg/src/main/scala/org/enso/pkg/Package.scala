@@ -63,11 +63,7 @@ final class Package[F](
     * from this method.
     */
   final def isAotReady(): Boolean = {
-    if (!polyglotDir.exists) {
-      true
-    } else {
-      PackageUtils.isAotReady(getConfig())
-    }
+    PackageUtils.isAotReady(getConfig())
   }
 
   /** Marks library as AOT ready. Can only be called during image build time.

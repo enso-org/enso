@@ -63,7 +63,6 @@ async function mockElectronApi(page: Page) {
           },
           menu: { setMenuItemHandler: () => {} },
           fileBrowser: { openFileBrowser: async () => ['/path/to/some/mock/file'] },
-          mapBoxApiToken: () => 'mock-mapbox-token',
           log: {
             log: () => {},
             info: () => {},

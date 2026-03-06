@@ -2,6 +2,7 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
@@ -10,11 +11,10 @@ import {
   useTableInputArgument,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { targetIsOutside } from '@/util/autoBlur'
-import type { Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
@@ -24,6 +24,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
@@ -33,6 +34,7 @@ import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const { suggestionDb, module } = useCurrentProject()
+const tree = injectWidgetTree()
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>
@@ -64,6 +66,12 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   props.updateCallback,
 )
 
+const collapsedText = computed(() => {
+  // One row is added only to allow adding new rows.
+  const rows = rowData.value.length - 1
+  return `Table (${rows} row${rows !== 1 ? 's' : ''})`
+})
+
 // Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
 const columnDefsTyped: ComputedRef<ColDef<RowData>[]> = columnDefs
 
@@ -94,8 +102,6 @@ watch(
   () => props.input,
   () => grid.value?.gridApi?.refreshCells(),
 )
-
-// === Resizing ===
 
 // === Column and Row Dragging ===
 
@@ -180,14 +186,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor">
+  <div v-if="tree.expanded" class="WidgetTableEditor widgetExpanded">
     <ResizableWidget
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
       :updateCallback="updateCallback"
     >
-      <Suspense>
+      <Suspense v-if="tree.expanded">
         <AgGridTableView
           ref="grid"
           class="inner"
@@ -217,20 +223,24 @@ export const widgetDefinition = defineWidget(
       </Suspense>
     </ResizableWidget>
   </div>
+  <div v-else class="WidgetTableEditor widgetSingleLine">
+    <span class="collapsed widgetApplyPadding" v-text="collapsedText" />
+  </div>
 </template>
 
 <style scoped>
-.WidgetTableEditor {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.WidgetTableEditor.widgetExpanded {
   border-radius: var(--node-port-border-radius);
   position: relative;
 }
 
-.inner {
+.WidgetTableEditor.widgetSingleLine .inner {
   width: 100%;
   height: 100%;
+}
+
+.collapsed {
+  opacity: 0.7;
 }
 
 :deep(.newColumnCell) {

@@ -7,8 +7,7 @@ import { useApproach } from '@/composables/animation'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
-import { injectGraphSelection } from '@/providers/graphSelection'
-import type { Vec2 } from '@/util/data/vec2'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
 import {
@@ -17,6 +16,7 @@ import {
   onScopeDispose,
   ref,
   toRef,
+  watch,
   watchEffect,
   type EffectScope,
 } from 'vue'
@@ -27,7 +27,8 @@ const props = defineProps<{ nodeId: NodeId }>()
 const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
-  newNodeClick: [portId: AstId, position: Vec2]
+  newNodeClick: [portId: AstId]
+  newNodeDrag: [portId: AstId]
 }>()
 
 const { graph } = useCurrentProject()
@@ -36,14 +37,14 @@ const nodeRect = computed(() => graph.value?.nodeRects.get(props.nodeId))
 const nodeHovered = computed(
   (): boolean => graph.value != null && graph.value.nodeHovered.get(props.nodeId),
 )
-const nodeExtended = computed(
-  (): boolean => graph.value != null && graph.value.nodeExtended.get(props.nodeId),
+const nodeDetailedView = computed(
+  (): boolean => graph.value != null && graph.value.nodeDetailedView.get(props.nodeId),
 )
 const otherNodeHovered = computed(
   (): boolean => graph.value != null && !nodeHovered.value && graph.value.nodeHovered.exists.value,
 )
 
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 const { baseColor, selected, pending } = useComponentColors(
   () => graph.value?.db,
   selection,
@@ -110,7 +111,7 @@ const handlePortClick = useDoubleClick(
 
 const portsVisible = computed(
   () =>
-    (nodeExtended.value && !otherNodeHovered.value) ||
+    (nodeDetailedView.value && !otherNodeHovered.value) ||
     nodeHovered.value ||
     (outputHovered.value && outputPortsSet.value.has(outputHovered.value)) ||
     anyPortDisconnected.value ||
@@ -168,6 +169,30 @@ function portGroupStyle(port: PortData) {
   }
 }
 
+function isPlusButtonVisible(portId: AstId): boolean {
+  return !componentBrowserOpened.value && isPortDisconnected(portId)
+}
+function resetHoverState() {
+  mouseOverOutput.value = undefined
+  mouseOverCreateNodeFromPortButton.value = 0
+}
+
+// Opening component browser should manually clear output hover state, because
+// plus button disappears when component browser opens, and we cannot receive pointerleave event
+// in this case.
+watch(componentBrowserOpened, (opened) => {
+  if (opened) resetHoverState()
+})
+
+// When the plus button becomes invisible for the currently hovered port, we want to reset the hover state.
+// This because we won’t receive a pointerleave event in this case.
+watch(
+  () => mouseOverOutput.value && isPlusButtonVisible(mouseOverOutput.value),
+  (visible, prevVisible) => {
+    if (prevVisible && !visible) resetHoverState()
+  },
+)
+
 graph.value?.suggestEdgeFromOutput(outputHovered)
 </script>
 
@@ -193,7 +218,7 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
             >
               <rect class="outputPortHoverArea" />
               <rect
-                v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
+                v-if="isPlusButtonVisible(port.portId)"
                 class="createNodeButtonApproachZone"
               ></rect>
             </g>
@@ -205,11 +230,12 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
     </g>
     <template v-for="port of outputPorts" :key="port.portId">
       <CreateNodeFromPortButton
-        v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
+        v-if="isPlusButtonVisible(port.portId)"
         :portId="port.portId"
         :nodeId="nodeId"
         @update:hovered="mouseOverCreateNodeFromPortButton += $event ? 1 : -1"
-        @newNodeClick="(port, position) => emit('newNodeClick', port, position)"
+        @newNodeClick="(port) => emit('newNodeClick', port)"
+        @newNodeDrag="(port) => emit('newNodeDrag', port)"
       />
     </template>
   </g>
@@ -253,9 +279,17 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
   stroke-width: var(--output-port-hover-width);
   stroke: transparent;
   /* Make stroke visible to debug the active area: */
-  /* stroke: red; */
   stroke-linecap: butt;
   pointer-events: stroke;
+}
+
+.GraphEditor.draggingEdge .outputPortHoverArea {
+  display: none;
+}
+
+/* Feature-flag controlled debug display for hover areas. */
+.App.debugHoverAreas .outputPortHoverArea {
+  stroke: rgba(0, 0, 0, 0.1);
 }
 
 .portClip {

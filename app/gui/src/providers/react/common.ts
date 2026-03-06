@@ -29,7 +29,7 @@ export function useVueValue<T>(selector: WatchSource<T>, deep = false): T {
         setState(newValue)
       },
       // We need to set state synchronously to make react transitions working properly.
-      { flush: 'sync', deep },
+      { flush: 'sync', deep, immediate: true },
     )
   }, [selector, deep])
   return state

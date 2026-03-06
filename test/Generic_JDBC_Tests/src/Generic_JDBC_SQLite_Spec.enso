@@ -1,0 +1,100 @@
+from Standard.Base import all
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Test import all
+
+import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+
+import project.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
+
+add_specs_for_config config suite_builder =
+    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
+
+    suite_builder.group "(SQLite) Generic JDBC Connection" group_builder->
+        # Cleans things up afterwards, but also before for easier debugging.
+        cleanup typ conn names ~action =
+            cleanup =
+                names.map (n-> conn.execute "drop "+typ+" if exists "+n)
+            cleanup
+            Panic.with_finalizer cleanup action
+
+        cleanup_tables = cleanup "table"
+
+        group_builder.specify "should be able to read a table by name" <|
+            config.with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "insert into foo (a, b) values (10, 'asdf')"
+                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
+                conn.execute "create table bar (c int, d text)"
+                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
+                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
+
+                r = conn.read (SQL_Query.Table_Name "foo")
+                r.at "a" . to_vector . should_equal [10, 20]
+                r.at "b" . to_vector . should_equal ['asdf', 'zxcv']
+
+                r2 = conn.read (SQL_Query.Table_Name "bar")
+                r2.at "c" . to_vector . should_equal [20, 30]
+                r2.at "d" . to_vector . should_equal ['qqqq', 'zzzz']
+
+## ---
+   private: true
+   ---
+type SQLite_JDBC_File_Config
+    Value
+
+    name self = "SQLite File"
+
+    with_database self ~action =
+        database_root = Self.create_tmp_dir
+        url = "jdbc:sqlite:" + database_root.path + "/test"
+        cleanup =
+            database_root . delete_if_exists recursive=True
+        cleanup
+        Panic.with_finalizer cleanup <|
+            database_root . create_directory
+            action url
+
+    with_connection self ~action =
+        self.with_database url->
+            conn = Generic_JDBC_Connection.connect url
+            conn.should_succeed
+            cleanup =
+                conn.close
+            Panic.with_finalizer cleanup <|
+                action conn
+
+    private create_tmp_dir -> File =
+        tmp_file = File.create_temporary_file suffix=""
+        tmp_file.delete
+        tmp_file.create_directory
+        tmp_file
+
+## ---
+   private: true
+   ---
+type SQLite_JDBC_In_Memory_Config
+    Value
+
+    name self = "SQLite In-Memory"
+
+    with_connection self ~action =
+        url = "jdbc:sqlite::memory:"
+        conn = Generic_JDBC_Connection.connect url
+        conn.should_succeed
+        cleanup =
+            conn.close
+        Panic.with_finalizer cleanup <|
+            action conn
+
+add_specs suite_builder =
+        add_specs_for_config SQLite_JDBC_File_Config.Value suite_builder
+        add_specs_for_config SQLite_JDBC_In_Memory_Config.Value suite_builder
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

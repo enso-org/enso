@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
+from project.Utils import find_enso_bin
+
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
@@ -34,7 +36,7 @@ collect_benches = Bench.build builder->
     options = Bench.options . set_warmup (Bench.phase_conf 1 10) . set_measure (Bench.phase_conf 2 10)
 
     exe = find_enso_bin
-    data = Data.Value exe (copy_test_prj exe "Generic_JDBC_Tests")
+    data = Data.Value exe (find_test_prj exe "Generic_JDBC_Tests")
 
     no_test_filter = "NoTestFilter"
     single_test_filter = "should.be.able.to.insert..update"
@@ -60,59 +62,15 @@ collect_benches = Bench.build builder->
         group_builder.specify "Real_Dual_JVM_Tests" <|
             data.bench_tests 3 jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", real_test_filter ]
 
-private copy_test_prj bin:File name:Text -> File =
+private find_test_prj bin:File name:Text -> File =
     repo_root e =
         if e/".git" . exists then e else
             @Tail_Call repo_root e.parent
-
-    target = File.create_temporary_file
-    target.delete
 
     install_dir = repo_root bin
     prj = install_dir / "test" / name
     Runtime.assert prj.is_directory "Found directory "+prj.to_text
 
-    copy s d =
-        if s.is_directory.not then s.copy_to d else
-            d.create_directory
-            s.list . map f->
-                copy f d/f.name
-
-    copy prj target
-
-    yaml = target/"package.yaml"
-    yaml_text = yaml.read_text
-    new_text = yaml_text . replace "jvm: true" ""
-    replace = new_text.write path=yaml
-    IO.println "Replacing "+replace.to_text+" with:"
-    IO.println yaml.read_text
-    IO.println "Enso project created at "+target.to_text
-
-    target
-
-
-private find_enso_bin =
-    find_prefix dir prefix =
-        vec = dir.list name_filter=prefix+"*"
-        if vec.length == 1 then vec.at 0 else
-            msg_prefix = if vec.length == 0 then "Cannot find " else "Found multiple "
-            msg = msg_prefix + prefix + "* in " + dir.to_text + '\n'
-            err = dir.list.fold msg t-> f->
-                t + f.to_text + '\n'
-            Panic.throw err
-
-    project_root = File.new enso_project.root.to_text
-    repository_root = project_root . parent . parent
-    built_distribution = find_prefix repository_root "built-distribution"
-    enso_engine = find_prefix built_distribution "enso-engine-"
-    enso = find_prefix enso_engine "enso-"
-    bin = find_prefix enso "bin"
-
-    exe = File.new bin / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
-
-    if exe.is_regular_file.not then Panic.throw "Cannot find "+exe.to_text
-
-    IO.println "Found Enso executable:"+exe.to_text
-    exe
+    prj
 
 main = collect_benches . run_main

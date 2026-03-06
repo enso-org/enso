@@ -4,15 +4,22 @@ import type { Opt } from '@/util/data/opt'
 import { computed } from 'vue'
 import type { CreateProjection } from './types'
 
-const props = defineProps<{ data: object; createProjectionCb?: Opt<CreateProjection> }>()
+const props = defineProps<{
+  data: object
+  indent: string
+  createProjectionCb?: Opt<CreateProjection>
+}>()
 
 const MAX_INLINE_LENGTH = 40
 
 const block = computed(() => JSON.stringify(props.data).length > MAX_INLINE_LENGTH)
+const nextIndent = computed(() => (block.value ? props.indent + '  ' : ''))
 
 const escapedKeys = computed(() =>
   Array.from(Object.keys(props.data), (key) => JSON.stringify(key)),
 )
+
+const entries = computed(() => Object.entries(props.data))
 
 function entryTitle(key: string) {
   const singleEntry = `Click to create a node selecting the ${JSON.stringify(key)} field.`
@@ -31,54 +38,37 @@ function onClick(key: string, event: MouseEvent) {
 
 <template>
   <span class="JsonObjectWidget" :class="{ block }">
+    <span>{</span>
     <span
-      v-for="[key, value] in Object.entries(props.data)"
+      v-for="([key, value], index) in entries"
       :key="key"
       :title="createProjectionCb != null ? entryTitle(key) : ''"
       class="field"
       :class="{ clickable: createProjectionCb != null }"
       @click.stop="onClick(key, $event)"
     >
+      <pre class="indent" v-text="nextIndent" />
       <span class="key" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
         :data="value"
+        :indent="nextIndent"
         :createProjectionCb="
           createProjectionCb && ((path) => createProjectionCb?.([[key], ...path]))
         "
-      />
+      />{{
+        // This newline is needed for copying text.
+        index === entries.length - 1 ? '\n'
+        : block ? ','
+        : ', '
+      }}
     </span>
+    <span><pre class="indent" v-text="indent"></pre>}</span>
   </span>
 </template>
 
 <style scoped>
-.JsonObjectWidget {
-  &::before {
-    display: inline;
-    content: '{ ';
-  }
-  &::after {
-    display: inline;
-    content: ' }';
-  }
-}
-.JsonObjectWidget.block {
-  &::before {
-    content: '{';
-  }
-  &::after {
-    content: '}';
-  }
-}
 .block > .field {
   display: block;
-  margin-left: 1em;
-}
-.field:not(:last-child)::after {
-  display: inline;
-  content: ', ';
-}
-.block > .field:not(:last-child)::after {
-  content: ',';
 }
 .key {
   color: blue;
@@ -86,5 +76,8 @@ function onClick(key: string, event: MouseEvent) {
 .viewonly .key {
   color: darkred;
   text-decoration: none;
+}
+.indent {
+  display: inline;
 }
 </style>

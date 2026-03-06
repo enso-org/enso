@@ -14,7 +14,7 @@ public class AnyOrStaticTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
-  public void methodOnModuleAny() throws Exception {
+  public void methodOnModuleAndAny() throws Exception {
     var code =
         """
         from Standard.Base import Any
@@ -45,15 +45,15 @@ public class AnyOrStaticTest {
 
         Any.check_is self t = "got to Any for "+self.to_text+" and "+t.to_text
 
-        dispatch a = Type_With_Check.check_is a
+        dispatch receiver a = receiver.check_is a
         """;
     var src = Source.newBuilder(LanguageInfo.ID, code, "Typer.enso").build();
 
     var module = ctxRule.eval(src);
 
     var dispatch = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "dispatch");
-    var where = dispatch.execute("FirstArg");
+    var where = dispatch.execute("FirstArg", "FirstArg");
     assertTrue("String returned " + where, where.isString());
-    assertEquals("got to Any for Type_With_Check and FirstArg", where.asString());
+    assertEquals("got to Any for FirstArg and FirstArg", where.asString());
   }
 }

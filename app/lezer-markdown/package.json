@@ -17,8 +17,8 @@
     "@marijn/buildtool": "^1.1.0"
   },
   "dependencies": {
-    "@lezer/common": "^1.0.0",
-    "@lezer/highlight": "^1.0.0"
+    "@lezer/common": "catalog:",
+    "@lezer/highlight": "catalog:"
   },
   "repository": {
     "type" : "git",

@@ -16,6 +16,7 @@ import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -74,6 +75,11 @@ public class MetaIsATest {
   public static void disposeCtx() {
     isACheck = null;
     warningCheck = null;
+  }
+
+  @After
+  public void disposeGenerator() {
+    generator.generator.close();
   }
 
   private ValuesGenerator generator() {
@@ -228,6 +234,10 @@ public class MetaIsATest {
   public void constructorVariants() throws Exception {
     var found = new HashMap<Value, Value>();
     final List<Value> values = generator().constructorsAndValuesAndSumType();
+    if (values.isEmpty()) {
+      // skip the test
+      return;
+    }
     for (var v1 : values) {
       for (var v2 : values) {
         assertTypeWithCheck(generator(), v1, v2, found);

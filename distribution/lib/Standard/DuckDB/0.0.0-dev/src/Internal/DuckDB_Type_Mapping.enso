@@ -1,0 +1,259 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Logging import all
+
+from Standard.Table import Bits, Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.SQL_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL.SQL_Type
+from Standard.Database.Errors import Unsupported_Database_Type
+
+import project.Internal.DuckDB_Error_Mapper.DuckDB_Error_Mapper
+
+polyglot java import java.sql.Types
+polyglot java import org.enso.duckdb.DuckDBColumnFetcherFactory
+polyglot java import org.enso.duckdb.DuckDBJDBCValueSetter
+
+## ---
+   private: true
+   ---
+type DuckDB_Type_Mapping
+    ## ---
+       private: true
+       ---
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql value_type:Value_Type on_problems:Problem_Behavior =
+        approx = Ref.new Nothing
+        result = case value_type of
+            Value_Type.Boolean -> DuckDB_Types.boolean
+            Value_Type.Byte -> DuckDB_Types.tinyint
+            Value_Type.Integer Bits.Bits_16 -> DuckDB_Types.smallint
+            Value_Type.Integer Bits.Bits_32 -> DuckDB_Types.integer
+            Value_Type.Integer Bits.Bits_64 -> DuckDB_Types.bigint
+            Value_Type.Float Bits.Bits_32 -> DuckDB_Types.real
+            Value_Type.Float Bits.Bits_64 -> DuckDB_Types.double
+            Value_Type.Decimal Nothing 0 -> DuckDB_Types.bignum
+            Value_Type.Decimal Nothing Nothing ->
+                approx.put (Value_Type.Decimal 38 12)
+                DuckDB_Types.decimal 38 12
+            Value_Type.Decimal precision Nothing ->
+                approx.put (Value_Type.Decimal precision (precision.div 3))
+                DuckDB_Types.decimal precision (precision.div 3)
+            Value_Type.Decimal Nothing scale ->
+                approx.put (Value_Type.Decimal 38 scale)
+                DuckDB_Types.decimal 38 scale
+            Value_Type.Decimal precision scale ->
+                used_precision = if precision < 1 then 0 else (if precision > 38 then 39 else precision)
+                case used_precision of
+                    0 ->
+                        approx.put (Value_Type.Decimal 1 0)
+                        DuckDB_Types.decimal 1 0
+                    39 ->
+                        used_scale = if scale < 0 then 0 else (if scale>38 then 37 else scale)
+                        approx.put (Value_Type.Decimal 38 used_scale)
+                        DuckDB_Types.decimal 38 used_scale
+                    _ ->
+                        used_scale = if scale < 0 then 0 else (if scale>precision then precision.div 3 else scale)
+                        if used_scale != scale then approx.put (Value_Type.Decimal used_precision used_scale)
+                        DuckDB_Types.decimal used_precision used_scale
+            Value_Type.Char Nothing True -> DuckDB_Types.varchar
+            Value_Type.Char _ _ ->
+                approx.put Value_Type.Char
+                DuckDB_Types.varchar
+            Value_Type.Time -> DuckDB_Types.time
+            Value_Type.Date -> DuckDB_Types.date
+            Value_Type.Date_Time True -> DuckDB_Types.timestamp_with_tz
+            Value_Type.Date_Time False -> DuckDB_Types.timestamp
+            Value_Type.Binary _ _ -> DuckDB_Types.blob
+            Value_Type.Null -> Error.throw (Unsupported_Database_Type.Error "Null" "DuckDB")
+            Value_Type.Mixed -> Error.throw (Unsupported_Database_Type.Error "Mixed" "DuckDB")
+            Value_Type.Unsupported_Data_Type type_name underlying_type ->
+                underlying_type.if_nothing <|
+                    Error.throw <|
+                        Illegal_Argument.Error <|
+                            "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
+
+        if approx.get.is_nothing then result else
+            on_problems.attach_problems_before [Inexact_Type_Coercion.Warning value_type approx.get] result
+
+    ## ---
+       private: true
+       ---
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type sql_type = case sql_type.typeid of
+        Types.BOOLEAN -> Value_Type.Boolean
+        Types.TINYINT -> Value_Type.Byte
+        Types.SMALLINT -> Value_Type.Integer Bits.Bits_16
+        Types.INTEGER -> Value_Type.Integer Bits.Bits_32
+        Types.BIGINT ->
+            ## Note: DuckDB BIGINT can represent larger integers than 64 bits,
+            case sql_type.name of
+                "BIGNUM" ->
+                    ## Not sure how a BigNum will come through from DuckDB in JDBC
+                    Value_Type.Decimal Nothing 0
+                "HUGEINT" -> Value_Type.Decimal Nothing 0
+                "UHUGEINT" -> Value_Type.Decimal Nothing 0
+                "UBIGINT" -> Value_Type.Decimal Nothing 0
+                _        -> Value_Type.Integer Bits.Bits_64
+        Types.REAL -> Value_Type.Float Bits.Bits_32
+        Types.DOUBLE -> Value_Type.Float Bits.Bits_64
+        Types.DECIMAL -> Value_Type.Decimal sql_type.precision sql_type.scale
+        Types.VARCHAR -> Value_Type.Char Nothing True
+        Types.TIME -> Value_Type.Time
+        Types.DATE -> Value_Type.Date
+        Types.TIME_WITH_TIMEZONE -> Value_Type.Time
+        Types.TIMESTAMP_WITH_TIMEZONE -> Value_Type.Date_Time True
+        Types.TIMESTAMP -> Value_Type.Date_Time False
+        Types.BLOB -> Value_Type.Binary Nothing False
+        Types.BIT -> Value_Type.Binary Nothing False
+        _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for DuckDB.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        DuckDBColumnFetcherFactory.INSTANCE
+
+    ## ---
+       private: true
+       ---
+    sql_type_to_text : SQL_Type -> Text
+    sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
+
+    ## ---
+       private: true
+       ---
+       The DuckDB type mapping always relies on the return type determined by
+       the database backend.
+    infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        _ = [op_name, arguments]
+        result = infer_from_database_callback expression
+        case result of
+            Value_Type.Unsupported_Data_Type _ _ ->
+                DuckDB_Type_Mapping.log_message "Unknown return type for operation '"+op_name+"'." ..Warning
+                result
+            _ -> result
+
+    ## ---
+       private: true
+       ---
+       We want to respect any overriding references, but references that rely on
+       computing the type by the database are resolved to Nothing to just rely on
+       the `ResultSet` metadata and decrease overhead.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions = case column_type_suggestions of
+        Nothing -> Nothing
+        _ : Vector -> column_type_suggestions.map .to_type_override
+
+    ## ---
+       private: true
+       ---
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently, we do not have any implicit conversions.
+        _ = [source_type, target_type]
+        False
+
+    ## ---
+       private: true
+       ---
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
+
+    ## ---
+       private: true
+       ---
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
+    ## ---
+       private: true
+       ---
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for DuckDB.
+    statement_setter =
+        jdbc_value_setter = DuckDBJDBCValueSetter.new
+        fill_home = Statement_Setter.create_fill_hole jdbc_value_setter
+        Statement_Setter.for_fill_hole fill_home
+
+    ## ---
+       private: true
+       ---
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    error_mapper : DuckDB_Error_Mapper
+    error_mapper self = DuckDB_Error_Mapper
+
+## Set of predefined DuckDB SQL types.
+type DuckDB_Types
+    ## BOOLEAN type
+    boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
+
+    ## INT1 (-128 to 127)
+       Equivalent to Java byte
+    tinyint = SQL_Type.Value Types.TINYINT "TINYINT"
+
+    ## INT2 (-32,768 to 32,767)
+       Equivalent to Java short
+    smallint = SQL_Type.Value Types.SMALLINT "SMALLINT"
+
+    ## INT4 (-2,147,483,648 to 2,147,483,647)
+       Equivalent to Java int
+    integer = SQL_Type.Value Types.INTEGER "INTEGER"
+
+    ## INT8 (-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807)
+       Equivalent to Java long
+    bigint = SQL_Type.Value Types.BIGINT "BIGINT"
+
+    ## REAL (single precision floating point)
+       Equivalent to Java float
+    real = SQL_Type.Value Types.REAL "FLOAT"
+
+    ## DOUBLE (double precision floating point)
+       Equivalent to Java double
+    double = SQL_Type.Value Types.DOUBLE "DOUBLE"
+
+    ## BIGNUM (variable length integer) - Decimal Nothing 0
+       Read as a BigInteger in Java
+       Can be HUGEINT, UHUGEINT, UBIGINT or BIGNUM in DuckDB
+    bignum = SQL_Type.Value Types.BIGINT "BIGNUM"
+
+    ## DECIMAL (fixed precision scale)
+       Equivalent to Java BigDecimal
+    decimal precision scale = SQL_Type.Value Types.DECIMAL "DECIMAL" precision scale
+
+    ## VARCHAR (variable length string)
+       Equivalent to Java String
+    varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
+
+    ## TIME (time of day)
+       Equivalent to Java LocalTime
+    time = SQL_Type.Value Types.TIME "TIME"
+
+    ## DATE (date without time)
+       Equivalent to Java LocalDate
+    date = SQL_Type.Value Types.DATE "DATE"
+
+    ## TIMESTAMP WITH TIME ZONE
+       Equivalent to Java ZonedDateTime
+    timestamp_with_tz = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMPTZ"
+
+    ## TIMESTAMP WITHOUT TIME ZONE
+       Equivalent to Java LocalDateTime
+    timestamp = SQL_Type.Value Types.TIMESTAMP "TIMESTAMP_NS"
+
+    ## BLOB (binary large object)
+       Equivalent to Java byte[]
+    blob = SQL_Type.Value Types.BLOB "BLOB"

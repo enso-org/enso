@@ -57,7 +57,7 @@ type Dialect_Flag
     Supports_Sort_Digits_As_Numbers
     ## ---
        private: true
-       --- 
+       ---
        Specifies if the backend supports case insensitive ordering.
     Supports_Case_Insensitive_Ordering
     ## ---
@@ -76,7 +76,7 @@ type Dialect_Flag
        private: true
        ---
        Specifies if the backend uses unicode normalization when doing case
-       insentive ordering.
+       insensitive ordering.
     Order_By_Unicode_Normalization_When_Case_Insensitive
     ## ---
        private: true
@@ -112,7 +112,7 @@ type Dialect_Flag
     NaN_Non_Comparable
     ## ---
        private: true
-       --- 
+       ---
        If `order_by` was applied before, the distinct operation will
        return the first row from each group. Guaranteed in the in-memory backend,
        but may not be supported by all databases.
@@ -147,8 +147,8 @@ type Dialect_Flag
        private: true
        ---
        Specifies how the max size of the char type behaves after
-       text_left/text_right.
-       If True the orginal size is kept, if False the size is reset.
+       text_left, _right, and _mid.
+       If True the original size is kept, if False the size is reset.
     Char_Max_Size_After_Substring_Kept
     ## ---
        private: true

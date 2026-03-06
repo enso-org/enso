@@ -12,17 +12,18 @@ import {
   TrialEndedModal as TrialEndedModalReact,
   type TrialEndedModalProps,
 } from '#/modals/TrialEndedModal'
-import * as backendModule from '#/services/Backend'
 import { DAY_MS } from '#/utilities/time'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import type { DataLoader } from '$/router'
+import { proxyRefs } from '$/utils/reactivity'
 import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
-import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
-import { proxyRefs } from '@/util/reactivity'
+import { waitForData } from '@/util/tanstack'
 import { useQuery } from '@tanstack/vue-query'
+import * as backendModule from 'enso-common/src/services/Backend'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, onMounted, onUnmounted } from 'vue'
 
 const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
@@ -61,7 +62,7 @@ export const dataLoader: DataLoader<Props> = {
     const needsOrganizationSetup = PLANS_TO_SPECIFY_ORG_NAME.includes(plan)
 
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
-    await organizationQuery.suspense()
+    await waitForData(organizationQuery)
 
     const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
 

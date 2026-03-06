@@ -413,8 +413,8 @@ public class SignatureTest {
                     Ctor x
 
                 normal_call = (My_Type.Value 42).f 10
-                static_call = My_Type.f (My_Type.Value 23) 100
-                invalid_static_call = My_Type.f (Other_Type.Ctor 11) 1000
+                static_call = My_Type.f self=(My_Type.Value 23) 100
+                invalid_static_call = My_Type.f self=(Other_Type.Ctor 11) 1000
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -631,9 +631,9 @@ public class SignatureTest {
 
                 My_Type.from (that : Convertible_Type) = My_Type.Value that.x+1
 
-                static_my_type = My_Type.f (My_Type.Value 23) 1000
-                static_convertible = My_Type.f (Convertible_Type.A 23) 1000
-                static_inconvertible = My_Type.f (Inconvertible_Type.B 23) 1000
+                static_my_type = My_Type.f self=(My_Type.Value 23) 1000
+                static_convertible = My_Type.f self=(Convertible_Type.A 23) 1000
+                static_inconvertible = My_Type.f self=(Inconvertible_Type.B 23) 1000
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -1441,9 +1441,7 @@ public class SignatureTest {
       var res = foo.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains(
-          "expected the result of `foo` to be (Integer | Text) & Clazz, but got Text",
-          e.getMessage());
+      assertContains("expected the result of `foo` to be Clazz, but got Text", e.getMessage());
     }
   }
 

@@ -100,7 +100,10 @@ public interface Case extends Expression {
     }
 
     public UUID id() {
-      return id;
+      // TBD: this method should return null when there is no ID
+      // but there is no way to check if the ID is null or not now
+      // when the id field is private in a superclass
+      return super.getId();
     }
 
     @Override

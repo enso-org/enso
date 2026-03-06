@@ -14,6 +14,7 @@ import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDat
 import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { UpdateHandler, UpdateResult } from '$/providers/openedProjects/widgetRegistry'
 import { useCallbackRegistry } from '$/utils/data/callbacks'
+import { proxyRefs, useWatchContext } from '$/utils/reactivity'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { assert, assertNever } from '@/util/assert'
@@ -21,13 +22,12 @@ import { Ast } from '@/util/ast'
 import type { AstId, Identifier, MutableModule } from '@/util/ast/abstract'
 import { isAstId, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
-import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
-import { andThen, Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { primitiveEquals } from '@/util/equals'
 import type { MethodPointer } from '@/util/methodPointer'
-import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { andThen, Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { map, set } from 'lib0'
 import {
   computed,
@@ -49,7 +49,6 @@ import type { ExpressionUpdate } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { visMetadataEquals } from 'ydoc-shared/yjsModel'
-import * as Y from 'yjs'
 import { type ModuleStore } from '../module'
 
 const FALLBACK_BINDING_PREFIX = 'node'
@@ -143,7 +142,7 @@ export function createGraphStore(
 
   const nodeState = {
     nodeHovered: useAssociatedFlag({ onCleanup }),
-    nodeExtended: useAssociatedFlag({ onCleanup }),
+    nodeDetailedView: useAssociatedFlag({ onCleanup }),
     nodeOutputVisible: useAssociatedFlag({ onCleanup }),
     nodeOutputHovered: useAssociatedFlag({ onCleanup }),
     nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
@@ -223,6 +222,9 @@ export function createGraphStore(
     return imm
   })
 
+  if (module.root) {
+    db.updateExternalIds(module.root)
+  }
   const unobserveModule = module.observe((update) => {
     if (
       module.root &&
@@ -357,49 +359,19 @@ export function createGraphStore(
     })
   }
 
-  const undoManagerStatus = reactive({
-    canUndo: false,
-    canRedo: false,
-    update(m: Y.UndoManager) {
-      this.canUndo = m.canUndo()
-      this.canRedo = m.canRedo()
-    },
-  })
-  watch(
-    () => proj.module?.undoManager,
-    (m) => {
-      if (m) {
-        const update = () => undoManagerStatus.update(m)
-        const events = stringUnionToArray<keyof Events<Y.UndoManager>>()(
-          'stack-item-added',
-          'stack-item-popped',
-          'stack-cleared',
-          'stack-item-updated',
-        )
-        events.forEach((event) => m.on(event, update))
-      }
-    },
-  )
-  const undoManager = proxyRefs({
-    undo() {
-      proj.module?.undoManager.undo()
-    },
-    redo() {
-      proj.module?.undoManager.redo()
-    },
-    undoStackBoundary() {
-      proj.module?.undoManager.stopCapturing()
-    },
-    canUndo: computed(() => undoManagerStatus.canUndo),
-    canRedo: computed(() => undoManagerStatus.canRedo),
-  })
-
   function setNodePosition(nodeId: NodeId, position: Vec2) {
     const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
     if (!metadata) return
     const oldPos = metadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y)
       metadata.set('position', { x: position.x, y: position.y })
+  }
+
+  function setNodeDisplayMode(nodeId: NodeId, mode: 'expanded' | 'collapsed') {
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    if (!metadata) return
+    const oldMode = metadata.get('displayMode')
+    if (oldMode !== mode) metadata.set('displayMode', mode)
   }
 
   function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
@@ -539,6 +511,12 @@ export function createGraphStore(
     return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
   }
 
+  function getOutputPortNodeId(id: PortId): NodeId | undefined {
+    if (!isAstId(id)) return undefined
+    const [nodeId] = db.nodeOutputPorts.reverseLookup(id)
+    return nodeId
+  }
+
   /**
    * Emit a value update to a port view under specific ID. Returns Err if the port view is
    * not registered.
@@ -664,11 +642,24 @@ export function createGraphStore(
   }
 
   function isConnectedSource(portId: AstId): boolean {
-    return db.connections.lookup(portId).size > 0
+    return (
+      db.connections.lookup(portId).size > 0 ||
+      unconnectedEdges.cbEditedEdge.value?.source === portId ||
+      unconnectedEdges.mouseEditedEdge.value?.source === portId
+    )
   }
 
   function isConnectedTarget(portId: PortId): boolean {
     return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
+  }
+
+  function isTargetBeingDraggedAwayFrom(portId: PortId): boolean {
+    const edge = unconnectedEdges.mouseEditedEdge.value
+    return (
+      edge?.createdFrom === 'edge' &&
+      edge?.target !== portId &&
+      edge?.disconnectedEdgeTarget === portId
+    )
   }
 
   function nodeCanBeEntered(id: NodeId): boolean {
@@ -680,11 +671,6 @@ export function createGraphStore(
       return false
     }
     return true
-  }
-
-  function onBeforeEdit(f: (transaction: Y.Transaction) => void): { unregister: () => void } {
-    proj.module?.doc.ydoc.on('beforeTransaction', f)
-    return { unregister: () => proj.module?.doc.ydoc.off('beforeTransaction', f) }
   }
 
   return proxyRefs({
@@ -703,8 +689,8 @@ export function createGraphStore(
     getNodeColorOverride,
     setNodeContent,
     setNodePosition,
+    setNodeDisplayMode,
     setNodeVisualization,
-    undoManager,
     updateNodeRect,
     updateNodeOutputAnim,
     updateVizRect,
@@ -713,13 +699,14 @@ export function createGraphStore(
     getPortRelativeRect,
     getPortExpectedType,
     getPortNodeId,
+    getOutputPortNodeId,
     getSourceNodeId,
     isPortEnabled,
     updatePortValue,
     setEditedNode,
-    onBeforeEdit,
     isConnectedSource,
     isConnectedTarget,
+    isTargetBeingDraggedAwayFrom,
     nodeCanBeEntered,
     connectedEdges,
     currentMethod: proxyRefs({
@@ -739,7 +726,12 @@ export interface ConnectedEdge {
   target: PortId
 }
 
-/** TODO: Add docs */
+/** Equality function for {@link ConnectedEdge}. */
+export function connectedEdgeEquals(a: ConnectedEdge, b: ConnectedEdge) {
+  return primitiveEquals(a.source, b.source) && primitiveEquals(a.target, b.target)
+}
+
+/** Check if edge is connected at both ends. */
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }

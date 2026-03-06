@@ -7,7 +7,6 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { useContainerData } from '$/providers/container'
 import type { Node, NodeId } from '$/providers/openedProjects/graph'
 import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
@@ -28,6 +27,7 @@ import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { createSelectionAlignmentHandlers } from '@/components/GraphEditor/selectionAlignment'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -56,11 +56,11 @@ import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { isDef, type VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Err, Ok, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { set } from 'lib0'
 import {
   computed,
@@ -75,14 +75,15 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { analyzeConnectAround } from './GraphEditor/detaching'
+import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
-const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { module } = useCurrentProject()
+const { id: assetId, module, ensoPath } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -192,6 +193,8 @@ watch(
   () => nodeSelection.deselectAll(),
 )
 
+const detachInfo = computed(() => analyzeConnectAround(nodeSelection.selected, graphStore))
+
 // === Node creation ===
 
 const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
@@ -250,12 +253,12 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
-    enabled: () => graphStore.undoManager.canUndo,
-    action: () => graphStore.undoManager.undo(),
+    enabled: () => module.value.undoManager.canUndo,
+    action: () => module.value.undoManager.undo(),
   },
   'graph.redo': {
-    enabled: () => graphStore.undoManager.canRedo,
-    action: () => graphStore.undoManager.redo(),
+    enabled: () => module.value.undoManager.canRedo,
+    action: () => module.value.undoManager.redo(),
   },
   'graph.fitAll': {
     action: zoomToSelected,
@@ -291,7 +294,7 @@ const actionHandlers = registerHandlers({
     action: () => {
       nodeSelection.deselectAll()
       clearFocus()
-      graphStore.undoManager.undoStackBoundary()
+      module.value.undoManager.undoStackBoundary()
     },
   },
   'graph.toggleVisualization': {
@@ -309,7 +312,7 @@ const actionHandlers = registerHandlers({
       })
     },
   },
-  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.pasteNode': { action: createNodesFromClipboard },
   'graph.openDocumentation': {
     action: () => {
       const result = tryGetSelectionDocUrl()
@@ -320,6 +323,15 @@ const actionHandlers = registerHandlers({
       window.open(result.value, '_blank')
     },
   },
+  'graph.deleteSelectedEdge': {
+    enabled: () =>
+      nodeSelection.selectedEdge != null &&
+      graphStore.db.connectionExists(nodeSelection.selectedEdge),
+    action: () => {
+      if (!nodeSelection.selectedEdge) return
+      graphStore.updatePortValue(nodeSelection.selectedEdge.target, undefined)
+    },
+  },
   ...selectionActionHandlers(
     () =>
       iter.filterDefined(
@@ -328,10 +340,42 @@ const actionHandlers = registerHandlers({
           graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
         ),
       ),
+    () => detachInfo.value.ok && detachInfo.value.value.length > 0,
     {
       collapseNodes,
       copyNodesToClipboard,
+      ...createSelectionAlignmentHandlers(graphStore, module),
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+      deleteAndConnectAround: (nodes) => {
+        return module.value.edit(async (edit) => {
+          if (!detachInfo.value.ok) return detachInfo.value
+          const reconnectResults = await Promise.all(
+            detachInfo.value.value.map(async ({ port, ident }) => {
+              const result = await graphStore.updatePortValue(
+                port,
+                Ast.Ident.new(edit, ident),
+                edit,
+              )
+              if (!result.ok) {
+                result.error.log('Failed to connect around')
+              }
+              return result
+            }),
+          )
+          if (reconnectResults.some((result) => !result.ok)) {
+            toasts.userActionFailed.show(
+              'Errors occurred while connecting around removed components.',
+            )
+          }
+          for (const node of nodes) {
+            // We cannot call graphStore.deleteNodes, because it bases on the graphDb
+            // which is not updated with reconnections above.
+            const outerAst = edit.getVersion(node.outerAst)
+            if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
+          }
+          return Ok()
+        })
+      },
     },
   ),
 })
@@ -358,6 +402,7 @@ const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
     clearFocus()
+    nodeSelection.selectedEdge = undefined
   },
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
@@ -393,9 +438,8 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  const projectId = projectStore.id
-  rightPanel.setContext(containerData.tab, {
-    item: projectId,
+  rightPanel.setContext(ensoPath.value, {
+    item: assetId.value,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
 })
@@ -522,7 +566,7 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   }
 }
 
-function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
+function createNodeFromPort(id: Ast.AstId) {
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
@@ -536,6 +580,7 @@ function handleEdgeDrop(source: Ast.AstId, position: Vec2) {
 }
 
 // === Node Collapsing ===
+const renameSchedule = provideRenameSchedule()
 
 function collapseNodes(nodes: Node[]) {
   const selected = new Set(
@@ -563,7 +608,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     module.value.edit((edit) => {
-      const { collapsedCallRoot, collapsedNodeIds, outputAstId } = performCollapse(
+      const { collapsedCallRoot, collapsedNodeIds, outputAstId, collapsedName } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
@@ -578,6 +623,11 @@ function collapseNodes(nodes: Node[]) {
       const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
       const outputPosition = place(collapsedNodeRects)
       edit.get(outputAstId).mutableNodeMetadata().set('position', outputPosition.xy())
+
+      if (graphStore.currentMethod.pointer.ok) {
+        const currentPointer = graphStore.currentMethod.pointer.value
+        renameSchedule?.scheduleFunctionRename({ ...currentPointer, name: collapsedName })
+      }
 
       return Ok()
     })
@@ -637,6 +687,7 @@ const contextMenuActions: DisplayableActionName[] = [
   'graph.redo',
   'graph.addComponent',
   'graph.fitAll',
+  'graph.pasteNode',
   'graph.toggleCodeEditor',
   'graph.toggleDocumentationEditor',
 ]
@@ -660,7 +711,6 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
-            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
@@ -669,8 +719,7 @@ const contextMenuActions: DisplayableActionName[] = [
           <GraphEdges
             :navigator="graphNavigator"
             @createNodeFromEdge="handleEdgeDrop"
-            @createNodeFromPort="createNodesFromSource"
-            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+            @createNodeFromPort="createNodeFromPort"
           />
           <ComponentBrowser
             v-if="componentBrowserOpened"
@@ -695,8 +744,8 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMouse />
       </ContextMenuTrigger>
     </PopoverRootProvider>
-    <PopoverRootProvider class="bottomPanel">
-      <BottomPanel v-model:show="showCodeEditor">
+    <PopoverRootProvider>
+      <BottomPanel v-model:show="showCodeEditor" class="bottomPanel">
         <CodeEditor />
       </BottomPanel>
     </PopoverRootProvider>
@@ -716,7 +765,7 @@ const contextMenuActions: DisplayableActionName[] = [
 .vertical {
   display: flex;
   flex-direction: column;
-  & .bottomPanel {
+  & :deep(.bottomPanel) {
     flex: none;
   }
   & .viewportPanel {

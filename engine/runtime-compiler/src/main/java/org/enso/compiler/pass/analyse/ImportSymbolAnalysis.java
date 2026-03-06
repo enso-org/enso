@@ -6,7 +6,6 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
@@ -76,15 +75,8 @@ public final class ImportSymbolAnalysis implements MiniPassFactory {
         }
         newImports.add(imp);
       }
-      return moduleIr.copy(
-          CollectionConverters.asScala(newImports).toList(),
-          moduleIr.exports(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      return moduleIr.copyWithImportsAndExports(
+          CollectionConverters.asScala(newImports).toList(), moduleIr.exports());
     }
 
     @Override
@@ -198,15 +190,13 @@ public final class ImportSymbolAnalysis implements MiniPassFactory {
                     convMethod.conversionMethod().sourceTpName());
             default -> throw new IllegalStateException("Unexpected value: " + importTarget);
           };
-      return new ImportExport(imp, errorReason, new MetadataStorage());
+      return ImportExport.create(imp, errorReason);
     }
 
     private static ImportExport createImportFromMethodError(
         Import imp, String moduleName, String methodName) {
-      return new ImportExport(
-          imp,
-          new ImportExport.IllegalImportFromMethod(moduleName, methodName),
-          new MetadataStorage());
+      return ImportExport.create(
+          imp, new ImportExport.IllegalImportFromMethod(moduleName, methodName));
     }
   }
 }

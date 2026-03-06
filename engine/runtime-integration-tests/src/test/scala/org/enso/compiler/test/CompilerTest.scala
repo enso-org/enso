@@ -2,11 +2,12 @@ package org.enso.compiler.test
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{EnsoParser, IR, Identifier}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Diagnostic,
   Expression,
+  MetadataStorage,
   Module,
   Name
 }
@@ -186,26 +187,28 @@ trait CompilerRunner {
       val methBinding = definition.Method.Binding
         .builder()
         .methodReference(
-          Name.MethodReference(
-            Some(
-              Name.Qualified(
-                List(
-                  Name.Literal(
-                    "TestType",
-                    isMethod           = false,
-                    identifiedLocation = null
+          Name.MethodReference
+            .builder()
+            .typePointer(
+              Some(
+                Name.Qualified
+                  .builder()
+                  .parts(
+                    List(
+                      Name.Literal
+                        .builder()
+                        .name("TestType")
+                        .isMethod(false)
+                        .build()
+                    )
                   )
-                ),
-                identifiedLocation = null
+                  .build()
               )
-            ),
-            Name.Literal(
-              "testMethod",
-              isMethod           = false,
-              identifiedLocation = null
-            ),
-            identifiedLocation = null
-          )
+            )
+            .methodName(
+              Name.Literal.builder().name("testMethod").isMethod(false).build()
+            )
+            .build()
         )
         .arguments(Nil)
         .isPrivate(false)
@@ -219,23 +222,22 @@ trait CompilerRunner {
       * @return an atom with one argument `arg` with default value `ir`
       */
     def asAtomDefaultArg: Definition.Data = {
-      Definition.Data(
-        Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
-        List(
-          DefinitionArgument.Specified
-            .builder()
-            .name(
-              Name
-                .Literal("arg", isMethod = false, identifiedLocation = null)
-            )
-            .defaultValue(Some(ir))
-            .suspended(false)
-            .build()
-        ),
-        List(),
-        false,
-        identifiedLocation = null
-      )
+      Definition.Data
+        .builder()
+        .name(
+          Name.Literal.builder().name("TestAtom").isMethod(false).build()
+        )
+        .arguments(
+          List(
+            DefinitionArgument.Specified
+              .builder()
+              .name(Name.Literal.builder().name("arg").isMethod(false).build())
+              .defaultValue(Some(ir))
+              .suspended(false)
+              .build()
+          )
+        )
+        .build()
     }
   }
 
@@ -308,7 +310,15 @@ trait CompilerRunner {
       )
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, identifiedLocation = null)
+      new Module(
+        List(),
+        List(),
+        List(),
+        false,
+        null,
+        new MetadataStorage(),
+        null
+      )
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

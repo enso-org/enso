@@ -1,16 +1,17 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
-import java.util.Objects;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageProxy;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -54,8 +55,12 @@ public interface Builder {
     // Create a single storage item based on the type of the item.
     return switch (item) {
       case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
-      case Boolean booleanValue ->
-          new BoolStorage(new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      case Boolean booleanValue -> {
+        var s = checkSize(size);
+        var validity = new BitSet();
+        validity.set(0, s, true);
+        yield new BoolStorage(new BitSet(), validity, s, booleanValue);
+      }
       default -> {
         var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
         var builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
@@ -86,35 +91,112 @@ public interface Builder {
   }
 
   /**
+   * Converts a proxy storage to local storage.
+   *
+   * @param <T> type of storage
+   * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
+   * @return either {@code storage} itself, or optimized storage of the same {@link
+   *     ColumnStorage#typeChar()} and {@link ColumnStorage#typeSize()} over the same {@link
+   *     ColumnStorage#addressOfData() data}
+   */
+  static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    if (!Proxy.isProxyClass(storage.getClass())) {
+      return storage;
+    }
+
+    var storageType = StorageType.ofStorage(storage);
+    var size = Math.toIntExact(storage.getSize());
+
+    if (size == 0) {
+      return Builder.makeEmpty(storageType, 0);
+    }
+
+    if (storageType instanceof NullType) {
+      var b = new NullBuilder();
+      b.appendNulls(size);
+      return storageType.asTypedStorage(b.seal());
+    }
+
+    var data = storage.addressOfData();
+    if (data != 0) {
+      var validity = storage.addressOfValidity();
+
+      var localStorage =
+          switch (storageType) {
+            case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
+            case IntegerType type ->
+                LongBuilder.fromAddress(size, data, validity, type).seal(storage);
+            case FloatType _ -> DoubleBuilder.fromAddress(size, data, validity).seal(storage);
+            case TextType type ->
+                StringBuilder.fromAddress(size, data, validity, type).seal(storage);
+            case DateType _ -> DateBuilder.fromAddress(size, data, validity).seal(storage);
+            case DateTimeType _ -> DateTimeBuilder.fromAddress(size, data, validity).seal(storage);
+            case TimeOfDayType _ ->
+                TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage);
+            default -> {
+              // Currently: BigInteger, BigDecimal, AnyObject
+              BuilderUtil.LOGGER.warn(
+                  "Unable to make local buffer based storage for {} size {}", storageType, size);
+              yield null;
+            }
+          };
+
+      if (localStorage != null) {
+        assert assertSameStorages(storage, localStorage);
+        return storageType.asTypedStorage(localStorage);
+      }
+    }
+
+    // Handle BigInteger specially
+    if (storageType instanceof BigIntegerType) {
+      var b = Builder.getForBigInteger(size, null);
+      b.appendBulkStorage(storage);
+      var localStorage = b.seal();
+      return storageType.asTypedStorage(localStorage);
+    }
+
+    // Fallback and use a ColumnStorageProxy
+    var proxiedStorage = ColumnStorageProxy.create(storageType, size, storage);
+    return storageType.asTypedStorage(proxiedStorage);
+  }
+
+  private static boolean assertSameStorages(ColumnStorage<?> s1, ColumnStorage<?> s2) {
+    var sb = new java.lang.StringBuilder();
+    if (s1.getSize() != s2.getSize()) {
+      sb.append("Unexpected size %d != %d\n".formatted(s1.getSize(), s2.getSize()));
+    }
+    if (s1.typeChar() != s2.typeChar()) {
+      sb.append("Unexpected type %s != %s\n".formatted(s1.typeChar(), s2.typeChar()));
+    }
+    if (s1.typeSize() != s2.typeSize()) {
+      sb.append("Unexpected type %d != %d\n".formatted(s1.typeSize(), s2.typeSize()));
+    }
+    assert sb.isEmpty() : sb;
+    return sb.isEmpty();
+  }
+
+  /**
    * Constructs a builder accepting values of a specific type.
    *
    * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
    * the type from the data.
    */
-  static Builder getForType(StorageType<?> type, long size, ProblemAggregator problemAggregator) {
-    Builder builder =
-        switch (type) {
-          case AnyObjectType t -> getForAnyObject(size);
-          case BooleanType t -> getForBoolean(size);
-          case DateType t -> getForDate(size);
-          case DateTimeType t -> getForDateTime(size);
-          case TimeOfDayType t -> getForTime(size);
-          case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
-          case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
-          case TextType textType -> getForText(textType, size);
-          case BigDecimalType t -> getForBigDecimal(size);
-          case BigIntegerType t -> getForBigInteger(size, problemAggregator);
-          case NullType t -> new NullBuilder();
-          case null -> getInferredBuilder(size, problemAggregator);
-          default ->
-              getForType(
-                  StorageType.fromTypeCharAndSize(type.typeChar(), type.size()),
-                  size,
-                  problemAggregator);
-        };
-
-    assert Objects.equals(builder.getType(), type);
-    return builder;
+  static Builder getForType(
+      StorageType<?> storageType, long size, ProblemAggregator problemAggregator) {
+    return switch (storageType) {
+      case AnyObjectType _ -> getForAnyObject(size);
+      case BooleanType _ -> getForBoolean(size);
+      case DateType _ -> getForDate(size);
+      case DateTimeType _ -> getForDateTime(size);
+      case TimeOfDayType _ -> getForTime(size);
+      case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
+      case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
+      case TextType textType -> getForText(textType, size);
+      case BigDecimalType _ -> getForBigDecimal(size);
+      case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
+      case NullType _ -> new NullBuilder();
+      case null -> getInferredBuilder(size, problemAggregator);
+    };
   }
 
   /**
@@ -266,11 +348,6 @@ public interface Builder {
    * @return a storage containing all the items appended so far
    */
   ColumnStorage<?> seal();
-
-  /**
-   * @return the current storage type of this builder
-   */
-  StorageType<?> getType();
 
   /**
    * Fills the given buffer with the data from this builder.

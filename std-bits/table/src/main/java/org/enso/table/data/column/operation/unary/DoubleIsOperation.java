@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.unary;
 
-import java.util.BitSet;
 import java.util.function.DoublePredicate;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -8,12 +7,13 @@ import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 public class DoubleIsOperation implements UnaryOperation {
   public static final String FINITE_NAME = "is_finite";
@@ -44,7 +44,7 @@ public class DoubleIsOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType().isNumeric();
+    return StorageType.ofStorage(storage).isNumeric();
   }
 
   private static boolean isAllFinite(StorageType<?> storageType) {
@@ -60,10 +60,15 @@ public class DoubleIsOperation implements UnaryOperation {
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     // For Finite
-    if (isAllFinite(storage.getType())) {
-      if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
+    if (isAllFinite(StorageType.ofStorage(storage))) {
+      if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+        var size = (int) storage.getSize();
         return new BoolStorage(
-            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), finiteValue);
+            ImmutableBitSet.allFalse(size),
+            withNothingMap.getValidityMap(),
+            size,
+            finiteValue,
+            null);
       }
 
       return StorageIterators.mapOverStorage(

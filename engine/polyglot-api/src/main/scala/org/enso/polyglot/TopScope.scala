@@ -56,4 +56,18 @@ class TopScope(private val value: Value) {
     )
   }
 
+  /** Compile multiple projects at once, without generating docs.
+    * @param projectPaths Directory paths to the projects to compile.
+    */
+  def compile(
+    shouldCompileDependencies: Boolean,
+    projectPaths: Array[String]
+  ): Unit = {
+    value.invokeMember(
+      COMPILE,
+      shouldCompileDependencies,
+      false,
+      projectPaths
+    )
+  }
 }

@@ -1,7 +1,7 @@
 /** @file Shortcuts for the dashboard application. */
 import { SETTINGS_TAB_DATA } from '#/layouts/Settings/data'
 import * as inputBindings from '#/utilities/inputBindings'
-import * as detect from '$/utils/detect'
+import * as detect from 'enso-common/src/utilities/detect'
 
 /** The type of the keybind and mousebind namespace for the dashboard. */
 export type DashboardBindingNamespace = ReturnType<typeof createBindings>
@@ -33,8 +33,10 @@ const BINDINGS_AND_CATEGORIES = inputBindings.defineBindings(
   ],
   {
     settings: { bindings: ['Mod+,'], icon: 'settings', category: 'navigation' },
+    switchOrganization: { bindings: [], category: 'other' },
     open: { bindings: ['Enter'], icon: 'open', category: 'other' },
     run: { bindings: ['Shift+Enter'], icon: 'workflow_play', category: 'other' },
+    runAsTask: { bindings: ['Mod+Shift+Enter'], icon: 'workflow_play', category: 'fileManagement' },
     close: { bindings: [], icon: 'close', category: 'other' },
     uploadToCloud: { bindings: [], icon: 'cloud_to', category: 'fileManagement' },
     downloadToLocal: { bindings: [], icon: 'cloud_from', category: 'fileManagement' },

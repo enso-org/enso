@@ -1,12 +1,13 @@
-import { Dialog as DialogReact } from '#/components/Dialog'
+import { Dialog as DialogReact } from '#/components/Dialog/Dialog'
+import { Loader as LoaderReact } from '#/components/Loader'
 import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import type { ReactNode } from 'react'
 // Imported here to implement the safer wrapper.
 // eslint-disable-next-line no-restricted-imports
 import { applyPureReactInVue, type magicOptions } from 'veaury'
 import type { DefineComponent } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /**
  * Creates a Vue component wrapping a React component.
@@ -43,5 +44,6 @@ export function suspendedReactComponent<Props extends object>(
 }
 
 // Common components
+export const Loader = reactComponent(LoaderReact)
 export const ResultComponent = reactComponent(ResultReact)
 export const Dialog = reactComponent(DialogReact)

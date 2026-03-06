@@ -1,4 +1,4 @@
-import { provideOpenedProjects } from '$/providers/openedProjects'
+import { createOpenedProjectsStore } from '$/providers/openedProjects'
 import { waitFor, withSetup } from '@/util/testing'
 import { assert, describe, expect, test } from 'vitest'
 import { provideAsyncResources, type AsyncResourceStore } from '../asyncResources'
@@ -6,8 +6,7 @@ import { provideAsyncResources, type AsyncResourceStore } from '../asyncResource
 describe('asyncResources', () => {
   function withAsyncResources(fn: (res: AsyncResourceStore) => void | Promise<void>) {
     return withSetup(() => {
-      const openedProjects = provideOpenedProjects()
-      const res = provideAsyncResources(openedProjects)
+      const res = provideAsyncResources(createOpenedProjectsStore())
       return fn(res)
     })
   }

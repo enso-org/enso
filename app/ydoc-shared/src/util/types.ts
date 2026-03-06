@@ -41,3 +41,8 @@ export type ForbidExcessProps<T, S> = { [K in keyof T]: K extends keyof S ? T[K]
 export type Class<T> = Function & {
   prototype: T
 }
+
+/** Check if the the code runs in the headless environment. */
+export function isHeadless() {
+  return typeof window === 'undefined'
+}

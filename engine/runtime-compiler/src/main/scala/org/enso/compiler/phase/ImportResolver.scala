@@ -2,7 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
@@ -47,7 +47,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
       val (ir, currentLocal) =
         try {
           val ir = current.getIr()
-          val currentLocal = ir.unsafeGetMetadata(
+          val currentLocal = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
             BindingAnalysis,
             "Non-parsed module used in ImportResolver"
           )
@@ -99,7 +99,8 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           resolvedImports ++ resolvedSyntheticImports
         )
 
-        val newIr = ir.copy(imports = newImportIRs)
+        val newIr =
+          ir.copyWithImportsAndExports(newImportIRs, ir.exports)
         context.updateModule(
           current,
           { u =>
@@ -210,22 +211,16 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
     val curModName          = module.getName.toString
     module.getIr.exports.flatMap {
-      case Export.Module(
-            expName,
-            rename,
-            onlyNames,
-            _,
-            isSynthetic,
-            _
-          ) if !isSynthetic =>
+      case mod: Export.Module if !mod.isSynthetic =>
+        val expName       = mod.name()
         val exportsItself = curModName.equals(expName.name)
         // Skip the exports that already have associated resolved import.
         if (!exportsItself && !resolvedImportNames.contains(expName.name)) {
           val syntheticImport = new Import.Module(
             expName,
-            rename,
+            mod.rename(),
             false,
-            onlyNames,
+            mod.onlyNames(),
             None,
             true,
             null,

@@ -36,15 +36,9 @@ public final class GenerateIRAnnotationVisitor extends SimpleAnnotationValueVisi
   public Void visitType(TypeMirror t, Void unused) {
     var typeElem = (TypeElement) procEnv.getTypeUtils().asElement(t);
     if (Utils.isSubtypeOfIR(typeElem, procEnv)) {
-      if (irInterface != null) {
-        throw new IRProcessingException(
-            "Only one interface can be specified as the IR interface, but found multiple: "
-                + irInterface
-                + " and "
-                + typeElem,
-            annotationField);
+      if (irInterface == null) {
+        irInterface = typeElem;
       }
-      irInterface = typeElem;
     }
     allInterfaces.add(typeElem);
     return null;

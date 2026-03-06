@@ -22,7 +22,6 @@ test.each([
   assert(beforeRoot.code() === before)
   const codeAfter = parseModule(after).code()
   assert(codeAfter === after)
-  beforeRoot.module.setRoot(beforeRoot)
   const edit = beforeRoot.module.edit()
   edit.getVersion(beforeRoot).syncToCode(after)
   const afterRoot = edit.root()
@@ -31,7 +30,6 @@ test.each([
 
 test.each(['f = """\n    \n'])('Print text literal in cloned module', (code) => {
   const beforeRoot = parseModule(code)
-  beforeRoot.module.setRoot(beforeRoot)
   assert(beforeRoot.code() === code)
 
   const edit = beforeRoot.module.edit()

@@ -7,16 +7,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
 import org.enso.base.enso_cloud.HideableValue;
 import org.enso.base.net.http.UrlencodedBodyBuilder;
-import org.enso.database.JDBCProxy;
-import org.graalvm.collections.Pair;
 
 public final class SnowflakeCloudCredentials {
   private static SnowflakeCredentialConfig unsafeReadCredential(
@@ -47,18 +43,18 @@ public final class SnowflakeCloudCredentials {
         accountField.asText(), clientIdField.asText(), clientSecretField.asText());
   }
 
-  public static Connection makeConnection(
-      String url,
-      List<Pair<String, HideableValue>> properties,
-      ExternalLibraryCredentialHelper.CredentialReference credentialReference)
-      throws SQLException {
+  public static List<HideableValue.KeyValuePair> makePairs(
+      ExternalLibraryCredentialHelper.CredentialReference credentialReference) {
     SnowflakeCredentialConfig credentials = unsafeReadCredential(credentialReference);
     AccessToken accessToken = credentials.refresh();
-    var secureProperties = new ArrayList<>(properties);
-    secureProperties.add(Pair.create("authenticator", HideableValue.plain("oauth")));
-    secureProperties.add(Pair.create("user", HideableValue.plain(accessToken.username())));
-    secureProperties.add(Pair.create("token", HideableValue.plain(accessToken.token())));
-    return JDBCProxy.getConnection(url, secureProperties);
+    List<HideableValue.KeyValuePair> secureProperties = new ArrayList<>();
+    secureProperties.add(
+        new HideableValue.KeyValuePair("authenticator", HideableValue.plain("oauth")));
+    secureProperties.add(
+        new HideableValue.KeyValuePair("user", HideableValue.plain(accessToken.username())));
+    secureProperties.add(
+        new HideableValue.KeyValuePair("token", HideableValue.plain(accessToken.token())));
+    return secureProperties;
   }
 
   private static String extractTokenFromResponse(HttpResponse<String> response) {

@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
 @BuiltinMethod(
@@ -46,6 +47,9 @@ public final class EqualsBuiltinNode extends Node {
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
   public Object execute(VirtualFrame frame, Object self, Object other) {
+    if (self instanceof DataflowError e) {
+      return e;
+    }
     var areEqual = node.execute(frame, self, other);
     if (areEqual.getWarnings() != null) {
       if (append == null) {

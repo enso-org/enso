@@ -2,6 +2,69 @@
 
 #### Enso IDE
 
+- [Add component alignment options][14590].
+- [Components have Expanded/Collapsed modes][14678]. The effect is visible in
+  Table.input components.
+- [Text widgets have a fixed maximum size in collapsed mode][14775]
+- [Fixed uploading corrupted projects to the cloud storage][14805]
+- [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
+
+[14590]: https://github.com/enso-org/enso/pull/14590
+[14678]: https://github.com/enso-org/enso/pull/14678
+[14775]: https://github.com/enso-org/enso/pull/14775
+[14805]: https://github.com/enso-org/enso/pull/14805
+[14820]: https://github.com/enso-org/enso/pull/14820
+
+#### Enso Standard Library
+
+- [Multiline if_then_else][14522].
+- [Using dual JVM mode for `Standard.Microsoft`][14476].
+- [Standard.Test pending field is lazy][14536].
+- [Using dual JVM mode for `Standard.AWS`][14568].
+- [Running `Standard.Tableau` in dual JVM mode][14607].
+- [Polishing Standard.Test API][14599].
+- [Add Amazon SES email provider][14597]
+- [Support for reading Alteryx YXDB files][14602].
+- [Salesforce OAuth support.][14550]
+- [Launching another Enso process via `Process_Builder`][14753]
+- [Redshift schema support.][14735]
+- [`Process_Builder.set_env`.][14799]
+- [New `Profile` API for timing code execution.][14827]
+
+[14522]: https://github.com/enso-org/enso/pull/14522
+[14476]: https://github.com/enso-org/enso/pull/14476
+[14536]: https://github.com/enso-org/enso/pull/14536
+[14568]: https://github.com/enso-org/enso/pull/14568
+[14607]: https://github.com/enso-org/enso/pull/14607
+[14599]: https://github.com/enso-org/enso/pull/14599
+[14597]: https://github.com/enso-org/enso/pull/14597
+[14602]: https://github.com/enso-org/enso/pull/14602
+[14550]: https://github.com/enso-org/enso/pull/14550
+[14753]: https://github.com/enso-org/enso/pull/14753
+[14735]: https://github.com/enso-org/enso/pull/14735
+[14799]: https://github.com/enso-org/enso/pull/14799
+[14827]: https://github.com/enso-org/enso/pull/14827
+
+#### Enso Language & Runtime
+
+- [`Panic.rethrow` keeps original location][14480]
+- [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
+- [Lazily initialized local variables with `Ref.new lazy=True`][14554].
+- [Flush system caches via `Runtime.gc`][14557]
+- [Removing `catch_primitive` from the API][14676]
+- [`polyglot java import` loads classes from HotSpot JVM][14798]
+
+[14480]: https://github.com/enso-org/enso/pull/14480
+[14490]: https://github.com/enso-org/enso/pull/14490
+[14536]: https://github.com/enso-org/enso/pull/14554
+[14557]: https://github.com/enso-org/enso/pull/14557
+[14676]: https://github.com/enso-org/enso/pull/14676
+[14798]: https://github.com/enso-org/enso/pull/14798
+
+# Enso 2025.3
+
+#### Enso IDE
+
 - [Resizing the right panel no longer causes content reflow][13976].
 - [Allow selecting target type for Any.to method][13685].
 - [Command Palette to search for arbitrary actions][13658]
@@ -14,6 +77,36 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Support opening project by clicking on link in documentation][14136]
+- [Images may be added to assets descriptions][14247]
+- [Dragging edges from plus button on nodes is now possible][14246]
+- [JSON and SQL visualizations' content may be now selected and copied][14262]
+- [SQL visualization displays interpolated parameters properly][14262]
+- [Added immediate rename of user created components][14209]
+- [Multiple opened projects' tabs are now allowed][14215]
+- [Required arguments now have an arrow displayed on top of the port][14270]
+- [Connections between components may be selected with click][14311] and deleted
+  with <kbd>Delete</kbd> key.
+- [Improved visuals of high components][14267]. Their contents is aligned to
+  top.
+- [Context menu for connections][14325].
+- [Warnings and Errors no longer become transparent][14388]
+- [`--headless` flag to run a project without the User Interface][14310]
+- ["Delete and Connect Around" option in node's menu][14403]
+- [GeoMap visualization is now working without need of Mapbox Token in
+  environment][14429]
+- [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
+- [Added additonal file and site options for MS365 credentials][14477]
+- [Maximum height of the file browser is slightly reduced][14467]
+- [Fix mispositioned bottom panel][14506]
+- ["Paste component" option in graph menu][14504]
+- [Fix bug where Table Expressions weren't saved after finishing edit by mouse
+  click][14500]
+- [Fix "What's new", "Documentation" and similar buttons opening external page
+  twice][14507]
+- [Add `Date_Time_Column.set_time_zone` and `.at_time_zone` to in-memory
+  tables.][14591]
+- [Fixed copying projects from Team directory to Local][14797]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -26,6 +119,29 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14136]: https://github.com/enso-org/enso/pull/14136
+[14247]: https://github.com/enso-org/enso/pull/14247
+[14262]: https://github.com/enso-org/enso/pull/14262
+[14246]: https://github.com/enso-org/enso/pull/14246
+[14209]: https://github.com/enso-org/enso/pull/14209
+[14215]: https://github.com/enso-org/enso/pull/14215
+[14270]: https://github.com/enso-org/enso/pull/14270
+[14310]: https://github.com/enso-org/enso/pull/14310
+[14311]: https://github.com/enso-org/enso/pull/14311
+[14267]: https://github.com/enso-org/enso/pull/14267
+[14325]: https://github.com/enso-org/enso/pull/14325
+[14388]: https://github.com/enso-org/enso/pull/14388
+[14403]: https://github.com/enso-org/enso/pull/14403
+[14429]: https://github.com/enso-org/enso/pull/14429
+[14443]: https://github.com/enso-org/enso/pull/14443
+[14477]: https://github.com/enso-org/enso/pull/14477
+[14467]: https://github.com/enso-org/enso/pull/14467
+[14506]: https://github.com/enso-org/enso/pull/14506
+[14504]: https://github.com/enso-org/enso/pull/14504
+[14500]: https://github.com/enso-org/enso/pull/14500
+[14507]: https://github.com/enso-org/enso/pull/14507
+[14591]: https://github.com/enso-org/enso/pull/14591
+[14797]: https://github.com/enso-org/enso/pull/14797
 
 #### Enso Standard Library
 
@@ -40,6 +156,38 @@
 - [Add Text_Column.upper and Text_Column.lower.][14179]
 - [Microsoft 365 OAuth support.][14135]
 - [Add Text_Column.proper and Rename Case.Title->Case.Proper.][14184]
+- [Snowflake stage support for reading and writing files.][14210]
+- [Snowflake file format and copy into support.][14221]
+- [Snowflake bulk load API.][14230]
+- [Add error_on_missing_columns to more methods.][14236]
+- [Add `OneDrive_File` to Microsoft 365 implementation.][14237]
+- [Progress of `Runtime.sleep` visualized.][14275]
+- [Add `Email.send`][14258]
+- [Full DuckDB Dialect.][14298]
+- [Initial Spatial support within DuckDB.][14331]
+- [Add email SMTP support.][14350]
+- [Read files into DuckDB both spatial and not.][14367]
+- [Implement Text_Column to_case for DB backends.][14386]
+- [Implement bulk loading to DuckDB.][14402]
+- [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
+- [Initial file writing from DuckDB.][14421]
+- [Parquet file reading and writing, DuckDB formats.][14427]
+- [Add Text_Column.index_of][14428]
+- [Trigonometry and other maths function on Column.][14433]
+- [Implement `Text_Column.left, right, and mid` for in-memory and database
+  backends.][14420]
+- [Support for reading JSON lines files.][14439]
+- [Add Custom SQL to in database aggregates.][14472]
+- [Add spatial functions and `write_spatial_file` to DuckDB.][14488]
+- [Add spatial function support to expressions.][14492]
+- [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
+- [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
+- [Add `Grouping_Method.Equal_Sum` for database backends.][14528]
+- [Add `Grouping_Method.Standard_Deviation` for database backends.][14546]
+- [Default `Data.fetch` auto-detect to plain text or XML in certain
+  cases][14648]
+- [Add `Date_Time_Column.to_utc`.][14649]
+- [Add `Date_Column.first_of_week`.][14674]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -51,14 +199,45 @@
 [14157]: https://github.com/enso-org/enso/pull/14157
 [14179]: https://github.com/enso-org/enso/pull/14179
 [14184]: https://github.com/enso-org/enso/pull/14184
+[14210]: https://github.com/enso-org/enso/pull/14210
+[14221]: https://github.com/enso-org/enso/pull/14221
+[14230]: https://github.com/enso-org/enso/pull/14230
+[14236]: https://github.com/enso-org/enso/pull/14236
+[14237]: https://github.com/enso-org/enso/pull/14237
+[14275]: https://github.com/enso-org/enso/pull/14275
+[14258]: https://github.com/enso-org/enso/pull/14258
+[14298]: https://github.com/enso-org/enso/pull/14298
+[14331]: https://github.com/enso-org/enso/pull/14331
+[14350]: https://github.com/enso-org/enso/pull/14350
+[14367]: https://github.com/enso-org/enso/pull/14367
+[14386]: https://github.com/enso-org/enso/pull/14386
+[14402]: https://github.com/enso-org/enso/pull/14402
+[14420]: https://github.com/enso-org/enso/pull/14420
+[14421]: https://github.com/enso-org/enso/pull/14421
+[14427]: https://github.com/enso-org/enso/pull/14427
+[14428]: https://github.com/enso-org/enso/pull/14428
+[14433]: https://github.com/enso-org/enso/pull/14433
+[14420]: https://github.com/enso-org/enso/pull/14420
+[14439]: https://github.com/enso-org/enso/pull/14439
+[14472]: https://github.com/enso-org/enso/pull/14472
+[14485]: https://github.com/enso-org/enso/pull/14485
+[14488]: https://github.com/enso-org/enso/pull/14488
+[14492]: https://github.com/enso-org/enso/pull/14492
+[14494]: https://github.com/enso-org/enso/pull/14494
+[14528]: https://github.com/enso-org/enso/pull/14528
+[14546]: https://github.com/enso-org/enso/pull/14528
+[14648]: https://github.com/enso-org/enso/pull/14648
+[14649]: https://github.com/enso-org/enso/pull/14649
+[14674]: https://github.com/enso-org/enso/pull/14674
 
 #### Enso Language & Runtime
 
+- [Special handling of if ... then ... else construct][11365]
 - [Enso is "conversion and equality oriented" language][14133]
 - [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
 - [Moving error relelated methods outside of `Any`][14003]
-- [Defining to_text & co. as extension methods](14050)
+- [Defining to_text & co. as extension methods][14050]
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
@@ -66,7 +245,10 @@
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
+- [Update to GraalVM 25.0.1][14233]
+- [Apply block argument to non-application expression][14249]
 
+[11365]: https://github.com/enso-org/enso/pull/11365
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
@@ -78,6 +260,8 @@
 [13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
+[14233]: https://github.com/enso-org/enso/pull/14233
+[14249]: https://github.com/enso-org/enso/pull/14249
 
 # Enso 2025.2
 

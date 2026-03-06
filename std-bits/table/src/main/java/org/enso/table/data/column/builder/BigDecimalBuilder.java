@@ -2,8 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
@@ -23,7 +21,7 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
       try {
         data[currentSize++] = NumericConverter.coerceToBigDecimal(o);
       } catch (UnsupportedOperationException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(getStorageType(), o);
       }
     }
     return this;
@@ -34,17 +32,12 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
     return o instanceof BigDecimal || NumericConverter.isCoercibleToDouble(o);
   }
 
-  @Override
-  protected ColumnStorage<BigDecimal> doSeal() {
-    return new TypedStorage<>(BigDecimalType.INSTANCE, data);
-  }
-
-  static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
-    var res = new BigDecimalBuilder(longBuilder.data.length);
-    int n = longBuilder.currentSize;
+  static Builder retypeFromLongBuilder(BuilderForLong longBuilder) {
+    var res = Builder.getForBigDecimal(longBuilder.getCurrentCapacity());
+    long n = longBuilder.getCurrentSize();
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; i++) {
-      res.append(BigDecimal.valueOf(longBuilder.data[i]));
+    for (long i = 0; i < n; i++) {
+      res.append(longBuilder.isNothing(i) ? null : BigDecimal.valueOf(longBuilder.getLong(i)));
       context.safepoint();
     }
     return res;

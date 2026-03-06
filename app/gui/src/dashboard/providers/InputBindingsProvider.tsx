@@ -6,8 +6,8 @@ import * as React from 'react'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import { useLocalStorage } from '$/providers/react'
+import * as object from 'enso-common/src/utilities/data/object'
 import { z } from 'zod'
 
 declare module '#/utilities/LocalStorage' {

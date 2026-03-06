@@ -6,7 +6,7 @@
 import { Checkbox } from '#/components/Checkbox'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
-import { useText } from '$/providers/react'
+import { useRemoteConfig, useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as google from './google'
 import type { CredentialFormProps } from './types'
@@ -15,6 +15,8 @@ import type { CredentialFormProps } from './types'
 export function GoogleCredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
   const { getText } = useText()
+  const apiUrl = useRemoteConfig('ENSO_IDE_API_URL')
+  const oauthId = useRemoteConfig('ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID')
 
   return (
     <Form
@@ -23,7 +25,7 @@ export function GoogleCredentialsForm(props: CredentialFormProps) {
       defaultValues={{ scopes: ['sheets'] }}
       className="w-full"
       onSubmit={async (values) => {
-        await google.submitForm(createCredentials, values)
+        await google.submitForm(apiUrl, oauthId, createCredentials, values)
       }}
     >
       <Input name="name" label={getText('name')} />

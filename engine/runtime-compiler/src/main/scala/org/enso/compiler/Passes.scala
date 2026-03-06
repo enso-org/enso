@@ -12,6 +12,7 @@ import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.unusedimports.UnusedImports
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
+  NoDuplicateSelfInMethodCalls,
   NoSelfInStatic,
   ShadowedPatternFields,
   UnusedBindings
@@ -57,6 +58,7 @@ class Passes(config: CompilerConfig) {
             )
           } else List())
     ++ List(
+      IfThenElseToCaseOf.INSTANCE,
       ShadowedPatternFields.INSTANCE,
       UnreachableMatchBranches.INSTANCE,
       NestedPatternMatch,
@@ -97,13 +99,16 @@ class Passes(config: CompilerConfig) {
           } else List()) ++ List(
       AliasAnalysis,
       FramePointerAnalysis,
-      DataflowAnalysis,
       CachePreferenceAnalysis,
       GenericAnnotations
     ) ++ (if (config.isLintingDisabled) {
             Nil
           } else {
-            List(UnusedBindings, NoSelfInStatic)
+            List(
+              UnusedBindings,
+              NoSelfInStatic,
+              NoDuplicateSelfInMethodCalls.INSTANCE
+            )
           }) ++ (if (config.staticAnalysisEnabled) {
                    List(
                      TypeInferenceSignatures.INSTANCE,

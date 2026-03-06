@@ -18,12 +18,12 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date_Time import ensure_in_epoch
 from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
+from project.Nothing import all
 from project.Widget_Helpers import make_date_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -329,6 +329,26 @@ type Date
     length_of_month self =
         ensure_in_epoch self <|
             Time_Utils.length_of_month self
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Returns the date that is the first day of the month containing the
+       specified date.
+    first_of_month : Integer
+    first_of_month self =
+        Time_Utils.first_of_month self
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Returns the date that is the last day of the month containing the
+       specified date.
+    end_of_month : Integer
+    end_of_month self =
+        Time_Utils.end_of_month self
 
     ## ---
        icon: metadata
@@ -945,12 +965,12 @@ type Date
         Widget.Single_Choice values=options display=display
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
-    > self that = Comparable.> self that
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
+    > self that = Comparable.> self=self that
 
     ## ---
        aliases: [greater than or equal]
@@ -958,7 +978,7 @@ type Date
        icon: operators
        ---
        Checks if `self` is greater than or equal to `that`.
-    >= self that = Comparable.>= self that
+    >= self that = Comparable.>= self=self that
 
     ## ---
        aliases: [less than]
@@ -966,7 +986,7 @@ type Date
        icon: operators
        ---
        Checks if `self` is less than `that`.
-    < self that = Comparable.< self that
+    < self that = Comparable.< self=self that
 
     ## ---
        aliases: [less than or equal]
@@ -974,7 +994,7 @@ type Date
        icon: operators
        ---
        Checks if `self` is less than or equal to `that`.
-    <= self that = Comparable.<= self that
+    <= self that = Comparable.<= self=self that
 
 ## ---
    private: true

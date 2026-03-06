@@ -8,8 +8,15 @@ import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { setDownloadDirectory, setLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { ApiKeySettingsSection } from '#/layouts/Settings/ApiKeysSettingsSection'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import type Backend from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { PASSWORD_REGEX } from '#/utilities/validation'
+import type { GetText } from '$/providers/text'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { getLocalTimeZone, now } from '@internationalized/date'
+import type { QueryClient } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
 import {
   EmailAddress,
   HttpsUrl,
@@ -18,17 +25,9 @@ import {
   Plan,
   type OrganizationInfo,
   type User,
-} from '#/services/Backend'
-import type LocalBackend from '#/services/LocalBackend'
-import type RemoteBackend from '#/services/RemoteBackend'
-import { pick, unsafeEntries } from '#/utilities/object'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { PASSWORD_REGEX } from '#/utilities/validation'
-import type { GetText } from '$/providers/text'
-import { normalizePath } from '$/utils/file'
-import type { Icon } from '@/util/iconMetadata/iconName'
-import { getLocalTimeZone, now } from '@internationalized/date'
-import type { QueryClient } from '@tanstack/react-query'
+} from 'enso-common/src/services/Backend'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import type { TextId } from 'enso-common/src/text'
 import {
   getTimeZoneFromDescription,
@@ -38,6 +37,8 @@ import {
   tryGetTimeZoneFromDescription,
   WHITELISTED_TIME_ZONE_DESCRIPTIONS,
 } from 'enso-common/src/utilities/data/dateTime'
+import { pick, unsafeEntries } from 'enso-common/src/utilities/data/object'
+import { normalizePath } from 'enso-common/src/utilities/file'
 import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
 import * as z from 'zod'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
@@ -552,6 +553,24 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.apiKeys]: {
+    nameId: 'apiKeysSettingsTab',
+    settingsTab: SettingsTabType.apiKeys,
+    icon: 'key',
+    sections: [
+      {
+        nameId: 'apiKeysSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'apiKeysSettingsCustomEntryAliases',
+            render: () => <ApiKeySettingsSection />,
+          },
+        ],
+      },
+    ],
+  },
 }
 
 export const SETTINGS_DATA: SettingsData = [
@@ -577,7 +596,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.activityLog],
+      SETTINGS_TAB_DATA[SettingsTabType.apiKeys],
+    ],
   },
 ]
 

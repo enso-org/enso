@@ -94,13 +94,9 @@ pub fn run(
     let vis = &decl.vis;
     let enum_name = &decl.ident;
     let variant_names: Vec<_> = data.variants.iter().map(|v| &v.ident).collect();
-    let variant_bodies = variant_names.iter().map(|v| {
-        if is_boxed {
-            quote!(Box<#v #ty_generics>)
-        } else {
-            quote!(#v #ty_generics)
-        }
-    });
+    let variant_bodies = variant_names
+        .iter()
+        .map(|v| if is_boxed { quote!(Box<#v #ty_generics>) } else { quote!(#v #ty_generics) });
     let variants_attrs = quote! { #(#variants_attrs)* };
     output.push(quote! {
         #(#enum_attrs)*

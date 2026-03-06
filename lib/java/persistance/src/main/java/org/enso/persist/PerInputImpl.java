@@ -27,6 +27,9 @@ final class PerInputImpl implements Input {
 
   static Reference<?> readObject(PerMap map, ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
+    if (buf.limit() < 16) {
+      throw new IOException("Wrong (short) header");
+    }
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
       if (buf.get(i) != PerGenerator.HEADER[i]) {
         throw new IOException("Wrong header");
@@ -227,7 +230,8 @@ final class PerInputImpl implements Input {
       sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
       var ex = new IOException(sb.toString());
       if (bothObjectsAreTheSame) {
-        PerUtils.LOG.log(System.Logger.Level.WARNING, sb.toString(), ex);
+        // Commented out as it just creates noise.
+        // PerUtils.LOG.log(System.Logger.Level.WARNING, sb.toString(), ex);
       } else {
         throw raise(RuntimeException.class, ex);
       }

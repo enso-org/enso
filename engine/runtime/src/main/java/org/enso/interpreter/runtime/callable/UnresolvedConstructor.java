@@ -213,7 +213,7 @@ public final class UnresolvedConstructor extends EnsoObject {
         expr.setSourceLocation(section.getCharIndex(), section.getCharLength());
       }
       var lang = EnsoLanguage.get(null);
-      var body = BlockNode.buildSilent(new ExpressionNode[0], expr);
+      var body = BlockNode.buildInvisible(new ExpressionNode[0], expr);
       body.adoptChildren();
       var loc =
           section == null ? null : new Location(section.getCharIndex(), section.getCharEndIndex());

@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -46,6 +47,11 @@ public class VectorBuilderTest {
 
     var module = ctx.eval(src);
     create = module.invokeMember("eval_expression", "create");
+  }
+
+  @AfterClass
+  public static void releaseCreate() {
+    create = null;
   }
 
   @Test

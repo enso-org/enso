@@ -27,7 +27,7 @@ type Data_Link_Setup
     ## ---
        private: true
        ---
-       Returns an unavailable setup with reason being the connection was alraedy
+       Returns an unavailable setup with reason being the connection was already
        a data link.
     already_a_data_link -> Data_Link_Setup = Data_Link_Setup.Unavailable "Saving connections established through a Data Link is not allowed. Please copy the Data Link instead."
 

@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -18,11 +18,9 @@ import org.enso.compiler.core.ir.expression.{errors, Application, Case}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
-import org.enso.compiler.pass.analyse.DataflowAnalysis.{
-  DependencyInfo,
-  DependencyMapping
-}
+import org.enso.compiler.pass.analyse.DependencyInfo
+import org.enso.compiler.pass.analyse.DependencyInfo.Type.asStatic
+import org.enso.compiler.pass.analyse.DependencyMapping
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -39,8 +37,7 @@ class DataflowAnalysisTest extends CompilerTest {
   val passes = new Passes(CompilerConfig.createDefault())
 
   /** The passes that must be run before the dataflow analysis pass. */
-  val precursorPasses: PassGroup =
-    passes.getPrecursors(DataflowAnalysis).get
+  val precursorPasses: PassGroup = new PassGroup(passes.allPassOrdering)
 
   val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()
@@ -54,7 +51,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a randomly generated identifier dependency
     */
   def genStaticDep: DependencyInfo.Type = {
-    DependencyInfo.Type.Static(genId, None)
+    new DependencyInfo.Type.Static(genId, None)
   }
 
   /** Makes a statically known dependency from the included id.
@@ -76,7 +73,7 @@ class DataflowAnalysisTest extends CompilerTest {
     id: UUID @Identifier,
     extId: Option[UUID @ExternalID]
   ): DependencyInfo.Type = {
-    DependencyInfo.Type.Static(id, extId)
+    new DependencyInfo.Type.Static(id, extId)
   }
 
   /** Makes a symbol dependency from the included string.
@@ -98,7 +95,7 @@ class DataflowAnalysisTest extends CompilerTest {
     str: String,
     extId: Option[UUID @Identifier]
   ): DependencyInfo.Type = {
-    DependencyInfo.Type.Dynamic(
+    new DependencyInfo.Type.Dynamic(
       str,
       extId
     )
@@ -151,7 +148,10 @@ class DataflowAnalysisTest extends CompilerTest {
       * @return `true` if [[ir]] has the associated metadata, otherwise `false`
       */
     def hasDependencyInfo: Assertion = {
-      ir.getMetadata(DataflowAnalysis) shouldBe defined
+      ir.getMetadata(
+        DataflowAnalysis,
+        classOf[DataflowAnalysis.Metadata]
+      ) shouldBe defined
     }
   }
 
@@ -181,7 +181,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
   "Dataflow metadata" should {
     "allow querying for expressions that should be invalidated on change" in {
-      val dependencies = new DependencyMapping
+      val dependencies = DependencyMapping.newBuilder()
       val ids          = List.fill(5)(genStaticDep)
 
       dependencies(ids.head) = Set(ids(1), ids(2))
@@ -198,7 +198,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "provide a safe query function as well" in {
-      val dependencies = new DependencyMapping
+      val dependencies = DependencyMapping.newBuilder()
       val ids          = List.fill(5)(genStaticDep)
       val badId        = genStaticDep
 
@@ -221,20 +221,21 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "allow querying only the direct dependents of a node" in {
-      val dependencies = new DependencyMapping
+      val dependencies = DependencyMapping.newBuilder()
       val ids          = List.fill(5)(genStaticDep)
 
       dependencies(ids.head) = Set(ids(1), ids(2))
       dependencies(ids(2))   = Set(ids(3), ids(4))
       dependencies(ids(4))   = Set(ids(1), ids.head)
 
-      dependencies.getDirect(ids.head) shouldEqual Some(Set(ids(1), ids(2)))
-      dependencies.getDirect(ids(2)) shouldEqual Some(Set(ids(3), ids(4)))
-      dependencies.getDirect(ids(4)) shouldEqual Some(Set(ids(1), ids.head))
+      val snapshot = dependencies.build
+      snapshot.getDirect(ids.head) shouldEqual Some(Set(ids(1), ids(2)))
+      snapshot.getDirect(ids(2)) shouldEqual Some(Set(ids(3), ids(4)))
+      snapshot.getDirect(ids(4)) shouldEqual Some(Set(ids(1), ids.head))
     }
 
     "allow for updating the dependents of a node" in {
-      val dependencies = new DependencyMapping
+      val dependencies = DependencyMapping.newBuilder()
       val ids          = List.fill(3)(genStaticDep)
 
       dependencies(ids.head) = Set(ids(1))
@@ -248,7 +249,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "allow for updating at a given node" in {
-      val dependencies = new DependencyMapping
+      val dependencies = DependencyMapping.newBuilder()
       val ids          = List.fill(6)(genStaticDep)
       val set1         = Set.from(ids.tail)
       val newId        = genStaticDep
@@ -261,8 +262,8 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "allow combining the information from multiple modules" in {
-      val module1 = new DependencyMapping
-      val module2 = new DependencyMapping
+      val module1 = DependencyMapping.newBuilder()
+      val module2 = DependencyMapping.newBuilder()
 
       val symbol1 = mkDynamicDep("foo")
       val symbol2 = mkDynamicDep("bar")
@@ -278,7 +279,7 @@ class DataflowAnalysisTest extends CompilerTest {
       module2(symbol1) = symbol1DependentIdsInModule2
       module2(symbol3) = symbol3DependentIdsInModule2
 
-      val combinedModule = module1 ++ module2
+      val combinedModule = module1.combine(module2.build)
 
       combinedModule.get(symbol1) shouldBe defined
       combinedModule.get(symbol2) shouldBe defined
@@ -304,7 +305,8 @@ class DataflowAnalysisTest extends CompilerTest {
         |    frobnicate a c
         |""".stripMargin.preprocessModule.analyse
 
-    val depInfo = ir.getMetadata(DataflowAnalysis).get
+    val depInfo =
+      DependencyInfo.find(ir)
 
     // The method and body
     val method =
@@ -330,7 +332,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[Name.Literal]
 
     // The `c =` expression
-    val cBindExpr  = fnBody.expressions(1).asInstanceOf[Expression.Binding]
+    val cBindExpr  = fnBody.expressions.apply(1).asInstanceOf[Expression.Binding]
     val cBindName  = cBindExpr.name.asInstanceOf[Name.Literal]
     val plusExpr   = cBindExpr.expression.asInstanceOf[Application.Prefix]
     val plusExprFn = plusExpr.function.asInstanceOf[Name.Literal]
@@ -408,7 +410,15 @@ class DataflowAnalysisTest extends CompilerTest {
 
     "correctly identify global symbol indirect dependents" in {
       depInfo.dependents.get(frobnicateSymbol) shouldEqual Some(
-        Set(frobFnId, frobExprId, fnBodyId, fnId, methodId)
+        Set(
+          frobFnId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId,
+          frobArgAId,
+          frobArgAExprId
+        )
       )
       depInfo.dependents.get(ioSymbol) shouldEqual Some(
         Set(printlnArgIOExprId, printlnArgIOId, printlnExprId)
@@ -420,7 +430,11 @@ class DataflowAnalysisTest extends CompilerTest {
         Set(
           plusExprFnId,
           plusExprId,
+          plusExprArgAExprId,
+          plusExprArgAId,
           cBindExprId,
+          frobArgAExprId,
+          frobArgAId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -474,7 +488,7 @@ class DataflowAnalysisTest extends CompilerTest {
         Set(cBindExprId)
       )
       depInfo.dependents.getDirect(plusExprId) shouldEqual Some(
-        Set(cBindExprId)
+        Set(cBindExprId, plusExprArgAExprId)
       )
       depInfo.dependents.getDirect(plusExprFnId) shouldEqual Some(
         Set(plusExprId)
@@ -493,7 +507,9 @@ class DataflowAnalysisTest extends CompilerTest {
       )
 
       // The `frobnicate` expression
-      depInfo.dependents.getDirect(frobExprId) shouldEqual Some(Set(fnBodyId))
+      depInfo.dependents.getDirect(frobExprId) shouldEqual Some(
+        Set(fnBodyId, frobArgAExprId)
+      )
       depInfo.dependents.getDirect(frobFnId) shouldEqual Some(Set(frobExprId))
       depInfo.dependents.getDirect(frobArgAId) shouldEqual Some(Set(frobExprId))
       depInfo.dependents.getDirect(frobArgAExprId) shouldEqual Some(
@@ -582,7 +598,11 @@ class DataflowAnalysisTest extends CompilerTest {
           plusExprArgBExprId,
           plusExprArgBId,
           plusExprId,
+          plusExprArgAExprId,
+          plusExprArgAId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -609,11 +629,22 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The `c = ` expression
       depInfo.dependents.get(cBindExprId) shouldEqual Some(
-        Set(frobArgCExprId, frobArgCId, frobExprId, fnBodyId, fnId, methodId)
+        Set(
+          frobArgAId,
+          frobArgAExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
       )
       depInfo.dependents.get(cBindNameId) shouldEqual Some(
         Set(
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -625,6 +656,11 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.dependents.get(plusExprId) shouldEqual Some(
         Set(
           cBindExprId,
+          plusExprId,
+          plusExprArgAId,
+          plusExprArgAExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -636,7 +672,11 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.dependents.get(plusExprFnId) shouldEqual Some(
         Set(
           plusExprId,
+          plusExprArgAId,
+          plusExprArgAExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -647,8 +687,12 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       depInfo.dependents.get(plusExprArgAId) shouldEqual Some(
         Set(
+          plusExprArgAId,
+          plusExprArgAExprId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -659,9 +703,12 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       depInfo.dependents.get(plusExprArgAExprId) shouldEqual Some(
         Set(
+          plusExprArgAExprId,
           plusExprArgAId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -673,8 +720,12 @@ class DataflowAnalysisTest extends CompilerTest {
 
       depInfo.dependents.get(plusExprArgBId) shouldEqual Some(
         Set(
+          plusExprArgAExprId,
+          plusExprArgAId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -685,9 +736,13 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       depInfo.dependents.get(plusExprArgBExprId) shouldEqual Some(
         Set(
+          plusExprArgAExprId,
+          plusExprArgAId,
           plusExprArgBId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -700,25 +755,36 @@ class DataflowAnalysisTest extends CompilerTest {
       // The `frobnicate` expression
       depInfo.dependents.get(frobExprId) shouldEqual Some(
         Set(
+          frobArgAExprId,
+          frobArgAId,
+          frobExprId,
           fnBodyId,
           fnId,
           methodId
         )
       )
       depInfo.dependents.get(frobFnId) shouldEqual Some(
-        Set(frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgAId) shouldEqual Some(
-        Set(frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgAExprId) shouldEqual Some(
-        Set(frobArgAId, frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgCId) shouldEqual Some(
-        Set(frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgCExprId) shouldEqual Some(
-        Set(frobArgCId, frobExprId, fnBodyId, fnId, methodId)
+        Set(
+          frobArgAExprId,
+          frobArgAId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
       )
     }
 
@@ -945,7 +1011,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |x -> (y=x) -> x + y
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val fn = ir.asInstanceOf[Function.Lambda]
       val fnArgX =
@@ -982,7 +1049,7 @@ class DataflowAnalysisTest extends CompilerTest {
       // The Tests for dependents
       dependents.getDirect(fnId) should not be defined
       dependents.getDirect(fnArgYId) shouldEqual Some(Set(plusArgYExprId))
-      dependents.getDirect(fnBodyId) shouldEqual Some(Set(fnId))
+      dependents.getDirect(fnBodyId) shouldEqual Some(Set(fnId, plusArgXExprId))
       dependents.getDirect(plusSym) shouldEqual Some(Set(plusFnId))
       dependents.getDirect(plusArgXId) shouldEqual Some(Set(fnBodyId))
       dependents.getDirect(plusArgXExprId) shouldEqual Some(Set(plusArgXId))
@@ -1009,7 +1076,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |foo (a = 10) (x -> x * x)
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val app   = ir.asInstanceOf[Application.Prefix]
       val appFn = app.function.asInstanceOf[errors.Resolution]
@@ -1065,7 +1133,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependents.getDirect(lamArgXId) shouldEqual Some(
         Set(mulArg1ExprId, mulArg2ExprId)
       )
-      dependents.getDirect(mulId) shouldEqual Some(Set(lamId))
+      dependents.getDirect(mulId) shouldEqual Some(Set(lamId, mulArg1ExprId))
       dependents.getDirect(mulFnId) shouldEqual Some(Set(mulId))
       dependents.getDirect(mulArg1Id) shouldEqual Some(Set(mulId))
       dependents.getDirect(mulArg1ExprId) shouldEqual Some(Set(mulArg1Id))
@@ -1103,7 +1171,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |~x -> x
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val lam = ir.asInstanceOf[Function.Lambda]
       val argX =
@@ -1128,7 +1197,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |x
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val block     = ir.asInstanceOf[Expression.Block]
       val xBind     = block.expressions.head.asInstanceOf[Expression.Binding]
@@ -1166,7 +1236,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |x = 10
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val binding     = ir.asInstanceOf[Expression.Binding]
       val bindingName = binding.name.asInstanceOf[Name.Literal]
@@ -1202,7 +1273,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |x = 1 + undefined
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val binding     = ir.asInstanceOf[Expression.Binding]
       val bindingName = binding.name.asInstanceOf[Name.Literal]
@@ -1274,7 +1346,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
           .asInstanceOf[Function.Lambda]
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val vector = ir.body
         .asInstanceOf[Application.Sequence]
@@ -1310,7 +1383,9 @@ class DataflowAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       if (!ir.isInstanceOf[errors.Syntax]) {
-        val depInfo = ir.getMetadata(DataflowAnalysis).get
+        val depInfo = ir
+          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
+          .get
 
         val literal           = ir.asInstanceOf[Application.Typeset]
         val literalExpression = literal.expression.get
@@ -1334,7 +1409,8 @@ class DataflowAnalysisTest extends CompilerTest {
           |    _ -> 0
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      val depInfo =
+        DependencyInfo.find(ir)
 
       val caseBlock = ir.asInstanceOf[Expression.Block]
       val caseBinding =
@@ -1352,7 +1428,7 @@ class DataflowAnalysisTest extends CompilerTest {
         consBranchPattern.fields.head.asInstanceOf[Pattern.Name]
       val consBranchADef = consBranchAPattern.name
       val consBranchBPattern =
-        consBranchPattern.fields(1).asInstanceOf[Pattern.Name]
+        consBranchPattern.fields.apply(1).asInstanceOf[Pattern.Name]
       val consBranchBDef = consBranchBPattern.name
 
       val consBranchExpression =
@@ -1427,7 +1503,7 @@ class DataflowAnalysisTest extends CompilerTest {
       )
 
       dependents.getDirect(consBranchExpressionId) shouldEqual Some(
-        Set(consBranchId)
+        Set(consBranchId, aUseId)
       )
       dependents.getDirect(aArgId) shouldEqual Some(Set(consBranchExpressionId))
       dependents.getDirect(aUseId) shouldEqual Some(Set(aArgId))
@@ -1501,7 +1577,8 @@ class DataflowAnalysisTest extends CompilerTest {
     val ir = codeWithMeta.preprocessExpression.get.analyse
       .asInstanceOf[Function.Lambda]
 
-    val metadata  = ir.getMetadata(DataflowAnalysis).get
+    val metadata =
+      DependencyInfo.find(ir)
     val blockBody = ir.body.asInstanceOf[Expression.Block]
 
     val aBind = blockBody.expressions.head
@@ -1545,7 +1622,8 @@ class DataflowAnalysisTest extends CompilerTest {
         |    Foo that 1
         |""".stripMargin.preprocessModule.analyse
 
-    val depInfo = ir.getMetadata(DataflowAnalysis).get
+    val depInfo =
+      DependencyInfo.find(ir)
 
     // The method and its body
     val conversion = ir.bindings.head.asInstanceOf[definition.Method.Conversion]
@@ -1602,7 +1680,9 @@ class DataflowAnalysisTest extends CompilerTest {
       dependents.getDirect(fnArgThisId) shouldBe empty
       dependents.getDirect(fnArgValueId) shouldBe Some(Set(fooArg1ExprId))
       dependents.getDirect(fnBodyId) shouldBe Some(Set(lambdaId))
-      dependents.getDirect(fooExprId) shouldBe Some(Set(fnBodyId))
+      dependents.getDirect(fooExprId) shouldBe Some(
+        Set(fnBodyId, fooArg1ExprId)
+      )
       dependents.getDirect(fooFunctionId) shouldBe Some(Set(fooExprId))
       dependents.getDirect(fooArg1Id) shouldBe Some(Set(fooExprId))
       dependents.getDirect(fooArg1ExprId) shouldBe Some(Set(fooArg1Id))

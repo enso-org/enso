@@ -1,16 +1,16 @@
 use crate::prelude::*;
 
+use crate::syntax::Flush;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::consumer::TokenConsumer;
 use crate::syntax::expression::consumer::TreeConsumer;
 use crate::syntax::expression::types::Operator;
 use crate::syntax::expression::types::OperatorConsumer;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::Flush;
-use crate::syntax::GroupHierarchyConsumer;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
 
 // ===============
 // === Spacing ===
@@ -79,6 +79,7 @@ fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
             | App(_)
             | NamedApp(_)
             | OprApp(_)
+            | PropertyAccess(_)
             | UnaryOprApp(_)
             | AutoscopedIdentifier(_)
             | TemplateFunction(_)
@@ -100,7 +101,8 @@ fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
             | AnnotatedBuiltin(_)
             | Documentation(_)
             | ExpressionStatement(_)
-            | ConstructorDefinition(_) => false,
+            | ConstructorDefinition(_)
+            | Call(_) => false,
         }
 }
 

@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
-import { useAppTitle } from '$/composables/appTitle'
-import { useAuth } from '$/providers/auth'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
-import { Platform, platform } from '$/utils/detect'
 import '@/assets/base.css'
 import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
@@ -20,9 +16,11 @@ import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoB
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { computed } from 'vue'
+import { Platform, platform } from 'enso-common/src/utilities/detect'
+import LoadingScreen from './components/LoadingScreen.vue'
 
-const LoadingScreen = reactComponent(LoadingScreenReact)
+// import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+// const LoadingScreen = reactComponent(LoadingScreenReact)
 
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
@@ -30,10 +28,6 @@ const appTooltips = provideTooltipRegistry()
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
-const auth = useAuth()
-const userSession = computed(() => auth.session)
-
-useAppTitle(userSession)
 const globalEvents = provideGlobalEventRegistry()
 provideKeyboard(globalEvents)
 provideBubblingKeyboard(globalEvents)
@@ -76,17 +70,17 @@ useMounted(appOpenCloseCallback)
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <ContextsForReactProvider>
-      <ReactRootWrapper :queryClient="queryClient">
-        <RouterView v-slot="{ Component }">
-          <component :is="Component" v-if="Component" />
-          <LoadingScreen v-else />
-        </RouterView>
-      </ReactRootWrapper>
-    </ContextsForReactProvider>
+    <RouterView v-slot="{ Component }">
+      <ContextsForReactProvider v-if="Component">
+        <ReactRootWrapper :queryClient="queryClient">
+          <component :is="Component" />
+          <div id="floatingLayer" />
+          <TooltipDisplayer :registry="appTooltips" />
+        </ReactRootWrapper>
+      </ContextsForReactProvider>
+      <LoadingScreen v-else />
+    </RouterView>
   </div>
-  <div id="floatingLayer" />
-  <TooltipDisplayer :registry="appTooltips" />
 </template>
 
 <style>
@@ -136,5 +130,13 @@ See https://github.com/gloriasoft/veaury/issues/158
 [__use_react_component_wrap],
 [data-use-vue-component-wrap] {
   display: contents !important;
+}
+
+.mousePointer {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  background-color: red;
 }
 </style>

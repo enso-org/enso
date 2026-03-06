@@ -11,6 +11,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -83,6 +84,6 @@ public abstract class PrintErrNode extends Node {
   static UnresolvedSymbol buildToTextSymbol(Node where) {
     var mod = Builtins.get(where).getModule();
     var scope = mod.getScope();
-    return UnresolvedSymbol.build("to_text", scope);
+    return UnresolvedSymbol.build(Constants.Names.TO_TEXT, scope);
   }
 }

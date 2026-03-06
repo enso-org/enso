@@ -5,9 +5,9 @@ import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { useYTextSync } from '@/util/codemirror'
 import { editorPersistence } from '@/util/codemirror/persistence'
-import { mapOk, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
+import { mapOk, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 
 const { store: project, graph } = useCurrentProject()

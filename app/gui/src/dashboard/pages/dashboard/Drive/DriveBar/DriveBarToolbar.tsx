@@ -34,13 +34,18 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, isDirectoryId, isProjectId, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
-import { readUserSelectedFile } from '$/utils/file'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import {
+  BackendType,
+  isDirectoryId,
+  isProjectId,
+  type CredentialConfig,
+} from 'enso-common/src/services/Backend'
+import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
 import * as React from 'react'
 

@@ -43,12 +43,12 @@ type Bits
     to_text self = self.to_integer.to_text + " bits"
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
-    > self that = Comparable.> self that
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
+    > self that = Comparable.> self=self that
 
     ## ---
        aliases: [greater than or equal]
@@ -56,7 +56,7 @@ type Bits
        icon: operators
        ---
        Checks if `self` is greater than or equal to `that`.
-    >= self that = Comparable.>= self that
+    >= self that = Comparable.>= self=self that
 
     ## ---
        aliases: [less than]
@@ -64,7 +64,7 @@ type Bits
        icon: operators
        ---
        Checks if `self` is less than `that`.
-    < self that = Comparable.< self that
+    < self that = Comparable.< self=self that
 
     ## ---
        aliases: [less than or equal]
@@ -72,7 +72,7 @@ type Bits
        icon: operators
        ---
        Checks if `self` is less than or equal to `that`.
-    <= self that = Comparable.<= self that
+    <= self that = Comparable.<= self=self that
 
 ## ---
    private: true
@@ -505,6 +505,26 @@ type Value_Type
     expect_integer : Any -> Any -> Any ! Invalid_Value_Type
     expect_integer argument ~action =
         Value_Type.expect_type argument .is_integer "Integer" action
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks if the provided argument (which may be a value or a Column) is a
+       `Date`.
+    expect_date : Any -> Any -> Any ! Invalid_Value_Type
+    expect_date argument ~action =
+        Value_Type.expect_type argument .is_date "Date" action
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks if the provided argument (which may be a value or a Column) is a
+       `Date_time`.
+    expect_date_time : Any -> Any -> Any ! Invalid_Value_Type
+    expect_date_time argument ~action =
+        Value_Type.expect_type argument .is_date_time "Date_Time" action
 
     ## ---
        private: true

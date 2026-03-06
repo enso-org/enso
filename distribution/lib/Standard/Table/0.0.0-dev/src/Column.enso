@@ -17,7 +17,6 @@ import project.Fill_With.Fill_With
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Date_Time_Helpers
 import project.Internal.Read_Many_Helpers
-import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
@@ -27,6 +26,13 @@ from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Va
 
 type Column
     private Value underlying implementation
+
+    ## ---
+       private: true
+       ---
+       Unique Identifier for the column.
+    table_version_hash self -> Text =
+        self.implementation.table_version_hash self.underlying
 
     ## ---
        icon: convert
@@ -1251,7 +1257,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_left 5
        ```
-    text_left self (n : Column | Integer) -> Column & Any =
+    text_left self (n : Column | Integer | Nothing = 1) -> Column & Any =
         self.implementation.text_left self n
 
     ## ---
@@ -1271,8 +1277,29 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_right 5
        ```
-    text_right self (n : Column | Integer) -> Column & Any =
+    text_right self (n : Column | Integer | Nothing = 1) -> Column & Any =
         self.implementation.text_right self n
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the characters starting at `start` and continuing for `length`
+       characters, for each element of the column.
+       In the Database backends, the default text mid method of the particular
+       database is used.
+       In the in-memory backend, this will give you the `length` graphemes of
+       the string, starting at `start`.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.text_mid 5
+       ```
+    text_mid self (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String = Rest_Of_String) -> Column & Any =
+        self.implementation.text_mid self start length
 
     ## ---
        group: Standard.Base.Logical
@@ -2457,10 +2484,10 @@ type Column
        icon: metadata
        ---
        Returns a column of numbers, in which every entry denotes how many times
-       the value at the given position occured before.
+       the value at the given position occurred before.
 
        ## Examples
-       ### Count duplicate occurences of values in a column.
+       ### Count duplicate occurrences of values in a column.
 
        ```
              import Standard.Examples
@@ -2518,6 +2545,7 @@ type Column
 
        ## Arguments
         - `statistics`: Set of statistics to calculate.
+    @statistics (Statistic.bulk_widget display=..Always)
     compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table | Any =
         self.implementation.compute_bulk self statistics
 
@@ -2578,6 +2606,12 @@ type Column
 ## ---
    private: true
    ---
+   Used to specify that the rest of the string is to be return.
+type Rest_Of_String
+
+## ---
+   private: true
+   ---
    Conversion method to a Column from a Vector.
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
@@ -2617,13 +2651,6 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
 Many_Files_List.from (that : Column) =
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
-
-## ---
-   private: true
-   ---
-   Gets the Visualization helpers for a Column.
-Visualization_Helpers.from (that : Column) =
-    Visualization_Helpers.from that.underlying
 
 ## ---
    private: true
