@@ -8,7 +8,9 @@ public class LoggerHelper {
   private static final ExecutorService EXEC =
       Executors.newSingleThreadExecutor(
           (r) -> {
-            return Thread.ofPlatform().name("LoggerHelper").daemon(true).start(r);
+            var t = new Thread(r, "LoggerHelper");
+            t.setDaemon(true);
+            return t;
           });
 
   public static boolean isLoggableAsync(System.Logger.Level level) throws Exception {
