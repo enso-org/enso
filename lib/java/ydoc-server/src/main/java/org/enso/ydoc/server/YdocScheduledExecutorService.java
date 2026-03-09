@@ -25,8 +25,36 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 final class YdocScheduledExecutorService implements ScheduledExecutorService {
 
+  /**
+   * A marker wrapper that signals a task should be placed in the high-priority queue. Tasks wrapped
+   * in this class are processed before regular immediate tasks, ensuring that latency-sensitive
+   * operations (such as WebSocket message handling) are not starved by large batches of bulk work.
+   *
+   * <p>This class is intentionally simple and decoupled from any specific module — callers wrap
+   * tasks in {@code HighPriorityRunnable} before submitting them via the standard {@link
+   * ScheduledExecutorService} interface, so the submitting module does not need to depend on this
+   * executor implementation.
+   */
+  public static final class HighPriorityRunnable implements Runnable {
+    private final Runnable delegate;
+
+    public HighPriorityRunnable(Runnable delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public void run() {
+      delegate.run();
+    }
+  }
+
   private final long ownerThreadId;
   private final Object lock = new Object();
+
+  /**
+   * @GuardedBy("lock")
+   */
+  private final java.util.LinkedList<Runnable> highPriorityTasks;
 
   /**
    * @GuardedBy("lock")
@@ -46,6 +74,7 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
   /** Creates a new execution service bound to the current thread. */
   public YdocScheduledExecutorService() {
     this.ownerThreadId = Thread.currentThread().threadId();
+    this.highPriorityTasks = new java.util.LinkedList<>();
     this.immediateTasks = new java.util.LinkedList<>();
     this.scheduledTasks = new PriorityQueue<>();
   }
@@ -65,6 +94,16 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
         throw new IllegalStateException("Service has been shut down");
       }
       immediateTasks.offer(task);
+      lock.notifyAll();
+    }
+  }
+
+  private void submitHighPriority(Runnable task) {
+    synchronized (lock) {
+      if (shutdown) {
+        throw new IllegalStateException("Service has been shut down");
+      }
+      highPriorityTasks.offer(task);
       lock.notifyAll();
     }
   }
@@ -378,7 +417,11 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
 
   @Override
   public void execute(Runnable command) {
-    submitInternal(command);
+    if (command instanceof HighPriorityRunnable) {
+      submitHighPriority(command);
+    } else {
+      submitInternal(command);
+    }
   }
 
   @Override
@@ -421,41 +464,43 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
   }
 
   /**
-   * Processes all pending tasks that are ready to execute.
+   * Processes pending tasks that are ready to execute, one at a time.
    *
-   * <p>This method must be called from the owner thread (the thread that created this service). It
-   * will execute all immediate tasks and any scheduled tasks whose delay has elapsed.
+   * <p>This method must be called from the owner thread (the thread that created this service).
+   * Tasks are polled individually from the queues on each iteration so that tasks submitted during
+   * execution (e.g., incoming WebSocket messages) become visible immediately. High-priority tasks
+   * are always checked first, ensuring latency-sensitive operations are not starved by large batches
+   * of bulk work.
+   *
+   * <p>Poll order: high-priority queue → regular immediate queue → ready scheduled tasks.
    *
    * @return the number of tasks executed
    * @throws IllegalStateException if called from a thread other than the owner thread
    */
   public int processPendingTasks() {
     int tasksExecuted = 0;
-    long currentTime = System.nanoTime();
 
-    // Collect tasks to execute while holding the lock
-    java.util.List<Runnable> tasksToExecute = new java.util.ArrayList<>();
-    synchronized (lock) {
-      // Collect immediate tasks
+    while (true) {
+      // Poll one task at a time, checking high-priority queue first
       Runnable task;
-      while ((task = immediateTasks.poll()) != null) {
-        tasksToExecute.add(task);
-      }
-
-      // Collect scheduled tasks that are ready
-      while (!scheduledTasks.isEmpty()) {
-        ScheduledTask scheduledTask = scheduledTasks.peek();
-        if (scheduledTask.executeAtNanos <= currentTime) {
-          scheduledTasks.poll();
-          tasksToExecute.add(scheduledTask.task);
-        } else {
-          break; // Tasks are sorted by time, so we can stop here
+      synchronized (lock) {
+        task = highPriorityTasks.poll();
+        if (task == null) {
+          task = immediateTasks.poll();
+        }
+        if (task == null) {
+          ScheduledTask scheduledTask = scheduledTasks.peek();
+          if (scheduledTask != null && scheduledTask.executeAtNanos <= System.nanoTime()) {
+            scheduledTasks.poll();
+            task = scheduledTask.task;
+          }
         }
       }
-    }
 
-    // Execute tasks outside the lock to avoid holding it during task execution
-    for (Runnable task : tasksToExecute) {
+      if (task == null) {
+        break; // No more ready tasks
+      }
+
       try {
         task.run();
         tasksExecuted++;
@@ -474,7 +519,7 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
    */
   public boolean hasPendingTasks() {
     synchronized (lock) {
-      if (!immediateTasks.isEmpty()) {
+      if (!highPriorityTasks.isEmpty() || !immediateTasks.isEmpty()) {
         return true;
       }
       if (scheduledTasks.isEmpty()) {
@@ -494,7 +539,7 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
    */
   public long getNextTaskDelayNanos() {
     synchronized (lock) {
-      if (!immediateTasks.isEmpty()) {
+      if (!highPriorityTasks.isEmpty() || !immediateTasks.isEmpty()) {
         return 0;
       }
       ScheduledTask next = scheduledTasks.peek();
@@ -529,6 +574,127 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
       } else if (timeoutNanos == -1) {
         lock.wait(10);
       }
+    }
+  }
+
+  /**
+   * Returns a {@link ScheduledExecutorService} view of this executor where all {@code execute} and
+   * {@code submit} calls route tasks to the high-priority queue. Scheduled tasks ({@code schedule},
+   * {@code scheduleAtFixedRate}, etc.) are delegated unchanged since they fire at their scheduled
+   * time and are not subject to queue starvation.
+   *
+   * <p>Use this to wrap the executor passed to latency-sensitive subsystems (e.g., WebSocket
+   * polyfill) without introducing a module dependency on this class.
+   */
+  public ScheduledExecutorService createHighPriorityView() {
+    return new HighPriorityExecutorView(this);
+  }
+
+  private static final class HighPriorityExecutorView implements ScheduledExecutorService {
+    private final YdocScheduledExecutorService delegate;
+
+    HighPriorityExecutorView(YdocScheduledExecutorService delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public void execute(Runnable command) {
+      delegate.execute(new HighPriorityRunnable(command));
+    }
+
+    @Override
+    public Future<?> submit(Runnable task) {
+      return delegate.submit(new HighPriorityRunnable(task));
+    }
+
+    @Override
+    public <T> Future<T> submit(Runnable task, T result) {
+      return delegate.submit(new HighPriorityRunnable(task), result);
+    }
+
+    @Override
+    public <V> Future<V> submit(Callable<V> task) {
+      var future = new java.util.concurrent.CompletableFuture<V>();
+      delegate.execute(
+          new HighPriorityRunnable(
+              () -> {
+                try {
+                  future.complete(task.call());
+                } catch (Throwable t) {
+                  future.completeExceptionally(t);
+                }
+              }));
+      return future;
+    }
+
+    @Override
+    public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
+      return delegate.schedule(task, delay, unit);
+    }
+
+    @Override
+    public <V> ScheduledFuture<V> schedule(Callable<V> task, long delay, TimeUnit unit) {
+      return delegate.schedule(task, delay, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleAtFixedRate(
+        Runnable task, long initialDelay, long period, TimeUnit unit) {
+      return delegate.scheduleAtFixedRate(task, initialDelay, period, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleWithFixedDelay(
+        Runnable task, long initialDelay, long delay, TimeUnit unit) {
+      return delegate.scheduleWithFixedDelay(task, initialDelay, delay, unit);
+    }
+
+    @Override
+    public void shutdown() {
+      delegate.shutdown();
+    }
+
+    @Override
+    public List<Runnable> shutdownNow() {
+      return delegate.shutdownNow();
+    }
+
+    @Override
+    public boolean isShutdown() {
+      return delegate.isShutdown();
+    }
+
+    @Override
+    public boolean isTerminated() {
+      return delegate.isTerminated();
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) {
+      return delegate.awaitTermination(timeout, unit);
+    }
+
+    @Override
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) {
+      throw new UnsupportedOperationException("invokeAll not supported");
+    }
+
+    @Override
+    public <T> List<Future<T>> invokeAll(
+        Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) {
+      throw new UnsupportedOperationException("invokeAll not supported");
+    }
+
+    @Override
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks)
+        throws InterruptedException, ExecutionException {
+      throw new UnsupportedOperationException("invokeAny not supported");
+    }
+
+    @Override
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException {
+      throw new UnsupportedOperationException("invokeAny not supported");
     }
   }
 

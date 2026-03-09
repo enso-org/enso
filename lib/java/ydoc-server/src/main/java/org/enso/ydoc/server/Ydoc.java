@@ -236,7 +236,7 @@ public final class Ydoc implements AutoCloseable {
         executor.submit(
             () -> {
               var ctx = contextBuilder.build();
-              WebEnvironment.initialize(ctx, executor);
+              WebEnvironment.initialize(ctx, executor.createHighPriorityView());
               parser.initialize(ctx);
 
               var bindings = ctx.getBindings("js");
