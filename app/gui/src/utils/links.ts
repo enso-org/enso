@@ -15,7 +15,11 @@ export function useNavigateLink(
 ) {
   return async (href: string) => {
     if (isEnsoLink(href)) {
-      await router.push({ params: { path: href.split('/') }, query: route.query })
+      await router.push({
+        name: 'ensoPath',
+        params: { path: href.split('/') },
+        query: route.query,
+      })
     } else {
       window.open(href, '_blank', 'noopener,noreferrer')
     }

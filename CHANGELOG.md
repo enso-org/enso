@@ -7,12 +7,14 @@
   Table.input components.
 - [Text widgets have a fixed maximum size in collapsed mode][14775]
 - [Fixed uploading corrupted projects to the cloud storage][14805]
+- [Drive is now a separate panel instead of tab.][14807]
 - [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
 [14775]: https://github.com/enso-org/enso/pull/14775
 [14805]: https://github.com/enso-org/enso/pull/14805
+[14807]: https://github.com/enso-org/enso/pull/14807
 [14820]: https://github.com/enso-org/enso/pull/14820
 
 #### Enso Standard Library
@@ -29,6 +31,7 @@
 - [Launching another Enso process via `Process_Builder`][14753]
 - [Redshift schema support.][14735]
 - [`Process_Builder.set_env`.][14799]
+- [New `Profile` API for timing code execution.][14827]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -42,6 +45,7 @@
 [14753]: https://github.com/enso-org/enso/pull/14753
 [14735]: https://github.com/enso-org/enso/pull/14735
 [14799]: https://github.com/enso-org/enso/pull/14799
+[14827]: https://github.com/enso-org/enso/pull/14827
 
 #### Enso Language & Runtime
 

@@ -65,6 +65,8 @@ export const test = base.extend<{
       .openProject('Mock Project')
       .expectProjectEditorOpened('Mock Project')
       .expectNodePositionsInitialized()
+      .expectDocsPanel()
+      .toggleDocsAssetPanel()
     await use(await editorPage)
     return
   },

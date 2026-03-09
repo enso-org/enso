@@ -110,7 +110,7 @@ export function DriveBarNavigation() {
 
   useEffect(() => {
     if (directoryData?.asset != null) {
-      rightPanel.updateContext('drive', (ctx) => {
+      rightPanel.updateContext({ type: 'drive' }, (ctx) => {
         ctx.defaultItem = directoryData.asset
         return ctx
       })
@@ -156,7 +156,7 @@ export function DriveBarNavigation() {
   const canNavigateUp = parentId >= 0
 
   const navigateToDirectory = useEventCallback((id: React.Key) => {
-    if (isDirectoryId(id)) {
+    if (typeof id === 'string' && isDirectoryId(id)) {
       setDriveLocation(id, category.id)
     }
   })
@@ -168,11 +168,9 @@ export function DriveBarNavigation() {
       return
     }
 
-    if (!isDirectoryId(id)) {
-      return
+    if (typeof id === 'string' && isDirectoryId(id)) {
+      await moveAssetsMutation([[...selectedIds], id])
     }
-
-    await moveAssetsMutation([[...selectedIds], id])
   })
 
   const navigateToParent = useEventCallback(() => {

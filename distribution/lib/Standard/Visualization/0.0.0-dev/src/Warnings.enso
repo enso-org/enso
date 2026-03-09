@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from project.Helpers import time_visualization
+from project.Helpers import time_visualization, short_display
 
 ## ---
    private: true
@@ -11,7 +11,7 @@ from project.Helpers import time_visualization
    ## Arguments
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value = time_visualization Warnings ("process_to_json_text: " + value.to_display_text) <|
+process_to_json_text value = time_visualization Warnings ("process_to_json_text: " + (short_display value)) <|
     warnings = Warning.get_all value wrap_errors=True
     texts = warnings.map w->w.value.to_display_text
     vec = case Warning.limit_reached value of

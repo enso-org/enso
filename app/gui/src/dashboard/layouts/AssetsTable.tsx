@@ -69,9 +69,9 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useFullUserSession, useLocalStorage, useText } from '$/providers/react'
-import { useRightPanelData } from '$/providers/react/container'
+import { useVueValue } from '$/providers/react/common'
+import { useContainerData, useRightPanelData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
-import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type {
   AssetId,
@@ -100,6 +100,7 @@ import {
   isValidElement,
   memo,
   startTransition,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -168,7 +169,9 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const { openProjectLocally } = useOpenedProjects()
+  const containerData = useContainerData()
+  const { openProjectLocally } = containerData
+  const focusedPanel = useVueValue(useCallback(() => containerData.focusedPanel, [containerData]))
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
@@ -328,12 +331,15 @@ function AssetsTable(props: AssetsTableProps) {
       const [soleId] = selectedIds
       const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-      rightPanel.setContext('drive', {
-        item: asset ?? undefined,
-        category,
-      })
+      rightPanel.setContext(
+        { type: 'drive' },
+        {
+          item: asset ?? undefined,
+          category,
+        },
+      )
     } else {
-      rightPanel.setContext('drive', { category })
+      rightPanel.setContext({ type: 'drive' }, { category })
     }
   }, [assets, driveStore, rightPanel, category])
 
@@ -346,13 +352,16 @@ function AssetsTable(props: AssetsTableProps) {
             const asset =
               soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-            rightPanel.setContext('drive', {
-              item: asset ?? undefined,
-              category,
-            })
+            rightPanel.setContext(
+              { type: 'drive' },
+              {
+                item: asset ?? undefined,
+                category,
+              },
+            )
             rightPanel.setTemporaryTab(undefined)
           } else {
-            rightPanel.setContext('drive', { category })
+            rightPanel.setContext({ type: 'drive' }, { category })
           }
         }
       }),
@@ -527,7 +536,7 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         if (selectedIds.size !== 1) {
-          rightPanel.setContext('drive', { category })
+          rightPanel.setContext({ type: 'drive' }, { category })
           rightPanel.setTemporaryTab(undefined)
         }
       }),
@@ -580,7 +589,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-                void openProjectLocally(item, backend.type)
+                openProjectLocally(item, backend.type)
                 break
               }
               case AssetType.datalink: {
@@ -1231,7 +1240,7 @@ function AssetsTable(props: AssetsTableProps) {
             }}
             ref={(el) => {
               rootRef.current = el
-              if (document.activeElement === document.body) {
+              if (document.activeElement === document.body && focusedPanel.type === 'drive') {
                 el?.focus()
               }
             }}

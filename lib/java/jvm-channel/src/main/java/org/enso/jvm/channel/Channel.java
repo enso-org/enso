@@ -224,7 +224,20 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return type == TYPE_MASTER_ISOLATE || type == TYPE_MOCK_MASTER;
   }
 
-  final boolean isDirect() {
+  /**
+   * Check for <em>"real dual JVM mode"</em>. There is a way to create a channel in a <em>"mock
+   * mode"</em> via {@link #create(org.enso.jvm.channel.JVM, java.lang.Class)} - such emulation is
+   * running both sides of the channel in the same JVM. One can detect such a situation by checking
+   * result of this method.
+   *
+   * @return {@code true} when two different JVMs are on each side of the channel. {@code false}
+   *     otherwise, for example in the <em>"mock mode"</em>.
+   */
+  public boolean isDualJvmMode() {
+    return !isDirect();
+  }
+
+  private final boolean isDirect() {
     return type == TYPE_MOCK_MASTER || type == TYPE_MOCK_SLAVE;
   }
 
@@ -351,11 +364,11 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   }
 
   private long toSubstrateMessage(MemorySegment seg) {
+    Long isolate = otherIsolateThread.get();
+    if (isolate == null) {
+      throw new WrongThreadException("There is no associated other isolate thread!");
+    }
     try {
-      Long isolate = otherIsolateThread.get();
-      if (isolate == null) {
-        throw new IllegalStateException("There is no associated other isolate thread!");
-      }
       var isoRef = MemorySegment.ofAddress(isolate);
       if (callbackFn instanceof MethodHandle handle) {
         var res = handle.invoke(isoRef, id, seg, seg.byteSize());

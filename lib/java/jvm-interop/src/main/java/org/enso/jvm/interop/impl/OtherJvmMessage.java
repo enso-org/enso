@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
+import org.enso.persist.Persistance;
 import org.graalvm.polyglot.Value;
 
 /** Sends a message to the other side with ReflectionLibrary-like arguments. */
@@ -75,7 +77,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81909, allowInlining = false)
-  record ThrowValue<T, E extends Exception>(Optional<String> msg, TruffleObject exception)
+  record ThrowValue<T, E extends Throwable>(Optional<String> msg, TruffleObject exception)
       implements OtherJvmResult<T, E> {
     @Override
     @SuppressWarnings("unchecked")
@@ -92,7 +94,8 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81910, allowInlining = false)
-  record ThrowException<V, E extends Exception>(int kind, Optional<String> msg)
+  record ThrowException<V, E extends Throwable>(
+      int kind, Optional<String> msg, List<StackTraceElement> stack)
       implements OtherJvmResult<V, E> {
     private static final Map<Class<? extends Throwable>, Integer> kinds;
 
@@ -103,10 +106,12 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       kinds.put(UnknownIdentifierException.class, 3);
       kinds.put(UnsupportedTypeException.class, 4);
       kinds.put(InvalidArrayIndexException.class, 5);
+      kinds.put(IllegalArgumentException.class, 6);
+      kinds.put(IllegalStateException.class, 7);
     }
 
     @SuppressWarnings("unchecked")
-    static <T, E extends Exception> OtherJvmResult<T, E> create(E ex) {
+    static <T, E extends Throwable> OtherJvmResult<T, E> create(E ex) {
       var msg = Optional.ofNullable(ex.getMessage());
       if (ex instanceof OtherJvmTruffleException truffleEx) {
         var original = truffleEx.delegate;
@@ -116,31 +121,44 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         return new ThrowValue<>(msg, truffleEx);
       } else {
         var kind = kinds.getOrDefault(ex.getClass(), 0);
-        return new ThrowException<>(kind, msg);
+        var stack = List.of(ex.getStackTrace());
+        if (kind == 0) {
+          var classWithMsg = ex.getClass().getName() + ": " + ex.getMessage();
+          return new ThrowException<>(kind, Optional.of(classWithMsg), stack);
+        } else {
+          return new ThrowException<>(kind, msg, stack);
+        }
       }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public V value(Node who) throws E {
-      var msg = msg().isPresent() ? msg().get() : null;
-      switch (kind) {
-        case 1 -> throw (E) new ClassNotFoundException(msg);
-        case 2 -> throw (E) UnsupportedMessageException.create();
-        case 3 -> throw (E) UnknownIdentifierException.create(msg);
-        case 4 -> throw (E) UnsupportedTypeException.create(new Object[0], msg);
-        case 5 -> {
-          int index;
-          try {
-            var words = msg.split("[ \\.]");
-            index = Integer.parseInt(words[3]);
-          } catch (NullPointerException | NumberFormatException | IndexOutOfBoundsException ex) {
-            index = -1;
-          }
-          throw (E) InvalidArrayIndexException.create(index);
-        }
-        default -> throw new OtherJvmException(msg);
-      }
+      var msgOrNull = msg().isPresent() ? msg().get() : null;
+      var ex =
+          switch (kind) {
+            case 1 -> new ClassNotFoundException(msgOrNull);
+            case 2 -> UnsupportedMessageException.create();
+            case 3 -> UnknownIdentifierException.create(msgOrNull);
+            case 4 -> UnsupportedTypeException.create(new Object[0], msgOrNull);
+            case 5 -> {
+              int index;
+              try {
+                var words = msgOrNull.split("[ \\.]");
+                index = Integer.parseInt(words[3]);
+              } catch (NullPointerException
+                  | NumberFormatException
+                  | IndexOutOfBoundsException recover) {
+                index = -1;
+              }
+              yield InvalidArrayIndexException.create(index);
+            }
+            case 6 -> new IllegalArgumentException(msgOrNull);
+            case 7 -> new IllegalStateException(msgOrNull);
+            default -> new OtherJvmException(msgOrNull);
+          };
+      ex.setStackTrace(stack().toArray(StackTraceElement[]::new));
+      throw (E) ex;
     }
   }
 
@@ -199,6 +217,32 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @Override
     public Object apply(Channel<OtherJvmPool> t) {
       return t.getConfig().getBindings(name);
+    }
+  }
+
+  @Persistable(id = 81914)
+  static final class PersistStackTraceElement extends Persistance<java.lang.StackTraceElement> {
+    public PersistStackTraceElement() {
+      super(java.lang.StackTraceElement.class, false, 81914);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected java.lang.StackTraceElement readObject(Persistance.Input in) throws IOException {
+      var declaringClass = in.readUTF();
+      var methodName = in.readUTF();
+      var fileName = in.readUTF();
+      var lineNumber = in.readInt();
+      return new java.lang.StackTraceElement(declaringClass, methodName, fileName, lineNumber);
+    }
+
+    @Override
+    protected void writeObject(java.lang.StackTraceElement obj, Persistance.Output out)
+        throws IOException {
+      out.writeUTF(obj.getClassName());
+      out.writeUTF(obj.getMethodName());
+      out.writeUTF(obj.getFileName());
+      out.writeInt(obj.getLineNumber());
     }
   }
 }

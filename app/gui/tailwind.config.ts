@@ -542,11 +542,23 @@ inset 0 -36px 51px -51px #00000014`,
             [`:where(
               & .selected > .rounded-rows-have-level
             )`]: {
-              backgroundColor: 'rgb(255 255 255 / 90%)',
+              backgroundColor: 'rgb(255 255 255 / 36%)',
               '--dashboard-row-background': 'rgb(253 253 252)',
             },
             [`:where(
               & .selected > .rounded-rows-skip-level > .rounded-rows-child
+            )`]: {
+              backgroundColor: 'rgb(255 255 255 / 36%)',
+              '--dashboard-row-background': 'rgb(253 253 252)',
+            },
+            [`:where(
+              .focusedPanel & .selected > .rounded-rows-have-level
+            )`]: {
+              backgroundColor: 'rgb(255 255 255 / 90%)',
+              '--dashboard-row-background': 'rgb(253 253 252)',
+            },
+            [`:where(
+              .focusedPanel & .selected > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: 'rgb(255 255 255 / 90%)',
               '--dashboard-row-background': 'rgb(253 253 252)',

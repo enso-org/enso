@@ -21,7 +21,7 @@ const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
     return {
       maybeRef: project,
       id: computed(() => ref.value.info.id),
-      ensoPath: computed(() => ref.value.info.ensoPath),
+      info: computed(() => ref.value.info),
       store: computed(() => ref.value.store),
       projectNames: computed(() => ref.value.projectNames),
       suggestionDb: computed(() => ref.value.suggestionDb),

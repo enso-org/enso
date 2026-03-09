@@ -48,8 +48,8 @@ import { getUrlToOpen, handleOpenUrl, registerAssociations } from './urlAssociat
 
 type Electron = typeof import('electron')
 
-const DEFAULT_WINDOW_WIDTH = 1380
-const DEFAULT_WINDOW_HEIGHT = 900
+const DEFAULT_WINDOW_WIDTH = 1780
+const DEFAULT_WINDOW_HEIGHT = 1000
 
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
