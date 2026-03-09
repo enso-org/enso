@@ -298,6 +298,15 @@ add_specs suite_builder =
             r.should_be_a Vector
             r.at 0 . get "name" . should_equal "Green St Green"
 
+        group_builder.specify "should be able to get bucket and key for a file" <|
+            f = root / "locations.json"
+            f.bucket . should_equal bucket_name
+            f.key . should_equal "locations.json"
+
+        group_builder.specify "should be able to get metadata for a file" <|
+            f = root / "FirstNames.csv"
+            f.last_modified_time.to_utc . should_equal Date_Time.parse "2026-03-06T17:32:30Z"
+
         group_builder.specify "should work with Data.read" <|
             with_default_credentials <|
                 r = Data.read "s3://"+bucket_name+"/examples/folder 2/hello.txt"

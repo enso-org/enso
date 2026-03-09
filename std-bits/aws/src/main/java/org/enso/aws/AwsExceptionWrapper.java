@@ -73,7 +73,11 @@ class AwsExceptionWrapper {
         var details = s3Exception.awsErrorDetails();
         var code = details == null ? "" : details.errorCode();
         yield EnsoMeta.makeInstance(
-            "Standard.AWS.Errors", "S3_Error", "Error", s3Exception.getMessage(), code);
+            "Standard.AWS.Errors",
+            "S3_Error",
+            "Error",
+            s3Exception.getMessage(),
+            code == null ? "" : code);
       }
       case AwsServiceException awsServiceException -> {
         var details = awsServiceException.awsErrorDetails();

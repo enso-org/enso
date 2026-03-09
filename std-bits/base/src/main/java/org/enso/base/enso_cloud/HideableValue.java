@@ -19,7 +19,9 @@ public sealed interface HideableValue
       case EnsoHideableValue.CONCAT_TYPE ->
           concat(from(ensoValue.children().get(0)), from(ensoValue.children().get(1)));
       case EnsoHideableValue.PRIVATE_KEY_TYPE -> privateKey(from(ensoValue.children().get(0)));
-      default -> throw new IllegalArgumentException("Unknown HideableValue type: " + ensoValue.value_type());
+      default ->
+          throw new IllegalArgumentException(
+              "Unknown HideableValue type: " + ensoValue.value_type());
     };
   }
 
