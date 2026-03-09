@@ -167,7 +167,7 @@ export interface YjsSocket {
   on(event: 'close', listener: (code: number, reason: Buffer) => void): this
   on(event: 'message', listener: (data: ArrayBuffer | Buffer, isBinary: boolean) => void): this
   on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
-  send(data: Uint8Array, cb?: (err?: Error) => void): void
+  send(data: Uint8Array): void
   ping(): void
   close(): void
 }
@@ -239,7 +239,7 @@ export class YjsConnection extends ObservableV2<{ close(): void }> {
       this.close()
     }
     try {
-      this.ws.send(message, (error) => error && this.close())
+      this.ws.send(message)
     } catch {
       this.close()
     }
