@@ -38,7 +38,11 @@
     - versions self -> (Standard.Base.Data.Vector.Vector Standard.AWS.S3.S3_File.S3_File)
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type S3_File_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.System.File_Format_Metadata.File_Format_Metadata.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 - Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.System.File.Generic.File_Like.File_Like
 - Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.System.File.Generic.Writable_File.Writable_File
 - Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.Data.Ordering.Comparable

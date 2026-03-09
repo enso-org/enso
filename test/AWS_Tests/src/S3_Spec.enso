@@ -320,7 +320,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to access a version" <|
             f = root / "FirstNames.csv"
-            f_version = f. versions.at 1
+            f_version = f.versions.at 1
             f_version.last_modified_time.to_utc.should_equal (Date_Time.parse "2026-03-06T17:32:12Z" . to_utc)
             f_version.size.should_equal 506
             f_version.read_text.lines.last . should_equal "Sienna,1657,Girl,30282.0,28625.0"
@@ -330,7 +330,7 @@ add_specs suite_builder =
             text_direct = f.read_text
 
             uri = f.presigned_uri (Duration.of_seconds 15)
-            text_uri = uri.read format=..Plain_Text
+            text_uri = uri.fetch format=..Plain_Text
 
             text_uri.should_equal text_direct
 
@@ -340,7 +340,7 @@ add_specs suite_builder =
             text_direct = f_version.read_text
 
             uri = f_version.presigned_uri (Duration.of_seconds 15)
-            text_uri = uri.read format=..Plain_Text
+            text_uri = uri.fetch format=..Plain_Text
 
             text_uri.should_equal text_direct
 
