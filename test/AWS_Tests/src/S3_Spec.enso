@@ -345,10 +345,10 @@ add_specs suite_builder =
                 f_version = f.versions.at 1
                 text_direct = f_version.read_text
 
-            uri = f_version.presigned_uri (Duration.of_seconds 15)
-            text_uri = uri.fetch format=..Plain_Text
+                uri = f_version.presigned_uri (Duration.of_seconds 15)
+                text_uri = uri.fetch format=..Plain_Text
 
-            text_uri.should_equal text_direct
+                text_uri.should_equal text_direct
 
         group_builder.specify "should work with Data.read" <|
             with_default_credentials <|
