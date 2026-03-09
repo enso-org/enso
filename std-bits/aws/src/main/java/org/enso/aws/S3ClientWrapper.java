@@ -238,7 +238,8 @@ public class S3ClientWrapper implements AutoCloseable {
               .signatureDuration(Duration.ofSeconds(expirationSeconds))
               .getObjectRequest(request.build());
 
-      try (var presigner = S3Presigner.builder().s3Client(client).region(AWSRegion.underlying(region)).build()) {
+      try (var presigner =
+          S3Presigner.builder().s3Client(client).region(AWSRegion.underlying(region)).build()) {
         var presignResponse = presigner.presignGetObject(presignRequest.build());
         return Value.asValue(presignResponse.url().toExternalForm());
       }
