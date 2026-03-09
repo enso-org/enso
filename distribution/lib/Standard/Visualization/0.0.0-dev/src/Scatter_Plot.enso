@@ -7,7 +7,7 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
-from project.Helpers import time_visualization
+from project.Helpers import time_visualization, short_display
 
 ## ---
    private: true
@@ -96,7 +96,7 @@ json_from_vector vec bounds limit =
    ## Arguments
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
-process_to_json_text value bounds=Nothing limit=Nothing = time_visualization Scatter_Plot ("process_to_json_text: " + value.to_display_text) <|
+process_to_json_text value bounds=Nothing limit=Nothing = time_visualization Scatter_Plot ("process_to_json_text: " + (short_display value)) <|
     ## If limit is Nothing will use 15,000 for in database operations
     json = case value of
         _ : DB_Table -> json_from_table (value.read (..First (limit.if_nothing 15000))) bounds limit

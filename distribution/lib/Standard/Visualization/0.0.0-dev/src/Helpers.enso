@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Runtime.State
 from Standard.Base.Data.Json import render
 from Standard.Base.Logging import all
 
@@ -192,7 +193,7 @@ Text.to_lazy_visualization_data self text_window_position text_window_size chunk
    benefit of visualization in the IDE.
 Column.to_default_visualization_data : Text
 Column.to_default_visualization_data self =
-    size = ['length', self.length]
+    size = ['length', self.row_count]
     name = ['name', self.name]
     max_data = 100
     data = ['data', self.to_vector.take (..First max_data)]
@@ -235,6 +236,23 @@ truncate message max_length=256 suffix='...' =
 ## ---
    private: true
    ---
+   Truncated display text for logging
+private short_display value = if value.is_error then "<ERROR>" else
+    case value of
+        Nothing -> "Nothing"
+        _ : Dictionary -> "Dictionary(" + value.length.to_text + ")"
+        _ : Vector -> "Vector(" + value.length.to_text + ")"
+        _ : Array -> "Array(" + value.length.to_text + ")"
+        _ : Text ->
+            sub = value.take 20
+            if sub != value then sub + "..." else sub
+        _ : File -> "File(" + value.name + ")"
+        _ : Enso_File -> "Enso_File(" + value.name + ")"
+        _ -> value.to_display_text
+
+## ---
+   private: true
+   ---
    If ENSO_TIME_VIZZES is set, then log the time it took to compute the function
 private time_visualization module ~name ~action =
     wrapped =
@@ -243,14 +261,17 @@ private time_visualization module ~name ~action =
             Panic.throw caught_panic
         if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
         result
+    Profile.time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
 
-    level = case Environment.get "ENSO_TIME_VIZZES" of
-        Nothing -> Nothing
-        "warning" -> ..Warning
-        "info" -> ..Info
-        _ -> ..Trace
-    if level . is_nothing then wrapped else
-        pair = Duration.time_execution wrapped
-        suffix = if pair.second.is_a Text then " length="+(Text_Utils.char_length pair.second).to_text else ""
-        module.log_message ("Execution time for " + name + ": " + pair.first.to_text + suffix) level
-        pair.second
+private _profile_suffix value = case value of
+    _:Text -> " length=" + (Text_Utils.char_length value).to_text
+    Nothing -> " result=Nothing"
+    _ -> " result=" + (Meta.meta value).qualified_name
+
+private _profile_level = State.get Helpers if_missing=_profile_level_from_env
+
+private _profile_level_from_env =
+    env_val = Environment.get "ENSO_PROFILE_VIZZES"
+    if env_val == Nothing then Nothing else
+        level = Log_Level.from env_val
+        if level.is_error then Nothing else level

@@ -6,7 +6,7 @@ from Standard.Table import Table
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
-from project.Helpers import time_visualization
+from project.Helpers import time_visualization, short_display
 
 ## ---
    private: true
@@ -34,7 +34,7 @@ json_from_table table =
    ## Arguments
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value = time_visualization Geo_Map ("process_to_json_text: " + value.to_display_text) <|
+process_to_json_text value = time_visualization Geo_Map ("process_to_json_text: " + (short_display value)) <|
     case value of
         _ : DB_Table -> json_from_table (value.read (..First 15000)) . to_text
         _ : In_Memory_Table -> json_from_table value . to_text
