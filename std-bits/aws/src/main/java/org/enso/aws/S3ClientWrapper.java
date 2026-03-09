@@ -21,18 +21,30 @@ public class S3ClientWrapper implements AutoCloseable {
     this.client = client;
   }
 
-  public static S3ClientWrapper forCredential(AwsCredential credential, AWSRegion region) {
+  static S3ClientWrapper forCredentialInternal(AwsCredential credential, AWSRegion region) {
     var builder = new ClientBuilder(credential, region);
     return new S3ClientWrapper(builder.buildS3Client());
   }
 
-  public static S3ClientWrapper forBucket(
-      AwsCredential credential, String bucketName, AWSRegion defaultRegion) {
-    var bucketRegion = BucketLocator.getBucketRegion(bucketName, credential);
-    if (bucketRegion == null) {
-      bucketRegion = defaultRegion;
+  public static Value forCredential(AwsCredential credential, AWSRegion region) {
+    try {
+      return Value.asValue(forCredentialInternal(credential, region));
+    } catch (Exception exception) {
+      return AwsExceptionWrapper.handleS3ClientError("", "", exception);
     }
-    return forCredential(credential, bucketRegion);
+  }
+
+  public static Value forBucket(
+      AwsCredential credential, String bucketName, AWSRegion defaultRegion) {
+    try {
+      var bucketRegion = BucketLocator.getBucketRegion(bucketName, credential);
+      if (bucketRegion == null) {
+        bucketRegion = defaultRegion;
+      }
+      return Value.asValue(forCredentialInternal(credential, bucketRegion));
+    } catch (Exception exception) {
+      return AwsExceptionWrapper.handleS3ClientError(bucketName, "", exception);
+    }
   }
 
   public Value listBuckets() {
@@ -74,7 +86,7 @@ public class S3ClientWrapper implements AutoCloseable {
   }
 
   HeadBucketResponse headBucketInternal(String bucket)
-      throws NoSuchBucketException, AwsServiceException, SdkClientException {
+      throws AwsServiceException, SdkClientException {
     var request = HeadBucketRequest.builder().bucket(bucket).build();
     return client.headBucket(request);
   }

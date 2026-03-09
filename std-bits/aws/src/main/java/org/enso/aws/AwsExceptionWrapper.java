@@ -71,13 +71,13 @@ class AwsExceptionWrapper {
           EnsoMeta.makeInstance("Standard.AWS.Errors", "S3_Key_Not_Found", "Error", bucket, key);
       case S3Exception s3Exception -> {
         var details = s3Exception.awsErrorDetails();
-        var code = details == null ? null : details.errorCode();
+        var code = details == null ? "" : details.errorCode();
         yield EnsoMeta.makeInstance(
             "Standard.AWS.Errors", "S3_Error", "Error", s3Exception.getMessage(), code);
       }
       case AwsServiceException awsServiceException -> {
         var details = awsServiceException.awsErrorDetails();
-        var code = details == null ? null : details.errorCode();
+        var code = details == null ? "" : details.errorCode();
         yield EnsoMeta.makeInstance(
             "Standard.AWS.Errors",
             "S3_Error",

@@ -16,7 +16,7 @@ public sealed interface AwsCredential {
       case DEFAULT_TYPE -> new Default();
       case PROFILE_TYPE -> new Profile(parameters.get(0).text_value());
       case KEY_TYPE ->
-          new Key(parameters.get(0).toHideableValue(), parameters.get(1).toHideableValue());
+              new Key(HideableValue.from(parameters.get(0)), HideableValue.from(parameters.get(1)));
       default -> throw new IllegalArgumentException("Unknown credential type: " + credentialType);
     };
   }

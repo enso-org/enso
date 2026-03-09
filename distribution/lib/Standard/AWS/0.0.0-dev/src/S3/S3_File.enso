@@ -884,7 +884,8 @@ private _check_is_data_link (f : S3_File) =
    the exact key exists and is not just an empty marker (as used sometimes to
    mark directories).
 private _exists_entity_direct (f : S3_File) -> Boolean =
-    size = S3.raw_head f.s3_path.bucket f.s3_path.key f.credentials . contentLength
+    raw_head = S3.raw_head f.s3_path.bucket f.s3_path.key f.credentials
+    size = raw_head.contentLength
     if size.is_error then False else size > 0
 
 private _has_children_entities (f : S3_File) -> Boolean =
