@@ -26,17 +26,9 @@ import { useAppClass } from '@/providers/appClass'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
+import { useEventListener } from '@vueuse/core'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
-import {
-  computed,
-  effectScope,
-  EffectScope,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch,
-  watchPostEffect,
-} from 'vue'
+import { computed, effectScope, EffectScope, ref, watch, watchPostEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 
 declare module 'vue-router' {
@@ -152,33 +144,25 @@ const redirectTo = (redirectValue: { path: string }) => {
   if (isRedirecting.value) {
     return
   }
-
   isRedirecting.value = true
   void router
     .replace(redirectValue)
     .then(async (navigationFailure) => {
+      // Retry once, in case the first navigation failed due to some transient issue.
       if (navigationFailure && router.currentRoute.value.path !== redirectValue.path) {
         await router.replace(redirectValue)
       }
     })
     .catch((error) => {
-      console.error('Failed to redirect from protected route.', error)
+      console.error('Failed to redirect from protected route: ', error)
     })
     .finally(() => {
       isRedirecting.value = false
     })
 }
 
-const onLogout = () => {
+useEventListener(document, LOGOUT_EVENT, () => {
   redirectTo({ path: LOGIN_PATH })
-}
-
-onMounted(() => {
-  document.addEventListener(LOGOUT_EVENT, onLogout)
-})
-
-onUnmounted(() => {
-  document.removeEventListener(LOGOUT_EVENT, onLogout)
 })
 
 watch(

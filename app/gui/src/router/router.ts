@@ -25,6 +25,7 @@ function requireCloudBrowserEnabled() {
   if (!isCloudExecutionEnabled) return { name: 'cloudDisabled' }
 }
 
+// Guest pages do not require a resolved session, so we can reduce waiting time when navigating between them.
 function requiresResolvedSession(access: 'guest' | 'anyLoggedIn' | 'deleted' | undefined) {
   return access === 'anyLoggedIn' || access === 'deleted'
 }
