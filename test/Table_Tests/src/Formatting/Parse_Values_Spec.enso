@@ -90,6 +90,11 @@ add_specs suite_builder =
             t8.at "dates" . value_type . should_equal Value_Type.Date
             t8.at "dates" . to_vector . should_equal [Date.new 2022 5 7, Date.new 2001 1 1, Date.new 2010 12 31]
 
+        group_builder.specify "can parse a date to a datetime" <|
+            t1 = Table.new [["dates", ["2022-05-07", "2000-01-01", "2010-12-31"]]]
+            t2 = t1.parse type=Value_Type.Date_Time
+            t2.at "dates" . to_vector . should_equal [Date_Time.new 2022 5 7 0 0 0, Date_Time.new 2000 1 1 0 0 0, Date_Time.new 2010 12 31 0 0 0]
+
         group_builder.specify "should parse date and time in various formats" <|
             opts = Data_Formatter.Value.with_datetime_formats date_formats=["d.M.y", (Date_Time_Formatter.from_java "d MMM y[ G]"), "ddd, d MMM y"] datetime_formats=["yyyy-MM-dd HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.f", "h:mma"]
 
@@ -145,8 +150,8 @@ add_specs suite_builder =
 
             a5 = t.parse columns=["times"] type=Value_Type.Date_Time on_problems=_
             t5 t =
-                t.at "times" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            p5 = [Invalid_Format.Error "times" Value_Type.Date_Time 8 ['', '1/2/2003', '2001-01-01', 'foobar', '10:99:99', '2001-30-10', '10:00:10', 'Tuesday']]
+                t.at "times" . to_vector . should_equal [Date_Time.new 2001 1 1 0 0 0, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            p5 = [Invalid_Format.Error "times" Value_Type.Date_Time 7 ['', '1/2/2003', 'foobar', '10:99:99', '2001-30-10', '10:00:10', 'Tuesday']]
             Problems.test_problem_handling a5 p5 t5
 
             a6 = t.parse columns=["times"] type=Value_Type.Time on_problems=_
@@ -184,6 +189,7 @@ add_specs suite_builder =
             t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]
             t2.at "floats+ints" . to_vector . should_equal [1.0, 2.2, -1.0, Nothing]
             t2.at "text" . to_vector . should_equal ["foobar", "foo", "", Nothing]
+            # In Auto mode, dates take precedence over datetimes.
             t2.at "dates" . to_vector . should_equal [Date.new 2022 10 1, Date.new 2000 1 1, Date.new 1999 1 2, Nothing]
             t2.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 10 1 1 2 3, Date_Time.new 2000 1 1 1 2 3, Date_Time.new 1999 1 2 1 2 3, Nothing]
             t2.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3, Time_Of_Day.new, Time_Of_Day.new 1 2 3, Nothing]
@@ -549,11 +555,11 @@ add_specs suite_builder =
             c6.value_type.should_equal Value_Type.Time
 
             c7 = Column.from_vector "foo" ["2022-05-07 23:59:59", "42", "2010-12-31"]
-            c8 = c7.parse type=Value_Type.Date_Time . to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Nothing, Nothing]
+            c8 = c7.parse type=Value_Type.Date_Time . to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Nothing, Date_Time.new 2010 12 31 0 0 0]
             w = Problems.get_attached_warnings c8 . find w-> w.is_a Invalid_Format
             w.column.should_equal "foo"
             w.value_type . should_equal Value_Type.Date_Time
-            w.cells . should_equal ["42", "2010-12-31"]
+            w.cells . should_equal ["42"]
 
         group_builder.specify "should correctly parse date and time with format" <|
             c1 = Column.from_vector "date" ["5/7/2022", "1/1/2000", "12/31/2010"]
