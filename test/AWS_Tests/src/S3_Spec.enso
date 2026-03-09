@@ -305,7 +305,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to get metadata for a file" <|
             f = root / "FirstNames.csv"
-            f.last_modified_time.to_utc . should_equal Date_Time.parse "2026-03-06T17:32:30Z"
+            f.last_modified_time.to_utc . should_equal (Date_Time.parse "2026-03-06T17:32:30Z" . to_utc)
 
         group_builder.specify "should work with Data.read" <|
             with_default_credentials <|
