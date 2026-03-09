@@ -164,16 +164,10 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     name: String
   ): List[ResolvedName] = {
     resolvedImports
-      .filter(i => importMatchesName(i, name) && !i.isSynthetic())
-      .flatMap(_.targets)
-  }
-
-  private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
-    imp.importDef.onlyNames
-      .map(_ => imp.importDef.rename.exists(_.name == name))
-      .getOrElse(
-        !imp.importDef.isAll && imp.importDef.getSimpleName.name == name
+      .filter(i =>
+        BindingsMapUtil.importMatchesName(i, name) && !i.isSynthetic()
       )
+      .flatMap(_.targets)
   }
 
   private def findExportedCandidatesInImports(

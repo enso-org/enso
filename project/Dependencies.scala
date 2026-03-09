@@ -66,7 +66,7 @@ object Dependencies {
     val idea = System.getProperty("idea.managed")
     idea != null && idea.nonEmpty
   }
-  val targetJavaVersion     = if (runningInAnIde) "21" else "17"
+  val targetJavaVersion     = if (runningInAnIde) "22" else "17"
   val defaultDevEnsoVersion = "0.0.0-dev"
   val ensoVersion = sys.env.getOrElse(
     "ENSO_VERSION",

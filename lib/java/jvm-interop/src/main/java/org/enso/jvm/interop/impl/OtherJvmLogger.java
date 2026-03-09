@@ -2,7 +2,10 @@ package org.enso.jvm.interop.impl;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -112,6 +115,8 @@ final class OtherJvmLogger extends System.LoggerFinder {
 
   private final class LoggerImpl implements System.Logger {
     private final String name;
+    private final Map<Level, Boolean> loggable =
+        Collections.synchronizedMap(new EnumMap<>(Level.class));
 
     LoggerImpl(String name) {
       this.name = name;
@@ -127,9 +132,18 @@ final class OtherJvmLogger extends System.LoggerFinder {
       if ("org.enso.persist".equals(name)) {
         return level.compareTo(Level.INFO) >= 0;
       }
+      var prev = loggable.get(level);
+      if (prev != null) {
+        return prev;
+      }
       var check = new LogCheck(name, level.getSeverity());
-      var b = channel.execute(Boolean.class, check);
-      return b;
+      try {
+        var b = channel.execute(Boolean.class, check);
+        loggable.put(level, b);
+        return b;
+      } catch (WrongThreadException ex) {
+        return true;
+      }
     }
 
     @Override

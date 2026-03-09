@@ -709,4 +709,44 @@ public class ExecCompilerTest {
     assertEquals(26, act.execute(3, 6, 7).asInt());
     assertEquals(84, act.execute(7, 6, 7).asInt());
   }
+
+  @Test
+  public void compareVariousWaysToImportTrue() throws Exception {
+    var c1 =
+        """
+        import Standard.Base.Data.Boolean.Boolean.True
+
+        main = True
+        """;
+
+    var t1 = ctxRule.evalModule(c1);
+
+    var c2 =
+        """
+        from Standard.Base.Data.Boolean.Boolean import True
+
+        main = True
+        """;
+    var t2 = ctxRule.evalModule(c2);
+
+    assertEquals(t1, t2);
+
+    var c3 =
+        """
+        from Standard.Base.Data.Boolean.Boolean import False, True
+
+        main = True
+        """;
+    var t3 = ctxRule.evalModule(c3);
+    assertEquals(t3, t2);
+
+    var c4 =
+        """
+        from Standard.Base.Data.Boolean.Boolean import all
+
+        main = True
+        """;
+    var t4 = ctxRule.evalModule(c4);
+    assertEquals(t4, t3);
+  }
 }

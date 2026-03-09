@@ -6,6 +6,7 @@ import org.enso.interpreter.instrument.job.{
   BackgroundJob,
   ExecuteJob,
   Job,
+  SkipSchedulingUniqueJob,
   UniqueJob
 }
 import org.enso.text.Sha3_224VersionCalculator
@@ -164,10 +165,21 @@ final class JobExecutionEngine(
   override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
       if (isBackgroundJobsStarted) {
-        cancelDuplicateJobs(job, backgroundJobsRef)
+        if (handleDuplicateJobs(job, backgroundJobsRef)) {
+          logger.trace("Skipping duplicate background job [{}].", job)
+          return
+        }
         runInternal(job, backgroundJobExecutor, backgroundJobsRef, "background")
       } else {
         job match {
+          case _: SkipSchedulingUniqueJob =>
+            if (hasDuplicateInDelayedQueue(job.asInstanceOf[UniqueJob[_]])) {
+              logger.trace(
+                "Skipping duplicate delayed background job [{}].",
+                job
+              )
+              return
+            }
           case job: UniqueJob[_] =>
             delayedBackgroundJobsQueue.removeIf {
               case that: UniqueJob[_] => that.equalsTo(job)
@@ -180,11 +192,32 @@ final class JobExecutionEngine(
     }
 
   /** @inheritdoc */
-  override def run[A](job: Job[A]): Future[A] = {
-    cancelDuplicateJobs(job, runningJobsRef)
-    val executor =
-      if (job.highPriority) highPriorityJobExecutor else jobExecutor
-    runInternal(job, executor, runningJobsRef, "regular")
+  override def run[A](job: Job[A]): Future[A] =
+    synchronized {
+      if (handleDuplicateJobs(job, runningJobsRef)) {
+        logger.trace("Skipping duplicate job [{}].", job)
+        return Future.successful(null.asInstanceOf[A])
+      }
+      val executor =
+        if (job.highPriority) highPriorityJobExecutor else jobExecutor
+      runInternal(job, executor, runningJobsRef, "regular")
+    }
+
+  /** Returns `true` if the job should be skipped (not scheduled).
+    * For [[SkipSchedulingUniqueJob]], checks if a duplicate exists.
+    * For regular [[UniqueJob]], cancels existing duplicates.
+    */
+  private def handleDuplicateJobs[A](
+    job: Job[A],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Boolean = {
+    job match {
+      case _: SkipSchedulingUniqueJob =>
+        hasDuplicateJob(job.asInstanceOf[UniqueJob[_]], runningJobsRef)
+      case _ =>
+        cancelDuplicateJobs(job, runningJobsRef)
+        false
+    }
   }
 
   private def cancelDuplicateJobs[A](
@@ -210,6 +243,31 @@ final class JobExecutionEngine(
         }
       case _ =>
     }
+  }
+
+  private def hasDuplicateJob(
+    job: UniqueJob[_],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Boolean = {
+    val allJobs =
+      runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    allJobs.exists { runningJob =>
+      runningJob.job match {
+        case jobRef: UniqueJob[_] => jobRef.equalsTo(job)
+        case _                    => false
+      }
+    }
+  }
+
+  private def hasDuplicateInDelayedQueue(job: UniqueJob[_]): Boolean = {
+    val iter = delayedBackgroundJobsQueue.iterator()
+    while (iter.hasNext) {
+      iter.next() match {
+        case that: UniqueJob[_] if that.equalsTo(job) => return true
+        case _                                        =>
+      }
+    }
+    false
   }
 
   private def updatePendingCancellations(

@@ -7,6 +7,9 @@ from Standard.Test import all
 
 import project.Enso_Bin_Utils
 
+polyglot java import java.lang.System.Logger.Level
+polyglot java import org.enso.base_test_helpers.LoggerHelper
+
 type Type_In_Private_Module
 
 add_specs suite_builder = suite_builder.group "Logging" group_builder->
@@ -23,6 +26,13 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
     group_builder.specify "should do nothing on logging" <|
         Type_In_Private_Module.log_message "Hidden message" Log_Level.Finest
         Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine
+
+    group_builder.specify "is logging asynchronously" <|
+        LoggerHelper.isLoggableAsync Level.ERROR . should_be_true
+
+    group_builder.specify "log asynchronously" <|
+        LoggerHelper.logAsync Level.TRACE "Not visible"
+        LoggerHelper.logAsync Level.ERROR "Visible somewhere"
 
     enso_logging_prj_lazy = Ref.new lazy=True <|
         prj_dir = tmp_root / "default_logging"
