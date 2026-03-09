@@ -14,7 +14,6 @@ import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import type { SignInOutput } from 'aws-amplify/auth'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
-import { Err } from 'enso-common/src/utilities/data/result'
 import { unreachable } from 'enso-common/src/utilities/errors'
 import { computed, onScopeDispose, ref, toRaw, toValue, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
@@ -117,9 +116,9 @@ export function createSessionStore(
     logout: () => logoutMutation.mutateAsync(),
     clearSessionToken: () => httpClient.clearSessionToken(),
     clearSessionQuery: () => queryClient.setQueryData(sessionQueryOptions.queryKey, null),
-    reportSessionExpiredError: (error: unknown) =>
-      errorToast.reportError(Err(error).error, getText('sessionExpiredError')),
-    reportRepeatedUnauthorizedError: (error: unknown) => errorToast.reportError(Err(error).error),
+    reportSessionExpiredError: (error) =>
+      errorToast.reportError(error, getText('sessionExpiredError')),
+    reportRepeatedUnauthorizedError: (error) => errorToast.reportError(error),
   })
 
   const signUp = async (username: string, password: string, organizationId: string | null) => {

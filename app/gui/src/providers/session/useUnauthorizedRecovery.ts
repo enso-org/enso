@@ -19,6 +19,8 @@ import {
   recordUnauthorizedRecoveryActivity,
   reportRepeatedUnauthorizedErrorOnce,
   resetUnauthorizedRecoveryState as resetUnauthorizedRecoveryStateInternal,
+  toUnauthorizedRecoveryError,
+  type UnauthorizedRecoveryError,
 } from './unauthorizedRecoveryState'
 
 interface UseUnauthorizedRecoveryOptions {
@@ -28,8 +30,8 @@ interface UseUnauthorizedRecoveryOptions {
   readonly logout: () => Promise<unknown>
   readonly clearSessionToken: () => void
   readonly clearSessionQuery: () => void
-  readonly reportSessionExpiredError: (error: unknown) => void
-  readonly reportRepeatedUnauthorizedError: (error: unknown) => void
+  readonly reportSessionExpiredError: (error: UnauthorizedRecoveryError) => void
+  readonly reportRepeatedUnauthorizedError: (error: UnauthorizedRecoveryError) => void
 }
 
 /** Install unauthorized handlers and coordinate session recovery/replay flow. */
@@ -62,7 +64,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
     }
   }
 
-  const reportTerminalAuthFailure = (error: unknown) => {
+  const reportTerminalAuthFailure = (error: UnauthorizedRecoveryError) => {
     if (state.terminalAuthFailurePromise) {
       return state.terminalAuthFailurePromise
     }
@@ -128,7 +130,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
         recordUnauthorizedRecoveryActivity(state)
         return true
       } catch (error) {
-        await reportTerminalAuthFailure(error)
+        await reportTerminalAuthFailure(toUnauthorizedRecoveryError(error))
         return false
       } finally {
         state.authRecoveryPromise = null
@@ -139,7 +141,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
   }
 
   const recoverSessionAfterRepeatedUnauthorizedError = (
-    error: unknown,
+    error: UnauthorizedRecoveryError,
     backoffOptions: RepeatedUnauthorizedRecoveryBackoffOptions = REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS,
   ) => {
     if (state.repeatedUnauthorizedRecoveryPromise) {

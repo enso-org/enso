@@ -4,6 +4,8 @@ import {
   isUsersMeQuery,
   queueRepeatedUnauthorizedQuery,
   reportRepeatedUnauthorizedErrorOnce,
+  toUnauthorizedRecoveryError,
+  type UnauthorizedRecoveryError,
   type UnauthorizedRecoveryState,
 } from './unauthorizedRecoveryState'
 
@@ -12,9 +14,11 @@ interface UnauthorizedRecoveryHandlerOptions {
   readonly state: UnauthorizedRecoveryState
   readonly recordUnauthorizedRecoveryActivity: () => void
   readonly recoverSessionAfterUnauthorizedError: () => Promise<boolean>
-  readonly recoverSessionAfterRepeatedUnauthorizedError: (error: unknown) => Promise<boolean>
-  readonly reportTerminalAuthFailure: (error: unknown) => Promise<void>
-  readonly reportRepeatedUnauthorizedError: (error: unknown) => void
+  readonly recoverSessionAfterRepeatedUnauthorizedError: (
+    error: UnauthorizedRecoveryError,
+  ) => Promise<boolean>
+  readonly reportTerminalAuthFailure: (error: UnauthorizedRecoveryError) => Promise<void>
+  readonly reportRepeatedUnauthorizedError: (error: UnauthorizedRecoveryError) => void
 }
 
 /**
@@ -29,10 +33,11 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
   queryCache.config.onError = (error, query) => {
     previousOnQueryError(error, query)
     if (isUnauthorizedError(error)) {
+      const authError = toUnauthorizedRecoveryError(error)
       options.recordUnauthorizedRecoveryActivity()
 
       if (options.state.hasRecoveredUnauthorizedSession && isUsersMeQuery(query)) {
-        void options.reportTerminalAuthFailure(error)
+        void options.reportTerminalAuthFailure(authError)
         return
       }
 
@@ -40,13 +45,13 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
         if (options.state.replayedQueryHashes.has(query.queryHash)) {
           reportRepeatedUnauthorizedErrorOnce(
             options.state,
-            error,
+            authError,
             options.reportRepeatedUnauthorizedError,
           )
           return
         }
         queueRepeatedUnauthorizedQuery(options.state, query)
-        void options.recoverSessionAfterRepeatedUnauthorizedError(error)
+        void options.recoverSessionAfterRepeatedUnauthorizedError(authError)
         return
       }
 
@@ -64,10 +69,11 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
   mutationCache.config.onError = (error, variables, onMutateResult, mutation, context) => {
     previousOnMutationError(error, variables, onMutateResult, mutation, context)
     if (isUnauthorizedError(error)) {
+      const authError = toUnauthorizedRecoveryError(error)
       if (options.state.replayedMutations.has(mutation)) {
         reportRepeatedUnauthorizedErrorOnce(
           options.state,
-          error,
+          authError,
           options.reportRepeatedUnauthorizedError,
         )
         return
@@ -75,7 +81,7 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
 
       const recoverPromise =
         options.state.hasRecoveredUnauthorizedSession ?
-          options.recoverSessionAfterRepeatedUnauthorizedError(error)
+          options.recoverSessionAfterRepeatedUnauthorizedError(authError)
         : options.recoverSessionAfterUnauthorizedError()
 
       void recoverPromise.then((wasRecovered) => {

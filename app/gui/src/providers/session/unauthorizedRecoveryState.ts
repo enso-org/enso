@@ -1,8 +1,15 @@
+import { Err, ResultError } from 'enso-common/src/utilities/data/result'
 import { ref, type Ref } from 'vue'
-import {
-  REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS,
-  type RepeatedUnauthorizedRecoveryBackoffOptions,
-} from './backoff'
+import type { RepeatedUnauthorizedRecoveryBackoffOptions } from './backoff'
+import { REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS } from './constants'
+
+/** Error type propagated through unauthorized recovery flow. */
+export type UnauthorizedRecoveryError = ResultError<unknown>
+
+/** Normalize unknown error values into a ResultError instance. */
+export function toUnauthorizedRecoveryError(error: unknown): UnauthorizedRecoveryError {
+  return error instanceof ResultError ? error : Err(error).error
+}
 
 /** Query identifier for a failed unauthorized request. */
 export interface UnauthorizedFailedQuery {
@@ -88,8 +95,8 @@ export function queueRepeatedUnauthorizedQuery(
 /** Report repeated unauthorized errors only once per recovery window. */
 export function reportRepeatedUnauthorizedErrorOnce(
   state: UnauthorizedRecoveryState,
-  error: unknown,
-  report: (error: unknown) => void,
+  error: UnauthorizedRecoveryError,
+  report: (error: UnauthorizedRecoveryError) => void,
 ) {
   if (state.hasReportedRepeatedUnauthorizedError) {
     return
