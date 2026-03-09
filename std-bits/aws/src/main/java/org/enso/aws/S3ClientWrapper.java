@@ -15,15 +15,17 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 public class S3ClientWrapper implements AutoCloseable {
-  S3Client client;
+  final S3Client client;
+  final AWSRegion region;
 
-  S3ClientWrapper(S3Client client) {
+  S3ClientWrapper(S3Client client, AWSRegion region) {
     this.client = client;
+    this.region = region;
   }
 
   static S3ClientWrapper forCredentialInternal(AwsCredential credential, AWSRegion region) {
     var builder = new ClientBuilder(credential, region);
-    return new S3ClientWrapper(builder.buildS3Client());
+    return new S3ClientWrapper(builder.buildS3Client(), region);
   }
 
   public static Value forCredential(AwsCredential credential, AWSRegion region) {
@@ -236,7 +238,7 @@ public class S3ClientWrapper implements AutoCloseable {
               .signatureDuration(Duration.ofSeconds(expirationSeconds))
               .getObjectRequest(request.build());
 
-      try (var presigner = S3Presigner.builder().s3Client(client).build()) {
+      try (var presigner = S3Presigner.builder().s3Client(client).region(AWSRegion.underlying(region)).build()) {
         var presignResponse = presigner.presignGetObject(presignRequest.build());
         return Value.asValue(presignResponse.url().toExternalForm());
       }
