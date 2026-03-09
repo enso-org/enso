@@ -776,7 +776,7 @@ export class RemoteBackend extends backend.Backend {
           if (
             page.some((execution) => {
               const startDate = parseAbsolute(execution.startDate, execution.timeZone)
-              return startDate.year > year || startDate.month > month
+              return startDate.year > year && startDate.month > month
             })
           ) {
             break
