@@ -127,9 +127,9 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
 
   // Select node, pan out of view of it, press Enter; should pan to show node and CB
   await locate.graphNodeByBinding(page, 'final').click()
-  await page.mouse.move(100, 180)
+  await page.mouse.move(700, 180)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(100, 1300)
+  await page.mouse.move(700, 1300)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'final')).not.toBeInViewport()
   await locate.graphEditor(page).press('Enter')
@@ -137,9 +137,9 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
   await expectAndCancelBrowser(page, '', null)
 
   // Dragging out an edge to the bottom of the viewport; when the CB pans into view, some nodes are out of view.
-  await page.mouse.move(100, 1100)
+  await page.mouse.move(900, 1100)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(100, 280)
+  await page.mouse.move(900, 360)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
   const outputPort = await locate.outputPortCoordinates(
@@ -147,7 +147,7 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
     locate.graphNodeByBinding(page, 'final'),
   )
   await page.mouse.click(outputPort.x, outputPort.y)
-  await locate.graphEditor(page).click({ position: { x: 100, y: 1700 } })
+  await page.mouse.click(800, 1700)
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, '', null)
 })

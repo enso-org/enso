@@ -15,7 +15,11 @@ const displayedId = computed({
   get: () =>
     rightPanel.context?.help != null ? rightPanel.context.help.item : Err(UNAVAILABLE_MESSAGE),
   set: (newSelection) => {
-    rightPanel.updateContext(container.tab, (ctx) => {
+    if (container.currentTab == null) {
+      console.error('Cannot navigate in Help Panel: no current project tab!')
+      return
+    }
+    rightPanel.updateContext(container.currentTab, (ctx) => {
       if (ctx.help == null) ctx.help = { item: newSelection, aiMode: false }
       else ctx.help.item = newSelection
       return ctx

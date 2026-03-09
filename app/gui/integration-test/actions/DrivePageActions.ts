@@ -72,12 +72,6 @@ function locateCategoryButton(page: Page, category: string): Locator {
     .getByRole('button', { name: category, exact: true })
 }
 
-/** Find an asset panel. */
-function locateRightPanel(page: Page) {
-  // This has no identifying features.
-  return page.getByTestId('right-panel').locator('visible=true')
-}
-
 /** Actions for the "drive" page. */
 export default class DrivePageActions<Context = object> extends PageActions<Context> {
   /** Actions for navigating to another page. */
@@ -421,40 +415,12 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
     })
   }
 
-  /** Show the properties tab of the Asset Panel. */
-  togglePropertiesAssetPanel() {
-    return this.step('Toggle properties asset panel', async (page) => {
-      await page.getByRole('tab', { name: 'Properties' }).click()
-    })
-  }
-
-  /** Show the description tab of the Asset Panel. */
-  toggleDescriptionAssetPanel() {
-    return this.step('Toggle description asset panel', async (page) => {
-      await page.getByRole('tab', { name: 'Description' }).click()
-    })
-  }
-
-  /** Show the Docs tab of the Asset Panel. */
-  toggleDocsAssetPanel() {
-    return this.step('Toggle docs asset panel', async (page) => {
-      await page.getByRole('tab', { name: 'Documentation' }).click()
-    })
-  }
-
   /** Interact with the container element of the assets table. */
   withAssetsTable(
     callback: (input: Locator, context: Context, page: Page) => Promise<void> | void,
   ) {
     return this.step('Interact with drive table', async (page) => {
       await callback(locateAssetsTable(page), this.context, page)
-    })
-  }
-
-  /** Interact with the Asset Panel. */
-  withRightPanel(callback: LocatorCallback<Context>) {
-    return this.step('Interact with right panel', async (page, context) => {
-      await callback(locateRightPanel(page), context)
     })
   }
 

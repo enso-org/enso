@@ -8,9 +8,9 @@ function locateEditor(page: Page) {
 }
 
 /** Find a drive view. */
-function locateDriveView(page: Page) {
+function locateSettings(page: Page) {
   // This has no identifying features.
-  return page.getByTestId('drive-view')
+  return page.getByTestId('settings-panel')
 }
 
 test.describe(() => {
@@ -18,24 +18,19 @@ test.describe(() => {
   test('page switcher', async ({ drivePage }) => {
     await drivePage.goToCategory
       .cloud()
-
       .newEmptyProject()
       .do(async (thePage) => {
-        await expect(locateDriveView(thePage)).toBeHidden()
+        await expect(locateSettings(thePage)).toBeHidden()
         await expect(locateEditor(thePage)).toBeVisible()
       })
+      .goToPage.settings()
       .do(async (thePage) => {
-        await expect(locateDriveView(thePage)).toBeHidden()
-        await expect(locateEditor(thePage)).toBeVisible()
-      })
-      .goToPage.drive()
-      .do(async (thePage) => {
-        await expect(locateDriveView(thePage)).toBeVisible()
+        await expect(locateSettings(thePage)).toBeVisible()
         await expect(locateEditor(thePage)).toBeHidden()
       })
       .goToPage.projectView()
       .do(async (thePage) => {
-        await expect(locateDriveView(thePage)).toBeHidden()
+        await expect(locateSettings(thePage)).toBeHidden()
         await expect(locateEditor(thePage)).toBeVisible()
       })
   })

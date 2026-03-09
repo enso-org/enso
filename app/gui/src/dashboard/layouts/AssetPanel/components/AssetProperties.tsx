@@ -91,7 +91,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   )
 
   const closeSpotlight = useEventCallback(() => {
-    rightPanel.updateContext('drive', (ctx) => {
+    rightPanel.updateContext({ type: 'drive' }, (ctx) => {
       ctx.spotlightOn = undefined
       return ctx
     })
