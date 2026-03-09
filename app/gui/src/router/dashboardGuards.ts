@@ -211,7 +211,7 @@ export async function openTab(to: RouteLocation) {
   switch (to.name) {
     case 'project': {
       const container = useContainerData()
-      if (!isProjectId(to.params.id)) return false
+      if (typeof to.params.id !== 'string' || !isProjectId(to.params.id)) return false
       const id = to.params.id
       const tab: Tab = { type: 'project', id }
       if (container.isTabOpened(tab)) {

@@ -52,7 +52,7 @@ LocalStorage.registerKey('leftPanelWidth', { schema: z.number() })
 export function tabFromRoute(route: RouteLocation) {
   switch (route.name) {
     case 'project': {
-      if (!isProjectId(route.params.id)) return null
+      if (typeof route.params.id !== 'string' || !isProjectId(route.params.id)) return null
       return { type: 'project' as const, id: route.params.id }
     }
     case 'settings':
