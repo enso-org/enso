@@ -469,8 +469,8 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
    * <p>This method must be called from the owner thread (the thread that created this service).
    * Tasks are polled individually from the queues on each iteration so that tasks submitted during
    * execution (e.g., incoming WebSocket messages) become visible immediately. High-priority tasks
-   * are always checked first, ensuring latency-sensitive operations are not starved by large batches
-   * of bulk work.
+   * are always checked first, ensuring latency-sensitive operations are not starved by large
+   * batches of bulk work.
    *
    * <p>Poll order: high-priority queue → regular immediate queue → ready scheduled tasks.
    *

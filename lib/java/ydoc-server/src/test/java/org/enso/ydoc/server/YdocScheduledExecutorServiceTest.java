@@ -358,6 +358,68 @@ public class YdocScheduledExecutorServiceTest {
   }
 
   @Test
+  public void testHighPriorityTasksExecuteFirst() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
+    List<String> executionOrder = new ArrayList<>();
+
+    // Submit regular tasks first
+    service.submit(() -> executionOrder.add("regular1"));
+    service.submit(() -> executionOrder.add("regular2"));
+
+    // Submit high-priority tasks via execute() with HighPriorityRunnable
+    service.execute(
+        new YdocScheduledExecutorService.HighPriorityRunnable(() -> executionOrder.add("high1")));
+    service.execute(
+        new YdocScheduledExecutorService.HighPriorityRunnable(() -> executionOrder.add("high2")));
+
+    service.processPendingTasks();
+
+    // High-priority tasks should execute before regular tasks
+    assertEquals(List.of("high1", "high2", "regular1", "regular2"), executionOrder);
+  }
+
+  @Test
+  public void testHighPriorityViewRoutesToHighPriorityQueue() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
+    var highPriorityView = service.createHighPriorityView();
+    List<String> executionOrder = new ArrayList<>();
+
+    // Submit regular tasks directly
+    service.submit(() -> executionOrder.add("regular1"));
+    service.submit(() -> executionOrder.add("regular2"));
+
+    // Submit via high-priority view
+    highPriorityView.execute(() -> executionOrder.add("high1"));
+    highPriorityView.execute(() -> executionOrder.add("high2"));
+
+    service.processPendingTasks();
+
+    // View tasks should execute before regular tasks
+    assertEquals(List.of("high1", "high2", "regular1", "regular2"), executionOrder);
+  }
+
+  @Test
+  public void testHighPriorityTasksInterleavedDuringProcessing() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
+    var highPriorityView = service.createHighPriorityView();
+    List<String> executionOrder = new ArrayList<>();
+
+    // Submit regular tasks where the first one submits a high-priority task during execution
+    service.submit(
+        () -> {
+          executionOrder.add("regular1");
+          // Simulate a WebSocket message arriving while processing regular tasks
+          highPriorityView.execute(() -> executionOrder.add("high-interleaved"));
+        });
+    service.submit(() -> executionOrder.add("regular2"));
+
+    service.processPendingTasks();
+
+    // The high-priority task submitted during regular1 should execute before regular2
+    assertEquals(List.of("regular1", "high-interleaved", "regular2"), executionOrder);
+  }
+
+  @Test
   public void testEventLoopPattern() throws InterruptedException {
     YdocScheduledExecutorService service = new YdocScheduledExecutorService();
     AtomicInteger counter = new AtomicInteger(0);
