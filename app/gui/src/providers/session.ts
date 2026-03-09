@@ -13,12 +13,12 @@ import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import type { SignInOutput } from 'aws-amplify/auth'
-import { isUnauthorizedError } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Err } from 'enso-common/src/utilities/data/result'
 import { unreachable } from 'enso-common/src/utilities/errors'
 import { computed, onScopeDispose, ref, toRaw, toValue, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
+import { useUnauthorizedRecovery } from './session/useUnauthorizedRecovery'
 import { useText } from './text'
 
 /** Create a query for the user session. */
@@ -41,65 +41,6 @@ function getMainPageUrl() {
 
 export type SessionStore = ReturnType<typeof createSessionStore>
 
-interface AuthRecoveryBackoffOptions {
-  readonly maxAttempts: number
-  readonly initialDelayMs: number
-  readonly multiplier: number
-  readonly maxDelayMs: number
-  readonly jitter: number
-}
-
-interface RepeatedUnauthorizedRecoveryBackoffOptions extends AuthRecoveryBackoffOptions {
-  readonly resetWindowMs: number
-}
-
-const AUTH_RECOVERY_BACKOFF_DEFAULTS: AuthRecoveryBackoffOptions = {
-  maxAttempts: 4,
-  initialDelayMs: 300,
-  multiplier: 2,
-  maxDelayMs: 5000,
-  jitter: 0.2,
-}
-
-const REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS: RepeatedUnauthorizedRecoveryBackoffOptions =
-  {
-    maxAttempts: 3,
-    initialDelayMs: 300,
-    multiplier: 2,
-    maxDelayMs: 5000,
-    jitter: 0.2,
-    resetWindowMs: 30_000,
-  }
-
-const RECONNECTING_SESSION_DELAY_MS = 1000
-
-function wait(delayMs: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, delayMs)
-  })
-}
-
-function withJitter(delayMs: number, jitter: number) {
-  if (jitter <= 0) {
-    return delayMs
-  }
-  const jitterRange = delayMs * jitter
-  const randomOffset = (Math.random() * 2 - 1) * jitterRange
-  return Math.max(0, Math.round(delayMs + randomOffset))
-}
-
-function nextBackoffDelay(delayMs: number, options: AuthRecoveryBackoffOptions) {
-  const boundedDelayMs = Math.min(delayMs, options.maxDelayMs)
-  return {
-    delayMs: withJitter(boundedDelayMs, options.jitter),
-    nextDelayMs: Math.min(options.maxDelayMs, Math.round(delayMs * options.multiplier)),
-  }
-}
-
-function isUsersMeQuery(query: { readonly queryKey: readonly unknown[] }) {
-  return query.queryKey[1] === 'usersMe'
-}
-
 /** Create a store maintaining session information. */
 export function createSessionStore(
   authService: ToValue<cognito.ISessionProvider | undefined>,
@@ -114,71 +55,6 @@ export function createSessionStore(
   const successToast = useToast.success()
 
   const isLoggingOut = ref(false)
-  const reconnectingSessionBackoffWaitCount = ref(0)
-  const isReconnectingSession = computed(() => reconnectingSessionBackoffWaitCount.value > 0)
-  let authRecoveryPromise: Promise<boolean> | null = null
-  let repeatedUnauthorizedRecoveryPromise: Promise<boolean> | null = null
-  let repeatedUnauthorizedRecoveryAttempts = 0
-  let repeatedUnauthorizedDelayMs = REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS.initialDelayMs
-  let unauthorizedRecoveryLastActivityAt = 0
-  let hasRecoveredUnauthorizedSession = false
-  let hasReportedRepeatedUnauthorizedError = false
-  let terminalAuthFailurePromise: Promise<void> | null = null
-  let replayedQueryHashes = new Set<string>()
-  let pendingRepeatedUnauthorizedQueries = new Map<string, readonly unknown[]>()
-  let replayedMutations = new WeakSet<object>()
-
-  const isAuthRecoveryBlocked = () => terminalAuthFailurePromise != null || isLoggingOut.value
-
-  const recordUnauthorizedRecoveryActivity = (
-    resetWindowMs = REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS.resetWindowMs,
-  ) => {
-    const now = Date.now()
-    if (
-      unauthorizedRecoveryLastActivityAt > 0 &&
-      now - unauthorizedRecoveryLastActivityAt > resetWindowMs
-    ) {
-      resetRepeatedUnauthorizedRecoveryState()
-    }
-    unauthorizedRecoveryLastActivityAt = now
-  }
-
-  const waitForRecoveryBackoff = async (delayMs: number) => {
-    if (delayMs <= RECONNECTING_SESSION_DELAY_MS) {
-      await wait(delayMs)
-      return
-    }
-
-    reconnectingSessionBackoffWaitCount.value += 1
-    try {
-      await wait(delayMs)
-    } finally {
-      reconnectingSessionBackoffWaitCount.value = Math.max(
-        0,
-        reconnectingSessionBackoffWaitCount.value - 1,
-      )
-    }
-  }
-
-  const resetRepeatedUnauthorizedRecoveryState = () => {
-    repeatedUnauthorizedRecoveryAttempts = 0
-    repeatedUnauthorizedDelayMs = REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS.initialDelayMs
-    unauthorizedRecoveryLastActivityAt = 0
-    hasRecoveredUnauthorizedSession = false
-    hasReportedRepeatedUnauthorizedError = false
-    replayedQueryHashes = new Set<string>()
-    pendingRepeatedUnauthorizedQueries = new Map<string, readonly unknown[]>()
-    replayedMutations = new WeakSet<object>()
-    reconnectingSessionBackoffWaitCount.value = 0
-  }
-
-  const reportRepeatedUnauthorizedError = (error: unknown) => {
-    if (hasReportedRepeatedUnauthorizedError) {
-      return
-    }
-    hasReportedRepeatedUnauthorizedError = true
-    errorToast.reportError(Err(error).error)
-  }
 
   const sessionQueryOptions = createSessionQuery(authService)
   const session = vueQuery.useQuery(sessionQueryOptions)
@@ -227,11 +103,23 @@ export function createSessionStore(
       analytics.cloudSignOut.after()
       localStorage.clearUserSpecificEntries()
       sentry.setUser(null)
-      resetRepeatedUnauthorizedRecoveryState()
+      resetUnauthorizedRecoveryState()
       successToast.show(getText('signOutSuccess'))
     },
     onError: () => errorToast.show(getText('signOutError')),
     meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
+  })
+
+  const { isReconnectingSession, resetUnauthorizedRecoveryState } = useUnauthorizedRecovery({
+    queryClient,
+    isLoggingOut,
+    refreshUserSession: () => refreshUserSessionMutation.mutateAsync(),
+    logout: () => logoutMutation.mutateAsync(),
+    clearSessionToken: () => httpClient.clearSessionToken(),
+    clearSessionQuery: () => queryClient.setQueryData(sessionQueryOptions.queryKey, null),
+    reportSessionExpiredError: (error: unknown) =>
+      errorToast.reportError(Err(error).error, getText('sessionExpiredError')),
+    reportRepeatedUnauthorizedError: (error: unknown) => errorToast.reportError(Err(error).error),
   })
 
   const signUp = async (username: string, password: string, organizationId: string | null) => {
@@ -372,11 +260,11 @@ export function createSessionStore(
     switch (event) {
       case AuthEvent.signedIn: {
         analytics.signIn.after()
-        resetRepeatedUnauthorizedRecoveryState()
+        resetUnauthorizedRecoveryState()
         break
       }
       case AuthEvent.signedOut: {
-        resetRepeatedUnauthorizedRecoveryState()
+        resetUnauthorizedRecoveryState()
         break
       }
       case AuthEvent.customOAuthState:
@@ -442,206 +330,6 @@ export function createSessionStore(
       // which cannot be `structuredClone`d (and therefore cannot be sent over IPC).
       assertAuthService().saveAccessToken(toRaw(session.data.value))
     }
-  })
-
-  const reportTerminalAuthFailure = (error: unknown) => {
-    if (terminalAuthFailurePromise) {
-      return terminalAuthFailurePromise
-    }
-
-    terminalAuthFailurePromise = (async () => {
-      errorToast.reportError(Err(error).error, getText('sessionExpiredError'))
-      queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      await queryClient.cancelQueries({ predicate: isUsersMeQuery })
-      const usersMeQueries = queryClient.getQueryCache().findAll({ predicate: isUsersMeQuery })
-      for (const usersMeQuery of usersMeQueries) {
-        queryClient.setQueryData(usersMeQuery.queryKey, null)
-      }
-      queryClient.removeQueries({ predicate: isUsersMeQuery })
-      httpClient.clearSessionToken()
-      resetRepeatedUnauthorizedRecoveryState()
-      await logoutMutation.mutateAsync().catch(() => undefined)
-    })().finally(() => {
-      terminalAuthFailurePromise = null
-    })
-
-    return terminalAuthFailurePromise
-  }
-
-  const refreshUserSessionWithBackoff = async (
-    options: AuthRecoveryBackoffOptions = AUTH_RECOVERY_BACKOFF_DEFAULTS,
-  ) => {
-    let delayMs = options.initialDelayMs
-
-    for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
-      try {
-        const refreshedSession = await refreshUserSessionMutation.mutateAsync()
-        if (refreshedSession == null) {
-          throw new Error('Session refresh returned null.')
-        }
-        return refreshedSession
-      } catch (error) {
-        if (attempt >= options.maxAttempts) {
-          throw error
-        }
-        const nextDelay = nextBackoffDelay(delayMs, options)
-        await waitForRecoveryBackoff(nextDelay.delayMs)
-        delayMs = nextDelay.nextDelayMs
-      }
-    }
-
-    throw new Error('Session refresh exhausted all retries.')
-  }
-
-  const recoverSessionAfterUnauthorizedError = () => {
-    if (authRecoveryPromise) {
-      return authRecoveryPromise
-    }
-    if (isAuthRecoveryBlocked()) {
-      return Promise.resolve(false)
-    }
-
-    authRecoveryPromise = (async () => {
-      try {
-        await refreshUserSessionWithBackoff()
-        hasRecoveredUnauthorizedSession = true
-        recordUnauthorizedRecoveryActivity()
-        return true
-      } catch (error) {
-        await reportTerminalAuthFailure(error)
-        return false
-      } finally {
-        authRecoveryPromise = null
-      }
-    })()
-
-    return authRecoveryPromise
-  }
-
-  type UnauthorizedFailedQuery = {
-    readonly queryHash: string
-    readonly queryKey: readonly unknown[]
-  }
-
-  const queueRepeatedUnauthorizedQuery = (query: UnauthorizedFailedQuery) => {
-    pendingRepeatedUnauthorizedQueries.set(query.queryHash, query.queryKey)
-  }
-
-  const recoverSessionAfterRepeatedUnauthorizedError = (
-    error: unknown,
-    options: RepeatedUnauthorizedRecoveryBackoffOptions = REPEATED_UNAUTHORIZED_RECOVERY_BACKOFF_DEFAULTS,
-  ) => {
-    if (repeatedUnauthorizedRecoveryPromise) {
-      return repeatedUnauthorizedRecoveryPromise
-    }
-    if (isAuthRecoveryBlocked()) {
-      return Promise.resolve(false)
-    }
-
-    recordUnauthorizedRecoveryActivity(options.resetWindowMs)
-
-    if (repeatedUnauthorizedRecoveryAttempts >= options.maxAttempts) {
-      pendingRepeatedUnauthorizedQueries = new Map<string, readonly unknown[]>()
-      reportRepeatedUnauthorizedError(error)
-      return Promise.resolve(false)
-    }
-
-    repeatedUnauthorizedRecoveryAttempts += 1
-    const nextDelay = nextBackoffDelay(repeatedUnauthorizedDelayMs, options)
-    repeatedUnauthorizedDelayMs = nextDelay.nextDelayMs
-
-    repeatedUnauthorizedRecoveryPromise = (async () => {
-      await waitForRecoveryBackoff(nextDelay.delayMs)
-      if (isAuthRecoveryBlocked()) {
-        return false
-      }
-      const wasRecovered = await recoverSessionAfterUnauthorizedError()
-      if (!wasRecovered) {
-        return false
-      }
-
-      const queuedQueries = pendingRepeatedUnauthorizedQueries
-      pendingRepeatedUnauthorizedQueries = new Map<string, readonly unknown[]>()
-      await Promise.allSettled(
-        [...queuedQueries.entries()].map(([queryHash, queryKey]) => {
-          if (replayedQueryHashes.has(queryHash)) {
-            return Promise.resolve()
-          }
-          replayedQueryHashes.add(queryHash)
-          return queryClient.refetchQueries({ queryKey, exact: true })
-        }),
-      )
-      return true
-    })().finally(() => {
-      repeatedUnauthorizedRecoveryPromise = null
-    })
-
-    return repeatedUnauthorizedRecoveryPromise
-  }
-
-  const queryCache = queryClient.getQueryCache()
-  const mutationCache = queryClient.getMutationCache()
-  const previousOnQueryError = queryCache.config.onError ?? (() => undefined)
-  const previousOnMutationError = mutationCache.config.onError ?? (() => undefined)
-
-  queryCache.config.onError = (error, query) => {
-    previousOnQueryError(error, query)
-    if (isUnauthorizedError(error)) {
-      recordUnauthorizedRecoveryActivity()
-
-      if (hasRecoveredUnauthorizedSession && isUsersMeQuery(query)) {
-        void reportTerminalAuthFailure(error)
-        return
-      }
-
-      if (hasRecoveredUnauthorizedSession) {
-        if (replayedQueryHashes.has(query.queryHash)) {
-          reportRepeatedUnauthorizedError(error)
-          return
-        }
-        queueRepeatedUnauthorizedQuery(query)
-        void recoverSessionAfterRepeatedUnauthorizedError(error)
-        return
-      }
-
-      const queryHash = query.queryHash
-      void recoverSessionAfterUnauthorizedError().then((wasRecovered) => {
-        if (!wasRecovered || replayedQueryHashes.has(queryHash)) {
-          return
-        }
-        replayedQueryHashes.add(queryHash)
-        return queryClient.refetchQueries({ queryKey: query.queryKey, exact: true })
-      })
-    }
-  }
-
-  mutationCache.config.onError = (error, variables, onMutateResult, mutation, context) => {
-    previousOnMutationError(error, variables, onMutateResult, mutation, context)
-    if (isUnauthorizedError(error)) {
-      if (replayedMutations.has(mutation)) {
-        reportRepeatedUnauthorizedError(error)
-        return
-      }
-
-      const recoverPromise =
-        hasRecoveredUnauthorizedSession ?
-          recoverSessionAfterRepeatedUnauthorizedError(error)
-        : recoverSessionAfterUnauthorizedError()
-
-      void recoverPromise.then((wasRecovered) => {
-        if (!wasRecovered || replayedMutations.has(mutation)) {
-          return
-        }
-        replayedMutations.add(mutation)
-        return mutation.execute(variables)
-      })
-    }
-  }
-
-  onScopeDispose(() => {
-    queryCache.config.onError = previousOnQueryError
-    mutationCache.config.onError = previousOnMutationError
-    resetRepeatedUnauthorizedRecoveryState()
   })
 
   return proxyRefs({
