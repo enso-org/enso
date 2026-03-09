@@ -1,6 +1,5 @@
 package org.enso.aws;
 
-import com.amazonaws.SdkClientException;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -8,6 +7,7 @@ import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
