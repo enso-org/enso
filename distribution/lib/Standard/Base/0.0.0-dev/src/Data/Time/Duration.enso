@@ -129,7 +129,7 @@ type Duration
 
        ## Arguments
         - `hours`: number of hours
-    of_hours (hours : Integer = 1) -> Duration = Duration.new hours=hours
+    of_hours (hours : Integer = (Missing_Argument.throw "hours")) -> Duration = Duration.new hours=hours
 
     ## ---
        icon: time
@@ -138,7 +138,7 @@ type Duration
 
        ## Arguments
         - `minutes`: number of minutes
-    of_minutes (minutes : Integer = 1) -> Duration = Duration.new minutes=minutes
+    of_minutes (minutes : Integer = (Missing_Argument.throw "minutes")) -> Duration = Duration.new minutes=minutes
 
     ## ---
        icon: time
@@ -147,7 +147,7 @@ type Duration
 
        ## Arguments
         - `seconds`: number of seconds
-    of_seconds (seconds : Integer = 1) -> Duration = Duration.new seconds=seconds
+    of_seconds (seconds : Integer = (Missing_Argument.throw "seconds")) -> Duration = Duration.new seconds=seconds
 
     ## ---
        private: true
