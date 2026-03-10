@@ -541,6 +541,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
   border-radius: var(--node-border-radius);
   background-color: var(--color-node-background);
   transition: background-color 0.2s ease;
+  pointer-events: none;
 }
 
 .ComponentWidgetTree {
