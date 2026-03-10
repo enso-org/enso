@@ -596,6 +596,7 @@
   "choosePlanDescription": "Select a plan to continue using Enso, or try the community edition. You can always upgrade later.",
   "localAssetsDoNotHaveVersions": "Local assets do not have versions",
   "noVersionsFound": "No versions found",
+  "xTags": "$0 tags",
   "latestIndicator": "Latest",
   "noDateSelected": "No date selected",
   "assetsDropzoneDescription": "Drag and drop files here, or click to upload.",
