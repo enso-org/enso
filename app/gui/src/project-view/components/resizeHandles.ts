@@ -35,7 +35,9 @@ export function useResizeHandles(options: ResizeHandlesOptions) {
       onResizingChange.run(resizing)
     },
     'update:movement': (delta: Vec2) => {
-      const scaled = delta.scale(toValue(options.scale) ?? 1)
+      const scaleValue = toValue(options.scale)
+      const scale = options.scale ? 1 / scaleValue : 1
+      const scaled = delta.scale(scale)
       if (!initialBounds) return
       const bounds = initialBounds.withBoundsClamped(
         selectFields(resizing, {
@@ -46,8 +48,7 @@ export function useResizeHandles(options: ResizeHandlesOptions) {
         }),
       )
       onResize.run(bounds.size)
-      if (resizing.left || resizing.right)
-        onResizeWidth.run(bounds.size.x, delta.x * (toValue(options.scale) ?? 1))
+      if (resizing.left || resizing.right) onResizeWidth.run(bounds.size.x, delta.x)
       if (resizing.top || resizing.bottom) onResizeHeight.run(bounds.size.y)
       if (options.position) {
         if (resizing.top || resizing.left) onMove.run(bounds.pos)
