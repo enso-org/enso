@@ -69,6 +69,6 @@ registry?.connectWidgetResizeHandleEventHandlers(resizeHandles)
 <template>
   <div ref="htmlRoot" :style="widgetStyle">
     <slot />
-    <ResizeHandles bottom right v-on="resizeHandles.events" />
+    <ResizeHandles right v-on="resizeHandles.events" />
   </div>
 </template>
