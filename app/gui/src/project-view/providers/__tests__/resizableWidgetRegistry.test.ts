@@ -45,7 +45,9 @@ test.skip.each`
 
 test.skip.each([[[20]], [[-20]], [[10, 10]], [[-10, -10]]])(
   'Resizing visualization in %s steps updates the single resizable widget',
-  async (resizingSteps) => {
+  async () => {
+    // async (resizingSteps) => {
+    /*
     const nodeWidthRef = ref(100)
     const { register, connectVisResizeHandleEventHandlers } = useResizableWidgetRegistry(
       nodeWidthRef,
@@ -73,6 +75,7 @@ test.skip.each([[[20]], [[-20]], [[10, 10]], [[-10, -10]]])(
       await nextTick()
       expect(widgetSizeRef.value).toEqual(newWidgetSizeRef)
     }
+     */
   },
 )
 
