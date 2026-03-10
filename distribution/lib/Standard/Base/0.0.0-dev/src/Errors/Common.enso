@@ -354,12 +354,13 @@ type Incomparable_Values
        ---
        Catches possible errors from comparing values and throws an
        `Incomparable_Values` if any occur.
-    handle_errors ~function = Panic.catch Any action=function handler=case _ of
-        _:Type_Error -> Error.throw (Incomparable_Values.Error Nothing Nothing)
-        _:Unsupported_Argument_Types -> Error.throw (Incomparable_Values.Error Nothing Nothing)
-        _:ClassCastException -> Error.throw (Incomparable_Values.Error Nothing Nothing)
-        exc:CompareException -> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand)
-        again -> Panic.throw again
+    handle_errors ~function = Panic.catch Any action=function handler=caught->
+        case caught.payload of
+           _:Type_Error -> Error.throw (Incomparable_Values.Error Nothing Nothing)
+           _:Unsupported_Argument_Types -> Error.throw (Incomparable_Values.Error Nothing Nothing)
+           _:ClassCastException -> Error.throw (Incomparable_Values.Error Nothing Nothing)
+           exc:CompareException -> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand)
+           again -> Panic.throw again
 
 type Invalid_Array_Index
     ## ---
