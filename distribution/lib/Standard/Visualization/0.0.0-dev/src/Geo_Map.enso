@@ -35,14 +35,13 @@ json_from_table table =
 
    ## Arguments
     - `table`: the Table to be visualized.
-json_from_spatial_table table:Spatial_Table -> JS_Object =
-    spatial_columns = table.spatial_columns
+json_from_spatial_table table:Spatial_Table -> Text =
+    spatial_columns = table.spatial_columns.map .name
     materialised = table.read_as_geojson (..First 5000)
 
-    base_json = json_from_table materialised
-    layers = spatial_columns.map col->
-        [["type", "GeoJsonLayer"], ["layerName", col], ["data", materialised.get col . to_vector . join "," "[" "]"]]
-    JS_Object.from_pairs (base_json.to_vector + layers)
+    base_json = json_from_table materialised . to_json
+    layers = spatial_columns.map col-> '{"type": "GeoJsonLayer", "layerName": ' + col.to_json + ',"data":' + (materialised.get col.to_json_data) + '}'
+    base_json.drop (..Last 1) + ',"layers":[' + layers.join "," + ']}'
 
 ## ---
    private: true
@@ -55,7 +54,7 @@ json_from_spatial_table table:Spatial_Table -> JS_Object =
 process_to_json_text : Any -> Text
 process_to_json_text value = time_visualization Geo_Map ("process_to_json_text: " + (short_display value)) <|
     case value of
-        spatial : Spatial_Table -> json_from_spatial_table spatial . to_text
+        spatial : Spatial_Table -> json_from_spatial_table spatial
         _ : DB_Table -> json_from_table (value.read (..First 15000)) . to_text
         _ : In_Memory_Table -> json_from_table value . to_text
         _ -> value.to_json
