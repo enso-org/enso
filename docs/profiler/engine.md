@@ -29,6 +29,37 @@ GraalVM, Truffle and the JVM performance overall can be greatly analyzed by
 analysis_ as well as _polyglot sampler_ (more below). Enso offers various tools
 that make integration with VisualVM even better.
 
+## Sampling
+
+**VisualVM** offers _polyglot sampler_. To use it one has to execute `enso` in
+_JVM Only mode_ and also open up access to `org.graalvm.polyglot` module - as
+the sampler needs to connect to the _HotSpot JVM_ and find out all existing
+`Engine` instances. To do so one has to modify the
+[launching instructions](../CONTRIBUTING.md#running-ide) a bit:
+
+```bash
+enso$ ENSO_ENGINE_ARGS=--jvm \
+    JAVA_TOOL_OPTIONS=--add-opens=org.graalvm.polyglot/org.graalvm.polyglot=ALL-UNNAMED \
+    corepack pnpm run dev:gui
+```
+
+Specifying `ENSO_ENGINE_ARGS` forces the _JVM Only mode_ and `JAVA_TOOL_OPTIONS`
+provides access to the `org.graalvm.polyglot` module internals. Now open a
+project, start VisualVM and attach to the Java process:
+
+<img width="480" height="192" alt="attach to process"
+  src="https://github.com/user-attachments/assets/e997dd7a-2856-489a-a344-31d330829839"
+/>
+
+Once connected, start the polyglot CPU sampler and then modify something in the
+GUI. Each code modification results in an execution of the Enso code. The
+sampler slowly collects the profiling info and presents the results for manual
+inspection:
+
+<img width="480" height="192" alt="start polyglot sampler"
+  src="https://github.com/user-attachments/assets/da9167e3-f44e-4682-b90e-b45888f8f9fc"
+/>
+
 ## Startup
 
 Getting quickly ready to work is essential for good user experience. There have
