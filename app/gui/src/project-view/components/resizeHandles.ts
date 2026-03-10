@@ -36,8 +36,7 @@ export function useResizeHandles(options: ResizeHandlesOptions) {
     },
     'update:movement': (delta: Vec2) => {
       const scaleValue = toValue(options.scale)
-      const scale = options.scale ? 1 / scaleValue : 1
-      const scaled = delta.scale(scale)
+      const scaled = scaleValue ? delta.scale(1 / scaleValue) : delta
       if (!initialBounds) return
       const bounds = initialBounds.withBoundsClamped(
         selectFields(resizing, {

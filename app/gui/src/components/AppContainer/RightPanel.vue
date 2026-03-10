@@ -67,7 +67,7 @@ const contentElement = useTemplateRef('contentElement')
 const resizeHandles = useResizeHandles({
   size: useResizeObserver(contentElement),
 })
-resizeHandles.onResizeWidth((value) => (data.width = value))
+resizeHandles.onResizeWidth((value) => (width.value = value))
 const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
 </script>
 
