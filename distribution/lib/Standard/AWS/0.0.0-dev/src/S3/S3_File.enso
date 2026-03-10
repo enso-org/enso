@@ -10,7 +10,6 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Internal.Path_Helpers
 import Standard.Base.Runtime.Context
-import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
@@ -63,11 +62,13 @@ type S3_File
     ## ---
        private: true
        ---
-    private Value (s3_path : S3_Path) credentials:AWS_Credential internal_version_id:Text raw_head:Ref
+    private Value (s3_path : S3_Path) credentials:AWS_Credential internal_version_id:Text
 
     private make_instance s3_path credentials =
-        ref = Ref.new lazy=True value=(S3.raw_head s3_path.bucket s3_path.key "" credentials)
-        S3_File.Value s3_path credentials "" ref
+        S3_File.Value s3_path credentials ""
+
+    private raw_head self =
+        S3.raw_head self.s3_path.bucket self.s3_path.key self.internal_version_id self.credentials
 
     ## ---
        icon: metadata
@@ -93,7 +94,7 @@ type S3_File
     version_id self -> Text | Nothing =
         if self.is_directory then Error.throw (S3_Error.Error "version_id can only be called on files." self.uri) else
             if self.internal_version_id != "" then self.internal_version_id else
-                version = self.raw_head.get.versionId
+                version = self.raw_head.versionId
                 if version == "null" then Nothing else version
 
     ## ---
@@ -105,8 +106,7 @@ type S3_File
         if self.is_directory then Error.throw (S3_Error.Error "versions can only be called on files." self.uri) else
             versions = S3.list_object_versions self.s3_path.bucket self.s3_path.key self.credentials
             versions.map version_id->
-                ref = Ref.new lazy=True value=(S3.raw_head self.s3_path.bucket self.s3_path.key version_id self.credentials)
-                S3_File.Value self.s3_path self.credentials version_id ref
+                S3_File.Value self.s3_path self.credentials version_id
 
     ## ---
        icon: metadata
@@ -620,7 +620,7 @@ type S3_File
     size : Integer
     size self = if self.is_data_link then _s3_file_as_data_link self . size else
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
-            content_length = _translate_file_errors self self.raw_head.get.contentLength
+            content_length = _translate_file_errors self self.raw_head.contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
     ## ---
@@ -662,7 +662,7 @@ type S3_File
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
-            instant = _translate_file_errors self self.raw_head.get.lastModified
+            instant = _translate_file_errors self self.raw_head.lastModified
             if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
                 instant.at_time_zone Time_Zone.system
 
