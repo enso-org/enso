@@ -16,7 +16,7 @@ to start** analysis in _JVM only mode_ - e.g. by passing `--jvm` flag to the
 `enso` executable, by specifying `jvm: true` in project's `package.yaml` file or
 by other means.
 
-Luckily most of the problems are generic enough to manifest itself in all the
+Luckily most of the problems are generic enough to manifest themselves in all the
 modes Enso is able to operate in. Hence the first recommended step is to check
 the _JVM mode_. Only when the issue is clearly _Dual JVM_ specific, resort to
 more advanced techniques.
