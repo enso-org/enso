@@ -10,7 +10,6 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
-import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
@@ -192,9 +191,6 @@ const visParams: VisualizationHostParams = proxyRefs({
   nodeType,
   executeExpression,
 })
-
-const resizableWidgets = injectResizableWidgetRegistry(true)
-resizableWidgets?.connectVisResizeHandleEventHandlers(resizeHandles)
 </script>
 
 <script lang="ts">

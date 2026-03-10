@@ -41,7 +41,6 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { provideWidgetControlledActions } from '@/providers/widgetActions'
 import { Ast } from '@/util/ast'
 import { prefixes } from '@/util/ast/node'
@@ -50,7 +49,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
+import { computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -100,9 +99,7 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
-const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
-const widgetTreeSize = useResizeObserver(widgetTree)
 
 providePopoverRoot(rootNode)
 
@@ -211,15 +208,6 @@ watch(isVisualizationPreviewed, (newVal) => {
   }
 })
 
-const { preferredHeight } = provideResizableWidgetRegistry(
-  computed({
-    get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
-    set: (width) => (visualizationWidth.value = width && width / scale.value),
-  }),
-  () => NODE_CONTENT_PADDING * scale.value,
-  () => widgetTreeSize.value.x,
-)
-
 const transform = computed(() => {
   const { x, y } = nodePosition.value
   return `translate(${x}px, ${y}px)`
@@ -291,7 +279,13 @@ function useRecomputation() {
 
 // === Style and colors ===
 
-const nodeHeight = computed(() => props.node.height ?? preferredHeight.value)
+/**
+ * Node height: A node is auto-sized unless the user has resized it. When it is auto-sized, its height is determined by
+ * DOM/CSS. Each resizable widget has a preferred size that is used as its `min-height`, with the effect that the node
+ * takes the size of the largest resizable widget present. If the user resizes the node, and the node is in expanded
+ * mode, the specified height overrides any widget preferences.
+ */
+const nodeHeight = computed(() => props.node.height)
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
@@ -325,6 +319,7 @@ const nodeClass = computed(() => {
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
     edited: props.edited,
+    nodeHeightOverridden: nodeHeight.value != null,
   }
 })
 
@@ -496,7 +491,6 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       >
         <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
         <ComponentWidgetTree
-          ref="widgetTree"
           :ast="props.node.innerExpr"
           :nodeId="nodeId"
           :rootElement="rootNode"

@@ -4,7 +4,6 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeHandles } from '@/components/resizeHandles'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, toRef, watch } from 'vue'
 
@@ -29,21 +28,9 @@ const htmlRootSize = useResizeObserver(htmlRoot)
 const widgetStyle = computed(() => {
   return {
     width: `${size.value.x}px`,
-    height: '100%',
-    minWidth: '32px',
+    ['--preferred-height']: `${size.value.y}px`,
   }
 })
-
-const registry = injectResizableWidgetRegistry(true)
-
-watch(
-  () => props.input.portId,
-  (key, _, onCleanup) => {
-    registry?.register(key, size, htmlRootSize)
-    onCleanup(() => registry?.unregister(key))
-  },
-  { immediate: true },
-)
 
 const resizeHandles = useResizeHandles({
   size,
@@ -63,12 +50,26 @@ resizeHandles.onResize((value) => {
     directInteraction: false,
   })
 })
-registry?.connectWidgetResizeHandleEventHandlers(resizeHandles)
 </script>
 
 <template>
-  <div ref="htmlRoot" :style="widgetStyle">
+  <div ref="htmlRoot" class="ResizableWidget" :style="widgetStyle">
     <slot />
     <ResizeHandles right v-on="resizeHandles.events" />
   </div>
 </template>
+
+<style>
+.ResizableWidget {
+  min-width: 32px;
+  /* Resizable widgets take the full height of the node. */
+  height: 100%;
+  /* Non-static so that the absolutely-positioned resize handles will be at the edge of the widget. */
+  position: relative;
+
+  min-height: var(--preferred-height);
+  .nodeHeightOverridden & {
+    min-height: unset;
+  }
+}
+</style>

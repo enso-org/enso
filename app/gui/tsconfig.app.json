@@ -761,7 +761,6 @@
     "./src/project-view/providers/languageSupportExtensions.ts",
     "./src/project-view/providers/popoverRoot.ts",
     "./src/project-view/providers/portInfo.ts",
-    "./src/project-view/providers/resizableWidgetRegistry.ts",
     "./src/project-view/providers/selectionArrow.ts",
     "./src/project-view/providers/tableContext.ts",
     "./src/project-view/providers/tooltipRegistry.ts",
