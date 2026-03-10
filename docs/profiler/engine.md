@@ -76,18 +76,26 @@ engine in _JVM only mode_.
 
 ## Collecting the data via the runner
 
-Runner executable also supports the profiling with the `--profiling-path`
-option. For example, you can run the Enso project with the profiling enabled:
+Runner executable also supports so called _self profiling_ with the
+`--profiling-path` option. For example the
+[launching instructions](../CONTRIBUTING.md#running-ide) can be modified to run
+with the profiling enabled:
 
 ```
-$ enso --profiling-path=/tmp/run.npss --run ~/enso/project/New_Project_1
+enso$ ENSO_ENGINE_ARGS="--jvm --profiling-path /tmp/run.npss" corepack pnpm run dev:gui
 ```
 
-And then open it in the VisualVM:
+Open a project, work with it, then close it. The `/tmp/run.npss` file is
+generated toghether with a sibling `/tmp/run.log` file. They can be both opened
+in **VisualVM** with following command:
 
 ```
 $ visualvm --openfile /tmp/run.npss
 ```
+
+Unlike the _polyglot sampler_ this profiling works on the level of Java methods
+and classes. It is not suitable for analyzing the behavior of Enso code, only
+the supporting Java code.
 
 ### Interactively Analyze
 
