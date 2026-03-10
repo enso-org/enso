@@ -95,6 +95,10 @@ add_specs suite_builder =
             t2 = t1.parse type=Value_Type.Date_Time
             t2.at "dates" . to_vector . should_equal [Date_Time.new 2022 5 7 0 0 0, Date_Time.new 2000 1 1 0 0 0, Date_Time.new 2010 12 31 0 0 0]
 
+            t3 = Table.new [["dates", ["05/07/2022", "01/01/2000", "12/31/2010"]]]
+            t4 = t3.parse type=Value_Type.Date_Time format="M/d/yyyy"
+            t4.at "dates" . to_vector . should_equal [Date_Time.new 2022 5 7 0 0 0, Date_Time.new 2000 1 1 0 0 0, Date_Time.new 2010 12 31 0 0 0]
+
         group_builder.specify "should parse date and time in various formats" <|
             opts = Data_Formatter.Value.with_datetime_formats date_formats=["d.M.y", (Date_Time_Formatter.from_java "d MMM y[ G]"), "ddd, d MMM y"] datetime_formats=["yyyy-MM-dd HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.f", "h:mma"]
 
