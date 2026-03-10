@@ -61,14 +61,14 @@ type Snowflake_File_Format
                 + (if dt != "" then " DATE_FORMAT = '" + (dt.replace "'" "''") + "'"  else ' DATE_FORMAT = AUTO')
                 + (if tm != "" then " TIME_FORMAT = '" + (tm.replace "'" "''") + "'"  else ' TIME_FORMAT = AUTO')
                 + (if ts != "" then " TIMESTAMP_FORMAT = '" + (ts.replace "'" "''") + "'"  else ' TIMESTAMP_FORMAT = AUTO')
-                + (if compression != Auto_Boolean.AUTO then ' COMPRESSION = ' + compression.to_sql else '')
+                + (if compression != Auto_Boolean.Auto then ' COMPRESSION = ' + compression.to_sql else '')
             output
         Snowflake_File_Format.JSON dt tm ts compression ->
             output = 'TYPE = JSON'
                 + (if dt != "" then " DATE_FORMAT = '" + (dt.replace "'" "''") + "'"  else ' DATE_FORMAT = AUTO')
                 + (if tm != "" then " TIME_FORMAT = '" + (tm.replace "'" "''") + "'"  else ' TIME_FORMAT = AUTO')
                 + (if ts != "" then " TIMESTAMP_FORMAT = '" + (ts.replace "'" "''") + "'"  else ' TIMESTAMP_FORMAT = AUTO')
-                + (if compression != Auto_Boolean.AUTO then ' COMPRESSION = ' + compression.to_sql else '')
+                + (if compression != Auto_Boolean.Auto then ' COMPRESSION = ' + compression.to_sql else '')
             output
         Snowflake_File_Format.Avro -> 'TYPE = AVRO'
         Snowflake_File_Format.ORC -> 'TYPE = ORC'
@@ -95,7 +95,7 @@ Snowflake_File_Format.from (that:Identifier) =
 ## Three-state boolean type for Snowflake options. (avoiding clash with True/False by being all caps)
 type Auto_Boolean
     ## Attempt to use automatic detection.
-    AUTO
+    Auto
 
     ## True value.
     TRUE
@@ -107,7 +107,7 @@ type Auto_Boolean
        private: true
        ---
     private to_sql self = case self of
-        Auto_Boolean.AUTO -> 'AUTO'
+        Auto_Boolean.Auto -> 'AUTO'
         Auto_Boolean.TRUE -> 'TRUE'
         Auto_Boolean.FALSE -> 'FALSE'
 
@@ -116,7 +116,7 @@ Auto_Boolean.from (that:Boolean) =
 
 Auto_Boolean.from (that:Nothing) =
     _ = that
-    Auto_Boolean.AUTO
+    Auto_Boolean.Auto
 
 ## Specified the compression type for the file format.
 type Compression
