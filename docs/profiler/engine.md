@@ -11,7 +11,7 @@ A major obstacle to understanding performance since the 2025.3 version is the
 system performance, it also _complicates the analysis_ of performance issues.
 The heterogenous nature of the Enso process requires different techniques to
 profile the _native image_ part and different to profile the _HotSpot JVM_ part.
-That maybe become quite complicated. To simplify this task **it is recommended
+That may become quite complicated. To simplify this task **it is recommended
 to start** analysis in _JVM only mode_ - e.g. by passing `--jvm` flag to the
 `enso` executable, by specifying `jvm: true` in project's `package.yaml` file or
 by other means.
