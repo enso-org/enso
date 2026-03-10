@@ -86,7 +86,7 @@ enso$ ENSO_ENGINE_ARGS="--jvm --profiling-path /tmp/run.npss" corepack pnpm run 
 ```
 
 Open a project, work with it, then close it. The `/tmp/run.npss` file is
-generated toghether with a sibling `/tmp/run.log` file. They can be both opened
+generated together with a sibling `/tmp/run.log` file. They can be both opened
 in **VisualVM** with following command:
 
 ```
