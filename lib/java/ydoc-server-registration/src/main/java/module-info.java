@@ -5,6 +5,7 @@ module org.enso.ydoc.server.registration {
   requires org.enso.jvm.interop;
   requires org.enso.jvm.channel;
   requires org.enso.ydoc.api;
+  requires org.slf4j;
   requires static org.graalvm.nativeimage;
 
   provides org.enso.ydoc.api.YdocServerApi with

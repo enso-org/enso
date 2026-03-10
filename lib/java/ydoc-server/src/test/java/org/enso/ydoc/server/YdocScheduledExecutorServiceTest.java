@@ -420,6 +420,89 @@ public class YdocScheduledExecutorServiceTest {
   }
 
   @Test
+  public void testDebugStatsDisabledByDefault() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
+
+    service.submit(() -> {});
+    service.processPendingTasks();
+
+    assertEquals("", service.getDebugStats());
+  }
+
+  @Test
+  public void testDebugStatsEmptyWhenNoTasksExecuted() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService(true);
+
+    assertEquals("", service.getDebugStats());
+  }
+
+  @Test
+  public void testDebugStatsCollectedForRegularTasks() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService(true);
+
+    service.submit(() -> {});
+    service.submit(() -> {});
+    service.submit(() -> {});
+
+    service.processPendingTasks();
+
+    String stats = service.getDebugStats();
+    assertTrue(stats.contains("Task execution stats:"));
+    assertTrue(stats.contains("Regular:"));
+    assertTrue(stats.contains("count=3"));
+  }
+
+  @Test
+  public void testDebugStatsSeparateHighPriorityFromRegular() {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService(true);
+
+    // Submit regular tasks
+    service.submit(() -> {});
+    service.submit(() -> {});
+
+    // Submit high-priority tasks
+    service.execute(new YdocScheduledExecutorService.HighPriorityRunnable(() -> {}));
+    service.execute(new YdocScheduledExecutorService.HighPriorityRunnable(() -> {}));
+    service.execute(new YdocScheduledExecutorService.HighPriorityRunnable(() -> {}));
+
+    service.processPendingTasks();
+
+    String stats = service.getDebugStats();
+    assertTrue(stats.contains("High priority:"));
+    assertTrue(stats.contains("Regular:"));
+    // High priority line should contain count=3
+    String[] lines = stats.split("\n");
+    for (String line : lines) {
+      if (line.contains("High priority:")) {
+        assertTrue(line.contains("count=3"));
+      }
+      if (line.contains("Regular:")) {
+        assertTrue(line.contains("count=2"));
+      }
+    }
+  }
+
+  @Test
+  public void testDebugStatsIncludeScheduledTasks() throws InterruptedException {
+    YdocScheduledExecutorService service = new YdocScheduledExecutorService(true);
+
+    service.schedule(() -> {}, 10, TimeUnit.MILLISECONDS);
+
+    waitUntilTasksReady(service);
+    service.processPendingTasks();
+
+    String stats = service.getDebugStats();
+    assertTrue(stats.contains("Regular:"));
+    // Scheduled tasks count as regular
+    String[] lines = stats.split("\n");
+    for (String line : lines) {
+      if (line.contains("Regular:")) {
+        assertTrue(line.contains("count=1"));
+      }
+    }
+  }
+
+  @Test
   public void testEventLoopPattern() throws InterruptedException {
     YdocScheduledExecutorService service = new YdocScheduledExecutorService();
     AtomicInteger counter = new AtomicInteger(0);

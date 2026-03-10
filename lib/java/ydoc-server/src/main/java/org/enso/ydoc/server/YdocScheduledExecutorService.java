@@ -50,6 +50,7 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
 
   private final long ownerThreadId;
   private final Object lock = new Object();
+  private final boolean debug;
 
   /**
    * @GuardedBy("lock")
@@ -71,12 +72,27 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
    */
   private boolean shutdown = false;
 
-  /** Creates a new execution service bound to the current thread. */
+  private final TaskStats highPriorityStats;
+  private final TaskStats regularStats;
+
+  /** Creates a new execution service bound to the current thread with debug disabled. */
   public YdocScheduledExecutorService() {
+    this(false);
+  }
+
+  /**
+   * Creates a new execution service bound to the current thread.
+   *
+   * @param debug when true, enables per-task execution timing statistics
+   */
+  public YdocScheduledExecutorService(boolean debug) {
     this.ownerThreadId = Thread.currentThread().threadId();
     this.highPriorityTasks = new java.util.LinkedList<>();
     this.immediateTasks = new java.util.LinkedList<>();
     this.scheduledTasks = new PriorityQueue<>();
+    this.debug = debug;
+    this.highPriorityStats = debug ? new TaskStats() : null;
+    this.regularStats = debug ? new TaskStats() : null;
   }
 
   /**
@@ -483,16 +499,22 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
     while (true) {
       // Poll one task at a time, checking high-priority queue first
       Runnable task;
+      int source = 0; // 0=none, 1=high-priority, 2=regular
       synchronized (lock) {
         task = highPriorityTasks.poll();
-        if (task == null) {
+        if (task != null) {
+          source = 1;
+        } else {
           task = immediateTasks.poll();
-        }
-        if (task == null) {
-          ScheduledTask scheduledTask = scheduledTasks.peek();
-          if (scheduledTask != null && scheduledTask.executeAtNanos <= System.nanoTime()) {
-            scheduledTasks.poll();
-            task = scheduledTask.task;
+          if (task != null) {
+            source = 2;
+          } else {
+            ScheduledTask scheduledTask = scheduledTasks.peek();
+            if (scheduledTask != null && scheduledTask.executeAtNanos <= System.nanoTime()) {
+              scheduledTasks.poll();
+              task = scheduledTask.task;
+              source = 2;
+            }
           }
         }
       }
@@ -501,11 +523,16 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
         break; // No more ready tasks
       }
 
+      long startNanos = debug ? System.nanoTime() : 0;
       try {
         task.run();
         tasksExecuted++;
       } catch (Throwable t) {
         handleUncaughtException(t);
+      }
+      if (debug) {
+        long elapsed = System.nanoTime() - startNanos;
+        (source == 1 ? highPriorityStats : regularStats).record(elapsed);
       }
     }
 
@@ -738,6 +765,52 @@ final class YdocScheduledExecutorService implements ScheduledExecutorService {
     } else {
       System.err.println("Uncaught exception in YdocScheduledExecutorService:");
       t.printStackTrace();
+    }
+  }
+
+  /**
+   * Returns a formatted summary of task execution statistics, or an empty string when debug is off
+   * or no tasks have been recorded.
+   */
+  public String getDebugStats() {
+    if (!debug) {
+      return "";
+    }
+    if (highPriorityStats.count == 0 && regularStats.count == 0) {
+      return "";
+    }
+    var sb = new StringBuilder();
+    sb.append("Task execution stats:\n");
+    sb.append("  High priority: ").append(highPriorityStats.format()).append('\n');
+    sb.append("  Regular:       ").append(regularStats.format());
+    return sb.toString();
+  }
+
+  /** Accumulates per-task execution timing. Only accessed from the owner thread. */
+  static final class TaskStats {
+    long count;
+    long totalNanos;
+    long minNanos = Long.MAX_VALUE;
+    long maxNanos = Long.MIN_VALUE;
+
+    void record(long elapsedNanos) {
+      count++;
+      totalNanos += elapsedNanos;
+      if (elapsedNanos < minNanos) minNanos = elapsedNanos;
+      if (elapsedNanos > maxNanos) maxNanos = elapsedNanos;
+    }
+
+    String format() {
+      if (count == 0) {
+        return "count=0";
+      }
+      double totalMs = totalNanos / 1_000_000.0;
+      double minMs = minNanos / 1_000_000.0;
+      double maxMs = maxNanos / 1_000_000.0;
+      double avgMs = totalMs / count;
+      return String.format(
+          "count=%d, total=%.1fms, min=%.2fms, max=%.2fms, avg=%.2fms",
+          count, totalMs, minMs, maxMs, avgMs);
     }
   }
 

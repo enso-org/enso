@@ -1780,7 +1780,9 @@ lazy val `ydoc-api` = project
     crossPaths := false,
     autoScalaLibrary := false,
     Test / fork := true,
-    commands += WithDebugCommand.withDebug
+    commands += WithDebugCommand.withDebug,
+    libraryDependencies ++= slf4jApi,
+    Compile / moduleDependencies ++= slf4jApi
   )
 
 lazy val `ydoc-polyfill` = project
@@ -1945,14 +1947,14 @@ lazy val `ydoc-server-registration` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Compile / moduleDependencies ++=
-      GraalVM.modules,
+      GraalVM.modules ++ slf4jApi,
     Compile / internalModuleDependencies := Seq(
       (`engine-runner-common` / Compile / exportedModule).value,
       (`ydoc-api` / Compile / exportedModule).value,
       (`jvm-channel` / Compile / exportedModule).value,
       (`jvm-interop` / Compile / exportedModule).value
     ),
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= slf4jApi ++ Seq(
       "org.graalvm.sdk"      % "nativeimage"       % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot" % "inspect-community" % graalMavenPackagesVersion % "runtime",
       "junit"                % "junit"             % junitVersion              % Test,

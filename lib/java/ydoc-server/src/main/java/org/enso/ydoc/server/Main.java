@@ -4,6 +4,7 @@ import java.io.IOException;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
+import org.slf4j.event.Level;
 
 public final class Main {
 
@@ -17,9 +18,13 @@ public final class Main {
       String ydocHost,
       String ydocPort,
       YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks binaryChannelCallbacks,
+      String logLevelName)
       throws IOException {
     var builder = Ydoc.builder();
+    if (logLevelName != null) {
+      builder.logLevel(Level.valueOf(logLevelName));
+    }
     if (ydocHost != null) {
       builder.hostname(ydocHost);
     }

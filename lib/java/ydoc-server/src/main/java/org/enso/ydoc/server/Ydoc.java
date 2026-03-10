@@ -1,6 +1,9 @@
 package org.enso.ydoc.server;
 
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.api.YjsChannelCallbacks;
@@ -10,8 +13,13 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 public final class Ydoc implements AutoCloseable {
+
+  private static final Logger log = LoggerFactory.getLogger(Ydoc.class);
 
   private static final String YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor thread";
   private static final String YDOC_PATH = "ydoc.cjs";
@@ -23,9 +31,10 @@ public final class Ydoc implements AutoCloseable {
   private final int port;
   private final YjsChannelCallbacks jsonChannelCallbacks;
   private final YjsChannelCallbacks binaryChannelCallbacks;
-  private final boolean debug;
+  private final Level logLevel;
 
   private Context context;
+  private ScheduledExecutorService statsLoggerExecutor;
 
   private Ydoc(
       YdocScheduledExecutorService executor,
@@ -35,7 +44,7 @@ public final class Ydoc implements AutoCloseable {
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
       YjsChannelCallbacks binaryChannelCallbacks,
-      boolean debug) {
+      Level logLevel) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
@@ -43,7 +52,7 @@ public final class Ydoc implements AutoCloseable {
     this.port = port;
     this.jsonChannelCallbacks = jsonChannelCallbacks;
     this.binaryChannelCallbacks = binaryChannelCallbacks;
-    this.debug = debug;
+    this.logLevel = logLevel;
   }
 
   public static final class Builder {
@@ -57,7 +66,7 @@ public final class Ydoc implements AutoCloseable {
     private HostAccess.Builder hostAccessBuilder;
     private String hostname;
     private int port = -1;
-    private boolean debug = false;
+    private Level logLevel = Level.ERROR;
     private YjsChannelCallbacks jsonChannelCallbacks;
     private YjsChannelCallbacks binaryChannelCallbacks;
 
@@ -72,9 +81,9 @@ public final class Ydoc implements AutoCloseable {
 
       @Override
       public void accept(T t) {
-        System.err.println("DelegateConsumer.accept[" + t.getClass() + "]: " + t);
+        log.trace("DelegateConsumer.accept[{}]: {}", t.getClass(), t);
         delegate.accept(t);
-        System.err.println("DelegateConsumer.accept finished");
+        log.trace("DelegateConsumer.accept finished");
       }
     }
 
@@ -87,17 +96,17 @@ public final class Ydoc implements AutoCloseable {
 
       @Override
       public void send(Object o) {
-        System.err.println("DelegateYjsChannel.send[" + o.getClass() + "]: " + o);
+        log.trace("DelegateYjsChannel.send[{}]: {}", o.getClass(), o);
         delegate.send(o);
-        System.err.println("DelegateYjsChannel.send finished");
+        log.trace("DelegateYjsChannel.send finished");
       }
 
       @Override
       public void subscribe(Consumer<Object> cnsmr) {
         var wrap = new DelegateConsumer<Object>(cnsmr);
-        System.err.println("DelegateConsumer.subscribe[" + cnsmr.getClass() + "]: " + cnsmr);
+        log.trace("DelegateYjsChannel.subscribe[{}]: {}", cnsmr.getClass(), cnsmr);
         delegate.subscribe(wrap);
-        System.err.println("DelegateConsumer.subscribe finished");
+        log.trace("DelegateYjsChannel.subscribe finished");
       }
     }
 
@@ -113,12 +122,12 @@ public final class Ydoc implements AutoCloseable {
       @HostAccess.Export
       @Override
       public void onConnect(YjsChannel channel) {
-        System.err.println("Enter onConnect[" + name + "] with " + channel + " for " + delegate);
+        log.trace("Enter onConnect[{}] with {} for {}", name, channel, delegate);
         if (delegate != null) {
           var wrap = new DelegateYjsChannel(channel);
           delegate.onConnect(wrap);
         }
-        System.err.println("Exit onConnect[" + name + "] with " + channel);
+        log.trace("Exit onConnect[{}] with {}", name, channel);
       }
     }
 
@@ -152,8 +161,8 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
-    public Builder debug(boolean value) {
-      this.debug = value;
+    public Builder logLevel(Level logLevel) {
+      this.logLevel = logLevel;
       return this;
     }
 
@@ -169,7 +178,8 @@ public final class Ydoc implements AutoCloseable {
 
     public Ydoc build() {
       if (executor == null) {
-        executor = new YdocScheduledExecutorService();
+        final var debug = logLevel == Level.DEBUG || logLevel == Level.TRACE;
+        executor = new YdocScheduledExecutorService(debug);
       }
 
       if (parser == null) {
@@ -193,19 +203,21 @@ public final class Ydoc implements AutoCloseable {
         port = DEFAULT_PORT;
       }
 
+      log.debug("Created Ydoc [{}, {}, {}]", logLevel, hostname, port);
+
       return new Ydoc(
           executor,
           parser,
           contextBuilder,
           hostname,
           port,
-          debug
+          logLevel == Level.TRACE
               ? new DelegateYjsChannelCallbacks("JSON", jsonChannelCallbacks)
               : jsonChannelCallbacks,
-          debug
+          logLevel == Level.TRACE
               ? new DelegateYjsChannelCallbacks("binary", binaryChannelCallbacks)
               : binaryChannelCallbacks,
-          debug);
+          logLevel);
     }
   }
 
@@ -246,7 +258,8 @@ public final class Ydoc implements AutoCloseable {
                   "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
               bindings.putMember(
                   "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
-              bindings.putMember("YDOC_LS_DEBUG", debug);
+              bindings.putMember(
+                  "YDOC_LS_DEBUG", logLevel == Level.DEBUG || logLevel == Level.TRACE);
 
               ctx.eval(ydocJs);
 
@@ -259,6 +272,26 @@ public final class Ydoc implements AutoCloseable {
       context = initFuture.get();
     } catch (Exception e) {
       throw new RuntimeException("Failed to initialize Ydoc", e);
+    }
+
+    if (logLevel == Level.DEBUG || logLevel == Level.TRACE) {
+      statsLoggerExecutor =
+          Executors.newSingleThreadScheduledExecutor(
+              r -> {
+                var t = new Thread(r, "Ydoc stats logger");
+                t.setDaemon(true);
+                return t;
+              });
+      statsLoggerExecutor.scheduleAtFixedRate(
+          () -> {
+            var stats = executor.getDebugStats();
+            if (!stats.isEmpty()) {
+              log.debug("{}", stats);
+            }
+          },
+          30,
+          30,
+          TimeUnit.SECONDS);
     }
 
     runEventLoopBlocking();
@@ -293,6 +326,9 @@ public final class Ydoc implements AutoCloseable {
   @Override
   public void close() throws Exception {
     executor.shutdown();
+    if (statsLoggerExecutor != null) {
+      statsLoggerExecutor.shutdownNow();
+    }
     if (context != null) {
       context.close(true);
     }

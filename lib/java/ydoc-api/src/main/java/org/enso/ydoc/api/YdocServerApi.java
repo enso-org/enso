@@ -3,6 +3,7 @@ package org.enso.ydoc.api;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ServiceLoader;
+import org.slf4j.event.Level;
 
 public abstract class YdocServerApi {
 
@@ -10,7 +11,8 @@ public abstract class YdocServerApi {
       String hostname,
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks binaryChannelCallbacks,
+      Level logLevel)
       throws IOException, URISyntaxException {
     var loader = YdocServerApi.class.getClassLoader();
     var it = ServiceLoader.load(YdocServerApi.class, loader).iterator();
@@ -18,13 +20,15 @@ public abstract class YdocServerApi {
       throw new IllegalStateException("No Ydoc server implementation found");
     }
     var impl = it.next();
-    return impl.runYdocServer(hostname, port, jsonChannelCallbacks, binaryChannelCallbacks);
+    return impl.runYdocServer(
+        hostname, port, jsonChannelCallbacks, binaryChannelCallbacks, logLevel);
   }
 
   protected abstract AutoCloseable runYdocServer(
       String hostname,
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks binaryChannelCallbacks,
+      Level logLevel)
       throws IOException, URISyntaxException;
 }
