@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Spatial_Table.Spatial_Table
 from Standard.Table import Table
 
 import Standard.Database.DB_Table.DB_Table
@@ -28,6 +29,24 @@ json_from_table table =
 ## ---
    private: true
    ---
+   Construct JSON describing table geo map visualization from a spatial table.
+   Each spatial column will become a separate layer in the visualization, with
+   the column name as the layer name and the column values as GeoJSON data.
+
+   ## Arguments
+    - `table`: the Table to be visualized.
+json_from_spatial_table table:Spatial_Table -> JS_Object =
+    spatial_columns = table.spatial_columns
+    materialised = table.read_as_geojson (..First 5000)
+
+    base_json = json_from_table materialised
+    layers = spatial_columns.map col->
+        [["type", "GeoJsonLayer"], ["layerName", col], ["data", materialised.get col . to_vector . join "," "[" "]"]]
+    JS_Object.from_pairs (base_json.to_vector + layers)
+
+## ---
+   private: true
+   ---
    Default preprocessor for the geo map visualization, generating JSON text
    describing the geo map visualization.
 
@@ -36,6 +55,7 @@ json_from_table table =
 process_to_json_text : Any -> Text
 process_to_json_text value = time_visualization Geo_Map ("process_to_json_text: " + (short_display value)) <|
     case value of
+        spatial : Spatial_Table -> json_from_spatial_table spatial . to_text
         _ : DB_Table -> json_from_table (value.read (..First 15000)) . to_text
         _ : In_Memory_Table -> json_from_table value . to_text
         _ -> value.to_json
