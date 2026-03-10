@@ -11,21 +11,20 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 public class S3ClientWrapper implements AutoCloseable {
+  final ClientBuilder clientBuilder;
   final S3Client client;
-  final AWSRegion region;
 
-  S3ClientWrapper(S3Client client, AWSRegion region) {
-    this.client = client;
-    this.region = region;
+  S3ClientWrapper(ClientBuilder clientBuilder) {
+    this.clientBuilder = clientBuilder;
+    this.client = clientBuilder.buildS3Client();
   }
 
   static S3ClientWrapper forCredentialInternal(AwsCredential credential, AWSRegion region) {
     var builder = new ClientBuilder(credential, region);
-    return new S3ClientWrapper(builder.buildS3Client(), region);
+    return new S3ClientWrapper(builder);
   }
 
   public static Value forCredential(AwsCredential credential, AWSRegion region) {
@@ -238,8 +237,7 @@ public class S3ClientWrapper implements AutoCloseable {
               .signatureDuration(Duration.ofSeconds(expirationSeconds))
               .getObjectRequest(request.build());
 
-      try (var presigner =
-          S3Presigner.builder().s3Client(client).region(AWSRegion.underlying(region)).build()) {
+      try (var presigner = clientBuilder.buildS3Presigner()) {
         var presignResponse = presigner.presignGetObject(presignRequest.build());
         return Value.asValue(presignResponse.url().toExternalForm());
       }

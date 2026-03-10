@@ -9,6 +9,7 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
