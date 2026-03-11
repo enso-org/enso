@@ -394,17 +394,17 @@ type Connection
           set to `False`, the query is expected to be a read operation and will
           run regardless of the output context. Defaults to `True`.
     execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
-    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True = case write_operation of
-        True ->
-            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute the query. Press the Write button ▶ to perform the operation." panic=False
-                (self.execute_query query limit False)
-        False ->
-            self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
-                _check_statement_is_allowed self stmt
-                rs = stmt.executeQuery
-                tm = self.type_mapping
-                table = result_set_to_table rs tm.column_fetcher_factory tm.sql_type_to_value_type row_limit=(limit.rows_to_read.if_nothing -1)
-                limit.attach_warning table
+    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
+        enabled = if write_operation.not then Nothing else
+            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
+        Error.return_if_error enabled
+
+        self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
+            _check_statement_is_allowed self stmt
+            rs = stmt.executeQuery
+            tm = self.type_mapping
+            table = result_set_to_table rs tm.column_fetcher_factory tm.sql_type_to_value_type row_limit=(limit.rows_to_read.if_nothing -1)
+            limit.attach_warning table
 
     ## ---
        private: true
@@ -417,14 +417,21 @@ type Connection
        ## Arguments
         - `query`: either raw SQL code as Text or an instance of SQL_Statement
           representing the query to execute.
-    execute_update : Text | SQL_Statement -> Integer
-    execute_update self query =
-        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
-            self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
-                _check_statement_is_allowed self stmt
-                result = stmt.executeUpdate
-                SQL_Warning_Helper.process_warnings stmt <|
-                    result
+        - `write_operation`: if set to `True`, the query is expected to be a
+          write operation and will only run if the output context is enabled. If
+          set to `False`, the query is expected to be a read operation and will
+          run regardless of the output context. Defaults to `True`.
+    execute_update : Text | SQL_Statement -> Boolean -> Integer
+    execute_update self query write_operation:Boolean=True =
+        enabled = if write_operation.not then Nothing else
+            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
+        Error.return_if_error enabled
+
+        self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
+            _check_statement_is_allowed self stmt
+            result = stmt.executeUpdate
+            SQL_Warning_Helper.process_warnings stmt <|
+                result
 
     ## ---
        private: true
