@@ -13,7 +13,7 @@ import { registerHandlers } from '@/providers/action'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, nextTick, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, nextTick, ref, toRef, watch } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**
@@ -41,7 +41,8 @@ const props = defineProps<{
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
-  'update:effectiveSize': [size: Vec2]
+  'update:effectiveWidth': [width: number]
+  'update:effectiveHeight': [height: number]
   'update:id': [id: VisualizationIdentifier]
   'update:enabled': [visible: boolean]
   'update:width': [width: number]
@@ -139,24 +140,14 @@ useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 // === Sizing and Fullscreen ===
 // =============================
 
-function clampSize(x: Opt<number>, y: Opt<number>) {
-  return new Vec2(
-    Math.max(x ?? 0, MIN_WIDTH_PX),
-    Math.max(y ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX),
-  )
-}
-
-const vizSize = computed<Vec2>(() =>
-  clampSize(Math.max(props.width ?? 0, props.nodeSize.x), props.height),
+const vizWidth = computed<number>(() => Math.max(props.width ?? 0, props.nodeSize.x, MIN_WIDTH_PX))
+const vizHeight = computed<number>(() =>
+  Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX),
 )
+const vizSize = computed<Vec2>(() => new Vec2(vizWidth.value, vizHeight.value))
 
-watchEffect(() => emit('update:effectiveSize', vizSize.value))
-
-const requestedSize = ref<Vec2>()
-watch(requestedSize, (size, oldSize) => {
-  if (size && size.x !== oldSize?.x) emit('update:width', size.x)
-  if (size && size.y !== oldSize?.y) emit('update:height', size.y)
-})
+watch(vizWidth, (width) => emit('update:effectiveWidth', width), { immediate: true })
+watch(vizHeight, (height) => emit('update:effectiveHeight', height), { immediate: true })
 
 const resizeHandles = useResizeHandles({
   size: vizSize,

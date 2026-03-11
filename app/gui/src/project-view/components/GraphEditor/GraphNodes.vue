@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
-import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useNodesDisplacing } from '@/components/GraphEditor/nodesDisplacing'
 import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
+import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import { useArrows, useEvent } from '@/composables/events'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -20,11 +21,11 @@ const emit = defineEmits<{
   toggleDocPanel: []
 }>()
 
-const projectStore = useProjectStore()
+const { graph, store } = useCurrentProject()
 const selection = useGraphSelection()
-const graphStore = useGraphStore()
 const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
+const { displaceNodesForResize } = useNodesDisplacing()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
   const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))
@@ -46,9 +47,9 @@ const { globalEventRegistry } = useGlobalEventRegistry()
 useEvent(globalEventRegistry, 'keydown', displacingWithArrows.events.keydown)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
-  const uploads = [...projectStore.awareness.allUploads()]
-  if (uploads.length == 0 || !graphStore.currentMethod.ast.ok) return []
-  const currentMethod = graphStore.currentMethod.ast.value.externalId
+  const uploads = [...store.value.awareness.allUploads()]
+  if (uploads.length == 0 || !graph.value.currentMethod.ast.ok) return []
+  const currentMethod = graph.value.currentMethod.ast.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
 
@@ -61,26 +62,27 @@ const layerStyle = computed(() => ({
 <template>
   <div class="layer" :style="layerStyle">
     <GraphNode
-      v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
+      v-for="[id, node] in graph.db.nodeIdToNode.entries()"
       :key="id"
       :node="node"
-      :edited="id === graphStore.editedNodeInfo?.id"
+      :edited="id === graph.editedNodeInfo?.id"
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
-      @setNodeColor="graphStore.overrideNodeColor(id, $event)"
-      @update:edited="graphStore.setEditedNode(id, $event)"
-      @update:rect="graphStore.updateNodeRect(id, $event)"
-      @update:height="graphStore.setNodeHeight(id, $event)"
+      @setNodeColor="graph.overrideNodeColor(id, $event)"
+      @resizeDisplace="(rect0, rect1) => displaceNodesForResize(id, rect0, rect1)"
+      @update:edited="graph.setEditedNode(id, $event)"
+      @update:rect="graph.updateNodeRect(id, $event)"
+      @update:height="graph.setNodeHeight(id, $event)"
       @update:visualizationId="
-        graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
+        graph.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
       "
-      @update:visualizationEnabled="graphStore.setNodeVisualization(id, { visible: $event })"
-      @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
-      @update:visualizationHeight="graphStore.setNodeVisualization(id, { height: $event })"
+      @update:visualizationEnabled="graph.setNodeVisualization(id, { visible: $event })"
+      @update:visualizationWidth="graph.setNodeVisualization(id, { width: $event })"
+      @update:visualizationHeight="graph.setNodeVisualization(id, { height: $event })"
     />
     <UploadingFile
       v-for="(nameAndFile, index) in uploadingFiles"

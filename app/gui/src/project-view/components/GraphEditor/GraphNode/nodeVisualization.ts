@@ -7,7 +7,7 @@ import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, ref, shallowRef, toValue, watch } from 'vue'
+import { computed, ref, toValue, watch } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { VisualizationIdentifier, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 
@@ -17,12 +17,14 @@ interface Emit {
   (event: 'update:visualizationId', id: Opt<VisualizationIdentifier>): void
   (event: 'update:visualizationEnabled', enabled: boolean): void
   (event: 'update:visualizationHeight', height: number): void
+  (event: 'resizeDisplace', rect0: Rect, rect1: Rect): void
 }
 
 interface NodeVisualizationOptions {
   vis: ToValue<Opt<VisualizationMetadata>>
   nodeHovered: ToValue<boolean>
-  nodeRect: ToValue<Rect>
+  nodeWidgetsSize: ToValue<Vec2>
+  nodePos: ToValue<Vec2>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
   typeinfo: ToValue<Opt<TypeInfo>>
@@ -35,7 +37,8 @@ interface NodeVisualizationOptions {
 export function useNodeVisualization({
   vis,
   nodeHovered,
-  nodeRect,
+  nodeWidgetsSize,
+  nodePos,
   scale,
   isFocused,
   typeinfo,
@@ -91,24 +94,37 @@ export function useNodeVisualization({
     if (!visible && visualizationHovered.value) visualizationHovered.value = false
   })
 
-  const visSize = shallowRef<Vec2>()
-  const visibleVisRect = computed((): Opt<Rect> => {
-    if (!isVisualizationVisible.value || toValue(hidden) || !visSize.value) return null
-    const nodeRectValue = toValue(nodeRect)
-    return new Rect(
-      nodeRectValue.pos,
-      new Vec2(visSize.value.x, nodeRectValue.size.y + visSize.value.y),
-    )
+  const effectiveHeight = ref<number>()
+  const visibleVisHeight = computed((): number => {
+    if (!isVisualizationVisible.value || toValue(hidden)) return 0
+    return effectiveHeight.value ?? 0
+  })
+  const effectiveWidth = ref<number>()
+  const visibleVisWidth = computed((): number => {
+    if (!isVisualizationVisible.value || toValue(hidden)) return 0
+    return effectiveWidth.value ?? 0
+  })
+  const visibleSize = computed<Vec2 | undefined>((prev) => {
+    if (effectiveHeight.value == null || effectiveWidth.value == null) return
+    const size = new Vec2(visibleVisWidth.value, visibleVisHeight.value)
+    return prev?.equals(size) ? prev : size
+  })
+  watch(visibleSize, (size1, size0) => {
+    if (!size1 || !size0 || size1.equals(size0)) return
+    const widgetsHeightVec = new Vec2(0, toValue(nodeWidgetsSize).y)
+    const pos = toValue(nodePos)
+    const rect0 = new Rect(pos, size0.add(widgetsHeightVec))
+    const rect1 = new Rect(pos, size1.add(widgetsHeightVec))
+    emit('resizeDisplace', rect0, rect1)
   })
 
   const visualization = computed((): ComponentProps<typeof GraphVisualization> => {
-    const { size: nodeSize, pos: nodePosition } = toValue(nodeRect)
     return {
       show: isVisualizationVisible.value,
       width: visualizationWidth.value,
-      nodeSize,
+      nodeSize: toValue(nodeWidgetsSize),
       scale: toValue(scale),
-      nodePosition,
+      nodePosition: toValue(nodePos),
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
       typeinfo: toValue(typeinfo) ?? undefined,
@@ -118,7 +134,8 @@ export function useNodeVisualization({
       isFullscreenAllowed: true,
       isResizable: true,
       'onUpdate:hovered': (event) => (visualizationHovered.value = event),
-      'onUpdate:effectiveSize': (event) => (visSize.value = event),
+      'onUpdate:effectiveHeight': (event) => (effectiveHeight.value = event),
+      'onUpdate:effectiveWidth': (event) => (effectiveWidth.value = event),
       'onUpdate:id': (event) => emit('update:visualizationId', event),
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),
@@ -127,10 +144,10 @@ export function useNodeVisualization({
   })
 
   return {
-    visualizationWidth,
+    visualizationWidth: visibleVisWidth,
     isVisualizationEnabled,
     isVisualizationPreviewed,
-    visRect: visibleVisRect,
+    vizHeight: visibleVisHeight,
     visualization,
   }
 }

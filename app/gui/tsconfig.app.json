@@ -540,6 +540,7 @@
     "./src/project-view/components/GraphEditor/detaching.ts",
     "./src/project-view/components/GraphEditor/graphClipboard.ts",
     "./src/project-view/components/GraphEditor/nodeCreation.ts",
+    "./src/project-view/components/GraphEditor/nodesDisplacing.ts",
     "./src/project-view/components/GraphEditor/nodesDragging.ts",
     "./src/project-view/components/GraphEditor/selectionActions.ts",
     "./src/project-view/components/GraphEditor/selectionAlignment.ts",

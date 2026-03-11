@@ -26,6 +26,7 @@
     "./src/project-view/components/GraphEditor/__tests__/clipboard.test.ts",
     "./src/project-view/components/GraphEditor/__tests__/collapsing.test.ts",
     "./src/project-view/components/GraphEditor/__tests__/detaching.test.ts",
+    "./src/project-view/components/GraphEditor/__tests__/displacing.test.ts",
     "./src/project-view/components/GraphEditor/__tests__/dragging.test.ts",
     "./src/project-view/components/GraphEditor/widgets/WidgetFileBrowser/__tests__/browsableTypes.test.ts",
     "./src/project-view/components/GraphEditor/widgets/WidgetFunction/__tests__/widgetFunctionCallInfo.test.ts",

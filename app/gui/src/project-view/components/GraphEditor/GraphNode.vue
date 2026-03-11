@@ -71,6 +71,7 @@ const emit = defineEmits<{
   createNodes: [options: NodeCreationOptions[]]
   setNodeColor: [color: string | undefined]
   toggleDocPanel: []
+  resizeDisplace: [rect0: Rect, rect1: Rect]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:height': [height: number | undefined]
@@ -90,6 +91,8 @@ const nodeExecution = useNodeExecution()
 const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const primaryApplication = computed(() => props.node.primaryApplication)
 
+const scale = computed(() => navigator?.scale ?? 1)
+
 const nodePosition = computed(() => {
   // Positions of nodes that are not yet placed are set to `Infinity`.
   if (props.node.position.equals(Vec2.Infinity)) return Vec2.Zero
@@ -99,8 +102,15 @@ const nodePosition = computed(() => {
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
-const contentNode = ref<HTMLElement>()
-const nodeSize = useResizeObserver(rootNode)
+const widgetTreeNode = ref<HTMLElement>()
+const widgetsDomSizeClientPx = useResizeObserver(widgetTreeNode, false)
+const widgetsDomSize = ref(new Vec2(0, 0))
+watch(widgetsDomSizeClientPx, (size) => (widgetsDomSize.value = size.scale(1 / scale.value)), {
+  immediate: true,
+})
+const nodeDomSize = computed(() =>
+  widgetsDomSize.value.add(new Vec2(NODE_CONTENT_PADDING * 2, NODE_CONTENT_PADDING * 2)),
+)
 
 providePopoverRoot(rootNode)
 
@@ -180,19 +190,17 @@ function ensureSelected() {
 
 const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
-const scale = computed(() => navigator?.scale ?? 1)
-const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
-
 const {
   visualizationWidth,
   isVisualizationEnabled,
   isVisualizationPreviewed,
-  visRect,
+  vizHeight,
   visualization,
 } = useNodeVisualization({
   vis: () => props.node.vis,
   nodeHovered: () => nodeHovered.value || outputHovered.value,
-  nodeRect,
+  nodeWidgetsSize: nodeDomSize,
+  nodePos: () => props.node.position,
   scale,
   isFocused: detailedView,
   typeinfo: () => expressionInfo.value?.typeInfo,
@@ -248,15 +256,15 @@ const nodeEditHandler = nodeEditBindings.handler({
   edit: () => actionHandlers['component.startEditing'].action(),
 })
 
-/// The visualization's contribution to the node's height.
-const vizBelowNode = computed(() => (visRect.value ? visRect.value.size.y - nodeSize.value.y : 0))
-
-const nodeOuterRect = ref<Rect>()
+let prevNodeRect: Rect | undefined = undefined
 watchEffect(() => {
-  const newValue = visRect.value ?? nodeRect.value
-  if (!newValue.size.isZero() && !nodeOuterRect.value?.equals(newValue)) {
-    nodeOuterRect.value = newValue
-    emit('update:rect', newValue)
+  if (nodeDomSize.value.isZero()) return
+  const width = Math.max(nodeDomSize.value.x, visualizationWidth.value)
+  const height = nodeDomSize.value.y + vizHeight.value
+  const newRect = new Rect(props.node.position, new Vec2(width, height))
+  if (!prevNodeRect?.equals(newRect)) {
+    emit('update:rect', newRect)
+    prevNodeRect = newRect
   }
 })
 
@@ -286,15 +294,16 @@ function useRecomputation() {
  * takes the size of the largest resizable widget present. If the user resizes the node, and the node is in expanded
  * mode, the specified height overrides any widget preferences.
  */
-const nodeHeight = computed(() => props.node.height)
+const nodeHeightOverride = computed(() => props.node.height)
+const nodeHeightOverridden = computed(() => props.node.height != null)
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
-    minWidth: isVisualizationEnabled.value ? `${visualizationWidth.value ?? 200}px` : undefined,
-    height: nodeHeight.value ? `${nodeHeight.value}px` : undefined,
+    minWidth: `${visualizationWidth.value ?? 200}px`,
+    height: nodeHeightOverride.value ? `${nodeHeightOverride.value}px` : undefined,
     '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
-    '--viz-below-node': `${vizBelowNode.value}px`,
+    '--viz-below-node': `${vizHeight.value}px`,
   }
 })
 
@@ -320,7 +329,7 @@ const nodeClass = computed(() => {
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
     edited: props.edited,
-    nodeHeightOverridden: nodeHeight.value != null,
+    nodeHeightOverridden,
   }
 })
 
@@ -462,7 +471,7 @@ const nodeName = computed(() => props.node.pattern?.code())
 // === Node resizing ===
 
 const resizeHandles = useResizeHandles({
-  size: nodeSize,
+  size: nodeDomSize,
   scale,
 })
 resizeHandles.onResizeHeight((value) => emit('update:height', value))
@@ -517,7 +526,6 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
         </div>
       </template>
       <div
-        ref="contentNode"
         :class="{ content: true, dragged: isDragged }"
         :style="contentNodeStyle"
         v-on="pointerEvents"
@@ -527,6 +535,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       >
         <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
         <ComponentWidgetTree
+          ref="widgetTreeNode"
           :ast="props.node.innerExpr"
           :nodeId="nodeId"
           :rootElement="rootNode"

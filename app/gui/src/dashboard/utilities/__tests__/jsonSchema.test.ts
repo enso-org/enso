@@ -52,30 +52,29 @@ fc.test.prop({ value: fc.fc.string() })('string schema', ({ value }) => {
 })
 
 const NUMBER_SCHEMA = { type: 'number' } as const
-fc.test.prop({ value: fc.fc.float() })('number schema', ({ value }) => {
-  if (Number.isFinite(value)) {
+fc.test.prop({ value: fc.fc.float({ noNaN: true, noDefaultInfinity: true }) })(
+  'number schema',
+  ({ value }) => {
     const constSchema = { const: value, type: 'number' }
     v.expect(AJV.validate(NUMBER_SCHEMA, value)).toBe(true)
     v.expect(AJV.validate(constSchema, value)).toBe(true)
     v.expect(jsonSchema.constantValueOfSchema({}, constSchema)[0]).toBe(value)
-  }
-})
+  },
+)
 
 fc.test.prop({
-  value: fc.fc.float().filter((n) => n > 0),
+  value: fc.fc.float({ noNaN: true, noDefaultInfinity: true, min: 0, minExcluded: true }),
 
   multiplier: fc.fc.integer({ min: -1_000_000, max: 1_000_000 }),
 })('number multiples', ({ value, multiplier }) => {
   const schema = { type: 'number', multipleOf: value }
-  if (Number.isFinite(value)) {
-    v.expect(AJV.validate(schema, 0)).toBe(true)
-    v.expect(AJV.validate(schema, value)).toBe(true)
+  v.expect(AJV.validate(schema, 0)).toBe(true)
+  v.expect(AJV.validate(schema, value)).toBe(true)
 
-    if (Math.abs(value * (multiplier + 0.5)) < Number.MAX_SAFE_INTEGER) {
-      v.expect(AJV.validate(schema, value * multiplier)).toBe(true)
-      if (value !== 0) {
-        v.expect(AJV.validate(schema, value * (multiplier + 0.5))).toBe(false)
-      }
+  if (Math.abs(value * (multiplier + 0.5)) < Number.MAX_SAFE_INTEGER) {
+    v.expect(AJV.validate(schema, value * multiplier)).toBe(true)
+    if (value !== 0) {
+      v.expect(AJV.validate(schema, value * (multiplier + 0.5))).toBe(false)
     }
   }
 })
