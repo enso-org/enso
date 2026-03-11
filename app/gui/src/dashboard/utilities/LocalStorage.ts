@@ -300,7 +300,7 @@ export function useLocalStorageValues(storage: LocalStorage): Partial<LocalStora
       // NOTE: `values` is shallowReactive. Create a shallow snapshot to:
       // - avoid deep traversal (stack overflow risk),
       // - provide a new reference so React re-renders.
-      const values = storage['values'] as Partial<LocalStorageData>
+      const values = storage['values']
       return { ...values }
     }, [storage]),
   )

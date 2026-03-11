@@ -126,6 +126,7 @@ export function useSyncLocalStorage<StoredState extends object>(
         next.delete(key)
       }
     }
+    // storageMap is observed by a shallow watcher which would not pick up internal changes, so we replace the whole value.
     storageMap.value = next
   }
 
@@ -161,6 +162,7 @@ export function useSyncLocalStorage<StoredState extends object>(
         const newKey = encodeKey(newKeyEncoder)
         const next = new Map(storageMap.value)
         next.set(newKey, stateBlob)
+        // storageMap is observed by a shallow watcher which would not pick up internal changes, so we replace the whole value.
         storageMap.value = next
       }
     },
