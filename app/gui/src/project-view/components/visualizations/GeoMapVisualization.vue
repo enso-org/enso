@@ -54,10 +54,17 @@ interface RegularData {
   layers: Layer[]
 }
 
-interface Layer {
-  type: string
+interface ScatterplotLayer {
+  type: 'Scatterplot_Layer'
   data: Location[]
 }
+
+interface GeoJsonLayer {
+  type: 'GeoJsonLayer'
+  data: object
+}
+
+type Layer = ScatterplotLayer | GeoJsonLayer
 
 type Color = [red: number, green: number, blue: number]
 
@@ -97,7 +104,6 @@ import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 const props = defineProps<{ data: Data }>()
 
 /** GeoMap Visualization. */
-const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
 const DEFAULT_POINT_RADIUS = 150
 
 const LABEL_FONT = 'DejaVuSansMonoBook, sans-serif'

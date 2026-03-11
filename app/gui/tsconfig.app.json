@@ -665,6 +665,7 @@
     "./src/project-view/components/shared/GrowingSpinner.vue",
     "./src/project-view/components/shared/LoadingSpinner.vue",
     "./src/project-view/components/visualizations/GeoMapVisualization.vue",
+    "./src/project-view/components/visualizations/GeoMapVisualization2.vue",
     "./src/project-view/components/visualizations/HeatmapVisualization.vue",
     "./src/project-view/components/visualizations/HistogramVisualization.vue",
     "./src/project-view/components/visualizations/ImageBase64Visualization.vue",

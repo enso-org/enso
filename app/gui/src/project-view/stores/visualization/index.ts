@@ -1,6 +1,6 @@
 import { type ProjectStore } from '$/providers/openedProjects/project'
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
-import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
+import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization2.vue'
 import * as imageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
 import * as jsonVisualization from '@/components/visualizations/JSONVisualization'
 import * as scatterplotVisualization from '@/components/visualizations/ScatterplotVisualization.vue'
