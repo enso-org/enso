@@ -25,6 +25,24 @@ public class SystemLoggerForSlf4jTest {
     mock.assertLogged(null, null, null);
   }
 
+  @Test
+  public void logMessageWithArguments() {
+    var mock = new MockSystemLogger("second.logger", System.Logger.Level.INFO);
+    var slf4j = new SystemSlf4jLogger(mock);
+
+    assertTrue("Warning is loggable", slf4j.isWarnEnabled());
+    var slf4jFmt = "One {} two {} three {}!";
+    var args = new Object[] {1, 2, 3};
+    slf4j.warn(slf4jFmt, args);
+    var jdkFmt = "One {0} two {1} three {2}!";
+    mock.assertLogged(System.Logger.Level.WARNING, jdkFmt, args);
+
+    var slf4Msg = org.slf4j.helpers.MessageFormatter.arrayFormat(slf4jFmt, args);
+    var jdkMsg = java.text.MessageFormat.format(jdkFmt, args);
+
+    assertEquals("Both formatted messages are the same", slf4Msg.getMessage(), jdkMsg);
+  }
+
   private static final class MockSystemLogger implements System.Logger {
     private final Level minLevel;
     private final String name;

@@ -23,7 +23,23 @@ final class SystemSlf4jLogger extends AbstractLogger {
     if (throwable != null) {
       delegate.log(at, messagePattern, throwable);
     } else {
-      delegate.log(at, messagePattern);
+      if (arguments != null && arguments.length > 0) {
+        int from = 0;
+        int count = 0;
+        var pattern = messagePattern;
+        for (; ; ) {
+          var found = pattern.indexOf("{}", from);
+          if (found == -1) {
+            break;
+          }
+          var newPrefix = pattern.substring(0, found) + "{" + count++ + "}";
+          from = newPrefix.length();
+          pattern = newPrefix + pattern.substring(found + 2);
+        }
+        delegate.log(at, pattern, arguments);
+      } else {
+        delegate.log(at, messagePattern);
+      }
     }
   }
 
