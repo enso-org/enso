@@ -2,7 +2,6 @@
 import { type UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeHandles } from '@/components/resizeHandles'
-import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, toRef, watch } from 'vue'
@@ -21,9 +20,6 @@ watch(
   { immediate: true },
 )
 const graphNav = injectGraphNavigator()
-const htmlRoot = ref<HTMLElement>()
-
-const htmlRootSize = useResizeObserver(htmlRoot)
 
 const widgetStyle = computed(() => {
   return {
@@ -53,7 +49,7 @@ resizeHandles.onResize((value) => {
 </script>
 
 <template>
-  <div ref="htmlRoot" class="ResizableWidget" :style="widgetStyle">
+  <div class="ResizableWidget" :style="widgetStyle">
     <slot />
     <ResizeHandles right v-on="resizeHandles.events" />
   </div>

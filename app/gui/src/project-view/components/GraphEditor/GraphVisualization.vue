@@ -21,7 +21,7 @@ import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/y
  * - both of toolbars that are always visible (32px + 60px), and
  * - the 4px flex gap between the toolbars.
  */
-const DEFAULT_WIDTH_PX = 200
+const MIN_WIDTH_PX = 200
 const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
 
@@ -141,7 +141,7 @@ useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 
 function clampSize(x: Opt<number>, y: Opt<number>) {
   return new Vec2(
-    Math.max(x ?? 0, DEFAULT_WIDTH_PX),
+    Math.max(x ?? 0, MIN_WIDTH_PX),
     Math.max(y ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX),
   )
 }
