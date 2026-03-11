@@ -37,7 +37,7 @@ json_from_table table =
 
    ## Arguments
     - `table`: the Table to be visualized.
-json_from_spatial_table table:Spatial_Table -> Text =
+private json_from_spatial_table table:Spatial_Table -> Text =
     spatial_columns = table.spatial_columns.map .name
 
     materialised = table.read_as_geojson (..First 5000)
