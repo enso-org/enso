@@ -1,6 +1,7 @@
 package org.enso.logging.config.systemlogger;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.ResourceBundle;
 import org.slf4j.Logger;
 
@@ -24,7 +25,7 @@ final class SystemViaSlf4jLogger implements System.Logger {
   @Override
   public void log(Level level, ResourceBundle bundle, String msg, Throwable thrown) {
     if (isLoggable(level)) {
-      java.lang.String m = readMsg(bundle, msg);
+      var m = readMsg(bundle, msg);
       delegate.atLevel(at(level)).setCause(thrown).setMessage(m).log();
     }
   }
@@ -32,15 +33,19 @@ final class SystemViaSlf4jLogger implements System.Logger {
   @Override
   public void log(Level level, ResourceBundle bundle, String formatOrMessage, Object... params) {
     if (isLoggable(level)) {
-      java.lang.String msg = readMsg(bundle, formatOrMessage);
+      var msg = readMsg(bundle, formatOrMessage);
+      var builder = delegate.atLevel(at(level));
       if (params != null && params.length > 0) {
-        try {
-          msg = MessageFormat.format(msg, params);
-        } catch (IllegalArgumentException ex) {
-          delegate.warn(msg, ex);
+        var nPlaceholders = Collections.nCopies(params.length, "{}").toArray();
+        var slf4jFmt = MessageFormat.format(msg, nPlaceholders);
+        builder.setMessage(slf4jFmt);
+        for (var p : params) {
+          builder.addArgument(p);
         }
+      } else {
+        builder.setMessage(msg);
       }
-      delegate.atLevel(at(level)).log(msg);
+      builder.log();
     }
   }
 
