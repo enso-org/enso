@@ -1065,6 +1065,8 @@ lazy val `logging-config` = project
     frgaalJavaCompilerSetting,
     annotationProcSetting,
     version := "0.1",
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
     libraryDependencies ++= Seq(
       "com.typesafe"         % "config"          % typesafeConfigVersion,
       "org.slf4j"            % "slf4j-api"       % slf4jVersion,
