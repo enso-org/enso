@@ -7,6 +7,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 
+import Standard.Database.Connection.Database
 import project.DuckDB.DuckDB
 
 ## Read the file to a `DuckDB_Connection`.
