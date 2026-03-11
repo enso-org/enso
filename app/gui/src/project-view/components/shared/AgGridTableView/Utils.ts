@@ -1,6 +1,8 @@
 /**
  * @file Copy of https://github.com/ag-grid/ag-grid/blob/v32.3.3/packages/ag-grid-vue3/src/Utils.ts
- * Used by our version of AgGridVue.ts.
+ * with our modifications:
+ *  - deep watchers are restricted to the depth of 1 to prevent stack call overflow when watching
+ *    deeply nested objects.
  *
  * Original file licenced under The MIT License:
  *

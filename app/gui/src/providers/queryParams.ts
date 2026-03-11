@@ -53,28 +53,25 @@ export function createQueryParams(
     },
   )
 
-  watch(
-    () => Array.from(queryParams.entries()),
-    () => {
-      const navigate = () => {
-        const query = Object.fromEntries(queryParams.entries())
-        if (anyPushed.value) {
-          router.push({ query })
-        } else {
-          router.replace({ query })
-        }
-        anyPushed.value = false
+  watch(queryParams, (newQueryParams) => {
+    const navigate = () => {
+      const query = Object.fromEntries(newQueryParams.entries())
+      if (anyPushed.value) {
+        router.push({ query })
+      } else {
+        router.replace({ query })
       }
-      for (const [key, value] of queryParams) {
-        // During update we remove duplicated param keys (as we don't read them anyway).
-        // Therefore we don't call `getQueryValue` here.
-        if (route.query[key] !== value) return navigate()
-      }
-      for (const key of Object.keys(route.query)) {
-        if (!queryParams.has(key)) return navigate()
-      }
-    },
-  )
+      anyPushed.value = false
+    }
+    for (const [key, value] of newQueryParams) {
+      // During update we remove duplicated param keys (as we don't read them anyway).
+      // Therefore we don't call `getQueryValue` here.
+      if (route.query[key] !== value) return navigate()
+    }
+    for (const key of Object.keys(route.query)) {
+      if (!newQueryParams.has(key)) return navigate()
+    }
+  })
 
   return { get, set, clear }
 }
