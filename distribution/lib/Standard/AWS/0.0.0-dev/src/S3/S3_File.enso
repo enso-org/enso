@@ -596,7 +596,7 @@ type S3_File
     exists : Boolean
     exists self = if self.s3_path.bucket == "" then True else
         raw_result = if self.s3_path.is_root then _translate_file_errors self <| S3.head self.s3_path.bucket "" self.credentials . is_error . not else
-            pair = _translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter max_count=1
+            pair = _translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter max_count=2
             pair.second.contains self.s3_path.key
         raw_result.catch S3_Bucket_Not_Found _->False
 
