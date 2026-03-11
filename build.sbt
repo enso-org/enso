@@ -1066,9 +1066,12 @@ lazy val `logging-config` = project
     annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "com.typesafe"         % "config"    % typesafeConfigVersion,
-      "org.slf4j"            % "slf4j-api" % slf4jVersion,
-      "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion % "provided"
+      "com.typesafe"         % "config"          % typesafeConfigVersion,
+      "org.slf4j"            % "slf4j-api"       % slf4jVersion,
+      "junit"                % "junit"           % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface" % junitIfVersion            % Test,
+      "org.hamcrest"         % "hamcrest-all"    % hamcrestVersion           % Test,
+      "org.graalvm.polyglot" % "polyglot"        % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= Seq(
       "com.typesafe"         % "config"    % typesafeConfigVersion,
