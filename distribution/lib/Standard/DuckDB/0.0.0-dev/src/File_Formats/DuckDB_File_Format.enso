@@ -33,8 +33,9 @@ type DuckDB_File_Format
        instance.
     for_read : File_Format_Metadata -> DuckDB_File_Format | Nothing
     for_read file:File_Format_Metadata =
-        _ = file
-        Nothing
+        case file.guess_extension of
+            ".duckdb" -> DuckDB_File_Format.DuckDB
+            _ -> Nothing
 
     ## ---
        private: true
