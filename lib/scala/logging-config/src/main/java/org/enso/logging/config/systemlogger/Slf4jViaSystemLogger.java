@@ -4,10 +4,10 @@ import org.slf4j.Marker;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.AbstractLogger;
 
-final class SystemSlf4jLogger extends AbstractLogger {
+final class Slf4jViaSystemLogger extends AbstractLogger {
   private final System.Logger delegate;
 
-  SystemSlf4jLogger(System.Logger delegate) {
+  Slf4jViaSystemLogger(System.Logger delegate) {
     this.delegate = delegate;
   }
 

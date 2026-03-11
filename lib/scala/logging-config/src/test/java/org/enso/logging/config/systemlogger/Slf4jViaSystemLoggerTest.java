@@ -10,11 +10,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.ResourceBundle;
 import org.junit.Test;
 
-public class SystemLoggerForSlf4jTest {
+public class Slf4jViaSystemLoggerTest {
   @Test
   public void logAMessage() {
     var mock = new MockSystemLogger("first.logger", System.Logger.Level.INFO);
-    var slf4j = new SystemSlf4jLogger(mock);
+    var slf4j = new Slf4jViaSystemLogger(mock);
 
     assertTrue("Error is loggable", slf4j.isErrorEnabled());
     slf4j.error("This will be OK!");
@@ -28,7 +28,7 @@ public class SystemLoggerForSlf4jTest {
   @Test
   public void logMessageWithArguments() {
     var mock = new MockSystemLogger("second.logger", System.Logger.Level.INFO);
-    var slf4j = new SystemSlf4jLogger(mock);
+    var slf4j = new Slf4jViaSystemLogger(mock);
 
     assertTrue("Warning is loggable", slf4j.isWarnEnabled());
     var slf4jFmt = "One {} two {} three {}!";
