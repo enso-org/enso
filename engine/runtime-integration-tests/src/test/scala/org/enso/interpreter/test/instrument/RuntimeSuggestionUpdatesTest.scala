@@ -2434,8 +2434,8 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    val updates = context.receiveNIgnoreExpressionUpdates(4)
-    updates.length shouldEqual 4
+    val updates = context.receiveNIgnoreExpressionUpdates(5)
+    updates.length shouldEqual 5
     updates should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
