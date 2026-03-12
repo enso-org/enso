@@ -63,6 +63,9 @@ public final class AnalyzeLibraryModuleJob extends BackgroundJob<Void>
 
   @SuppressWarnings("unchecked")
   static void analyzeLibrary(LibraryName libraryName, RuntimeContext ctx) {
+    if (!ctx.executionService().getContext().isGlobalSuggestionsEnabled()) {
+      return;
+    }
     var packageRepository = ctx.executionService().getContext().getCompiler().packageRepository();
     var it = packageRepository.getModulesForLibrary(libraryName);
 
