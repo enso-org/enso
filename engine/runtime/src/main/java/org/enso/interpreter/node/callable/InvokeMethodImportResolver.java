@@ -30,10 +30,12 @@ final class InvokeMethodImportResolver
 
   private final Module module;
   private final TopLevelScope topScope;
+  private final EnsoContext ctx;
 
-  private InvokeMethodImportResolver(Module module, TopLevelScope topScope) {
+  private InvokeMethodImportResolver(Module module, TopLevelScope topScope, EnsoContext ctx) {
     this.module = module;
     this.topScope = topScope;
+    this.ctx = ctx;
   }
 
   @Override
@@ -132,7 +134,11 @@ final class InvokeMethodImportResolver
 
   @Override
   protected EnsoObject createResolvedImport(UnresolvedSymbol imp, List<Object> exp, Module m) {
-    return m.getScope().getAssociatedType();
+    var scope = m.getScope();
+    if (scope == null) {
+      scope = m.compileScope(ctx);
+    }
+    return scope.getAssociatedType();
   }
 
   @Override
@@ -199,7 +205,7 @@ final class InvokeMethodImportResolver
     }
     var scope = t.getDefinitionScope();
     var module = scope.getModule();
-    var resolver = new InvokeMethodImportResolver(module, ctx.getTopScope());
+    var resolver = new InvokeMethodImportResolver(module, ctx.getTopScope(), ctx);
     var found = resolver.tryResolveImport(module, symbol);
     return found;
   }
