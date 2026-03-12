@@ -95,7 +95,11 @@ object BinaryYdocServer {
         // Java `ByteBuffer` should be always compacted before sending because it will be
         // converted to JS `ArrayBuffer` assuming that it occupies the whole allocated size,
         // i.e. the conversion does not respect the position and limit attributes of `ByteBuffer`.
-        channel.send(bytes.compact())
+        // make it direct buffer as well
+        val tmp = ByteBuffer.allocateDirect(bytes.limit())
+        tmp.put(0, bytes, 0, bytes.limit())
+        tmp.rewind()
+        channel.send(tmp)
       case unknown =>
         logger.error(s"Sending unsupported message ${unknown.getClass}")
     }
