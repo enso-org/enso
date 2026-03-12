@@ -8,38 +8,16 @@ export const defaultPreprocessor = [
 ] as const
 export const scripts = [
   // mapbox-gl does not have an ESM release.
-  'https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js',
-  // The deck.gl scripting API is not available in the ESM module.
-  'https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js',
+  'https://api.tiles.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.js',
 ]
-export const styles = ['https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css']
+export const styles = ['https://api.tiles.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.css']
 
-/**
- * Provides a mapbox & deck.gl-based map visualization.
- *
- * > Example creates a map with described properties with a scatter plot overlay:
- * {
- * "latitude": 37.8,
- * "longitude": -122.45,
- * "zoom": 15,
- * "controller": true,
- * "showingLabels": true, // Enables presenting labels when hovering over a point.
- * "layers": [{
- *     "type": "Scatterplot_Layer",
- *     "data": [{
- *         "latitude": 37.8,
- *         "longitude": -122.45,
- *         "color": [255, 0, 0],
- *         "radius": 100,
- *         "label": "an example label"
- *     }]
- * }]
- * }
- *
- * Can also consume a dataframe that has the columns `latitude`, `longitude` and optionally `label`.
- *
- * TODO: Make 2-finger panning behave like in IDE, and RMB zooming. [#1368]
- */
+const DEFAULT_COLOR = 'rgb(78, 165, 253)'
+const DEFAULT_RADIUS = 8
+const DEFAULT_MAP_ZOOM = 11
+const DEFAULT_MAX_MAP_ZOOM = 18
+const FIT_PADDING = 10
+const MAPBOX_ID_PREFIX = 'vis-data-'
 
 type Data = RegularData | Layer | DataFrame
 
@@ -61,7 +39,7 @@ interface ScatterplotLayer {
 
 interface GeoJsonLayer {
   type: 'GeoJsonLayer'
-  data: object
+  data: GeoJSON.GeoJSON | GeoJSON.Geometry[]
 }
 
 type Layer = ScatterplotLayer | GeoJsonLayer
@@ -76,13 +54,6 @@ interface Location {
   label?: string | undefined
 }
 
-interface LocationWithPosition {
-  position: [longitude: number, latitude: number]
-  color?: Color
-  radius?: number
-  label?: string
-}
-
 interface DataFrame {
   df_latitude: number[]
   df_longitude: number[]
@@ -91,54 +62,26 @@ interface DataFrame {
   df_label?: string[]
 }
 
-declare const deck: typeof import('deck.gl')
+declare const mapboxgl: typeof import('mapbox-gl')
 </script>
 
 <script setup lang="ts">
-/// <reference types="@danmarshall/deckgl-typings" />
 import { useMapboxToken } from '$/providers/mapboxToken'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
-import type { Deck } from 'deck.gl'
-import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
+// import mapboxgl from 'mapbox-gl'
+import bbox from '@turf/bbox'
+import {
+  computed,
+  effectScope,
+  onMounted,
+  onUnmounted,
+  useTemplateRef,
+  watch,
+  watchEffect,
+} from 'vue'
 
 const props = defineProps<{ data: Data }>()
-
-/** GeoMap Visualization. */
-const DEFAULT_POINT_RADIUS = 150
-
-const LABEL_FONT = 'DejaVuSansMonoBook, sans-serif'
-const LABEL_FONT_SIZE = '12px'
-const LABEL_BORDER_RADIUS = '14px'
-const LABEL_BORDER_TOP_LEFT_RADIUS = '2px'
-const LABEL_MARGIN = '4px'
-const LABEL_BACKGROUND_COLOR = `rgb(252, 250, 245)`
-const LABEL_OUTLINE = `rgb(200, 210, 210)`
-const LABEL_COLOR = `rgba(0, 0, 0, 0.8)`
-const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/light-v9'
-
-const DEFAULT_MAP_ZOOM = 11
-const DEFAULT_MAX_MAP_ZOOM = 18
-const ACCENT_COLOR: Color = [78, 165, 253]
-
 const config = useVisualizationConfig()
-
-const dataPoints = ref<LocationWithPosition[]>([])
-const mapNode = ref<HTMLElement>()
-const latitude = ref(0)
-const longitude = ref(0)
-const zoom = ref(0)
-const mapStyle = ref(DEFAULT_MAP_STYLE)
-const pitch = ref(0)
-const controller = ref(true)
-const showingLabels = ref(true)
-const deckgl = ref<Deck>()
-
-const viewState = computed(() => ({
-  longitude: longitude.value,
-  latitude: latitude.value,
-  zoom: zoom.value,
-  pitch: pitch.value,
-}))
 
 const mapboxTokenStore = useMapboxToken()
 /**
@@ -147,292 +90,219 @@ const mapboxTokenStore = useMapboxToken()
  */
 const token = await mapboxTokenStore.acquire()
 
-watchPostEffect(() => {
-  if (updateState(props.data)) {
-    updateMap()
-    updateLayers()
+watchEffect(() => ((mapboxgl as any).accessToken = token.value.token))
+
+const mapNode = useTemplateRef('mapNode')
+let map: mapboxgl.Map | undefined
+const mapSources: string[] = []
+const mapLayers: string[] = []
+
+function layerToGeoJSON(layer: Layer): GeoJSON.GeoJSON {
+  switch (layer.type) {
+    case 'Scatterplot_Layer':
+      return {
+        type: 'FeatureCollection',
+        features: layer.data.map((location) => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [location.longitude, location.latitude],
+          },
+          properties: {
+            color: location.color,
+            radius: location.radius,
+            label: location.label,
+          },
+        })),
+      }
+    case 'GeoJsonLayer':
+      if (layer.data instanceof Array) {
+        return {
+          type: 'GeometryCollection',
+          geometries: layer.data,
+        }
+      } else {
+        return layer.data
+      }
+  }
+}
+
+function dataframeToGeoJSON(df: DataFrame): GeoJSON.GeoJSON {
+  const geojson: GeoJSON.GeoJSON = {
+    type: 'FeatureCollection',
+    features: [],
+  }
+  for (let i = 0; i < df.df_latitude.length; i += 1) {
+    const latitude = df.df_latitude[i]!
+    const longitude = df.df_longitude[i]!
+    const label = df.df_label?.[i]
+    const color = df.df_color?.[i]
+    const radius = df.df_radius?.[i]
+    geojson.features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [longitude, latitude] },
+      properties: { label, color, radius },
+    })
+  }
+  return geojson
+}
+
+const dataAsGeoJSONs = computed(() => {
+  if ('type' in props.data) {
+    return [layerToGeoJSON(props.data)]
+  } else if ('df_latitude' in props.data) {
+    return [dataframeToGeoJSON(props.data)]
+  } else {
+    return props.data.layers.map(layerToGeoJSON)
   }
 })
 
-onUnmounted(() => deckgl.value?.finalize())
-
-/**
- * Update the internal data with the new incoming data. Does not affect anything rendered.
- * Returns true on a successful update and false if no valid data was provided.
- */
-function updateState(data: Data) {
-  // For now we assume every update has all data. If we move to incremental updates we need
-  // to keep the old state and do a proper update.
-  resetState()
-
-  extractDataPoints(data)
-  // eslint-disable-next-line no-self-assign
-  dataPoints.value = dataPoints.value
-  if (dataPoints.value.length === 0) {
-    // We have no valid data and should skip initialization.
-    return false
+function updateMap(map: mapboxgl.Map) {
+  for (const oldLayer of mapLayers) {
+    map.removeLayer(oldLayer)
   }
-  const center = centerPoint()
-
-  function safeOrDefault(value: number | undefined, defaultValue: number): number {
-    if (value === 0 || value == null || Number.isNaN(value)) return defaultValue
-    return value
+  for (const oldSources of mapSources) {
+    map.removeSource(oldSources)
   }
-  const width = safeOrDefault(mapNode.value?.clientWidth, 600)
-  const height = safeOrDefault(mapNode.value?.clientHeight, 400)
-  const viewPort = new deck.WebMercatorViewport({
-    width,
-    height,
-    longitude: center.longitude,
-    latitude: center.latitude,
-    zoom: DEFAULT_MAP_ZOOM,
-    pitch: 0,
-  }).fitBounds(
-    [
-      [center.minX, center.minY],
-      [center.maxX, center.maxY],
-    ],
-    { padding: 10, maxZoom: DEFAULT_MAX_MAP_ZOOM },
-  )
+  mapLayers.length = mapSources.length = 0
 
-  latitude.value = center.latitude
-  longitude.value = center.longitude
-  zoom.value = viewPort.zoom
-  mapStyle.value = DEFAULT_MAP_STYLE
-  pitch.value = 0
-  controller.value = true
-  showingLabels.value = true
-  if (!('df_latitude' in data) && !('data' in data)) {
-    latitude.value = data.latitude ?? center.latitude
-    longitude.value = data.longitude ?? center.longitude
-    // TODO: Compute zoom somehow from span of latitudes and longitudes.
-    zoom.value = data.zoom ?? DEFAULT_MAP_ZOOM
-    mapStyle.value = data.mapStyle ?? DEFAULT_MAP_STYLE
-    pitch.value = data.pitch ?? 0
-    controller.value = data.controller ?? true
-    showingLabels.value = data.showingLabels ?? false
-  }
-  return true
-}
-
-function updateMap() {
-  if (deckgl.value == null) {
-    initDeckGl()
-  } else {
-    updateDeckGl()
-  }
-}
-
-function initDeckGl() {
-  if (mapNode.value == null) {
-    return
-  }
-  try {
-    deckgl.value = new deck.DeckGL({
-      // The `...{}` spread operator suppresses TypeScript's excess property errors.
-      // These are valid properties, but they do not exist in the typings.
-      ...{
-        container: mapNode.value,
-        mapboxApiAccessToken: token.value.token,
-        mapStyle: mapStyle.value,
-      },
-      initialViewState: viewState.value,
-      controller: controller.value,
-    }) as any
-    // Hotfix for https://github.com/mapbox/mapbox-gl-js/issues/13355
-    ;(deckgl.value as any)._map.map._updateContainerDimensions = function () {
-      if (!this._container) return
-
-      const width = this._container.offsetWidth || 400
-      const height = this._container.offsetHeight || 300
-
-      this._containerWidth = width
-      this._containerHeight = height
-    }
-  } catch (error) {
-    console.error(error)
-    resetState()
-    resetDeckGl()
-  }
-}
-
-/** Reset the internal state of the visualization, discarding all previous data updates. */
-function resetState() {
-  // We only need to reset the data points as everything else will be overwritten when new data
-  // arrives.
-  dataPoints.value = []
-}
-
-function resetDeckGl() {
-  deckgl.value = undefined
-  resetMapElement()
-}
-
-function resetMapElement() {
-  const map = mapNode.value
-  if (map == null) {
-    console.warn('Geo Map visualization is missing its map container.')
-    return
-  }
-  while (map.lastChild != null) {
-    map.removeChild(map.lastChild)
-  }
-}
-
-function updateDeckGl() {
-  const deckgl_ = deckgl.value
-  if (deckgl_ == null) {
-    console.warn('Geo Map could not update its deck.gl instance.')
-    return
-  }
-  deckgl_.viewState = viewState.value
-  // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
-  deckgl_.mapboxApiAccessToken = token.value.token
-  // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
-  deckgl_.mapStyle = mapStyle.value
-  // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
-  deckgl_.controller = controller.value
-}
-
-function updateLayers() {
-  if (deckgl.value == null) {
-    console.warn(
-      'Geo Map visualization could not update its layers ' +
-        'due to its deck.gl instance being missing.',
-    )
-    return
-  }
-  ;(deckgl.value as any).setProps({
-    layers: [
-      new deck.ScatterplotLayer<LocationWithPosition>({
-        data: dataPoints.value,
-        getFillColor: (d) => d.color!,
-        getRadius: (d) => d.radius!,
-        pickable: showingLabels.value,
-      }),
-    ],
-    getTooltip: ({ object }: { object: { label: string } }) =>
-      object && {
-        html: `<div>${object.label}</div>`,
-        style: {
-          backgroundColor: LABEL_BACKGROUND_COLOR,
-          fontSize: LABEL_FONT_SIZE,
-          borderRadius: LABEL_BORDER_RADIUS,
-          borderTopLeftRadius: LABEL_BORDER_TOP_LEFT_RADIUS,
-          fontFamily: LABEL_FONT,
-          margin: LABEL_MARGIN,
-          color: LABEL_COLOR,
-          border: '1px solid ' + LABEL_OUTLINE,
-          // This is required for it to show above Mapbox's information button.
-          zIndex: 2,
-        },
-      },
-  })
-}
-
-/**
- * Calculate the center of the bounding box of the given list of objects. The objects need to have
- * a `position` attribute with two coordinates.
- */
-function centerPoint() {
-  let minX = 0
-  let maxX = 0
-  let minY = 0
-  let maxY = 0
-  {
-    const xs = dataPoints.value.map((p) => p.position[0])
-    minX = Math.min(...xs)
-    maxX = Math.max(...xs)
-  }
-  {
-    const ys = dataPoints.value.map((p) => p.position[1])
-    minY = Math.min(...ys)
-    maxY = Math.max(...ys)
-  }
-  const longitude = (minX + maxX) / 2
-  const latitude = (minY + maxY) / 2
-  return { latitude, longitude, minX, maxX, minY, maxY }
-}
-
-/** Extract the visualization data from a full configuration object. */
-function extractVisualizationDataFromFullConfig(parsedData: RegularData | Layer) {
-  if ('type' in parsedData && parsedData.type === SCATTERPLOT_LAYER && parsedData.data.length) {
-    pushPoints(parsedData.data)
-  } else if ('layers' in parsedData) {
-    parsedData.layers.forEach((layer) => {
-      if (layer.type === SCATTERPLOT_LAYER) {
-        const dataPoints = layer.data ?? []
-        pushPoints(dataPoints)
-      } else {
-        console.warn('Geo_Map: Currently unsupported deck.gl layer.')
-      }
+  // Add sources and compute boundaries
+  let finalBBox: mapboxgl.LngLatBounds | undefined
+  dataAsGeoJSONs.value.forEach((geojson, index) => {
+    const sourceId = `${MAPBOX_ID_PREFIX}${index}`
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: geojson,
     })
+    mapSources.push(sourceId)
+    const layerBbox = bbox(geojson)
+    const layerBboxFlat: [number, number, number, number] =
+      layerBbox.length == 4 ? layerBbox : [layerBbox[0], layerBbox[1], layerBbox[3], layerBbox[4]]
+    finalBBox = finalBBox?.extend(layerBboxFlat) ?? new mapboxgl.LngLatBounds(layerBboxFlat)
+  })
+
+  // Add layers
+  for (const sourceId of mapSources) {
+    const polygonsLayerId = `${sourceId}-polygons`
+    map.addLayer({
+      id: polygonsLayerId,
+      type: 'fill',
+      source: sourceId,
+      paint: {
+        'fill-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+        'fill-outline-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+        'fill-opacity': 0.3,
+      },
+      filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+    })
+    mapLayers.push(polygonsLayerId)
   }
-  // eslint-disable-next-line no-self-assign
-  dataPoints.value = dataPoints.value
+
+  for (const sourceId of mapSources) {
+    const linesLayerId = `${sourceId}-lines`
+    map.addLayer({
+      id: linesLayerId,
+      type: 'line',
+      source: sourceId,
+      paint: {
+        'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+      },
+      filter: [
+        'in',
+        ['geometry-type'],
+        ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']],
+      ],
+    })
+    mapLayers.push(linesLayerId)
+  }
+
+  for (const sourceId of mapSources) {
+    const pointsLayerId = `${sourceId}-points`
+    map.addLayer({
+      id: pointsLayerId,
+      type: 'circle',
+      source: sourceId,
+      paint: {
+        'circle-radius': ['coalesce', ['get', 'radius'], DEFAULT_RADIUS],
+        'circle-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+      },
+      filter: ['==', ['geometry-type'], 'Point'],
+    })
+    mapLayers.push(pointsLayerId)
+  }
+
+  // Set bounds to new data
+  if (finalBBox != null) {
+    map.fitBounds(finalBBox, { padding: FIT_PADDING, maxZoom: DEFAULT_MAX_MAP_ZOOM, duration: 500 })
+  }
 }
 
-/** Extract the visualization data from a dataframe. */
-function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
-  const newPoints: Location[] = []
-  for (let i = 0; i < parsedData.df_latitude.length; i += 1) {
-    const latitude = parsedData.df_latitude[i]!
-    const longitude = parsedData.df_longitude[i]!
-    const label = parsedData.df_label?.[i]
-    const color = parsedData.df_color?.[i]
-    const radius = parsedData.df_radius?.[i]
-    newPoints.push({ latitude, longitude, label, color, radius })
-  }
-  pushPoints(newPoints)
-}
+function setupTooltip(map: mapboxgl.Map) {
+  const popup = new mapboxgl.Popup({
+    anchor: 'top-left',
+    closeButton: false,
+    closeOnClick: false,
+    className: 'tooltip',
+    offset: 4,
+  })
 
-/**
- * Extracts the data form the given `parsedData`. Checks the type of input data and prepares our
- * internal data  (`GeoPoints') for consumption in deck.gl.
- * @param parsedData - All the parsed data to create points from.
- */
-function extractDataPoints(parsedData: Data) {
-  if ('df_latitude' in parsedData && 'df_longitude' in parsedData) {
-    extractVisualizationDataFromDataFrame(parsedData)
-  } else {
-    extractVisualizationDataFromFullConfig(parsedData)
-  }
-}
-
-/**
- * Transforms the `dataPoints` to the internal data format and appends them to the `targetList`.
- * Also adds the `ACCENT_COLOR` for each point.
- *
- * Expects the `dataPoints` to be a list of objects that have a `longitude` and `latitude` and
- * optionally `radius`, `color` and `label`.
- */
-function pushPoints(newPoints: Location[]) {
-  const points = dataPoints.value
-  for (const point of newPoints) {
-    if (
-      typeof point.longitude === 'number' &&
-      !Number.isNaN(point.longitude) &&
-      typeof point.latitude === 'number' &&
-      !Number.isNaN(point.latitude)
-    ) {
-      const position: [number, number] = [point.longitude, point.latitude]
-      const radius =
-        typeof point.radius === 'number' && !Number.isNaN(point.radius) ?
-          point.radius
-        : DEFAULT_POINT_RADIUS
-      const color = point.color ?? ACCENT_COLOR
-      const label = point.label ?? ''
-      points.push({ position, color, radius, label })
+  map.on('mousemove', (event) => {
+    const feature = map.queryRenderedFeatures(event.point)[0]
+    if (feature?.properties?.label) {
+      popup.setLngLat(event.lngLat).setText(feature.properties.label).addTo(map)
+    } else {
+      popup.remove()
     }
-  }
+  })
+  map.on('mouseout', () => popup.remove())
 }
 
+const scope = effectScope()
+onMounted(() => {
+  if (mapNode.value == null) {
+    console.error('Cannot initialize MapBoxGL: no container element!')
+    return
+  }
+  const newMap = new mapboxgl.Map({
+    container: mapNode.value,
+    projection: 'mercator',
+    zoom: DEFAULT_MAP_ZOOM,
+  })
+  // Hotfix for https://github.com/mapbox/mapbox-gl-js/issues/13355
+  ;(newMap as any)._updateContainerDimensions = function () {
+    if (!this._container) return
+
+    const width = this._container.offsetWidth || 400
+    const height = this._container.offsetHeight || 300
+
+    this._containerWidth = width
+    this._containerHeight = height
+  }
+  newMap.on('style.load', () => {
+    // This is for suppressing "Cutoff is currently disabled on terrain"
+    // warning (and enabling better polygon rendering).
+    newMap.setTerrain(null)
+  })
+  newMap.on('load', () => {
+    updateMap(newMap)
+    scope.run(() => watch(dataAsGeoJSONs, () => updateMap(newMap)))
+  })
+  scope.run(() =>
+    watch(
+      () => config.size,
+      () => newMap.resize(),
+    ),
+  )
+  setupTooltip(newMap)
+  map = newMap
+})
+onUnmounted(() => map?.remove())
 config.setToolbarOverlay(true)
 </script>
 
 <template>
   <link
-    href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css"
+    href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.css"
     rel="stylesheet"
     crossorigin="anonymous"
   />
@@ -442,6 +312,24 @@ config.setToolbarOverlay(true)
 <style scoped>
 .GeoMapVisualization {
   height: 100%;
+}
+
+:deep(.tooltip) {
+  & > .mapboxgl-popup-content {
+    background-color: rgb(252, 250, 245);
+    font-size: 12px;
+    border-radius: 14px;
+    border-top-left-radius: 2px;
+    font-family: DejaVuSansMonoBook, sans-serif;
+    color: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgb(200, 210, 210);
+    /* This is required for it to show above Mapbox's information button.*/
+    z-index: 2;
+  }
+
+  & > .mapboxgl-popup-tip {
+    display: none;
+  }
 }
 
 :deep(.mapboxgl-map) {
