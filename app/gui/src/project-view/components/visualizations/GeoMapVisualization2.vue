@@ -17,7 +17,7 @@ const DEFAULT_RADIUS = 8
 const DEFAULT_MAP_ZOOM = 11
 const DEFAULT_MAX_MAP_ZOOM = 18
 const FIT_PADDING = 10
-const DATA_LAYER_PREFIX = 'data-layer-'
+const MAPBOX_ID_PREFIX = 'vis-data-'
 
 type Data = RegularData | Layer | DataFrame
 
@@ -39,7 +39,7 @@ interface ScatterplotLayer {
 
 interface GeoJsonLayer {
   type: 'GeoJsonLayer'
-  data: GeoJSON.GeoJSON
+  data: GeoJSON.GeoJSON | GeoJSON.Geometry[]
 }
 
 type Layer = ScatterplotLayer | GeoJsonLayer
@@ -94,6 +94,7 @@ watchEffect(() => ((mapboxgl as any).accessToken = token.value.token))
 
 const mapNode = useTemplateRef('mapNode')
 let map: mapboxgl.Map | undefined
+const mapSources: string[] = []
 const mapLayers: string[] = []
 
 function layerToGeoJSON(layer: Layer): GeoJSON.GeoJSON {
@@ -115,7 +116,14 @@ function layerToGeoJSON(layer: Layer): GeoJSON.GeoJSON {
         })),
       }
     case 'GeoJsonLayer':
-      return layer.data
+      if (layer.data instanceof Array) {
+        return {
+          type: 'GeometryCollection',
+          geometries: layer.data,
+        }
+      } else {
+        return layer.data
+      }
   }
 }
 
@@ -150,33 +158,80 @@ const dataAsGeoJSONs = computed(() => {
 })
 
 function updateMap(map: mapboxgl.Map) {
-  console.debug(dataAsGeoJSONs.value)
   for (const oldLayer of mapLayers) {
     map.removeLayer(oldLayer)
-    map.removeSource(oldLayer)
   }
-  mapLayers.length = 0
+  for (const oldSources of mapSources) {
+    map.removeSource(oldSources)
+  }
+  mapLayers.length = mapSources.length = 0
+
+  // Add sources and compute boundaries
   let finalBBox: mapboxgl.LngLatBounds | undefined
   dataAsGeoJSONs.value.forEach((geojson, index) => {
-    const layerId = `${DATA_LAYER_PREFIX}${index}`
-    map.addLayer({
-      id: layerId,
-      type: 'circle',
-      source: {
-        type: 'geojson',
-        data: geojson,
-      },
-      paint: {
-        'circle-radius': ['coalesce', ['get', 'radius'], DEFAULT_RADIUS],
-        'circle-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
-      },
+    const sourceId = `${MAPBOX_ID_PREFIX}${index}`
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: geojson,
     })
-    mapLayers.push(layerId)
+    mapSources.push(sourceId)
     const layerBbox = bbox(geojson)
     const layerBboxFlat: [number, number, number, number] =
       layerBbox.length == 4 ? layerBbox : [layerBbox[0], layerBbox[1], layerBbox[3], layerBbox[4]]
     finalBBox = finalBBox?.extend(layerBboxFlat) ?? new mapboxgl.LngLatBounds(layerBboxFlat)
   })
+
+  // Add layers
+  for (const sourceId of mapSources) {
+    const polygonsLayerId = `${sourceId}-polygons`
+    map.addLayer({
+      id: polygonsLayerId,
+      type: 'fill',
+      source: sourceId,
+      paint: {
+        'fill-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+        'fill-outline-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+        'fill-opacity': 0.3,
+      },
+      filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+    })
+    mapLayers.push(polygonsLayerId)
+  }
+
+  for (const sourceId of mapSources) {
+    const linesLayerId = `${sourceId}-lines`
+    map.addLayer({
+      id: linesLayerId,
+      type: 'line',
+      source: sourceId,
+      paint: {
+        'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+      },
+      filter: [
+        'in',
+        ['geometry-type'],
+        ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']],
+      ],
+    })
+    mapLayers.push(linesLayerId)
+  }
+
+  for (const sourceId of mapSources) {
+    const pointsLayerId = `${sourceId}-points`
+    map.addLayer({
+      id: pointsLayerId,
+      type: 'circle',
+      source: sourceId,
+      paint: {
+        'circle-radius': ['coalesce', ['get', 'radius'], DEFAULT_RADIUS],
+        'circle-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+      },
+      filter: ['==', ['geometry-type'], 'Point'],
+    })
+    mapLayers.push(pointsLayerId)
+  }
+
+  // Set bounds to new data
   if (finalBBox != null) {
     map.fitBounds(finalBBox, { padding: FIT_PADDING, maxZoom: DEFAULT_MAX_MAP_ZOOM, duration: 500 })
   }
@@ -223,10 +278,21 @@ onMounted(() => {
     this._containerWidth = width
     this._containerHeight = height
   }
+  newMap.on('style.load', () => {
+    // This is for suppressing "Cutoff is currently disabled on terrain"
+    // warning (and enabling better polygon rendering).
+    newMap.setTerrain(null)
+  })
   newMap.on('load', () => {
     updateMap(newMap)
     scope.run(() => watch(dataAsGeoJSONs, () => updateMap(newMap)))
   })
+  scope.run(() =>
+    watch(
+      () => config.size,
+      () => newMap.resize(),
+    ),
+  )
   setupTooltip(newMap)
   map = newMap
 })
