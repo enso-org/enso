@@ -1,14 +1,21 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 import Standard.Base.Metadata.File_Type
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Table
+import Standard.Table.Internal.In_Memory_Helpers
+from Standard.Table import Table, Value_Type
+from Standard.Table.Internal.Storage import from_value_type
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialects.Dialect.Dialect
@@ -24,12 +31,16 @@ from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_
 from Standard.Database.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
+import project.S3.S3_File.S3_File
+import project.AWS_Credential.AWS_Credential
 
 import project.Database.Redshift.Internal.Redshift_Dialect
 import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
 
 type Redshift_Connection
     ## ---
@@ -359,6 +370,59 @@ type Redshift_Connection
     execute : Text | SQL_Statement -> Integer
     execute self query =
         self.connection.execute query
+
+    ## ---
+       icon: data_upload
+       ---
+       Upload a Table to a new table in the database in the current schema.
+
+       ## Arguments:
+       - `table`: The input table to upload.
+       - `table_name`: The name of the table to create.
+       - `if_exists`: What action to take if the table already exists. Defaults to
+          raising a `Table_Already_Exists` error.
+           - `Raise_Error` - a `Table_Already_Exists` error will be raised.
+           - `Drop_Table` - the existing table will be dropped before creating the new one.
+           - `Truncate_Table` - the existing table will be truncated before loading data into it.
+           - `Append_To_Table` - data will be appended to the existing table.
+       - `temporary`: If set to `True`, the created table will be temporary.
+          Defaults to `False`.
+
+       ## Returns
+       A `DB_Table` representing the created table.
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") staging_bucket:Text=(Missing_Argument.throw "staging_bucket") credentials:Credentials|AWS_Credential=..Profile iam_role:Text=(Missing_Argument.throw "iam_role") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
+        _ : DB_Table ->
+            Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
+        _ : In_Memory_Table ->
+            ## Check for illegal column types
+            removed = table.remove_columns [(..By_Type ..Null), (..By_Type ..Mixed), (..By_Type ..Unsupported_Data_Type), (..By_Type ..Binary)]
+            if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to DuckDB. Please remove or convert these columns before uploading.")
+
+            ## Check if table exists
+            exists = self.query (..Table_Name table_name) . is_error . not
+            if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
+
+            Context.Output.with_enabled <|
+                ## Drop existing table if needed and then create new table
+                created_table = if exists.not then self.create_table table_name table primary_key=[] temporary=temporary else case if_exists of
+                    Bulk_Load_Exists.Drop_Table ->
+                        self.drop_table table_name if_exists=True
+                        self.create_table table_name table primary_key=[] temporary=temporary
+                    Bulk_Load_Exists.Truncate_Table ->
+                        self.truncate_table table_name
+                        self.query (..Table_Name table_name)
+                    Bulk_Load_Exists.Append_To_Table ->
+                        self.query (..Table_Name table_name)
+
+                ## Assuming we managed to create the table, proceed with upload
+                created_table.if_not_error <|
+                    s3_file_path = staging_bucket + "/" + table_name + "_" + Random.uuid + ".csv"
+                    s3_file = S3_File.new s3_file_path credentials
+                    table.write s3_file format=..Delimited
+                    self.execute ("COPY " + table_name + " FROM '" + s3_file_path + "'" + " IAM_ROLE '" + iam_role + "'" + " FORMAT AS CSV" + " IGNOREHEADER 1;")
+                    s3_file.delete
+                    created_table
+
 
     ## ---
        private: true
