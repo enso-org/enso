@@ -1,8 +1,6 @@
 /**
  * @file Copy of https://github.com/ag-grid/ag-grid/blob/v32.3.3/packages/ag-grid-vue3/src/Utils.ts
- * with our modifications:
- *  - deep watchers are restricted to the depth of 1 to prevent stack call overflow when watching
- *    deeply nested objects.
+ * Used by our version of AgGridVue.ts.
  *
  * Original file licenced under The MIT License:
  *
@@ -86,9 +84,7 @@ export const getAgGridProperties = (): [Properties, Properties, Properties] => {
 
         _processOnChange({ rowData: currentValue }, this.api)
       },
-      // `deep: true` can recurse through nested Maps/Sets and blow the stack. We only need to
-      // observe the immediate shape (top-level fields / array elements) for prop updates.
-      deep: 1,
+      deep: true,
     },
   }
 
@@ -118,9 +114,7 @@ export const getAgGridProperties = (): [Properties, Properties, Properties] => {
             }, 0)
           }
         },
-        // `deep: true` can recurse through nested Maps/Sets and blow the stack. We only need to
-        // observe the immediate shape (top-level fields / array elements) for prop updates.
-        deep: 1,
+        deep: true,
       }
     })
 
