@@ -219,6 +219,7 @@ public final class OtherJvmPool extends Channel.Config {
   // Support for histogram of messages
   //
 
+  static final String DUMP_MESSAGE_PROPERTY = "org.enso.jvm.interop.limit";
   private static final int DUMP_MESSAGE_STACK_SIZE = 8;
 
   /**
@@ -269,7 +270,7 @@ public final class OtherJvmPool extends Channel.Config {
   }
 
   private synchronized void resetCountMessages(boolean forceInit) {
-    var newValue = Integer.getInteger("org.enso.jvm.interop.limit", Integer.MIN_VALUE);
+    var newValue = Integer.getInteger(DUMP_MESSAGE_PROPERTY, Integer.MIN_VALUE);
     if (forceInit || newValue != Integer.MAX_VALUE) {
       countMessages = newValue;
       countSince = System.currentTimeMillis();
@@ -279,9 +280,13 @@ public final class OtherJvmPool extends Channel.Config {
   private synchronized Map<Message, WhereAndCount> clearMessages(StringBuilder sb) {
     var prev = histogram;
     histogram = null;
-    long took = System.currentTimeMillis() - countSince;
+    var took = System.currentTimeMillis() - countSince;
     countSince = System.currentTimeMillis();
-    sb.append("\n======== Interop JVM Messages Chart in last %d ms ========\n".formatted(took));
+    var jvm = System.getProperty("java.vm.name");
+    if (jvm == null) {
+      jvm = "JVM";
+    }
+    sb.append("\n======== Interop %s Messages Chart in last %d ms ========\n".formatted(jvm, took));
     return prev;
   }
 
