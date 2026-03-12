@@ -10,6 +10,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.SuggestionAction
+import org.enso.pkg.PackageManager
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -2362,5 +2363,145 @@ class RuntimeSuggestionUpdatesTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("6")
+  }
+
+  it should "send suggestions for local sibling project" in {
+    val contextId     = UUID.randomUUID()
+    val requestId     = UUID.randomUUID()
+    val moduleName    = "Enso_Test.Test.Main"
+    val libMainModule = "Enso_Test.Test_Lib.Main"
+    val libXyzModule  = "Enso_Test.Test_Lib.Xyz"
+
+    // Create sibling library package in the same parent directory
+    // so the runtime discovers it via local library resolution
+    val parentDir = context.pkg.root.getParentFile.toPath
+    val libDir    = Files.createTempDirectory(parentDir, "Test_Lib_")
+    val libPkg =
+      PackageManager.Default.create(libDir.toFile, "Test_Lib", "Enso_Test")
+
+    // Write Test_Lib/src/Main.enso
+    val libMainCode =
+      """test_main = "Test_Lib.Main"
+        |""".stripMargin.linesIterator.mkString("\n")
+    Files.write(libPkg.mainFile.toPath, libMainCode.getBytes)
+
+    // Write Test_Lib/src/Xyz.enso
+    val xyzFile = new File(libPkg.sourceDir, "Xyz.enso")
+    val libXyzCode =
+      """test_xyz = "Test_Lib.Xyz"
+        |""".stripMargin.linesIterator.mkString("\n")
+    Files.write(xyzFile.toPath, libXyzCode.getBytes)
+
+    // Write main module that imports from the sibling Test_Lib project
+    val mainCode =
+      """import Enso_Test.Test_Lib.Xyz
+        |from Enso_Test.Test_Lib.Main import test_main
+        |
+        |main =
+        |    a = Xyz.test_xyz
+        |    b = test_main
+        |    a + b
+        |""".stripMargin.linesIterator.mkString("\n")
+    val mainFile = context.writeMain(mainCode)
+
+    // create context
+    context.send(
+      Api.Request(requestId, Api.CreateContextRequest(contextId))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, mainCode))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val updates = context.receiveNIgnoreExpressionUpdates(4)
+    updates.length shouldEqual 4
+    updates should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+
+    // Verify all three modules were indexed
+    val indexedModules = updates.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(
+              module,
+              _,
+              _,
+              _
+            )
+          ) =>
+        module
+    }
+    indexedModules should contain theSameElementsAs Seq(
+      moduleName,
+      libMainModule,
+      libXyzModule
+    )
+
+    // Extract all suggestion updates from the trees
+    val allSuggestionUpdates = updates.flatMap {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, _, tree)
+          ) =>
+        tree.toVector
+      case _ => Vector.empty
+    }
+
+    // Verify that suggestions for test_xyz and test_main methods are present
+    val methodNames = allSuggestionUpdates.collect {
+      case Api.SuggestionUpdate(m: Suggestion.DefinedMethod, _) => m.name
+    }
+    methodNames should contain allOf ("test_xyz", "test_main", "main")
+
+    // Verify test_xyz suggestion details
+    val testXyzSuggestion = allSuggestionUpdates.collectFirst {
+      case Api.SuggestionUpdate(
+            m: Suggestion.DefinedMethod,
+            Api.SuggestionAction.Add()
+          ) if m.name == "test_xyz" =>
+        m
+    }
+    testXyzSuggestion shouldBe defined
+    testXyzSuggestion.get.module shouldEqual libXyzModule
+    testXyzSuggestion.get.selfType shouldEqual libXyzModule
+    testXyzSuggestion.get.returnType shouldEqual ConstantsGen.ANY
+    testXyzSuggestion.get.isStatic shouldEqual true
+
+    // Verify test_main suggestion details
+    val testMainSuggestion = allSuggestionUpdates.collectFirst {
+      case Api.SuggestionUpdate(
+            m: Suggestion.DefinedMethod,
+            Api.SuggestionAction.Add()
+          ) if m.name == "test_main" =>
+        m
+    }
+    testMainSuggestion shouldBe defined
+    testMainSuggestion.get.module shouldEqual libMainModule
+    testMainSuggestion.get.selfType shouldEqual libMainModule
+    testMainSuggestion.get.returnType shouldEqual ConstantsGen.ANY
+    testMainSuggestion.get.isStatic shouldEqual true
   }
 }
