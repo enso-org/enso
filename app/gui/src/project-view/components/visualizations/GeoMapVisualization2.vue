@@ -150,6 +150,7 @@ const dataAsGeoJSONs = computed(() => {
 })
 
 function updateMap(map: mapboxgl.Map) {
+  console.debug(dataAsGeoJSONs.value)
   for (const oldLayer of mapLayers) {
     map.removeLayer(oldLayer)
     map.removeSource(oldLayer)
