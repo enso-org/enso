@@ -17,6 +17,7 @@ const DEFAULT_RADIUS = 8
 const DEFAULT_MAP_ZOOM = 11
 const DEFAULT_MAX_MAP_ZOOM = 18
 const FIT_PADDING = 10
+const DATA_LAYER_PREFIX = 'data-layer-'
 
 type Data = RegularData | Layer | DataFrame
 
@@ -156,7 +157,7 @@ function updateMap(map: mapboxgl.Map) {
   mapLayers.length = 0
   let finalBBox: mapboxgl.LngLatBounds | undefined
   dataAsGeoJSONs.value.forEach((geojson, index) => {
-    const layerId = `layer-${index}`
+    const layerId = `${DATA_LAYER_PREFIX}${index}`
     map.addLayer({
       id: layerId,
       type: 'circle',
@@ -178,6 +179,26 @@ function updateMap(map: mapboxgl.Map) {
   if (finalBBox != null) {
     map.fitBounds(finalBBox, { padding: FIT_PADDING, maxZoom: DEFAULT_MAX_MAP_ZOOM, duration: 500 })
   }
+}
+
+function setupTooltip(map: mapboxgl.Map) {
+  const popup = new mapboxgl.Popup({
+    anchor: 'top-left',
+    closeButton: false,
+    closeOnClick: false,
+    className: 'tooltip',
+    offset: 4,
+  })
+
+  map.on('mousemove', (event) => {
+    const feature = map.queryRenderedFeatures(event.point)[0]
+    if (feature?.properties?.label) {
+      popup.setLngLat(event.lngLat).setText(feature.properties.label).addTo(map)
+    } else {
+      popup.remove()
+    }
+  })
+  map.on('mouseout', () => popup.remove())
 }
 
 const scope = effectScope()
@@ -205,6 +226,7 @@ onMounted(() => {
     updateMap(newMap)
     scope.run(() => watch(dataAsGeoJSONs, () => updateMap(newMap)))
   })
+  setupTooltip(newMap)
   map = newMap
 })
 onUnmounted(() => map?.remove())
@@ -223,6 +245,24 @@ config.setToolbarOverlay(true)
 <style scoped>
 .GeoMapVisualization {
   height: 100%;
+}
+
+:deep(.tooltip) {
+  & > .mapboxgl-popup-content {
+    background-color: rgb(252, 250, 245);
+    font-size: 12px;
+    border-radius: 14px;
+    border-top-left-radius: 2px;
+    font-family: DejaVuSansMonoBook, sans-serif;
+    color: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgb(200, 210, 210);
+    /* This is required for it to show above Mapbox's information button.*/
+    z-index: 2;
+  }
+
+  & > .mapboxgl-popup-tip {
+    display: none;
+  }
 }
 
 :deep(.mapboxgl-map) {
