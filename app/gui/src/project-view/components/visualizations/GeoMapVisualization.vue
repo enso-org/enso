@@ -22,13 +22,6 @@ const MAPBOX_ID_PREFIX = 'vis-data-'
 type Data = RegularData | Layer | DataFrame
 
 interface RegularData {
-  latitude?: number
-  longitude?: number
-  zoom?: number
-  mapStyle?: string
-  pitch?: number
-  controller?: boolean
-  showingLabels?: boolean
   layers: Layer[]
 }
 
@@ -68,13 +61,12 @@ declare const mapboxgl: typeof import('mapbox-gl')
 <script setup lang="ts">
 import { useMapboxToken } from '$/providers/mapboxToken'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
-// import mapboxgl from 'mapbox-gl'
 import bbox from '@turf/bbox'
 import {
   computed,
   effectScope,
   onMounted,
-  onUnmounted,
+  onScopeDispose,
   useTemplateRef,
   watch,
   watchEffect,
@@ -93,9 +85,16 @@ const token = await mapboxTokenStore.acquire()
 watchEffect(() => ((mapboxgl as any).accessToken = token.value.token))
 
 const mapNode = useTemplateRef('mapNode')
-let map: mapboxgl.Map | undefined
-const mapSources: string[] = []
-const mapLayers: string[] = []
+
+const dataAsGeoJSONs = computed(() => {
+  if ('type' in props.data) {
+    return [layerToGeoJSON(props.data)]
+  } else if ('df_latitude' in props.data) {
+    return [dataframeToGeoJSON(props.data)]
+  } else {
+    return props.data.layers.map(layerToGeoJSON)
+  }
+})
 
 function layerToGeoJSON(layer: Layer): GeoJSON.GeoJSON {
   switch (layer.type) {
@@ -147,156 +146,192 @@ function dataframeToGeoJSON(df: DataFrame): GeoJSON.GeoJSON {
   return geojson
 }
 
-const dataAsGeoJSONs = computed(() => {
-  if ('type' in props.data) {
-    return [layerToGeoJSON(props.data)]
-  } else if ('df_latitude' in props.data) {
-    return [dataframeToGeoJSON(props.data)]
-  } else {
-    return props.data.layers.map(layerToGeoJSON)
-  }
-})
-
-function updateMap(map: mapboxgl.Map) {
-  for (const oldLayer of mapLayers) {
-    map.removeLayer(oldLayer)
-  }
-  for (const oldSources of mapSources) {
-    map.removeSource(oldSources)
-  }
-  mapLayers.length = mapSources.length = 0
-
-  // Add sources and compute boundaries
+function boundingBoxOfCurrentData() {
   let finalBBox: mapboxgl.LngLatBounds | undefined
-  dataAsGeoJSONs.value.forEach((geojson, index) => {
-    const sourceId = `${MAPBOX_ID_PREFIX}${index}`
-    map.addSource(sourceId, {
-      type: 'geojson',
-      data: geojson,
-    })
-    mapSources.push(sourceId)
+  for (const geojson of dataAsGeoJSONs.value) {
     const layerBbox = bbox(geojson)
+    // `bbox` sometimes returns 3d box.
     const layerBboxFlat: [number, number, number, number] =
       layerBbox.length == 4 ? layerBbox : [layerBbox[0], layerBbox[1], layerBbox[3], layerBbox[4]]
     finalBBox = finalBBox?.extend(layerBboxFlat) ?? new mapboxgl.LngLatBounds(layerBboxFlat)
-  })
-
-  // Add layers
-  for (const sourceId of mapSources) {
-    const polygonsLayerId = `${sourceId}-polygons`
-    map.addLayer({
-      id: polygonsLayerId,
-      type: 'fill',
-      source: sourceId,
-      paint: {
-        'fill-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
-        'fill-outline-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
-        'fill-opacity': 0.3,
-      },
-      filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
-    })
-    mapLayers.push(polygonsLayerId)
   }
-
-  for (const sourceId of mapSources) {
-    const linesLayerId = `${sourceId}-lines`
-    map.addLayer({
-      id: linesLayerId,
-      type: 'line',
-      source: sourceId,
-      paint: {
-        'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
-      },
-      filter: [
-        'in',
-        ['geometry-type'],
-        ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']],
-      ],
-    })
-    mapLayers.push(linesLayerId)
-  }
-
-  for (const sourceId of mapSources) {
-    const pointsLayerId = `${sourceId}-points`
-    map.addLayer({
-      id: pointsLayerId,
-      type: 'circle',
-      source: sourceId,
-      paint: {
-        'circle-radius': ['coalesce', ['get', 'radius'], DEFAULT_RADIUS],
-        'circle-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
-      },
-      filter: ['==', ['geometry-type'], 'Point'],
-    })
-    mapLayers.push(pointsLayerId)
-  }
-
-  // Set bounds to new data
-  if (finalBBox != null) {
-    map.fitBounds(finalBBox, { padding: FIT_PADDING, maxZoom: DEFAULT_MAX_MAP_ZOOM, duration: 500 })
-  }
-}
-
-function setupTooltip(map: mapboxgl.Map) {
-  const popup = new mapboxgl.Popup({
-    anchor: 'top-left',
-    closeButton: false,
-    closeOnClick: false,
-    className: 'tooltip',
-    offset: 4,
-  })
-
-  map.on('mousemove', (event) => {
-    const feature = map.queryRenderedFeatures(event.point)[0]
-    if (feature?.properties?.label) {
-      popup.setLngLat(event.lngLat).setText(feature.properties.label).addTo(map)
-    } else {
-      popup.remove()
-    }
-  })
-  map.on('mouseout', () => popup.remove())
+  return finalBBox
 }
 
 const scope = effectScope()
+
+class GeoMapVisualizationMap {
+  map: mapboxgl.Map
+  tooltip: mapboxgl.Popup
+  /** Mapbox sources currently attached to {@link map} */
+  private mapSources: string[] = []
+  /** Mapbox layers currently attached to {@link map} */
+  private mapLayers: string[] = []
+
+  /**
+   * Create and initialize Mapbox GL map, and keep it up-to-date with {@link dataAsGeoJSONs}
+   *
+   * The lifetime of the map is bound to current component scope; when scope is stopped, the
+   * underlying mapboxgl.Map instance is destroyed.
+   */
+  constructor(container: HTMLElement) {
+    this.map = new mapboxgl.Map({
+      container,
+      projection: 'mercator',
+      zoom: DEFAULT_MAP_ZOOM,
+    })
+    scope.run(() => onScopeDispose(() => this.map.remove))
+    this.tooltip = this.setupTooltip()
+    // Hotfix for https://github.com/mapbox/mapbox-gl-js/issues/13355
+    ;(this.map as any)._updateContainerDimensions = function () {
+      if (!this._container) return
+
+      const width = this._container.offsetWidth || 400
+      const height = this._container.offsetHeight || 300
+
+      this._containerWidth = width
+      this._containerHeight = height
+    }
+    this.map.on('style.load', () => {
+      // This is for suppressing "Cutoff is currently disabled on terrain"
+      // warning (and enabling better polygon rendering).
+      this.map.setTerrain(null)
+    })
+    this.map.on('load', () => {
+      this.updateMap()
+      scope.run(() => watch(dataAsGeoJSONs, () => this.updateMap()))
+    })
+  }
+
+  private setupTooltip() {
+    const popup = new mapboxgl.Popup({
+      anchor: 'top-left',
+      closeButton: false,
+      closeOnClick: false,
+      className: 'tooltip',
+      offset: 4,
+    })
+
+    this.map.on('mousemove', (event) => {
+      const feature = this.map.queryRenderedFeatures(event.point)[0]
+      if (feature?.properties?.label) {
+        popup.setLngLat(event.lngLat).setText(feature.properties.label).addTo(this.map)
+      } else {
+        popup.remove()
+      }
+    })
+    this.map.on('mouseout', () => popup.remove())
+    return popup
+  }
+
+  /** Update map state to current {@link dataAsGeoJSONs}. */
+  updateMap() {
+    this.removeAllSourcesAndLayers()
+    this.addSources()
+    this.addFillLayer()
+    this.addLineLayer()
+    this.addCircleLayer()
+
+    const bounds = boundingBoxOfCurrentData()
+    if (bounds != null) {
+      this.map.fitBounds(bounds, {
+        padding: FIT_PADDING,
+        maxZoom: DEFAULT_MAX_MAP_ZOOM,
+        duration: 500,
+      })
+    }
+  }
+
+  private removeAllSourcesAndLayers() {
+    for (const oldLayer of this.mapLayers) {
+      this.map.removeLayer(oldLayer)
+    }
+    for (const oldSources of this.mapSources) {
+      this.map.removeSource(oldSources)
+    }
+    this.mapLayers.length = this.mapSources.length = 0
+  }
+
+  private addSources() {
+    dataAsGeoJSONs.value.forEach((geojson, index) => {
+      const sourceId = `${MAPBOX_ID_PREFIX}${index}`
+      this.map.addSource(sourceId, {
+        type: 'geojson',
+        data: geojson,
+      })
+      this.mapSources.push(sourceId)
+    })
+  }
+
+  private addFillLayer() {
+    for (const sourceId of this.mapSources) {
+      const polygonsLayerId = `${sourceId}-polygons`
+      this.map.addLayer({
+        id: polygonsLayerId,
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+          'fill-outline-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+          'fill-opacity': 0.3,
+        },
+        filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+      })
+      this.mapLayers.push(polygonsLayerId)
+    }
+  }
+
+  private addLineLayer() {
+    for (const sourceId of this.mapSources) {
+      const linesLayerId = `${sourceId}-lines`
+      this.map.addLayer({
+        id: linesLayerId,
+        type: 'line',
+        source: sourceId,
+        paint: {
+          'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+        },
+        filter: [
+          'in',
+          ['geometry-type'],
+          ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']],
+        ],
+      })
+      this.mapLayers.push(linesLayerId)
+    }
+  }
+
+  private addCircleLayer() {
+    for (const sourceId of this.mapSources) {
+      const pointsLayerId = `${sourceId}-points`
+      this.map.addLayer({
+        id: pointsLayerId,
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': ['coalesce', ['get', 'radius'], DEFAULT_RADIUS],
+          'circle-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR],
+        },
+        filter: ['==', ['geometry-type'], 'Point'],
+      })
+      this.mapLayers.push(pointsLayerId)
+    }
+  }
+}
+
 onMounted(() => {
   if (mapNode.value == null) {
     console.error('Cannot initialize MapBoxGL: no container element!')
     return
   }
-  const newMap = new mapboxgl.Map({
-    container: mapNode.value,
-    projection: 'mercator',
-    zoom: DEFAULT_MAP_ZOOM,
-  })
-  // Hotfix for https://github.com/mapbox/mapbox-gl-js/issues/13355
-  ;(newMap as any)._updateContainerDimensions = function () {
-    if (!this._container) return
-
-    const width = this._container.offsetWidth || 400
-    const height = this._container.offsetHeight || 300
-
-    this._containerWidth = width
-    this._containerHeight = height
-  }
-  newMap.on('style.load', () => {
-    // This is for suppressing "Cutoff is currently disabled on terrain"
-    // warning (and enabling better polygon rendering).
-    newMap.setTerrain(null)
-  })
-  newMap.on('load', () => {
-    updateMap(newMap)
-    scope.run(() => watch(dataAsGeoJSONs, () => updateMap(newMap)))
-  })
+  const map = new GeoMapVisualizationMap(mapNode.value)
   scope.run(() =>
     watch(
       () => config.size,
-      () => newMap.resize(),
+      () => map.map.resize(),
     ),
   )
-  setupTooltip(newMap)
-  map = newMap
 })
-onUnmounted(() => map?.remove())
 config.setToolbarOverlay(true)
 </script>
 

@@ -133,7 +133,6 @@
   },
   "devDependencies": {
     "@codemirror/theme-one-dark": "^6.1.3",
-    "@danmarshall/deckgl-typings": "^4.9.28",
     "@fast-check/vitest": "catalog:",
     "@open-rpc/server-js": "^1.9.5",
     "@react-types/shared": "3.27.0",
