@@ -2027,6 +2027,8 @@ export abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
+  /** Download project session logs as a file. */
+  abstract downloadProjectSessionLogs(projectSessionId: ProjectSessionId): Promise<void>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
   /**

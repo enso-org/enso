@@ -1487,6 +1487,33 @@ export class RemoteBackend extends backend.Backend {
     }
   }
 
+  /** Downloads project session logs as a file. */
+  async downloadProjectSessionLogs(projectSessionId: backend.ProjectSessionId): Promise<void> {
+    const response = await this.get<{ readonly url: string }>(
+      remoteBackendPaths.getDownloadProjectSessionLogsPath(projectSessionId),
+    )
+
+    if (!response.ok) {
+      return await this.throw(response, 'getDownloadProjectSessionLogsBackendError')
+    } else {
+      const url = await response.json().then(
+        (json) => json.url,
+        () => null,
+      )
+      if (url == null) {
+        return await this.throw(response, 'getDownloadProjectSessionLogsBackendError')
+      }
+      await this.downloader({
+        url,
+        name: 'logs.txt',
+        electronOptions: {
+          path: null,
+        },
+      })
+      return
+    }
+  }
+
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     // A dummy query parameter is required due to issues with backend validation.
