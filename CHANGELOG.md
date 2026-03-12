@@ -9,6 +9,7 @@
 - [Fixed uploading corrupted projects to the cloud storage][14805]
 - [Drive is now a separate panel instead of tab.][14807]
 - [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
+- [Geo Map Visualization may display GeoSpatial data][14859]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -16,6 +17,7 @@
 [14805]: https://github.com/enso-org/enso/pull/14805
 [14807]: https://github.com/enso-org/enso/pull/14807
 [14820]: https://github.com/enso-org/enso/pull/14820
+[14859]: https://github.com/enso-org/enso/pull/14859
 
 #### Enso Standard Library
 
