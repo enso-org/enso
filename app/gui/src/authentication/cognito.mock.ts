@@ -31,7 +31,6 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error.
  */
-import type * as amplify from '@aws-amplify/auth'
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
@@ -185,7 +184,8 @@ export class Cognito {
    */
   async signInWithApple() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.(listen.AuthEvent.signInWithRedirect)
+    listen.authEventListener?.(listen.AuthEvent.signedIn)
     await Promise.resolve()
   }
 
@@ -198,7 +198,8 @@ export class Cognito {
    */
   async signInWithMicrosoft() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.(listen.AuthEvent.signInWithRedirect)
+    listen.authEventListener?.(listen.AuthEvent.signedIn)
     await Promise.resolve()
   }
 
@@ -211,7 +212,8 @@ export class Cognito {
    */
   async signInWithGoogle() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.(listen.AuthEvent.signInWithRedirect)
+    listen.authEventListener?.(listen.AuthEvent.signedIn)
     await Promise.resolve()
   }
 
@@ -224,7 +226,8 @@ export class Cognito {
    */
   signInWithGitHub() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.(listen.AuthEvent.signInWithRedirect)
+    listen.authEventListener?.(listen.AuthEvent.signedIn)
     return Promise.resolve({
       accessKeyId: 'access key id',
       sessionToken: 'session token',
@@ -245,7 +248,7 @@ export class Cognito {
     mockEmail = username
     localStorage.setItem(MOCK_EMAIL_KEY, username)
     const result = await results.Result.wrapAsync(async () => {
-      listen.authEventListener?.(listen.AuthEvent.signIn)
+      listen.authEventListener?.(listen.AuthEvent.signedIn)
       return Promise.resolve(await this.userSession())
     })
     return result
@@ -256,7 +259,7 @@ export class Cognito {
   /** Sign out the current user. */
   async signOut() {
     this.isSignedIn = false
-    listen.authEventListener?.(listen.AuthEvent.signOut)
+    listen.authEventListener?.(listen.AuthEvent.signedOut)
     localStorage.removeItem(MOCK_EMAIL_KEY)
     localStorage.removeItem(MOCK_ORGANIZATION_ID_KEY)
     return Promise.resolve(null)
@@ -301,18 +304,13 @@ export class Cognito {
    * component.
    */
   async changePassword(oldPassword: string, newPassword: string) {
-    const cognitoUserResult = await currentAuthenticatedUser()
-    if (cognitoUserResult.ok) {
-      const result = await results.Result.wrapAsync(() =>
-        fetch('https://mock-cognito.com/change-password', {
-          method: 'POST',
-          body: JSON.stringify({ oldPassword, newPassword }),
-        }),
-      )
-      return result.mapErr(original.intoAmplifyErrorOrThrow)
-    } else {
-      return results.Err(cognitoUserResult.val)
-    }
+    const result = await results.Result.wrapAsync(() =>
+      fetch('https://mock-cognito.com/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ oldPassword, newPassword }),
+      }),
+    )
+    return result.mapErr(original.intoAmplifyErrorOrThrow)
   }
 
   /** Refresh the current user's session. */
@@ -386,16 +384,4 @@ async function confirmSignUp(_email: string, _code: string) {
   }).then((result) =>
     result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow),
   )
-}
-
-/**
- * A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
- * to `AmplifyError`s.
- */
-async function currentAuthenticatedUser() {
-  const result = await results.Result.wrapAsync(
-    // The methods are not needed.
-    async () => await Promise.resolve<amplify.CognitoUser>({} as unknown as amplify.CognitoUser),
-  )
-  return result.mapErr(original.intoAmplifyErrorOrThrow)
 }

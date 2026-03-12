@@ -2,7 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
@@ -35,8 +35,11 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     module: Module,
     bindingsCachingEnabled: Boolean
   ): (List[Module], List[Module]) = {
+    val logger = org.slf4j.LoggerFactory.getLogger(getClass())
 
     def analyzeModule(current: Module): List[Module] = {
+      logger.trace("ANALYZE of {}", current.getName().toString())
+
       val context = compiler.context
       val (ir, currentLocal) =
         try {
@@ -107,12 +110,20 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           }
         )
       }
-      currentLocal.resolvedImports.flatMap { resolvedImport =>
+      val mods = currentLocal.resolvedImports.flatMap { resolvedImport =>
         val targetModules = resolvedImport.targets.map { target =>
           target.module.unsafeAsModule()
         }
         targetModules
       }.distinct
+
+      logger.trace(
+        "TRANSITIVE of {} is {}",
+        current.getName(),
+        mods.map(_.getName()).toArray
+      )
+
+      mods
     }
 
     @scala.annotation.tailrec

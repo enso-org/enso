@@ -6,13 +6,7 @@ import type {
 } from 'enso-common/src/services/Backend'
 import * as z from 'zod'
 
-declare module '#/utilities/LocalStorage' {
-  interface LocalStorageData {
-    readonly openedTabs: RunningProjectInfo[]
-  }
-}
-
-const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
+export const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
   (x) => typeof x === 'string' && x.startsWith('project-'),
 )
 const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
@@ -22,7 +16,7 @@ const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>(
   (x) => typeof x === 'string' && x.startsWith('directory-'),
 )
 const ENSO_PATH_SCHEMA = z.custom<EnsoPath>((x) => typeof x === 'string')
-const PROJECT_INFO_SCHEMA = z.object({
+export const PROJECT_INFO_SCHEMA = z.object({
   id: PROJECT_ID_SCHEMA,
   parentId: DIRECTORY_ID_SCHEMA,
   title: z.string(),

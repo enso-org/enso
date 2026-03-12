@@ -66,11 +66,12 @@ export async function handleProjectServiceRequest(
     case 'POST /api/project-service/project/close': {
       interface Body {
         readonly projectId: UUID
+        readonly projectsDirectory: Path
       }
       bodyJson<Body>(request)
         .then(async (body) => {
           const projectService = await getProjectService()
-          return projectService.closeProject(body.projectId)
+          return projectService.closeProject(body.projectId, body.projectsDirectory)
         })
         .then(() => {
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(null))

@@ -13,8 +13,10 @@ module org.enso.logging.config {
 
   uses org.enso.logging.config.LoggerSetup;
 
-  provides java.lang.System.LoggerFinder with
-      SystemLoggerViaSlf4j;
   provides org.enso.common.ContextLoggingConfigurator with
       ContextLoggingViaSlf4j;
+  provides java.lang.System.LoggerFinder with
+      SystemLoggerViaSlf4j;
+
+  opens org.enso.logging.config.systemlogger;
 }

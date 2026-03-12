@@ -7,6 +7,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
+import { panelEquals, useContainerData } from '$/providers/container'
 import type { Node, NodeId } from '$/providers/openedProjects/graph'
 import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
@@ -79,11 +80,12 @@ import { analyzeConnectAround } from './GraphEditor/detaching'
 import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
+const container = useContainerData()
 const rightPanel = useRightPanelData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { id: assetId, module, ensoPath } = useCurrentProject()
+const { id: assetId, module } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -341,6 +343,7 @@ const actionHandlers = registerHandlers({
         ),
       ),
     () => detachInfo.value.ok && detachInfo.value.value.length > 0,
+    () => panelEquals(container.focusedPanel, { type: 'project', id: assetId.value }),
     {
       collapseNodes,
       copyNodesToClipboard,
@@ -438,10 +441,13 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  rightPanel.setContext(ensoPath.value, {
-    item: assetId.value,
-    help: { item: displayedDocs.value, aiMode: aiMode.value },
-  })
+  rightPanel.setContext(
+    { type: 'project', id: assetId.value },
+    {
+      item: assetId.value,
+      help: { item: displayedDocs.value, aiMode: aiMode.value },
+    },
+  )
 })
 
 function toggleRightDockHelpPanel() {

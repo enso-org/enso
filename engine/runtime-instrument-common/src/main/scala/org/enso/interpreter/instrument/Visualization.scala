@@ -13,11 +13,13 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   * @param id the unique identifier of visualization
   * @param expressionId the identifier of expression that the visualization is
   *                     attached to
+  * @param parentExpressionId non-empty id of the cached expression if visualization attached to a subexpression
   * @param callback the callable expression used to generate visualization data
   */
 case class Visualization(
   id: VisualizationId,
   expressionId: ExpressionId,
+  parentExpressionId: Option[ExpressionId],
   cache: RuntimeCache,
   module: Module,
   config: VisualizationConfiguration,
@@ -38,4 +40,22 @@ case class OneshotExpression(
   expressionId: ExpressionId,
   executionContextId: ContextId,
   expression: String
+)
+
+/** Represents a visualization request that couldn't be evaluated immediately
+  * because locks were unavailable. Will be "promoted" to a Visualization
+  * after successful evaluation.
+  *
+  * @param id the unique identifier of visualization
+  * @param expressionId the identifier of expression the visualization is attached to
+  * @param parentExpressionId non-empty id of the cached expression if visualization attached to a subexpression
+  * @param contextId the execution context id
+  * @param config the visualization configuration
+  */
+case class UnevaluatedVisualization(
+  id: VisualizationId,
+  expressionId: ExpressionId,
+  parentExpressionId: Option[ExpressionId],
+  contextId: ContextId,
+  config: VisualizationConfiguration
 )

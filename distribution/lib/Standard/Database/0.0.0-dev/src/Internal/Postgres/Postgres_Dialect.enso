@@ -216,9 +216,7 @@ type Postgres_Dialect
        this situations and overrides the type to make it correct.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
-        needs_char_length_override_check = case approximate_result_type of
-            Value_Type.Char _ _ -> True
-            _ -> False
+        needs_char_length_override_check = approximate_result_type.is_text
         case needs_char_length_override_check of
             True ->
                 db_type = mapping.sql_type_to_value_type column.sql_type_reference.get

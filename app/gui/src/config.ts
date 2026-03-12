@@ -7,26 +7,16 @@
  * When running dev server, the config variables are grabbed from appropriate .env file.
  */
 const DEFAULT_CONFIG = {
-  ENVIRONMENT: import.meta.env.ENSO_IDE_ENVIRONMENT,
   HOST: import.meta.env.ENSO_IDE_HOST,
-  API_URL: import.meta.env.ENSO_IDE_API_URL,
+  ENVIRONMENT: import.meta.env.ENSO_IDE_ENVIRONMENT,
   SENTRY_DSN: import.meta.env.ENSO_IDE_SENTRY_DSN,
-  STRIPE_KEY: import.meta.env.ENSO_IDE_STRIPE_KEY,
-  AUTH_ENDPOINT: import.meta.env.ENSO_IDE_AUTH_ENDPOINT,
-  COGNITO_USER_POOL_ID: import.meta.env.ENSO_IDE_COGNITO_USER_POOL_ID,
-  COGNITO_USER_POOL_WEB_CLIENT_ID: import.meta.env.ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-  GOOGLE_ANALYTICS_TAG: import.meta.env.ENSO_IDE_GOOGLE_ANALYTICS_TAG,
-  COGNITO_DOMAIN: import.meta.env.ENSO_IDE_COGNITO_DOMAIN,
-  COGNITO_REGION: import.meta.env.ENSO_IDE_COGNITO_REGION,
+  API_URL: import.meta.env.ENSO_IDE_API_URL,
   VERSION: import.meta.env.ENSO_IDE_VERSION,
   COMMIT_HASH: import.meta.env.ENSO_IDE_COMMIT_HASH,
+  GOOGLE_ANALYTICS_TAG: import.meta.env.ENSO_IDE_GOOGLE_ANALYTICS_TAG,
   YDOC_SERVER_URL: import.meta.env.ENSO_IDE_YDOC_SERVER_URL,
   CLOUD_BUILD: import.meta.env.ENSO_IDE_CLOUD_BUILD,
   AG_GRID_LICENSE_KEY: import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY,
-  GOOGLE_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-  STRAVA_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
-  MS365_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_MS365_OAUTH_CLIENT_ID,
-  SALESFORCE_OAUTH_CLIENT_ID: import.meta.env?.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID,
 } as const
 
 // Undefined env variables are typed as `any`, but we want them to be `string | undefined`.

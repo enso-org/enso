@@ -83,6 +83,7 @@ export default defineConfig({
     actionTimeout: TIMEOUT_MS,
     trace: 'retain-on-failure',
     headless: !DEBUG,
+    screenshot: 'only-on-failure',
     launchOptions:
       DEBUG ?
         {}

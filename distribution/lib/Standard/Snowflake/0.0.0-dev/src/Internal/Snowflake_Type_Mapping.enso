@@ -204,7 +204,7 @@ complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =
-        effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
+        effective_size = if sql_type.precision==Nothing || sql_type.precision>=max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
         Value_Type.Char size=effective_size variable_length=True
     make_char sql_type =
         # Even the CHAR type in Snowflake is still variable length - it is just an alias for VARCHAR.

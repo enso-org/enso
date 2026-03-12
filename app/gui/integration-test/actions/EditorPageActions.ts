@@ -229,7 +229,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
       // TODO: Automatically find graph background region that is safe to click,
       // or somehow ensure that the dispatched click event performs
       // Current value chosen just so it worked for existing tests.
-      await page.mouse.click(250, 300)
+      await page.mouse.click(700, 300)
       await this.expectNodeCount(0, '.selected')
     })
   }

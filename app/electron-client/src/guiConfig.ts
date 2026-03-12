@@ -12,26 +12,16 @@ const GUI_ENV_DIR = fileURLToPath(new URL('../../gui', import.meta.url))
 type GuiEnv = Record<string, string | undefined>
 
 const GUI_CONFIG_KEYS = [
-  'ENVIRONMENT',
   'HOST',
-  'API_URL',
+  'ENVIRONMENT',
   'SENTRY_DSN',
-  'STRIPE_KEY',
-  'AUTH_ENDPOINT',
-  'COGNITO_USER_POOL_ID',
-  'COGNITO_USER_POOL_WEB_CLIENT_ID',
-  'GOOGLE_ANALYTICS_TAG',
-  'COGNITO_DOMAIN',
-  'COGNITO_REGION',
+  'API_URL',
   'VERSION',
   'COMMIT_HASH',
+  'GOOGLE_ANALYTICS_TAG',
   'YDOC_SERVER_URL',
   'CLOUD_BUILD',
   'AG_GRID_LICENSE_KEY',
-  'GOOGLE_OAUTH_CLIENT_ID',
-  'STRAVA_OAUTH_CLIENT_ID',
-  'MS365_OAUTH_CLIENT_ID',
-  'SALESFORCE_OAUTH_CLIENT_ID',
 ] as const satisfies readonly (keyof $Config)[]
 
 type _AssertAllGuiConfigKeysCovered =

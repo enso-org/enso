@@ -9,7 +9,7 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,
@@ -725,7 +725,11 @@ class Compiler(
       if (module.isSynthetic())
         expr
       else
-        injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
+        injectSyntheticModuleExports(
+          module.getName().toString(),
+          expr,
+          module.getDirectModulesRefs
+        )
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
@@ -849,17 +853,18 @@ class Compiler(
     *   import project.A.B.C
     *   export project.A.B.C
     * ````
-    *
+    * @param n name of module providing the IR
     * @param ir IR to be enhanced
     * @param modules fully qualified names of modules
     * @return enhanced
     */
   private def injectSyntheticModuleExports(
+    n: String,
     ir: IRModule,
     modules: java.util.List[QualifiedName]
   ): IRModule = {
     import scala.jdk.CollectionConverters._
-
+    n.getClass
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
         List(
@@ -993,7 +998,7 @@ class Compiler(
       )
       .diagnostics
     val module    = inlineContext.getModule()
-    val hasErrors = reportDiagnostics(errors, module)
+    val hasErrors = reportDiagnostics(errors, module, inlineContext.src)
     hasErrors match {
       case error :: _ if inlineContext.compilerConfig.isStrictErrors =>
         throw error
@@ -1016,7 +1021,7 @@ class Compiler(
       List((module, errors))
     }
 
-    val hasErrors = reportDiagnostics(diagnostics)
+    val hasErrors = reportDiagnostics(diagnostics, null)
     if (hasErrors.nonEmpty && config.isStrictErrors) {
       val count =
         diagnostics.map(_._2.collect { case e: Error => e }.length).sum
@@ -1108,11 +1113,12 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[(Module, List[Diagnostic])]
+    diagnostics: List[(Module, List[Diagnostic])],
+    src: Object
   ): List[RuntimeException] = {
     diagnostics.flatMap { diags =>
       if (diags._2.nonEmpty) {
-        reportDiagnostics(diags._2, diags._1)
+        reportDiagnostics(diags._2, diags._1, src)
       } else {
         List()
       }
@@ -1128,13 +1134,19 @@ class Compiler(
     */
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
-    compilerModule: CompilerContext.Module
+    compilerModule: CompilerContext.Module,
+    src: Object
   ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
     val exceptions = diagnostics
       .flatMap { diag =>
         val formattedDiag =
-          context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+          context.formatDiagnostic(
+            compilerModule,
+            diag,
+            isOutputRedirected,
+            src
+          )
         printDiagnostic(formattedDiag.getMessage)
         if (diag.isInstanceOf[Error] || config.treatWarningsAsErrors) {
           Some(formattedDiag)

@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
@@ -8,6 +9,7 @@ import project.Meta
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 from project.Nothing import all
 
 type Display
@@ -140,6 +142,17 @@ type Widget
     ## Describes possible target types for Any.to conversion.
     Any_To_Target display:Display=..When_Modified
 
+    ## Cached JSON Widget
+    With_JSON_Cache parent:Widget json:Text
+
+    ## ---
+       private: true
+       ---
+       Customised to_text value to avoid the JSON caching.
+    to_text self -> Text = case self of
+        Widget.With_JSON_Cache parent _ -> parent.to_text
+        _ -> Any.to_text self=self
+
     ## ---
        private: true
        ---
@@ -165,6 +178,7 @@ type Widget
             '{"constructor":"File_Browse","existing_only":' + (if existing_only then "true" else "false") + ',"display":' + display.to_json + ',"file_types":' + file_types.to_json + '}'
         Widget.Secret_Browse display ->
             '{"constructor":"Secret_Browse","display":' + display.to_json + '}'
+        Widget.With_JSON_Cache _ json -> json
         _ -> self.to_js_object.to_json
 
     ## ---
@@ -172,19 +186,21 @@ type Widget
        ---
        Override the to_js_object and don't include Nothing.
     to_js_object : JS_Object
-    to_js_object self =
-        type_pair = [["type", Meta.type_of self . to_text]]
+    to_js_object self = case self of
+        Widget.With_JSON_Cache parent _ -> parent.to_js_object
+        _ ->
+            type_pair = [["type", Meta.type_of self . to_text]]
 
-        m = Meta.meta self
-        cons = m.constructor
-        cons_pair = [["constructor", cons.name]]
+            m = Meta.meta self
+            cons = m.constructor
+            cons_pair = [["constructor", cons.name]]
 
-        fs = m.fields
-        field_names = cons.fields
-        field_pairs = 0.up_to field_names.length . filter (i-> (field_names.at i == "label") || (fs.at i . is_nothing . not)) . map i->
-            [field_names.at i, fs.at i . to_js_object]
+            fs = m.fields
+            field_names = cons.fields
+            field_pairs = 0.up_to field_names.length . filter (i-> (field_names.at i == "label") || (fs.at i . is_nothing . not)) . map i->
+                [field_names.at i, fs.at i . to_js_object]
 
-        JS_Object.from_pairs (type_pair + cons_pair + field_pairs)
+            JS_Object.from_pairs (type_pair + cons_pair + field_pairs)
 
 ## ---
    private: true

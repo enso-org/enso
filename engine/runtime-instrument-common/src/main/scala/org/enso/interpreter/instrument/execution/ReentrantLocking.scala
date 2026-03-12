@@ -423,4 +423,96 @@ class ReentrantLocking extends Locking {
 
   private case class ContextLockImpl(lock: ReentrantReadWriteLock, uuid: UUID)
       extends ContextLock
+
+  override def tryWithWriteCompilationLock(
+    where: Class[_],
+    action: Runnable
+  ): Boolean = {
+    // Verify lock ordering (no file/pending locks held, no read lock upgrade)
+    try {
+      assertNotLocked(
+        compilationLock,
+        true,
+        s"Cannot upgrade compilation read lock to write lock [${where.getSimpleName}]"
+      )
+      assertNotLocked(
+        pendingEditsLock,
+        s"Cannot acquire compilation write lock when having pending edits lock [${where.getSimpleName}]"
+      )
+      assertNoFileLock(
+        s"Cannot acquire write compilation lock [${where.getSimpleName}]"
+      )
+    } catch {
+      case e: IllegalStateException =>
+        logger.trace(
+          "tryWithWriteCompilationLock [{}] failed due to lock ordering: {}",
+          where.getSimpleName,
+          e.getMessage
+        )
+        return false
+    }
+
+    val writeLock = compilationLock.writeLock()
+    if (writeLock.tryLock()) {
+      val now = System.currentTimeMillis()
+      logger.trace(
+        "tryWithWriteCompilationLock [{}] acquired",
+        where.getSimpleName
+      )
+      try {
+        action.run()
+        true
+      } finally {
+        writeLock.unlock()
+        logger.trace(
+          "Kept write compilation lock (try) [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - now
+        )
+      }
+    } else {
+      logger.trace(
+        "tryWithWriteCompilationLock [{}] not acquired (lock busy)",
+        where.getSimpleName
+      )
+      false
+    }
+  }
+
+  override def tryWithReadContextLock(
+    lock: ContextLock,
+    where: Class[_],
+    action: Runnable
+  ): Boolean = {
+    val contextLock = lock.asInstanceOf[ContextLockImpl]
+    val readLock    = contextLock.lock.readLock()
+
+    if (readLock.tryLock()) {
+      val now = System.currentTimeMillis()
+      logger.trace(
+        "tryWithReadContextLock [{}] acquired for context {}",
+        where.getSimpleName,
+        contextLock.uuid
+      )
+      try {
+        action.run()
+        true
+      } finally {
+        readLock.unlock()
+        logger.trace(
+          "Kept read context lock (try) [{}] for context {} for {}ms",
+          where.getSimpleName,
+          contextLock.uuid,
+          System.currentTimeMillis - now
+        )
+      }
+    } else {
+      logger.trace(
+        "tryWithReadContextLock [{}] not acquired for context {} (lock busy)",
+        where.getSimpleName,
+        contextLock.uuid
+      )
+      false
+    }
+  }
 }

@@ -102,8 +102,13 @@ export function useTransferBetweenCategories(currentCategory: Category) {
 
           if (isLocalCategory(to)) {
             if (from.type === 'team' && method === 'move') {
-              await askToCopyInstead(getText, getText('copyInsteadOfMoving', from.label))
-              return
+              const resolution = await askToCopyInstead(
+                getText,
+                getText('copyInsteadOfMoving', from.label),
+              )
+              if (resolution !== 'confirm') {
+                return
+              }
             }
 
             await toast.promise(

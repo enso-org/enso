@@ -4298,11 +4298,12 @@ lazy val `jvm-interop` =
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % Test,
-        "junit"               % "junit"                 % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"      % "graal-sdk"             % graalMavenPackagesVersion % Test,
+        "junit"                % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.polyglot" % "js-community"          % graalMavenPackagesVersion % Test
       ),
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
@@ -5172,6 +5173,7 @@ lazy val `snowflake-test-java-helpers` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    libraryDependencies ++= bouncyCastle.map(_ % "provided"),
     Compile / packageBin / artifactPath :=
       file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar")
   )
@@ -5361,14 +5363,14 @@ lazy val `netty-tc-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+      "io.netty" % "netty-tcnative-boringssl-static" % nettyTcNativeBorringSSL
     ),
     // We have to explicitly select correct jar based on the current platform.
     inputJarResolved := {
       val tcNativeJars = JPMSUtils.filterModulesFromUpdate(
         updateReport = (Compile / update).value,
         modules = Seq(
-          "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+          "io.netty" % "netty-tcnative-boringssl-static" % nettyTcNativeBorringSSL
         ),
         log                = streams.value.log,
         projName           = moduleName.value,
@@ -5418,9 +5420,9 @@ lazy val `netty-epoll-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
+      "io.netty" % "netty-transport-native-epoll" % nettyTransportEpollVersion
     ),
-    inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
+    inputJar := "io.netty" % "netty-transport-native-epoll" % nettyTransportEpollVersion,
     jarExtractor := JarExtractor(
       Map(
         "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(
@@ -5528,16 +5530,16 @@ lazy val `grpc-wrapper` = project
     )
   )
 
-/** Same as `grpc-wrapper`, but uses an older version of gRPC.
+/** Same as `grpc-wrapper`, but uses a newer version of gRPC.
   */
-lazy val `grpc-wrapper-older` = project
-  .in(file("lib/java/grpc-wrapper-older"))
+lazy val `grpc-wrapper-newer` = project
+  .in(file("lib/java/grpc-wrapper-newer"))
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.grpc" % "grpc-netty-shaded" % "1.60.0"
+      "io.grpc" % "grpc-netty-shaded" % "1.77.0"
     ),
-    inputJar := "io.grpc" % "grpc-netty-shaded" % "1.60.0",
+    inputJar := "io.grpc" % "grpc-netty-shaded" % "1.77.0",
     jarExtractor := (`grpc-wrapper` / jarExtractor).value
   )
 
@@ -5564,6 +5566,83 @@ lazy val `jline-wrapper` = project
         "META-INF/MANIFEST.MF"     -> CopyToOutputJar,
         "META-INF/maven/**"        -> CopyToOutputJar,
         "META-INF/native-image/**" -> CopyToOutputJar
+      )
+    )
+  )
+
+lazy val `zstd-jni-wrapper` = project
+  .in(file("lib/java/zstd-jni-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.luben" % "zstd-jni" % zstdVersion
+    ),
+    inputJar := "com.github.luben" % "zstd-jni" % zstdVersion,
+    jarExtractor := JarExtractor(
+      Map(
+        s"linux/amd64/libzstd-jni-$zstdVersion.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        s"darwin/aarch64/libzstd-jni-$zstdVersion.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        s"win/amd64/libzstd-jni-$zstdVersion.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "com/**/*.class"       -> CopyToOutputJar
+      )
+    )
+  )
+
+lazy val `snowflake-jdbc-thin-wrapper` = project
+  .in(file("lib/java/snowflake-jdbc-thin-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion
+    ),
+    inputJar := "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds"),
+    jarExtractor := JarExtractor(
+      Map(
+        "minicore/libsf_mini_core_linux_x86_64_glibc.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "minicore/libsf_mini_core_macos_aarch64.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "minicore/libsf_mini_core_windows_x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "META-INF/services/**" -> CopyToOutputJar,
+        "net/**/*.class"       -> CopyToOutputJar,
+        "net/**/*.properties"  -> CopyToOutputJar
+      )
+    ),
+    relevantDependencies := StdBits.relevantDependecies(
+      ignoreScalaLibrary = true,
+      ignoreDependencies = Some((fileName: String) => {
+        fileName.startsWith("netty-tcnative-boringssl-static") ||
+        fileName.startsWith("netty-transport-native-epoll") ||
+        fileName.startsWith("snowflake-jdbc-thin")
+      }),
+      ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
+      ignoreDependenciesByModuleID = Some(
+        Seq(
+          "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
+          "com.github.luben" % "zstd-jni"               % zstdVersion
+        )
+      ),
+      libraryUpdates     = (Compile / update).value,
+      unmanagedClasspath = (Compile / unmanagedJars).value,
+      extraJars = Seq(
+        (`grpc-wrapper-newer` / thinJarOutput).value,
+        (`conscrypt-wrapper` / thinJarOutput).value,
+        (`zstd-jni-wrapper` / thinJarOutput).value
       )
     )
   )
@@ -5897,9 +5976,12 @@ lazy val `std-snowflake` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
-    libraryDependencies ++= Seq(
-      "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds")
-    ),
+    // `snowflake-jdbc-thin` dependency is added only to be excluded during repackaging.
+    // It's not a bug — it's a way to make our licensing extraction tool pick up all the necessary
+    // dependencies.
+    // The actual artifact (without native libs) and all its transitive dependencies are then
+    // included via the re-packaging done in `snowflake-jdbc-thin-wrapper`.
+    libraryDependencies += "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds"),
     Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5908,11 +5990,17 @@ lazy val `std-snowflake` = project
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
-          ignoreScalaLibrary                = true,
-          ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.60.0"),
+          ignoreScalaLibrary = true,
+          ignoreDependencies = Some((fileName: String) => {
+            fileName.startsWith("netty-tcnative-boringssl-static") ||
+            fileName.startsWith("netty-transport-native-epoll")
+          }),
           ignoreDependenciesByModuleID = Some(
             Seq(
-              "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2"
+              "net.snowflake"    % "snowflake-jdbc-thin"    % snowflakeJDBCVersion,
+              "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
+              "com.github.luben" % "zstd-jni"               % zstdVersion,
+              "io.grpc"          % "grpc-netty-shaded"      % "1.77.0"
             )
           ),
           libraryUpdates     = (Compile / update).value,
@@ -5921,13 +6009,18 @@ lazy val `std-snowflake` = project
           unmanagedClasspath = (Compile / unmanagedJars).value,
           polyglotLibDir     = Some(`std-snowflake-native-libs`),
           extractedNativeLibsDirs = Seq(
-            (`grpc-wrapper-older` / extractedFilesDir).value,
-            (`conscrypt-wrapper` / extractedFilesDir).value
+            (`grpc-wrapper-newer` / extractedFilesDir).value,
+            (`netty-tc-native-wrapper` / extractedFilesDir).value,
+            (`netty-epoll-native-wrapper` / extractedFilesDir).value,
+            (`conscrypt-wrapper` / extractedFilesDir).value,
+            (`snowflake-jdbc-thin-wrapper` / extractedFilesDir).value,
+            (`zstd-jni-wrapper` / extractedFilesDir).value
           ),
           extraJars = Seq(
-            (`grpc-wrapper-older` / thinJarOutput).value,
-            (`conscrypt-wrapper` / thinJarOutput).value
-          )
+            (`snowflake-jdbc-thin-wrapper` / thinJarOutput).value
+          ),
+          dependenciesOfWrappers =
+            (`snowflake-jdbc-thin-wrapper` / relevantDependencies).value
         )
       stdSnowflakeJar
     },

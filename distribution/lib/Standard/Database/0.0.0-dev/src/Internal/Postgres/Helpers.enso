@@ -3,31 +3,20 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Internal.JDBC_Connection.JDBC_Connection
+import project.Internal.SQL_Warning_Helper
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, Unsupported_Database_Encoding
+from project.Internal.Result_Set import result_set_to_table
 
 polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 
 ## ---
    private: true
    ---
-get_encoding_name : JDBC_Connection -> Text
-get_encoding_name jdbc_connection =
-    server_encoding = get_pragma_value jdbc_connection "SHOW server_encoding" . catch SQL_Error _-> "SQL_ASCII"
+get_encoding_name jdbc_connection:JDBC_Connection -> Text =
+    server_encoding = _get_pragma_value jdbc_connection "SHOW server_encoding" . catch SQL_Error _-> "SQL_ASCII"
     if server_encoding != "SQL_ASCII" then server_encoding else
-        get_pragma_value jdbc_connection "SHOW client_encoding"
-
-## ---
-   private: true
-   ---
-get_pragma_value : JDBC_Connection -> Text -> Any
-get_pragma_value jdbc_connection sql =
-    table = jdbc_connection.raw_read_statement sql ColumnFetcherFactory.DEFAULT
-    if table.row_count != 1 then
-        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
-    if table.columns.length != 1 then
-        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
-    table.at 0 . at 0
-
+        _get_pragma_value jdbc_connection "SHOW client_encoding"
 
 ## ---
    private: true
@@ -35,8 +24,7 @@ get_pragma_value jdbc_connection sql =
    Translates names of encodings from
    https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE into
    their Java counterparts.
-parse_postgres_encoding : Text -> Encoding
-parse_postgres_encoding encoding_name =
+parse_postgres_encoding encoding_name:Text -> Encoding =
     resolved_by_jvm = Encoding.from_name encoding_name
     # If the JVM did not resolve the encoding immediately, we try a few workarounds.
     resolved_by_jvm.catch Illegal_Argument _->
@@ -64,3 +52,19 @@ parse_postgres_encoding encoding_name =
         fallback.catch Any _->
             warning = Unsupported_Database_Encoding.Warning "The database is using an encoding ("+encoding_name.to_display_text+") that is currently not supported by Enso. Falling back to UTF-8. Column/table names may not be mapped correctly if they contain unsupported characters."
             Warning.attach warning Encoding.utf_8
+
+## ---
+   private: true
+   ---
+private _get_pragma_value jdbc_connection:JDBC_Connection sql:Text -> Any =
+    table = jdbc_connection.with_prepared_statement sql Statement_Setter.null stmt->
+        rs = stmt.executeQuery
+        table = result_set_to_table rs ColumnFetcherFactory.DEFAULT
+        SQL_Warning_Helper.process_warnings stmt table
+
+    if table.row_count != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
+    if table.columns.length != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
+
+    table.at 0 . at 0

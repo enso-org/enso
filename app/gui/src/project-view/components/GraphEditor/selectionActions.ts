@@ -10,6 +10,7 @@ import { computed, toValue } from 'vue'
 export function selectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,
   detachingPossible: ToValue<boolean>,
+  isPanelFocused: ToValue<boolean>,
   actions: {
     collapseNodes: (nodes: Node[]) => void
     copyNodesToClipboard: (nodes: Node[]) => void
@@ -29,7 +30,7 @@ export function selectionActionHandlers(
     iter.some(toValue(selectedNodes), (node) => node.type === 'component'),
   )
   function action(action: keyof typeof actions): () => void {
-    return () => actions[action](toValue(selectedNodesArray))
+    return () => (toValue(isPanelFocused) ? actions[action](toValue(selectedNodesArray)) : false)
   }
   return {
     'components.collapse': {

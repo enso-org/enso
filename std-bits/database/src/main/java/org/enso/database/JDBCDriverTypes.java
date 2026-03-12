@@ -49,10 +49,6 @@ public final class JDBCDriverTypes {
     return SQLTimeoutException.class;
   }
 
-  public Class<UnsupportedOperationException> unsupportedExceptionClass() {
-    return UnsupportedOperationException.class;
-  }
-
   public HideableValue.Factory hideableValueFactory() {
     return new HideableValue.Factory();
   }

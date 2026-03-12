@@ -27,7 +27,12 @@ public final class DateTimeType implements StorageType<ZonedDateTime> {
   @Override
   public Value asEnsoValueType() {
     return EnsoMeta.makeInstance(
-        "Standard.Table.Value_Type", "Value_Type", "Date_Time", hasTimeZone);
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), hasTimeZone);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Date_Time";
   }
 
   /**

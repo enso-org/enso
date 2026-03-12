@@ -284,7 +284,7 @@ test('Exercise 2', async ({ page }) => {
     await visualizeData(page)
 
     // Move cross_tab a bit down for more clearance
-    const crossTab = page.getByText('cross_tab')
+    const crossTab = page.getByText('cross_tab', { exact: true })
     await crossTab.dragTo(crossTab, { targetPosition: { x: 0, y: 200 }, force: true })
   })
 

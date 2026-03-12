@@ -61,8 +61,7 @@ s3_backup file action = recover_errors <|
    ---
 copy_from_local (source : File) (destination : S3_File) (replace_existing : Boolean) =
     if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination) else
-        S3.upload_file source destination.s3_path.bucket destination.s3_path.key destination.credentials . if_not_error <|
-            destination
+        S3.put_object destination.s3_path.bucket destination.s3_path.key source destination.credentials
 
 ## ---
    private: true

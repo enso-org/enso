@@ -1,13 +1,16 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Data.Time.Duration.Duration
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Meta_Helpers
 import project.Meta
+import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import False, True
+from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.ProgressHandle
 polyglot java import org.slf4j.LoggerFactory
@@ -132,6 +135,48 @@ type Log_Level
 
     ## Severe level log message.
     Severe
+
+Log_Level.from (that:Text) =
+    case that.to_case ..Lower of
+        "finest" -> ..Finest
+        "trace" -> ..Finest
+        "fine" -> ..Fine
+        "debug" -> ..Fine
+        "info" -> ..Info
+        "warning" -> ..Warning
+        _ -> ..Severe
+
+## Utility type for profiling
+
+   Should be controlled by an environment variable set to the log level:
+   - `ENSO_PROFILE_VIZZES` - for visualizations.
+   - `ENSO_PROFILE_SQL` - for SQL queries.
+   - `ENSO_PROFILE_TABLE` - for table function calls.
+type Profile
+    ## ---
+       advanced: true
+       icon: time
+       ---
+       Time the evaluation of a function, log the duration and return the result.
+
+       ## Arguments
+        - `level`: Log level to log the duration at. If `Nothing`, the duration is not logged.
+        - `label`: Label to log with the duration.
+        - `function`: Function to execute.
+        - `suffix_callback`: Optional callback to generate a suffix for the log message based
+           on the result of the function. The callback is only called if `level` is not `Nothing`.
+        - `module`: Module to log the message to. Defaults to `Profile`.
+    time_execution level:(Log_Level | Nothing) ~label:Text ~function suffix_callback=Nothing module=Profile =
+        if Nothing == level then @Tail_Call function else
+            pair = Duration.time_execution function
+
+            ## If the function threw an error, we just return the error
+            Error.return_if_error pair.second
+
+            duration = pair.first
+            suffix = if suffix_callback == Nothing then "" else suffix_callback pair.second
+            module.log_message ("Execution time for " + label + ": " + duration.to_text + suffix) level
+            pair.second
 
 private log_impl logger ~message level args =
     builder = case level of

@@ -24,9 +24,11 @@ import org.enso.table.excel.internal.ExcelConnectionPool;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.FunctionWithException;
 import org.graalvm.polyglot.Context;
+import org.slf4j.Logger;
 
 /** A table reader for MS Excel files. */
 public class ExcelReader {
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ExcelReader.class);
   private static final ColumnStorage<?> EMPTY_STORAGE = Builder.getObjectBuilder(0).seal();
 
   /**
@@ -64,6 +66,7 @@ public class ExcelReader {
    */
   public static String[] readSheetNames(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
+    LOGGER.info("Reading sheet names from file: {}", file.getName());
     return withWorkbook(file, format, ExcelReader::readSheetNames);
   }
 
@@ -94,6 +97,7 @@ public class ExcelReader {
    */
   public static String[] readRangeNames(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
+    LOGGER.info("Reading range names from file: {}", file.getName());
     return withWorkbook(file, format, ExcelWorkbookReader::getRangeNames);
   }
 
@@ -118,6 +122,7 @@ public class ExcelReader {
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException, InterruptedException {
+    LOGGER.info("Reading sheet '{}' from file: {}", sheetName, file.getName());
     return withWorkbook(
         file,
         format,
@@ -160,6 +165,7 @@ public class ExcelReader {
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException, InterruptedException {
+    LOGGER.info("Reading sheet by index {} from file: {}", index, file.getName());
     return withWorkbook(
         file,
         format,
@@ -226,6 +232,7 @@ public class ExcelReader {
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException, InterruptedException {
+    LOGGER.info("Reading range '{}' from file: {}", rangeNameOrAddress, file.getName());
     return withWorkbook(
         file,
         format,
@@ -298,6 +305,7 @@ public class ExcelReader {
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException, InterruptedException {
+    LOGGER.info("Reading range '{}' from file: {}", excelRange.toString(), file.getName());
     return withWorkbook(
         file,
         format,

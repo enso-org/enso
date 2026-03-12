@@ -247,7 +247,7 @@ describe('ProjectService', () => {
         expect(openResult.languageServerBinaryAddress.port).toBeGreaterThan(0)
 
         // Close the project to clean up
-        await projectService.closeProject(createResult.projectId)
+        await projectService.closeProject(createResult.projectId, projectsDirectory)
       },
       LANGUAGE_SERVER_TEST_TIMEOUT,
     )
@@ -283,7 +283,7 @@ describe('ProjectService', () => {
         expect(metadata.lastOpened).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/)
 
         // Clean up
-        await projectService.closeProject(createResult.projectId)
+        await projectService.closeProject(createResult.projectId, projectsDirectory)
       },
       LANGUAGE_SERVER_TEST_TIMEOUT,
     )
@@ -356,8 +356,8 @@ describe('ProjectService', () => {
         expect(project2Running).toBe(true)
 
         // Clean up - close both projects
-        await projectService.closeProject(project1.projectId)
-        await projectService.closeProject(project2.projectId)
+        await projectService.closeProject(project1.projectId, projectsDirectory)
+        await projectService.closeProject(project2.projectId, projectsDirectory)
       },
       LANGUAGE_SERVER_TEST_TIMEOUT * 2,
     )
@@ -373,7 +373,9 @@ describe('ProjectService', () => {
         await projectService.openProject(createResult.projectId, projectsDirectory)
 
         // Close the project - should not throw
-        await expect(projectService.closeProject(createResult.projectId)).resolves.not.toThrow()
+        await expect(
+          projectService.closeProject(createResult.projectId, projectsDirectory),
+        ).resolves.not.toThrow()
       },
       LANGUAGE_SERVER_TEST_TIMEOUT,
     )
@@ -390,10 +392,12 @@ describe('ProjectService', () => {
         await projectService.openProject(createResult.projectId, projectsDirectory)
 
         // Close the project once
-        await projectService.closeProject(createResult.projectId)
+        await projectService.closeProject(createResult.projectId, projectsDirectory)
 
         // Attempt to close again - should handle gracefully
-        await expect(projectService.closeProject(createResult.projectId)).resolves.not.toThrow()
+        await expect(
+          projectService.closeProject(createResult.projectId, projectsDirectory),
+        ).resolves.not.toThrow()
       },
       LANGUAGE_SERVER_TEST_TIMEOUT,
     )
@@ -406,7 +410,9 @@ describe('ProjectService', () => {
       )
 
       // Attempt to close - should handle gracefully
-      await expect(projectService.closeProject(createResult.projectId)).resolves.not.toThrow()
+      await expect(
+        projectService.closeProject(createResult.projectId, projectsDirectory),
+      ).resolves.not.toThrow()
     })
 
     test(
@@ -441,7 +447,7 @@ describe('ProjectService', () => {
         expect(isRunningBefore).toBe(true)
 
         // Close the project
-        await projectService.closeProject(createResult.projectId)
+        await projectService.closeProject(createResult.projectId, projectsDirectory)
 
         // Wait a bit for the process to fully terminate
         await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -834,7 +840,7 @@ describe('ProjectService', () => {
         expect(oldDirExists).toBe(true)
 
         // Close the project to trigger the deferred rename
-        await projectService.closeProject(createResult.projectId)
+        await projectService.closeProject(createResult.projectId, projectsDirectory)
 
         // Now verify the directory was renamed after closing
         const newDirectoryPath = path.join(path.dirname(createResult.projectPath), newName)
@@ -1008,7 +1014,7 @@ describe('ProjectService', () => {
         expect(packageContent3).not.contain(secondName)
 
         // Close the project to trigger the final deferred rename
-        await projectService.closeProject(createResult.projectId)
+        await projectService.closeProject(createResult.projectId, projectsDirectory)
 
         // Verify the directory was renamed to the final name
         const finalDirectoryPath = path.join(path.dirname(createResult.projectPath), thirdName)
@@ -1075,8 +1081,8 @@ describe('ProjectService', () => {
         expect(package2Content).contain('RenamedRunning2')
 
         // Close both projects
-        await projectService.closeProject(project1.projectId)
-        await projectService.closeProject(project2.projectId)
+        await projectService.closeProject(project1.projectId, projectsDirectory)
+        await projectService.closeProject(project2.projectId, projectsDirectory)
 
         // Verify both directories were renamed
         const newPath1 = path.join(path.dirname(project1.projectPath), 'RenamedRunning1')

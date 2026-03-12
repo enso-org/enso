@@ -546,7 +546,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
                 try {
                   base.evaluate();
                 } catch (Throwable e) {
-                  throw new RuntimeException(e);
+                  throw raise(RuntimeException.class, e);
                 }
                 return null;
               });

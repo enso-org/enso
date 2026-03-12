@@ -153,23 +153,6 @@ class ExecutionContextManager {
       contexts.values.flatMap(_.visualizations.findByModule(module))
     }
 
-  /** Returns a visualization with the provided id.
-    *
-    * @param contextId the identifier of the execution context
-    * @param visualizationId the identifier of visualization
-    * @return an option with visualization
-    */
-  def getVisualizationById(
-    contextId: ContextId,
-    visualizationId: VisualizationId
-  ): Option[Visualization] =
-    synchronized {
-      for {
-        state         <- contexts.get(contextId)
-        visualization <- state.visualizations.getById(visualizationId)
-      } yield visualization
-    }
-
   /** Finds all visualizations attached to an expression.
     *
     * @param contextId the identifier of the execution context
@@ -224,5 +207,20 @@ class ExecutionContextManager {
       val state = contexts(contextId)
       state.visualizations.remove(visualizationId, expressionId)
     }
+
+  /** Registers a visualization for a subexpression of a potentially cached expression.
+    *
+    * @param contextId the identifier of the execution context
+    * @param expressionId the id of the expression, which cached result is to be ignored
+    */
+  def setExpressionFlyby(
+    contextId: ContextId,
+    expressionId: ExpressionId
+  ): Unit = {
+    synchronized {
+      val state = contexts(contextId)
+      state.visualizations.upsertNestedVisualization(expressionId)
+    }
+  }
 
 }

@@ -6,6 +6,7 @@ import {
   ProjectSessions,
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import type { ToValue } from '$/utils/reactivity'
 import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
@@ -19,8 +20,9 @@ import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { Result } from 'enso-common/src/utilities/data/result'
-import { computed, toValue, useTemplateRef } from 'vue'
+import { computed, toRef, toValue, useTemplateRef } from 'vue'
 
+const width = toRef(useContainerData(), 'rightPanelWidth')
 const data = useRightPanelData()
 
 // Not a part of RightPanelTabInfo, because it would create cyclic imports.
@@ -65,7 +67,7 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 const contentElement = useTemplateRef('contentElement')
 const size = useResizeObserver(contentElement)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
-const style = computed(() => (data.width == null ? {} : { '--panel-width': `${data.width}px` }))
+const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
 </script>
 
 <template>
@@ -78,7 +80,7 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
               <component :is="component" />
             </div>
           </WithFullscreenMode>
-          <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
+          <ResizeHandles left :modelValue="bounds" @update:modelValue="width = $event.width" />
         </div>
       </div>
     </SizeTransition>
@@ -115,6 +117,8 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
   position: relative;
   flex-direction: row;
   height: 100%;
+  flex-shrink: 1;
+  z-index: 2;
 }
 
 .content {

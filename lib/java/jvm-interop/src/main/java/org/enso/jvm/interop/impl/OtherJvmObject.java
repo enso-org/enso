@@ -191,6 +191,8 @@ final class OtherJvmObject implements TruffleObject {
       } catch (IllegalStateException ex) {
         CompilerDirectives.transferToInterpreter();
         throw new OtherJvmException(ex);
+      } catch (Throwable t) {
+        throw raise(RuntimeException.class, t);
       }
     }
   }
@@ -210,9 +212,16 @@ final class OtherJvmObject implements TruffleObject {
         cachedMetaParents = copy;
       } catch (UnsupportedMessageException ex) {
         cachedMetaParents = ex;
+      } catch (Throwable t) {
+        throw raise(RuntimeException.class, t);
       }
     }
     return cachedMetaParents;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> type, Throwable t) throws E {
+    throw (E) t;
   }
 
   private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {

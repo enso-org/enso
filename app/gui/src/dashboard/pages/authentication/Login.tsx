@@ -14,11 +14,10 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
-import type { CognitoUser } from '$/authentication/cognito'
 import { useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { isOnElectron } from 'enso-common/src/utilities/detect'
-import { useState } from 'react'
+import * as toastify from 'react-toastify'
 
 /** A form for users to log in. */
 export default function Login() {
@@ -48,21 +47,34 @@ export default function Login() {
       // This is special case, needed by package testing. See app/electron-client/tests/electronTest.ts.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
       const passwordOverride: string = (window as any).passwordOverride
-      const { user, challenge } = await signInWithPassword(
-        email,
-        passwordOverride ? passwordOverride : password,
-      )
+      try {
+        const { challenge } = await signInWithPassword(
+          email,
+          passwordOverride ? passwordOverride : password,
+        )
 
-      if (challenge) {
-        setUser(user)
-        nextStep()
-      } else {
-        await router.push(DASHBOARD_PATH)
+        if (challenge) {
+          nextStep()
+        } else {
+          await router.push(DASHBOARD_PATH)
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-restricted-syntax
+        const safeError = error as Error
+        const isUserNotConfirmed = /User not confirmed/.test(safeError.message)
+        if (isUserNotConfirmed) {
+          await router.push(
+            `${REGISTRATION_PATH}?${new URLSearchParams({
+              created: String(true),
+              email: form.getValues('email'),
+            }).toString()}`,
+          )
+          return null
+        }
+        throw error
       }
     },
   })
-
-  const [user, setUser] = useState<CognitoUser | null>(null)
 
   const isElectron = isOnElectron()
   const supportsOffline = isElectron
@@ -72,20 +84,28 @@ export default function Login() {
     defaultStep: 0,
   })
 
+  const handleFederatedSignInError = (err: unknown) => {
+    if (err instanceof Error && err.message.includes('Missing required user email value')) {
+      toastify.toast.error(getText('missingEmailError'))
+    } else {
+      toastify.toast.error(getText('registrationError'))
+    }
+  }
+
   const handleMicrosoftPress = useEventCallback(async () => {
-    await signInWithMicrosoft()
+    await signInWithMicrosoft().catch(handleFederatedSignInError)
   })
 
   const handleApplePress = useEventCallback(async () => {
-    await signInWithApple()
+    await signInWithApple().catch(handleFederatedSignInError)
   })
 
   const handleGooglePress = useEventCallback(async () => {
-    await signInWithGoogle()
+    await signInWithGoogle().catch(handleFederatedSignInError)
   })
 
   const handleGitHubPress = useEventCallback(async () => {
-    await signInWithGitHub()
+    await signInWithGitHub().catch(handleFederatedSignInError)
   })
 
   return (
@@ -192,24 +212,21 @@ export default function Login() {
               /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
-                if (user) {
-                  const res = await confirmSignIn(user, otp)
+                const res = await confirmSignIn(otp)
 
-                  if (res.ok) {
-                    await router.push(DASHBOARD_PATH)
-                  } else {
-                    switch (res.val.code) {
-                      case 'NotAuthorizedException':
-                        previousStep()
-                        form.setFormError(res.val.message)
-                        setUser(null)
-                        break
-                      case 'CodeMismatchException':
-                        formInstance.setError('otp', { message: res.val.message })
-                        break
-                      default:
-                        throw res.val
-                    }
+                if (res.ok) {
+                  await router.push(DASHBOARD_PATH)
+                } else {
+                  switch (res.val.code) {
+                    case 'NotAuthorizedException':
+                      previousStep()
+                      form.setFormError(res.val.message)
+                      break
+                    case 'CodeMismatchException':
+                      formInstance.setError('otp', { message: res.val.message })
+                      break
+                    default:
+                      throw res.val
                   }
                 }
               }}

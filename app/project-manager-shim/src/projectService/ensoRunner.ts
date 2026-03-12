@@ -18,16 +18,16 @@ export interface Runner {
     extraArgs?: readonly string[],
     extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets>
-  closeProject(projectId: string): Promise<void>
-  isProjectRunning(projectId: string): Promise<boolean>
+  closeProject(projectPath: Path): Promise<void>
+  isProjectRunning(projectPath: Path): Promise<boolean>
   renameProject(
-    projectId: string,
+    projectPath: Path,
     namespace: string,
     oldPackage: string,
     newPackage: string,
   ): Promise<void>
   registerShutdownHook(
-    projectId: string,
+    projectPath: Path,
     hookType: ShutdownHookType,
     hook: () => Promise<void>,
   ): Promise<void>
@@ -77,8 +77,8 @@ const LANGUAGE_SERVER_STARTUP_TIMEOUT = 30000
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
-  private runningProjects = new Map<string, RunningProject>()
-  private loadingProjects = new Map<string, Promise<LanguageServerSockets>>()
+  private runningProjects = new Map<Path, RunningProject>()
+  private loadingProjects = new Map<Path, Promise<LanguageServerSockets>>()
 
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
@@ -167,11 +167,11 @@ export class EnsoRunner implements Runner {
     extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets> {
     // Check if the project is already running
-    const runningProject = this.runningProjects.get(projectId)
+    const runningProject = this.runningProjects.get(projectPath)
     if (runningProject) {
       return runningProject.sockets
     }
-    const loadingProject = this.loadingProjects.get(projectId)
+    const loadingProject = this.loadingProjects.get(projectPath)
     if (loadingProject) {
       return loadingProject
     }
@@ -247,7 +247,7 @@ export class EnsoRunner implements Runner {
                   binarySocket: { host: '127.0.0.1', port: binaryPort },
                   ydocSocket: { host: '127.0.0.1', port: ydocPort },
                 }
-                this.runningProjects.set(projectId, {
+                this.runningProjects.set(projectPath, {
                   process: serverProcess,
                   sockets: sockets,
                   shutdownHooks: new Map(),
@@ -269,7 +269,7 @@ export class EnsoRunner implements Runner {
 
           serverProcess.on('close', async (code) => {
             // Execute shutdown hooks if the process exits unexpectedly
-            const runningProject = this.runningProjects.get(projectId)
+            const runningProject = this.runningProjects.get(projectPath)
             if (runningProject && runningProject.shutdownHooks) {
               for (const [hookType, hook] of runningProject.shutdownHooks) {
                 try {
@@ -277,7 +277,7 @@ export class EnsoRunner implements Runner {
                   await hook()
                 } catch (error) {
                   console.error(
-                    `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+                    `Error executing shutdown hook '${hookType}' for project ${projectPath}:`,
                     error,
                   )
                 }
@@ -285,7 +285,7 @@ export class EnsoRunner implements Runner {
             }
 
             // Remove from running projects when it closes
-            this.runningProjects.delete(projectId)
+            this.runningProjects.delete(projectPath)
             if (!resolved) {
               reject(new Error(`Language server process exited with code ${code}.`))
             }
@@ -305,16 +305,16 @@ export class EnsoRunner implements Runner {
         })
       },
     )
-    this.loadingProjects.set(projectId, promise)
-    promise.finally(() => this.loadingProjects.delete(projectId))
+    this.loadingProjects.set(projectPath, promise)
+    promise.finally(() => this.loadingProjects.delete(projectPath))
     return promise
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(projectId: string): Promise<void> {
+  async closeProject(projectPath: Path): Promise<void> {
     // First wait for potential initialization end.
-    await this.loadingProjects.get(projectId)
-    const runningProject = this.runningProjects.get(projectId)
+    await this.loadingProjects.get(projectPath)
+    const runningProject = this.runningProjects.get(projectPath)
 
     if (!runningProject) {
       // Project is not running or already closed
@@ -332,7 +332,7 @@ export class EnsoRunner implements Runner {
             await hook()
           } catch (error) {
             console.error(
-              `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+              `Error executing shutdown hook '${hookType}' for project ${projectPath}:`,
               error,
             )
           }
@@ -345,7 +345,7 @@ export class EnsoRunner implements Runner {
           process.kill('SIGKILL')
         }
         await executeShutdownHooks()
-        this.runningProjects.delete(projectId)
+        this.runningProjects.delete(projectPath)
         resolve()
       }, 10000)
 
@@ -353,7 +353,7 @@ export class EnsoRunner implements Runner {
       process.on('exit', async () => {
         clearTimeout(timeout)
         await executeShutdownHooks()
-        this.runningProjects.delete(projectId)
+        this.runningProjects.delete(projectPath)
         resolve()
       })
 
@@ -367,17 +367,17 @@ export class EnsoRunner implements Runner {
   }
 
   /** Checks if a project's language server is currently running. */
-  async isProjectRunning(projectId: string): Promise<boolean> {
-    return this.runningProjects.has(projectId)
+  async isProjectRunning(projectPath: Path): Promise<boolean> {
+    return this.runningProjects.has(projectPath)
   }
 
   /** Registers an action to be executed when the project is closed. */
   async registerShutdownHook(
-    projectId: string,
+    projectPath: Path,
     hookType: ShutdownHookType,
     hook: () => void | Promise<void>,
   ): Promise<void> {
-    const runningProject = this.runningProjects.get(projectId)
+    const runningProject = this.runningProjects.get(projectPath)
 
     if (!runningProject) {
       // If project is not running, execute the hook immediately
@@ -388,16 +388,20 @@ export class EnsoRunner implements Runner {
     runningProject.shutdownHooks.set(hookType, hook)
   }
 
-  /** Renames the running language server project. */
+  /**
+   * Renames the running language server project.
+   *
+   * It does _not_ rename it's directory.
+   */
   async renameProject(
-    projectId: string,
+    projectPath: Path,
     namespace: string,
     oldPackage: string,
     newPackage: string,
   ): Promise<void> {
-    const runningProject = this.runningProjects.get(projectId)
+    const runningProject = this.runningProjects.get(projectPath)
     if (!runningProject) {
-      throw new Error(`Project ${projectId} is not running`)
+      throw new Error(`Project ${projectPath} is not running`)
     }
 
     const { sockets } = runningProject

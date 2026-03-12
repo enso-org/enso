@@ -19,10 +19,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return success exit code (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "echo" [] "" False False False
+          |    result = System.create_process "echo" [] "" False False False Nothing
           |    result.exit_code
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -33,10 +34,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return success exit code (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c"] "" False False False
+          |    result = System.create_process "cmd" ["/c"] "" False False False Nothing
           |    result.exit_code
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -47,8 +49,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error when creating nonexistent command" in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
-          |main = System.create_process "nonexistentcommandxyz" [] "" False False False
+          |main = System.create_process "nonexistentcommandxyz" [] "" False False False Nothing
           |""".stripMargin
 
       val error = the[InterpreterException] thrownBy eval(code)
@@ -61,10 +64,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error exit code (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "ls --gibberish"] "" False False False
+          |    result = System.create_process "bash" ["-c", "ls --gibberish"] "" False False False Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -76,10 +80,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error exit code (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "exit 7"] "" False False False
+          |    result = System.create_process "cmd" ["/c", "exit 7"] "" False False False Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -91,10 +96,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True
+          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -107,10 +113,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -124,10 +131,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
+          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -158,10 +166,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin unused (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True
+          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -174,10 +183,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin empty (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "echo 9"] "" True True True
+          |    result = System.create_process "bash" ["-c", "echo 9"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -189,10 +199,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin empty (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True
+          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -204,10 +215,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False
+          |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False Nothing
           |    result.stdout
           |""".stripMargin
 
@@ -219,10 +231,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False Nothing
           |    result.stdout
           |""".stripMargin
 
@@ -234,10 +247,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout chars (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False True True
+          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -249,10 +263,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False True True
+          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -264,10 +279,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf '%b' '\x01\x0F\x10'"] "" False True True
+          |    result = System.create_process "bash" ["-c", "printf '%b' '\x01\x0F\x10'"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -279,10 +295,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stdout string (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False False False
+          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False False False Nothing
           |    result.stdout
           |""".stripMargin
 
@@ -295,10 +312,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stdout string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False False False
+          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False False False Nothing
           |    result.stdout
           |""".stripMargin
 
@@ -311,10 +329,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True
+          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -326,10 +345,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -341,10 +361,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr binary (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf '%b' '\xCA\xFE\xBA\xBE' 1>&2"] "" False True True
+          |    result = System.create_process "bash" ["-c", "printf '%b' '\xCA\xFE\xBA\xBE' 1>&2"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -356,10 +377,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False
+          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False Nothing
           |    result.stderr
           |""".stripMargin
 
@@ -371,10 +393,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False Nothing
           |    result.stderr
           |""".stripMargin
 

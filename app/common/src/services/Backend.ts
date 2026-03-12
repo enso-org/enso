@@ -119,7 +119,8 @@ export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `e
 export interface UserInfo {
   /**
    * The ID of the parent organization. If this is a sole user, they are implicitly in an
-   * organization consisting of only themselves.
+   * organization consisting of only themselves. For `User`s with `maintainerAccount` set to true this
+   * represents currently active (selected) `Organization`.
    */
   readonly organizationId: OrganizationId
   /** The name of the parent organization. */
@@ -137,6 +138,12 @@ export interface UserInfo {
   readonly email: EmailAddress
   readonly newOrganizationName?: string
   readonly newOrganizationInvite?: 'error' | 'pending'
+  /**
+   * Marks account with enabled feature to be able to switch currently active organization.
+   */
+  readonly maintainerAccount?: boolean
+  /** Array containing all `OrganizationInfo` that `User` belongs to. */
+  readonly organizations?: readonly OrganizationInfo[]
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -1120,6 +1127,7 @@ export interface CreateUserRequestBody {
 export interface UpdateUserRequestBody {
   readonly username?: string
   readonly organizationId?: OrganizationId
+  readonly switchOrganization?: boolean
 }
 
 /** HTTP request body for the "change user group" endpoint. */
@@ -1689,7 +1697,7 @@ export class NotAuthorizedError extends NetworkError {}
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {
   abstract readonly type: BackendType
-  abstract readonly baseUrl: URL
+  abstract baseUrl: URL
   protected getText: DefaultGetText
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
@@ -1729,11 +1737,11 @@ export abstract class Backend {
     }
 
     const error =
-      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+      response == null || !response.headers.get('Content-Type')?.startsWith('application/json') ?
         { message: 'unknown error' }
       : await ((): Promise<Error> => response.json())()
 
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}`
     console.error(message)
 
     const status = response?.status
@@ -1854,6 +1862,8 @@ export abstract class Backend {
   abstract listProjectExecutions(
     projectId: ProjectId,
     title: string,
+    year: number,
+    month: number,
   ): Promise<readonly ProjectExecution[]>
   abstract syncProjectExecution(
     executionId: ProjectExecutionId,

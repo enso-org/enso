@@ -112,7 +112,7 @@ final class EnsoPolyglotJava {
         if (pkgOrNull != null) {
           pkgOrNull.checkAotReady(
               () -> {
-                logger.warn(
+                logger.info(
                     "Package {} forced to guest classloading. Use --jvm when encountering"
                         + " problems.",
                     logNameForPkg(pkgOrNull));

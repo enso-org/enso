@@ -120,7 +120,7 @@
     --color-edge-from-node: var(--color-node-pending);
   }
 
-  &.selected {
+  .focusedPanel &.selected {
     --color-widget: var(--color-widget-selected);
     --color-node-background: color-mix(
       in oklab,
@@ -146,6 +146,35 @@
       in oklab,
       var(--color-node-primary),
       white 70%
+    );
+  }
+
+  &.selected {
+    --color-widget: var(--color-widget-selected);
+    --color-node-background: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 35%
+    );
+    --color-node-background-pending: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 45%
+    );
+    --color-node-text: color-mix(
+      in oklab,
+      var(--color-node-primary) 70%,
+      black 30%
+    );
+    --color-node-text-placeholder: color-mix(
+      in oklab,
+      var(--color-node-primary) 30%,
+      oklab(0.75 0 0) 70%
+    );
+    --color-edge-from-node: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 35%
     );
   }
 

@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
@@ -353,13 +354,13 @@ type Incomparable_Values
        ---
        Catches possible errors from comparing values and throws an
        `Incomparable_Values` if any occur.
-    handle_errors ~function =
-        handle t = Panic.catch t handler=_->
-            Error.throw (Incomparable_Values.Error Nothing Nothing)
-        handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
-
-        handle Type_Error <| handle Unsupported_Argument_Types <| handle ClassCastException <| handle_cmp_exc <|
-            function
+    handle_errors ~function = Panic.catch Any action=function handler=\caught->
+        case caught.payload of
+            _:Type_Error -> Error.throw (Incomparable_Values.Error Nothing Nothing)
+            _:Unsupported_Argument_Types -> Error.throw (Incomparable_Values.Error Nothing Nothing)
+            _:ClassCastException -> Error.throw (Incomparable_Values.Error Nothing Nothing)
+            exc:CompareException -> Error.throw (Incomparable_Values.Error exc.getLeftOperand exc.getRightOperand)
+            other -> Panic.throw other
 
 type Invalid_Array_Index
     ## ---

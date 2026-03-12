@@ -54,7 +54,7 @@ interface PackageYaml {
   normalizedName?: string
   namespace?: string
   edition?: string
-  jvmModeEnabled?: boolean
+  jvm?: boolean
 }
 
 interface ProjectJson {
@@ -266,7 +266,7 @@ export class ProjectFileRepository implements ProjectRepository {
         path: directory,
         directoryCreationTime: toRfc3339(stats.birthtime),
         ...(pkg.edition ? { edition: pkg.edition } : {}),
-        ...(pkg.jvmModeEnabled ? { jvmModeEnabled: pkg.jvmModeEnabled } : {}),
+        ...(pkg.jvm ? { jvmModeEnabled: pkg.jvm } : {}),
         ...(metadata.lastOpened ? { lastOpened: metadata.lastOpened } : {}),
       }
     } catch {

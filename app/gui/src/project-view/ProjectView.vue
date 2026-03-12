@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
+import type { ProjectTab } from '$/providers/container'
 import { useOpenedProjects } from '$/providers/openedProjects'
 import { useText } from '$/providers/text'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideVisibility } from '@/providers/visibility'
 import { provideSettings } from '@/stores/settings'
 import { ResultComponent } from '@/util/react'
-import { ProjectId } from 'enso-common/src/services/Backend'
 import { computed, onActivated, onDeactivated, onMounted, ref } from 'vue'
 
-const { projectId } = defineProps<{ projectId: ProjectId }>()
+const props = defineProps<{ tab: ProjectTab }>()
 
+const projectId = computed(() => props.tab.id)
 const openedProjects = useOpenedProjects()
-const projectState = computed(() => openedProjects.get(projectId)?.state)
+const projectState = computed(() => projectId.value && openedProjects.get(projectId.value)?.state)
 const { getText } = useText()
 
 provideSettings()
