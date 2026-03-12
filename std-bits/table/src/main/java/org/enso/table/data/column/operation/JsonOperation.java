@@ -234,7 +234,7 @@ public class JsonOperation {
   private static final DateTimeFormatter DATE_TIME_SHORT_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
   private static final DateTimeFormatter DATE_TIME_LONG_FORMAT =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.ggg");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
   private static final DateTimeFormatter ZONE_FORMAT = DateTimeFormatter.ofPattern("'['zz']'");
 
   private static String toJson(long value) {

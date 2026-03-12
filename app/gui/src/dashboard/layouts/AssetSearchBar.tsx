@@ -17,6 +17,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
 import { useText } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import { useQuery } from '@tanstack/react-query'
 import type { Backend, Label as BackendLabel } from 'enso-common/src/services/Backend'
 import * as detect from 'enso-common/src/utilities/detect'
@@ -119,6 +120,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
+  const container = useContainerData()
 
   const rawSuggestions = useStore(searchbarSuggestionsStore, (state) => state.suggestions, {
     unsafeEnableTransition: true,
@@ -243,7 +245,10 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
         eventModule.isTextInputEvent(event) &&
         event.key !== ' ' &&
         event.key !== 'Delete' &&
-        modalRef.current == null
+        modalRef.current == null &&
+        // We intentionally do not attach reactivity to `focusedPanel`, as we don't want to
+        // reattach event handler on every change; it's enough to read it when event happens.
+        container.focusedPanel.type === 'drive'
       ) {
         searchRef.current?.focus()
       }
@@ -262,7 +267,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
       root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [setQuery, modalRef, setAreSuggestionsVisible, suggestionsRef])
+  }, [setQuery, modalRef, setAreSuggestionsVisible, suggestionsRef, container])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {

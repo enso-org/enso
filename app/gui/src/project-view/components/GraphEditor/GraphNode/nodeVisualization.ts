@@ -5,7 +5,8 @@ import type { RawDataSource } from '@/components/GraphEditor/GraphVisualization/
 import { injectBubblingKeyboard } from '@/providers/keyboard'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
-import { type Rect } from '@/util/data/rect'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { VisualizationIdentifier, VisualizationMetadata } from 'ydoc-shared/yjsModel'
@@ -13,7 +14,6 @@ import type { VisualizationIdentifier, VisualizationMetadata } from 'ydoc-shared
 interface Emit {
   (event: 'update:visualizationWidth', width: number): void
   (event: 'update:visualizationEnabled', enabled: boolean): void
-  (event: 'update:visualizationRect', rect: Rect | undefined): void
   (event: 'update:visualizationId', id: Opt<VisualizationIdentifier>): void
   (event: 'update:visualizationEnabled', enabled: boolean): void
   (event: 'update:visualizationHeight', height: number): void
@@ -91,11 +91,15 @@ export function useNodeVisualization({
     if (!visible && visualizationHovered.value) visualizationHovered.value = false
   })
 
-  const visRect = shallowRef<Rect>()
-  const visibleVisRect = computed(
-    (): Opt<Rect> => (isVisualizationVisible.value && !toValue(hidden) ? visRect.value : null),
-  )
-  watch(visibleVisRect, (rect) => emit('update:visualizationRect', rect ?? undefined))
+  const visSize = shallowRef<Vec2>()
+  const visibleVisRect = computed((): Opt<Rect> => {
+    if (!isVisualizationVisible.value || toValue(hidden) || !visSize.value) return null
+    const nodeRectValue = toValue(nodeRect)
+    return new Rect(
+      nodeRectValue.pos,
+      new Vec2(visSize.value.x, nodeRectValue.size.y + visSize.value.y),
+    )
+  })
 
   const visualization = computed((): ComponentProps<typeof GraphVisualization> => {
     const { size: nodeSize, pos: nodePosition } = toValue(nodeRect)
@@ -114,7 +118,7 @@ export function useNodeVisualization({
       isFullscreenAllowed: true,
       isResizable: true,
       'onUpdate:hovered': (event) => (visualizationHovered.value = event),
-      'onUpdate:rect': (event) => (visRect.value = event),
+      'onUpdate:effectiveSize': (event) => (visSize.value = event),
       'onUpdate:id': (event) => emit('update:visualizationId', event),
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),

@@ -104,8 +104,8 @@ abstract class ImportResolverForIR
   }
 
   @Override
-  protected final java.util.List<BindingsMap.ResolvedType> definedEntities(Import.Module name) {
-    var parts = partsForImport(name);
+  protected final java.util.List<BindingsMap.ResolvedType> definedEntities(
+      java.util.List<String> parts, Import.Module name) {
     var last = parts.size() - 1;
     var modName = String.join(".", parts.subList(0, last).stream().toList());
     var compiler = this.getCompiler();
@@ -145,8 +145,8 @@ abstract class ImportResolverForIR
    * @return null if the import is not a constructor import.
    */
   @Override
-  protected java.util.List<ResolvedConstructor> definedConstructors(Import.Module imp) {
-    var parts = partsForImport(imp);
+  protected java.util.List<ResolvedConstructor> definedConstructors(
+      java.util.List<String> parts, Import.Module imp) {
     if (parts.size() < 3) {
       return null;
     }
@@ -184,8 +184,8 @@ abstract class ImportResolverForIR
   }
 
   @Override
-  protected java.util.List<ResolvedModuleMethod> definedModuleMethods(Import.Module imp) {
-    var parts = partsForImport(imp);
+  protected java.util.List<ResolvedModuleMethod> definedModuleMethods(
+      java.util.List<String> parts, Import.Module imp) {
     if (parts.size() < 3) {
       return null;
     }
@@ -219,8 +219,8 @@ abstract class ImportResolverForIR
   }
 
   @Override
-  protected java.util.List<ResolvedExtensionMethod> definedExtensionMethods(Import.Module imp) {
-    var parts = partsForImport(imp);
+  protected java.util.List<ResolvedExtensionMethod> definedExtensionMethods(
+      java.util.List<String> parts, Import.Module imp) {
     if (parts.size() < 3) {
       return null;
     }
@@ -254,8 +254,8 @@ abstract class ImportResolverForIR
   }
 
   @Override
-  protected java.util.List<ResolvedConversionMethod> definedConversionMethods(Import.Module imp) {
-    var parts = partsForImport(imp);
+  protected java.util.List<ResolvedConversionMethod> definedConversionMethods(
+      java.util.List<String> parts, Import.Module imp) {
     if (parts.size() < 3) {
       return null;
     }

@@ -32,4 +32,4 @@ type Columns_To_Keep
        that variant is only meant to be used as the default value.
     default_widget display:Display=..When_Modified -> Widget =
         options = [Choice.Option "..In_Any" "..In_Any", Choice.Option "..In_All" "..In_All", Choice.Option "..In_List" "..In_List" parameters=[["column_names", Widget.Vector_Editor item_default='""' display=Display.Always]]]
-        make_single_choice display=display options=options
+        make_single_choice display=display values=options

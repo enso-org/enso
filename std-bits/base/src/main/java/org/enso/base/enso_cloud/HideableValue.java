@@ -11,6 +11,20 @@ public sealed interface HideableValue
         HideableImpl.PlainValue,
         HideableImpl.SecretValue {
 
+  static HideableValue from(EnsoHideableValue ensoValue) {
+    return switch (ensoValue.value_type()) {
+      case EnsoHideableValue.PLAIN_TYPE -> plain(ensoValue.text_value());
+      case EnsoHideableValue.SECRET_TYPE -> secret(ensoValue.text_value());
+      case EnsoHideableValue.BASE64_TYPE -> base64(from(ensoValue.children().get(0)));
+      case EnsoHideableValue.CONCAT_TYPE ->
+          concat(from(ensoValue.children().get(0)), from(ensoValue.children().get(1)));
+      case EnsoHideableValue.PRIVATE_KEY_TYPE -> privateKey(from(ensoValue.children().get(0)));
+      default ->
+          throw new IllegalArgumentException(
+              "Unknown HideableValue type: " + ensoValue.value_type());
+    };
+  }
+
   record KeyValuePair(String key, HideableValue value) {
     String first() {
       return key;

@@ -5,6 +5,7 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
@@ -18,6 +19,7 @@ import * as github from '#/utilities/github'
 import * as appUtils from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import { BackendType, DirectoryDoesNotExistError } from 'enso-common/src/services/Backend'
 import { OfflineError } from 'enso-common/src/utilities/errors'
 import * as React from 'react'
@@ -129,20 +131,25 @@ function DriveInner() {
 /** The assets view of the Drive. */
 function DriveAssetsView() {
   const { getText } = useText()
+  const { setFocusedPanel } = useContainerData()
   const { isOffline } = offlineHooks.useOffline()
   const { associatedBackend } = useCategoriesAPI()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const isCloud = associatedBackend.type === BackendType.remote
   const isInaccessible = isCloud && isOffline
 
+  const onFocus = useEventCallback(() => {
+    setFocusedPanel({ type: 'drive' })
+  })
+
   return (
-    <div className="relative flex h-full w-full">
+    <div className="relative flex h-full w-full" onFocus={onFocus}>
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
         <div className="grid flex-1 gap-3 overflow-hidden sm:grid-cols-[180px_minmax(0,1fr)]">
-          <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1 sm:flex">
+          <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-12 sm:flex">
             <div className="flex flex-col gap-2">
               <Text variant="subtitle" weight="semibold">
                 {getText('category')}

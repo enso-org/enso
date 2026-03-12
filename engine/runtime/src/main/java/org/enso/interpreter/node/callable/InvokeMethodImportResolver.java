@@ -95,27 +95,31 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected List<Type> definedEntities(UnresolvedSymbol symbol) {
+  protected List<Type> definedEntities(java.util.List<String> parts, UnresolvedSymbol symbol) {
     return module.getScope().getAllTypes(symbol.getName());
   }
 
   @Override
-  protected List<AtomConstructor> definedConstructors(UnresolvedSymbol symbol) {
+  protected List<AtomConstructor> definedConstructors(
+      java.util.List<String> parts, UnresolvedSymbol symbol) {
     return Collections.emptyList();
   }
 
   @Override
-  protected List<Function> definedModuleMethods(UnresolvedSymbol symbol) {
+  protected List<Function> definedModuleMethods(
+      java.util.List<String> parts, UnresolvedSymbol symbol) {
     return Collections.emptyList();
   }
 
   @Override
-  protected List<Function> definedExtensionMethods(UnresolvedSymbol imp) {
+  protected List<Function> definedExtensionMethods(
+      java.util.List<String> parts, UnresolvedSymbol imp) {
     return null;
   }
 
   @Override
-  protected List<Function> definedConversionMethods(UnresolvedSymbol imp) {
+  protected List<Function> definedConversionMethods(
+      java.util.List<String> parts, UnresolvedSymbol imp) {
     return null;
   }
 

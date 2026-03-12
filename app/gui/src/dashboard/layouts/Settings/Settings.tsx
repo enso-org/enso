@@ -182,7 +182,10 @@ export function Settings() {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-page-x pt-4">
+      <div
+        className="flex h-full w-full flex-col gap-4 overflow-hidden pl-page-x pt-4"
+        data-testid="settings-panel"
+      >
         <Heading level={1} className="flex items-center px-heading-x">
           <Menu.Trigger>
             <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />

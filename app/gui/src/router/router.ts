@@ -13,9 +13,14 @@ import {
 import { useAuth } from '$/providers/auth'
 import { useConfig } from '$/providers/config'
 import { flagsStore } from '$/providers/featureFlags'
+import {
+  maybeRedirectToProject,
+  maybeRedirectToTab,
+  openTab,
+  redirectFromPath,
+} from '$/router/dashboardGuards'
 import { withDataLoader } from '$/router/dataLoader'
-import { maybeRedirectToProject, openProjectFromPath } from '$/router/initialProject'
-import { reactComponent } from '@/util/react'
+import { reactComponent, suspendedReactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
@@ -48,12 +53,31 @@ const routes = [
         children: [
           {
             name: 'dashboard',
-            path: '/:path(.*)*',
-            beforeEnter: maybeRedirectToProject,
+            path: '/',
+            beforeEnter: [maybeRedirectToProject, maybeRedirectToTab],
             component: () =>
               import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
                 reactComponent(mod.Dashboard),
               ),
+            children: [
+              {
+                name: 'project',
+                path: 'project/:id',
+                component: () => import('$/project-view/ProjectView.vue'),
+              },
+              {
+                name: 'settings',
+                path: 'settings',
+                component: () =>
+                  import('#/layouts/Settings').then((mod) => suspendedReactComponent(mod.Settings)),
+              },
+              {
+                name: 'ensoPath',
+                path: 'asset/:path(.*)*',
+                beforeEnter: redirectFromPath,
+                component: [],
+              },
+            ],
           },
           {
             path: SUBSCRIBE_PATH,
@@ -127,8 +151,8 @@ router.beforeEach(async (to, from) => {
     await useAuth().waitForSession()
   }
 })
+router.beforeEach(openTab)
 
-router.beforeEach(openProjectFromPath)
 router.onError((error) => console.error('Router error', error))
 
 export default router

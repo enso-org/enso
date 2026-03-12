@@ -1,13 +1,13 @@
 from Standard.Base import all
 
 import project.Helpers
-from project.Helpers import time_visualization
+from project.Helpers import time_visualization, short_display
 
 ## ---
    private: true
    ---
    Default visualization preprocessor.
-default_preprocessor x = time_visualization Preprocessor ("default_preprocessor: " + x.to_display_text) <|
+default_preprocessor x = time_visualization Preprocessor ("default_preprocessor: " + (short_display x)) <|
     result = x.to_default_visualization_data
     case result.is_error of
         True -> Helpers.truncate x.to_display_text . to_json
@@ -25,7 +25,7 @@ lazy_preprocessor x = x.to_lazy_visualization_data
    private: true
    ---
    Error visualization preprocessor.
-error_preprocessor x = time_visualization Preprocessor ("error_preprocessor: " + x.to_display_text) <|
+error_preprocessor x = time_visualization Preprocessor ("error_preprocessor: " + (short_display x)) <|
     ok = JS_Object.from_pairs [['message', '']] . to_json
     result = x.map_error err->
         message = err.to_display_text

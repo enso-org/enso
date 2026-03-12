@@ -26,7 +26,7 @@ import scala.Option;
  * @see UniqueJob
  */
 @SuppressWarnings("unchecked")
-public class ExecuteJob extends Job<Void> implements UniqueJob<Void> {
+public class ExecuteJob extends Job<Void> implements UniqueJob<Void>, SkipSchedulingUniqueJob {
 
   private static final Logger logger = LoggerFactory.getLogger(ExecuteJob.class);
   private static final String PENDING_VISUALIZATIONS_TRIGGER_CONTEXT = "pending visualizations";

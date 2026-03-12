@@ -97,10 +97,12 @@ type File
             if file_system.is_nothing then Error.throw (Illegal_Argument.Error "Unsupported protocol "+protocol) else
                 file_system.new path
         _ : File -> path
+        _ : File_Like -> File.new path.underlying
         _ ->
             ## Check to see if a valid "File" type.
             if ((File_System_SPI.get_types False).any file_type-> path.is_a file_type) then path else
-                Error.throw (Illegal_Argument.Error "The provided path is neither a Text, nor any recognized File-like type.")
+                types = (File_System_SPI.get_types False).map _.to_display_text . join ", "
+                Error.throw (Illegal_Argument.Error "The provided path is neither a Text, nor any recognized File-like type ("+types+").")
 
 
     ## ---

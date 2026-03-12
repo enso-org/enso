@@ -6,10 +6,10 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useBackends, useText } from '$/providers/react'
 import {
+  useContainerData,
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
-import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { includes } from '$/utils/data/array'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import type {
@@ -29,6 +29,14 @@ interface AddNewVersionVariables {
   readonly versionId: S3ObjectVersionId
   readonly placeholderId: S3ObjectVersionId
 }
+
+const MOCK_VERSION_TAGS = [
+  '1.24v',
+  '3+',
+  'Experimental Build Candidate',
+  'Feature-Flag-Rollout-Tag-Longer-Than-32-Chars',
+  'Customer Validation Snapshot 2026.03',
+] as const
 
 /** Display a list of previous versions of an asset. */
 export function AssetVersions() {
@@ -83,15 +91,23 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
       data.versions.map((version, index) => {
         const number = data.versions.length - index
         const title = getText('versionX', number)
+        // TODO[ib]: provide actual tags from the backend
+        // elsint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const _mockTags = MOCK_VERSION_TAGS
+        const tags = [
+          ...(version.isLatest ? [getText('latestIndicator')] : []),
+          //...mockTags,
+        ]
 
-        return { ...version, number, title }
+        return { ...version, number, title, tags }
       }),
   })
 
   const versions = versionsQuery.data
   const latestVersion = versions.find((version) => version.isLatest)
 
-  const { openProjectLocally } = useOpenedProjects()
+  const { openProjectLocally } = useContainerData()
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>

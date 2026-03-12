@@ -15,7 +15,7 @@ import {
   CLOUD_WELCOME_PROJECT_RELATIVE_PATH,
   LOCAL_WELCOME_PROJECT_RELATIVE_PATH,
   welcomeProjectPath,
-} from '../initialProject'
+} from '../dashboardGuards'
 
 // keep import registerting local storage key
 const _ = container
