@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,33 +18,35 @@ public class CallbacksTest extends ExecutorSetup {
 
   public CallbacksTest() {}
 
-  public final class TestCallbacks implements YjsChannel.Server {
+  @HostAccess.Implementable
+  public interface JsYjsChannel {
+    public void send(Object msg);
 
-    private Consumer<YjsChannel> handler;
+    public void subscribe(Consumer<Object> onMessage);
+  }
 
-    public TestCallbacks(Consumer<YjsChannel> handler) {
+  public final class TestCallbacks {
+    private Consumer<YjsChannel<Object>> handler;
+
+    TestCallbacks(Consumer<YjsChannel<Object>> handler) {
       this.handler = handler;
     }
 
-    @Override
-    public void onConnect(YjsChannel channel) {
-      this.handler.accept(channel);
+    @HostAccess.Export
+    public void onConnect(JsYjsChannel channel) {
+      var wrap = YjsChannel.create(channel::send, channel::subscribe);
+      this.handler.accept(wrap);
     }
   }
 
   @Before
+  @Override
   public void setup() throws Exception {
     super.setup();
 
     var hostAccess =
         WebEnvironment.defaultHostAccess
-            // allowImplementations is required to call methods on JS objects from Java,
-            // i.e. to call `YjsChannel::send` in the `TestCallbacks::onConnect` method
-            .allowImplementations(YjsChannel.class)
-            // public access is required to recognize Java lambdas passed to
-            // `YjsChannel::subscribe` method as JS functions.
             .allowPublicAccess(true)
-            .allowAccess(TestCallbacks.class.getDeclaredMethod("onConnect", YjsChannel.class))
             .allowAccess(AtomicReference.class.getDeclaredMethod("set", Object.class))
             .build();
     var contextBuilder = WebEnvironment.createContext(hostAccess);
