@@ -180,7 +180,7 @@ class GeoMapVisualizationMap {
       projection: 'mercator',
       zoom: DEFAULT_MAP_ZOOM,
     })
-    scope.run(() => onScopeDispose(() => this.map.remove))
+    scope.run(() => onScopeDispose(() => this.map.remove()))
     this.tooltip = this.setupTooltip()
     // Hotfix for https://github.com/mapbox/mapbox-gl-js/issues/13355
     ;(this.map as any)._updateContainerDimensions = function () {
