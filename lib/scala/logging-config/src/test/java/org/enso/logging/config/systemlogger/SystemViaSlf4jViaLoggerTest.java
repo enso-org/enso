@@ -134,7 +134,7 @@ public class SystemViaSlf4jViaLoggerTest {
 
     @Override
     public boolean isInfoEnabled(Marker marker) {
-      return minLevel.compareTo(Level.DEBUG) >= 0;
+      return minLevel.compareTo(Level.INFO) >= 0;
     }
 
     @Override
