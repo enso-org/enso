@@ -10,7 +10,7 @@ import org.slf4j.spi.SLF4JServiceProvider;
  * Bridges slf4j logger to {@link System.Logger}. Needs to be enabled by setting JVM properties.
  * Those are set when booting <em>Other JVM</em> in the <em>dual JVM</em> mode.
  */
-public final class Slf4ViaSystemProvider implements SLF4JServiceProvider, ILoggerFactory {
+public final class Slf4jViaSystemProvider implements SLF4JServiceProvider, ILoggerFactory {
 
   @Override
   public ILoggerFactory getLoggerFactory() {
