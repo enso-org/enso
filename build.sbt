@@ -1824,7 +1824,7 @@ lazy val `ydoc-server` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    customFrgaalJavaCompilerSettings("25"),
+    customFrgaalJavaCompilerSettings("21"),
     javaModuleName := "org.enso.ydoc.server",
     Compile / exportJars := true,
     crossPaths := false,

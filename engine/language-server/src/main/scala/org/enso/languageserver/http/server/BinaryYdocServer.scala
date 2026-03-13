@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.OutboundStreamEstablished
 import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
-import org.enso.ydoc.api.{YjsChannel, YjsChannelCallbacks}
+import org.enso.ydoc.api.YjsChannel
 import org.graalvm.polyglot.Context
 
 import java.lang.foreign.MemorySegment
@@ -40,10 +40,10 @@ object BinaryYdocServer {
     messageCallbacks: List[ByteBuffer => Unit],
     context: Context,
     system: ActorSystem
-  ) extends YjsChannelCallbacks
+  ) extends YjsChannel.Server[Object]
       with LazyLogging {
 
-    override def onConnect(channel: YjsChannel): Unit = {
+    override def onConnect(channel: YjsChannel[Object]): Unit = {
       logger.trace(s"Binary channel connected ${channel.getClass()}")
 
       val incomingMessageHandler = factory.createController()
@@ -83,7 +83,7 @@ object BinaryYdocServer {
 
   /** Actor that encodes and sends outgoing binary messages through the [[YjsChannel]]. */
   final class OutgoingMessageHandler[B](
-    channel: YjsChannel,
+    channel: YjsChannel[Object],
     encoder: BinaryEncoder[B]
   ) extends Actor
       with LazyLogging {

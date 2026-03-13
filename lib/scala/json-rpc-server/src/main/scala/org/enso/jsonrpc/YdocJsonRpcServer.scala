@@ -5,7 +5,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.MessageHandler
-import org.enso.ydoc.api.YjsChannelCallbacks
 import org.enso.ydoc.api.YjsChannel
 
 import java.util.UUID
@@ -77,10 +76,10 @@ object YdocJsonRpcServer {
     clientControllerFactory: ClientControllerFactory,
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
     system: ActorSystem
-  ) extends YjsChannelCallbacks
+  ) extends YjsChannel.Server[String]
       with LazyLogging {
 
-    override def onConnect(channel: YjsChannel): Unit = {
+    override def onConnect(channel: YjsChannel[String]): Unit = {
       logger.trace(s"JSON-RPC channel connected ${channel.getClass()}")
 
       val incomingMessageHandler =
@@ -120,10 +119,10 @@ object YdocJsonRpcServer {
   final class OnMessageHandler(
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
     incomingMessageHandler: ActorRef
-  ) extends Consumer[Object]
+  ) extends Consumer[String]
       with LazyLogging {
 
-    override def accept(message: Object): Unit = {
+    override def accept(message: String): Unit = {
       message match {
         case m: String =>
           logger.trace(s"Received JSON-RPC message $m")
@@ -137,7 +136,7 @@ object YdocJsonRpcServer {
   }
 
   /** Actor that sends outgoing JSON-RPC messages through the [[YjsChannel]]. */
-  final class OutgoingMessageHandler(channel: YjsChannel)
+  final class OutgoingMessageHandler(channel: YjsChannel[String])
       extends Actor
       with LazyLogging {
 

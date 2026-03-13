@@ -2,7 +2,6 @@ package org.enso.ydoc.server;
 
 import java.io.IOException;
 import org.enso.ydoc.api.YjsChannel;
-import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.slf4j.event.Level;
 
@@ -17,8 +16,8 @@ public final class Main {
   public static AutoCloseable launch(
       String ydocHost,
       String ydocPort,
-      YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks,
+      YjsChannel.Server<String> jsonChannelCallbacks,
+      YjsChannel.Server<Object> binaryChannelCallbacks,
       String logLevelName)
       throws IOException {
     var builder = Ydoc.builder();
@@ -38,12 +37,7 @@ public final class Main {
     if (binaryChannelCallbacks != null) {
       builder.binaryChannelCallbacks(binaryChannelCallbacks);
     }
-    var hostAccess =
-        WebEnvironment.defaultHostAccess
-            // allowImplementations is required to call methods on JS objects from Java, i.e. to
-            // call methods on `YjsChannel` object returned from JS
-            .allowImplementations(YjsChannel.class)
-            .allowPublicAccess(true);
+    var hostAccess = WebEnvironment.defaultHostAccess;
     builder.hostAccessBuilder(hostAccess);
     var ydoc = builder.build();
     ydoc.start();

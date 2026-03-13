@@ -1,7 +1,6 @@
 package org.enso.ydoc.server;
 
 import org.enso.ydoc.api.YjsChannel;
-import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.graalvm.polyglot.HostAccess;
 
 /**
@@ -12,16 +11,16 @@ import org.graalvm.polyglot.HostAccess;
  * the raw channel before passing it to the delegate, ensuring the Language Server can safely
  * interact with channels from any thread.
  */
-final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
+final class YjsCallbacksSynchronized<M> implements YjsChannel.Server<M> {
 
-  private final YjsChannelCallbacks callbacks;
+  private final YjsChannel.Server<M> callbacks;
   private final YdocScheduledExecutorService executor;
 
   /**
    * @param callbacks the delegate to receive synchronized channels
    * @param executor the Ydoc executor that owns the GraalJS context thread
    */
-  YjsCallbacksSynchronized(YjsChannelCallbacks callbacks, YdocScheduledExecutorService executor) {
+  YjsCallbacksSynchronized(YjsChannel.Server<M> callbacks, YdocScheduledExecutorService executor) {
     this.callbacks = callbacks;
     this.executor = executor;
   }
@@ -29,8 +28,8 @@ final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
   /** Wraps the channel in {@link YjsChannelSynchronized} and forwards to the delegate. */
   @Override
   @HostAccess.Export
-  public void onConnect(YjsChannel channel) {
-    var synchronizedChannel = new YjsChannelSynchronized(channel, this.executor);
+  public void onConnect(YjsChannel<M> channel) {
+    var synchronizedChannel = YjsChannelSynchronized.wrap(channel, this.executor);
     this.callbacks.onConnect(synchronizedChannel);
   }
 }

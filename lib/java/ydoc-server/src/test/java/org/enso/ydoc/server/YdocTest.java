@@ -15,7 +15,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.enso.ydoc.api.YjsChannel;
-import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.junit.After;
 import org.junit.Assert;
@@ -68,14 +67,14 @@ public class YdocTest {
     var jsonOnConnectLatch = new CountDownLatch(1);
     var binaryOnConnectLatch = new CountDownLatch(1);
 
-    YjsChannelCallbacks jsonCallbacks =
-        (YjsChannel channel) -> {
+    YjsChannel.Server<String> jsonCallbacks =
+        (YjsChannel<String> channel) -> {
           log.debug("Json onConnect called with channel: {}", channel);
           jsonOnConnectLatch.countDown();
         };
 
-    YjsChannelCallbacks binaryCallbacks =
-        (YjsChannel channel) -> {
+    YjsChannel.Server<Object> binaryCallbacks =
+        (YjsChannel<Object> channel) -> {
           log.debug("Binary onConnect called with channel: {}", channel);
           binaryOnConnectLatch.countDown();
         };

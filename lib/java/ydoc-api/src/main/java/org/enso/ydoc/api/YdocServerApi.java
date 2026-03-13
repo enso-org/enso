@@ -6,12 +6,23 @@ import java.util.ServiceLoader;
 import org.slf4j.event.Level;
 
 public abstract class YdocServerApi {
-
+  /**
+   * Initializes the Ydoc subsystem.
+   *
+   * @param hostname hostname to bind to
+   * @param port port to bind to
+   * @param jsonServer implementation handling JSON messages
+   * @param binaryServer implementation handling binary messages communication
+   * @param logLevel
+   * @return
+   * @throws IOException
+   * @throws URISyntaxException
+   */
   public static AutoCloseable launchYdocServer(
       String hostname,
       int port,
-      YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks,
+      YjsChannel.Server<String> jsonServer,
+      YjsChannel.Server<Object> binaryServer,
       Level logLevel)
       throws IOException, URISyntaxException {
     var loader = YdocServerApi.class.getClassLoader();
@@ -20,15 +31,14 @@ public abstract class YdocServerApi {
       throw new IllegalStateException("No Ydoc server implementation found");
     }
     var impl = it.next();
-    return impl.runYdocServer(
-        hostname, port, jsonChannelCallbacks, binaryChannelCallbacks, logLevel);
+    return impl.runYdocServer(hostname, port, jsonServer, binaryServer, logLevel);
   }
 
   protected abstract AutoCloseable runYdocServer(
       String hostname,
       int port,
-      YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks,
+      YjsChannel.Server<String> jsonChannelCallbacks,
+      YjsChannel.Server<Object> binaryChannelCallbacks,
       Level logLevel)
       throws IOException, URISyntaxException;
 }
