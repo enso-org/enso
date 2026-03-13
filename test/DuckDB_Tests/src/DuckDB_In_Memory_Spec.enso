@@ -1,5 +1,7 @@
 from Standard.Base import all
+
 from Standard.Table import all
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 from Standard.Database import all
 from Standard.Database.Errors import Table_Already_Exists
@@ -29,6 +31,30 @@ compare_table db_table_read table =
 
 
 add_specs suite_builder =
+    suite_builder.group "DuckDB JSON" group_builder->
+        connect = Database.connect DuckDB.In_Memory
+        make_table_sql = 'create temporary table tbl_json_test(id integer primary key, payload json); insert into tbl_json_test values (0, \'{"defaultMargin": 22}\'), (1, \'null\'), (2, \'true\'), (3, \'false\'), (4, \'123\'), (5, \'"string value"\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\'), (10, \'3.14159267\'), (11, null);'
+        connect.execute_update make_table_sql
+
+        group_builder.specify "query a table with JSON" <|
+            db_table = connect.query "tbl_json_test"
+            Problems.assume_no_problems db_table
+            db_table.column_names.should_equal ["id", "payload"]
+            db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            json_type = db_table.at "payload" . value_type
+            json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+            json_type.type_name.should_equal "JSON"
+            db_table.row_count.should_equal 12
+
+        group_builder.specify "read a table with JSON as text with warning" <|
+            table = connect.read "tbl_json_test"
+            Problems.expect_only_warning Inexact_Type_Coercion table
+            table.column_names.should_equal ["id", "payload"]
+            table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            table.at "payload" . value_type . should_equal Value_Type.Char
+            table.row_count . should_equal 12
+            table.at "payload" . to_vector . should_equal ['{"defaultMargin": 22}', 'null', 'true', 'false', '123', '"string value"', '{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}', '[1, 2, 3, 4, 5]', '["string1", "string2", "string3"]', '[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]', '3.14159267', Nothing]
+
     suite_builder.group "DuckDB_Parquet" group_builder->
         connect = Database.connect DuckDB.In_Memory
 
