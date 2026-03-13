@@ -126,7 +126,12 @@ type DuckDB_Type_Mapping
        private: true
        ---
     sql_type_to_text : SQL_Type -> Text
-    sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
+    sql_type_to_text sql_type = case sql_type.name of
+        "HUGEINT" -> "HUGEINT"
+        "UHUGEINT" -> "UHUGEINT"
+        "UBIGINT" -> "UBIGINT"
+        "BIGNUM" -> "BIGNUM"
+        _ -> SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## ---
        private: true
