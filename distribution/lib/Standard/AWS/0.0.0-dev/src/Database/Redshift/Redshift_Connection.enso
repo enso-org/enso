@@ -33,6 +33,7 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 import project.S3.S3_File.S3_File
 import project.AWS_Credential.AWS_Credential
+import project.S3.S3
 
 import project.Database.Redshift.Internal.Redshift_Dialect
 import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
@@ -409,7 +410,8 @@ type Redshift_Connection
          instead of an in-memory table.
        - `Table_Already_Exists` if the table exists and `if_exists` is set to 
          `Raise_Error`.
-    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") staging_bucket:Text=(Missing_Argument.throw "staging_bucket") credentials:Credentials|AWS_Credential=..Profile iam_role:Text=(Missing_Argument.throw "iam_role") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
+    @staging_bucket _make_staging_bucket_widget
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") staging_bucket_credentials:Credentials|AWS_Credential=..Profile staging_bucket:Text=(Missing_Argument.throw "staging_bucket") iam_role:Text=(Missing_Argument.throw "iam_role") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
         _ : DB_Table ->
             Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
         _ : In_Memory_Table ->
@@ -422,7 +424,7 @@ type Redshift_Connection
             if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
             ## Check Execution Context
-            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
+            Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
                 Nothing
 
             Context.Output.with_enabled <|
@@ -440,12 +442,13 @@ type Redshift_Connection
                 ## Assuming we managed to create the table, proceed with upload
                 created_table.if_not_error <|
                     s3_file_path = staging_bucket + "/" + table_name + "_" + Random.uuid + ".csv"
-                    s3_file = S3_File.new s3_file_path credentials
-                    table.write s3_file format=..Delimited
+                    s3_file = S3_File.new s3_file_path staging_bucket_credentials
+                    if s3_file.is_error then Error.throw s3_file
+                    written_s3_file = table.write s3_file format=..Delimited
+                    
                     self.execute ("COPY " + table_name + " FROM '" + s3_file_path + "'" + " IAM_ROLE '" + iam_role + "'" + " FORMAT AS CSV" + " IGNOREHEADER 1;")
                     s3_file.delete
                     created_table
-
 
     ## ---
        private: true
@@ -528,6 +531,11 @@ type Redshift_Connection
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs <| [["type", "Redshift_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
+
+private _make_staging_bucket_widget connection cache=Nothing =
+    cached_credentials = cache.if_not_nothing <| cache "staging_bucket_credentials"
+    credentials = if cached_credentials.is_nothing then AWS_Credential.Default else cached_credentials
+    Single_Choice display=..Always values=((S3.list_buckets credentials).map c-> (Option c ("'"+c+"'")))
 
 ## ---
    private: true
