@@ -37,7 +37,7 @@ interface GeoJsonLayer {
 
 type Layer = ScatterplotLayer | GeoJsonLayer
 
-type Color = [red: number, green: number, blue: number]
+type Color = string
 
 interface Location {
   latitude: number
@@ -212,15 +212,19 @@ class GeoMapVisualizationMap {
       offset: 4,
     })
 
-    this.map.on('mousemove', (event) => {
-      const feature = this.map.queryRenderedFeatures(event.point)[0]
-      if (feature?.properties?.label) {
-        popup.setLngLat(event.lngLat).setText(feature.properties.label).addTo(this.map)
-      } else {
-        popup.remove()
-      }
+    this.map.on('style.load', () => {
+      // queryRenderedFeatures works only on loaded styles (otherwise we get exceptions).
+      this.map.on('mousemove', (event) => {
+        const feature = this.map.queryRenderedFeatures(event.point)[0]
+        if (feature?.properties?.label) {
+          popup.setLngLat(event.lngLat).setText(feature.properties.label).addTo(this.map)
+        } else {
+          popup.remove()
+        }
+      })
+      this.map.on('mouseout', () => popup.remove())
     })
-    this.map.on('mouseout', () => popup.remove())
+
     return popup
   }
 
