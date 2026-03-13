@@ -441,10 +441,13 @@ type Redshift_Connection
 
                 ## Assuming we managed to create the table, proceed with upload
                 created_table.if_not_error <|
-                    s3_file_path = staging_bucket + "/" + table_name + "_" + Random.uuid + ".csv"
+                    normalized_staging_bucket = if staging_bucket.starts_with "s3://" then staging_bucket else "s3://" + staging_bucket + "/"
+                    normalized_staging_bucket2 = if normalized_staging_bucket.ends_with "/" then normalized_staging_bucket else normalized_staging_bucket + "/"
+                    s3_file_path = normalized_staging_bucket2 + table_name + "_" + Random.uuid + ".csv"
                     s3_file = S3_File.new s3_file_path staging_bucket_credentials
                     if s3_file.is_error then Error.throw s3_file
                     written_s3_file = table.write s3_file format=..Delimited
+                    if written_s3_file.is_error then Error.throw written_s3_file
                     
                     self.execute ("COPY " + table_name + " FROM '" + s3_file_path + "'" + " IAM_ROLE '" + iam_role + "'" + " FORMAT AS CSV" + " IGNOREHEADER 1;")
                     s3_file.delete
