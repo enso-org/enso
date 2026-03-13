@@ -1,7 +1,6 @@
 package org.enso.ydoc.api;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
@@ -44,25 +43,35 @@ public class CallbacksTest extends ExecutorSetup {
   public void setup() throws Exception {
     super.setup();
 
-    var hostAccess =
-        WebEnvironment.defaultHostAccess
-            .allowPublicAccess(true)
-            .allowAccess(AtomicReference.class.getDeclaredMethod("set", Object.class))
-            .build();
+    var hostAccess = WebEnvironment.defaultHostAccess.allowPublicAccess(true).build();
     var contextBuilder = WebEnvironment.createContext(hostAccess);
 
     context = CompletableFuture.supplyAsync(contextBuilder::build, executor).get();
   }
 
   @After
+  @Override
   public void tearDown() throws InterruptedException {
     super.tearDown();
     context.close();
   }
 
+  public static final class JsRef {
+    Object value;
+
+    @HostAccess.Export
+    public void set(Object v) {
+      this.value = v;
+    }
+
+    Object get() {
+      return this.value;
+    }
+  }
+
   @Test
   public void onConnectSend() throws Exception {
-    var res = new AtomicReference<>();
+    var res = new JsRef();
     var code =
         """
         class YjsChannel {
@@ -86,7 +95,7 @@ public class CallbacksTest extends ExecutorSetup {
 
   @Test
   public void onConnectSubscribe() throws Exception {
-    var res = new AtomicReference<>();
+    var res = new JsRef();
     var code =
         """
         class YjsChannel {
@@ -110,7 +119,7 @@ public class CallbacksTest extends ExecutorSetup {
 
   @Test
   public void onConnectSubscribeBuffer() throws Exception {
-    var res = new AtomicReference<>();
+    var res = new JsRef();
     var code =
         """
         class YjsChannel {
