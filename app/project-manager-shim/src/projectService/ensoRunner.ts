@@ -5,12 +5,13 @@ import { createWriteStream } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
-import { clearInterval } from 'node:timers'
 import * as portfinder from 'portfinder'
 import { extract } from 'tar'
 import { Path } from './types.js'
 
 const HEALTHCHECK_FAILURES_TO_RESTART = 3
+const LOAD_HEALTHCHECK_INTERVAL = 250
+const WATCHDOG_HEALTHCHECK_INTERVAL = 3000
 
 export interface Runner {
   runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<number>
@@ -77,7 +78,7 @@ class OpenedProject {
   loaded: Promise<void>
   shutdownHooks: Map<ShutdownHookType, () => void | Promise<void>> = new Map()
   private closed = false
-  private watchdogInterval: ReturnType<typeof setInterval> | undefined
+  private nextWatchdogCheck: ReturnType<typeof setTimeout> | undefined
 
   private constructor(
     private path: Path,
@@ -108,7 +109,7 @@ class OpenedProject {
   async close() {
     console.log('Closing Project', this.path)
     this.closed = true
-    clearInterval(this.watchdogInterval)
+    clearTimeout(this.nextWatchdogCheck)
     await this.terminateProcess()
 
     for (const [hookType, hook] of this.shutdownHooks) {
@@ -127,20 +128,19 @@ class OpenedProject {
   private loadingRoutine(): Promise<void> {
     return new Promise((resolve, reject) => {
       let resolved = false
-      const startHealthCheck = () => {
-        const pollInterval = setInterval(async () => {
-          const isReady = await this.checkServerHealth()
-          if (isReady) {
-            clearInterval(pollInterval)
-            resolved = true
-            this.runWatchdog()
-            resolve()
-          }
-        }, 250)
-      }
 
-      // Start health check after initial delay
-      setTimeout(startHealthCheck, 250)
+      const healthCheck = async () => {
+        const isReady = await this.checkServerHealth()
+        if (isReady) {
+          resolved = true
+          this.runWatchdog()
+          resolve()
+        } else {
+          // Not using setInterval to not pile slow-responding healthchecks.
+          setTimeout(healthCheck, LOAD_HEALTHCHECK_INTERVAL)
+        }
+      }
+      setTimeout(healthCheck, 250)
 
       // Timeout if server doesn't start (skip timeout in debug mode)
       const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
@@ -158,9 +158,6 @@ class OpenedProject {
 
   private runWatchdog() {
     const restart = async (processExited = false) => {
-      // Stop current interval; the `loadingRoutine` will run new watchdog for a new process.
-      clearInterval(this.watchdogInterval)
-      this.watchdogInterval = undefined
       if (!processExited) await this.terminateProcess()
       if (!this.closed) {
         this.process = await this.spawner()
@@ -175,29 +172,36 @@ class OpenedProject {
         this.path,
         ' exited unexpectedly, restarting',
       )
+      clearTimeout(this.nextWatchdogCheck)
       restart(true)
     })
 
     let failures = 0
-    this.watchdogInterval = setInterval(async () => {
+    const check = async () => {
       if (this.closed) return
       if (await this.checkServerHealth()) {
         failures = 0
       } else {
         console.error('Healthcheck failed! Project:', this.path)
         failures += 1
-        if (failures >= HEALTHCHECK_FAILURES_TO_RESTART) {
-          console.error(
-            'Healthcheck of ',
-            this.path,
-            'failed',
-            HEALTHCHECK_FAILURES_TO_RESTART,
-            'times in a row, restarting.',
-          )
-          restart()
-        }
       }
-    }, 3000)
+
+      if (failures >= HEALTHCHECK_FAILURES_TO_RESTART) {
+        console.error(
+          'Healthcheck of ',
+          this.path,
+          'failed',
+          HEALTHCHECK_FAILURES_TO_RESTART,
+          'times in a row, restarting.',
+        )
+        restart()
+        // do not schedule next check; the restart process does this once project is initialized.
+      } else {
+        // Not using setInterval to not pile slow-responding healthchecks.
+        this.nextWatchdogCheck = setTimeout(check, WATCHDOG_HEALTHCHECK_INTERVAL)
+      }
+    }
+    this.nextWatchdogCheck = setTimeout(check, WATCHDOG_HEALTHCHECK_INTERVAL)
   }
 
   private terminateProcess(): Promise<void> {
