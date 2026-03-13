@@ -74,10 +74,10 @@ const layerStyle = computed(() => ({
       @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"
       @update:rect="graphStore.updateNodeRect(id, $event)"
+      @update:height="graphStore.setNodeHeight(id, $event)"
       @update:visualizationId="
         graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
       "
-      @update:visualizationRect="graphStore.updateVizRect(id, $event)"
       @update:visualizationEnabled="graphStore.setNodeVisualization(id, { visible: $event })"
       @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
       @update:visualizationHeight="graphStore.setNodeVisualization(id, { height: $event })"

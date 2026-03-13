@@ -1126,6 +1126,11 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Invalid operation. */
+  override downloadProjectSessionLogs() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override listApiKeys() {
     return this.invalidOperation()
   }

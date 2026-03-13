@@ -83,6 +83,47 @@ public class ImportSymbolsTest {
     }
   }
 
+  /** Regression test for <a href="https://github.com/enso-org/enso/issues/14856">#14856</a>. */
+  @Test
+  public void callMethodFromSubModuleOfAnotherProject() throws IOException {
+    var libXyzMod =
+        new SourceModule(
+            QualifiedName.fromString("Xyz"),
+            """
+            foo = 'world'
+            """);
+    var libMainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            main =
+                text1 = 'hello'
+                text1
+            """);
+    var projMainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            import local.Lib
+            main =
+                any1 = Lib.Xyz.foo
+                any1
+            """);
+    var tmpDir = tempFolder.newFolder().toPath();
+    var libDir = tmpDir.resolve("Lib");
+    var projDir = tmpDir.resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject("Lib", Set.of(libMainMod, libXyzMod), libDir);
+    ProjectUtils.createProject("Proj", Set.of(projMainMod), projDir);
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isString(), is(true));
+          assertThat(res.asString(), is("world"));
+        });
+  }
+
   // TODO: Tracked by https://github.com/enso-org/enso/issues/10504
   @Ignore
   @Test

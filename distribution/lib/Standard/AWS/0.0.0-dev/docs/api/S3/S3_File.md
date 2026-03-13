@@ -2,6 +2,7 @@
 ## module Standard.AWS.S3.S3_File
 - type S3_File
     - / self subpath:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - bucket self -> Standard.Base.Data.Text.Text
     - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
     - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_directory self -> Standard.Base.Any.Any
@@ -15,6 +16,7 @@
     - is_directory self -> Standard.Base.Any.Any
     - is_regular_file self -> Standard.Base.Any.Any
     - join self subpaths:(Standard.Base.Data.Vector.Vector|Standard.Base.Data.Text.Text) -> Standard.Base.Any.Any
+    - key self -> Standard.Base.Data.Text.Text
     - last_modified_time self -> Standard.Base.Any.Any
     - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - move_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
@@ -22,6 +24,7 @@
     - new uri:Standard.Base.Data.Text.Text= credentials:Standard.AWS.AWS_Credential.AWS_Credential= -> Standard.Base.Any.Any
     - parent self -> Standard.Base.Any.Any
     - path self -> Standard.Base.Any.Any
+    - presigned_uri self duration:Standard.Base.Data.Time.Duration.Duration= -> Standard.Base.Network.URI.URI!(Standard.AWS.Errors.S3_Error|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
     - read self format:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - read_bytes self -> Standard.Base.Any.Any
     - read_text self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
@@ -31,9 +34,15 @@
     - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - uri self -> Standard.Base.Data.Text.Text
+    - version_id self -> (Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
+    - versions self -> (Standard.Base.Data.Vector.Vector Standard.AWS.S3.S3_File.S3_File)
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type S3_File_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.System.File_Format_Metadata.File_Format_Metadata.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 - Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.System.File.Generic.File_Like.File_Like
 - Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.System.File.Generic.Writable_File.Writable_File
 - Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.AWS.S3.S3_File.S3_File -> Standard.Base.Data.Ordering.Comparable

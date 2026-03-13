@@ -13,7 +13,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.TopLevelScope;
 
 final class InvokeMethodImportResolver
     extends ImportResolverAlgorithm<
@@ -29,11 +28,11 @@ final class InvokeMethodImportResolver
         Function> {
 
   private final Module module;
-  private final TopLevelScope topScope;
+  private final EnsoContext ctx;
 
-  private InvokeMethodImportResolver(Module module, TopLevelScope topScope) {
+  private InvokeMethodImportResolver(Module module, EnsoContext ctx) {
     this.module = module;
-    this.topScope = topScope;
+    this.ctx = ctx;
   }
 
   @Override
@@ -126,13 +125,14 @@ final class InvokeMethodImportResolver
   @Override
   protected Module loadLibraryModule(LibraryName libraryName, String moduleName)
       throws IOException {
-    var optionModule = topScope.getModule(moduleName);
+    var optionModule = ctx.getTopScope().getModule(moduleName);
     return optionModule.orElse(null);
   }
 
   @Override
   protected EnsoObject createResolvedImport(UnresolvedSymbol imp, List<Object> exp, Module m) {
-    return m.getScope().getAssociatedType();
+    var scope = m.compileScope(ctx);
+    return scope.getAssociatedType();
   }
 
   @Override
@@ -199,7 +199,7 @@ final class InvokeMethodImportResolver
     }
     var scope = t.getDefinitionScope();
     var module = scope.getModule();
-    var resolver = new InvokeMethodImportResolver(module, ctx.getTopScope());
+    var resolver = new InvokeMethodImportResolver(module, ctx);
     var found = resolver.tryResolveImport(module, symbol);
     return found;
   }

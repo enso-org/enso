@@ -357,9 +357,10 @@ export class GraphDb {
     const oldNode = this.nodeIdToNode.getUntracked(nodeId)
     if (oldNode == null) {
       const nodeMeta = newNode.rootExpr.nodeMetadata
-      const pos = nodeMeta.get('position') ?? { x: Infinity, y: Infinity }
+      const pos = nodeMeta.get('position')
       const metadataFields = {
-        position: new Vec2(pos.x, pos.y),
+        position: new Vec2(pos?.x ?? Infinity, pos?.y ?? Infinity),
+        height: pos?.h,
         vis: nodeMeta.get('visualization'),
         colorOverride: nodeMeta.get('colorOverride'),
         isExpanded: (nodeMeta.get('displayMode') ?? 'expanded') === 'expanded',
@@ -459,8 +460,11 @@ export class GraphDb {
     const node = this.nodeByRootAstId(astId)
     if (!node) return
     const newPos = changes.get('position')
-    const newPosVec = newPos && new Vec2(newPos.x, newPos.y)
-    if (newPosVec && !newPosVec.equals(node.position)) node.position = newPosVec
+    if (newPos) {
+      const newPosVec = new Vec2(newPos.x, newPos.y)
+      if (!newPosVec.equals(node.position)) node.position = newPosVec
+      if (newPos.h !== node.height) node.height = newPos.h
+    }
     if (changes.has('visualization')) {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
@@ -583,6 +587,7 @@ export class GraphDb {
     const node: Node = {
       type: 'component',
       position: Vec2.Zero,
+      height: undefined,
       vis: undefined,
       prefixes: { enableRecording: undefined },
       primaryApplication: { function: null, accessChain: null, selfArgument: null },
@@ -709,6 +714,7 @@ export interface OutputNodeData extends AllNodeFieldsFromAst {
 
 export interface NodeDataFromMetadata {
   position: Vec2
+  height: number | undefined
   vis: Opt<VisualizationMetadata>
   colorOverride: Opt<string>
   isExpanded: boolean

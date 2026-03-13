@@ -56,13 +56,71 @@ type S3_File
     new : Text -> AWS_Credential -> S3_File ! Illegal_Argument
     new (uri : Text = S3.uri_prefix) credentials:AWS_Credential=..Default =
         parsed_path = S3_Path.parse uri
-        root = S3_File.Value parsed_path.bucket_root credentials
+        root = S3_File.make_instance parsed_path.bucket_root credentials
         root / parsed_path.key
 
     ## ---
        private: true
        ---
-    private Value (s3_path : S3_Path) credentials:AWS_Credential
+    private Value (s3_path : S3_Path) credentials:AWS_Credential internal_version_id:Text
+
+    private make_instance s3_path credentials =
+        S3_File.Value s3_path credentials ""
+
+    private raw_head self =
+        S3.raw_head self.s3_path.bucket self.s3_path.key self.internal_version_id self.credentials
+
+    ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Returns the bucket of this S3 file.
+    bucket self -> Text =
+        self.s3_path.bucket
+
+    ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Returns the key of this S3 file.
+    key self -> Text =
+        self.s3_path.key
+
+    ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Returns the current version_id for this S3 file.
+    version_id self -> Text | Nothing =
+        if self.is_directory then Error.throw (S3_Error.Error "version_id can only be called on files." self.uri) else
+            if self.internal_version_id != "" then self.internal_version_id else
+                version = self.raw_head.versionId
+                if version == "null" then Nothing else version
+
+    ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Returns the list of versions for this S3 file.
+    versions self -> Vector S3_File =
+        if self.is_directory then Error.throw (S3_Error.Error "versions can only be called on files." self.uri) else
+            versions = S3.list_object_versions self.s3_path.bucket self.s3_path.key self.credentials
+            versions.map version_id->
+                S3_File.Value self.s3_path self.credentials version_id
+
+    ## ---
+       icon: metadata
+       group: Standard.Base.Metadata
+       ---
+       Gets a presigned URI for the S3_File
+
+       ## Arguments
+       - `duration`: the duration for which the presigned URL will be valid. The
+          default is 1 minute.
+    @duration Duration.default_widget
+    presigned_uri self duration:Duration=(Duration.of_minutes 1) -> URI ! S3_Error | Illegal_Argument =
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Presigned URI cannot be generated for a directory." self.uri) else
+            S3.presigned_url self.s3_path.bucket self.s3_path.key self.internal_version_id duration self.credentials
 
     ## ---
        private: true
@@ -95,9 +153,8 @@ type S3_File
                                 result = tmp_file.with_output_stream [File_Access.Write] action
                                 # Only proceed if the write succeeded
                                 result.if_not_error <|
-                                    (_translate_file_errors self <| S3.upload_file tmp_file self.s3_path.bucket self.s3_path.key self.credentials) . if_not_error <|
+                                    (_translate_file_errors self <| S3.put_object self.s3_path.bucket self.s3_path.key tmp_file self.credentials) . if_not_error <|
                                         result
-
 
     ## ---
        private: true
@@ -118,7 +175,7 @@ type S3_File
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && self.is_data_link
         if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
-                response_body = _translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                    response_body = _translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.internal_version_id self.credentials
                 response_body.with_stream action
 
     ## ---
@@ -155,7 +212,7 @@ type S3_File
             if self.is_data_link then Data_Link_Helpers.read_data_link self format on_problems else
                 case format of
                     Auto_Detect ->
-                        response = _translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                        response = _translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.internal_version_id self.credentials
                         response.decode Auto_Detect
                     _ ->
                         metadata = File_Format_Metadata.Value path=self.path name=self.name
@@ -196,13 +253,13 @@ type S3_File
             check_directory action = if self.is_directory_no_follow_links.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory." self.uri) else action
 
             check_directory <| check_recursion <| check_name_filter <|
-                if self.s3_path.bucket == "" then _translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value (S3_Path.Value bucket "") self.credentials else
+                if self.s3_path.bucket == "" then _translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.make_instance (S3_Path.Value bucket "") self.credentials else
                     pair = _translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                     bucket = self.s3_path.bucket
                     sub_folders = pair.first . map key->
-                        S3_File.Value (S3_Path.Value bucket key) self.credentials
+                        S3_File.make_instance (S3_Path.Value bucket key) self.credentials
                     files = pair.second . map key->
-                        S3_File.Value (S3_Path.Value bucket key) self.credentials
+                        S3_File.make_instance (S3_Path.Value bucket key) self.credentials
                     (sub_folders + files) . sort on=.path
 
     ## ---
@@ -447,7 +504,7 @@ type S3_File
        An internal helper method that resolves a single part (subpath) of a path.
     resolve_single_part self part:Text -> Any =
         if self.is_data_link then _s3_file_as_data_link self . resolve_single_part part else
-            S3_File.Value (self.s3_path.resolve part) self.credentials
+            S3_File.make_instance (self.s3_path.resolve part) self.credentials
 
     ## ---
        group: Standard.Base.Calculations
@@ -482,7 +539,7 @@ type S3_File
     join self (subpaths : Vector | Text) =
         vec = Vector.unify_vector_or_element subpaths
         vec_as_texts = vec.map subpath-> (subpath : Text)
-        S3_File.Value (self.s3_path.join vec_as_texts) self.credentials
+        S3_File.make_instance (self.s3_path.join vec_as_texts) self.credentials
 
     ## ---
        group: Standard.Base.Metadata
@@ -539,7 +596,7 @@ type S3_File
     exists : Boolean
     exists self = if self.s3_path.bucket == "" then True else
         raw_result = if self.s3_path.is_root then _translate_file_errors self <| S3.head self.s3_path.bucket "" self.credentials . is_error . not else
-            pair = _translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter max_count=1
+            pair = _translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter max_count=2
             pair.second.contains self.s3_path.key
         raw_result.catch S3_Bucket_Not_Found _->False
 
@@ -563,7 +620,7 @@ type S3_File
     size : Integer
     size self = if self.is_data_link then _s3_file_as_data_link self . size else
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
-            content_length = _translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . contentLength
+            content_length = _translate_file_errors self self.raw_head.contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
     ## ---
@@ -605,7 +662,7 @@ type S3_File
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
-            instant = _translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . lastModified
+            instant = _translate_file_errors self self.raw_head.lastModified
             if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
                 instant.at_time_zone Time_Zone.system
 
@@ -698,7 +755,7 @@ type S3_File
     parent self =
         parent_path = self.s3_path.parent
         parent_path.if_not_nothing <|
-            S3_File.Value parent_path self.credentials
+            S3_File.make_instance parent_path self.credentials
 
     ## ---
        group: Standard.Base.Metadata
@@ -729,14 +786,15 @@ type S3_File
        ---
        Convert to a display representation of this S3_File.
     to_display_text : Text
-    to_display_text self = "S3_File {" + self.to_text + "}"
+    to_display_text self = "S3_File {" + self.to_text + "}" + (if self.internal_version_id == "" then "" else "@" + self.internal_version_id)
 
     ## ---
        private: true
        ---
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "S3_File"], ["uri", self.uri]]
+        version_pair = if self.internal_version_id == "" then [] else [["version_id", self.internal_version_id]]
+        JS_Object.from_pairs ([["type", "S3_File"], ["uri", self.uri]] + version_pair)
 
 ## ---
    private: true
@@ -766,14 +824,14 @@ Data_Link_From_File.from (that : S3_File) = Data_Link_From_File.Value that
 private _translate_file_errors related_file result =
     result.catch S3_Key_Not_Found error->
         s3_path = S3_Path.Value error.bucket error.key
-        s3_file = S3_File.Value s3_path related_file.credentials
+        s3_file = S3_File.make_instance s3_path related_file.credentials
         Error.throw (File_Error.Not_Found s3_file)
 
 ## Ensure the file has no trailing slash. This is needed when treating a possible
    directory as a data link entity - to find its S3 object we need to strip the
    trailing slash if it has one.
 private _without_trailing_slash (f : S3_File) -> S3_File =
-    S3_File.Value f.s3_path.without_trailing_slash f.credentials
+    S3_File.make_instance f.s3_path.without_trailing_slash f.credentials
 
 private _s3_file_as_data_link (f : S3_File) =
     Data_Link_Helpers.interpret_data_link_target_as_file (_without_trailing_slash f)
@@ -826,7 +884,8 @@ private _check_is_data_link (f : S3_File) =
    the exact key exists and is not just an empty marker (as used sometimes to
    mark directories).
 private _exists_entity_direct (f : S3_File) -> Boolean =
-    size = S3.raw_head f.s3_path.bucket f.s3_path.key f.credentials . contentLength
+    raw_head = S3.raw_head f.s3_path.bucket f.s3_path.key "" f.credentials
+    size = raw_head.contentLength
     if size.is_error then False else size > 0
 
 private _has_children_entities (f : S3_File) -> Boolean =
@@ -839,3 +898,24 @@ private _invalidate_caches_on_write (f : S3_File) =
     parent = f.parent
     if parent.is_nothing.not then
         S3DataLinkCache.INSTANCE.invalidatePrefix (_without_trailing_slash parent).path
+
+type S3_File_Comparator
+    ## ---
+       private: true
+       ---
+    compare : S3_File -> S3_File -> Ordering
+    compare x y =
+        if x.s3_path == y.s3_path && x.internal_version_id == y.internal_version_id && x.credentials == y.credentials then Ordering.Equal else
+            Nothing
+
+    ## ---
+       private: true
+       ---
+    hash : S3_File -> Integer
+    hash x =
+        path_hash = Ordering.hash x.s3_path
+        version_hash = Ordering.hash x.internal_version_id
+        credentials_hash = Ordering.hash x.credentials
+        path_hash * 17 + version_hash * 31 + credentials_hash
+
+Comparable.from (that:S3_File) = Comparable.new that S3_File_Comparator
