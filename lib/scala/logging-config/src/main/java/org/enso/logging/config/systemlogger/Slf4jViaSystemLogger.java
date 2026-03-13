@@ -18,27 +18,22 @@ final class Slf4jViaSystemLogger extends AbstractLogger {
 
   @Override
   protected void handleNormalizedLoggingCall(
-      Level level, Marker marker, String messagePattern, Object[] arguments, Throwable throwable) {
+      Level level, Marker marker, String msgOrPattern, Object[] arguments, Throwable throwable) {
     java.lang.System.Logger.Level at = at(level);
     if (throwable != null) {
-      delegate.log(at, messagePattern, throwable);
+      if (arguments != null && arguments.length > 0) {
+        var jdkMsg =
+            org.slf4j.helpers.MessageFormatter.arrayFormat(msgOrPattern, arguments).getMessage();
+        delegate.log(at, jdkMsg, throwable);
+      } else {
+        delegate.log(at, msgOrPattern, throwable);
+      }
     } else {
       if (arguments != null && arguments.length > 0) {
-        int from = 0;
-        int count = 0;
-        var pattern = messagePattern;
-        for (; ; ) {
-          var found = pattern.indexOf("{}", from);
-          if (found == -1) {
-            break;
-          }
-          var newPrefix = pattern.substring(0, found) + "{" + count++ + "}";
-          from = newPrefix.length();
-          pattern = newPrefix + pattern.substring(found + 2);
-        }
-        delegate.log(at, pattern, arguments);
+        var jdkPattern = toJdkPattern(msgOrPattern);
+        delegate.log(at, jdkPattern, arguments);
       } else {
-        delegate.log(at, messagePattern);
+        delegate.log(at, msgOrPattern);
       }
     }
   }
@@ -102,5 +97,20 @@ final class Slf4jViaSystemLogger extends AbstractLogger {
       case org.slf4j.event.Level.TRACE -> System.Logger.Level.TRACE;
       case null, default -> null;
     };
+  }
+
+  private static String toJdkPattern(String pattern) {
+    int from = 0;
+    int count = 0;
+    for (; ; ) {
+      var found = pattern.indexOf("{}", from);
+      if (found == -1) {
+        break;
+      }
+      var newPrefix = pattern.substring(0, found) + "{" + count++ + "}";
+      from = newPrefix.length();
+      pattern = newPrefix + pattern.substring(found + 2);
+    }
+    return pattern;
   }
 }
