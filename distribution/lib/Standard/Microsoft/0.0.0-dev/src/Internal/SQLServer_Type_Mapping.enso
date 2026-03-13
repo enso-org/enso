@@ -80,8 +80,9 @@ type SQLServer_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = json_as_text
         case sql_type.typeid of
             Types.BIT -> Value_Type.Boolean
             Types.TINYINT -> Value_Type.Integer Bits.Bits_16

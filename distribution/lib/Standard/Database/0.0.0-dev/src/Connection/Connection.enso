@@ -346,7 +346,7 @@ type Connection
             # And finally, materialize the results.
             tm = self.type_mapping
             SQL_Warning_Helper.process_warnings stmt <|
-                result_set_to_table rs tm.column_fetcher_factory tm.sql_type_to_value_type type_overrides last_row_only
+                result_set_to_table rs tm.column_fetcher_factory (tm.sql_type_to_value_type json_as_text=True) type_overrides last_row_only
 
     ## ---
        private: true
@@ -403,7 +403,7 @@ type Connection
             _check_statement_is_allowed self stmt
             rs = stmt.executeQuery
             tm = self.type_mapping
-            table = result_set_to_table rs tm.column_fetcher_factory tm.sql_type_to_value_type row_limit=(limit.rows_to_read.if_nothing -1)
+            table = result_set_to_table rs tm.column_fetcher_factory (tm.sql_type_to_value_type json_as_text=True) row_limit=(limit.rows_to_read.if_nothing -1)
             limit.attach_warning table
 
     ## ---
