@@ -36,17 +36,32 @@ final class SystemViaSlf4jLogger implements System.Logger {
       var msg = readMsg(bundle, formatOrMessage);
       var builder = delegate.atLevel(at(level));
       if (params != null && params.length > 0) {
-        var nPlaceholders = Collections.nCopies(params.length, "{}").toArray();
-        var slf4jFmt = MessageFormat.format(msg, nPlaceholders);
-        builder.setMessage(slf4jFmt);
-        for (var p : params) {
-          builder.addArgument(p);
+        try {
+          var slf4jFmt = toSlf4jFormat(msg, params);
+          builder.setMessage(slf4jFmt);
+          for (var p : params) {
+            builder.addArgument(p);
+          }
+        } catch (IllegalArgumentException ex) {
+          builder.setMessage(msg);
         }
       } else {
         builder.setMessage(msg);
       }
       builder.log();
     }
+  }
+
+  private static String toSlf4jFormat(String format, Object[] params) {
+    var nPlaceholders = Collections.nCopies(params.length, "{}").toArray();
+    var mf = new MessageFormat(format);
+    var currentFormats = mf.getFormatsByArgumentIndex();
+    for (int idx = 0; idx < currentFormats.length; idx++) {
+      currentFormats[idx] = null;
+    }
+    mf.setFormatsByArgumentIndex(currentFormats);
+    var slf4jFmt = mf.format(nPlaceholders);
+    return slf4jFmt;
   }
 
   private org.slf4j.event.Level at(Level l) {
