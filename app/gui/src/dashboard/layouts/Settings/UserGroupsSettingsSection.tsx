@@ -13,13 +13,17 @@ import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { normalizeName } from '#/utilities/string'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useFullUserSession, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { EmailAddress, User, UserGroupInfo } from 'enso-common/src/services/Backend'
 import { useState } from 'react'
@@ -77,7 +81,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
   const { data: userGroups } = useSuspenseQuery(backendQueryOptions(backend, 'listUserGroups', []))
   const isAdmin = user.isOrganizationAdmin
 
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
 
   const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
   const userGroupsLeft = isUnderPaywall ? 1 - userGroups.length : Infinity

@@ -1,6 +1,5 @@
 <script lang="ts">
 import { ModalWrapper as ModalWrapperReact } from '#/components/ModalWrapper'
-import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import CommandPalette from '$/components/CommandPalette.vue'
 import { useContainerData } from '$/providers/container'
@@ -29,10 +28,6 @@ const UserBar = reactComponent(UserBarReact)
 </script>
 
 <script setup lang="ts">
-const props = defineProps<{
-  isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
-}>()
-
 // NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
 // with veaury's ref assignment implementation that runs during parent React component lifecycle.
 const fullscreenRoot = shallowRef<HTMLElement>()
@@ -42,7 +37,7 @@ const containerData = useContainerData()
 const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
 const anyTabs = computed(() => containerData.tabList.length > 0)
 provideAsyncResources(openedProjects)
-provideRightPanelData(toRef(containerData, 'focusedPanel'), props.isFeatureUnderPaywall)
+provideRightPanelData(toRef(containerData, 'focusedPanel'))
 provideFullscreenRoot(fullscreenRoot)
 
 const actionHandlers = registerHandlers({

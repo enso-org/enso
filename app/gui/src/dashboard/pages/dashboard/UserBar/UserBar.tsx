@@ -11,13 +11,17 @@ import { Text } from '#/components/Text'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { rfc3339DurationProgress } from '#/utilities/time'
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
-import { useBackends, useFullUserSession, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import { Plan } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
@@ -61,7 +65,7 @@ export function UserBar(props: UserBarProps) {
 
   const { user } = useFullUserSession()
   const { getText } = useText()
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
   const { isOffline } = useOffline()
   const { remoteBackend } = useBackends()
   const { data: organization } = useQuery(

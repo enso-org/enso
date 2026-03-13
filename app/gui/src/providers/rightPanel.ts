@@ -1,4 +1,3 @@
-import type { PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useBackends } from '$/providers/backends'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
@@ -12,6 +11,7 @@ import { encoding } from 'lib0'
 import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { panelKey, type Panel } from './container'
+import { useIsFeatureUnderPaywall } from './react'
 import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */
@@ -50,9 +50,9 @@ interface RightPanelTabInfo {
 function useRightPanelTabs(
   focusedPanel: ToValue<Panel>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
-  isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   { textRef, getText }: TextStore,
 ) {
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
   const isCloudDirectoryView = computed(
     () =>
       rightPanelContext.value?.category != null &&
@@ -147,15 +147,11 @@ export type RightPanelTabId =
 
 export type RightPanelData = ReturnType<typeof useRightPanel>
 
-function useRightPanel(
-  focusedPanel: ToValue<Panel>,
-  isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
-  textStore: TextStore = useText(),
-) {
+function useRightPanel(focusedPanel: ToValue<Panel>, textStore: TextStore = useText()) {
   const { backendForType } = useBackends()
   const contextPerPanel = reactive(new Map<ReturnType<typeof panelKey>, RightPanelContext>())
   const context = computed(() => contextPerPanel.get(panelKey(toValue(focusedPanel))))
-  const allTabs = useRightPanelTabs(focusedPanel, context, isFeatureUnderPaywall, textStore)
+  const allTabs = useRightPanelTabs(focusedPanel, context, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
   const tab = ref<RightPanelTabId>()

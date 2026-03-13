@@ -74,7 +74,6 @@ const PAYWALL_FEATURES_LABELS: Record<PaywallFeatureName, text.TextId> = {
 } satisfies { [K in PaywallFeatureName]: `${K}FeatureLabel` }
 
 const PAYWALL_FEATURE_META = {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   inviteUser: { maxSeats: 10 },
   inviteUserFull: undefined,
   userGroups: { maxGroups: 1 },

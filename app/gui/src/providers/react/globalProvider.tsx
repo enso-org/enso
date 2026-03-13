@@ -1,4 +1,5 @@
 import LocalStorage from '#/utilities/LocalStorage'
+import { useIsFeatureUnderPaywall } from '$/composables/paywall'
 import { useActionsStore, type ActionsStore } from '$/providers/actions'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useBackends, type BackendsStore } from '$/providers/backends'
@@ -10,9 +11,11 @@ import {
   ActionsContext,
   ConfigContext,
   HTTPClientContext,
+  IsFeatureUnderPaywallContext,
   LocalStorageContext,
   SessionContext,
   TextContext,
+  type IsFeatureUnderPaywallFuntion,
 } from '$/providers/react'
 import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
@@ -28,6 +31,8 @@ import { reactComponent } from '@/util/react'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { useRoute, useRouter } from 'vue-router'
+import type { EnsoDevtoolsStore } from '../ensoDevtools'
+import { EnsoDevtoolsStoreContext, useEnsoDevtoolsStore } from './ensoDevTools'
 
 interface ContextsForReactProviderProps {
   router: RouterForReact
@@ -42,6 +47,8 @@ interface ContextsForReactProviderProps {
   actionsStore: ActionsStore
   uploadsToCloudStore: UploadsToCloudStore
   openedProjects: OpenedProjectsStore
+  ensoDevtools: EnsoDevtoolsStore
+  isFeatureUnderPaywall: IsFeatureUnderPaywallFuntion
 }
 
 /**
@@ -66,6 +73,8 @@ export const ContextsForReactProvider = reactComponent(
       actionsStore,
       uploadsToCloudStore,
       openedProjects,
+      ensoDevtools,
+      isFeatureUnderPaywall,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -80,7 +89,13 @@ export const ContextsForReactProvider = reactComponent(
                         <ActionsContext.Provider value={actionsStore}>
                           <UploadsToCloudStoreContext.Provider value={uploadsToCloudStore}>
                             <OpenedProjectsContext.Provider value={openedProjects}>
-                              {children}
+                              <EnsoDevtoolsStoreContext.Provider value={ensoDevtools}>
+                                <IsFeatureUnderPaywallContext.Provider
+                                  value={isFeatureUnderPaywall}
+                                >
+                                  {children}
+                                </IsFeatureUnderPaywallContext.Provider>
+                              </EnsoDevtoolsStoreContext.Provider>
                             </OpenedProjectsContext.Provider>
                           </UploadsToCloudStoreContext.Provider>
                         </ActionsContext.Provider>
@@ -115,6 +130,8 @@ export const ContextsForReactProvider = reactComponent(
         actionsStore: useActionsStore(),
         uploadsToCloudStore: useUploadsToCloudStore(),
         openedProjects: useOpenedProjects(),
+        ensoDevtools: useEnsoDevtoolsStore(),
+        isFeatureUnderPaywall: useIsFeatureUnderPaywall(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.
