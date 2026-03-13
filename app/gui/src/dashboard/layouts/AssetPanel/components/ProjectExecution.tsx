@@ -35,8 +35,6 @@ import {
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 
-/** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
-const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 90_000
 const MONTHS_IN_YEAR = 12
 
 const PROJECT_EXECUTION_STYLES = tv({
