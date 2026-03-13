@@ -1,17 +1,17 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Runtime.Context
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Runtime.Context
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
-import Standard.Table.Rows_To_Read.Rows_To_Read
-import Standard.Table.Internal.In_Memory_Helpers
 from Standard.Table import Table, Value_Type
 from Standard.Table.Internal.Storage import from_value_type
-
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Internal.In_Memory_Helpers
+import Standard.Table.Rows_To_Read.Rows_To_Read
+
 import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
@@ -31,12 +31,12 @@ from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_
 from Standard.Database.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
-import project.S3.S3_File.S3_File
-import project.AWS_Credential.AWS_Credential
-import project.S3.S3
 
 import project.Database.Redshift.Internal.Redshift_Dialect
 import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
+import project.AWS_Credential.AWS_Credential
+import project.S3.S3
+import project.S3.S3_File.S3_File
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.database.JDBCDriverTypes
