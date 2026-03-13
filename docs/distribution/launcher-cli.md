@@ -292,7 +292,7 @@ be passed after a double dash (`--`), i.e. `enso repl -- --someUnknownFlag`.
 
 ## JVM Options
 
-It is possible to pass parameters to the JVM that is used to launch
-these components, which may be helpful with debugging. A parameter of the form
+It is possible to pass parameters to the JVM that is used to launch these
+components, which may be helpful with debugging. A parameter of the form
 `--jvm.argumentName=argumentValue` will be passed to the JVM as
 `-DargumentName=argumentValue`.
