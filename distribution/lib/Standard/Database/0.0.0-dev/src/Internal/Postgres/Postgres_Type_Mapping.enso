@@ -224,8 +224,14 @@ complex_types_map = Dictionary.from_vector <|
 ## ---
    private: true
    ---
-on_unknown_type sql_type =
-    Value_Type.Unsupported_Data_Type sql_type.name sql_type
+on_unknown_type sql_type = case sql_type.name of
+    "json" ->
+        result = Value_Type.Char size=Nothing variable_length=True
+        Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
+    "jsonb" ->
+        result = Value_Type.Char size=Nothing variable_length=True
+        Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
+    _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
 ## ---
    private: true
