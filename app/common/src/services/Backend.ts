@@ -1223,6 +1223,7 @@ export interface OpenHybridProjectParameters {
   readonly cloudProjectId: ProjectId
   /** Cloud project session id. */
   readonly cloudProjectSessionId: ProjectSessionId
+  readonly cloudApiUrl: string
 }
 
 /** HTTP request body for the "open project" endpoint. */
