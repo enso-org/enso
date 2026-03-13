@@ -421,6 +421,10 @@ type Redshift_Connection
             exists = self.query (..Table_Name table_name) . is_error . not
             if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
+            ## Check Execution Context
+            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
+                Nothing
+
             Context.Output.with_enabled <|
                 ## Drop existing table if needed and then create new table
                 created_table = if exists.not then self.create_table table_name table primary_key=[] temporary=temporary else case if_exists of
