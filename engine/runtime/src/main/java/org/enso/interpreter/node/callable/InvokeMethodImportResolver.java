@@ -131,10 +131,7 @@ final class InvokeMethodImportResolver
 
   @Override
   protected EnsoObject createResolvedImport(UnresolvedSymbol imp, List<Object> exp, Module m) {
-    var scope = m.getScope();
-    if (scope == null) {
-      scope = m.compileScope(ctx);
-    }
+    var scope = m.compileScope(ctx);
     return scope.getAssociatedType();
   }
 
