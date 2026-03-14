@@ -15,7 +15,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.enso.ydoc.api.YjsChannel;
-import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -82,13 +81,8 @@ public class YdocTest {
     executor.submit(
         () -> {
           try {
-            var hostAccess =
-                WebEnvironment.defaultHostAccess
-                    .allowImplementations(YjsChannel.class)
-                    .allowPublicAccess(true);
             ydoc =
                 Ydoc.builder()
-                    .hostAccessBuilder(hostAccess)
                     .jsonChannelCallbacks(jsonCallbacks)
                     .binaryChannelCallbacks(binaryCallbacks)
                     .build();

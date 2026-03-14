@@ -11,7 +11,7 @@ import org.graalvm.polyglot.HostAccess;
  * the raw channel before passing it to the delegate, ensuring the Language Server can safely
  * interact with channels from any thread.
  */
-final class YjsCallbacksSynchronized<M> implements YjsChannel.Server<M> {
+public final class YjsCallbacksSynchronized<M> {
 
   private final YjsChannel.Server<M> callbacks;
   private final YdocScheduledExecutorService executor;
@@ -25,11 +25,29 @@ final class YjsCallbacksSynchronized<M> implements YjsChannel.Server<M> {
     this.executor = executor;
   }
 
-  /** Wraps the channel in {@link YjsChannelSynchronized} and forwards to the delegate. */
-  @Override
   @HostAccess.Export
-  public void onConnect(YjsChannel<M> channel) {
+  @SuppressWarnings("unchecked")
+  public void onConnect(YjsChannelLike like) {
+    var channel =
+        YjsChannel.create(
+            like::send,
+            (t) -> {
+              like.subscribe(t::accept);
+            });
     var synchronizedChannel = YjsChannelSynchronized.wrap(channel, this.executor);
-    this.callbacks.onConnect(synchronizedChannel);
+    this.callbacks.onConnect((YjsChannel<M>) synchronizedChannel);
+  }
+
+  @HostAccess.Implementable
+  public interface YjsChannelLike {
+    public void send(Object obj);
+
+    public void subscribe(ConsumerLike consumer);
+  }
+
+  @HostAccess.Implementable
+  @FunctionalInterface
+  public interface ConsumerLike {
+    void accept(Object obj);
   }
 }

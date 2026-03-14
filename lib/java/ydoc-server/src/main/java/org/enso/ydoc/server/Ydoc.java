@@ -160,14 +160,6 @@ public final class Ydoc implements AutoCloseable {
     return new Builder();
   }
 
-  private YjsChannel.Server<String> getJsonChannelCallbacksSynchronized() {
-    return new YjsCallbacksSynchronized<>(jsonChannelCallbacks, executor);
-  }
-
-  private YjsChannel.Server<Object> getBinaryChannelCallbacksSynchronized() {
-    return new YjsCallbacksSynchronized<>(binaryChannelCallbacks, executor);
-  }
-
   public void start() throws IOException {
     var ydoc = Main.class.getResource(YDOC_PATH);
     if (ydoc == null) {
@@ -189,10 +181,8 @@ public final class Ydoc implements AutoCloseable {
               var bindings = ctx.getBindings("js");
               bindings.putMember("YDOC_HOST", hostname);
               bindings.putMember("YDOC_PORT", port);
-              bindings.putMember(
-                  "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
-              bindings.putMember(
-                  "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
+              bindings.putMember("YDOC_JSON_CHANNEL_CALLBACKS", jsonChannelCallbacks);
+              bindings.putMember("YDOC_BINARY_CHANNEL_CALLBACKS", binaryChannelCallbacks);
               bindings.putMember(
                   "YDOC_LS_DEBUG", logLevel == Level.DEBUG || logLevel == Level.TRACE);
 
