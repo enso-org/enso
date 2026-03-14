@@ -32,8 +32,8 @@ final class DeserializeLibrarySuggestionsJob(
     logger.debug("Deserializing suggestions for library [{}].", libraryName)
     val cc = ctx.executionService.getContext.getCompiler.context
     cc
-      .deserializeSuggestions(libraryName)
-      .foreach { cachedSuggestions =>
+      .deserializeSuggestions(libraryName) match {
+      case Some(cachedSuggestions) =>
         val suggestions =
           cachedSuggestions.asInstanceOf[java.util.List[Suggestion]]
         ctx.endpoint.sendToClient(
@@ -44,7 +44,15 @@ final class DeserializeLibrarySuggestionsJob(
             )
           )
         )
-      }
+      case None =>
+        logger.debug(
+          "No cached suggestions for library [{}]. Scheduling analysis.",
+          libraryName
+        )
+        ctx.jobProcessor.runBackground(
+          new AnalyzeLibraryModuleJob(libraryName)
+        )
+    }
   }
 
   override def toString: String =

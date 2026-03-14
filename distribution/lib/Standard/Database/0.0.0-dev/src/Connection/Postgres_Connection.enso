@@ -324,9 +324,13 @@ type Postgres_Connection
        ## Arguments
         - `query`: either raw SQL code as Text or an instance of SQL_Statement
           representing the query to execute.
-    execute_update : Text | SQL_Statement -> Integer
-    execute_update self query =
-        self.connection.execute_update query
+        - `write_operation`: if set to `True`, the query is expected to be a
+          write operation and will only run if the output context is enabled. If
+          set to `False`, the query is expected to be a read operation and will
+          run regardless of the output context. Defaults to `True`.
+    execute_update : Text | SQL_Statement -> Boolean -> Integer
+    execute_update self query write_operation:Boolean=True =
+        self.connection.execute_update query write_operation
 
     ## ---
        private: true

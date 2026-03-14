@@ -1,3 +1,5 @@
+export type RegisterCallback<T> = (callback: (value: T) => void) => void
+
 /** @returns An API supporting registering callback functions and dispatching them. */
 export function useCallbackRegistry<Args extends unknown[]>() {
   const callbacks: ((...args: Args) => void)[] = []

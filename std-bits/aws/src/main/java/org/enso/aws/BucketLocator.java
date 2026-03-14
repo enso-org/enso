@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
-import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.model.GetBucketLocationRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 /**
@@ -19,15 +19,11 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
  * and usually the new bucket with the same name cannot be created immediately, so requiring a
  * restart of the engine in such a case seems OK.
  */
-public class BucketLocator {
+class BucketLocator {
   private static final HashMap<String, AWSRegion> cache = new HashMap<>();
   private static final Logger LOGGER = LoggerFactory.getLogger(BucketLocator.class);
 
-  public static void flushCache() {
-    cache.clear();
-  }
-
-  public static AWSRegion getBucketRegion(String bucketName, AwsCredential associatedCredential) {
+  static AWSRegion getBucketRegion(String bucketName, AwsCredential associatedCredential) {
     if (cache.containsKey(bucketName)) {
       return cache.get(bucketName);
     }
@@ -54,9 +50,10 @@ public class BucketLocator {
    */
   private static AWSRegion locateBucketUsingHead(
       String bucketName, AwsCredential associatedCredential) {
-    var clientBuilder = new ClientBuilder(associatedCredential, null);
-    try (var client = clientBuilder.buildGlobalS3Client()) {
-      HeadBucketResponse response = client.headBucket(builder -> builder.bucket(bucketName));
+    try (var client =
+        S3ClientWrapper.forCredentialInternal(
+            associatedCredential, AWSRegion.from(Region.US_EAST_1))) {
+      var response = client.headBucketInternal(bucketName);
       return findRegionInResponse(response.sdkHttpResponse());
     } catch (S3Exception error) {
       var details = error.awsErrorDetails();
@@ -84,10 +81,11 @@ public class BucketLocator {
    */
   private static AWSRegion locateBucketLegacy(
       String bucketName, AwsCredential associatedCredential) {
-    var clientBuilder = new ClientBuilder(associatedCredential, null);
-    try (var client = clientBuilder.buildGlobalS3Client()) {
-      BucketLocationConstraint locationConstraint =
-          client.getBucketLocation(builder -> builder.bucket(bucketName)).locationConstraint();
+    try (var client =
+        S3ClientWrapper.forCredentialInternal(
+            associatedCredential, AWSRegion.from(Region.US_EAST_1))) {
+      var request = GetBucketLocationRequest.builder().bucket(bucketName).build();
+      var locationConstraint = client.client.getBucketLocation(request).locationConstraint();
       if (locationConstraint == null) {
         // Weird edge case: documentation says that buckets in region us-east-1 return null
         return AWSRegion.from(Region.US_EAST_1);
@@ -99,15 +97,16 @@ public class BucketLocator {
       }
 
       var inferredRegion = AWSRegion.of(locationConstraint.toString());
+
       boolean isKnown = AWSRegion.all().contains(inferredRegion);
-      if (isKnown) {
-        return inferredRegion;
-      } else {
+      if (!isKnown) {
         LOGGER.trace(
             "AWS returned a location constraint that cannot be mapped to a known region: {}",
             locationConstraint);
         return null;
       }
+
+      return inferredRegion;
     } catch (Exception e) {
       LOGGER.trace("Failed to locate a bucket (legacy GetBucketLocation).", e);
       return null;

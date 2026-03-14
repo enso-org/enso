@@ -8,11 +8,15 @@
     - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - between start_inclusive:Standard.Base.Any.Any end_exclusive:Standard.Base.Any.Any timezone_aware:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
     - hours self -> Standard.Base.Any.Any
     - milliseconds self -> Standard.Base.Any.Any
     - minutes self -> Standard.Base.Any.Any
     - nanoseconds self -> Standard.Base.Any.Any
     - new hours:Standard.Base.Data.Numbers.Integer= minutes:Standard.Base.Data.Numbers.Integer= seconds:Standard.Base.Data.Numbers.Integer= milliseconds:Standard.Base.Data.Numbers.Integer= nanoseconds:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - of_hours hours:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Data.Time.Duration.Duration
+    - of_minutes minutes:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Data.Time.Duration.Duration
+    - of_seconds seconds:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Data.Time.Duration.Duration
     - seconds self -> Standard.Base.Any.Any
     - time_execution ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
