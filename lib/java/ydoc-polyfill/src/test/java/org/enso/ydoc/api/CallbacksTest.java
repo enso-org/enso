@@ -21,7 +21,28 @@ public class CallbacksTest extends ExecutorSetup {
   public interface JsYjsChannel {
     public void send(Object msg);
 
-    public void subscribe(Consumer<Object> onMessage);
+    public void subscribe(JsConsume onMessage);
+  }
+
+  @HostAccess.Implementable
+  @FunctionalInterface
+  public interface JsConsume {
+    @HostAccess.Export
+    public void accept(Object msg);
+  }
+
+  public final class JsConsumeImpl implements JsConsume {
+    private final Consumer<Object> delegate;
+
+    JsConsumeImpl(Consumer<Object> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    @HostAccess.Export
+    public void accept(Object msg) {
+      delegate.accept(msg);
+    }
   }
 
   public final class TestCallbacks {
@@ -33,7 +54,7 @@ public class CallbacksTest extends ExecutorSetup {
 
     @HostAccess.Export
     public void onConnect(JsYjsChannel channel) {
-      var wrap = YjsChannel.create(channel::send, channel::subscribe);
+      var wrap = YjsChannel.create(channel::send, (t) -> channel.subscribe(new JsConsumeImpl(t)));
       this.handler.accept(wrap);
     }
   }
@@ -42,10 +63,7 @@ public class CallbacksTest extends ExecutorSetup {
   @Override
   public void setup() throws Exception {
     super.setup();
-
-    var hostAccess = WebEnvironment.defaultHostAccess.allowPublicAccess(true).build();
-    var contextBuilder = WebEnvironment.createContext(hostAccess);
-
+    var contextBuilder = WebEnvironment.createContext();
     context = CompletableFuture.supplyAsync(contextBuilder::build, executor).get();
   }
 
