@@ -1223,6 +1223,7 @@ export interface OpenHybridProjectParameters {
   readonly cloudProjectId: ProjectId
   /** Cloud project session id. */
   readonly cloudProjectSessionId: ProjectSessionId
+  readonly cloudApiUrl: string
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -2027,6 +2028,8 @@ export abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
+  /** Download project session logs as a file. */
+  abstract downloadProjectSessionLogs(projectSessionId: ProjectSessionId): Promise<void>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
   /**

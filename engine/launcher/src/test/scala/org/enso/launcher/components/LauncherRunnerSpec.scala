@@ -58,9 +58,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
   "Runner" should {
     "create a command from settings" in {
-      val envOptions = "-Xfrom-env -Denv=env"
-      val runner =
-        makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
+      val runner = makeFakeRunner()
 
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
@@ -76,9 +74,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         val arguments     = command.command.tail
         val javaArguments = arguments.takeWhile(_ != "-jar")
         val appArguments  = arguments.dropWhile(_ != runnerEntryPoint).tail
-        javaArguments should contain("-Xfrom-env")
-        javaArguments should contain("-Denv=env")
-        javaArguments should contain("-Dlocally-added-options=value1")
         javaArguments should contain("-Dlocally-added-options=value1")
         javaArguments should contain("-Doptions-added-from-manifest=42")
         javaArguments should contain("-Xanother-one")

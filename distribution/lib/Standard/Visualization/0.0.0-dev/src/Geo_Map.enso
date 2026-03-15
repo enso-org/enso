@@ -1,12 +1,16 @@
 from Standard.Base import all
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Spatial_Table.Spatial_Table
 from Standard.Table import Table
 
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 from project.Helpers import time_visualization, short_display
+
+private _name_sets = [['label', 'name'], ['latitude', 'lat', 'lt'], ['longitude', 'lon', 'lng', 'long'], ['radius', 'size'], ['color', 'colour']]
+
 
 ## ---
    private: true
@@ -17,13 +21,38 @@ from project.Helpers import time_visualization, short_display
     - `table`: the Table to be visualized.
 json_from_table : Table -> JS_Object
 json_from_table table =
-    name_sets = [['label', 'name'], ['latitude', 'lat', 'lt'], ['longitude', 'lon', 'lng', 'long'], ['radius', 'size'], ['color', 'colour']]
     with_known = table.set "X" as="X"
-    pairs = name_sets.map set->
+    pairs = _name_sets.map set->
         chosen = with_known.select_columns ["X"]+set reorder=True case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore
         if chosen.column_count == 1 then Nothing else ["df_" + set.first, chosen.at 1 . to_vector]
 
     JS_Object.from_pairs <| pairs.filter ..Not_Nothing
+
+## ---
+   private: true
+   ---
+   Construct JSON describing table geo map visualization from a spatial table.
+   Each spatial column will become a separate layer in the visualization, with
+   the column name as the layer name and the column values as GeoJSON data.
+
+   ## Arguments
+    - `table`: the Table to be visualized.
+private json_from_spatial_table table:Spatial_Table -> Text =
+    spatial_columns = table.spatial_columns.map .name
+
+    materialised = table.read_as_geojson (..First 5000)
+
+    with_known = materialised.set "X" as="X"
+    pairs = _name_sets.fold [["X","X"]] current->set->
+        chosen = with_known.select_columns ["X"]+set reorder=True case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore
+        if chosen.column_count == 1 then current else current + [[set.first, chosen.at 1 . name]]
+    selected_columns = with_known.select_columns (pairs.map .second) reorder=True . rename_columns (pairs.map .first)
+    base_layer = if (Nothing == (selected_columns.get "latitude") || Nothing == (selected_columns.get "longitude")) then [] else
+        with_out_x = selected_columns.remove_columns ["X"]
+        [with_out_x.rows.map .to_json . join "," '{"type": "Scatterplot_Layer", "layerName": "_points_", "data": [' "]}"]
+
+    layers = base_layer + spatial_columns.map col-> '{"type": "GeoJsonLayer", "layerName": ' + col.to_json + ',"data":[' + (materialised.get col . to_vector . join ",") + ']}'
+    '{"layers":[' + layers.join "," + ']}'
 
 ## ---
    private: true
@@ -36,6 +65,7 @@ json_from_table table =
 process_to_json_text : Any -> Text
 process_to_json_text value = time_visualization Geo_Map ("process_to_json_text: " + (short_display value)) <|
     case value of
+        spatial : Spatial_Table -> json_from_spatial_table spatial
         _ : DB_Table -> json_from_table (value.read (..First 15000)) . to_text
         _ : In_Memory_Table -> json_from_table value . to_text
         _ -> value.to_json

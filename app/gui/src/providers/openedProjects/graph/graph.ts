@@ -45,6 +45,7 @@ import {
   type ShallowReactive,
   type ShallowRef,
 } from 'vue'
+import { normalizePosition } from 'ydoc-shared/ast'
 import type { ExpressionUpdate } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
@@ -146,10 +147,9 @@ export function createGraphStore(
     nodeOutputVisible: useAssociatedFlag({ onCleanup }),
     nodeOutputHovered: useAssociatedFlag({ onCleanup }),
     nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
-    vizRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
     nodeOutputAnimations: useAssociatedValue<NodeId, number>({ onCleanup }),
   } as const
-  const { nodeRects, vizRects, nodeOutputAnimations } = nodeState
+  const { nodeRects, nodeOutputAnimations } = nodeState
 
   const currentMethodPointer = computed((): Result<MethodPointer> => {
     const executionStackTop = proj.executionContext.getStackTop()
@@ -176,11 +176,11 @@ export function createGraphStore(
   // The currently visible nodes' areas (including visualization).
   const visibleNodeAreas = computed(() => {
     const existing = iter.filter(nodeRects.entries(), ([id]) => db.isNodeId(id))
-    return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
+    return Array.from(existing, ([, rect]) => rect)
   })
   function visibleArea(nodeId: NodeId): Rect | undefined {
     if (!db.isNodeId(nodeId)) return
-    return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
+    return nodeRects.get(nodeId)
   }
 
   const db = new GraphDb(
@@ -364,7 +364,15 @@ export function createGraphStore(
     if (!metadata) return
     const oldPos = metadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y)
-      metadata.set('position', { x: position.x, y: position.y })
+      metadata.set('position', normalizePosition({ ...oldPos, ...position.xy() }))
+  }
+
+  function setNodeHeight(nodeId: NodeId, height: number | undefined) {
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    if (!metadata) return
+    const oldPos = metadata.get('position')
+    if (!oldPos) return
+    if (oldPos.h !== height) metadata.set('position', normalizePosition({ ...oldPos, h: height }))
   }
 
   function setNodeDisplayMode(nodeId: NodeId, mode: 'expanded' | 'collapsed') {
@@ -438,21 +446,15 @@ export function createGraphStore(
           } else {
             position = placeNode([], rect.size)
           }
-          metadata.set('position', { x: position.x, y: position.y })
+          metadata.set('position', position.xy())
           nodeRects.set(nodeId, new Rect(position, rect.size))
         }
       }, 'local:autoLayout')
     }),
   )
 
-  function updateVizRect(id: NodeId, rect: Rect | undefined) {
-    if (rect) vizRects.set(id, rect)
-    else vizRects.delete(id)
-  }
-
   function unregisterNodeRect(id: NodeId) {
     nodeRects.delete(id)
-    vizRects.delete(id)
   }
 
   function addPortInstance(id: PortId, instance: PortViewInstance) {
@@ -689,11 +691,11 @@ export function createGraphStore(
     getNodeColorOverride,
     setNodeContent,
     setNodePosition,
+    setNodeHeight,
     setNodeDisplayMode,
     setNodeVisualization,
     updateNodeRect,
     updateNodeOutputAnim,
-    updateVizRect,
     addPortInstance,
     removePortInstance,
     getPortRelativeRect,

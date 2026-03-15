@@ -250,7 +250,9 @@ type Data_Formatter
        ---
     make_date_time_parser self = self.wrap_base_parser <|
         Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap.Value d-> (d:Date_Time_Formatter).get_java_formatter_for_parsing)
+            # Allow parsing date-only values to Date_Time (at midnight) as a fallback.
+            date_time_formats = self.datetime_formats + self.date_formats
+            DateTimeParser.new (date_time_formats.map on_problems=No_Wrap.Value d-> (d:Date_Time_Formatter).get_java_formatter_for_parsing)
 
     ## ---
        private: true
@@ -285,7 +287,7 @@ type Data_Formatter
        ---
     get_specific_type_parsers self =
         ## Have to do date parsing first to allow for pure numeric formats.
-        date_parsers = [self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser]
+        date_parsers = [self.make_date_parser, self.make_date_time_parser, self.make_time_of_day_parser]
         us_parsers = if self.decimal_point != Auto || self.thousand_separator != "" then [] else
             ## In default mode, add the English pattern to ensure they dominate.
             english = self.with_number_formatting decimal_point='.' thousand_separator=','

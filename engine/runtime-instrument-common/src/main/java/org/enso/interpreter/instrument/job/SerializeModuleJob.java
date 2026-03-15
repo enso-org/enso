@@ -20,7 +20,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
     var ensoContext = ctx.executionService().getContext();
     var compiler = ensoContext.getCompiler();
     ctx.locking()
-        .withWriteCompilationLock(
+        .withReadCompilationLock(
             this.getClass(),
             () -> {
               ctx.executionService()

@@ -7,6 +7,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 
+import Standard.Database.Connection.Database
 import project.DuckDB.DuckDB
 
 ## Read the file to a `DuckDB_Connection`.
@@ -32,8 +33,9 @@ type DuckDB_File_Format
        instance.
     for_read : File_Format_Metadata -> DuckDB_File_Format | Nothing
     for_read file:File_Format_Metadata =
-        _ = file
-        Nothing
+        case file.guess_extension of
+            ".duckdb" -> DuckDB_File_Format.DuckDB
+            _ -> Nothing
 
     ## ---
        private: true
@@ -64,7 +66,7 @@ type DuckDB_File_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
-        DuckDB.From_File file
+        Database.connect (DuckDB.From_File file)
 
     ## ---
        private: true

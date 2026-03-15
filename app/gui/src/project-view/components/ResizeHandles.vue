@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { selectFields } from '@/util/data/object'
-import { Rect, type BoundsSet } from '@/util/data/rect'
+import { type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 
-const props = defineProps<BoundsSet & { modelValue: Rect }>()
+const props = defineProps<BoundsSet>()
 const emit = defineEmits<{
   'update:resizing': [BoundsSet]
-  'update:modelValue': [Rect, delta: Vec2]
+  'update:movement': [delta: Vec2]
 }>()
 
-let initialBounds: Rect | undefined = undefined
 function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bottom' | false) {
   const resizing = {
     left: resizeX === 'left',
@@ -21,27 +19,16 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bott
   return usePointer((pos, _, type) => {
     switch (type) {
       case 'start':
-        initialBounds = props.modelValue
         emit('update:resizing', resizing)
         break
       case 'move':
-        if (initialBounds) {
-          const newBounds = initialBounds.withBoundsClamped(
-            selectFields(resizing, {
-              top: initialBounds.top + pos.relative.y,
-              bottom: initialBounds.bottom + pos.relative.y,
-              left: initialBounds.left + pos.relative.x,
-              right: initialBounds.right + pos.relative.x,
-            }),
-          )
-          emit('update:modelValue', newBounds, pos.relative)
-        }
+        emit('update:movement', pos.relative)
         break
       case 'stop':
         emit('update:resizing', {})
         break
       case 'cancel':
-        if (initialBounds) emit('update:modelValue', initialBounds, Vec2.Zero)
+        emit('update:movement', Vec2.Zero)
         emit('update:resizing', {})
         break
     }

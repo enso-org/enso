@@ -49,15 +49,19 @@ case object Imports extends IRPass {
           .map { newName =>
             val parts = newName.parts
             if (parts.length == 2) {
-              i.copyWithNameAndRename(
-                newName.copyBuilder().parts(parts :+ mainModuleName).build(),
-                computeRename(
-                  i.rename,
-                  i.onlyNames.nonEmpty || i.isAll,
-                  parts(1).asInstanceOf[Name.Literal]
+              i.copyBuilder()
+                .name(
+                  newName.copyBuilder().parts(parts :+ mainModuleName).build()
                 )
-              )
-            } else { i.copyWithName(newName) }
+                .rename(
+                  computeRename(
+                    i.rename,
+                    i.onlyNames.nonEmpty || i.isAll,
+                    parts(1).asInstanceOf[Name.Literal]
+                  )
+                )
+                .build()
+            } else { i.copyBuilder().name(newName).build() }
           }
           .getOrElse(
             errors.ImportExport.create(

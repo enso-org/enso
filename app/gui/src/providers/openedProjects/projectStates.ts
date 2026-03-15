@@ -348,6 +348,7 @@ export function useProjectStates() {
             cloudProjectDirectoryPath: cloudParentPath,
             cloudProjectId: info.id,
             cloudProjectSessionId: info.hybridSessionId,
+            cloudApiUrl: backends.remoteBackend.baseUrl.toString(),
           },
         },
         info.title,

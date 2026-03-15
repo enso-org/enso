@@ -1,7 +1,9 @@
 package org.enso.ydoc.server;
 
+import java.lang.foreign.MemorySegment;
 import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
+import org.graalvm.polyglot.Value;
 
 /**
  * Thread-safe {@link YjsChannel} wrapper that delegates operations to the Ydoc executor thread.
@@ -30,8 +32,21 @@ final class YjsChannelSynchronized<M> {
   }
 
   /** Queues the message to be sent on the Ydoc executor thread. */
+  @SuppressWarnings("unchecked")
   public void send(M message) {
-    executor.submit(() -> channel.send(message));
+    executor.submit(
+        () -> {
+          Object toSent;
+          if (message instanceof String s) {
+            toSent = s;
+          } else {
+            var v = Value.asValue(message);
+            var address = v.asNativePointer();
+            var seg = MemorySegment.ofAddress(address).reinterpret(v.getBufferSize());
+            toSent = seg.asByteBuffer();
+          }
+          channel.send((M)toSent);
+        });
   }
 
   /** Queues the subscription to be registered on the Ydoc executor thread. */

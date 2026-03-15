@@ -497,12 +497,12 @@ type DB_Column_Implementation
 
     @format (this_column-> Widget_Helpers.make_format_chooser_for_type this_column.value_type)
     format (this_column : Column & DB_Column) (format : Text | Date_Time_Formatter | Column) locale:Locale =
-        _ = [this_column, format, locale]
-        Error.throw <| Unsupported_Database_Operation.Error "format"
+        if format != "" || locale != Locale.default then Error.throw (Unsupported_Database_Operation.Error "Custom formatting")
+        DB_Column_Implementation.cast this_column Value_Type.Char on_problems=Problem_Behavior.Ignore
 
     cast (this_column : Column & DB_Column) value_type:Value_Type on_problems:Problem_Behavior =
-        check_cast_compatibility this_column.value_type value_type <|
-            internal_do_cast this_column value_type on_problems
+        check_cast_compatibility this_column.value_type value_type allow_unsupported=True
+        internal_do_cast this_column value_type on_problems
 
     auto_cast (this_column : Column & DB_Column) shrink_types:Boolean =
         _ = [this_column, shrink_types]
