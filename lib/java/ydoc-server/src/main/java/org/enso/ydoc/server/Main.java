@@ -44,7 +44,7 @@ public final class Main {
             // call methods on `YjsChannel` object returned from JS
             .allowImplementations(YjsChannel.class)
             .allowPublicAccess(true);
-    builder.hostAccessBuilder(hostAccess);
+    builder.hostAccess(hostAccess.build());
     var ydoc = builder.build();
     ydoc.start();
     return ydoc;
