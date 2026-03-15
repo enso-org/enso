@@ -35,13 +35,9 @@ final class YjsChannelSynchronized implements YjsChannel {
             toSent = s;
           } else {
             var v = Value.asValue(message);
-            if (v.hasBufferElements() && v.isNativePointer()) {
-              var address = v.asNativePointer();
-              var seg = MemorySegment.ofAddress(address).reinterpret(v.getBufferSize());
-              toSent = seg.asByteBuffer();
-            } else {
-              toSent = message;
-            }
+            var address = v.asNativePointer();
+            var seg = MemorySegment.ofAddress(address).reinterpret(v.getBufferSize());
+            toSent = seg.asByteBuffer();
           }
           channel.send(toSent);
         });
