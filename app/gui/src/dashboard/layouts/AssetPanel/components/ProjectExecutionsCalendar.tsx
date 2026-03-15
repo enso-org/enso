@@ -62,6 +62,8 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
       'text-center px-1 rounded border border-transparent hover:bg-primary/10 outside-visible-range:text-primary/30 disabled:text-primary/30 selected:border-primary/40 h-16 overflow-clip',
   },
 })
+/** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
+const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 90_000
 
 /** A calendar showing executions of a project. */
 export function ProjectExecutionsCalendar() {
@@ -164,9 +166,16 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         projectExecution,
         toZoned(selectedDate, projectExecution.timeZone),
         toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
-      ).flatMap((date) => ({ date, projectExecution })),
+      ).flatMap((date) => {
+        const session = projectExecution.projectSessions?.find(
+          (otherSession) =>
+            Math.abs(Number(new Date(otherSession.createdAt)) - Number(date.toDate())) <
+            EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
+        )
+        return { date, projectExecution, session }
+      }),
     )
-    .sort((a, b) => Number(a.date) - Number(b.date))
+    .sort((a, b) => Number(a.date.toDate()) - Number(b.date.toDate()))
 
   const styles = PROJECT_EXECUTIONS_CALENDAR_STYLES({})
 
@@ -249,9 +258,12 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         />
       </Dialog.Trigger>
       <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDate).toString())}</Text>
-      {projectExecutionsForToday.length === 0 ?
+      {projectExecutionsForToday.length === 0 && (
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
-      : projectExecutionsForToday.map(({ projectExecution, date }) => (
+      )}
+      {projectExecutionsForToday
+        .filter(({ session }) => session !== undefined)
+        .map(({ projectExecution, date, session }) => (
           <ProjectExecution
             key={projectExecution.executionId}
             compact
@@ -259,9 +271,22 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
             item={item}
             projectExecution={projectExecution}
             date={date}
+            session={session}
           />
-        ))
-      }
+        ))}
+      {projectExecutionsForToday
+        .filter(({ session }) => session === undefined)
+        .map(({ projectExecution, date, session }) => (
+          <ProjectExecution
+            key={projectExecution.executionId}
+            compact
+            backend={backend}
+            item={item}
+            projectExecution={projectExecution}
+            date={date}
+            session={session}
+          />
+        ))}
     </Form>
   )
 }

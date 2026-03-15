@@ -33,6 +33,7 @@ export interface CloudParams {
   readonly cloudProjectDirectoryPath: Path
   readonly cloudProjectId: string
   readonly cloudProjectSessionId: string
+  readonly cloudApiUrl: string
 }
 
 /** Parameters for the "create project" endpoint. */
@@ -171,6 +172,7 @@ export class ProjectService {
       ['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath],
       ['ENSO_CLOUD_PROJECT_ID', cloud.cloudProjectId],
       ['ENSO_CLOUD_PROJECT_SESSION_ID', cloud.cloudProjectSessionId],
+      ['ENSO_CLOUD_API_URL', cloud.cloudApiUrl],
     ]
   }
 

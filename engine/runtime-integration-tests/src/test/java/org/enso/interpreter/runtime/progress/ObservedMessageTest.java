@@ -47,12 +47,8 @@ public class ObservedMessageTest {
             () -> {
               logger.log(Level.INFO, msg, "not a number");
             });
-    assertEquals("Two messages", 2, arr.size());
-    assertEquals(
-        "First of all parsing problem is returned",
-        org.slf4j.event.Level.WARN,
-        arr.get(0).getLevel());
-    assertEquals("Then the original message is logged", msg, arr.get(1).getFormattedMessage());
-    assertEquals("With its level", org.slf4j.event.Level.INFO, arr.get(1).getLevel());
+    assertEquals("Just a single message", 1, arr.size());
+    assertEquals("The original message is logged", msg, arr.get(0).getFormattedMessage());
+    assertEquals("With its level", org.slf4j.event.Level.INFO, arr.get(0).getLevel());
   }
 }

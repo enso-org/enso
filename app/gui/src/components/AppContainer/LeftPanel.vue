@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useContainerData } from '$/providers/container'
+import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
-import { Rect } from '@/util/data/rect'
-import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, toRef, useTemplateRef } from 'vue'
 import { Drive } from './reactTabs'
 
@@ -18,8 +17,6 @@ const width = toRef(containerData, 'leftPanelWidth')
 const visible = ref(true)
 
 const root = useTemplateRef('content')
-const size = useResizeObserver(root)
-const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 const cssClass = computed(() => ({
   focusedPanel: containerData.focusedPanel.type === 'drive',
 }))
@@ -28,6 +25,11 @@ const widthStyle = computed(() =>
     { width: `${width.value ?? DEFAULT_WIDTH_PX}px` }
   : { width: '100%' },
 )
+
+const resizeHandles = useResizeHandles({
+  size: useResizeObserver(root),
+})
+resizeHandles.onResizeWidth((value) => (width.value = value))
 </script>
 
 <template>
@@ -41,12 +43,7 @@ const widthStyle = computed(() =>
         :style="widthStyle"
       >
         <Drive />
-        <ResizeHandles
-          v-if="middlePanelShown"
-          right
-          :modelValue="bounds"
-          @update:modelValue="width = $event.width"
-        />
+        <ResizeHandles v-if="middlePanelShown" right v-on="resizeHandles.events" />
       </div>
     </SizeTransition>
     <div class="shadow" />

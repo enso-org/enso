@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
+import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
-import { Rect } from '@/util/data/rect'
-import { Vec2 } from '@/util/data/vec2'
 import { useLocalStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 
@@ -20,8 +19,10 @@ const show = defineModel<boolean>('show', { required: true })
 
 const savedSize = useLocalStorage<{ height: number | null }>('code-editor-size', { height: null })
 
-const computedSize = useResizeObserver(rootElement)
-const computedBounds = computed(() => new Rect(Vec2.Zero, computedSize.value))
+const resizeHandles = useResizeHandles({
+  size: useResizeObserver(rootElement),
+})
+resizeHandles.onResizeHeight((value) => (savedSize.value = { height: value }))
 
 function clampSize(size: number) {
   return Math.max(size, MIN_DOCK_SIZE_PX)
@@ -64,11 +65,7 @@ const style = computed(() =>
         />
         <slot />
       </WithFullscreenMode>
-      <ResizeHandles
-        top
-        :modelValue="computedBounds"
-        @update:modelValue="savedSize = { height: $event.height }"
-      />
+      <ResizeHandles top v-on="resizeHandles.events" />
     </div>
   </Transition>
 </template>

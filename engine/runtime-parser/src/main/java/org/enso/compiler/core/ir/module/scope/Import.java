@@ -99,12 +99,8 @@ public interface Import extends Scope {
           null);
     }
 
-    public Module copyWithNameAndRename(Name.Qualified name, Option<Name.Literal> rename) {
-      return new Builder(this).name(name).rename(rename).build();
-    }
-
-    public Module copyWithName(Name.Qualified name) {
-      return new Builder(this).name(name).build();
+    public Builder copyBuilder() {
+      return ImportModuleGen.builder(this);
     }
 
     @Override

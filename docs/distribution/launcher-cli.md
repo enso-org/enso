@@ -292,14 +292,7 @@ be passed after a double dash (`--`), i.e. `enso repl -- --someUnknownFlag`.
 
 ## JVM Options
 
-If an environment variable `ENSO_JVM_OPTS` is defined, JVM options defined there
-are passed to the launcher JVM.
-
-> Note: Currently the `ENSO_JVM_OPTS` are parsed by splitting on the space
-> character, so individual options listed in this environment variable should
-> not contain spaces or they may be interpreted incorrectly.
-
-Moreover, it is possible to pass parameters to the JVM that is used to launch
-these components, which may be helpful with debugging. A parameter of the form
+It is possible to pass parameters to the JVM that is used to launch these
+components, which may be helpful with debugging. A parameter of the form
 `--jvm.argumentName=argumentValue` will be passed to the JVM as
 `-DargumentName=argumentValue`.

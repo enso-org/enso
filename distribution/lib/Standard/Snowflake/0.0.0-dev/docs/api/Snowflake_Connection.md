@@ -14,7 +14,7 @@
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - execute_update self query:Standard.Base.Any.Any write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - fetch_primary_key self table_name:Standard.Base.Data.Text.Text schema_name:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - file_format_names self -> Standard.Base.Any.Any
     - file_format_properties self file_format:Standard.Snowflake.Identifier.Identifier= -> Standard.Base.Any.Any
