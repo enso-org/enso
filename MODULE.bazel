@@ -32,6 +32,7 @@ single_version_override(
     patch_strip = 1,
     patches = ["patches/aspect_rules_esbuild_windows_fix.patch"],
 )
+
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
 ## Node.js
