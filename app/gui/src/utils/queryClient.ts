@@ -231,7 +231,7 @@ export async function createQueryClient<TStorageValue = string>(
         // @see [experimental_prefetchInRender](https://tanstack.com/query/latest/docs/framework/react/guides/suspense#using-usequerypromise-and-reactuse-experimental)
         // eslint-disable-next-line camelcase
         experimental_prefetchInRender: true,
-        retry: (failureCount, error: unknown) => {
+        retry: (failureCount, error) => {
           const statusesToIgnore = [403, 404]
           const errorStatus =
             (

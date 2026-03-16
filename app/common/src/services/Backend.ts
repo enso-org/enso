@@ -1695,7 +1695,7 @@ export class NetworkError extends Error {
 export class NotAuthorizedError extends NetworkError {}
 
 /** Check whether an error represents HTTP 401 (Not Authorized). */
-export function isUnauthorizedError(error: unknown): boolean {
+export function isUnauthorizedError(error: Error): boolean {
   return (
     error instanceof NotAuthorizedError ||
     (typeof error === 'object' &&

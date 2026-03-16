@@ -132,8 +132,7 @@ export class HttpClient {
 
   /** Remove the session token from the Authorization header. */
   clearSessionToken() {
-    const { Authorization: _authorization, ...headers } = this.defaultHeaders
-    this.defaultHeaders = headers
+    delete this.defaultHeaders.Authorization
   }
 
   /**

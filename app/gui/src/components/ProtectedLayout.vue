@@ -140,7 +140,7 @@ useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
 const allowed = computed(() => routeAllowed(route, auth))
 const isRedirecting = ref(false)
 
-const redirectTo = (redirectValue: { path: string }) => {
+const redirectTo = (redirectValue: RouteLocationRaw) => {
   if (isRedirecting.value) {
     return
   }

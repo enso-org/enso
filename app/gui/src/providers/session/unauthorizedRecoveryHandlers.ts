@@ -1,7 +1,7 @@
 import { isUnauthorizedError } from 'enso-common/src/services/Backend'
 import type { QueryClient } from '../../utils/queryClient'
+import { isUsersMeQueryKey } from '../auth'
 import {
-  isUsersMeQuery,
   queueRepeatedUnauthorizedQuery,
   reportRepeatedUnauthorizedErrorOnce,
   toUnauthorizedRecoveryError,
@@ -36,7 +36,7 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
       const authError = toUnauthorizedRecoveryError(error)
       options.recordUnauthorizedRecoveryActivity()
 
-      if (options.state.hasRecoveredUnauthorizedSession && isUsersMeQuery(query)) {
+      if (options.state.hasRecoveredUnauthorizedSession && isUsersMeQueryKey(query.queryKey)) {
         void options.reportTerminalAuthFailure(authError)
         return
       }

@@ -33,11 +33,6 @@ export interface UnauthorizedRecoveryState {
   replayedMutations: WeakSet<object>
 }
 
-/** Return whether a query key identifies the usersMe request. */
-export function isUsersMeQuery(query: { readonly queryKey: readonly unknown[] }) {
-  return query.queryKey[1] === 'usersMe'
-}
-
 /** Create initial mutable state for unauthorized recovery logic. */
 export function createUnauthorizedRecoveryState(): UnauthorizedRecoveryState {
   return {

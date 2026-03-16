@@ -12,13 +12,6 @@ export interface RepeatedUnauthorizedRecoveryBackoffOptions extends AuthRecovery
   readonly resetWindowMs: number
 }
 
-/** Wait for the specified delay. */
-export function wait(delayMs: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, delayMs)
-  })
-}
-
 function withJitter(delayMs: number, jitter: number) {
   if (jitter <= 0) {
     return delayMs

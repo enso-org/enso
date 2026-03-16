@@ -33,6 +33,18 @@ export function createUsersMeQueryKey(
   ] as const
 }
 
+/** Check if the query key belongs to usersMe query. */
+export function isUsersMeQueryKey(
+  queryKey: vueQuery.QueryKey,
+): queryKey is ReturnType<typeof createUsersMeQueryKey> {
+  return (
+    queryKey.length === 3 &&
+    typeof queryKey[0] === 'string' &&
+    queryKey[1] === 'usersMe' &&
+    (typeof queryKey[2] === 'string' || queryKey[2] === null)
+  )
+}
+
 const ACCOUNT_FRESHNESS_THRESHOLD_MS = 1000 * 60 * 30 // 30 minutes
 
 function extractTimestampFromKsuid(ksuid: string): Date {

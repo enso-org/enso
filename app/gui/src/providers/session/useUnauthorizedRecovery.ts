@@ -1,8 +1,10 @@
-import { computed, onScopeDispose, type ComputedRef, type Ref } from 'vue'
-import type { QueryClient } from '../../utils/queryClient'
+import { isUsersMeQueryKey } from '$/providers/auth'
+import type { QueryClient } from '$/utils/queryClient'
+import type { Query } from '@tanstack/query-core'
+import { wait } from 'lib0/promise'
+import { computed, onScopeDispose, type Ref } from 'vue'
 import {
   nextBackoffDelay,
-  wait,
   type AuthRecoveryBackoffOptions,
   type RepeatedUnauthorizedRecoveryBackoffOptions,
 } from './backoff'
@@ -15,7 +17,6 @@ import { installUnauthorizedRecoveryHandlers } from './unauthorizedRecoveryHandl
 import {
   createUnauthorizedRecoveryState,
   hasReachedRepeatedUnauthorizedAttemptLimit,
-  isUsersMeQuery,
   recordUnauthorizedRecoveryActivity,
   reportRepeatedUnauthorizedErrorOnce,
   resetUnauthorizedRecoveryState as resetUnauthorizedRecoveryStateInternal,
@@ -35,10 +36,7 @@ interface UseUnauthorizedRecoveryOptions {
 }
 
 /** Install unauthorized handlers and coordinate session recovery/replay flow. */
-export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions): {
-  readonly isReconnectingSession: ComputedRef<boolean>
-  readonly resetUnauthorizedRecoveryState: () => void
-} {
+export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions) {
   const state = createUnauthorizedRecoveryState()
   const isReconnectingSession = computed(() => state.reconnectingSessionBackoffWaitCount.value > 0)
 
@@ -69,6 +67,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
       return state.terminalAuthFailurePromise
     }
 
+    const isUsersMeQuery = (query: Query) => isUsersMeQueryKey(query.queryKey)
     state.terminalAuthFailurePromise = (async () => {
       options.reportSessionExpiredError(error)
       options.clearSessionQuery()
