@@ -7,7 +7,6 @@ import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.ydoc.api.YdocServerApi;
 import org.enso.ydoc.api.YjsChannel;
 import org.graalvm.nativeimage.ImageInfo;
-import org.slf4j.event.Level;
 
 public final class YdocServerImpl extends YdocServerApi {
   public YdocServerImpl() {}
@@ -17,8 +16,7 @@ public final class YdocServerImpl extends YdocServerApi {
       String hostname,
       int port,
       YjsChannel.Server jsonChannelCallbacks,
-      YjsChannel.Server binaryChannelCallbacks,
-      Level logLevel)
+      YjsChannel.Server binaryChannelCallbacks)
       throws IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);
@@ -45,13 +43,7 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    impl.invokeMember(
-        "launch",
-        hostname,
-        port + "",
-        jsonChannelCallbacks,
-        binaryChannelCallbacks,
-        logLevel.name());
+    impl.invokeMember("launch", hostname, port + "", jsonChannelCallbacks, binaryChannelCallbacks);
     return loader;
   }
 }

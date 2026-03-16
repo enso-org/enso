@@ -557,8 +557,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           c.hostname,
           c.port,
           jsonRpcServer.yjsChannelCallbacks,
-          binaryChannelCallbacks,
-          logLevel
+          binaryChannelCallbacks
         )
     )
     ydocExecutor

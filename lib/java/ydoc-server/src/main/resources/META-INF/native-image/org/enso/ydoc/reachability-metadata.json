@@ -601,8 +601,7 @@
             "java.lang.String",
             "java.lang.String",
             "org.enso.ydoc.api.YjsChannel$Server",
-            "org.enso.ydoc.api.YjsChannel$Server",
-            "java.lang.String"
+            "org.enso.ydoc.api.YjsChannel$Server"
           ]
         },
         {
