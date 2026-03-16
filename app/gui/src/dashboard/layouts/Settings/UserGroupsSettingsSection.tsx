@@ -26,6 +26,8 @@ import { useState } from 'react'
 
 /** The maximum number of user icons per row. */
 const MAXIMUM_USER_ICONS = 6
+/** The maximum number of user groups for team license. */
+const MAXIMUM_USER_GROUPS_NUMBER = 10
 
 const USER_GROUP_SETTINGS_SECTION_STYLES = tv({
   base: '',
@@ -80,7 +82,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
-  const userGroupsLeft = isUnderPaywall ? 1 - userGroups.length : Infinity
+  const userGroupsLeft = isUnderPaywall ? MAXIMUM_USER_GROUPS_NUMBER - userGroups.length : Infinity
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
   const styles = USER_GROUP_SETTINGS_SECTION_STYLES()
@@ -113,7 +115,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
             <span className="text-xs">
               {userGroupsLeft <= 0 ?
                 getText('userGroupsPaywallMessage')
-              : getText('userGroupsLimitMessage', userGroupsLeft)}
+              : getText('userGroupsLimitMessage', MAXIMUM_USER_GROUPS_NUMBER)}
             </span>
           )}
         </Button.Group>
