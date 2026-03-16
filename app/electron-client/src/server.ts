@@ -388,7 +388,7 @@ export class Server {
 
   /** Send a HTTP response with a JSON payload. */
   httpOkText(response: http.ServerResponse, content: string) {
-    var bytes = new TextEncoder().encode(content)
+    const bytes = new TextEncoder().encode(content)
     return response
       .writeHead(HTTP_STATUS_OK, [
         ['Content-Length', `${bytes.length}`],
