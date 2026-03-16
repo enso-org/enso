@@ -14,21 +14,20 @@ import {
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
+import { createProtectedLayoutRedirectController } from '$/components/protectedLayoutRedirect'
 import { useAppTitle } from '$/composables/appTitle'
 import { useUserAgreements } from '$/composables/userAgreements'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useSession } from '$/providers/session'
-import { LOGOUT_EVENT } from '$/providers/session/constants'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
 import { useAppClass } from '@/providers/appClass'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
-import { useEventListener } from '@vueuse/core'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
-import { computed, effectScope, EffectScope, ref, watch, watchPostEffect } from 'vue'
+import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 
 declare module 'vue-router' {
@@ -138,31 +137,8 @@ const debugHoverAreas = useFeatureFlag('debugHoverAreas')
 useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
 
 const allowed = computed(() => routeAllowed(route, auth))
-const isRedirecting = ref(false)
-
-const redirectTo = (redirectValue: RouteLocationRaw) => {
-  if (isRedirecting.value) {
-    return
-  }
-  isRedirecting.value = true
-  void router
-    .replace(redirectValue)
-    .then(async (navigationFailure) => {
-      // Retry once, in case the first navigation failed due to some transient issue.
-      if (navigationFailure && router.currentRoute.value.path !== redirectValue.path) {
-        await router.replace(redirectValue)
-      }
-    })
-    .catch((error) => {
-      console.error('Failed to redirect from protected route: ', error)
-    })
-    .finally(() => {
-      isRedirecting.value = false
-    })
-}
-
-useEventListener(document, LOGOUT_EVENT, () => {
-  redirectTo({ path: LOGIN_PATH })
+const { redirectTo } = createProtectedLayoutRedirectController(router, (error) => {
+  console.error('Failed to redirect from protected route: ', error)
 })
 
 watch(
