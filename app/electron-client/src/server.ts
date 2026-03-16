@@ -388,13 +388,14 @@ export class Server {
 
   /** Send a HTTP response with a JSON payload. */
   httpOkText(response: http.ServerResponse, content: string) {
+    var bytes = new TextEncoder().encode(content)
     return response
       .writeHead(HTTP_STATUS_OK, [
-        ['Content-Length', `${content.length}`],
+        ['Content-Length', `${bytes.length}`],
         ['Content-Type', 'text/plain'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(content, 'binary')
+      .end(bytes, 'utf-8')
   }
 
   /** Send a HTTP error with a text payload. */

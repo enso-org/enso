@@ -257,14 +257,14 @@ export class ProjectManagerShimMiddleware {
           break
         }
         case 'GET /api/root-directory-path': {
-          console.log(PROJECTS_ROOT_DIRECTORY)
+          var bytes = new TextEncoder().encode(PROJECTS_ROOT_DIRECTORY)
           response
             .writeHead(HTTP_STATUS_OK, {
-              'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
+              'Content-Length': String(bytes.length),
               'Content-Type': 'text/plain',
               ...COMMON_HEADERS,
             })
-            .end(PROJECTS_ROOT_DIRECTORY, 'binary')
+            .end(bytes, 'utf-8')
           break
         }
         default: {
