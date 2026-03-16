@@ -1,5 +1,5 @@
 import * as map from 'lib0/map'
-import { YjsChannel, type MessageHandler, type YjsChannelCallbacks } from 'ydoc-channel'
+import { YjsChannel, type MessageHandler, type YjsChannelServer } from 'ydoc-channel'
 import * as Y from 'yjs'
 
 /**
@@ -30,7 +30,7 @@ interface JavaByteBufferClass {
 export class YjsBinaryChannel extends YjsChannel<any> {
   private static channels = new Map<string, YjsBinaryChannel>()
 
-  private readonly callbacks: YjsChannelCallbacks<JavaByteBuffer>
+  private readonly callbacks: YjsChannelServer<JavaByteBuffer>
   private readonly ByteBuffer: JavaByteBufferClass
 
   /**
@@ -42,7 +42,7 @@ export class YjsBinaryChannel extends YjsChannel<any> {
   constructor(
     doc: Y.Doc,
     channelName: string,
-    callbacks: YjsChannelCallbacks<JavaByteBuffer>,
+    callbacks: YjsChannelServer<JavaByteBuffer>,
     byteBuffer: JavaByteBufferClass,
   ) {
     super(doc, channelName)
@@ -55,7 +55,7 @@ export class YjsBinaryChannel extends YjsChannel<any> {
   static get(
     doc: Y.Doc,
     channelName: string,
-    callbacks: YjsChannelCallbacks<JavaByteBuffer>,
+    callbacks: YjsChannelServer<JavaByteBuffer>,
     byteBuffer: JavaByteBufferClass,
   ): YjsBinaryChannel {
     return map.setIfUndefined(YjsBinaryChannel.channels, channelName, () => {

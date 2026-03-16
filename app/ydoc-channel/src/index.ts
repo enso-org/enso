@@ -1,1 +1,1 @@
-export { YjsChannel, type MessageHandler, type YjsChannelCallbacks } from './YjsChannel.js'
+export { YjsChannel, type MessageHandler, type YjsChannelServer } from './YjsChannel.js'

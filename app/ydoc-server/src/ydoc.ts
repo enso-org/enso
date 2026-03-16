@@ -10,7 +10,7 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import type { YjsChannelCallbacks } from 'ydoc-channel'
+import type { YjsChannelServer } from 'ydoc-channel'
 import { YjsBinaryChannel } from './YjsBinaryChannel'
 import { LanguageServerSession } from './languageServerSession'
 
@@ -101,8 +101,8 @@ export function setupGatewayClient(
   dataUrl: string | undefined | null,
   docName: string,
   byteBuffer: any,
-  jsonChannelCallbacks: YjsChannelCallbacks,
-  binaryChannelCallbacks: YjsChannelCallbacks,
+  jsonChannelCallbacks: YjsChannelServer,
+  binaryChannelCallbacks: YjsChannelServer,
 ): void {
   console.log(
     `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, ${dataUrl ? 'dataUrl: ' + dataUrl : 'no dataUrl'} docName: ${docName}), byteBuffer: ${byteBuffer}, jsonChannelCallbacks: ${jsonChannelCallbacks}, binaryChannelCallbacks: ${binaryChannelCallbacks}`,
@@ -132,7 +132,7 @@ export function setupGatewayClient(
 
 function getSessionForUrl(
   lsUrl: string | undefined | null,
-  jsonChannelCallbacks: YjsChannelCallbacks,
+  jsonChannelCallbacks: YjsChannelServer,
 ) {
   let lsSession: LanguageServerSession
   if (lsUrl) {

@@ -10,7 +10,7 @@ import {
   type JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request.js'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport.js'
-import type { YjsChannelCallbacks } from 'ydoc-channel'
+import type { YjsChannelServer } from 'ydoc-channel'
 import { YjsChannel } from 'ydoc-channel'
 import type * as Y from 'yjs'
 
@@ -151,14 +151,14 @@ export class YjsTransport extends Transport {
 /** A JSON-RPC transport that uses YjsChannel for communication. */
 export class YjsServerTransport extends YjsTransport {
   private readonly proxyChannel: YjsChannel
-  private readonly callbacks: YjsChannelCallbacks
+  private readonly callbacks: YjsChannelServer
 
   /**
    * Create a {@link YjsTransport}.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
-  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks) {
+  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelServer) {
     super(doc, `backend-${channelName}`)
     this.callbacks = callbacks
     this.proxyChannel = new YjsChannel(doc, channelName)

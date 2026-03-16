@@ -18,7 +18,7 @@ export type MessageHandler<T = unknown> = (message: T) => void
  *
  * Invoked when a WebSocket client connects, providing a channel for bidirectional communication.
  */
-export interface YjsChannelCallbacks<T = unknown> {
+export interface YjsChannelServer<T = unknown> {
   /**
    * Called when a new channel is established.
    * @param channel - The newly connected channel
