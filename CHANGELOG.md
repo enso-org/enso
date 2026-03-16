@@ -10,6 +10,7 @@
 - [Drive is now a separate panel instead of tab.][14807]
 - [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
 - [Opened project's Language Server process is restarted after a crash][14832].
+- [Geo Map Visualization may display GeoSpatial data][14859]
 - [Component height can be resized][14849]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
@@ -19,6 +20,7 @@
 [14807]: https://github.com/enso-org/enso/pull/14807
 [14820]: https://github.com/enso-org/enso/pull/14820
 [14832]: https://github.com/enso-org/enso/pull/14832
+[14859]: https://github.com/enso-org/enso/pull/14859
 [14849]: https://github.com/enso-org/enso/pull/14849
 
 #### Enso Standard Library

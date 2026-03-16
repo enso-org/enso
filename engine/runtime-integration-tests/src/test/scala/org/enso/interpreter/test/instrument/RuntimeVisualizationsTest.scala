@@ -4289,19 +4289,28 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         context.executionComplete(contextId)
       )
 
-      // Send IdMap
+      // Send IdMap with execute = true to ensure the IdMap is compiled into
+      // the module IR before attaching the visualization. Without this, there
+      // is a race between the EnsureCompiledJob (applying the IdMap) and the
+      // UpsertVisualizationJob (which needs the IdMap to find the parent
+      // expression for cache invalidation via flyby).
       val idYX = new UUID(0, 1)
       context.send(
         Api.Request(
           Api.EditFileNotification(
             mainFile,
             Seq(),
-            execute = false,
+            execute = true,
             idMap = Some(
               model.IdMap(Vector(model.Span(100, 101) -> idYX))
             )
           )
         )
+      )
+      context.receiveNIgnoreExpressionUpdates(
+        1
+      ) should contain(
+        context.executionComplete(contextId)
       )
 
       // attach visualization

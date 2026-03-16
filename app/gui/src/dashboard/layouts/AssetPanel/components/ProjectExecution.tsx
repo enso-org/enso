@@ -7,10 +7,7 @@ import { IconDisplay } from '#/components/IconDisplay'
 import { Menu } from '#/components/Menu'
 import { Text } from '#/components/Text'
 import { VisualTooltip } from '#/components/VisualTooltip'
-import {
-  backendMutationOptions,
-  getProjectExecutionDetailsQueryOptions,
-} from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -26,7 +23,7 @@ import {
   toZoned,
   type ZonedDateTime,
 } from '@internationalized/date'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
 import * as backendModule from 'enso-common/src/services/Backend'
 import {
@@ -38,8 +35,6 @@ import {
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 
-/** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
-const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
 const MONTHS_IN_YEAR = 12
 
 const PROJECT_EXECUTION_STYLES = tv({
@@ -67,11 +62,12 @@ export interface ProjectExecutionProps {
   readonly projectExecution: backendModule.ProjectExecution
   /** Defaults to the first date of `projectExecution` if not given. */
   readonly date?: ZonedDateTime
+  readonly session: backendModule.ProjectSession | undefined
 }
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectExecution(props: ProjectExecutionProps) {
-  const { compact = false, backend, item, projectExecution } = props
+  const { compact = false, backend, item, projectExecution, session } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
@@ -80,21 +76,6 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     'enableAdvancedProjectExecutionOptions',
   )
   const { repeat } = projectExecution
-
-  const { data: details } = useQuery(
-    getProjectExecutionDetailsQueryOptions(backend, projectExecution.executionId, item.title),
-  )
-
-  const sessions = details?.projectSessions
-  const session =
-    date == null ? null : (
-      sessions?.find(
-        (otherSession) =>
-          Math.abs(Number(new Date(otherSession.createdAt)) - Number(date.toDate())) <
-          EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
-      )
-    )
-
   const repeatString = (() => {
     if (date) {
       const minuteString = String(date.minute).padStart(2, '0')
