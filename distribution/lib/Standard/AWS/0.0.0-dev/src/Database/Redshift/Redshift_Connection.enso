@@ -417,7 +417,7 @@ type Redshift_Connection
         _ : In_Memory_Table ->
             ## Check for illegal column types
             removed = table.remove_columns [(..By_Type ..Null), (..By_Type ..Mixed), (..By_Type ..Unsupported_Data_Type), (..By_Type ..Binary)]
-            if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to DuckDB. Please remove or convert these columns before uploading.")
+            if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to Redshift. Please remove or convert these columns before uploading.")
 
             ## Check if table exists
             exists = self.query (..Table_Name table_name) . is_error . not
