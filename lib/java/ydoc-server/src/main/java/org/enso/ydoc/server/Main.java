@@ -38,7 +38,7 @@ public final class Main {
       builder.binaryChannelCallbacks(binaryChannelCallbacks);
     }
     var hostAccess = WebEnvironment.defaultHostAccess;
-    builder.hostAccessBuilder(hostAccess);
+    builder.hostAccess(hostAccess.build());
     var ydoc = builder.build();
     ydoc.start();
     return ydoc;

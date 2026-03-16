@@ -59,7 +59,7 @@ public final class Ydoc implements AutoCloseable {
     private YdocScheduledExecutorService executor;
     private ParserPolyfill parser;
     private Context.Builder contextBuilder;
-    private HostAccess.Builder hostAccessBuilder;
+    private HostAccess hostAccess;
     private String hostname;
     private int port = -1;
     private Level logLevel = Level.ERROR;
@@ -78,8 +78,8 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
-    public Builder hostAccessBuilder(HostAccess.Builder hostAccessBuilder) {
-      this.hostAccessBuilder = hostAccessBuilder;
+    public Builder hostAccess(HostAccess hostAccess) {
+      this.hostAccess = hostAccess;
       return this;
     }
 
@@ -123,13 +123,13 @@ public final class Ydoc implements AutoCloseable {
         parser = new ParserPolyfill();
       }
 
-      if (hostAccessBuilder == null) {
-        hostAccessBuilder = WebEnvironment.defaultHostAccess;
+      if (hostAccess == null) {
+        hostAccess = WebEnvironment.defaultHostAccess.build();
       }
 
       if (contextBuilder == null) {
         contextBuilder =
-            WebEnvironment.createContext(hostAccessBuilder.build()).allowIO(IOAccess.ALL);
+            WebEnvironment.createContext(hostAccess).allowIO(IOAccess.ALL);
       }
 
       if (hostname == null) {
