@@ -394,7 +394,7 @@ export class Server {
         ['Content-Type', 'text/plain'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(content)
+      .end(content, 'binary')
   }
 
   /** Send a HTTP error with a text payload. */
