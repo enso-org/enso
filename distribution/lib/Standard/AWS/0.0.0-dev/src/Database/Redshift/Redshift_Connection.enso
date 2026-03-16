@@ -6,8 +6,7 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
-from Standard.Table import Table, Value_Type
-from Standard.Table.Internal.Storage import from_value_type
+from Standard.Table import Table
 import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Internal.In_Memory_Helpers
 import Standard.Table.Rows_To_Read.Rows_To_Read
