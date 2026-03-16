@@ -10,6 +10,8 @@ from Standard.DuckDB import all
 
 from Standard.Test import all
 
+import enso_dev.Table_Tests.Database.Postgres_Spec.JSON_Table_Data
+
 make_table start:Integer length:Integer=10 =
     node1 = start.up_to (start + length) True
     table1 = node1.to_table "Ints"
@@ -31,12 +33,13 @@ compare_table db_table_read table =
 
 add_specs suite_builder =
     suite_builder.group "DuckDB JSON" group_builder->
-        connect = Database.connect DuckDB.In_Memory
-        make_table_sql = 'CREATE OR REPLACE TEMPORARY TABLE tbl_json_test(id INTEGER PRIMARY KEY, payload JSON); INSERT INTO tbl_json_test VALUES (0, \'{"defaultMargin": 22}\'), (1, \'null\'), (2, \'true\'), (3, \'false\'), (4, \'123\'), (5, \'"string value"\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\'), (10, \'3.14159267\'), (11, null);'
-        connect.execute_update make_table_sql
+        json_connection = JSON_Table_Data.setup (_ -> Database.connect DuckDB.In_Memory) ["json"]
+
+        group_builder.teardown <|
+            json_connection.teardown
 
         group_builder.specify "query a table with JSON" <|
-            db_table = connect.query "tbl_json_test"
+            db_table = json_connection.connection.query "tbl_json_test"
             Problems.assume_no_problems db_table
             db_table.column_names.should_equal ["id", "payload"]
             db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
@@ -46,13 +49,13 @@ add_specs suite_builder =
             db_table.row_count.should_equal 12
 
         group_builder.specify "read a table with JSON as text with warning" <|
-            table = connect.read "tbl_json_test"
+            table = json_connection.connection.read "tbl_json_test"
             Problems.expect_only_warning Inexact_Type_Coercion table
             table.column_names.should_equal ["id", "payload"]
             table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
             table.at "payload" . value_type . should_equal Value_Type.Char
             table.row_count . should_equal 12
-            table.at "payload" . to_vector . should_equal ['{"defaultMargin": 22}', 'null', 'true', 'false', '123', '"string value"', '{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}', '[1, 2, 3, 4, 5]', '["string1", "string2", "string3"]', '[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]', '3.14159267', Nothing]
+            table.at "payload" . to_vector . should_equal json_connection.expected
 
     suite_builder.group "DuckDB_Parquet" group_builder->
         connect = Database.connect DuckDB.In_Memory
