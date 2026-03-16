@@ -6,7 +6,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
-import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
@@ -29,8 +28,8 @@ public final class Ydoc implements AutoCloseable {
   private final Context.Builder contextBuilder;
   private final String hostname;
   private final int port;
-  private final YjsChannelCallbacks jsonChannelCallbacks;
-  private final YjsChannelCallbacks binaryChannelCallbacks;
+  private final YjsChannel.Server jsonChannelCallbacks;
+  private final YjsChannel.Server binaryChannelCallbacks;
   private final Level logLevel;
 
   private Context context;
@@ -42,8 +41,8 @@ public final class Ydoc implements AutoCloseable {
       Context.Builder contextBuilder,
       String hostname,
       int port,
-      YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks,
+      YjsChannel.Server jsonChannelCallbacks,
+      YjsChannel.Server binaryChannelCallbacks,
       Level logLevel) {
     this.executor = executor;
     this.parser = parser;
@@ -67,8 +66,8 @@ public final class Ydoc implements AutoCloseable {
     private String hostname;
     private int port = -1;
     private Level logLevel = Level.ERROR;
-    private YjsChannelCallbacks jsonChannelCallbacks;
-    private YjsChannelCallbacks binaryChannelCallbacks;
+    private YjsChannel.Server jsonChannelCallbacks;
+    private YjsChannel.Server binaryChannelCallbacks;
 
     private Builder() {}
 
@@ -110,11 +109,11 @@ public final class Ydoc implements AutoCloseable {
       }
     }
 
-    public static final class DelegateYjsChannelCallbacks implements YjsChannelCallbacks {
+    public static final class DelegateYjsChannel.Server implements YjsChannel.Server {
       private final String name;
-      private final YjsChannelCallbacks delegate;
+      private final YjsChannel.Server delegate;
 
-      DelegateYjsChannelCallbacks(String name, YjsChannelCallbacks delegate) {
+      DelegateYjsChannel.Server(String name, YjsChannel.Server delegate) {
         this.name = name;
         this.delegate = delegate;
       }
@@ -166,12 +165,12 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
-    public Builder jsonChannelCallbacks(YjsChannelCallbacks callbacks) {
+    public Builder jsonChannelCallbacks(YjsChannel.Server callbacks) {
       this.jsonChannelCallbacks = callbacks;
       return this;
     }
 
-    public Builder binaryChannelCallbacks(YjsChannelCallbacks callbacks) {
+    public Builder binaryChannelCallbacks(YjsChannel.Server callbacks) {
       this.binaryChannelCallbacks = callbacks;
       return this;
     }
@@ -211,10 +210,10 @@ public final class Ydoc implements AutoCloseable {
           hostname,
           port,
           logLevel == Level.TRACE
-              ? new DelegateYjsChannelCallbacks("JSON", jsonChannelCallbacks)
+              ? new DelegateYjsChannel.Server("JSON", jsonChannelCallbacks)
               : jsonChannelCallbacks,
           logLevel == Level.TRACE
-              ? new DelegateYjsChannelCallbacks("binary", binaryChannelCallbacks)
+              ? new DelegateYjsChannel.Server("binary", binaryChannelCallbacks)
               : binaryChannelCallbacks,
           logLevel);
     }
@@ -224,11 +223,11 @@ public final class Ydoc implements AutoCloseable {
     return new Builder();
   }
 
-  private YjsChannelCallbacks getJsonChannelCallbacksSynchronized() {
+  private YjsChannel.Server getJsonChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
   }
 
-  private YjsChannelCallbacks getBinaryChannelCallbacksSynchronized() {
+  private YjsChannel.Server getBinaryChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
   }
 

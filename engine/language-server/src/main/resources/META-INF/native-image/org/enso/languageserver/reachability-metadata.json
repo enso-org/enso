@@ -57,7 +57,7 @@
     {
       "type": {
         "proxy": [
-          "org.enso.ydoc.api.YjsChannelCallbacks"
+          "org.enso.ydoc.api.YjsChannel.Server"
         ]
       }
     },

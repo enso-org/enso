@@ -5,11 +5,15 @@ import java.util.function.Consumer;
 /**
  * A bidirectional communication channel between the Language Server and the Ydoc server.
  *
- * <p>This interface abstracts message passing between different runtime environments (Java/Scala
- * and JavaScript/TypeScript) in the Enso IDE architecture. Channels are created when WebSocket
- * clients connect to the Ydoc server and are delivered via {@link YjsChannelCallbacks#onConnect}.
+ * <p>Register <em>JSON</em> and/or <em>binary</em> implementations of {@link Server} when
+ * initializing the Ydoc subsystem - e.g. when calling {@link YdocServerApi#launchYdocServer}
  *
- * @see YjsChannelCallbacks
+ * <p>Whenever new connection arrives, a call to {@link
+ * Server#onConnect(org.enso.ydoc.api.YjsChannel)} method is made with a provided instance of the
+ * appropriate {@link YjsChannel} that can be used for communication. Either to {@link #send}
+ * message, or by {@link #subscribe subscribing} to receive messages.
+ *
+ * @see Server
  */
 public interface YjsChannel {
 
@@ -29,4 +33,29 @@ public interface YjsChannel {
    * @param messageHandler callback invoked for each incoming message
    */
   void subscribe(Consumer<Object> messageHandler);
+
+  /**
+   * Callback interface for receiving newly established {@link YjsChannel} connections.
+   *
+   * <p>Implementations handle the lifecycle of channels between the Language Server and Ydoc
+   * server. The Ydoc server invokes {@link #onConnect} when a WebSocket client connects, providing
+   * a channel for bidirectional communication.
+   *
+   * <p>Two callback instances are typically used: one for JSON-RPC text messages and one for binary
+   * protocol messages.
+   *
+   * @see YjsChannel
+   */
+  public interface Server {
+
+    /**
+     * Called when a new channel is established.
+     *
+     * <p>Implementations should subscribe to the channel to receive messages and may send initial
+     * messages to establish the protocol.
+     *
+     * @param channel the newly connected channel
+     */
+    void onConnect(YjsChannel channel);
+  }
 }

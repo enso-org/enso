@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.ydoc.api.YdocServerApi;
-import org.enso.ydoc.api.YjsChannelCallbacks;
+import org.enso.ydoc.api.YjsChannel;
 import org.graalvm.nativeimage.ImageInfo;
 import org.slf4j.event.Level;
 
@@ -16,8 +16,8 @@ public final class YdocServerImpl extends YdocServerApi {
   protected AutoCloseable runYdocServer(
       String hostname,
       int port,
-      YjsChannelCallbacks jsonChannelCallbacks,
-      YjsChannelCallbacks binaryChannelCallbacks,
+      YjsChannel.Server jsonChannelCallbacks,
+      YjsChannel.Server binaryChannelCallbacks,
       Level logLevel)
       throws IOException, URISyntaxException {
     // the following shall invoke:

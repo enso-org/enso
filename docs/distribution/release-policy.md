@@ -71,7 +71,6 @@ Cutting a release for Enso proceeds as follows:
 1. Ensure that the release notes are up to date and that the top header refers
    to the version that is being released.
 2. Invoke the "Promote Release" workflow, either by:
-
    - Triggering it using
      [web interface](https://github.com/enso-org/enso/actions/workflows/promote.yml);
    - Triggering it using [GitHub CLI](https://cli.github.com/). The following
@@ -87,7 +86,6 @@ Cutting a release for Enso proceeds as follows:
      - `nightly` - a nightly release.
 
    The `promote` workflow acts in the following steps:
-
    - generate a new version string for the release;
    - create a release draft on GitHub;
    - build and upload assets for the release on all platforms;

@@ -195,7 +195,6 @@ design documentation.
 > 2.  For each label in `a`, the type of that label `t` is subsumed by the type
 >     `q` of the corresponding label in `b`. That is, `t <: q`, defined as
 >     follows:
->
 >     1.  If both `t` and `q` are atoms, then it holds only if `t` and `q` are
 >         the same atom (have the same identity).
 >     2.  If `t` is an atom, then it holds only if the fields in `t` are
@@ -203,7 +202,6 @@ design documentation.
 >     3.  If either `t` or `q` is a function type but not _both_ `t` and q are
 >         function types, then the relation does not hold.
 >     4.  If both `t` and `q` are function types, then the relation holds if:
->
 >         - If `t` contains defaulted arguments, not present in `q`, then these
 >           can be ignored for the purposes of determining whether `t <: q`. For
 >           example, `f : a -> b = x -> c` is subsumed by `f : a -> c`.

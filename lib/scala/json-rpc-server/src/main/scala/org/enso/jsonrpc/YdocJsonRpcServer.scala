@@ -5,7 +5,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.MessageHandler
-import org.enso.ydoc.api.YjsChannelCallbacks
 import org.enso.ydoc.api.YjsChannel
 
 import java.util.UUID
@@ -77,7 +76,7 @@ object YdocJsonRpcServer {
     clientControllerFactory: ClientControllerFactory,
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
     system: ActorSystem
-  ) extends YjsChannelCallbacks
+  ) extends YjsChannel.Server
       with LazyLogging {
 
     override def onConnect(channel: YjsChannel): Unit = {

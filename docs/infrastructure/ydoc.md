@@ -18,7 +18,7 @@ Language Server through dedicated message channels.
 - [Architecture Overview](#architecture-overview)
 - [Communication Channels](#communication-channels)
   - [YjsChannel Interface](#yjschannel-interface)
-  - [YjsChannelCallbacks Interface](#yjschannelcallbacks-interface)
+  - [YjsChannel.Server Interface](#yjschannelcallbacks-interface)
   - [JSON Channel](#json-channel)
   - [Binary Channel](#binary-channel)
 - [Thread Safety](#thread-safety)
@@ -36,7 +36,7 @@ synchronizes changes across all connected clients.
 ```
 +------------------+                +--------------------------------------------------------------+
 |                  |                |                                                              |
-| +--------------+ |    WebSocket   | +-----------------+ YjsChannelCallbacks  +-----------------+ |
+| +--------------+ |    WebSocket   | +-----------------+ YjsChannel.Server  +-----------------+ |
 | |  IDE Client  | |<-------------->| |  Ydoc Server    |<-------------------->| Language Server | |
 | +--------------+ |                | +-----------------+                      +-----------------+ |
 |     Electron     |                |                         GraalVM                              |
@@ -55,7 +55,7 @@ with the client's channel. The Yjs sync protocol ensures both sides maintain
 consistent state.
 
 The Ydoc server then passes the newly created `YjsChannel` to the Language
-Server by invoking `onConnect()` on the `YjsChannelCallbacks` interface. This
+Server by invoking `onConnect()` on the `YjsChannel.Server` interface. This
 allows the Language Server to subscribe to messages from the IDE client and send
 responses back through the same channel.
 
@@ -87,13 +87,13 @@ Messages sent by an endpoint are automatically filtered out on that endpoint,
 preventing echo. If messages arrive before a handler is subscribed, they are
 queued and delivered upon subscription.
 
-### YjsChannelCallbacks Interface
+### YjsChannel.Server Interface
 
-The `YjsChannelCallbacks` interface notifies the Language Server when new
-channels are established:
+The `YjsChannel.Server` interface notifies the Language Server when new channels
+are established:
 
 ```java
-public interface YjsChannelCallbacks {
+public interface YjsChannel.Server {
   void onConnect(YjsChannel channel);
 }
 ```
@@ -107,7 +107,7 @@ Two callback instances are passed to the Ydoc server at startup:
 
 The JSON channel handles JSON-RPC communication for IDE operations. On the
 Language Server side, `YdocJsonRpcServer.ServerCallbacks` implements
-`YjsChannelCallbacks` and creates Akka actors to process messages:
+`YjsChannel.Server` and creates Akka actors to process messages:
 
 - `MessageHandlerSupervisor` - Processes incoming JSON-RPC requests
 - `OutgoingMessageHandler` - Sends JSON-RPC responses through the channel
@@ -149,7 +149,7 @@ on the owner thread.
 **Java/Scala (Language Server side):**
 
 - [`lib/java/ydoc-api/`](../../lib/java/ydoc-api/) - Core interfaces
-  (`YjsChannel`, `YjsChannelCallbacks`)
+  (`YjsChannel`, `YjsChannel.Server`)
 - [`lib/java/ydoc-server/`](../../lib/java/ydoc-server/) - Server implementation
   and thread synchronization
 - [`lib/scala/json-rpc-server/.../YdocJsonRpcServer.scala`](../../lib/scala/json-rpc-server/src/main/scala/org/enso/jsonrpc/YdocJsonRpcServer.scala) -
