@@ -111,11 +111,9 @@ type DuckDB_Type_Mapping
         Types.TIMESTAMP -> Value_Type.Date_Time False
         Types.BLOB -> Value_Type.Binary Nothing False
         Types.BIT -> Value_Type.Binary Nothing False
-        _ -> case (if json_as_text then sql_type.name else "") of
-            "JSON" ->
-                result = Value_Type.Char size=Nothing variable_length=True
-                Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
-            _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
+        _ -> if json_as_text.not || sql_type.name!="JSON" then Value_Type.Unsupported_Data_Type sql_type.name sql_type else
+            result = Value_Type.Char size=Nothing variable_length=True
+            Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
 
     ## ---
        private: true

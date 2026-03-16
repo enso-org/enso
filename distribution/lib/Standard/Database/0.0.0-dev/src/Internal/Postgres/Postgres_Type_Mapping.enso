@@ -224,8 +224,8 @@ complex_types_map = Dictionary.from_vector <|
 ## ---
    private: true
    ---
-private _on_unknown_type sql_type json_as_text:Boolean=False =
-    case (if json_as_text then sql_type.name else "") of
+private _on_unknown_type sql_type json_as_text:Boolean=False = if json_as_text.not then Value_Type.Unsupported_Data_Type sql_type.name sql_type else
+    case sql_type.name of
         "json" ->
             result = Value_Type.Char size=Nothing variable_length=True
             Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
