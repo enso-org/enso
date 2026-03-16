@@ -29,11 +29,10 @@ compare_table db_table_read table =
         expected = table.at column . to_vector . map x-> if x.is_a Date_Time then x.date_add -x.nanosecond ..Nanosecond else x
         [column]+values . should_equal [column]+expected
 
-
 add_specs suite_builder =
     suite_builder.group "DuckDB JSON" group_builder->
         connect = Database.connect DuckDB.In_Memory
-        make_table_sql = 'create temporary table tbl_json_test(id integer primary key, payload json); insert into tbl_json_test values (0, \'{"defaultMargin": 22}\'), (1, \'null\'), (2, \'true\'), (3, \'false\'), (4, \'123\'), (5, \'"string value"\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\'), (10, \'3.14159267\'), (11, null);'
+        make_table_sql = 'CREATE OR REPLACE TEMPORARY TABLE tbl_json_test(id INTEGER PRIMARY KEY, payload JSON); INSERT INTO tbl_json_test VALUES (0, \'{"defaultMargin": 22}\'), (1, \'null\'), (2, \'true\'), (3, \'false\'), (4, \'123\'), (5, \'"string value"\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\'), (10, \'3.14159267\'), (11, null);'
         connect.execute_update make_table_sql
 
         group_builder.specify "query a table with JSON" <|
