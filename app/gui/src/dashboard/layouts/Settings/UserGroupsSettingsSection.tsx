@@ -115,7 +115,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
             <span className="text-xs">
               {userGroupsLeft <= 0 ?
                 getText('userGroupsPaywallMessage')
-              : getText('userGroupsLimitMessage', MAXIMUM_USER_GROUPS_NUMBER)}
+              : getText('userGroupsLimitMessage', MAXIMUM_USER_GROUPS_NUMBER, userGroupsLeft)}
             </span>
           )}
         </Button.Group>
