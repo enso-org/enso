@@ -107,26 +107,26 @@ public final class Ydoc implements AutoCloseable {
         delegate.subscribe(wrap);
         log.trace("DelegateYjsChannel.subscribe finished");
       }
-    }
 
-    public static final class DelegateYjsChannel.Server implements YjsChannel.Server {
-      private final String name;
-      private final YjsChannel.Server delegate;
+      public static final class Server implements YjsChannel.Server {
+        private final String name;
+        private final YjsChannel.Server delegate;
 
-      DelegateYjsChannel.Server(String name, YjsChannel.Server delegate) {
-        this.name = name;
-        this.delegate = delegate;
-      }
-
-      @HostAccess.Export
-      @Override
-      public void onConnect(YjsChannel channel) {
-        log.trace("Enter onConnect[{}] with {} for {}", name, channel, delegate);
-        if (delegate != null) {
-          var wrap = new DelegateYjsChannel(channel);
-          delegate.onConnect(wrap);
+        Server(String name, YjsChannel.Server delegate) {
+          this.name = name;
+          this.delegate = delegate;
         }
-        log.trace("Exit onConnect[{}] with {}", name, channel);
+
+        @HostAccess.Export
+        @Override
+        public void onConnect(YjsChannel channel) {
+          log.trace("Enter onConnect[{}] with {} for {}", name, channel, delegate);
+          if (delegate != null) {
+            var wrap = new DelegateYjsChannel(channel);
+            delegate.onConnect(wrap);
+          }
+          log.trace("Exit onConnect[{}] with {}", name, channel);
+        }
       }
     }
 
