@@ -257,7 +257,7 @@ export class ProjectManagerShimMiddleware {
           break
         }
         case 'GET /api/root-directory-path': {
-          var bytes = new TextEncoder().encode(PROJECTS_ROOT_DIRECTORY)
+          const bytes = new TextEncoder().encode(PROJECTS_ROOT_DIRECTORY)
           response
             .writeHead(HTTP_STATUS_OK, {
               'Content-Length': String(bytes.length),
