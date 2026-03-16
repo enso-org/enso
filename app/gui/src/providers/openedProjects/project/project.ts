@@ -192,37 +192,20 @@ export function createProjectStore(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
   ): Ref<Result<unknown> | null> {
     const visId = ref<Uuid>()
-    const desiredConfig = shallowRef<Opt<NodeVisualizationConfiguration>>()
 
-    // Keep `visId` in sync with the configuration *synchronously*.
-    //
-    // When switching visualization types, the visualization component may update before the
-    // language server has reconfigured the visualization. If we kept the old ID until the
-    // reconfiguration runs (flush: 'post'), the new visualization could briefly render using the
-    // previous visualization's (potentially huge) payload.
-    //
-    // We still apply the actual execution-context update in a post-flush watcher below to preserve
-    // the original ordering guarantees.
     watch(
       configuration,
-      (config, oldConfig) => {
-        desiredConfig.value = config ?? undefined
+      (config, oldConfig, onCleanup) => {
         if (!config) {
           visId.value = undefined
           return
         }
-        // Regenerate the visualization ID when the preprocessor changes.
+
         if (!visualizationConfigPreprocessorEqual(config, oldConfig) || visId.value == null) {
           visId.value = crypto.randomUUID()
         }
-      },
-      { immediate: true, flush: 'sync' },
-    )
 
-    watch(
-      () => [visId.value, desiredConfig.value] as const,
-      ([id, config], _old, onCleanup) => {
-        if (!id || !config) return
+        const id = visId.value!
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
