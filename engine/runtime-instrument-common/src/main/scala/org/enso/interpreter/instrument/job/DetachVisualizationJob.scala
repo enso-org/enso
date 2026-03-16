@@ -14,9 +14,9 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   * @param contextId an execution context id
   */
 class DetachVisualizationJob(
-  visualizationId: VisualizationId,
+  val visualizationId: VisualizationId,
   val expressionId: ExpressionId,
-  contextId: ContextId
+  val contextId: ContextId
 ) extends Job[Unit](List(contextId), false, false)
     with UniqueJob[Unit] {
 
@@ -24,7 +24,9 @@ class DetachVisualizationJob(
   override def equalsTo(that: UniqueJob[_]): Boolean =
     that match {
       case that: DetachVisualizationJob =>
-        this.expressionId == that.expressionId
+        this.visualizationId == that.visualizationId &&
+        this.expressionId == that.expressionId &&
+        this.contextId == that.contextId
       case _ => false
     }
 
@@ -34,6 +36,10 @@ class DetachVisualizationJob(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () => {
+        val holder = ctx.contextManager.getVisualizationHolder(contextId)
+
+        holder.removeUnevaluated(visualizationId, expressionId)
+
         ctx.contextManager.removeVisualization(
           contextId,
           expressionId,

@@ -106,8 +106,22 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           EnsoParser
             .compileInline(source.getCharacters())
             .flatMap(_ match {
-              case ir: Literal => Some(ir.setLocation(oldIr.location))
-              case _           => None
+              case ir: Literal.Number =>
+                Some(
+                  ir.copyBuilder()
+                    .location(oldIr.location.orNull)
+                    .id(oldIr.getId)
+                    .build()
+                )
+              case ir: Literal.Text =>
+                Some(
+                  ir.copyBuilder()
+                    .location(oldIr.location.orNull)
+                    .id(oldIr.getId)
+                    .build()
+                )
+              case _ =>
+                None
             })
         }
 

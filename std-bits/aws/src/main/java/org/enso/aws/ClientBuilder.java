@@ -1,6 +1,5 @@
 package org.enso.aws;
 
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.function.Supplier;
 import org.enso.aws.regions.AWSRegion;
@@ -14,8 +13,8 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.ses.SesClient;
 
 public class ClientBuilder {
@@ -55,11 +54,18 @@ public class ClientBuilder {
     return previous;
   }
 
-  public S3ClientWrapper buildS3Client() {
-    return S3ClientWrapper.from(
-        S3Client.builder()
-            .credentialsProvider(unsafeBuildCredentialProvider())
-            .region(AWSRegion.underlying(awsRegion)));
+  S3Client buildS3Client() {
+    return S3Client.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
+  }
+
+  S3Presigner buildS3Presigner() {
+    return S3Presigner.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
   }
 
   public SesClient buildSESClient() {
@@ -80,20 +86,6 @@ public class ClientBuilder {
 
   public static String getSHA256(byte[] rawData) {
     return SignedHttpClient.getSHA256(rawData);
-  }
-
-  /**
-   * Instantiates an S3Client configured in such a way that it can query buckets regardless of their
-   * region.
-   *
-   * <p>It is used by {@link BucketLocator} to find out the region of buckets.
-   */
-  S3ClientWrapper buildGlobalS3Client() {
-    return S3ClientWrapper.from(
-        S3Client.builder()
-            .credentialsProvider(unsafeBuildCredentialProvider())
-            .region(Region.US_EAST_1)
-            .endpointOverride(URI.create("https://s3.us-east-1.amazonaws.com")));
   }
 
   /**

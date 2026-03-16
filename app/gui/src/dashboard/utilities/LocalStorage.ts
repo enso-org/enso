@@ -5,7 +5,7 @@ import * as object from 'enso-common/src/utilities/data/object'
 import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { useCallback } from 'react'
 import invariant from 'tiny-invariant'
-import { shallowReactive, toRaw } from 'vue'
+import { computed, shallowReactive, toRaw } from 'vue'
 import * as z from 'zod'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
@@ -224,6 +224,14 @@ export default class LocalStorage {
     return () => {
       this.eventTarget.removeEventListener(key, onChange)
     }
+  }
+
+  /** Get a writable ref to stored vale. */
+  ref<K extends LocalStorageKey>(key: K) {
+    return computed({
+      get: () => this.get(key),
+      set: (value) => (value != null ? this.set(key, value) : this.delete(key)),
+    })
   }
 
   /** Save the current value of the stored data.. */

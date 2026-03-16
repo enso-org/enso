@@ -1,5 +1,6 @@
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
+import project.Errors.Common.Missing_Argument
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, True
 
@@ -8,7 +9,8 @@ type Download_Mode
     If_Not_Exists
 
     ## Download the file if it is older than the specified age.
-    If_Older_Than age:Duration
+    @age Duration.default_widget
+    If_Older_Than (age:Duration=(Missing_Argument.throw "age"))
 
     ## Always download.
     Always

@@ -179,7 +179,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(page.getByTitle('Project Name')).toHaveText('Test Project')
 
   // Check that the name is changed also in drive
-  await page.getByRole('tab', { name: 'Data Catalog' }).click()
   await expect(page.getByTestId('asset-row-name')).toHaveCount(2)
   await expect(page.getByTestId('asset-row-name')).toHaveText(['Samples', 'Test Project'])
 })

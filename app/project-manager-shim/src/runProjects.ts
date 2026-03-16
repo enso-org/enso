@@ -60,6 +60,7 @@ export async function runHybridProjectByUrl(
       cloudProjectDirectoryPath,
       cloudProjectId: asset.id,
       cloudProjectSessionId,
+      cloudApiUrl: remoteBackend.baseUrl.toString(),
     })
     return exitCode
   } catch (error) {
@@ -84,7 +85,7 @@ export async function runLocalProjectByUuid(
     return exitCode
   } catch (error) {
     console.error(`Error starting local project '${projectId}':`, error)
-    await projectService.closeProject(projectId)
+    await projectService.closeProject(projectId, projectsDirectory)
     throw error
   }
 }

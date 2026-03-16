@@ -1627,6 +1627,17 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testQualifiedType() {
+    var ir =
+        compile(
+            """
+            type T
+                == self that -> project.Data.Boolean.Boolean = @Builtin_Method "Any.=="
+            """);
+    expectNoErrorsInIr(ir);
+  }
+
+  @Test
   public void testAnnotatedExpression() {
     String code =
         """

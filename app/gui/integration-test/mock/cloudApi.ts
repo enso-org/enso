@@ -481,7 +481,7 @@ export async function mockCloudApi(page: Page) {
 
     return createAsset({
       type: backend.AssetType.project,
-      id: backend.ProjectId('project-' + uniqueString()),
+      id: backend.ProjectId('project-' + uniqueString(27)),
       title,
       projectState: {
         type: backend.ProjectState.closed,

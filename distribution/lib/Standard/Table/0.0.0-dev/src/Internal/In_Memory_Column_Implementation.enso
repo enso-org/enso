@@ -580,11 +580,11 @@ type In_Memory_Column_Implementation
                 apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
 
     cast (this_column : Column & In_Memory_Column) value_type:Value_Type on_problems:Problem_Behavior =
-        Cast_Helpers.check_cast_compatibility this_column.value_type value_type <|
-            target_storage_type = Storage.from_value_type value_type on_problems
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                new_column = CastOperation.apply this_column.java_column target_storage_type java_problem_aggregator
-                In_Memory_Column.from_java_column new_column
+        Cast_Helpers.check_cast_compatibility this_column.value_type value_type
+        target_storage_type = Storage.from_value_type value_type on_problems
+        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            new_column = CastOperation.apply this_column.java_column target_storage_type java_problem_aggregator
+            In_Memory_Column.from_java_column new_column
 
     auto_cast (this_column : Column & In_Memory_Column) shrink_types:Boolean =
         new_value_type = Storage.to_value_type <|

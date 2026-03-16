@@ -656,11 +656,12 @@ class RuntimeAsyncCommandsTest
   }
 
   it should "interrupt running execution context without sending Panic in visualization updates" in {
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
-    val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+    val contextId        = UUID.randomUUID()
+    val requestId        = UUID.randomUUID()
+    val visualizationId1 = UUID.randomUUID()
+    val visualizationId2 = UUID.randomUUID()
+    val moduleName       = "Enso_Test.Test.Main"
+    val metadata         = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val visualizationFile =
       context.writeInSrcDir("Visualization", Visualization.code)
@@ -736,7 +737,7 @@ class RuntimeAsyncCommandsTest
       Api.Request(
         requestId,
         Api.AttachVisualization(
-          visualizationId,
+          visualizationId2,
           idOp2,
           Api.VisualizationConfiguration(
             contextId,
@@ -754,7 +755,7 @@ class RuntimeAsyncCommandsTest
       Api.Request(
         requestId,
         Api.AttachVisualization(
-          visualizationId,
+          visualizationId1,
           idOp1,
           Api.VisualizationConfiguration(
             contextId,
@@ -796,7 +797,7 @@ class RuntimeAsyncCommandsTest
         )
       )
     )
-    isProgramStarted = context.out.awaitOnText("started")
+    isProgramStarted = context.out.awaitOnText(false, "started")
     if (!isProgramStarted) {
       fail("Program start timed out")
     }

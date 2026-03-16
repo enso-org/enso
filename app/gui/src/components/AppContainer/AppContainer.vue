@@ -3,28 +3,26 @@ import { ModalWrapper as ModalWrapperReact } from '#/components/ModalWrapper'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import CommandPalette from '$/components/CommandPalette.vue'
-import { provideContainerData } from '$/providers/container'
-import { useOpenedProjects, type Project } from '$/providers/openedProjects'
+import { useContainerData } from '$/providers/container'
+import { useOpenedProjects } from '$/providers/openedProjects'
 import { ContainerProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import { appContainerBindings } from '@/bindings'
-import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
-import ProjectView from '@/ProjectView.vue'
 import { registerHandlers } from '@/providers/action'
 import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
-import type { Icon } from '@/util/iconMetadata/iconName'
 import { reactComponent } from '@/util/react'
 import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { newDirectoryId, newProjectId } from 'enso-common/src/services/LocalBackend'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { normalizeSlashes } from 'enso-common/src/utilities/file'
-import { onMounted, onUnmounted, shallowRef, toRefs } from 'vue'
-import { Drive, Settings } from './reactTabs'
+import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
+import MiddlePanel from './MiddlePanel.vue'
+
+import LeftPanel from './LeftPanel.vue'
 import RightPanel from './RightPanel.vue'
-import SelectableTab from './SelectableTab.vue'
 
 const ModalWrapper = reactComponent(ModalWrapperReact)
 const UserBar = reactComponent(UserBarReact)
@@ -40,40 +38,16 @@ const props = defineProps<{
 const fullscreenRoot = shallowRef<HTMLElement>()
 
 const openedProjects = useOpenedProjects()
-const { tab, projectTabs } = toRefs(provideContainerData())
+const containerData = useContainerData()
+const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
+const anyTabs = computed(() => containerData.tabList.length > 0)
 provideAsyncResources(openedProjects)
-provideRightPanelData(tab, props.isFeatureUnderPaywall)
+provideRightPanelData(toRef(containerData, 'focusedPanel'), props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
-
-openedProjects.syncWithLocalStorage()
-
-function loadingProjectSpinnerPhase(project: Project) {
-  return project.state.info.mode === 'cloud' ? 'loading-slow' : 'loading-fast'
-}
-
-function closeSettingsTab() {
-  // The settings tab autohide when not selected.
-  tab.value = 'drive'
-}
-
-function closeTab() {
-  switch (tab.value) {
-    case 'settings':
-      closeSettingsTab()
-      break
-    case 'drive':
-      break
-    default: {
-      const project = projectTabs.value.find((proj) => proj.state.info.ensoPath === tab.value)
-      if (project) openedProjects.closeProject(project.state.info.id)
-      break
-    }
-  }
-}
 
 const actionHandlers = registerHandlers({
   'app.closeTab': {
-    action: closeTab,
+    action: closeCurrentTab,
   },
 })
 
@@ -84,34 +58,25 @@ const keydownHandler = appContainerBindings.handler(
   ),
 )
 
+function goToSettingsPage() {
+  openSettingsTab()
+}
+
 const { globalEventRegistry } = useGlobalEventRegistry()
 useEvent(globalEventRegistry, 'keydown', (event) => {
   return keydownHandler(event)
 })
-
-function projectIcon(project: Project): Icon | undefined {
-  if (project.error != null) {
-    return 'error'
-  }
-  if (project.state.status === 'closed-by-backend') {
-    return 'warning'
-  }
-  if (project.nextTask?.process === 'opening' || project.nextTask?.process === 'restoring') {
-    return undefined
-  }
-  return 'graph_editor'
-}
 
 const onSignOut = () => {
   openedProjects.closeAllProjects()
 }
 
 onMounted(() => {
-  window.api?.menu?.setMenuItemHandler('closeTab', closeTab)
+  window.api?.menu?.setMenuItemHandler('closeTab', closeCurrentTab)
   window.api?.projectManagement.setOpenProjectHandler((project) => {
     const projectId = newProjectId(normalizeSlashes(project.projectRoot))
 
-    openedProjects.openProjectLocally(
+    openProjectLocally(
       {
         id: projectId,
         title: project.name,
@@ -134,58 +99,11 @@ onUnmounted(() => {
     <ContainerProviderForReact>
       <ModalWrapper />
       <div class="bar">
-        <div role="tablist" class="tablist">
-          <SelectableTab
-            :selected="tab === 'drive'"
-            icon="drive"
-            label="Data Catalog"
-            @update:selected="$event && (tab = 'drive')"
-          />
-          <SelectableTab
-            v-for="project in projectTabs"
-            :key="project.state.info.id"
-            data-testid="project-view-tab-button"
-            :selected="project.shown.value"
-            :icon="projectIcon(project)"
-            :label="
-              project.state.status === 'initialized' ?
-                project.state.name.value
-              : project.state.info.title
-            "
-            @update:selected="$event && (tab = project.state.info.ensoPath)"
-            @close="openedProjects.closeProject(project.state.info.id)"
-          >
-            <GrowingSpinner
-              v-if="
-                project.nextTask?.process === 'opening' || project.nextTask?.process === 'restoring'
-              "
-              :phase="loadingProjectSpinnerPhase(project)"
-              :size="16"
-              :thickness="1"
-            />
-          </SelectableTab>
-          <SelectableTab
-            v-if="tab === 'settings'"
-            :selected="true"
-            icon="settings"
-            label="Settings"
-            @close="closeSettingsTab"
-          />
-        </div>
-        <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
+        <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
       </div>
       <div class="mainView">
-        <div class="panel">
-          <KeepAlive>
-            <Drive v-if="tab === 'drive'" />
-          </KeepAlive>
-          <KeepAlive v-for="project in projectTabs" :key="project.state.info.id">
-            <ProjectView v-if="project.shown.value" :projectId="project.state.info.id" />
-          </KeepAlive>
-          <KeepAlive>
-            <Settings v-if="tab === 'settings'" />
-          </KeepAlive>
-        </div>
+        <LeftPanel :middlePanelShown="anyTabs" />
+        <MiddlePanel v-if="anyTabs" />
         <RightPanel />
         <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
       </div>
@@ -199,12 +117,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  isolation: isolate;
 }
 
 .bar {
   background-color: rgba(0, 0, 0, 0.1);
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   justify-content: space-between;
   height: 3rem;
@@ -212,14 +131,6 @@ onUnmounted(() => {
   position: relative;
   padding: 0 8px;
   z-index: 1;
-}
-
-.tablist {
-  display: flex;
-  flex-direction: row;
-  /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
-  isolation: isolate;
-  font-family: var(--font-sans);
 }
 
 .mainView {

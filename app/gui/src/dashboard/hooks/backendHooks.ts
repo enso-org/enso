@@ -5,8 +5,8 @@ import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProv
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
 import { useFullUserSession } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
-import { useOpenedProjects } from '$/providers/react/openedProjects'
 import {
   backendQueryOptions as backendQueryOptionsBase,
   INVALIDATE_ALL_QUERIES,
@@ -434,7 +434,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const { openProjectLocally } = useOpenedProjects()
+  const { openProjectLocally } = useContainerData()
 
   const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
 

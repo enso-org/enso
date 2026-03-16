@@ -548,11 +548,13 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
+                module.setLiteralSource(rope, simpleUpdate);
                 logger.trace(
-                    "Applied edits. Source has {} lines, last line has {} characters.",
+                    "Applied {} for {}. Source has {} lines, last line has {} characters.",
+                    simpleUpdate != null ? "simple update" : "edits",
+                    module.getName(),
                     rope.lines().length(),
                     rope.lines().drop(rope.lines().length() - 1).characters().length());
-                module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
     }

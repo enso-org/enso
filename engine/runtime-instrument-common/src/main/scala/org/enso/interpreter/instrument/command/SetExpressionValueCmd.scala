@@ -55,7 +55,7 @@ class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
     ctx.contextManager.getAllContexts
       .collect {
         case (contextId, stack) if stack.nonEmpty =>
-          ExecuteJob(contextId, stack.toList, "set expression cmd")
+          ExecuteJob.apply(contextId, stack.toList, "set expression cmd")
       }
   }
 

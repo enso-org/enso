@@ -1975,16 +1975,21 @@ final class TreeToIr {
       var blankName = Blank.builder().location(getIdentifiedLocation(wild.getToken())).build();
       return join(blankName, nil());
     }
-    if (t instanceof Tree.Call call) {
-      t = call.getValue();
-    }
     List<Name> names = nil();
-    while (t instanceof Tree.PropertyAccess app) {
-      names = join(sanitizeName(buildName(app.getRhs(), generateId)), names);
-      t = app.getLhs();
-    }
-    if (t instanceof Tree.Call call) {
-      t = call.getValue();
+    LOOP:
+    while (true) {
+      switch (t) {
+        case Tree.PropertyAccess app -> {
+          names = join(sanitizeName(buildName(app.getRhs(), generateId)), names);
+          t = app.getLhs();
+        }
+        case Tree.Call call -> {
+          t = call.getValue();
+        }
+        case null, default -> {
+          break LOOP;
+        }
+      }
     }
     if (t instanceof Tree.Ident id) {
       names = join(sanitizeName(buildName(id, generateId)), names);

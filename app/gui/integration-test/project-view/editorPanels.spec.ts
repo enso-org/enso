@@ -9,6 +9,7 @@ import * as locate from './locate'
 async function goToGraphAndGetDocs(editorPage: EditorPageActions) {
   let docsContent: Locator
   let docsScroller: Locator
+  await editorPage.toggleDocsAssetPanel()
   await editorPage.do(async (page) => {
     docsContent = page.getByTestId('documentation-editor-content')
     docsScroller = page.getByTestId('documentation-editor-scroller')
@@ -44,24 +45,27 @@ test.describe('Main method documentation rendering', () => {
         .locator('span.cm-BulletList-item span')
         .getByText(text, { exact: true })
         .boundingBox()
-    const listLevel0 = await listItemPos('Outer list element')
-    const listLevel1 = await listItemPos('Nested list element')
-    const listLevel2 = await listItemPos('Very nested list element')
+    const listLevel0 = () => listItemPos('Outer list element')
+    const listLevel1 = () => listItemPos('Nested list element')
+    const listLevel2 = () => listItemPos('Very nested list element')
     expect(listLevel0).not.toBeNull()
     expect(listLevel1).not.toBeNull()
     expect(listLevel2).not.toBeNull()
-    expect(listLevel0!.x).toBeLessThan(listLevel1!.x)
-    expect(listLevel1!.x).toBeLessThan(listLevel2!.x)
+    expect
+      .poll(async () => ((await listLevel1())?.x ?? NaN) - ((await listLevel0())?.x ?? NaN))
+      .toBeGreaterThan(0)
+    expect
+      .poll(async () => ((await listLevel2())?.x ?? NaN) - ((await listLevel1())?.x ?? NaN))
+      .toBeGreaterThan(0)
   })
 
   test('Link (rendered and interactive)', async ({ editorPage, page, context }) => {
     const { docsContent } = await goToGraphAndGetDocs(editorPage)
-    await expect(docsContent.locator('a')).toHaveAccessibleDescription(
-      /Click to edit.*Click to open link/,
-    )
+    const link = docsContent.locator('a').first()
+    await expect(link).toHaveAccessibleDescription(/Click to edit.*Click to open link/)
 
-    await expect(docsContent.locator('a')).toHaveText('https://example.com')
-    await docsContent.locator('a').click()
+    await expect(link).toHaveText('https://example.com')
+    await link.click()
     await expect(page.locator('.LinkEditPopup')).toBeVisible()
     await locate.graphEditor(page).click()
     await expect(page.locator('.LinkEditPopup')).toBeHidden()
@@ -69,8 +73,24 @@ test.describe('Main method documentation rendering', () => {
       route.fulfill({ status: 200, body: 'YAY' }),
     )
     const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
-    await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
+    await link.click({ modifiers: ['ControlOrMeta'] })
     await expect(newPagePromise).resolves.toHaveURL('https://example.com')
+  })
+
+  test.use({
+    setupApi: {
+      cloud: (cloudApi) => {
+        cloudApi.addProject({ title: 'MockProject' })
+      },
+    },
+  })
+
+  test('Enso links', async ({ drivePage, editorPage }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
+    const link = docsContent.locator('a').nth(1)
+    await expect(link).toHaveText('A reference to another project')
+    await link.click({ modifiers: ['ControlOrMeta'] })
+    await drivePage.expectProjectEditorOpened('MockProject')
   })
 })
 

@@ -4,7 +4,6 @@ import KeyboardShortcutReact from '#/pages/dashboard/components/KeyboardShortcut
 import { unsetModal } from '#/providers/ModalProvider'
 import { isTextInputEvent } from '#/utilities/event'
 import { useActionsStore, type Action } from '$/providers/actions'
-import { useContainerData } from '$/providers/container'
 import { useText } from '$/providers/text'
 import { commandPaletteBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -18,7 +17,6 @@ import { computed, ref, watchEffect } from 'vue'
 const KeyboardShortcut = reactComponent(KeyboardShortcutReact)
 
 const { findActions } = useActionsStore()
-const containerData = useContainerData()
 const interaction = injectInteractionHandler()
 const { getText } = useText()
 
@@ -30,7 +28,6 @@ const input = ref<HTMLInputElement | null>(null)
 const actionHandlers = registerHandlers({
   'commandPalette.open': {
     action: () => {
-      if (containerData.tab !== 'drive' && containerData.tab !== 'settings') return
       open()
     },
   },

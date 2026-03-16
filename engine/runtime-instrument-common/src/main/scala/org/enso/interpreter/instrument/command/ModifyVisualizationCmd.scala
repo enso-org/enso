@@ -34,19 +34,24 @@ class ModifyVisualizationCmd(
       maybeRequestId,
       request.visualizationId
     )
-    val existingVisualization = ctx.contextManager.getVisualizationById(
-      request.visualizationConfig.executionContextId,
-      request.visualizationId
-    )
+    val existingVisualization = ctx.contextManager
+      .getVisualizationHolder(request.visualizationConfig.executionContextId)
+      .getById(request.visualizationId)
+    val existingUnevaluatedVisualization = ctx.contextManager
+      .getVisualizationHolder(request.visualizationConfig.executionContextId)
+      .getUnevaluatedById(request.visualizationId)
     val visualizationPresent: Option[ExpressionId] =
-      existingVisualization.map(_.expressionId).orElse {
-        val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
-          case upsert: UpsertVisualizationJob
-              if upsert.visualizationId == request.visualizationId =>
-            Some(upsert.expressionId)
+      existingVisualization
+        .map(_.expressionId)
+        .orElse(existingUnevaluatedVisualization.map(_.expressionId))
+        .orElse {
+          val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
+            case upsert: UpsertVisualizationJob
+                if upsert.visualizationId == request.visualizationId =>
+              Some(upsert.expressionId)
+          }
+          ctx.jobControlPlane.jobInProgress(jobFilter)
         }
-        ctx.jobControlPlane.jobInProgress(jobFilter)
-      }
     visualizationPresent match {
       case None =>
         Future {
@@ -76,7 +81,7 @@ class ModifyVisualizationCmd(
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
               _ <- ctx.jobProcessor.run(
-                ExecuteJob(
+                ExecuteJob.apply(
                   exec,
                   "modify/upsert visualization (id=" + request.visualizationId + ")"
                 )

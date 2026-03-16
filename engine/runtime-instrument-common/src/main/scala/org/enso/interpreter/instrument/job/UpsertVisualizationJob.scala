@@ -20,6 +20,7 @@ import org.enso.interpreter.instrument.{
   CacheInvalidation,
   InstrumentFrame,
   RuntimeCache,
+  UnevaluatedVisualization,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
@@ -62,37 +63,107 @@ class UpsertVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] =
-    ctx.locking.withReadContextLock(
-      ctx.locking.getOrCreateContextLock(config.executionContextId),
-      classOf[UpsertVisualizationJob],
-      () => {
-        val (needsRetryWithWriteLock, maybeResult) =
-          ctx.locking.withReadCompilationLock(
-            classOf[UpsertVisualizationJob],
-            () =>
-              evaluateAndExecuteVisualization(
-                hasWriteLock = false
-              )
-          )
-        if (needsRetryWithWriteLock) {
-          UpsertVisualizationJob.logger.trace(
-            "Retrying visualization {} evaluation with write lock to compile necessary modules",
-            visualizationId
-          )
-          ctx.locking.withWriteCompilationLock(
-            classOf[UpsertVisualizationJob],
-            "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
-            () =>
-              evaluateAndExecuteVisualization(
-                hasWriteLock = true
-              )._2
-          )
-        } else {
-          maybeResult
-        }
+  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+    // Try non-blocking lock acquisition first
+    val contextLock =
+      ctx.locking.getOrCreateContextLock(config.executionContextId)
+
+    var result: Option[Executable] = None
+
+    val contextAction: Runnable = () => {
+      val compilationAction: Runnable = () => {
+        UpsertVisualizationJob.logger.trace(
+          "Acquired write compilation lock for visualization {}, executing visualization",
+          visualizationId
+        )
+        val (_, maybeResult) =
+          evaluateAndExecuteVisualization(hasWriteLock = true)
+        result = maybeResult
       }
+
+      // Try write compilation lock (non-blocking) to allow module loading/compilation
+      if (
+        !ctx.locking.tryWithWriteCompilationLock(
+          classOf[UpsertVisualizationJob],
+          compilationAction
+        )
+      ) {
+        UpsertVisualizationJob.logger.trace(
+          "Could not acquire write compilation lock for visualization {}, deferring evaluation",
+          visualizationId
+        )
+        result = deferVisualizationEvaluation()
+      }
+    }
+
+    if (
+      !ctx.locking.tryWithReadContextLock(
+        contextLock,
+        classOf[UpsertVisualizationJob],
+        contextAction
+      )
+    ) {
+      UpsertVisualizationJob.logger.trace(
+        "Could not acquire context lock for visualization {}, deferring evaluation",
+        visualizationId
+      )
+      result = deferVisualizationEvaluation()
+    }
+
+    result
+  }
+
+  /** Defers visualization evaluation by storing it as an UnevaluatedVisualization.
+    * This is called when locks cannot be acquired without blocking.
+    */
+  private def deferVisualizationEvaluation()(implicit
+    ctx: RuntimeContext
+  ): Option[Executable] = {
+    // Find parent expression if this is a subexpression
+    val optParentExpressionId =
+      UpsertVisualizationJob.findParentExpressionId(expressionId)
+
+    optParentExpressionId.foreach { parentID =>
+      UpsertVisualizationJob.logger.trace(
+        "Found a parent expression for visualization ({}): {} for {}",
+        visualizationId,
+        parentID,
+        expressionId
+      )
+      ctx.contextManager.setExpressionFlyby(
+        config.executionContextId,
+        parentID
+      )
+    }
+
+    val unevaluated = UnevaluatedVisualization(
+      id                 = visualizationId,
+      expressionId       = expressionId,
+      parentExpressionId = optParentExpressionId,
+      contextId          = config.executionContextId,
+      config             = config
     )
+
+    val holder =
+      ctx.contextManager.getVisualizationHolder(config.executionContextId)
+    holder.upsertUnevaluated(unevaluated)
+
+    // Mark as needing sync so it will be processed
+    val stack = ctx.contextManager.getStack(config.executionContextId)
+    UpsertVisualizationJob.requireVisualizationSynchronization(
+      stack,
+      visualizationId
+    )
+
+    UpsertVisualizationJob.logger.trace(
+      "Deferred visualization {} for expression {}",
+      visualizationId,
+      expressionId
+    )
+
+    // Reschedule the program execution
+    Some(Executable(config.executionContextId, stack))
+  }
 
   /** Attempts to evaluate the visualization expression associated with this job.
     *
@@ -107,7 +178,8 @@ class UpsertVisualizationJob(
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
     UpsertVisualizationJob.logger.trace(
-      "Evaluating expression {} in observer",
+      "Evaluating visualization {} for expression {} in observer",
+      visualizationId,
       expressionId
     )
     val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
@@ -160,16 +232,8 @@ class UpsertVisualizationJob(
     )
 
     // Find parent expression if this is a subexpression
-    val expressionModuleOpt =
-      ctx.executionService.getContext.findModuleByExpressionId(expressionId)
-    val optParentExpressionId: Option[UUID] = expressionModuleOpt
-      .map(expressionModule =>
-        findParentAssignment(expressionModule, expressionId)
-      )
-      .filter(_.isDefined)
-      .map(_.get)
-      .filter(parentId => parentId != expressionId)
-      .toScala
+    val optParentExpressionId =
+      UpsertVisualizationJob.findParentExpressionId(expressionId)
 
     optParentExpressionId.foreach { parentID =>
       UpsertVisualizationJob.logger.trace(
@@ -229,51 +293,6 @@ class UpsertVisualizationJob(
         )
         Some(Executable(config.executionContextId, stack))
     }
-  }
-
-  /** Find parent assignment expression that contains the given expressionId as a subexpression.
-    *
-    * @param module the module containing the expression
-    * @param expressionID the expression id to find the parent for
-    * @return the parent expression id if found
-    */
-  private def findParentAssignment(
-    module: Module,
-    expressionID: Api.ExpressionId
-  ): Option[UUID] = {
-    val bindings            = module.getIr.bindings()
-    var i                   = 0
-    var found: Option[UUID] = None
-    while (i < bindings.length && found.isEmpty) {
-      bindings(i) match {
-        case method: definition.Method =>
-          method.body match {
-            case fun: Function =>
-              // Check all expressions in the function body
-              fun.body.preorder().foreach { ir =>
-                ir match {
-                  case binding: Expression.Binding =>
-                    val rhsID =
-                      binding.expression.getExternalId
-                        .getOrElse(binding.expression.getId)
-                    // Check if the target expression is within this binding's RHS
-                    val containsTarget =
-                      binding.expression.preorder().exists { child =>
-                        child.getExternalId.exists(_ == expressionID)
-                      }
-                    if (containsTarget && found.isEmpty) {
-                      found = Some(rhsID)
-                    }
-                  case _ =>
-                }
-              }
-            case _ =>
-          }
-        case _ =>
-      }
-      i = i + 1
-    }
-    found
   }
 
   private def replyWithExpressionFailedError(
@@ -651,7 +670,7 @@ object UpsertVisualizationJob {
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error
     */
-  private def evaluateVisualizationExpression(
+  private[job] def evaluateVisualizationExpression(
     module: String,
     expression: Api.VisualizationExpression,
     hasWriteCompilationLock: Boolean
@@ -876,5 +895,73 @@ object UpsertVisualizationJob {
     visualizationId: Api.VisualizationId
   ): Unit =
     stack.foreach(_.syncState.setVisualizationUnsync(visualizationId))
+
+  /** Find the parent expression ID for a given expression.
+    * This finds the parent assignment expression that contains the given
+    * expressionId as a subexpression.
+    *
+    * @param expressionId the expression id to find the parent for
+    * @param ctx the runtime context
+    * @return the parent expression id if found, or None
+    */
+  private[job] def findParentExpressionId(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext): Option[UUID] = {
+    val expressionModuleOpt =
+      ctx.executionService.getContext.findModuleByExpressionId(expressionId)
+    expressionModuleOpt
+      .map(expressionModule =>
+        findParentAssignment(expressionModule, expressionId)
+      )
+      .filter(_.isDefined)
+      .map(_.get)
+      .filter(parentId => parentId != expressionId)
+      .toScala
+  }
+
+  /** Find parent assignment expression that contains the given expressionId as a subexpression.
+    *
+    * @param module the module containing the expression
+    * @param expressionId the expression id to find the parent for
+    * @return the parent expression id if found
+    */
+  private def findParentAssignment(
+    module: Module,
+    expressionId: Api.ExpressionId
+  ): Option[UUID] = {
+    val bindings            = module.getIr.bindings()
+    var i                   = 0
+    var found: Option[UUID] = None
+    while (i < bindings.length && found.isEmpty) {
+      bindings(i) match {
+        case method: definition.Method =>
+          method.body match {
+            case fun: Function =>
+              // Check all expressions in the function body
+              fun.body.preorder().foreach { ir =>
+                ir match {
+                  case binding: Expression.Binding =>
+                    val rhsID =
+                      binding.expression.getExternalId
+                        .getOrElse(binding.expression.getId)
+                    // Check if the target expression is within this binding's RHS
+                    val containsTarget =
+                      binding.expression.preorder().exists { child =>
+                        child.getExternalId.exists(_ == expressionId)
+                      }
+                    if (containsTarget && found.isEmpty) {
+                      found = Some(rhsID)
+                    }
+                  case _ =>
+                }
+              }
+            case _ =>
+          }
+        case _ =>
+      }
+      i = i + 1
+    }
+    found
+  }
 
 }

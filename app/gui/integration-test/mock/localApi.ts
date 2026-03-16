@@ -306,6 +306,7 @@ export async function mockLocalApi(page: Page) {
       }
       unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
       const result: OpenProject = {
+        projectId: UUID(crypto.randomUUID()),
         languageServerBinaryAddress,
         languageServerJsonAddress,
         languageServerYdocAddress,

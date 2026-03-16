@@ -6,21 +6,22 @@ import {
   ProjectSessions,
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import type { ToValue } from '$/utils/reactivity'
 import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/DocumentationEditor'
+import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
-import { Rect } from '@/util/data/rect'
-import { Vec2 } from '@/util/data/vec2'
 import type { Result } from 'enso-common/src/utilities/data/result'
-import { computed, toValue, useTemplateRef } from 'vue'
+import { computed, toRef, toValue, useTemplateRef } from 'vue'
 
+const width = toRef(useContainerData(), 'rightPanelWidth')
 const data = useRightPanelData()
 
 // Not a part of RightPanelTabInfo, because it would create cyclic imports.
@@ -63,9 +64,11 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 }
 
 const contentElement = useTemplateRef('contentElement')
-const size = useResizeObserver(contentElement)
-const bounds = computed(() => new Rect(Vec2.Zero, size.value))
-const style = computed(() => (data.width == null ? {} : { '--panel-width': `${data.width}px` }))
+const resizeHandles = useResizeHandles({
+  size: useResizeObserver(contentElement),
+})
+resizeHandles.onResizeWidth((value) => (width.value = value))
+const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
 </script>
 
 <template>
@@ -78,7 +81,7 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
               <component :is="component" />
             </div>
           </WithFullscreenMode>
-          <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
+          <ResizeHandles left v-on="resizeHandles.events" />
         </div>
       </div>
     </SizeTransition>
@@ -115,6 +118,8 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
   position: relative;
   flex-direction: row;
   height: 100%;
+  flex-shrink: 1;
+  z-index: 2;
 }
 
 .content {

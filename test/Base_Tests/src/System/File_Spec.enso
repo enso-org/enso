@@ -16,7 +16,7 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Data.Data_Spec
-from project.Enso_Bin_Utils import create_tmp_dir
+from project.Enso_Bin_Utils import create_tmp_dir, runs_in_aot
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other = Frame_Hider.hide <|
@@ -1112,10 +1112,6 @@ add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
             r_move.should_equal file
             file.exists . should_be_true
             file.read . should_equal "Foo"
-
-runs_in_aot =
-    prop = Java_System.getProperty "org.graalvm.nativeimage.imagecode"
-    prop == "runtime"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

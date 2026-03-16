@@ -122,7 +122,7 @@ type Generic_JDBC_Connection
 
     ## Returns the name of the current database (or catalog).
     database self -> Text | Nothing =
-        self.jdbc_connection.with_connection connection->connection.getCatalog
+        self.jdbc_connection.with_connection .getCatalog
 
     ## ---
        aliases: [catalog schema database]

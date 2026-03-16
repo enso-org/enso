@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
  * @param <R> the type of result, when the operation succeeds
  * @param <E> the type of exception when the operation fails
  */
-public sealed interface OtherJvmResult<R, E extends Exception> // Either R or E
+public sealed interface OtherJvmResult<R, E extends Throwable> // Either R or E
     permits OtherJvmMessage.ReturnValue,
         OtherJvmMessage.ThrowValue,
         OtherJvmMessage.ThrowException {

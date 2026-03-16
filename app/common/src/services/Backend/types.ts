@@ -10,32 +10,32 @@ export const KSUID = newtypeConstructor<KSUID>()
 export type OrganizationId = Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtypeConstructor<OrganizationId>()
 /** Whether a given {@link string} is an {@link OrganizationId}. */
-export function isOrganizationId(id: unknown): id is OrganizationId {
-  return typeof id === 'string' && id.startsWith('organization-')
+export function isOrganizationId(id: string): id is OrganizationId {
+  return id.startsWith('organization-')
 }
 
 /** Unique identifier for a user in an organization. */
 export type UserId = Newtype<string, 'UserId'>
 export const UserId = newtypeConstructor<UserId>()
 /** Whether a given {@link string} is an {@link UserId}. */
-export function isUserId(id: unknown): id is UserId {
-  return typeof id === 'string' && id.startsWith('user-')
+export function isUserId(id: string): id is UserId {
+  return id.startsWith('user-')
 }
 
 /** Unique identifier for a user group. */
 export type UserGroupId = Newtype<`usergroup-${string}`, 'UserGroupId'>
 export const UserGroupId = newtypeConstructor<UserGroupId>()
 /** Whether a given {@link string} is an {@link UserGroupId}. */
-export function isUserGroupId(id: unknown): id is UserGroupId {
-  return typeof id === 'string' && id.startsWith('usergroup-')
+export function isUserGroupId(id: string): id is UserGroupId {
+  return id.startsWith('usergroup-')
 }
 
 /** Unique identifier for a directory. */
 export type DirectoryId = Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtypeConstructor<DirectoryId>()
 /** Whether a given {@link unknown} is an {@link DirectoryId}. */
-export function isDirectoryId(id: unknown): id is DirectoryId {
-  return typeof id === 'string' && id.startsWith('directory-')
+export function isDirectoryId(id: string): id is DirectoryId {
+  return id.startsWith('directory-')
 }
 
 /**
@@ -63,8 +63,8 @@ export const ErrorAssetId = newtypeConstructor<ErrorAssetId>()
 export type ProjectId = Newtype<string, 'ProjectId'>
 export const ProjectId = newtypeConstructor<ProjectId>()
 /** Whether a given {@link unknown} is an {@link ProjectId}. */
-export function isProjectId(id: unknown): id is ProjectId {
-  return typeof id === 'string' && id.startsWith('project-')
+export function isProjectId(id: string): id is ProjectId {
+  return id.startsWith('project-')
 }
 
 /** Unique identifier for an uploaded file. */

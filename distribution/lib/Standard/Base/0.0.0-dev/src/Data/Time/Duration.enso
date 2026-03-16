@@ -9,16 +9,20 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Panic.Panic
 import project.Runtime
 import project.System
 from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
@@ -118,6 +122,41 @@ type Duration
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
     new (hours : Integer = 0) (minutes : Integer = 0) (seconds : Integer = 0) (milliseconds : Integer = 0) (nanoseconds : Integer = 0) =
         new_builtin hours minutes seconds milliseconds nanoseconds
+
+    ## ---
+       icon: time
+       ---
+       Create a duration for hours.
+
+       ## Arguments
+        - `hours`: number of hours
+    of_hours (hours : Integer = (Missing_Argument.throw "hours")) -> Duration = Duration.new hours=hours
+
+    ## ---
+       icon: time
+       ---
+       Create a duration for minutes.
+
+       ## Arguments
+        - `minutes`: number of minutes
+    of_minutes (minutes : Integer = (Missing_Argument.throw "minutes")) -> Duration = Duration.new minutes=minutes
+
+    ## ---
+       icon: time
+       ---
+       Create a duration for seconds.
+
+       ## Arguments
+        - `seconds`: number of seconds
+    of_seconds (seconds : Integer = (Missing_Argument.throw "seconds")) -> Duration = Duration.new seconds=seconds
+
+    ## ---
+       private: true
+       ---
+       Gets the default drop down option for Duration.
+    default_widget display:Display=..When_Modified -> Widget =
+        options = [Option "Seconds" "Duration.of_seconds", Option "Minutes" "Duration.of_minutes", Option "Hours" "Duration.of_hours", Option "Custom" "Duration.new"]
+        Widget.Single_Choice values=options display=display
 
     ## ---
        icon: time

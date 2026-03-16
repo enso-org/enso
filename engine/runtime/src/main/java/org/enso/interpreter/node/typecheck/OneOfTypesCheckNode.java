@@ -28,9 +28,9 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
 
   @Override
   @ExplodeLoop
-  Object executeConversion(VirtualFrame frame, Object value) {
+  Object executeConversion(VirtualFrame frame, Object value, AbstractTypeCheckNode[] failingCheck) {
     for (var n : checks) {
-      var result = n.executeConversion(frame, value);
+      var result = n.executeConversion(frame, value, null);
       if (result != null) {
         return result;
       }

@@ -6,7 +6,9 @@ import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import type { Tab } from '$/providers/container'
 import { useFullUserSession, useText } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import {
   useAreOtherProjectsOpening,
   useIsProjectClosing,
@@ -65,8 +67,9 @@ export interface ProjectIconProps {
 export default function ProjectIcon(props: ProjectIconProps) {
   const { backend, item, isDisabled: isDisabledRaw } = props
 
-  const openedProjects = useOpenedProjects()
-  const isUnconditionallyDisabled = !openedProjects.canOpenProjectLocally(backend.type)
+  const { isTabOpened, canOpenProjectLocally, openProjectLocally, closeTab } = useContainerData()
+  const { closeProject } = useOpenedProjects()
+  const isUnconditionallyDisabled = !canOpenProjectLocally(backend.type)
 
   const { user } = useFullUserSession()
   const { getText } = useText()
@@ -103,11 +106,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })()
 
   const doOpenProject = useEventCallback(() => {
-    openedProjects.openProjectLocally(item, backend.type)
+    openProjectLocally(item, backend.type)
   })
 
   const doCloseProject = useEventCallback(() => {
-    return openedProjects.closeProject(item.id, { asset: item, backendType: backend.type })
+    const tab: Tab = { type: 'project', id: item.id }
+    if (isTabOpened(tab)) closeTab(tab)
+    else closeProject(item.id, { asset: item, backendType: backend.type })
   })
 
   const getTooltip = (defaultTooltip: string) =>

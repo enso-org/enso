@@ -11,7 +11,7 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
-from project.Helpers import time_visualization
+from project.Helpers import time_visualization, short_display
 
 ## ---
    private: true
@@ -34,7 +34,7 @@ type Helper
     - `y`: The table to prepare for visualization.
     - `max_rows`: The maximum number of rows to display.
 prepare_visualization : Any -> Integer -> Text
-prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepare_visualization: " + y.to_display_text) <|
+prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepare_visualization: " + (short_display y)) <|
     if y.is_error then make_json_for_error y.catch else
         x = Warning.set y []
         case x of
@@ -263,7 +263,7 @@ apply_filter_to_table table i filter_cols filter_conditions has_index_col =
     - `filter_condition`: list of filter conditions for the columns
 get_distinct_values_for_column : Table -> Integer -> Vector | Nothing -> Vector | Nothing -> JS_Object
 get_distinct_values_for_column table column_index filter_col=Nothing filter_condition=Nothing =
-    time_visualization Visualization ("get_distinct_values_for_column: " + table.to_display_text + "[" + column_index.to_text + "]") <|
+    time_visualization Visualization ("get_distinct_values_for_column: " + (short_display table) + "[" + column_index.to_text + "]") <|
         filtered_table = if filter_col.is_nothing then table else apply_filter_to_table table 0 filter_col filter_condition False
         filtered_column = (filtered_table.columns.at column_index):In_Memory_Column
         filtered_column.await_metrics
@@ -285,7 +285,7 @@ get_distinct_values_for_column table column_index filter_col=Nothing filter_cond
     - `filter_condition`: list of filter conditions for the columns
 get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> JS_Object
 get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_condition=Nothing =
-    time_visualization Visualization ("get_rows_for_table: " + table_or_column.to_display_text + "[" + start_number.to_text + "]") <|
+    time_visualization Visualization ("get_rows_for_table: " + (short_display table_or_column) + "[" + start_number.to_text + "]") <|
         max_rows=1000
         table = case table_or_column of
             c : Column -> c.to_table

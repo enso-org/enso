@@ -1,6 +1,7 @@
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Data.Dictionary.Dictionary
 import project.Nothing.Nothing
 import project.Internal.Runtime_Helpers
 import project.System.File.File
@@ -22,6 +23,7 @@ type Process_Builder
         - `command`: The command to execute on the system.
         - `arguments`: The arguments to pass to `command`. These must be text.
         - `stdin`: Any content to pass to the standard input for `command`.
+        - `env`: map of additional environment variables to apply
 
        ## Remarks
 
@@ -29,7 +31,10 @@ type Process_Builder
        We recommend that you use this type with its builder interface. Start by
        creating a `Builder "command"` and then call functions on it to set
        arguments and standard output. It results in much clearer code.
-    private Value command:Text (arguments:(Vector Text)) stdin:Text (cwd:Nothing|File)
+    private Value command:Text (arguments:(Vector Text)) stdin:Text (cwd:Nothing|File) env:Dictionary
+
+    private new command arguments stdin =
+        Process_Builder.Value command arguments stdin Nothing Dictionary.empty
 
     ## ---
        icon: edit
@@ -50,7 +55,7 @@ type Process_Builder
                  builder.set_arguments ["hello, world!"]
        ```
     set_arguments self (arguments:Vector Text) -> Process_Builder =
-        Process_Builder.Value self.command arguments self.stdin self.cwd
+        Process_Builder.Value self.command arguments self.stdin self.cwd self.env
 
     ## ---
        icon: edit
@@ -71,7 +76,7 @@ type Process_Builder
                  builder = Process.new_builder "echo"
                  builder.set_stdin "hello, world!"
        ```
-    set_stdin self stdin:Text -> Process_Builder = Process_Builder.Value self.command self.arguments stdin self.cwd
+    set_stdin self stdin:Text -> Process_Builder = Process_Builder.Value self.command self.arguments stdin self.cwd self.env
 
     ## ---
        icon: edit
@@ -82,7 +87,20 @@ type Process_Builder
         - `path`: the directory to execute the process at
 
     set_directory self path:File -> Process_Builder =
-        Process_Builder.Value self.command self.arguments self.stdin path
+        Process_Builder.Value self.command self.arguments self.stdin path self.env
+
+    ## ---
+       icon: edit
+       ---
+       Adds another environment variable to execute the process with
+
+       ## Arguments
+        - `key`: the name of the environment variable
+        - `value`: the value of the environment variable
+
+    set_env self key:Text value:Text -> Process_Builder =
+        with_key = self.env.insert key value
+        Process_Builder.Value self.command self.arguments self.stdin self.cwd with_key
 
     ## ---
        icon: system
@@ -106,7 +124,7 @@ type Process_Builder
     create self redirect_out_err:Boolean=False -> Process_Result =
         cwd = if self.cwd != Nothing then
             self.cwd.to_text
-        result = Runtime_Helpers.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err cwd
+        result = Runtime_Helpers.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err cwd self.env
         exit_code = Exit_Code.from_number result.exit_code
         Process_Result.Value exit_code result.stdout result.stderr
 
