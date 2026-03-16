@@ -195,6 +195,7 @@ design documentation.
 > 2.  For each label in `a`, the type of that label `t` is subsumed by the type
 >     `q` of the corresponding label in `b`. That is, `t <: q`, defined as
 >     follows:
+>
 >     1.  If both `t` and `q` are atoms, then it holds only if `t` and `q` are
 >         the same atom (have the same identity).
 >     2.  If `t` is an atom, then it holds only if the fields in `t` are
@@ -210,7 +211,6 @@ design documentation.
 >         - For the _return_ position of both `t` and `q`, if it is not a
 >           function type, then `t.ret <: q.ret` (the return position is
 >           covariant). If it is a function type then recurse.
->
 >     5.  If the types have constraints then the constraints must match. A
 >         constraint is simply an application of the `<:` relation.
 >     6.  The types both have the same relevance and visibility (in the

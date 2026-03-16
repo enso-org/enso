@@ -526,6 +526,7 @@ When declaring data types in the Enso codebases, please make sure to keep the
 following rules of thumb in mind:
 
 - For single-constructor types:
+
   - Write the definition across multiple lines.
   - Always name your fields.
   - Always generate lenses.
@@ -539,6 +540,7 @@ following rules of thumb in mind:
   ```
 
 - For multiple-constructor data-types:
+
   - Write the definition across multiple lines.
   - Never name your fields.
   - Generate prisms only when necessary.

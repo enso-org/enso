@@ -149,6 +149,7 @@ Sometimes it is useful or necessary to write a typeset _literal_ in your code.
 These work as follows.
 
 - **Typeset Member:** Syntax for typeset members have three components:
+
   - **Label:** The name of the member. This must always be present.
   - **Type:** The type of the member. This need not be present.
   - **Value:** A value for the member. This need not be present.
