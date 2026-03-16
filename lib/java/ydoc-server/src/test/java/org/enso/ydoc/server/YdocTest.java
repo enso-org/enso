@@ -83,6 +83,7 @@ public class YdocTest {
           try {
             ydoc =
                 Ydoc.builder()
+                    .hostAccess(hostAccess.build())
                     .jsonChannelCallbacks(jsonCallbacks)
                     .binaryChannelCallbacks(binaryCallbacks)
                     .build();
