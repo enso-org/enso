@@ -115,7 +115,7 @@ add_specs suite_builder =
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_details ->
             connection_builder = _ -> Database.connect connection_details
-            ## add_sqlserver_specs suite_builder connection_builder
+            add_sqlserver_specs suite_builder connection_builder
             prefix = "[SQLServer] "
             data_link_file = Temporary_Data_Link_File.make connection_details
 
