@@ -264,7 +264,7 @@ export class ProjectManagerShimMiddleware {
               'Content-Type': 'text/plain',
               ...COMMON_HEADERS,
             })
-            .end(bytes, 'utf-8')
+            .end(bytes)
           break
         }
         default: {

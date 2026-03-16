@@ -111,9 +111,7 @@ async function getRootDirPath() {
     window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
   if (!supportsLocalBackend) return undefined
   const rootDirRequest = await fetch(`/api/root-directory-path`)
-  const rootDirBytes = await rootDirRequest.bytes()
-  const rootDirText = new TextDecoder('utf-8').decode(rootDirBytes)
-  return rootDirText
+  return await rootDirRequest.text()
 }
 
 main()

@@ -395,7 +395,7 @@ export class Server {
         ['Content-Type', 'text/plain'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(bytes, 'utf-8')
+      .end(bytes)
   }
 
   /** Send a HTTP error with a text payload. */
