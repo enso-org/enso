@@ -518,6 +518,22 @@ type Dictionary key value
     ## ---
        private: true
        ---
+    to_display_text : Text
+    to_display_text self =
+        texts = self.keys.take (..First 40) . map k-> k.to_display_text + "=" + (self.get k . to_display_text)
+        suffix = if self.length > 40 then " and " + (self.length - 40).to_text + " more elements}" else "}"
+        "{" + (texts.join ", ") + suffix
+
+    ## ---
+       private: true
+       ---
+    pretty : Text
+    pretty self =
+        "Dictionary.from_vector " + self.to_vector.pretty
+
+    ## ---
+       private: true
+       ---
     get_builtin : Any -> Any -> Any
     get_builtin self key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
 

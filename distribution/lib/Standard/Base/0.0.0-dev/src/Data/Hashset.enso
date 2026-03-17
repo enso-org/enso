@@ -167,15 +167,16 @@ type Hashset
     to_text : Text
     to_text self =
         inner = self.to_vector.to_text
-        "Hashset {" + inner + "}"
+        "{" + (inner.drop (..First 1) . drop (..Last 1)) + "}"
 
     ## ---
        private: true
        ---
     to_display_text : Text
     to_display_text self =
-        inner = self.to_vector.short_display_text
-        "Hashset {" + inner + "}"
+        texts = self.underlying_dictionary.keys.take (..First 40) . map _.to_display_text
+        suffix = if self.length > 40 then " and " + (self.length - 40).to_text + " more elements}" else "}"
+        "{" + (texts.join ", ") + suffix
 
     ## ---
        private: true
