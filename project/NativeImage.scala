@@ -100,7 +100,8 @@ object NativeImage {
     addModules: Seq[String]                  = Seq.empty,
     verbose: Boolean                         = false,
     symlink: Boolean                         = true,
-    shared: Boolean                          = false
+    shared: Boolean                          = false,
+    useCp: Boolean                           = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log = state.value.log
@@ -198,14 +199,20 @@ object NativeImage {
       val auxCp  = additionalCp.value
       val fullCp = ourCp.map(_.data.getAbsolutePath) ++ auxCp
 
-      val (mp, cpOpt) = if (modulePath.nonEmpty) {
+      val mp = if (modulePath.nonEmpty) {
         val mpStr = modulePath.mkString(File.pathSeparator)
         log.debug("Module-path: " + mpStr)
-        (Seq("--module-path", mpStr), Seq())
+        Seq("--module-path", mpStr)
       } else {
+        Seq()
+      }
+
+      val cpOpt = if (useCp) {
         val cpStr = fullCp.mkString(File.pathSeparator)
         log.debug("Class-path: " + cpStr)
-        (Seq(), Seq("-cp", cpStr))
+        Seq("-cp", cpStr)
+      } else {
+        Seq()
       }
       val sharedOpt = if (shared) {
         Seq("--shared")

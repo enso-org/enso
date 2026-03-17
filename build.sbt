@@ -1905,7 +1905,8 @@ lazy val `ydoc-server` = project
           mainModule        = Some("org.enso.ydoc.server"),
           mainClass         = Some("org.enso.ydoc.server.Main"),
           symlink           = false,
-          shared            = true
+          shared            = true,
+          useCp             = false
         )
     }.value,
     buildNativeImage := Def.taskDyn {
