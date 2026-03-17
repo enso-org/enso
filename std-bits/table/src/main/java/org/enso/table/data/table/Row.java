@@ -58,9 +58,9 @@ public class Row {
       }
       String name = table.getColumns()[i].getName();
       Object value = get_value(i, null);
-      sb.append(JsonOperation.objectToJson(name))
+      sb.append(JsonOperation.VIZ_INSTANCE.objectToJson(name))
           .append(":")
-          .append(JsonOperation.objectToJson(value));
+          .append(JsonOperation.VIZ_INSTANCE.objectToJson(value));
     }
     sb.append("}");
     return sb.toString();

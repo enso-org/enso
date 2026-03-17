@@ -82,9 +82,9 @@ type In_Memory_Column
     ## ---
        private: true
        ---
-       Specialised implementation of to_json for a Column.
+       Specialised implementation of to_json for a Column for use in visualization.
     to_json_data self start:Integer=0 (row_count:Integer=(self:Column).row_count) -> Text =
-        JsonOperation.apply self.java_column start row_count
+        JsonOperation.VIZ_INSTANCE.apply self.java_column start row_count
 
     ## ---
        private: true
