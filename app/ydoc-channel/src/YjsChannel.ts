@@ -117,7 +117,6 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    *
    * If there are already messages in the array (e.g. sent before this subscription),
    * they will be delivered to the handler immediately and removed from the array.
-   *
    * @param handler - The callback to invoke when a message is received
    * @returns A function to unsubscribe the handler
    */
