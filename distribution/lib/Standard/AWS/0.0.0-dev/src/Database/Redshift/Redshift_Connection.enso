@@ -431,7 +431,8 @@ type Redshift_Connection
             s3_file_path = normalized_staging_bucket2 + table_name + "_" + Random.uuid + ".csv"
             s3_file = S3_File.new s3_file_path staging_bucket_credentials
             if s3_file.is_error then Error.throw s3_file
-            written_s3_file = table.write s3_file format=..Delimited
+            normalized_datetime_table = table.format [(..By_Type ..Date_Time)] 'yyyy-MM-dd HH:mm:ssz'
+            written_s3_file = normalized_datetime_table.write s3_file format=..Delimited
             if written_s3_file.is_error then Error.throw written_s3_file
 
             created_table = if exists.not then self.create_table table_name table primary_key=[] temporary=temporary else case if_exists of
