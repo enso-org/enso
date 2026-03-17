@@ -494,7 +494,7 @@ type DB_Column_Implementation
         DB_Column_Implementation.cast this_column Value_Type.Char on_problems=Problem_Behavior.Ignore
 
     json_stringify (this_column : Column & DB_Column) =
-        _ = [this_column, shrink_types]
+        _ = [this_column]
         Error.throw <| Unsupported_Database_Operation.Error "json_stringify"
 
     cast (this_column : Column & DB_Column) value_type:Value_Type on_problems:Problem_Behavior =
