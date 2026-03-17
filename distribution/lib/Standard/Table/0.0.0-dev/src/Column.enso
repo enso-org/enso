@@ -1859,6 +1859,15 @@ type Column
         self.implementation.format self format locale
 
     ## ---
+       aliases: [to_json]
+       group: Standard.Base.Conversions
+       icon: conversion
+       ---
+       Converts a column into a JSON string representation of its values.
+    json_stringify self -> Column & Any =
+        self.implementation.json_stringify self
+
+    ## ---
        group: Standard.Base.Conversions
        icon: convert
        ---

@@ -49,6 +49,7 @@ polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.IsInOperation
+polyglot java import org.enso.table.data.column.operation.JsonOperation
 polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
@@ -578,6 +579,10 @@ type In_Memory_Column_Implementation
             if format=="" && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char ..Ignore else
                 formatter = make_value_formatter_for_value_type this_column.value_type locale format
                 apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
+
+    json_stringify (this_column : Column & In_Memory_Column) =
+        new_column = JsonOperation.INSTANCE.makeJsonColumn this_column.java_column
+        In_Memory_Column.from_java_column new_column
 
     cast (this_column : Column & In_Memory_Column) value_type:Value_Type on_problems:Problem_Behavior =
         Cast_Helpers.check_cast_compatibility this_column.value_type value_type

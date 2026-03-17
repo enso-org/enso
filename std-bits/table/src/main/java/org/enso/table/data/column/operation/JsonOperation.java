@@ -18,11 +18,7 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
 import org.graalvm.polyglot.Context;
@@ -82,6 +78,30 @@ public class JsonOperation {
       LOGGER.warn("Failed to resolve Enso JSON callback.", ex);
       return null;
     }
+  }
+
+  /**
+   * Create a JSON serialized column from an input Column. The resulting column
+   * will contain JSON strings representing the values in the source column. The
+   * method will attempt to use native JSON serialization for supported types,
+   * and will fall back to Enso `Json.stringify` when needed.
+   *
+   * @param source column to serialize as JSON.
+   * @return a new Column of the values serialized as JSON.
+   */
+  public Column makeJsonColumn(Column source) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
+    return makeJsonColumFromStorage(source.getName(), fullStorage);
+  }
+
+  private Column makeJsonColumFromStorage(String columnName, ColumnStorage<?> storage) {
+    var result =
+        StorageIterators.buildObjectOverStorage(
+            storage,
+            false,
+            Builder.getForText(TextType.VARIABLE_LENGTH, storage.getSize()),
+            (builder, _, value) -> builder.append(objectToJson(value)));
+    return new Column(columnName, result);
   }
 
   public String apply(Column source, long start, long maxLength) {
