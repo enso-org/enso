@@ -1820,6 +1820,9 @@ lazy val `ydoc-server` = project
     Compile / internalModuleDependencies := Seq(
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
+      (`persistance` / Compile / exportedModule).value,
+      (`jvm-channel` / Compile / exportedModule).value,
       (`jvm-interop` / Compile / exportedModule).value
     ),
     libraryDependencies ++= slf4jApi ++ Seq(
