@@ -81,10 +81,10 @@ public class JsonOperation {
   }
 
   /**
-   * Create a JSON serialized column from an input Column. The resulting column
-   * will contain JSON strings representing the values in the source column. The
-   * method will attempt to use native JSON serialization for supported types,
-   * and will fall back to Enso `Json.stringify` when needed.
+   * Create a JSON serialized column from an input Column. The resulting column will contain JSON
+   * strings representing the values in the source column. The method will attempt to use native
+   * JSON serialization for supported types, and will fall back to Enso `Json.stringify` when
+   * needed.
    *
    * @param source column to serialize as JSON.
    * @return a new Column of the values serialized as JSON.
