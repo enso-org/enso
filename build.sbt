@@ -1819,7 +1819,8 @@ lazy val `ydoc-server` = project
       GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ slf4jApi,
     Compile / internalModuleDependencies := Seq(
       (`syntax-rust-definition` / Compile / exportedModule).value,
-      (`ydoc-polyfill` / Compile / exportedModule).value
+      (`ydoc-polyfill` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value
     ),
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
