@@ -8,6 +8,11 @@ import {
 
 type RedirectRouter = Pick<Router, 'currentRoute' | 'replace' | 'resolve'>
 
+/**
+ * Redirect scheduler for a protected layout.
+ * Makes sure only one `router.replace` runs at a time.
+ * If multiple redirects are issued concurrently, the last one wins.
+ */
 export function createProtectedLayoutRedirectController(
   router: RedirectRouter,
   onError: (error: unknown) => void,

@@ -20,10 +20,12 @@ import { useHttpClient } from './httpClient'
 import { useUnauthorizedRecovery } from './session/useUnauthorizedRecovery'
 import { useText } from './text'
 
+export const USER_SESSION_QUERY_KEY = ['userSession'] as const
+
 /** Create a query for the user session. */
 export function createSessionQuery(authService: ToValue<cognito.ISessionProvider | undefined>) {
   return vueQuery.queryOptions({
-    queryKey: ['userSession'],
+    queryKey: USER_SESSION_QUERY_KEY,
     queryFn: async () =>
       toValue(authService)
         ?.userSession()
@@ -115,6 +117,8 @@ export function createSessionStore(
     refreshUserSession: () => refreshUserSessionMutation.mutateAsync(),
     logout: () => logoutMutation.mutateAsync(),
     clearSessionToken: () => httpClient.clearSessionToken(),
+    cancelSessionQuery: () =>
+      queryClient.cancelQueries({ queryKey: USER_SESSION_QUERY_KEY, exact: true }),
     clearSessionQuery: () => queryClient.setQueryData(sessionQueryOptions.queryKey, null),
     reportSessionExpiredError: (error) =>
       errorToast.reportError(error, getText('sessionExpiredError')),

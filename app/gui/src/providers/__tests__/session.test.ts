@@ -17,7 +17,7 @@ import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { createSessionStore } from '../session'
+import { createSessionStore, USER_SESSION_QUERY_KEY } from '../session'
 
 function createUserSession(): UserSession {
   return {
@@ -43,7 +43,7 @@ function createDeferred<T>() {
 class MockAuthService implements ISessionProvider {
   saveAccessToken = vi.fn()
   refreshUserSession = vi.fn(() => Promise.resolve<UserSession | null>(createUserSession()))
-  userSession = vi.fn(() => Promise.resolve<UserSession>(createUserSession()))
+  userSession = vi.fn(() => Promise.resolve<UserSession | null>(createUserSession()))
   email = vi.fn().mockReturnValue('example@email.com')
   changePassword = vi.fn()
   forgotPassword = vi.fn()
@@ -361,6 +361,38 @@ describe('SessionProvider', () => {
     expect(authService.signOut).not.toHaveBeenCalled()
   })
 
+  it('treats stale unauthorized mutations as a fresh recovery attempt', async () => {
+    vi.useFakeTimers()
+
+    const { onMutationError } = setupSessionStore()
+    const firstMutation = { execute: vi.fn(() => Promise.resolve(undefined)) }
+    const secondMutation = { execute: vi.fn(() => Promise.resolve(undefined)) }
+
+    onMutationError(
+      new NotAuthorizedError('Not authorized', 401),
+      { id: 'first' },
+      undefined,
+      firstMutation as never,
+      {} as never,
+    )
+    await expect.poll(() => authService.refreshUserSession.mock.calls.length).toBe(1)
+    await expect.poll(() => firstMutation.execute.mock.calls.length).toBe(1)
+
+    await vi.advanceTimersByTimeAsync(30_001)
+
+    onMutationError(
+      new NotAuthorizedError('Not authorized', 401),
+      { id: 'second' },
+      undefined,
+      secondMutation as never,
+      {} as never,
+    )
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(authService.refreshUserSession).toHaveBeenCalledTimes(2)
+    await expect.poll(() => secondMutation.execute.mock.calls.length).toBe(1)
+  })
+
   it('handles terminal refresh failures once for concurrent unauthorized errors', async () => {
     vi.useFakeTimers()
     vi.spyOn(Math, 'random').mockReturnValue(0.5)
@@ -389,6 +421,36 @@ describe('SessionProvider', () => {
     expect(authService.signOut).toHaveBeenCalledTimes(1)
     expect(mutation.execute).not.toHaveBeenCalled()
     expect(queryClient.getQueryData(usersMeQueryKey)).toBeUndefined()
+  })
+
+  it('keeps the session query cleared when terminal auth failure races an in-flight session fetch', async () => {
+    vi.useFakeTimers()
+
+    const userSessionDeferred = createDeferred<UserSession | null>()
+    let userSessionCallCount = 0
+    authService.userSession.mockImplementation(() => {
+      userSessionCallCount += 1
+      return userSessionCallCount === 1 ? userSessionDeferred.promise : Promise.resolve(null)
+    })
+    authService.refreshUserSession.mockRejectedValue(new Error('refresh always fails'))
+
+    const { session, queryClient, onQueryError } = setupSessionStore()
+    await nextTick()
+    expect(authService.userSession).toHaveBeenCalledTimes(1)
+
+    onQueryError(new NotAuthorizedError('Not authorized', 401), {
+      queryKey: ['terminal-query'],
+      queryHash: '["terminal-query"]',
+    } as never)
+
+    await vi.runAllTimersAsync()
+    await expect.poll(() => authService.signOut.mock.calls.length).toBe(1)
+
+    userSessionDeferred.resolve(createUserSession())
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(queryClient.getQueryData(USER_SESSION_QUERY_KEY)).toBeNull()
+    expect(session.session).toBeNull()
   })
 
   it('does not start auth recovery while logout is already in progress', async () => {

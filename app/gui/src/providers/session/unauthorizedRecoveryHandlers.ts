@@ -2,22 +2,25 @@ import { isUnauthorizedError } from 'enso-common/src/services/Backend'
 import type { QueryClient } from '../../utils/queryClient'
 import { isUsersMeQueryKey } from '../auth'
 import {
-  queueRepeatedUnauthorizedQuery,
-  reportRepeatedUnauthorizedErrorOnce,
   toUnauthorizedRecoveryError,
   type UnauthorizedRecoveryError,
-  type UnauthorizedRecoveryState,
+  UnauthorizedRecoveryState,
 } from './unauthorizedRecoveryState'
 
 interface UnauthorizedRecoveryHandlerOptions {
   readonly queryClient: QueryClient
   readonly state: UnauthorizedRecoveryState
-  readonly recordUnauthorizedRecoveryActivity: () => void
+  /** Record unauthorized error so the current recovery window stays active or resets if stale. */
+  readonly recordUnauthorizedRecoveryError: () => void
+  /** Starts or joins the primary session recovery flow for an initial unauthorized error. */
   readonly recoverSessionAfterUnauthorizedError: () => Promise<boolean>
+  /** Starts or joins repeated-unauthorized recovery flow after a post-recovery unauthorized error. */
   readonly recoverSessionAfterRepeatedUnauthorizedError: (
     error: UnauthorizedRecoveryError,
   ) => Promise<boolean>
+  /** Handles unrecoverable authentication failure by performaing session cleanup and logout. */
   readonly reportTerminalAuthFailure: (error: UnauthorizedRecoveryError) => Promise<void>
+  /** Reports repeated unauthorized error. */
   readonly reportRepeatedUnauthorizedError: (error: UnauthorizedRecoveryError) => void
 }
 
@@ -34,7 +37,7 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
     previousOnQueryError(error, query)
     if (isUnauthorizedError(error)) {
       const authError = toUnauthorizedRecoveryError(error)
-      options.recordUnauthorizedRecoveryActivity()
+      options.recordUnauthorizedRecoveryError()
 
       if (options.state.hasRecoveredUnauthorizedSession && isUsersMeQueryKey(query.queryKey)) {
         void options.reportTerminalAuthFailure(authError)
@@ -43,14 +46,13 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
 
       if (options.state.hasRecoveredUnauthorizedSession) {
         if (options.state.replayedQueryHashes.has(query.queryHash)) {
-          reportRepeatedUnauthorizedErrorOnce(
-            options.state,
+          options.state.reportRepeatedUnauthorizedErrorOnce(
             authError,
             options.reportRepeatedUnauthorizedError,
           )
           return
         }
-        queueRepeatedUnauthorizedQuery(options.state, query)
+        options.state.queueRepeatedUnauthorizedQuery(query)
         void options.recoverSessionAfterRepeatedUnauthorizedError(authError)
         return
       }
@@ -70,9 +72,10 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
     previousOnMutationError(error, variables, onMutateResult, mutation, context)
     if (isUnauthorizedError(error)) {
       const authError = toUnauthorizedRecoveryError(error)
+      options.recordUnauthorizedRecoveryError()
+
       if (options.state.replayedMutations.has(mutation)) {
-        reportRepeatedUnauthorizedErrorOnce(
-          options.state,
+        options.state.reportRepeatedUnauthorizedErrorOnce(
           authError,
           options.reportRepeatedUnauthorizedError,
         )

@@ -15,12 +15,8 @@ import {
 } from './constants'
 import { installUnauthorizedRecoveryHandlers } from './unauthorizedRecoveryHandlers'
 import {
-  createUnauthorizedRecoveryState,
-  hasReachedRepeatedUnauthorizedAttemptLimit,
-  recordUnauthorizedRecoveryActivity,
-  reportRepeatedUnauthorizedErrorOnce,
-  resetUnauthorizedRecoveryState as resetUnauthorizedRecoveryStateInternal,
   toUnauthorizedRecoveryError,
+  UnauthorizedRecoveryState,
   type UnauthorizedRecoveryError,
 } from './unauthorizedRecoveryState'
 
@@ -30,20 +26,26 @@ interface UseUnauthorizedRecoveryOptions {
   readonly refreshUserSession: () => Promise<unknown>
   readonly logout: () => Promise<unknown>
   readonly clearSessionToken: () => void
+  readonly cancelSessionQuery: () => Promise<void>
   readonly clearSessionQuery: () => void
   readonly reportSessionExpiredError: (error: UnauthorizedRecoveryError) => void
   readonly reportRepeatedUnauthorizedError: (error: UnauthorizedRecoveryError) => void
 }
 
-/** Install unauthorized handlers and coordinate session recovery/replay flow. */
+/**
+ * Install unauthorized handlers and coordinate session recovery/replay flow.
+ *
+ * Coordinates recovery from unauthorized query and mutation failures.
+ * It single-flights session refresh, replays failed queries and mutations after recovery,
+ * applies bounded exponential backoff for repeated unauthorized errors after recovery,
+ * and escalates to terminal auth cleanup and logout when the session can no longer be recovered.
+ */
 export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions) {
-  const state = createUnauthorizedRecoveryState()
+  const state = new UnauthorizedRecoveryState()
   const isReconnectingSession = computed(() => state.reconnectingSessionBackoffWaitCount.value > 0)
 
   const isAuthRecoveryBlocked = () =>
     state.terminalAuthFailurePromise != null || options.isLoggingOut.value
-
-  const resetUnauthorizedRecoveryState = () => resetUnauthorizedRecoveryStateInternal(state)
 
   const waitForRecoveryBackoff = async (delayMs: number) => {
     if (delayMs <= RECONNECTING_SESSION_DELAY_MS) {
@@ -70,8 +72,13 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
     const isUsersMeQuery = (query: Query) => isUsersMeQueryKey(query.queryKey)
     state.terminalAuthFailurePromise = (async () => {
       options.reportSessionExpiredError(error)
+
+      await Promise.all([
+        options.cancelSessionQuery(),
+        options.queryClient.cancelQueries({ predicate: isUsersMeQuery }),
+      ])
+
       options.clearSessionQuery()
-      await options.queryClient.cancelQueries({ predicate: isUsersMeQuery })
       const usersMeQueries = options.queryClient
         .getQueryCache()
         .findAll({ predicate: isUsersMeQuery })
@@ -80,7 +87,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
       }
       options.queryClient.removeQueries({ predicate: isUsersMeQuery })
       options.clearSessionToken()
-      resetUnauthorizedRecoveryState()
+      state.reset()
       await options.logout().catch(() => undefined)
     })().finally(() => {
       state.terminalAuthFailurePromise = null
@@ -126,7 +133,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
       try {
         await refreshUserSessionWithBackoff()
         state.hasRecoveredUnauthorizedSession = true
-        recordUnauthorizedRecoveryActivity(state)
+        state.recordUnauthorizedRecoveryError()
         return true
       } catch (error) {
         await reportTerminalAuthFailure(toUnauthorizedRecoveryError(error))
@@ -150,11 +157,11 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
       return Promise.resolve(false)
     }
 
-    recordUnauthorizedRecoveryActivity(state, backoffOptions.resetWindowMs)
+    state.recordUnauthorizedRecoveryError(backoffOptions.resetWindowMs)
 
-    if (hasReachedRepeatedUnauthorizedAttemptLimit(state, backoffOptions)) {
+    if (state.hasReachedRepeatedUnauthorizedAttemptLimit(backoffOptions)) {
       state.pendingRepeatedUnauthorizedQueries = new Map<string, readonly unknown[]>()
-      reportRepeatedUnauthorizedErrorOnce(state, error, options.reportRepeatedUnauthorizedError)
+      state.reportRepeatedUnauthorizedErrorOnce(error, options.reportRepeatedUnauthorizedError)
       return Promise.resolve(false)
     }
 
@@ -194,7 +201,7 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
   const restoreHandlers = installUnauthorizedRecoveryHandlers({
     queryClient: options.queryClient,
     state,
-    recordUnauthorizedRecoveryActivity: () => recordUnauthorizedRecoveryActivity(state),
+    recordUnauthorizedRecoveryError: () => state.recordUnauthorizedRecoveryError(),
     recoverSessionAfterUnauthorizedError,
     recoverSessionAfterRepeatedUnauthorizedError,
     reportTerminalAuthFailure,
@@ -203,8 +210,8 @@ export function useUnauthorizedRecovery(options: UseUnauthorizedRecoveryOptions)
 
   onScopeDispose(() => {
     restoreHandlers()
-    resetUnauthorizedRecoveryState()
+    state.reset()
   })
 
-  return { isReconnectingSession, resetUnauthorizedRecoveryState }
+  return { isReconnectingSession, resetUnauthorizedRecoveryState: () => state.reset() }
 }
