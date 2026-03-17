@@ -181,7 +181,7 @@ type Hashset
        private: true
        ---
     pretty : Text
-    pretty =
+    pretty self =
         "Hashset.from_vector " + self.to_vector.pretty
 
 ## Convert from a Vector to a Hashset
