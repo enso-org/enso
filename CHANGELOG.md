@@ -11,6 +11,7 @@
 - [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
 - [Geo Map Visualization may display GeoSpatial data][14859]
 - [Component height can be resized][14849]
+- [Execution can be scheduled for the specific version tag][14883]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -20,6 +21,7 @@
 [14820]: https://github.com/enso-org/enso/pull/14820
 [14859]: https://github.com/enso-org/enso/pull/14859
 [14849]: https://github.com/enso-org/enso/pull/14849
+[14883]: https://github.com/enso-org/enso/pull/14883
 
 #### Enso Standard Library
 
