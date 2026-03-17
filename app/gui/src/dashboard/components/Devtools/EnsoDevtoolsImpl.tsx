@@ -28,7 +28,7 @@ import {
   usePaywallDevtools,
   useShowEnsoDevtools,
   useShowVersionChecker,
-} from '$/providers/react/ensoDevTools'
+} from '$/providers/react/devTools'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import * as backend from 'enso-common/src/services/Backend'

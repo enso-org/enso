@@ -1,5 +1,5 @@
 import { useAuth } from '$/providers/auth'
-import { useEnsoDevtoolsStore } from '$/providers/react/ensoDevTools'
+import { useDevtoolsStore } from '$/providers/devTools'
 import { toRef } from 'vue'
 import {
   getFeatureConfiguration,
@@ -9,7 +9,7 @@ import {
 
 export function useIsFeatureUnderPaywall() {
   const auth = useAuth()
-  const features = toRef(useEnsoDevtoolsStore(), 'paywallFeatures')
+  const features = toRef(useDevtoolsStore(), 'paywallFeatures')
 
   return (feature: PaywallFeatureName, ignoreForceEnabled = false) => {
     const plan = auth.session?.user.plan

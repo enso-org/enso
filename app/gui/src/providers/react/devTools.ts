@@ -1,6 +1,6 @@
 import * as react from 'react'
 import { toRef } from 'vue'
-import type { EnsoDevtoolsStore } from '../ensoDevtools'
+import type { EnsoDevtoolsStore } from '../devTools'
 import { useInReactFunction, useVueRef, useVueValue } from './common'
 
 export const EnsoDevtoolsStoreContext = react.createContext<EnsoDevtoolsStore | null>(null)

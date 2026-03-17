@@ -1,5 +1,5 @@
 /** @file UI for editing application state. */
-import { useShowEnsoDevtools } from '$/providers/react/ensoDevTools'
+import { useShowEnsoDevtools } from '$/providers/react/devTools'
 import * as React from 'react'
 
 const EnsoDevtoolsImpl =

@@ -1,4 +1,5 @@
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import { useIsFeatureUnderPaywall } from '$/composables/paywall'
 import { useBackends } from '$/providers/backends'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
@@ -11,7 +12,6 @@ import { encoding } from 'lib0'
 import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { panelKey, type Panel } from './container'
-import { useIsFeatureUnderPaywall } from './react'
 import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */

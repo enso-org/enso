@@ -6,6 +6,7 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
 import { computed, ref, toRef, useTemplateRef } from 'vue'
+import HelpBar from './HelpBar.vue'
 import { Drive } from './reactTabs'
 
 const DEFAULT_WIDTH_PX = 600
@@ -42,6 +43,7 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
         :class="cssClass"
         :style="widthStyle"
       >
+        <HelpBar />
         <Drive />
         <ResizeHandles v-if="middlePanelShown" right v-on="resizeHandles.events" />
       </div>
@@ -72,11 +74,14 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
   height: 100%;
   width: 100%;
   min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .shadow {
   position: absolute;
-  top: 0;
+  top: var(--top-bar-height);
   right: 0;
   width: 100%;
   height: 100%;
@@ -87,12 +92,13 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
     0 4px 19px 0 rgb(0 0 0 / 1.79%),
     0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%),
     0 18px 85px 0 rgb(0 0 0 / 3%);
+  clip-path: polygon(0 0, 100vw 0, 100vw 100%, 0 100%);
   z-index: -1;
 }
 
 .toggleVisibilityButton {
   position: absolute;
   left: 16px;
-  top: 20px;
+  top: calc(var(--top-bar-height) + 20px);
 }
 </style>

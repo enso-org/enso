@@ -71,19 +71,11 @@ function onActivate() {
   padding: var(--button-padding, 4px);
   border-radius: var(--radius-full);
   border: none;
-  transition: background-color 0.3s;
+  transition: background-color 0.1s;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-
-  ::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-full);
-    pointer-events: none;
-  }
 
   &.toggledOn {
     background-color: var(--color-menu-entry-selected-bg);
@@ -92,9 +84,7 @@ function onActivate() {
   &:hover,
   &:focus,
   &:active {
-    ::after {
-      background-color: var(--color-menu-entry-hover-bg);
-    }
+    background-color: var(--color-menu-entry-hover-bg);
   }
   &.disabled {
     cursor: default;

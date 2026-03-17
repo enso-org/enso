@@ -4,6 +4,7 @@ import { useActionsStore, type ActionsStore } from '$/providers/actions'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useBackends, type BackendsStore } from '$/providers/backends'
 import { useConfig, type ConfigStore } from '$/providers/config'
+import { useDevtoolsStore, type EnsoDevtoolsStore } from '$/providers/devTools'
 import { useHttpClient } from '$/providers/httpClient'
 import { useOpenedProjects, type OpenedProjectsStore } from '$/providers/openedProjects'
 import { useQueryParams, type QueryParams } from '$/providers/queryParams'
@@ -19,6 +20,7 @@ import {
 } from '$/providers/react'
 import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
+import { EnsoDevtoolsStoreContext } from '$/providers/react/devTools'
 import { OpenedProjectsContext } from '$/providers/react/openedProjects'
 import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, type RouterForReact } from '$/providers/react/router'
@@ -31,8 +33,6 @@ import { reactComponent } from '@/util/react'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { useRoute, useRouter } from 'vue-router'
-import type { EnsoDevtoolsStore } from '../ensoDevtools'
-import { EnsoDevtoolsStoreContext, useEnsoDevtoolsStore } from './ensoDevTools'
 
 interface ContextsForReactProviderProps {
   router: RouterForReact
@@ -130,7 +130,7 @@ export const ContextsForReactProvider = reactComponent(
         actionsStore: useActionsStore(),
         uploadsToCloudStore: useUploadsToCloudStore(),
         openedProjects: useOpenedProjects(),
-        ensoDevtools: useEnsoDevtoolsStore(),
+        ensoDevtools: useDevtoolsStore(),
         isFeatureUnderPaywall: useIsFeatureUnderPaywall(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here

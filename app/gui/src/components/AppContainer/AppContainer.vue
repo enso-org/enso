@@ -22,6 +22,7 @@ import MiddlePanel from './MiddlePanel.vue'
 
 import LeftPanel from './LeftPanel.vue'
 import RightPanel from './RightPanel.vue'
+import TabBar from './TabBar.vue'
 
 const ModalWrapper = reactComponent(ModalWrapperReact)
 const UserBar = reactComponent(UserBarReact)
@@ -89,17 +90,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="TabView">
+  <div class="AppContainer">
     <CommandPalette />
     <ContainerProviderForReact>
       <ModalWrapper />
-      <div class="bar">
-        <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
-      </div>
+      <LeftPanel :middlePanelShown="anyTabs" />
       <div class="mainView">
-        <LeftPanel :middlePanelShown="anyTabs" />
-        <MiddlePanel v-if="anyTabs" />
-        <RightPanel />
+        <div class="bar">
+          <TabBar />
+          <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
+        </div>
+        <div class="belowBar">
+          <MiddlePanel v-if="anyTabs" />
+          <RightPanel />
+        </div>
         <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
       </div>
     </ContainerProviderForReact>
@@ -107,10 +111,11 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.TabView {
+.AppContainer {
   --tab-highlight: var(--color-dashboard-background);
+  --top-bar-height: 3rem;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   isolation: isolate;
 }
@@ -118,37 +123,29 @@ onUnmounted(() => {
 .bar {
   background-color: rgba(0, 0, 0, 0.1);
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  height: 3rem;
-  min-height: 3rem;
+  height: var(--top-bar-height);
+  min-height: var(--top-bar-height);
   position: relative;
-  padding: 0 8px;
+  padding: 0 8px 0 24px;
   z-index: 1;
 }
 
-.mainView {
-  flex-grow: 1;
-  min-height: 0;
+.belowBar {
   display: flex;
   flex-direction: row;
-  position: relative;
 }
 
-.panel {
-  flex-grow: 1;
+.mainView {
+  width: 100%;
+  height: 100%;
+  flex-shrink: 1000000;
   min-width: 0;
   display: flex;
-  flex-direction: row;
-}
-
-.editor {
-  display: contents;
-
-  &.hidden {
-    display: none;
-  }
+  flex-direction: column;
+  position: relative;
 }
 
 .FullscreenRoot {

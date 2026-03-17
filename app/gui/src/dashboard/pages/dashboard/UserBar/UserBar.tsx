@@ -26,7 +26,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Plan } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { twJoin } from 'tailwind-merge'
 import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
 import { UserMenu } from './UserMenu'
@@ -124,7 +123,7 @@ export function UserBar(props: UserBarProps) {
             <Text className="absolute inset-0 mx-2 cursor-help text-center">{trialText}</Text>
           </VisualTooltip>
         )}
-        <div className={twJoin('flex', isCurrentlyTrialing ? 'md:hidden' : 'sm:hidden')}>
+        {/* <div className={twJoin('flex', isCurrentlyTrialing ? 'md:hidden' : 'sm:hidden')}>
           <Popover.Trigger>
             <Button variant="icon" icon="help" aria-label={getText('help')} />
             <Popover size="auto">
@@ -135,7 +134,7 @@ export function UserBar(props: UserBarProps) {
         <UserBarHelpSection
           items={topbarLinks.items}
           className={twJoin('hidden', isCurrentlyTrialing ? 'md:flex' : 'sm:flex')}
-        />
+        /> */}
         {shouldShowInviteButton && (
           <Dialog.Trigger>
             <Button size="medium" variant="outline">

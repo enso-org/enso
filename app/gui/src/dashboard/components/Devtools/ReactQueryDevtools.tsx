@@ -1,7 +1,7 @@
 /** @file Show the React Query Devtools. */
 import * as React from 'react'
 
-import { useShowDevtools } from '$/providers/react/ensoDevTools'
+import { useShowDevtools } from '$/providers/react/devTools'
 import * as reactQuery from '@tanstack/react-query'
 import * as errorBoundary from 'react-error-boundary'
 
