@@ -415,21 +415,12 @@ export async function mockLocalApi(page: Page) {
       // Also set the global dataChannel for updateVisualization API
       dataChannel = channel
       channel.subscribe(async (messageRaw) => {
-        let data: ArrayBuffer
-        if (typeof messageRaw === 'string') {
-          data = new TextEncoder().encode(messageRaw).buffer as ArrayBuffer
-        } else if (messageRaw instanceof ArrayBuffer) {
-          data = messageRaw
-        } else if (messageRaw instanceof Uint8Array) {
-          // Important: Use slice to get a copy of just the relevant portion
-          // because messageRaw.buffer may include data beyond the Uint8Array's view
-          data = messageRaw.buffer.slice(
-            messageRaw.byteOffset,
-            messageRaw.byteOffset + messageRaw.byteLength,
-          ) as ArrayBuffer
-        } else {
-          data = (messageRaw as any).buffer as ArrayBuffer
-        }
+        // Important: Use slice to get a copy of just the relevant portion
+        // because messageRaw.buffer may include data beyond the Uint8Array's view
+        const data = messageRaw.buffer.slice(
+          messageRaw.byteOffset,
+          messageRaw.byteOffset + messageRaw.byteLength,
+        ) as ArrayBuffer
         const response = await mockDataHandler(data)
         if (response) {
           channel.send(new Uint8Array(response))
@@ -440,8 +431,8 @@ export async function mockLocalApi(page: Page) {
     await page.routeWebSocket(`${ydocAddressBase}/**`, (wsRoute) => {
       const parsedUrl = new URL(wsRoute.url())
       const room = parsedUrl.pathname.substring('/project/'.length)
-      const lsUrl = parsedUrl.searchParams.get('ls')
-      const dataUrl = parsedUrl.searchParams.get('data')
+      const lsChannelName = parsedUrl.searchParams.get('ls')
+      const dataChannelName = parsedUrl.searchParams.get('data')
 
       const mockWs = new MockWs(wsRoute)
       const wsDoc = new WSSharedDoc()
@@ -449,8 +440,8 @@ export async function mockLocalApi(page: Page) {
       mockYdocProvider(room, wsDoc.doc)
 
       let binaryChannel: YjsChannel<Uint8Array> | null = null
-      if (dataUrl) {
-        binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataUrl)
+      if (dataChannelName) {
+        binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataChannelName)
         // Only set the global dataChannel for the main 'index' room connection.
         // Subdoc connections should not overwrite it, as the client's DataServer
         // only listens on the main document's channel.
@@ -458,8 +449,8 @@ export async function mockLocalApi(page: Page) {
           setupMockDataChannel(binaryChannel)
         }
       }
-      if (lsUrl) {
-        const lsChannel = new YjsChannel<string>(wsDoc.doc, lsUrl)
+      if (lsChannelName) {
+        const lsChannel = new YjsChannel<string>(wsDoc.doc, lsChannelName)
         setupMockLsChannel(lsChannel, binaryChannel)
       }
     })

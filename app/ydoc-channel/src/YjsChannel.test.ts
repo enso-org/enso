@@ -190,6 +190,30 @@ describe('YjsChannel', () => {
     expect(receivedMessages).toEqual([])
   })
 
+  it('should deliver pre-existing messages when subscribing', () => {
+    const doc = new Y.Doc()
+    const channel1 = new YjsChannel<string>(doc, 'test-channel')
+    const channel2 = new YjsChannel<string>(doc, 'test-channel')
+
+    // Send messages before channel2 has any subscriber
+    channel1.send('Early message 1')
+    channel1.send('Early message 2')
+
+    // Messages should be sitting in the array, unprocessed
+    expect(doc.getArray('test-channel').length).toBeGreaterThan(0)
+
+    const receivedMessages: string[] = []
+
+    // Now subscribe should receive the pre-existing messages immediately
+    channel2.subscribe((message) => {
+      receivedMessages.push(message)
+    })
+
+    expect(receivedMessages).toEqual(['Early message 1', 'Early message 2'])
+    // Array should be cleaned up after processing
+    expect(doc.getArray('test-channel').length).toEqual(0)
+  })
+
   it('should cleanup internal storage after receiving', () => {
     const doc = new Y.Doc()
     const channel1 = new YjsChannel<string>(doc, 'test-channel')

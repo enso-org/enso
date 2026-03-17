@@ -105,7 +105,7 @@ export function setupGatewayClient(
   binaryChannelCallbacks: YjsChannelServer,
 ): void {
   console.log(
-    `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, ${dataUrl ? 'dataUrl: ' + dataUrl : 'no dataUrl'} docName: ${docName}), byteBuffer: ${byteBuffer}, jsonChannelCallbacks: ${jsonChannelCallbacks}, binaryChannelCallbacks: ${binaryChannelCallbacks}`,
+    `Setting up Gateway Client: docName=${docName}, lsUrl=${lsUrl ?? 'none'}, dataUrl=${dataUrl ?? 'none'}`,
   )
   const lsSession = getSessionForUrl(lsUrl, jsonChannelCallbacks)
   const wsDoc = getSessionDoc(lsSession, docName)

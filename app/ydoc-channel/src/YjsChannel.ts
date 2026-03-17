@@ -114,6 +114,10 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
 
   /**
    * Subscribes to messages received from other parties.
+   *
+   * If there are already messages in the array (e.g. sent before this subscription),
+   * they will be delivered to the handler immediately and removed from the array.
+   *
    * @param handler - The callback to invoke when a message is received
    * @returns A function to unsubscribe the handler
    */
@@ -129,9 +133,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
           try {
             handler(item)
           } catch (e) {
-            const error = new Error(`Failed to handle existing message: ${e}`)
-            ;(error as any).target = e
-            this.emitError(error)
+            this.emitError(new Error(`Failed to handle existing message: ${e}`, { cause: e }))
           }
           this.array.delete(0)
         }
@@ -166,9 +168,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       try {
         cb(new Event('open') as WebSocketEventMap[K])
       } catch (e) {
-        const error = new Error(`YjsChannel error handling open event ${e}`)
-        ;(error as any).target = e
-        this.emitError(error)
+        this.emitError(new Error(`YjsChannel error handling open event ${e}`, { cause: e }))
       }
       // Don't add to listeners if 'once' option is set
       if (options?.once) {
@@ -188,9 +188,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
             try {
               cb(messageEvent as WebSocketEventMap[K])
             } catch (e) {
-              const error = new Error(`Failed to handle existing message: ${e}`)
-              ;(error as any).target = e
-              this.emitError(error)
+              this.emitError(new Error(`Failed to handle existing message: ${e}`, { cause: e }))
             }
             this.array.delete(0)
           }
@@ -256,9 +254,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
         handler(message)
       } catch (e) {
         console.error('Failed to handle message', message, e)
-        const error = new Error(`Failed to handle message: ${message}`)
-        ;(error as any).target = e
-        this.emitError(error)
+        this.emitError(new Error(`Failed to handle message: ${message}`, { cause: e }))
       }
     }
   }

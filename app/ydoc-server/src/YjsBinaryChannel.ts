@@ -27,7 +27,7 @@ interface JavaByteBufferClass {
  * and Java direct ByteBuffer. This enables efficient binary message transfer between
  * the Ydoc server (JavaScript) and the Language Server (Java/Scala).
  */
-export class YjsBinaryChannel extends YjsChannel<any> {
+export class YjsBinaryChannel extends YjsChannel<unknown> {
   private static channels = new Map<string, YjsBinaryChannel>()
 
   private readonly callbacks: YjsChannelServer<JavaByteBuffer>
@@ -71,7 +71,8 @@ export class YjsBinaryChannel extends YjsChannel<any> {
 
   /** Wraps the handler to convert incoming Uint8Array to Java direct ByteBuffer. */
   override subscribe(handler: MessageHandler<JavaByteBuffer>): () => void {
-    const f = (contents: Uint8Array) => {
+    const f = (message: unknown) => {
+      const contents = message as Uint8Array
       const bb = this.ByteBuffer.allocateDirect(contents.byteLength)
       const arr = new Uint8Array(new ArrayBuffer(bb))
       arr.set(contents)

@@ -58,16 +58,16 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   private initializationScheduled = false
   resolveCallbacks = new Map<string, (data: any) => void>()
 
-  /** `websocket.binaryType` should be `ArrayBuffer`. */
+  /** TODO: Add docs */
   constructor(
     public clientId: string,
-    public websocket: YjsChannel,
+    public channel: YjsChannel,
     abort: AbortScope,
   ) {
     super()
     abort.handleDispose(this)
 
-    websocket.addEventListener('message', ({ data: rawPayload }) => {
+    channel.addEventListener('message', ({ data: rawPayload }) => {
       if (!ArrayBuffer.isView(rawPayload)) {
         console.warn('Data Server: Data type was invalid:', rawPayload)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a
@@ -102,10 +102,10 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         callback?.(payload)
       }
     })
-    websocket.addEventListener('error', (error) =>
+    channel.addEventListener('error', (error) =>
       console.error('Language Server Binary socket error:', error),
     )
-    websocket.addEventListener('close', () => {
+    channel.addEventListener('close', () => {
       this.scheduleInitializationAfterConnect()
     })
 
@@ -114,7 +114,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
 
   /** TODO: Add docs */
   dispose() {
-    this.websocket.close()
+    this.channel.close()
     this.resolveCallbacks.clear()
   }
 
@@ -123,11 +123,11 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     this.initializationScheduled = true
     this.initialized = new Promise((resolve) => {
       const cb = () => {
-        this.websocket.removeEventListener('open', cb)
+        this.channel.removeEventListener('open', cb)
         this.initializationScheduled = false
         resolve(this.initialize())
       }
-      this.websocket.addEventListener('open', cb)
+      this.channel.addEventListener('open', cb)
     })
     return this.initialized
   }
@@ -173,7 +173,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       this.resolveCallbacks.set(messageUuid, resolve)
     })
     try {
-      this.websocket.send(builder.finish(rootTable).toArrayBuffer())
+      this.channel.send(builder.finish(rootTable).toArrayBuffer())
     } catch (e: unknown) {
       this.resolveCallbacks.delete(messageUuid)
       throw e
