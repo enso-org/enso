@@ -1050,6 +1050,14 @@ export class LocalBackend extends backend.Backend {
     return Promise.resolve([])
   }
 
+  /**
+   * Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used.
+   */
+  override listAssetVersionTags(): Promise<readonly string[]> {
+    return Promise.resolve([])
+  }
+
   /** Do nothing. This function should never need to be called. */
   override associateTag() {
     return Promise.resolve()

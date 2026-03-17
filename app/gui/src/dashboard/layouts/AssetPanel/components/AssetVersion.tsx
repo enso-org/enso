@@ -27,7 +27,7 @@ const MAX_TAG_WIDTH_CH = 32
 export interface Version extends backendService.S3ObjectVersion {
   readonly number: number
   readonly title: string
-  readonly tags: readonly string[]
+  readonly tags: string[]
 }
 
 /** Options for duplicating an asset. */

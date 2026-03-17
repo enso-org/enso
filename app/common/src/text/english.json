@@ -747,6 +747,7 @@
   "billingPeriodOneMonth": "Monthly",
   "billingPeriodOneYear": "Annually",
   "newProjectExecution": "New Schedule",
+  "tagLabel": "With tag",
   "repeatIntervalLabel": "Repeat",
   "monthlyRepeatTypeLabel": "Monthly repeat type",
   "firstOccurrenceLabel": "First occurrence",

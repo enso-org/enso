@@ -30,14 +30,6 @@ interface AddNewVersionVariables {
   readonly placeholderId: S3ObjectVersionId
 }
 
-const MOCK_VERSION_TAGS = [
-  '1.24v',
-  '3+',
-  'Experimental Build Candidate',
-  'Feature-Flag-Rollout-Tag-Longer-Than-32-Chars',
-  'Customer Validation Snapshot 2026.03',
-] as const
-
 /** Display a list of previous versions of an asset. */
 export function AssetVersions() {
   const { remoteBackend } = useBackends()
@@ -91,13 +83,9 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
       data.versions.map((version, index) => {
         const number = data.versions.length - index
         const title = getText('versionX', number)
-        // TODO[ib]: provide actual tags from the backend
-        // elsint-disable-next-line @typescript-eslint/no-unused-vars
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        const _mockTags = MOCK_VERSION_TAGS
         const tags = [
           ...(version.isLatest ? [getText('latestIndicator')] : []),
-          //...mockTags,
+          ...(version.tags ?? []),
         ]
 
         return { ...version, number, title, tags }
