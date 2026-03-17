@@ -17,7 +17,6 @@ import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.JsonOperation;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.TableVizOperation;
 import org.enso.table.data.column.operation.masks.IndexMapper;

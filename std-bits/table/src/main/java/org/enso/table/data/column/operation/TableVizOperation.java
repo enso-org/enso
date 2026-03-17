@@ -1,9 +1,12 @@
 package org.enso.table.data.column.operation;
 
-import org.enso.table.data.column.DataQualityMetrics;
-import org.enso.table.data.table.Column;
-import org.enso.table.util.LeastRecentlyUsedCache;
-import org.slf4j.Logger;
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
+import static java.time.temporal.ChronoField.YEAR;
 
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -15,18 +18,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.enso.table.data.column.DataQualityMetrics;
+import org.enso.table.data.table.Column;
+import org.enso.table.util.LeastRecentlyUsedCache;
+import org.slf4j.Logger;
 
-import static java.time.temporal.ChronoField.DAY_OF_MONTH;
-import static java.time.temporal.ChronoField.HOUR_OF_DAY;
-import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
-import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
-import static java.time.temporal.ChronoField.NANO_OF_SECOND;
-import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
-import static java.time.temporal.ChronoField.YEAR;
-
-/**
- * Extension to JsonOperation for TableViz JSON code.
- */
+/** Extension to JsonOperation for TableViz JSON code. */
 public class TableVizOperation {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(JsonOperation.class);
 
@@ -140,7 +137,11 @@ public class TableVizOperation {
     if (builder.length() > 1) {
       builder.append(",");
     }
-    builder.append("\"").append(name).append("\":").append(JsonOperation.VIZ_INSTANCE.objectToJson(value));
+    builder
+        .append("\"")
+        .append(name)
+        .append("\":")
+        .append(JsonOperation.VIZ_INSTANCE.objectToJson(value));
   }
 
   private static void makeDataQualityMetrics(StringBuilder json, List<Map<String, Object>> dqs) {
@@ -298,7 +299,9 @@ public class TableVizOperation {
       if (i != 0) {
         builder.append(",");
       }
-      builder.append(JsonOperation.VIZ_INSTANCE.objectToJson(metrics.get(i).getOrDefault(metric, defaultValue)));
+      builder.append(
+          JsonOperation.VIZ_INSTANCE.objectToJson(
+              metrics.get(i).getOrDefault(metric, defaultValue)));
     }
     builder.append("]");
   }
