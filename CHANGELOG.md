@@ -65,6 +65,7 @@
 - [Flush system caches via `Runtime.gc`][14557]
 - [Removing `catch_primitive` from the API][14676]
 - [`polyglot java import` loads classes from HotSpot JVM][14798]
+- [Require opt-in to prefer local libraries][14885]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
@@ -72,6 +73,7 @@
 [14557]: https://github.com/enso-org/enso/pull/14557
 [14676]: https://github.com/enso-org/enso/pull/14676
 [14798]: https://github.com/enso-org/enso/pull/14798
+[14885]: https://github.com/enso-org/enso/pull/14885
 
 # Enso 2025.3
 
