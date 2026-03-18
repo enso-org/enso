@@ -37,7 +37,8 @@ Any.to_json self = Json.stringify self
    icon: convert
    ---
    Converts the given value to a JSON serialized value.
-Any.json_stringify self -> Text = self.to_json
+Any.json_stringify : Text
+Any.json_stringify self = self.to_json
 
 ## ---
    private: true

@@ -41,6 +41,14 @@ add_specs suite_builder =
             expected = 0.up_to data.table.row_count step=2 . map i-> data.raw_data.at i . to_json
             json_column.to_vector.should_equal expected
 
+    suite_builder.group "Table.json_stringify" group_builder->
+        group_builder.specify "should be able to stringify a column of mixed data" <|
+            json_column = data.table.at "mixed" . json_stringify
+            json_column.name.should_equal "mixed"
+            json_column.row_count.should_equal data.raw_data.length
+            expected = data.raw_data.map .to_json
+            json_column.to_vector.should_equal expected
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

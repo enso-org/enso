@@ -319,9 +319,7 @@ public class JsonOperation {
 
   private static String toJson(LocalDate date, boolean includeDisplayText) {
     String displayText =
-        includeDisplayText
-            ? "\"_display_text_\":\"" + date.toString() + "\","
-            : "";
+        includeDisplayText ? "\"_display_text_\":\"" + date.toString() + "\"," : "";
     return "{\"type\":\"Date\",\"constructor\":\"new\","
         + displayText
         + "\"day\":"
@@ -343,10 +341,7 @@ public class JsonOperation {
         includeDisplayText
             ? time.format(time.getNano() == 0 ? TIME_SHORT_FORMAT : TIME_LONG_FORMAT)
             : "";
-    String displayText =
-        includeDisplayText
-            ? "\"_display_text_\":\"" + timeString + "\","
-            : "";
+    String displayText = includeDisplayText ? "\"_display_text_\":\"" + timeString + "\"," : "";
     return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\","
         + displayText
         + "\"hour\":"
@@ -377,9 +372,7 @@ public class JsonOperation {
             ? datetime.format(ZONE_FORMAT)
             : "";
     String displayText =
-        includeDisplayText
-            ? "\"_display_text_\":\"" + datetimeString + zoneString + "\","
-            : "";
+        includeDisplayText ? "\"_display_text_\":\"" + datetimeString + zoneString + "\"," : "";
     var zone_json =
         "{\"type\":\"Time_Zone\",\"constructor\":\"parse\",\"id\":\""
             + datetime.getZone().getId()

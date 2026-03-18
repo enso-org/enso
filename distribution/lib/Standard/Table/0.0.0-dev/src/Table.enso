@@ -1781,6 +1781,19 @@ type Table
             self.implementation.format self.underlying selected format locale error_on_missing_columns=True on_problems
 
     ## ---
+       aliases: [to_json]
+       group: Standard.Base.Conversions
+       icon: conversion
+       ---
+       Converts a column into a JSON string representation of its values.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    json_stringify self (columns : Table_Selector = Missing_Argument.throw "columns") error_on_missing_columns:Boolean=True -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument = Profile.time_execution _profile_level "Table.json_stringify" <|
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                json_column = current.get column_name . json_stringify
+                current.set json_column
+
+    ## ---
        group: Standard.Base.Conversions
        icon: convert
        ---
