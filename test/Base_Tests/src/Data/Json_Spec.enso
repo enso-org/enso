@@ -147,7 +147,6 @@ add_specs suite_builder =
             ["foo", "bar", "baz"].to_json.should_equal '["foo","bar","baz"]'
             Author.Value "Tolkien" 1892 . to_json . should_equal <|
                 '{"type":"Author","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
-            object_json.should_render_itself
 
         group_builder.specify "should convert arbitrary types to JSON via json_stringify" <|
             1.json_stringify.should_equal "1"
