@@ -101,13 +101,13 @@ export function setupGatewayClient(
   dataUrl: string | undefined | null,
   docName: string,
   byteBuffer: any,
-  jsonChannelCallbacks: YjsChannelServer,
-  binaryChannelCallbacks: YjsChannelServer,
+  jsonChannelServer: YjsChannelServer,
+  binaryChannelServer: YjsChannelServer,
 ): void {
   console.log(
     `Setting up Gateway Client: docName=${docName}, lsUrl=${lsUrl ?? 'none'}, dataUrl=${dataUrl ?? 'none'}`,
   )
-  const lsSession = getSessionForUrl(lsUrl, jsonChannelCallbacks)
+  const lsSession = getSessionForUrl(lsUrl, jsonChannelServer)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
     ws.close()
@@ -116,7 +116,7 @@ export function setupGatewayClient(
 
   let dataSocket: YjsBinaryChannel | undefined
   if (dataUrl) {
-    dataSocket = YjsBinaryChannel.get(wsDoc.doc, dataUrl, binaryChannelCallbacks, byteBuffer)
+    dataSocket = YjsBinaryChannel.get(wsDoc.doc, dataUrl, binaryChannelServer, byteBuffer)
   }
 
   const connection = new YjsConnection(ws, wsDoc)
@@ -132,11 +132,11 @@ export function setupGatewayClient(
 
 function getSessionForUrl(
   lsUrl: string | undefined | null,
-  jsonChannelCallbacks: YjsChannelServer,
+  jsonChannelServer: YjsChannelServer,
 ) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
-    lsSession = LanguageServerSession.get(lsUrl, jsonChannelCallbacks)
+    lsSession = LanguageServerSession.get(lsUrl, jsonChannelServer)
   } else {
     const anySession = LanguageServerSession.sessions.values().next().value
     if (LanguageServerSession.sessions.size === 1 && anySession) {

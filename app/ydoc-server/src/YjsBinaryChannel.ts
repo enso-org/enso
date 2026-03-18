@@ -30,36 +30,36 @@ interface JavaByteBufferClass {
 export class YjsBinaryChannel extends YjsChannel<unknown> {
   private static channels = new Map<string, YjsBinaryChannel>()
 
-  private readonly callbacks: YjsChannelServer<JavaByteBuffer>
+  private readonly server: YjsChannelServer<JavaByteBuffer>
   private readonly ByteBuffer: JavaByteBufferClass
 
   /**
    * @param doc - The Yjs document for CRDT-based message synchronization
    * @param channelName - Unique identifier for this channel
-   * @param callbacks - Language Server callbacks to notify on connection
+   * @param server - Language Server callbacks to notify on connection
    * @param byteBuffer - Java ByteBuffer class for allocating direct buffers
    */
   constructor(
     doc: Y.Doc,
     channelName: string,
-    callbacks: YjsChannelServer<JavaByteBuffer>,
+    server: YjsChannelServer<JavaByteBuffer>,
     byteBuffer: JavaByteBufferClass,
   ) {
     super(doc, channelName)
-    this.callbacks = callbacks
+    this.server = server
     this.ByteBuffer = byteBuffer
-    this.callbacks.onConnect(this)
+    this.server.onConnect(this)
   }
 
   /** Gets or creates a channel for the given name. Channels are cached and reused. */
   static get(
     doc: Y.Doc,
     channelName: string,
-    callbacks: YjsChannelServer<JavaByteBuffer>,
+    server: YjsChannelServer<JavaByteBuffer>,
     byteBuffer: JavaByteBufferClass,
   ): YjsBinaryChannel {
     return map.setIfUndefined(YjsBinaryChannel.channels, channelName, () => {
-      return new YjsBinaryChannel(doc, channelName, callbacks, byteBuffer)
+      return new YjsBinaryChannel(doc, channelName, server, byteBuffer)
     })
   }
 

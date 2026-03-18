@@ -151,16 +151,16 @@ export class YjsTransport extends Transport {
 /** A JSON-RPC transport that uses YjsChannel for communication. */
 export class YjsServerTransport extends YjsTransport {
   private readonly proxyChannel: YjsChannel
-  private readonly callbacks: YjsChannelServer
+  private readonly server: YjsChannelServer
 
   /**
    * Create a {@link YjsTransport}.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
-  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelServer) {
+  constructor(doc: Y.Doc, channelName: string, server: YjsChannelServer) {
     super(doc, `backend-${channelName}`)
-    this.callbacks = callbacks
+    this.server = server
     this.proxyChannel = new YjsChannel(doc, channelName)
   }
 
@@ -169,8 +169,8 @@ export class YjsServerTransport extends YjsTransport {
    */
   override connect(): Promise<void> {
     const proxyConnect = new Promise<void>((resolve) => {
-      this.callbacks.onConnect(this.proxyChannel)
-      this.callbacks.onConnect(new YjsChannel(this.doc, this.channelName))
+      this.server.onConnect(this.proxyChannel)
+      this.server.onConnect(new YjsChannel(this.doc, this.channelName))
       resolve()
     })
     return proxyConnect.then(() => super.connect())
