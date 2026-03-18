@@ -12,6 +12,7 @@
 - [Opened project's Language Server process is restarted after a crash][14832].
 - [Geo Map Visualization may display GeoSpatial data][14859]
 - [Component height can be resized][14849]
+- [Add right click menu for multiple components][14640].
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -22,9 +23,6 @@
 [14832]: https://github.com/enso-org/enso/pull/14832
 [14859]: https://github.com/enso-org/enso/pull/14859
 [14849]: https://github.com/enso-org/enso/pull/14849
-- [Add right click menu for multiple components][14640].
-
-[14590]: https://github.com/enso-org/enso/pull/14590
 [14640]: https://github.com/enso-org/enso/pull/14640
 
 #### Enso Standard Library
