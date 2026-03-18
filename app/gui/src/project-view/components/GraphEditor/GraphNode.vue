@@ -36,7 +36,6 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useClickableDraggable } from '@/composables/dragging'
 import { useResizeObserver } from '@/composables/events'
-import { useHoverMenu } from '@/composables/hoverMenu'
 import { useProgressBackground } from '@/composables/progressBar'
 import type { ActionHandler, DisplayableActionName } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
@@ -450,11 +449,14 @@ const alignmentMenuActions: DisplayableActionName[] = [
   'components.alignBottom',
 ]
 
+const selectionSize = computed(() => nodeSelection?.selected.size ?? 0)
+const hasMultiSelection = computed(() => selectionSize.value > 1)
+
 const contextMenuActions = computed<DisplayableActionName[]>(() =>
-  nodeSelection.selected.size > 1 ? multiSelectionMenuActions : nodeMenuActions,
+  hasMultiSelection.value ? multiSelectionMenuActions : nodeMenuActions,
 )
 
-const alignmentMenu = useHoverMenu()
+const alignmentMenuOpen = ref(false)
 
 const contextMenuTrigger = ref<InstanceType<typeof ContextMenuTrigger>>()
 const alignmentMenuTrigger = ref<HTMLElement>()
@@ -471,15 +473,15 @@ const { floatingStyles: alignmentMenuStyles, update: updateAlignmentMenu } = use
 )
 
 watch(
-  () => alignmentMenu.menuOpen,
+  alignmentMenuOpen,
   (open) => {
-  if (open) nextTick(updateAlignmentMenu)
+    if (open) nextTick(updateAlignmentMenu)
   },
 )
 
 function closeAllMenus() {
   // Close both menus
-  alignmentMenu.menuOpen = false
+  alignmentMenuOpen.value = false
   contextMenuTrigger.value?.close()
 }
 
@@ -544,29 +546,22 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       ref="contextMenuTrigger"
       :actions="contextMenuActions"
       @contextmenu="ensureSelected"
-      @hidden="(alignmentMenu.menuOpen = false)"
+      @hidden="(alignmentMenuOpen = false)"
     >
       <template #menuElements>
-        <div v-if="nodeSelection.selected.size > 1">
-          <div
-            ref="alignmentMenuTrigger"
-            class="alignmentSubmenuTrigger"
-            @pointerenter="alignmentMenu.handleMenuEnter"
-            @pointerleave="alignmentMenu.handleMenuLeave"
-          >
-            <MenuButton v-model="alignmentMenu.menuOpenModel" class="alignmentSubmenuEntry">
+        <div v-if="hasMultiSelection">
+          <div ref="alignmentMenuTrigger" class="alignmentSubmenuTrigger">
+            <MenuButton v-model="alignmentMenuOpen" class="alignmentSubmenuEntry">
               <SvgIcon name="align_left" class="rowIcon" />
               <span>Align</span>
               <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
             </MenuButton>
           </div>
           <div
-            v-if="alignmentMenu.menuOpen"
+            v-if="alignmentMenuOpen"
             ref="alignmentMenuPanel"
             class="alignmentSubmenuPanel"
             :style="alignmentMenuStyles"
-            @pointerenter="alignmentMenu.handleMenuEnter"
-            @pointerleave="alignmentMenu.handleMenuLeave"
           >
             <ActionMenu class="alignmentMenu" :actions="alignmentMenuActions" @close="closeAllMenus" />
           </div>

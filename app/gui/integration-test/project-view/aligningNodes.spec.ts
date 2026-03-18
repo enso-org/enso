@@ -380,7 +380,7 @@ test('Right-click on background deselects components', async ({ editorPage, page
   await expect(selectionMenu).toBeHidden()
 })
 
-test('Alignment actions work from context menu submenu', async ({ editorPage, page }) => {
+test('Alignment actions work from context menu submenu on click', async ({ editorPage, page }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
   const node2 = locate.graphNodeByBinding(page, 'sum')
@@ -405,8 +405,7 @@ test('Alignment actions work from context menu submenu', async ({ editorPage, pa
   // Open alignment submenu
   const contextMenu = page.locator('.ContextMenu, .ActionMenu')
   const alignSubmenu = contextMenu.getByText('Align')
-  await alignSubmenu.hover()
-  await page.waitForTimeout(250) // Wait for hover delay
+  await alignSubmenu.click()
 
   // Click align left from the submenu
   const alignLeftButton = page.getByLabel('Align Left')
