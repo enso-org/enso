@@ -1902,15 +1902,16 @@ lazy val `ydoc-server` = project
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
-          staticOnLinux     = false,
-          additionalOptions = cLibraryOpts,
-          targetDir         = engineDistributionRoot.value / "component",
-          modulePath        = mp,
-          mainModule        = Some("org.enso.ydoc.server"),
-          mainClass         = Some("org.enso.ydoc.server.Main"),
-          symlink           = false,
-          shared            = true,
-          useCp             = false
+          staticOnLinux       = false,
+          additionalOptions   = cLibraryOpts,
+          targetDir           = engineDistributionRoot.value / "component",
+          modulePath          = mp,
+          mainModule          = Some("org.enso.ydoc.server"),
+          mainClass           = Some("org.enso.ydoc.server.Main"),
+          initializeAtRuntime = Seq("io.helidon.webclient.api.LoomClient"),
+          symlink             = false,
+          shared              = true,
+          useCp               = false
         )
     }.value,
     buildNativeImage := Def.taskDyn {
