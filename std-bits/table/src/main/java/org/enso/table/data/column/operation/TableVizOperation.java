@@ -15,17 +15,37 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.DataQualityMetrics;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Row;
 import org.enso.table.util.LeastRecentlyUsedCache;
+import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 
 /** Extension to JsonOperation for TableViz JSON code. */
 public class TableVizOperation {
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(JsonOperation.class);
+  private static JsonOperation JSON_OPERATION =
+      new JsonOperation("Standard.Visualization.Table.Visualization", "Helper", "make_json", true);
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(TableVizOperation.class);
+
+  private record CacheKey(long storageKey, long start, long length) {}
+
+  private static LeastRecentlyUsedCache<CacheKey, String> _jsonCache;
+
+  private static LeastRecentlyUsedCache<CacheKey, String> jsonCache() {
+    if (_jsonCache == null) {
+      _jsonCache = new LeastRecentlyUsedCache<>(1000);
+    }
+    return _jsonCache;
+  }
 
   private static LeastRecentlyUsedCache<String, String> _tableVizCache;
 
@@ -37,6 +57,135 @@ public class TableVizOperation {
   }
 
   private static final int MAX_CELLS_FOR_INLINE = 2500;
+
+  /** Creates a JSON string representing a single Row */
+  public static String makeJSONForRow(Row row) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (int i = 0; i < row.column_count(); i++) {
+      if (i > 0) {
+        sb.append(",");
+      }
+      String name = row.get_name(i);
+      Object value = row.get_value(i, null);
+      sb.append(JSON_OPERATION.objectToJson(name))
+          .append(":")
+          .append(JSON_OPERATION.objectToJson(value));
+    }
+    sb.append("}");
+    return sb.toString();
+  }
+
+  /** Creates a JSON string representing a single Row */
+  public static String makeJSONForColumn(Column column, long start, long maxLength) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(column);
+    var cacheKey = new CacheKey(fullStorage.uniqueKey(), start, maxLength);
+    final long finalLength = maxLength;
+    return jsonCache().computeIfAbsent(cacheKey, _ -> applyImpl(start, fullStorage, finalLength));
+  }
+
+  private static String applyImpl(long start, ColumnStorage<?> fullStorage, long finalLength) {
+    if (start >= fullStorage.getSize()) {
+      // If the start is beyond the size of the storage, return an empty array.
+      return "[]";
+    }
+
+    long length = finalLength;
+    if (start + length > fullStorage.getSize()) {
+      // If the requested length goes beyond the size of the storage, adjust it.
+      length = fullStorage.getSize() - start;
+    }
+
+    return switch (StorageType.ofStorage(fullStorage)) {
+      case NullType _ -> createNullJson(length);
+      case BooleanType booleanType ->
+          createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
+      case IntegerType integerType ->
+          createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
+      case FloatType floatType ->
+          createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
+      default -> createObjectJson(fullStorage, start, length);
+    };
+  }
+
+  private static String createFloatJson(
+      ColumnDoubleStorage doubleStorage, long start, long length) {
+    var context = Context.getCurrent();
+    StringBuilder builder = new StringBuilder();
+    builder.append("[");
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
+        builder.append(",");
+      }
+      builder.append(
+          doubleStorage.isNothing(i)
+              ? "null"
+              : JsonOperation.toJson(doubleStorage.getItemAsDouble(i)));
+      context.safepoint();
+    }
+    builder.append("]");
+    return builder.toString();
+  }
+
+  private static String createIntegerJson(ColumnLongStorage longStorage, long start, long length) {
+    var context = Context.getCurrent();
+    StringBuilder builder = new StringBuilder();
+    builder.append("[");
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
+        builder.append(",");
+      }
+      builder.append(
+          longStorage.isNothing(i) ? "null" : JsonOperation.toJson(longStorage.getItemAsLong(i)));
+      context.safepoint();
+    }
+    builder.append("]");
+    return builder.toString();
+  }
+
+  private static String createBooleanJson(
+      ColumnBooleanStorage booleanStorage, long start, long length) {
+    var context = Context.getCurrent();
+    StringBuilder builder = new StringBuilder();
+    builder.append("[");
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
+        builder.append(",");
+      }
+      builder.append(
+          booleanStorage.isNothing(i)
+              ? "null"
+              : JsonOperation.toJson(booleanStorage.getItemAsBoolean(i)));
+      context.safepoint();
+    }
+    builder.append("]");
+    return builder.toString();
+  }
+
+  private static String createObjectJson(ColumnStorage<?> storage, long start, long length) {
+    var context = Context.getCurrent();
+    StringBuilder builder = new StringBuilder();
+    builder.append("[");
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
+        builder.append(",");
+      }
+
+      Object value = storage.getItemBoxed(i);
+      String jsonValue = JSON_OPERATION.objectToJson(value);
+      builder.append(jsonValue);
+      context.safepoint();
+    }
+    builder.append("]");
+    return builder.toString();
+  }
+
+  private static String createNullJson(long size) {
+    int checkedSize = Builder.checkSize(size);
+    return checkedSize == 0
+        ? "[]"
+        : "[" + String.join(",", Collections.nCopies(checkedSize, "null")) + "]";
+  }
 
   /**
    * Creates a JSON string representing the table visualization metadata, including column headers,
@@ -94,7 +243,7 @@ public class TableVizOperation {
         headers.append(",");
         valueTypes.append(",");
       }
-      headers.append(JsonOperation.VIZ_INSTANCE.objectToJson(columns[i].getName()));
+      headers.append(JSON_OPERATION.objectToJson(columns[i].getName()));
 
       var columnType = columns[i].getStorageType().ensoConstructorName();
       valueTypes
@@ -137,11 +286,7 @@ public class TableVizOperation {
     if (builder.length() > 1) {
       builder.append(",");
     }
-    builder
-        .append("\"")
-        .append(name)
-        .append("\":")
-        .append(JsonOperation.VIZ_INSTANCE.objectToJson(value));
+    builder.append("\"").append(name).append("\":").append(JSON_OPERATION.objectToJson(value));
   }
 
   private static void makeDataQualityMetrics(StringBuilder json, List<Map<String, Object>> dqs) {
@@ -220,7 +365,7 @@ public class TableVizOperation {
           Boolean.TRUE.equals(metric.get(DataQualityMetrics.SINGLE_VALUE))
               ? toDisplayText(min)
               : toDisplayText(min) + " - " + toDisplayText(metric.get(DataQualityMetrics.MAXIMUM));
-      ranges.add(JsonOperation.VIZ_INSTANCE.objectToJson(rangeValue));
+      ranges.add(JSON_OPERATION.objectToJson(rangeValue));
     }
 
     if (!hasRange) {
@@ -300,8 +445,7 @@ public class TableVizOperation {
         builder.append(",");
       }
       builder.append(
-          JsonOperation.VIZ_INSTANCE.objectToJson(
-              metrics.get(i).getOrDefault(metric, defaultValue)));
+          JSON_OPERATION.objectToJson(metrics.get(i).getOrDefault(metric, defaultValue)));
     }
     builder.append("]");
   }
@@ -309,7 +453,7 @@ public class TableVizOperation {
   private static String dataToJson(Column[] columns) {
     var output = new ArrayList<String>();
     for (Column column : columns) {
-      output.add(JsonOperation.VIZ_INSTANCE.apply(column, 0, column.getSize()));
+      output.add(makeJSONForColumn(column, 0, column.getSize()));
     }
     return output.stream().collect(Collectors.joining(",", "[", "]"));
   }

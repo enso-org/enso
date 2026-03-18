@@ -16,7 +16,7 @@ from project.Helpers import time_visualization, short_display
 ## ---
    private: true
    ---
-   Helper for JsonOperation
+   Provides the callback for TableVizOperation which converts tables, columns and rows to JSON
 type Helper
     ## ---
        private: true

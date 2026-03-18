@@ -9,41 +9,35 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.function.Function;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.*;
-import org.enso.table.data.table.Column;
-import org.enso.table.util.LeastRecentlyUsedCache;
-import org.graalvm.polyglot.Context;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.slf4j.Logger;
 
-/** A utility class for converting column data to JSON format. */
-public class JsonOperation {
+/**
+ * Create a JSON serialized column from an input Column. The resulting column will contain JSON
+ * strings representing the values in the source column. The method will attempt to use native
+ * JSON serialization for supported types, and will fall back to Enso `Json.stringify` when
+ * needed.
+ */
+public class JsonOperation implements UnaryOperation {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(JsonOperation.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private record CacheKey(long storageKey, long start, long length) {}
-
   public static JsonOperation INSTANCE =
       new JsonOperation("Standard.Base.Data.Json", "Json", "stringify", false);
-  public static JsonOperation VIZ_INSTANCE =
-      new JsonOperation("Standard.Visualization.Table.Visualization", "Helper", "make_json", true);
 
   private final String ensoCallbackModule;
   private final String ensoCallbackType;
   private final String ensoCallbackMethod;
   private final boolean includeDisplayText;
-  private final LeastRecentlyUsedCache<CacheKey, String> jsonCache;
   private Function<Object, String> _ensoCallback;
 
-  private JsonOperation(
+  JsonOperation(
       String ensoCallbackModule,
       String ensoCallbackType,
       String ensoCallbackMethod,
@@ -52,7 +46,6 @@ public class JsonOperation {
     this.ensoCallbackType = ensoCallbackType;
     this.ensoCallbackMethod = ensoCallbackMethod;
     this.includeDisplayText = includeDisplayText;
-    jsonCache = new LeastRecentlyUsedCache<>(1000);
   }
 
   private Function<Object, String> ensoCallback() {
@@ -80,58 +73,24 @@ public class JsonOperation {
     }
   }
 
-  /**
-   * Create a JSON serialized column from an input Column. The resulting column will contain JSON
-   * strings representing the values in the source column. The method will attempt to use native
-   * JSON serialization for supported types, and will fall back to Enso `Json.stringify` when
-   * needed.
-   *
-   * @param source column to serialize as JSON.
-   * @return a new Column of the values serialized as JSON.
-   */
-  public Column makeJsonColumn(Column source) {
-    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
-    return makeJsonColumFromStorage(source.getName(), fullStorage);
+  @Override
+  public String getName() {
+    return "json_stringify";
   }
 
-  private Column makeJsonColumFromStorage(String columnName, ColumnStorage<?> storage) {
-    var result =
-        StorageIterators.buildObjectOverStorage(
-            storage,
-            false,
-            Builder.getForText(TextType.VARIABLE_LENGTH, storage.getSize()),
-            (builder, _, value) -> builder.append(objectToJson(value)));
-    return new Column(columnName, result);
+  @Override
+  public boolean canApply(ColumnStorage<?> storage) {
+    return true;
   }
 
-  public String apply(Column source, long start, long maxLength) {
-    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
-    var cacheKey = new CacheKey(fullStorage.uniqueKey(), start, maxLength);
-    final long finalLength = maxLength;
-    return jsonCache.computeIfAbsent(cacheKey, _ -> applyImpl(start, fullStorage, finalLength));
-  }
-
-  private String applyImpl(long start, ColumnStorage<?> fullStorage, long finalLength) {
-    if (start >= fullStorage.getSize()) {
-      // If the start is beyond the size of the storage, return an empty array.
-      return "[]";
-    }
-    long length = finalLength;
-    if (start + length > fullStorage.getSize()) {
-      // If the requested length goes beyond the size of the storage, adjust it.
-      length = fullStorage.getSize() - start;
-    }
-
-    return switch (StorageType.ofStorage(fullStorage)) {
-      case NullType _ -> createNullJson(length);
-      case BooleanType booleanType ->
-          createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
-      case IntegerType integerType ->
-          createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
-      case FloatType floatType ->
-          createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
-      default -> createObjectJson(fullStorage, start, length);
-    };
+  @Override
+  public ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(storage);
+    return StorageIterators.buildObjectOverStorage(
+        storage,
+        false,
+        Builder.getForText(TextType.VARIABLE_LENGTH, storage.getSize()),
+        (builder, _, value) -> builder.append(objectToJson(value)));
   }
 
   public String objectToJson(Object value) {
@@ -189,95 +148,21 @@ public class JsonOperation {
     };
   }
 
-  private static String createFloatJson(
-      ColumnDoubleStorage doubleStorage, long start, long length) {
-    var context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder();
-    builder.append("[");
-    for (long i = start; i < (start + length); i++) {
-      if (i > start) {
-        builder.append(",");
-      }
-      builder.append(
-          doubleStorage.isNothing(i) ? "null" : toJson(doubleStorage.getItemAsDouble(i)));
-      context.safepoint();
-    }
-    builder.append("]");
-    return builder.toString();
-  }
-
-  private static String createIntegerJson(ColumnLongStorage longStorage, long start, long length) {
-    var context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder();
-    builder.append("[");
-    for (long i = start; i < (start + length); i++) {
-      if (i > start) {
-        builder.append(",");
-      }
-      builder.append(longStorage.isNothing(i) ? "null" : toJson(longStorage.getItemAsLong(i)));
-      context.safepoint();
-    }
-    builder.append("]");
-    return builder.toString();
-  }
-
-  private static String createBooleanJson(
-      ColumnBooleanStorage booleanStorage, long start, long length) {
-    var context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder();
-    builder.append("[");
-    for (long i = start; i < (start + length); i++) {
-      if (i > start) {
-        builder.append(",");
-      }
-      builder.append(
-          booleanStorage.isNothing(i) ? "null" : toJson(booleanStorage.getItemAsBoolean(i)));
-      context.safepoint();
-    }
-    builder.append("]");
-    return builder.toString();
-  }
-
-  private String createObjectJson(ColumnStorage<?> storage, long start, long length) {
-    var context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder();
-    builder.append("[");
-    for (long i = start; i < (start + length); i++) {
-      if (i > start) {
-        builder.append(",");
-      }
-
-      Object value = storage.getItemBoxed(i);
-      String jsonValue = objectToJson(value);
-      builder.append(jsonValue);
-      context.safepoint();
-    }
-    builder.append("]");
-    return builder.toString();
-  }
-
-  private static String createNullJson(long size) {
-    int checkedSize = Builder.checkSize(size);
-    return checkedSize == 0
-        ? "[]"
-        : "[" + String.join(",", Collections.nCopies(checkedSize, "null")) + "]";
-  }
-
-  private static String toJson(boolean value) {
+  static String toJson(boolean value) {
     return value ? "true" : "false";
   }
 
   private static final long MAX_JSON_LONG = 9007199254740991L;
   private static final BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
 
-  private static String toJson(long value) {
+  static String toJson(long value) {
     if (value < -MAX_JSON_LONG || value > MAX_JSON_LONG) {
       return "{\"type\":\"Integer\",\"value\":\"" + value + "\"}";
     }
     return String.valueOf(value);
   }
 
-  private static String toJson(double value) {
+  static String toJson(double value) {
     if (Double.isNaN(value)) {
       return "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}";
     }
