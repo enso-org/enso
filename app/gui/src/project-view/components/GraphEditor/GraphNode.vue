@@ -22,11 +22,11 @@ import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/ComponentWidgetTree.vue'
-import GraphNodeSubmenu from '@/components/GraphEditor/GraphNodeSubmenu.vue'
 import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
 import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeSubmenu from '@/components/GraphEditor/GraphNodeSubmenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useResizeHandles } from '@/components/resizeHandles'
@@ -50,15 +50,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import {
-  computed,
-  onUnmounted,
-  ref,
-  toRef,
-  watch,
-  watchEffect,
-  type ComponentInstance,
-} from 'vue'
+import { computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -510,10 +502,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <ContextMenuTrigger
-      :actions="contextMenuActions"
-      @contextmenu="ensureSelected"
-    >
+    <ContextMenuTrigger :actions="contextMenuActions" @contextmenu="ensureSelected">
       <template #menuElements>
         <div v-if="hasMultiSelection">
           <GraphNodeSubmenu label="Align" icon="align_left" :actions="alignmentMenuActions" />
