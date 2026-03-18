@@ -87,7 +87,7 @@ public class JsonOperation implements UnaryOperation {
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(storage);
     return StorageIterators.buildObjectOverStorage(
-        storage,
+        fullStorage,
         false,
         Builder.getForText(TextType.VARIABLE_LENGTH, storage.getSize()),
         (builder, _, value) -> builder.append(objectToJson(value)));

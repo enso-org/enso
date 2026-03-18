@@ -203,3 +203,13 @@ type Text_Column
         ```  
     index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
         self.operations_implementation.index_of self.column other case_sensitivity
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Parses the column assuming it contains JSON strings, and returns a column of the resulting values.
+
+       ## ToDo: Add problem handling for invalid JSON strings.
+    parse_json self -> Column =
+        self.operations_implementation.parse_json self.column
