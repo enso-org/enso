@@ -60,7 +60,6 @@ onMounted(() => {
       cancel: () => emit('close'),
       end: () => emit('close'),
     })
-    if (actionContext) actionContext.menuInteraction = menuInteraction
     interaction.setCurrent(menuInteraction)
   } else {
     useEvent(
@@ -76,9 +75,6 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
-  if (actionContext?.menuInteraction != null) actionContext.menuInteraction = undefined
-})
 </script>
 
 <template>
