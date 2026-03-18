@@ -1791,7 +1791,7 @@ type Table
         columns.act_if_any self error_on_missing_columns selected->
             selected.fold self current->column_name->
                 json_column = current.get column_name . json_stringify
-                current.set json_column
+                current.set json_column column_name
 
     ## ---
        group: Standard.Base.Conversions

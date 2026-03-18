@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.unary.JsonOperation;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;

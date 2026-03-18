@@ -18,6 +18,7 @@ polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleUnaryOperation
+polyglot java import org.enso.table.data.column.operation.unary.JsonParseOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextCharLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -205,7 +206,8 @@ type In_Memory_Text_Column_Implementation
     parse_json (column : Column & In_Memory_Column) =
         Value_Type.expect_text column <|
             new_name = naming_helper.function_name "parse_json" [column]
-            column.map .parse_json . rename new_name
+            operation = JsonParseOperation.new
+            apply_unary_operation column operation new_name
 
 type In_Memory_Date_Column_Implementation
     first_of_month (column : Column & In_Memory_Column) =

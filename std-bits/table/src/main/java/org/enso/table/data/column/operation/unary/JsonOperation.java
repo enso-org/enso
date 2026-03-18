@@ -1,4 +1,4 @@
-package org.enso.table.data.column.operation;
+package org.enso.table.data.column.operation.unary;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +12,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -36,7 +38,7 @@ public class JsonOperation implements UnaryOperation {
   private final boolean includeDisplayText;
   private Function<Object, String> _ensoCallback;
 
-  JsonOperation(
+  public JsonOperation(
       String ensoCallbackModule,
       String ensoCallbackType,
       String ensoCallbackMethod,
@@ -148,21 +150,21 @@ public class JsonOperation implements UnaryOperation {
     };
   }
 
-  static String toJson(boolean value) {
+  public static String toJson(boolean value) {
     return value ? "true" : "false";
   }
 
   private static final long MAX_JSON_LONG = 9007199254740991L;
   private static final BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
 
-  static String toJson(long value) {
+  public static String toJson(long value) {
     if (value < -MAX_JSON_LONG || value > MAX_JSON_LONG) {
       return "{\"type\":\"Integer\",\"value\":\"" + value + "\"}";
     }
     return String.valueOf(value);
   }
 
-  static String toJson(double value) {
+  public static String toJson(double value) {
     if (Double.isNaN(value)) {
       return "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}";
     }

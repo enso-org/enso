@@ -49,7 +49,6 @@ polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.IsInOperation
-polyglot java import org.enso.table.data.column.operation.JsonOperation
 polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
@@ -61,6 +60,7 @@ polyglot java import org.enso.table.data.column.operation.unary.DuplicateCountOp
 polyglot java import org.enso.table.data.column.operation.unary.FillFromPreviousOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
+polyglot java import org.enso.table.data.column.operation.unary.JsonOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.RoundOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
