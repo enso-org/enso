@@ -20,9 +20,8 @@ import org.slf4j.Logger;
 
 /**
  * Create a JSON serialized column from an input Column. The resulting column will contain JSON
- * strings representing the values in the source column. The method will attempt to use native
- * JSON serialization for supported types, and will fall back to Enso `Json.stringify` when
- * needed.
+ * strings representing the values in the source column. The method will attempt to use native JSON
+ * serialization for supported types, and will fall back to Enso `Json.stringify` when needed.
  */
 public class JsonOperation implements UnaryOperation {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(JsonOperation.class);
@@ -84,7 +83,8 @@ public class JsonOperation implements UnaryOperation {
   }
 
   @Override
-  public ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(storage);
     return StorageIterators.buildObjectOverStorage(
         storage,
