@@ -72,7 +72,7 @@ function closeAll() {
       </MenuButton>
     </div>
     <div v-if="open" ref="panelElement" class="submenuPanel" :style="floatingStyles">
-      <ActionMenu class="alignmentMenu" :actions="actions" @close="closeAll" />
+      <ActionMenu :actions="actions" @close="closeAll" />
     </div>
   </div>
 </template>
@@ -98,11 +98,6 @@ function closeAll() {
 
 .submenuPanel {
   z-index: var(--z-index-selection-submenu);
-}
-
-.alignmentMenu {
-  padding: 4px;
-  backdrop-filter: none;
 }
 
 .submenuArrow {
