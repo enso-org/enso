@@ -1,11 +1,13 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Json.Extensions
+- Standard.Base.Any.Any.json_stringify self -> Standard.Base.Data.Text.Text
 - Standard.Base.Any.Any.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.to_json self -> Standard.Base.Any.Any
 - Standard.Base.Data.Array.Array.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Data.Boolean.Boolean.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Data.Decimal.Decimal.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Data.Dictionary.Dictionary.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.json_stringify self -> Standard.Base.Data.Text.Text
 - Standard.Base.Error.Error.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Error.Error.to_json self -> Standard.Base.Any.Any
 - Standard.Base.Data.Locale.Locale.to_js_object self -> Standard.Base.Any.Any
