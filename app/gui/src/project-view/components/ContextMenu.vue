@@ -3,11 +3,12 @@ import { WidgetEditHandlerRoot } from '$/providers/openedProjects/widgetRegistry
 import ActionMenu from '@/components/ActionMenu.vue'
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
+import { injectActionContext } from '@/providers/actionContext'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const menu = ref<HTMLElement>()
 providePopoverRoot(menu)
@@ -19,6 +20,7 @@ const { actions, point } = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const interaction = injectInteractionHandler()
+const actionContext = injectActionContext(true)
 
 const virtualEl = computed(() => {
   const { x, y } = point
@@ -54,12 +56,12 @@ onMounted(() => {
   // probably the drop-down widget should _not_ be an interaction, actually (this would also allow
   // simplifying WidgetEditHandler, probably)
   if (!(interaction.getCurrent() instanceof WidgetEditHandlerRoot)) {
-    interaction.setCurrent(
-      endOnClickOutside(menu, {
-        cancel: () => emit('close'),
-        end: () => emit('close'),
-      }),
-    )
+    const menuInteraction = endOnClickOutside(menu, {
+      cancel: () => emit('close'),
+      end: () => emit('close'),
+    })
+    if (actionContext) actionContext.menuInteraction = menuInteraction
+    interaction.setCurrent(menuInteraction)
   } else {
     useEvent(
       window,
@@ -72,6 +74,10 @@ onMounted(() => {
       { capture: true },
     )
   }
+})
+
+onUnmounted(() => {
+  if (actionContext?.menuInteraction != null) actionContext.menuInteraction = undefined
 })
 </script>
 

@@ -2,6 +2,7 @@
 import ActionMenu from '@/components/ActionMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { injectActionContext } from '@/providers/actionContext'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import type { DisplayableActionName } from '@/providers/action'
@@ -13,10 +14,7 @@ const { actions } = defineProps<{
   actions: DisplayableActionName[]
 }>()
 
-const emit = defineEmits<{
-  closeAll: []
-}>()
-
+const actionContext = injectActionContext()
 const interaction = injectInteractionHandler()
 const popoverRoot = usePopoverRoot(true)
 const open = ref(false)
@@ -44,8 +42,8 @@ interaction.setWhenWithParent(open, (parentInteraction) => {
       if (!targetIsOutside(event, rootElement.value)) return false
 
       const parentRoot = popoverRoot?.value
-      if (parentInteraction && (parentRoot == null || targetIsOutside(event, parentRoot))) {
-        interaction.end(parentInteraction)
+      if (parentRoot == null || targetIsOutside(event, parentRoot)) {
+        actionContext.endInteraction()
       } else {
         interaction.end(nestedInteraction)
       }
@@ -57,7 +55,7 @@ interaction.setWhenWithParent(open, (parentInteraction) => {
 
 function closeAll() {
   open.value = false
-  emit('closeAll')
+  actionContext.endInteraction()
 }
 </script>
 

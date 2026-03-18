@@ -453,11 +453,6 @@ const contextMenuActions = computed<DisplayableActionName[]>(() =>
   hasMultiSelection.value ? multiSelectionMenuActions : nodeMenuActions,
 )
 
-const contextMenuTrigger = ref<InstanceType<typeof ContextMenuTrigger>>()
-function closeContextMenu() {
-  contextMenuTrigger.value?.close()
-}
-
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
   updateNodeHover(undefined)
@@ -516,13 +511,12 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       @click.capture="setSoleSelected"
     />
     <ContextMenuTrigger
-      ref="contextMenuTrigger"
       :actions="contextMenuActions"
       @contextmenu="ensureSelected"
     >
       <template #menuElements>
         <div v-if="hasMultiSelection">
-          <GraphNodeAlignmentSubmenu :actions="alignmentMenuActions" @close-all="closeContextMenu" />
+          <GraphNodeAlignmentSubmenu :actions="alignmentMenuActions" />
         </div>
       </template>
       <div
