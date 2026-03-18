@@ -8,7 +8,7 @@ import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const menu = ref<HTMLElement>()
 providePopoverRoot(menu)
@@ -74,7 +74,6 @@ onMounted(() => {
     )
   }
 })
-
 </script>
 
 <template>
