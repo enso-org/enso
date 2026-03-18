@@ -17,8 +17,7 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
-import type { CalendarDate, CalendarDateTime, ZonedDateTime } from '@internationalized/date'
-import { endOfMonth, getLocalTimeZone, now, toZoned } from '@internationalized/date'
+import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
 import { useQuery } from '@tanstack/react-query'
 import type {
   Backend,
@@ -66,31 +65,6 @@ const MAX_DURATION_MINIMUM_MINUTES = 1
 const MAX_DURATION_MAXIMUM_MINUTES = 180
 const REPEAT_TIMES_COUNT = 3
 
-/** A date value accepted from the project execution date picker. */
-type StartDateValue = CalendarDate | CalendarDateTime | ZonedDateTime
-
-/** Return whether a value looks like an internationalized date object. */
-function isDateValueLike(value: unknown): value is StartDateValue {
-  if (typeof value !== 'object' || value == null) {
-    return false
-  }
-
-  const calendar: unknown = Reflect.get(value, 'calendar')
-
-  return (
-    typeof calendar === 'object' &&
-    calendar != null &&
-    typeof Reflect.get(calendar, 'identifier') === 'string' &&
-    typeof Reflect.get(value, 'year') === 'number' &&
-    typeof Reflect.get(value, 'month') === 'number' &&
-    typeof Reflect.get(value, 'day') === 'number'
-  )
-}
-
-const START_DATE_SCHEMA = z.custom<StartDateValue | null>(
-  (value): value is StartDateValue | null => value == null || isDateValueLike(value),
-)
-
 /** The form schema for this page. */
 const UPSERT_EXECUTION_SCHEMA = z
   .object({
@@ -114,7 +88,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       .min(1)
       .transform((arr) => arr.sort((a, b) => a - b))
       .readonly(),
-    startDate: START_DATE_SCHEMA,
+    startDate: z.instanceof(ZonedDateTime).nullable().optional(),
     timeZone: z.string(),
     maxDurationMinutes: z
       .number()
