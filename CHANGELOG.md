@@ -13,6 +13,7 @@
 - [Geo Map Visualization may display GeoSpatial data][14859]
 - [Component height can be resized][14849]
 - [Add right click menu for multiple components][14640].
+- [Execution can be scheduled for the specific version tag][14883]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -24,6 +25,7 @@
 [14859]: https://github.com/enso-org/enso/pull/14859
 [14849]: https://github.com/enso-org/enso/pull/14849
 [14640]: https://github.com/enso-org/enso/pull/14640
+[14883]: https://github.com/enso-org/enso/pull/14883
 
 #### Enso Standard Library
 
@@ -41,6 +43,7 @@
 - [`Process_Builder.set_env`.][14799]
 - [New `Profile` API for timing code execution.][14827]
 - [Expanded S3 API with versions and signed uri][14831]
+- [Support for reading JSON data from database connections.][14872]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -56,6 +59,7 @@
 [14799]: https://github.com/enso-org/enso/pull/14799
 [14827]: https://github.com/enso-org/enso/pull/14827
 [14831]: https://github.com/enso-org/enso/pull/14831
+[14872]: https://github.com/enso-org/enso/pull/14872
 
 #### Enso Language & Runtime
 

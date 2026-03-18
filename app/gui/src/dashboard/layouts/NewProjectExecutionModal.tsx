@@ -9,7 +9,7 @@ import { Input } from '#/components/Inputs/Input'
 import { MultiSelector } from '#/components/Inputs/MultiSelector'
 import { Selector } from '#/components/Inputs/Selector'
 import { Text } from '#/components/Text'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
@@ -18,6 +18,7 @@ import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
+import { useQuery } from '@tanstack/react-query'
 import type {
   Backend,
   ProjectExecutionInfo,
@@ -87,7 +88,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       .min(1)
       .transform((arr) => arr.sort((a, b) => a - b))
       .readonly(),
-    startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
+    startDate: z.instanceof(ZonedDateTime).nullable().optional(),
     timeZone: z.string(),
     maxDurationMinutes: z
       .number()
@@ -95,6 +96,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       .min(MAX_DURATION_MINIMUM_MINUTES)
       .max(MAX_DURATION_MAXIMUM_MINUTES),
     parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+    tag: z.string().optional(),
   })
   .transform(
     ({
@@ -106,10 +108,11 @@ const UPSERT_EXECUTION_SCHEMA = z
       days,
       months,
       timeZone: description,
+      tag,
     }): ProjectExecutionInfo => {
       const timeZone = getTimeZoneFromDescription(description)
-      startDate ??= now(timeZone)
-      const startDateTime = toRfc3339(new Date(startDate.toAbsoluteString()))
+      const zonedStartDate = startDate == null ? now(timeZone) : toZoned(startDate, timeZone)
+      const startDateTime = toRfc3339(new Date(zonedStartDate.toAbsoluteString()))
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
           case 'none': {
@@ -131,22 +134,22 @@ const UPSERT_EXECUTION_SCHEMA = z
           case 'monthlyDate': {
             return {
               type: repeatType,
-              date: startDate.day,
+              date: zonedStartDate.day,
               months,
             }
           }
           case 'monthlyWeekday': {
             return {
               type: repeatType,
-              dayOfWeek: getDay(startDate),
-              weekNumber: getWeekOfMonth(startDate.day),
+              dayOfWeek: getDay(zonedStartDate),
+              weekNumber: getWeekOfMonth(zonedStartDate.day),
               months,
             }
           }
           case 'monthlyLastWeekday': {
             return {
               type: repeatType,
-              dayOfWeek: getDay(startDate),
+              dayOfWeek: getDay(zonedStartDate),
               months,
             }
           }
@@ -160,6 +163,7 @@ const UPSERT_EXECUTION_SCHEMA = z
         parallelMode,
         startDate: startDateTime,
         endDate: null,
+        tag,
       }
     },
   )
@@ -221,6 +225,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       days: DAYS,
       months: MONTHS,
       timeZone: timeZoneDescription,
+      tag: undefined,
     },
     onSubmit: async (values) => {
       await createProjectExecution([values, item.title])
@@ -228,11 +233,12 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   })
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
-  const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
+  const startDateValue = form.watch('startDate', defaultStartDate) ?? defaultStartDate
   // `timeZone` may be `null`.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const formTimeZoneDescription = form.watch('timeZone', timeZoneDescription) ?? timeZoneDescription
   const formTimeZone = getTimeZoneFromDescription(formTimeZoneDescription)
+  const date = toZoned(startDateValue, formTimeZone)
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
@@ -242,10 +248,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'monthlyLastWeekday')
     : PROJECT_EXECUTION_REPEAT_TYPES
 
-  const changeTimezoneDeps = useSyncRef({ date, form })
+  const changeTimezoneDeps = useSyncRef({ form, startDateValue })
   useEffect(() => {
     const deps = changeTimezoneDeps.current
-    deps.form.setValue('startDate', toZoned(deps.date, formTimeZone))
+    deps.form.setValue('startDate', toZoned(deps.startDateValue, formTimeZone))
   }, [formTimeZone, changeTimezoneDeps])
 
   useEffect(() => {
@@ -261,6 +267,8 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       }
     }
   })
+
+  const { data: tags } = useQuery(backendQueryOptions(backend, 'listAssetVersionTags', []))
 
   const createProjectExecution = useMutationCallback(
     backendMutationOptions(backend, 'createProjectExecution'),
@@ -310,6 +318,9 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
 
   return (
     <Form form={form} className="w-full">
+      <ComboBox form={form} name="tag" label={getText('tagLabel')} items={tags ?? []}>
+        {(tag) => tag}
+      </ComboBox>
       <ComboBox
         form={form}
         isRequired

@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
@@ -84,8 +86,8 @@ type DuckDB_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type = case sql_type.typeid of
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False = case sql_type.typeid of
         Types.BOOLEAN -> Value_Type.Boolean
         Types.TINYINT -> Value_Type.Byte
         Types.SMALLINT -> Value_Type.Integer Bits.Bits_16
@@ -111,7 +113,9 @@ type DuckDB_Type_Mapping
         Types.TIMESTAMP -> Value_Type.Date_Time False
         Types.BLOB -> Value_Type.Binary Nothing False
         Types.BIT -> Value_Type.Binary Nothing False
-        _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
+        _ -> if json_as_text.not || sql_type.name!="JSON" then Value_Type.Unsupported_Data_Type sql_type.name sql_type else
+            result = Value_Type.Char size=Nothing variable_length=True
+            Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
 
     ## ---
        private: true
