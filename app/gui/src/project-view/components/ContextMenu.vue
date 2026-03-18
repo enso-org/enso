@@ -3,7 +3,6 @@ import { WidgetEditHandlerRoot } from '$/providers/openedProjects/widgetRegistry
 import ActionMenu from '@/components/ActionMenu.vue'
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
-import { injectActionContext } from '@/providers/actionContext'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
