@@ -6,6 +6,7 @@ import invariant from 'tiny-invariant'
 
 import type { StoreApi } from '#/utilities/zustand'
 import { createStore, useStore } from '#/utilities/zustand'
+import { findLastIndex } from '@/util/data/array'
 
 /** Returns only dialog items from the full overlay stack. */
 function getDialogsStack(stack: DialogStackItem[]) {
@@ -48,12 +49,8 @@ export function DialogStackProvider(props: React.PropsWithChildren) {
       },
       slice: (currentId) => {
         set((state) => {
-          const reversedIndex = [...state.stack]
-            .reverse()
-            .findIndex((item) => item.id === currentId)
-          const index = reversedIndex === -1 ? -1 : state.stack.length - reversedIndex - 1
-
-          if (index === -1) {
+          const index = findLastIndex(state.stack, (item) => item.id === currentId)
+          if (index == null) {
             // eslint-disable-next-line no-restricted-properties
             console.warn(`
               DialogStackProvider: sliceFromStack: currentId ${currentId} is not present in the stack. \
