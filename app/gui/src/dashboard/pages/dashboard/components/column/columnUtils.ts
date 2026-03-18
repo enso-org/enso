@@ -73,6 +73,7 @@ export function getColumnList(
   const isTrash = category.type === 'trash'
   const isRecent = category.type === 'recent'
   const isRoot = category.type === 'cloud'
+  const isTeam = category.type === 'team'
 
   const columns = [
     Column.name,
@@ -82,7 +83,7 @@ export function getColumnList(
     (isTrash || isRecent || isSearching) && Column.path,
     isCloud && Column.labels,
     isCloud && Column.size,
-    isCloud && Column.createdBy,
+    isCloud && isTeam && Column.createdBy,
     // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
     // Bring back these columns when they are ready for use again.
     // isCloud && Column.accessedByProjects,
