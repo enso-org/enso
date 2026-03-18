@@ -320,9 +320,9 @@ public class JsonOperation {
   private static String toJson(LocalDate date, boolean includeDisplayText) {
     String displayText =
         includeDisplayText
-            ? "\"constructor\":\"new\",\"_display_text_\":\"" + date.toString() + "\","
+            ? "\"_display_text_\":\"" + date.toString() + "\","
             : "";
-    return "{\"type\":\"Date\","
+    return "{\"type\":\"Date\",\"constructor\":\"new\","
         + displayText
         + "\"day\":"
         + date.getDayOfMonth()
@@ -345,9 +345,9 @@ public class JsonOperation {
             : "";
     String displayText =
         includeDisplayText
-            ? "\"constructor\":\"new\",\"_display_text_\":\"" + timeString + "\","
+            ? "\"_display_text_\":\"" + timeString + "\","
             : "";
-    return "{\"type\":\"Time_Of_Day\","
+    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\","
         + displayText
         + "\"hour\":"
         + time.getHour()
@@ -378,13 +378,13 @@ public class JsonOperation {
             : "";
     String displayText =
         includeDisplayText
-            ? "\"constructor\":\"new\",\"_display_text_\":\"" + datetimeString + zoneString + "\","
+            ? "\"_display_text_\":\"" + datetimeString + zoneString + "\","
             : "";
     var zone_json =
         "{\"type\":\"Time_Zone\",\"constructor\":\"parse\",\"id\":\""
             + datetime.getZone().getId()
             + "\"}";
-    return "{\"type\":\"Date_Time\","
+    return "{\"type\":\"Date_Time\",\"constructor\":\"new\","
         + displayText
         + "\"year\":"
         + datetime.getYear()

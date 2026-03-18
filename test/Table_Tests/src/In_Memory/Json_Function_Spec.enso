@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Column, Table
+from Standard.Table import all
 
 from Standard.Test import all
 
@@ -32,6 +32,13 @@ add_specs suite_builder =
             json_column.name.should_equal "Row"
             json_column.row_count.should_equal data.raw_data.length
             expected = 0.up_to data.table.row_count . map .to_json
+            json_column.to_vector.should_equal expected
+
+        group_builder.specify "should be able to stringify a filtered column" <|
+            json_column = data.table.filter (expr "[Row]%2==0") . at "mixed" . json_stringify
+            json_column.name.should_equal "mixed"
+            json_column.row_count.should_equal (data.raw_data.length / 2).floor
+            expected = 0.up_to data.table.row_count step=2 . map i-> data.raw_data.at i . to_json
             json_column.to_vector.should_equal expected
 
 main filter=Nothing =
