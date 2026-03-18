@@ -5,11 +5,14 @@ import { Column } from '../column/columnUtils'
 import {
   AccessedByProjectsColumnHeading,
   AccessedDataColumnHeading,
+  CreatedAtColumnHeading,
+  CreatedByColumnHeading,
   LabelsColumnHeading,
   ModifiedColumnHeading,
   NameColumnHeading,
   PathColumnHeading,
   SharedWithColumnHeading,
+  SizeColumnHeading,
 } from './components'
 
 export const COLUMN_HEADING: Readonly<
@@ -20,9 +23,12 @@ export const COLUMN_HEADING: Readonly<
 > = {
   [Column.name]: memo(NameColumnHeading),
   [Column.modified]: memo(ModifiedColumnHeading),
+  [Column.createdAt]: memo(CreatedAtColumnHeading),
   [Column.sharedWith]: memo(SharedWithColumnHeading),
   [Column.labels]: memo(LabelsColumnHeading),
   [Column.accessedByProjects]: memo(AccessedByProjectsColumnHeading),
   [Column.accessedData]: memo(AccessedDataColumnHeading),
   [Column.path]: memo(PathColumnHeading),
+  [Column.size]: memo(SizeColumnHeading),
+  [Column.createdBy]: memo(CreatedByColumnHeading),
 }

@@ -30,6 +30,7 @@ import {
   type LabelName,
   type LChColor,
 } from 'enso-common/src/services/Backend'
+import { formatBytes } from 'enso-common/src/utilities/bytes'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
 import { useMemo, useRef, useState } from 'react'
@@ -182,6 +183,19 @@ export function ModifiedColumn(props: AssetColumnProps) {
   return <Text nowrap>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
 }
 
+/** A column displaying size of the asset. */
+export function SizeColumn(props: AssetColumnProps) {
+  const { item } = props
+  return <Text nowrap>{formatBytes(item.size)}</Text>
+}
+
+/** A column displaying the time at which the asset was created. */
+export function CreatedAtColumn(props: AssetColumnProps) {
+  const { item } = props
+
+  return <Text nowrap>{toReadableIsoString(new Date(item.createdAt))}</Text>
+}
+
 /** The icon and name of an {@link backendModule.Asset}. */
 export function NameColumn(props: AssetNameColumnProps) {
   const { item } = props
@@ -235,6 +249,22 @@ export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           {getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}
+    </div>
+  )
+}
+
+/** A column listing the user who originally created the asset. */
+export function CreatedByColumn(props: SharedWithColumnPropsInternal) {
+  const { item } = props
+  const user = item.createdBy
+
+  return (
+    <div className="group flex items-center gap-1">
+      {user && (
+        <PermissionDisplay key={user.userId} action={PermissionAction.own}>
+          {user.name}
+        </PermissionDisplay>
+      )}
     </div>
   )
 }

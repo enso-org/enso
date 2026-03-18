@@ -367,6 +367,7 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
     const shared = {
       title: path.basename(assetPath),
       modifiedAt: toRfc3339(new Date()),
+      createdAt: toRfc3339(new Date()),
       parentId: DirectoryId(`directory-${path.dirname(assetPath)}` as const),
       extension: null,
       permissions: [],
@@ -636,6 +637,7 @@ async function apiUploadArchive({
     const shared = {
       title: path.basename(destinationPath),
       modifiedAt: toRfc3339(new Date()),
+      createdAt: toRfc3339(new Date()),
       parentId: DirectoryId(`directory-${path.dirname(destinationPath)}` as const),
       extension: null,
       permissions: [],

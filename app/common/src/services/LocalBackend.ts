@@ -173,6 +173,7 @@ export class LocalBackend extends backend.Backend {
                 id,
                 type: backend.AssetType.directory,
                 modifiedAt: entry.attributes.lastModifiedTime,
+                createdAt: entry.attributes.creationTime,
                 parentId,
                 title: getFileName(entry.path),
               } satisfies backend.DirectoryAsset
@@ -184,6 +185,7 @@ export class LocalBackend extends backend.Backend {
                 id: newProjectId(entry.path),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+                createdAt: entry.metadata.created,
                 parentId,
                 projectState: {
                   type:
@@ -199,6 +201,7 @@ export class LocalBackend extends backend.Backend {
                 id: newFileId(entry.path),
                 title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
+                createdAt: entry.attributes.creationTime,
                 parentId,
                 extension: fileExtension(entry.path),
               } satisfies backend.FileAsset

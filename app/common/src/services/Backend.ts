@@ -978,6 +978,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly id: IdType[Type]
   readonly title: string
   readonly modifiedAt: dateTime.Rfc3339DateTime
+  readonly createdAt: dateTime.Rfc3339DateTime
   /**
    * This is defined as a generic {@link AssetId} in the backend, however it is more convenient
    * (and currently safe) to assume it is always a {@link DirectoryId}.
@@ -996,6 +997,10 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
   readonly ensoPath: EnsoPath
+  /** The user that created asset. */
+  readonly createdBy?: User
+  /** Optional size valid only for projects and files. */
+  readonly size?: number
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1314,7 +1319,11 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
-export type AssetSortExpression = 'asset_id_discriminator_and_modified_at' | 'modified_at' | 'title'
+export type AssetSortExpression =
+  | 'asset_id_discriminator_and_modified_at'
+  | 'modified_at'
+  | 'title'
+  | 'created_at'
 
 export type AssetSortDirection = 'ascending' | 'descending'
 
@@ -1474,6 +1483,8 @@ export function compareAssets(
   const modifiedAtDelta =
     multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
   const titleDelta = multiplier * a.title.localeCompare(b.title, 'en-US', { numeric: true })
+  const createdAtDelta =
+    multiplier * (Number(new Date(a.createdAt)) - Number(new Date(b.createdAt)))
 
   switch (sortExpression) {
     case 'asset_id_discriminator_and_modified_at': {
@@ -1485,6 +1496,9 @@ export function compareAssets(
     }
     case 'modified_at': {
       return modifiedAtDelta
+    }
+    case 'created_at': {
+      return createdAtDelta
     }
     case 'title': {
       return titleDelta

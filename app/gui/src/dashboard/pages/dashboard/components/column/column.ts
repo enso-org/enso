@@ -11,12 +11,15 @@ import type {
 import { memo, type JSX } from 'react'
 import { Column } from './columnUtils'
 import {
+  CreatedAtColumn,
+  CreatedByColumn,
   LabelsColumn,
   ModifiedColumn,
   NameColumn,
   PathColumn,
   PlaceholderColumn,
   SharedWithColumn,
+  SizeColumn,
 } from './components'
 export * from './components'
 
@@ -59,9 +62,12 @@ export const COLUMN_RENDERER: Readonly<
 > = {
   [Column.name]: memo(NameColumn),
   [Column.modified]: memo(ModifiedColumn),
+  [Column.createdAt]: memo(CreatedAtColumn),
   [Column.sharedWith]: memo(SharedWithColumn),
   [Column.labels]: memo(LabelsColumn),
   [Column.accessedByProjects]: memo(PlaceholderColumn),
   [Column.accessedData]: memo(PlaceholderColumn),
   [Column.path]: memo(PathColumn),
+  [Column.size]: memo(SizeColumn),
+  [Column.createdBy]: memo(CreatedByColumn),
 }
