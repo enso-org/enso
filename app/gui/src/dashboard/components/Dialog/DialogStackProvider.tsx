@@ -6,6 +6,12 @@ import invariant from 'tiny-invariant'
 
 import type { StoreApi } from '#/utilities/zustand'
 import { createStore, useStore } from '#/utilities/zustand'
+import { findLastIndex } from '@/util/data/array'
+
+/** Returns only dialog items from the full overlay stack. */
+function getDialogsStack(stack: DialogStackItem[]) {
+  return stack.filter((stackItem) => ['dialog-fullscreen', 'dialog'].includes(stackItem.type))
+}
 
 /** DialogStackItem represents an item in the dialog stack. */
 export interface DialogStackItem {
@@ -37,27 +43,30 @@ export function DialogStackProvider(props: React.PropsWithChildren) {
 
           return {
             stack: nextStack,
-            dialogsStack: nextStack.filter((stackItem) =>
-              ['dialog-fullscreen', 'dialog'].includes(stackItem.type),
-            ),
+            dialogsStack: getDialogsStack(nextStack),
           }
         })
       },
       slice: (currentId) => {
         set((state) => {
-          const lastItem = state.stack.at(-1)
-          if (lastItem?.id === currentId) {
-            return { stack: state.stack.slice(0, -1) }
-          } else {
+          const index = findLastIndex(state.stack, (item) => item.id === currentId)
+          if (index == null) {
             // eslint-disable-next-line no-restricted-properties
             console.warn(`
-              DialogStackProvider: sliceFromStack: currentId ${currentId} does not match the last item in the stack. \
+              DialogStackProvider: sliceFromStack: currentId ${currentId} is not present in the stack. \
               This is no-op but it might be a sign of a bug in the application. \
               Usually, this means that the underlaying component was closed manually or the stack was not \
               updated properly.
           `)
 
-            return { stack: state.stack }
+            return state
+          }
+
+          const nextStack = [...state.stack.slice(0, index), ...state.stack.slice(index + 1)]
+
+          return {
+            stack: nextStack,
+            dialogsStack: getDialogsStack(nextStack),
           }
         })
       },

@@ -707,28 +707,32 @@ type DB_Table_Implementation
     default_max_rows = Rows_To_Read.First_With_Warning 1000
 
     read (this_table : Table & DB_Table) (max_rows : Rows_To_Read) =
-        if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-            limit = max_rows.rows_to_read
-            preprocessed = if limit.is_nothing then this_table else this_table.limit limit
+        if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
 
-            sql = preprocessed.to_sql
-            column_types = preprocessed.internal_columns.map .sql_type_reference
-            materialized_table = this_table.connection.base_connection.read_statement sql column_types . catch SQL_Error sql_error->
-                Error.throw (this_table.connection.type_mapping.error_mapper.transform_custom_errors sql_error)
+        limit = max_rows.rows_to_read
+        preprocessed = if limit.is_nothing then this_table else this_table.limit limit
 
-            warnings_builder = Builder.new
-            expected_types = this_table.columns.map .value_type
-            actual_types = materialized_table.columns.map .value_type
-            expected_types.zip actual_types expected_type-> actual_type->
-                if expected_type == actual_type then Nothing else
-                    if this_table.connection.type_mapping.should_warn_on_materialize expected_type actual_type then
-                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+        sql = preprocessed.to_sql
+        column_types = preprocessed.internal_columns.map .sql_type_reference
+        materialized_table = this_table.connection.base_connection.read_statement sql column_types . catch SQL_Error sql_error->
+            Error.throw (this_table.connection.type_mapping.error_mapper.transform_custom_errors sql_error)
 
-            result = max_rows.attach_warning materialized_table
-            with_problems = Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
-            with_problems.if_not_error <|
-                Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [this_table.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
-                with_problems
+        warnings_builder = Builder.new
+
+        expected_types = this_table.columns.map .value_type
+        Warning.get_all expected_types . map w-> warnings_builder.append w.value
+
+        actual_types = materialized_table.columns.map .value_type
+        expected_types.zip actual_types expected_type-> actual_type->
+            if expected_type == actual_type then Nothing else
+                if this_table.connection.type_mapping.should_warn_on_materialize expected_type actual_type then
+                    warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+
+        result = max_rows.attach_warning materialized_table
+        with_problems = Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+        with_problems.if_not_error <|
+            Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [this_table.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
+            with_problems
 
     column_info (this_table : Table & DB_Table) =
         cols = this_table.internal_columns

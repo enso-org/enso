@@ -1185,6 +1185,20 @@ export class RemoteBackend extends backend.Backend {
   }
 
   /**
+   * Return all tags attached to asset versions in the organization.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listAssetVersionTags(): Promise<readonly string[]> {
+    const path = remoteBackendPaths.LIST_TAGS_PATH
+    const response = await this.get<backend.ListTagsResponseBody>(path)
+    if (!response.ok) {
+      return await this.throw(response, 'listLabelsBackendError')
+    } else {
+      return (await response.json()).assetVersionTags
+    }
+  }
+
+  /**
    * Set the full list of labels for a specific asset.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */

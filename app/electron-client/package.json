@@ -71,6 +71,7 @@
     "typecheck": "tsc --noEmit",
     "build": "vite-node bundle.ts",
     "dist": "vite-node dist.ts",
+    "macos:build-dmg": "node macos/build-dmg.mjs",
     "lint": "eslint . --cache --max-warnings=0",
     "ide-integration-test": "playwright test",
     "watch:windows": "cross-env ENSO_IDE_VERSION=0.0.0-dev ENSO_IDE_COMMIT_HASH=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ENSO_BUILD_IDE=%LOCALAPPDATA%\\Temp\\enso\\dist\\ide ENSO_BUILD_BACKEND=%CD%\\..\\..\\dist\\backend ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=0 ENSO_POLYGLOT_YDOC_SERVER=wss://localhost:8080 vite-node watch.ts",

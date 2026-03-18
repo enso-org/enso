@@ -36,7 +36,6 @@ import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 import enso_dev.Table_Tests
 
-
 type Basic_Test_Data
     Value ~connection
 
@@ -46,6 +45,28 @@ type Basic_Test_Data
     teardown self =
         self.connection.close
 
+type JSON_Table_Data
+    Value ~connection
+
+    expected self =
+        _ = self
+        ['{"defaultMargin": 22}', 'null', 'true', 'false', '123', '"string value"', '{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}', '[1, 2, 3, 4, 5]', '["string1", "string2", "string3"]', '[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]', '3.14159267', Nothing]
+
+    expected_objects self =
+        self.expected.map e-> if e.is_nothing then e else e.parse_json
+
+    setup create_connection_fn types =
+        make_connection =
+            connection = create_connection_fn Nothing
+            types.each type_name->
+                table_name = 'tbl_' + type_name + '_test'
+                make_table_sql = 'DROP TABLE IF EXISTS ' + table_name + '; CREATE TEMPORARY TABLE ' + table_name + '(id INTEGER PRIMARY KEY, payload ' + type_name + '); INSERT INTO ' + table_name + ' VALUES (0, \'{"defaultMargin": 22}\'), (1, \'null\'), (2, \'true\'), (3, \'false\'), (4, \'123\'), (5, \'"string value"\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\'), (10, \'3.14159267\'), (11, null);'
+                connection.execute_update make_table_sql
+            connection
+        JSON_Table_Data.Value make_connection
+
+    teardown self =
+        self.connection.close
 
 type Postgres_Tables_Data
     Value ~data
@@ -405,6 +426,51 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
 
             r4 = data.connection.query (..Raw_SQL 'SELECT 1 AS ""')
             r4.should_fail_with SQL_Error
+
+    suite_builder.group "[PostgreSQL] JSON Support" group_builder->
+        json_connection = JSON_Table_Data.setup create_connection_fn ["json", "jsonb"]
+
+        group_builder.teardown <|
+            json_connection.teardown
+
+        group_builder.specify "query a table with JSON" <|
+            db_table = json_connection.connection.query "tbl_json_test"
+            Problems.assume_no_problems db_table
+            db_table.column_names.should_equal ["id", "payload"]
+            db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            json_type = db_table.at "payload" . value_type
+            json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+            json_type.type_name.should_equal "json"
+            db_table.row_count.should_equal 12
+
+        group_builder.specify "query a table with JSONB" <|
+            db_table = json_connection.connection.query "tbl_jsonb_test"
+            Problems.assume_no_problems db_table
+            db_table.column_names.should_equal ["id", "payload"]
+            db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            json_type = db_table.at "payload" . value_type
+            json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+            json_type.type_name.should_equal "jsonb"
+            db_table.row_count.should_equal 12
+
+        group_builder.specify "read a table with JSON as text with warning" <|
+            table = json_connection.connection.read "tbl_json_test"
+            Problems.expect_only_warning Inexact_Type_Coercion table
+            table.column_names.should_equal ["id", "payload"]
+            table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            table.at "payload" . value_type . should_equal Value_Type.Char
+            table.row_count . should_equal 12
+            table.at "payload" . to_vector . should_equal json_connection.expected
+
+        group_builder.specify "read a table with JSONB as text with warning" <|
+            table = json_connection.connection.read "tbl_jsonb_test"
+            Problems.expect_only_warning Inexact_Type_Coercion table
+            table.column_names.should_equal ["id", "payload"]
+            table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            table.at "payload" . value_type . should_equal Value_Type.Char
+            table.row_count . should_equal 12
+            objects = table.at "payload" . to_vector . map e-> if e.is_nothing then e else e.parse_json
+            objects.should_equal json_connection.expected_objects
 
     suite_builder.group "[PostgreSQL] Edge Cases" group_builder->
         data = Basic_Test_Data.setup create_connection_fn

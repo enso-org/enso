@@ -1835,11 +1835,15 @@ lazy val `ydoc-server` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Compile / moduleDependencies ++=
-      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ logbackPkg ++ slf4jApi,
+      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ slf4jApi,
     Compile / internalModuleDependencies := Seq(
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-api` / Compile / exportedModule).value,
-      (`ydoc-polyfill` / Compile / exportedModule).value
+      (`ydoc-polyfill` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
+      (`persistance` / Compile / exportedModule).value,
+      (`jvm-channel` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value
     ),
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
@@ -1912,15 +1916,22 @@ lazy val `ydoc-server` = project
           )
         )
         .getOrElse(Seq())
+      val mpp =
+        (Compile / modulePath).value ++ Seq((Compile / packageBin).value)
+      val mp = mpp.map(_.getAbsolutePath)
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
-          staticOnLinux     = false,
-          additionalOptions = cLibraryOpts,
-          targetDir         = engineDistributionRoot.value / "component",
-          mainClass         = Some("org.enso.ydoc.server.Main"),
-          symlink           = false,
-          shared            = true
+          staticOnLinux       = false,
+          additionalOptions   = cLibraryOpts,
+          targetDir           = engineDistributionRoot.value / "component",
+          modulePath          = mp,
+          mainModule          = Some("org.enso.ydoc.server"),
+          mainClass           = Some("org.enso.ydoc.server.Main"),
+          initializeAtRuntime = Seq("io.helidon.webclient.api.LoomClient"),
+          symlink             = false,
+          shared              = true,
+          useCp               = false
         )
     }.value,
     buildNativeImage := Def.taskDyn {
@@ -1934,7 +1945,6 @@ lazy val `ydoc-server` = project
     }.value
   )
   .dependsOn(`jvm-interop`)
-  .dependsOn(`logging-service-logback`)
   .dependsOn(`ydoc-api`)
   .dependsOn(`ydoc-polyfill`)
 
