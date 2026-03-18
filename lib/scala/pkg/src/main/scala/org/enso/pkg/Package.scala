@@ -338,7 +338,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       license              = license,
       authors              = authors,
       edition              = edition,
-      preferLocalLibraries = true,
+      preferLocalLibraries = false,
       maintainers          = maintainers,
       componentGroups      = componentGroups,
       services             = services,
