@@ -20,7 +20,6 @@ const { actions, point } = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const interaction = injectInteractionHandler()
-const actionContext = injectActionContext(true)
 
 const virtualEl = computed(() => {
   const { x, y } = point
