@@ -56,10 +56,6 @@ onUnmounted(() => {
 .MiddlePanel {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-width: 0;
-  /* Middle Panel should first give up place when user is shrinking the window. */
-  flex-shrink: 1000000;
 }
 .tablist {
   background-color: rgba(0, 0, 0, 0.1);

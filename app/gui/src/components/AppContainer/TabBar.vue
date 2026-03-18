@@ -71,20 +71,31 @@ function projectIcon(project: Project): Icon | undefined {
 </script>
 
 <template>
-  <div class="TabBar" role="tablist">
-    <SelectableTab
-      v-for="tab in tabsViewInfos"
-      :key="panelKey(tab)"
-      :data-testid="tab.dataTestId"
-      :selected="isCurrentTab(tab)"
-      :icon="tab.icon"
-      :label="tab.label"
-      @close="closeTab(tab)"
-      @update:selected="$event && (currentTab = tab)"
-    >
-      <GrowingSpinner v-if="tab.loadingPhase != null" :phase="tab.loadingPhase" :size="16" />
-    </SelectableTab>
+  <div class="TabBar">
+    <div class="tabs" role="tablist">
+      <SelectableTab
+        v-for="tab in tabsViewInfos"
+        :key="panelKey(tab)"
+        :data-testid="tab.dataTestId"
+        :selected="isCurrentTab(tab)"
+        :icon="tab.icon"
+        :label="tab.label"
+        @close="closeTab(tab)"
+        @update:selected="$event && (currentTab = tab)"
+      >
+        <GrowingSpinner v-if="tab.loadingPhase != null" :phase="tab.loadingPhase" :size="16" />
+      </SelectableTab>
+    </div>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.TabBar {
+  overflow: auto hidden;
+  padding-left: 24px;
+}
+.tabs {
+  display: flex;
+  flex-direction: row;
+}
+</style>

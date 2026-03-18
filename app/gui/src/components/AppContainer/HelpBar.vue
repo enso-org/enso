@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useText } from '$/providers/text'
-import ControlGroup from '@/components/ControlGroup.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 
 const text = useText()
@@ -11,14 +11,12 @@ const text = useText()
 
 <template>
   <div class="HelpBar">
-    <SvgIcon class="ensoIcon" name="enso_logo" />
-    <MenuButton
-      ><span>{{ text.getText('whatsNew') }}</span></MenuButton
-    >
-    <ControlGroup>
-      <MenuButton>{{ text.getText('community') }}</MenuButton>
-      <DropdownMenu>
-        <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
+    <SvgButton class="ensoIcon" name="enso_logo" />
+    <MenuButton class="helpButton">{{ text.getText('whatsNew') }}</MenuButton>
+    <div class="communityGroup">
+      <MenuButton class="helpButton">{{ text.getText('community') }}</MenuButton>
+      <DropdownMenu class="helpButton" :showArrow="false">
+        <template #button><SvgIcon name="folder_opened" /></template>
         <template #menu>
           <MenuPanel>
             <MenuButton>{{ text.getText('gettingStarted') }}</MenuButton>
@@ -28,9 +26,9 @@ const text = useText()
           </MenuPanel>
         </template>
       </DropdownMenu>
-    </ControlGroup>
-    <MenuButton>{{ text.getText('docs') }}</MenuButton>
-    <MenuButton>{{ text.getText('contactUs') }}</MenuButton>
+    </div>
+    <MenuButton class="helpButton">{{ text.getText('docs') }}</MenuButton>
+    <MenuButton class="helpButton">{{ text.getText('contactUs') }}</MenuButton>
   </div>
 </template>
 
@@ -42,19 +40,48 @@ const text = useText()
   flex-direction: row;
   flex-wrap: wrap;
   overflow: hidden;
-  background-color: rgba(0, 0, 0, 0.1);
   height: var(--top-bar-height);
   align-items: center;
-  gap: 8px;
+  gap: 0;
   padding-left: 8px;
   z-index: 1;
 }
 
 .ensoIcon {
   --icon-size: 32px;
+  margin: 0 8px 0 0;
+  padding: 0;
 }
 
-.MenuButton {
+.communityGroup {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  align-items: center;
+
+  & > :first-child {
+    --button-right-radius: 0;
+    --button-padding: 0 8px 0 6px;
+    order: -1;
+  }
+
+  &::before {
+    content: '';
+    width: 1px;
+    align-self: stretch;
+    background-color: rgba(0 0 0 / 0.1);
+  }
+
+  & > :last-child {
+    --button-left-radius: 0;
+    --button-padding: 0 12px 0 6px;
+  }
+}
+
+.helpButton {
   height: 32px;
+  margin: 0;
+  --button-height: 32px;
+  --button-padding: 0 12px;
 }
 </style>

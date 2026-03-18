@@ -62,8 +62,6 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
 <style scoped>
 .LeftPanel {
   position: relative;
-  flex-shrink: 1;
-  flex-grow: 1;
   min-width: 48px;
   height: 100%;
   z-index: 1;

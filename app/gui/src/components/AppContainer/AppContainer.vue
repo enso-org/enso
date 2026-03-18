@@ -20,6 +20,7 @@ import { normalizeSlashes } from 'enso-common/src/utilities/file'
 import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
 import MiddlePanel from './MiddlePanel.vue'
 
+import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import LeftPanel from './LeftPanel.vue'
 import RightPanel from './RightPanel.vue'
 import TabBar from './TabBar.vue'
@@ -90,62 +91,97 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="AppContainer">
-    <CommandPalette />
-    <ContainerProviderForReact>
-      <ModalWrapper />
-      <LeftPanel :middlePanelShown="anyTabs" />
-      <div class="mainView">
-        <div class="bar">
-          <TabBar />
-          <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
+  <ContainerProviderForReact>
+    <div class="AppContainer">
+      <PopoverRootProvider>
+        <div class="topBarBackground" />
+        <CommandPalette />
+
+        <ModalWrapper />
+        <LeftPanel :middlePanelShown="anyTabs" :class="{ noMiddlePanel: !anyTabs }" />
+        <div class="mainView">
+          <div class="bar">
+            <TabBar />
+            <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
+          </div>
+          <div class="belowBar">
+            <MiddlePanel v-if="anyTabs" />
+            <RightPanel />
+          </div>
+          <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
         </div>
-        <div class="belowBar">
-          <MiddlePanel v-if="anyTabs" />
-          <RightPanel />
-        </div>
-        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
-      </div>
-    </ContainerProviderForReact>
-  </div>
+      </PopoverRootProvider>
+    </div>
+  </ContainerProviderForReact>
 </template>
 
 <style scoped>
 .AppContainer {
   --tab-highlight: var(--color-dashboard-background);
   --top-bar-height: 3rem;
+  position: relative;
   display: flex;
   flex-direction: row;
   height: 100%;
   isolation: isolate;
 }
 
-.bar {
+.topBarBackground {
+  position: absolute;
+  width: 100%;
+  height: var(--top-bar-height);
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+.LeftPanel {
+  &.noMiddlePanel {
+    flex-grow: 1;
+    width: 100vw;
+  }
+}
+
+.mainView {
+  height: 100%;
+  flex-grow: 1;
+  flex-shrink: 1000000;
+  min-width: 48px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.bar {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+  align-items: left;
+  justify-content: right;
   height: var(--top-bar-height);
   min-height: var(--top-bar-height);
   position: relative;
-  padding: 0 8px 0 24px;
+  padding: 0 8px 0 0;
   z-index: 1;
+}
+
+.TabBar {
+  flex-grow: 1;
+  min-width: 0;
 }
 
 .belowBar {
   display: flex;
   flex-direction: row;
+  flex-grow: 1;
 }
 
-.mainView {
+.MiddlePanel {
   width: 100%;
-  height: 100%;
-  flex-shrink: 1000000;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
+  /* Middle Panel should first give up place when user is shrinking the window. */
+  flex-shrink: 1000000;
+}
+
+.RightPanel {
+  flex-shrink: 1;
 }
 
 .FullscreenRoot {

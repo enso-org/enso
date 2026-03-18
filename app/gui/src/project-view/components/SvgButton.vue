@@ -3,7 +3,7 @@ import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { AnyIcon } from '@/util/icons'
 
-const toggledOn = defineModel<boolean | undefined>()
+const toggledOn = defineModel<boolean | undefined>({ default: undefined })
 defineProps<{
   name?: AnyIcon | undefined
   label?: string | undefined

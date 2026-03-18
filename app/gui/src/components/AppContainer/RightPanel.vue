@@ -118,7 +118,6 @@ const style = computed(() => (width.value == null ? {} : { '--panel-width': `${w
   position: relative;
   flex-direction: row;
   height: 100%;
-  flex-shrink: 1;
   z-index: 2;
 }
 
