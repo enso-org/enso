@@ -98,6 +98,17 @@ function closeAll() {
 
 .submenuPanel {
   z-index: var(--z-index-selection-submenu);
+  margin-top: 2px;
+  padding: 4px;
+  background: var(--dropdown-opened-background, var(--color-app-bg));
+  backdrop-filter: var(--dropdown-opened-backdrop-filter, var(--blur-app-bg));
+  border-radius: 13px;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: fit-content;
+  width: fit-content;
 }
 
 .submenuArrow {
