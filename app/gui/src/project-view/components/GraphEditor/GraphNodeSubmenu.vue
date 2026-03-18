@@ -43,23 +43,13 @@ interaction.setWhenWithParent(open, (parentInteraction) => {
     end: () => (open.value = false),
     pointerdown: (event) => {
       if (!targetIsOutside(event, rootElement.value)) return false
-
-      const parentRoot = popoverRoot?.value
-      if (parentRoot == null || targetIsOutside(event, parentRoot)) {
-        actionContext.endInteraction()
-      } else {
-        interaction.end(nestedInteraction)
-      }
+      interaction.end(nestedInteraction)
       return false
     },
   }
   return nestedInteraction
 })
 
-function closeAll() {
-  open.value = false
-  actionContext.endInteraction()
-}
 </script>
 
 <template>
@@ -72,7 +62,7 @@ function closeAll() {
       </MenuButton>
     </div>
     <div v-if="open" ref="panelElement" class="submenuPanel" :style="floatingStyles">
-      <ActionMenu :actions="actions" @close="closeAll" />
+      <ActionMenu :actions="actions" @close="interaction.cancelAll()" />
     </div>
   </div>
 </template>
