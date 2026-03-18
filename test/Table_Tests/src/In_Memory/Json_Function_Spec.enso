@@ -1,0 +1,40 @@
+from Standard.Base import all
+
+from Standard.Table import Column, Table
+
+from Standard.Test import all
+
+from project.Util import all
+
+type Data
+    Value ~table raw_data
+
+    setup =
+        raw_data = [1,3.14,True, False, "Hello World", 'This is "Some" Fun Text With \'Quotes\' and \t and \n', Json.parse '[1,2,3,4]', Json.parse '{"A":true,"B":null}', Date.today, Time_Of_Day.now, Date_Time.now, Date_Time.now.to_utc, 2^53-2, 2^58-5]
+        column0 = Column.from_vector "mixed" raw_data
+        table = Table.new [column0]
+        with_row_number = table.add_row_number
+        Data.Value with_row_number raw_data
+
+add_specs suite_builder =
+    data = Data.setup
+
+    suite_builder.group "Column.json_stringify" group_builder->
+        group_builder.specify "should be able to stringify a column of mixed data" <|
+            json_column = data.table.at "mixed" . json_stringify
+            json_column.name.should_equal "mixed"
+            json_column.row_count.should_equal data.raw_data.length
+            expected = data.raw_data.map .to_json
+            json_column.to_vector.should_equal expected
+
+        group_builder.specify "should be able to stringify a column of row numbers" <|
+            json_column = data.table.at "Row" . json_stringify
+            json_column.name.should_equal "Row"
+            json_column.row_count.should_equal data.raw_data.length
+            expected = 0.up_to data.table.row_count . map .to_json
+            json_column.to_vector.should_equal expected
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
