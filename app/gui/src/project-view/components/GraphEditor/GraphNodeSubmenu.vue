@@ -44,7 +44,7 @@ interaction.setWhenWithParent(open, (parentInteraction) => {
     pointerdown: (event) => {
       if (!targetIsOutside(event, rootElement.value)) return false
       interaction.end(nestedInteraction)
-      return false
+      return parentInteraction?.pointerdown?.(event)
     },
   }
   return nestedInteraction
