@@ -22,7 +22,7 @@ import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/ComponentWidgetTree.vue'
-import GraphNodeAlignmentSubmenu from '@/components/GraphEditor/GraphNodeAlignmentSubmenu.vue'
+import GraphNodeSubmenu from '@/components/GraphEditor/GraphNodeSubmenu.vue'
 import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
 import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
@@ -516,7 +516,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
     >
       <template #menuElements>
         <div v-if="hasMultiSelection">
-          <GraphNodeAlignmentSubmenu :actions="alignmentMenuActions" />
+          <GraphNodeSubmenu label="Align" icon="align_left" :actions="alignmentMenuActions" />
         </div>
       </template>
       <div

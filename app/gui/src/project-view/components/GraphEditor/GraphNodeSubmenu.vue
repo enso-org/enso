@@ -2,6 +2,7 @@
 import ActionMenu from '@/components/ActionMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import type { AnyIcon } from '@/util/icons'
 import { injectActionContext } from '@/providers/actionContext'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { usePopoverRoot } from '@/providers/popoverRoot'
@@ -10,8 +11,10 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { nextTick, ref, watch } from 'vue'
 
-const { actions } = defineProps<{
+const { actions, icon, label } = defineProps<{
   actions: DisplayableActionName[]
+  icon: AnyIcon
+  label: string
 }>()
 
 const actionContext = injectActionContext()
@@ -60,32 +63,27 @@ function closeAll() {
 </script>
 
 <template>
-  <div ref="rootElement" class="alignmentSubmenuRoot">
-    <div ref="triggerElement" class="alignmentSubmenuTrigger">
-      <MenuButton v-model="open" class="alignmentSubmenuEntry">
-        <SvgIcon name="align_left" class="rowIcon" />
-        <span>Align</span>
+  <div ref="rootElement" class="submenuRoot">
+    <div ref="triggerElement" class="submenuTrigger">
+      <MenuButton v-model="open" class="submenuEntry">
+        <SvgIcon :name="icon" class="rowIcon" />
+        <span>{{ label }}</span>
         <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
       </MenuButton>
     </div>
-    <div
-      v-if="open"
-      ref="panelElement"
-      class="alignmentSubmenuPanel"
-      :style="floatingStyles"
-    >
+    <div v-if="open" ref="panelElement" class="submenuPanel" :style="floatingStyles">
       <ActionMenu class="alignmentMenu" :actions="actions" @close="closeAll" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.alignmentSubmenuRoot,
-.alignmentSubmenuTrigger {
+.submenuRoot,
+.submenuTrigger {
   width: 100%;
 }
 
-.alignmentSubmenuEntry {
+.submenuEntry {
   display: flex;
   align-items: center;
   width: 100%;
@@ -98,7 +96,7 @@ function closeAll() {
   color: inherit;
 }
 
-.alignmentSubmenuPanel {
+.submenuPanel {
   z-index: var(--z-index-selection-submenu);
 }
 
