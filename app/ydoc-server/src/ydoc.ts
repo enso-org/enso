@@ -130,10 +130,7 @@ export function setupGatewayClient(
   })
 }
 
-function getSessionForUrl(
-  lsUrl: string | undefined | null,
-  jsonChannelServer: YjsChannelServer,
-) {
+function getSessionForUrl(lsUrl: string | undefined | null, jsonChannelServer: YjsChannelServer) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
     lsSession = LanguageServerSession.get(lsUrl, jsonChannelServer)

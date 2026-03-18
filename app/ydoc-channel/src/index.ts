@@ -1,1 +1,6 @@
-export { YjsChannel, type MessageHandler, type YjsChannelServer } from './YjsChannel.js'
+export {
+  YjsChannel,
+  type ChannelCodec,
+  type MessageHandler,
+  type YjsChannelServer,
+} from './YjsChannel.js'

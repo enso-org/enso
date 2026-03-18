@@ -1,5 +1,5 @@
 import * as map from 'lib0/map'
-import { YjsChannel, type MessageHandler, type YjsChannelServer } from 'ydoc-channel'
+import { YjsChannel, type ChannelCodec, type YjsChannelServer } from 'ydoc-channel'
 import * as Y from 'yjs'
 
 /**
@@ -21,17 +21,32 @@ interface JavaByteBufferClass {
 }
 
 /**
+ * Codec that converts between Java ByteBuffer (external API) and Uint8Array (Y.Array storage).
+ */
+class JavaByteBufferCodec implements ChannelCodec<JavaByteBuffer, Uint8Array> {
+  constructor(private readonly ByteBuffer: JavaByteBufferClass) {}
+
+  encode(message: JavaByteBuffer): Uint8Array {
+    return new Uint8Array(new ArrayBuffer(message))
+  }
+
+  decode(stored: Uint8Array): JavaByteBuffer {
+    const bb = this.ByteBuffer.allocateDirect(stored.byteLength)
+    const arr = new Uint8Array(new ArrayBuffer(bb))
+    arr.set(stored)
+    return bb
+  }
+}
+
+/**
  * A {@link YjsChannel} for binary protocol communication with the Language Server.
  *
  * Extends YjsChannel to handle binary data by converting between JavaScript Uint8Array
  * and Java direct ByteBuffer. This enables efficient binary message transfer between
  * the Ydoc server (JavaScript) and the Language Server (Java/Scala).
  */
-export class YjsBinaryChannel extends YjsChannel<unknown> {
+export class YjsBinaryChannel extends YjsChannel<JavaByteBuffer, Uint8Array> {
   private static channels = new Map<string, YjsBinaryChannel>()
-
-  private readonly server: YjsChannelServer<JavaByteBuffer>
-  private readonly ByteBuffer: JavaByteBufferClass
 
   /**
    * @param doc - The Yjs document for CRDT-based message synchronization
@@ -45,10 +60,8 @@ export class YjsBinaryChannel extends YjsChannel<unknown> {
     server: YjsChannelServer<JavaByteBuffer>,
     byteBuffer: JavaByteBufferClass,
   ) {
-    super(doc, channelName)
-    this.server = server
-    this.ByteBuffer = byteBuffer
-    this.server.onConnect(this)
+    super(doc, channelName, new JavaByteBufferCodec(byteBuffer))
+    server.onConnect(this)
   }
 
   /** Gets or creates a channel for the given name. Channels are cached and reused. */
@@ -61,23 +74,5 @@ export class YjsBinaryChannel extends YjsChannel<unknown> {
     return map.setIfUndefined(YjsBinaryChannel.channels, channelName, () => {
       return new YjsBinaryChannel(doc, channelName, server, byteBuffer)
     })
-  }
-
-  /** Converts the Java ByteBuffer message to Uint8Array and sends through the channel. */
-  override send(message: JavaByteBuffer): void {
-    const arr = new Uint8Array(new ArrayBuffer(message))
-    super.send(arr)
-  }
-
-  /** Wraps the handler to convert incoming Uint8Array to Java direct ByteBuffer. */
-  override subscribe(handler: MessageHandler<JavaByteBuffer>): () => void {
-    const f = (message: unknown) => {
-      const contents = message as Uint8Array
-      const bb = this.ByteBuffer.allocateDirect(contents.byteLength)
-      const arr = new Uint8Array(new ArrayBuffer(bb))
-      arr.set(contents)
-      return handler(bb)
-    }
-    return super.subscribe(f)
   }
 }

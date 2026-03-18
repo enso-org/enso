@@ -14,6 +14,16 @@ interface AddEventListenerOptions {
 export type MessageHandler<T = unknown> = (message: T) => void
 
 /**
+ * Codec for converting between the external message type and the internal storage type.
+ */
+export interface ChannelCodec<TMessage, TStored> {
+  /** Encode a message for storage in the Y.Array. */
+  encode(message: TMessage): TStored
+  /** Decode a stored value back into a message. */
+  decode(stored: TStored): TMessage
+}
+
+/**
  * Callback interface for receiving newly established {@link YjsChannel} connections.
  *
  * Invoked when a WebSocket client connects, providing a channel for bidirectional communication.
@@ -23,7 +33,7 @@ export interface YjsChannelServer<T = unknown> {
    * Called when a new channel is established.
    * @param channel - The newly connected channel
    */
-  onConnect(channel: YjsChannel<T>): void
+  onConnect(channel: YjsChannel<T, any>): void
 }
 
 /**
@@ -40,25 +50,31 @@ type WebSocketEventHandlers = {
  * Each sender has a unique ID used as transaction origin to filter out self-sent messages.
  * Implements WebSocket-like event API for compatibility with existing code.
  */
-export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers> {
+export class YjsChannel<
+  TMessage = unknown,
+  TStored = TMessage,
+> extends ObservableV2<WebSocketEventHandlers> {
   private readonly senderId: string
   private readonly doc: Y.Doc
-  private readonly array: Y.Array<T>
-  private readonly handlers: Set<MessageHandler<T>> = new Set()
-  private readonly observeHandler: (event: Y.YArrayEvent<T>, tr: Y.Transaction) => void
+  private readonly array: Y.Array<TStored>
+  private readonly handlers: Set<MessageHandler<TMessage>> = new Set()
+  private readonly observeHandler: (event: Y.YArrayEvent<TStored>, tr: Y.Transaction) => void
+  private readonly codec: ChannelCodec<TMessage, TStored> | undefined
 
   /**
    * Creates a new YjsChannel.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
+   * @param codec - Optional codec for converting between message and storage types
    */
-  constructor(doc: Y.Doc, channelName: string) {
+  constructor(doc: Y.Doc, channelName: string, codec?: ChannelCodec<TMessage, TStored>) {
     super()
     this.senderId = crypto.randomUUID()
     this.doc = doc
-    this.array = doc.getArray<T>(channelName)
+    this.array = doc.getArray<TStored>(channelName)
+    this.codec = codec
 
-    this.observeHandler = (event: Y.YArrayEvent<T>, transaction: Y.Transaction) => {
+    this.observeHandler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       // Only notify handlers if the message is from another sender
       if (transaction.origin !== this.senderId) {
         // If no handlers are subscribed, leave items in the array for later processing.
@@ -72,7 +88,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
         //   retain N: skip N unchanged items (advances position)
         //   insert:   new items at current position (advances position)
         //   delete N: removed items (does NOT advance position in new state)
-        const inserted: { index: number; value: T }[] = []
+        const inserted: { index: number; value: TStored }[] = []
         let pos = 0
         for (const delta of event.changes.delta) {
           if (delta.retain) {
@@ -96,7 +112,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
 
         // Notify handlers after deletion
         for (const { value } of inserted) {
-          this.notifyHandlers(value)
+          this.notifyHandlers(this.decode(value))
         }
       }
     }
@@ -108,8 +124,8 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    * Sends a message to the channel.
    * @param message - The message to send
    */
-  send(message: T): void {
-    this.doc.transact(() => this.array.push([message]), this.senderId)
+  send(message: TMessage): void {
+    this.doc.transact(() => this.array.push([this.encode(message)]), this.senderId)
   }
 
   /**
@@ -120,7 +136,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    * @param handler - The callback to invoke when a message is received
    * @returns A function to unsubscribe the handler
    */
-  subscribe(handler: MessageHandler<T>): () => void {
+  subscribe(handler: MessageHandler<TMessage>): () => void {
     this.handlers.add(handler)
 
     // Process any existing items in the array that arrived before subscription
@@ -128,7 +144,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
     if (this.array.length > 0) {
       this.doc.transact(() => {
         while (this.array.length > 0) {
-          const item = this.array.get(0)
+          const item = this.decode(this.array.get(0))
           try {
             handler(item)
           } catch (e) {
@@ -182,7 +198,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       if (this.array.length > 0) {
         this.doc.transact(() => {
           while (this.array.length > 0) {
-            const item = this.array.get(0)
+            const item = this.decode(this.array.get(0))
             const messageEvent = { data: item } as MessageEvent
             try {
               cb(messageEvent as WebSocketEventMap[K])
@@ -240,7 +256,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
   /**
    * Notifies all subscribed handlers with the received message.
    */
-  protected notifyHandlers(message: any): void {
+  private notifyHandlers(message: TMessage): void {
     // Create a MessageEvent-like object for WebSocket compatibility
     const messageEvent = { data: message } as MessageEvent
 
@@ -256,6 +272,14 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
         this.emitError(new Error(`Failed to handle message: ${message}`, { cause: e }))
       }
     }
+  }
+
+  private encode(message: TMessage): TStored {
+    return this.codec ? this.codec.encode(message) : (message as unknown as TStored)
+  }
+
+  private decode(stored: TStored): TMessage {
+    return this.codec ? this.codec.decode(stored) : (stored as unknown as TMessage)
   }
 
   /**

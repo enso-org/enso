@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { YjsChannel } from './YjsChannel.js'
+import { YjsChannel, type ChannelCodec } from './YjsChannel.js'
 
 // Mock CloseEvent for Node.js environment
 if (typeof globalThis.CloseEvent === 'undefined') {
@@ -517,6 +517,63 @@ describe('YjsChannel', () => {
       // Both listeners should receive the message
       expect(received1).toEqual(['Broadcast message'])
       expect(received2).toEqual(['Broadcast message'])
+    })
+  })
+
+  describe('ChannelCodec', () => {
+    // A simple codec that doubles numbers on encode and halves on decode
+    const doubleCodec: ChannelCodec<number, number> = {
+      encode: (n) => n * 2,
+      decode: (n) => n / 2,
+    }
+
+    it('should send and receive messages through codec', () => {
+      const doc = new Y.Doc()
+      const channel1 = new YjsChannel<number, number>(doc, 'codec-chan', doubleCodec)
+      const channel2 = new YjsChannel<number, number>(doc, 'codec-chan', doubleCodec)
+
+      const received: number[] = []
+      channel2.subscribe((msg) => received.push(msg))
+
+      channel1.send(5)
+
+      // channel1 encodes 5 → 10 in array, channel2 decodes 10 → 5
+      expect(received).toEqual([5])
+    })
+
+    it('should decode pre-existing messages on subscribe', () => {
+      const doc = new Y.Doc()
+      const channel1 = new YjsChannel<number, number>(doc, 'codec-chan', doubleCodec)
+      const channel2 = new YjsChannel<number, number>(doc, 'codec-chan', doubleCodec)
+
+      // Send before subscribing
+      channel1.send(3)
+      channel1.send(7)
+
+      // Raw stored values should be encoded (doubled)
+      const raw = doc.getArray<number>('codec-chan').toArray()
+      expect(raw).toEqual([6, 14])
+
+      const received: number[] = []
+      channel2.subscribe((msg) => received.push(msg))
+
+      // Drain should decode back to original values
+      expect(received).toEqual([3, 7])
+    })
+
+    it('should decode pre-existing messages on addEventListener', () => {
+      const doc = new Y.Doc()
+      const channel1 = new YjsChannel<number, number>(doc, 'codec-chan', doubleCodec)
+      const channel2 = new YjsChannel<number, number>(doc, 'codec-chan', doubleCodec)
+
+      channel1.send(4)
+
+      const received: number[] = []
+      channel2.addEventListener('message', (event) => {
+        received.push(event.data)
+      })
+
+      expect(received).toEqual([4])
     })
   })
 })
