@@ -3,9 +3,7 @@ import ActionMenu from '@/components/ActionMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { DisplayableActionName } from '@/providers/action'
-import { injectActionContext } from '@/providers/actionContext'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
 import type { AnyIcon } from '@/util/icons'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
@@ -17,9 +15,7 @@ const { actions, icon, label } = defineProps<{
   label: string
 }>()
 
-const actionContext = injectActionContext()
 const interaction = injectInteractionHandler()
-const popoverRoot = usePopoverRoot(true)
 const open = ref(false)
 const rootElement = ref<HTMLElement>()
 const triggerElement = ref<HTMLElement>()
@@ -49,7 +45,6 @@ interaction.setWhenWithParent(open, (parentInteraction) => {
   }
   return nestedInteraction
 })
-
 </script>
 
 <template>
