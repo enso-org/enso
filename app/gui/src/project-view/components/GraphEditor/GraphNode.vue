@@ -17,19 +17,18 @@ import { useNodeExecution } from '$/providers/openedProjects/project/nodeExecuti
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
-import MenuButton from '@/components/MenuButton.vue'
 import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_L,
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/ComponentWidgetTree.vue'
+import GraphNodeAlignmentSubmenu from '@/components/GraphEditor/GraphNodeAlignmentSubmenu.vue'
 import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
 import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import ActionMenu from '@/components/ActionMenu.vue'
 import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -51,10 +50,8 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import {
   computed,
-  nextTick,
   onUnmounted,
   ref,
   toRef,
@@ -456,32 +453,8 @@ const contextMenuActions = computed<DisplayableActionName[]>(() =>
   hasMultiSelection.value ? multiSelectionMenuActions : nodeMenuActions,
 )
 
-const alignmentMenuOpen = ref(false)
-
 const contextMenuTrigger = ref<InstanceType<typeof ContextMenuTrigger>>()
-const alignmentMenuTrigger = ref<HTMLElement>()
-const alignmentMenuPanel = ref<HTMLElement>()
-const { floatingStyles: alignmentMenuStyles, update: updateAlignmentMenu } = useFloating(
-  alignmentMenuTrigger,
-  alignmentMenuPanel,
-  {
-    placement: 'right-start',
-    strategy: 'fixed',
-    middleware: [offset(4), flip(), shift({ padding: 8 })],
-    whileElementsMounted: autoUpdate,
-  },
-)
-
-watch(
-  alignmentMenuOpen,
-  (open) => {
-    if (open) nextTick(updateAlignmentMenu)
-  },
-)
-
-function closeAllMenus() {
-  // Close both menus
-  alignmentMenuOpen.value = false
+function closeContextMenu() {
   contextMenuTrigger.value?.close()
 }
 
@@ -546,25 +519,10 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       ref="contextMenuTrigger"
       :actions="contextMenuActions"
       @contextmenu="ensureSelected"
-      @hidden="(alignmentMenuOpen = false)"
     >
       <template #menuElements>
         <div v-if="hasMultiSelection">
-          <div ref="alignmentMenuTrigger" class="alignmentSubmenuTrigger">
-            <MenuButton v-model="alignmentMenuOpen" class="alignmentSubmenuEntry">
-              <SvgIcon name="align_left" class="rowIcon" />
-              <span>Align</span>
-              <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
-            </MenuButton>
-          </div>
-          <div
-            v-if="alignmentMenuOpen"
-            ref="alignmentMenuPanel"
-            class="alignmentSubmenuPanel"
-            :style="alignmentMenuStyles"
-          >
-            <ActionMenu class="alignmentMenu" :actions="alignmentMenuActions" @close="closeAllMenus" />
-          </div>
+          <GraphNodeAlignmentSubmenu :actions="alignmentMenuActions" @close-all="closeContextMenu" />
         </div>
       </template>
       <div
@@ -727,37 +685,6 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
 
 .GraphNode.selected .statuses {
   opacity: 0;
-}
-
-.alignmentSubmenuTrigger {
-  width: 100%;
-}
-
-.alignmentSubmenuEntry {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 8px;
-  justify-content: left;
-  padding-left: 8px;
-  padding-right: 8px;
-  background: transparent;
-  backdrop-filter: none;
-  color: inherit;
-}
-
-.alignmentSubmenuPanel {
-  z-index: var(--z-index-selection-submenu);
-}
-
-.alignmentMenu {
-  padding: 4px;
-  backdrop-filter: none;
-}
-
-.submenuArrow {
-  margin-left: auto;
-  opacity: 0.7;
 }
 
 .overrideRecordButton {
