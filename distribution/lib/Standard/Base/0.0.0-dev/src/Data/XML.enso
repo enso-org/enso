@@ -989,3 +989,5 @@ write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (
     declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set_name + '\"?>\n' else ""
     XML_Error.handle_java_exceptions <|
         (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems
+
+XML_Element.from (that:XML_Document) = that.root_element

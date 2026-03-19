@@ -53,6 +53,14 @@ add_specs suite_builder =
             doc = XML_Document.parse xml_string
             doc.root_element.name . should_equal "class"
 
+        group_builder.specify "Can convert to an XML_Element" <|
+            xml_string = "<class></class>"
+            doc = XML_Document.parse xml_string
+            doc.should_be_a XML_Document
+            elem = doc.to XML_Element
+            elem.should_be_a XML_Element
+            elem.should_equal doc.root_element
+
         group_builder.specify "Parse error from file" <|
             test_file = enso_project.data / "sample.txt"
             XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error
