@@ -96,6 +96,22 @@ const displayableActions = {
     icon: 'align_center',
     description: 'Center',
   },
+  'components.spaceVertical': {
+    icon: 'sort',
+    description: 'Space Selected Components Vertically',
+  },
+  'components.spaceVerticalTight': {
+    icon: 'sort_ascending',
+    description: 'Space Selected Components Vertically (Tight)',
+  },
+  'components.spaceVerticalZero': {
+    icon: 'sort',
+    description: 'Space Selected Components Vertically (Near Zero)',
+  },
+  'components.spaceVerticalWide': {
+    icon: 'sort_descending',
+    description: 'Space Selected Components Vertically (Wide)',
+  },
   'components.deleteAndConnectAround': {
     icon: 'graph',
     description: 'Delete and Connect Around',
