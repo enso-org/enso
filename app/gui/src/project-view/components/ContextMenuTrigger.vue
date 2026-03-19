@@ -22,7 +22,6 @@ function hide() {
   ctx.openPosition = null
   emit('hidden')
 }
-
 </script>
 
 <template>
