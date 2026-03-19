@@ -1,11 +1,10 @@
 package org.enso.table.data.table.problems;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * This class is used to aggregate problems occurring during map operations performed on a storage.
@@ -68,7 +67,8 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     }
 
     if (invalidJSONCount > 0) {
-      summary.add(new InvalidJSONError(invalidJSONCount, invalidJSONExamples.toArray(new String[0])));
+      summary.add(
+          new InvalidJSONError(invalidJSONCount, invalidJSONExamples.toArray(new String[0])));
     }
 
     return summary;

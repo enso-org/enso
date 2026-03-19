@@ -3,18 +3,15 @@ package org.enso.table.data.column.operation.unary;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.function.Function;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -61,28 +58,33 @@ public class JsonParseOperation implements UnaryOperation {
         });
   }
 
-  private static Object parseJson(ObjectMapper mapper, String json) throws JsonProcessingException, IllegalArgumentException {
+  private static Object parseJson(ObjectMapper mapper, String json)
+      throws JsonProcessingException, IllegalArgumentException {
     var node = mapper.readTree(json);
     return parseJsonNode(node);
   }
 
-  private static Object parseJsonNode(JsonNode node) throws JsonProcessingException, IllegalArgumentException {
+  private static Object parseJsonNode(JsonNode node)
+      throws JsonProcessingException, IllegalArgumentException {
     return switch (node.getNodeType()) {
       case NULL -> null;
       case BOOLEAN -> node.asBoolean();
       case STRING -> node.asText();
       case NUMBER -> node.isIntegralNumber() ? node.asLong() : node.asDouble();
       case ARRAY -> parseJsonArray(node);
-      case OBJECT -> parseJsonObject((ObjectNode)node);
-      default -> throw new IllegalArgumentException(
-          "Unsupported JSON node type: " + node.getNodeType() + " when parsing " + node.asText());
+      case OBJECT -> parseJsonObject((ObjectNode) node);
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported JSON node type: "
+                  + node.getNodeType()
+                  + " when parsing "
+                  + node.asText());
     };
   }
 
   private static Function<Object[], Value> vectorConstructor;
 
-  private static Value parseJsonArray(JsonNode node)
-      throws JsonProcessingException {
+  private static Value parseJsonArray(JsonNode node) throws JsonProcessingException {
     var array = new Object[node.size()];
     for (int i = 0; i < array.length; i++) {
       array[i] = parseJsonNode(node.get(i));
@@ -99,8 +101,7 @@ public class JsonParseOperation implements UnaryOperation {
 
   private static Function<JsonNode, Value> objectConstructor;
 
-  private static Object parseJsonObject(ObjectNode node)
-      throws JsonProcessingException {
+  private static Object parseJsonObject(ObjectNode node) throws JsonProcessingException {
     var typeName = getTextValue(node, "type", "");
     return switch (typeName) {
       case "Date" -> parseJsonDate(node);

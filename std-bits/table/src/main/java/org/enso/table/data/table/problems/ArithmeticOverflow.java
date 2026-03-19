@@ -5,9 +5,6 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.Problem;
 import org.graalvm.polyglot.Value;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 /** Indicates that an arithmetic operation did not fit in the target type. */
 public record ArithmeticOverflow(
     StorageType<?> targetType, long affectedRowCount, Object[] exampleOperands) implements Problem {
@@ -22,4 +19,3 @@ public record ArithmeticOverflow(
         exampleOperands());
   }
 }
-
