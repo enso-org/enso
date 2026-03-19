@@ -2,7 +2,6 @@
 import ContextMenu from '@/components/ContextMenu.vue'
 import type { DisplayableActionName } from '@/providers/action'
 import { provideActionContext } from '@/providers/actionContext'
-import { injectInteractionHandler } from '@/providers/interactionHandler'
 
 const { actions } = defineProps<{
   actions: DisplayableActionName[]
@@ -13,7 +12,6 @@ const emit = defineEmits<{
 }>()
 
 const ctx = provideActionContext()
-const interaction = injectInteractionHandler()
 
 function show(at: typeof ctx.openPosition) {
   ctx.openPosition = at
@@ -25,9 +23,6 @@ function hide() {
   emit('hidden')
 }
 
-defineExpose({
-  close: hide,
-})
 </script>
 
 <template>
