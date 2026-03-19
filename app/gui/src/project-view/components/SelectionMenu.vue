@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import ActionMenu from '@/components/ActionMenu.vue'
 import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
