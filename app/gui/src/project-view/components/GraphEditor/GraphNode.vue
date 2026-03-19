@@ -26,6 +26,7 @@ import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
 import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeSubmenu from '@/components/GraphEditor/GraphNodeSubmenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useResizeHandles } from '@/components/resizeHandles'
@@ -422,6 +423,28 @@ const nodeMenuActions: DisplayableActionName[] = [
   'components.deleteAndConnectAround',
 ]
 
+const multiSelectionMenuActions: DisplayableActionName[] = [
+  'components.collapse',
+  'components.pickColorMulti',
+  'components.copy',
+  'components.deleteSelected',
+]
+
+const alignmentMenuActions: DisplayableActionName[] = [
+  'components.alignLeft',
+  'components.alignCenter',
+  'components.alignRight',
+  'components.alignTop',
+  'components.alignBottom',
+]
+
+const selectionSize = computed(() => nodeSelection?.selected.size ?? 0)
+const hasMultiSelection = computed(() => selectionSize.value > 1)
+
+const contextMenuActions = computed<DisplayableActionName[]>(() =>
+  hasMultiSelection.value ? multiSelectionMenuActions : nodeMenuActions,
+)
+
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
   updateNodeHover(undefined)
@@ -479,7 +502,12 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <ContextMenuTrigger :actions="nodeMenuActions" @contextmenu="ensureSelected">
+    <ContextMenuTrigger :actions="contextMenuActions" @contextmenu="ensureSelected">
+      <template #menuElements>
+        <div v-if="hasMultiSelection">
+          <GraphNodeSubmenu label="Align" icon="align_left" :actions="alignmentMenuActions" />
+        </div>
+      </template>
       <div
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"

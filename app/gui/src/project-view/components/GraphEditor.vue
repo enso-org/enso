@@ -413,6 +413,11 @@ const { handleClick } = useDoubleClick(
   },
 )
 
+function handleBackgroundContextMenu(event: MouseEvent) {
+  if (event.target !== event.currentTarget) return
+  nodeSelection.deselectAll()
+}
+
 // === Keyboard/Mouse bindings ===
 
 const graphBindingsHandler = graphBindings.handler(
@@ -713,6 +718,7 @@ const contextMenuActions: DisplayableActionName[] = [
         class="viewport"
         :actions="contextMenuActions"
         @click="handleClick"
+        @contextmenu.capture="handleBackgroundContextMenu"
       >
         <GraphMissingView v-if="graphMissing" />
         <template v-else>

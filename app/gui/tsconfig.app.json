@@ -521,6 +521,7 @@
     "./src/project-view/components/GraphEditor/GraphEdge/layout.ts",
     "./src/project-view/components/GraphEditor/GraphEdges.vue",
     "./src/project-view/components/GraphEditor/GraphNode.vue",
+    "./src/project-view/components/GraphEditor/GraphNodeAlignmentSubmenu.vue",
     "./src/project-view/components/GraphEditor/GraphNode/nodeMessage.ts",
     "./src/project-view/components/GraphEditor/GraphNode/nodeVisualization.ts",
     "./src/project-view/components/GraphEditor/GraphNodeComment.vue",
