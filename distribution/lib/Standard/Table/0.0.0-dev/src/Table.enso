@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Json.Invalid_JSON
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -50,6 +51,7 @@ import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
+import project.Refined_Types.Text_Column.Text_Column
 import project.Row.Row
 import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
@@ -1691,7 +1693,9 @@ type Table
     parse_json self (columns : Table_Selector = Missing_Argument.throw "columns") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Invalid_JSON | Illegal_Argument = Profile.time_execution _profile_level "Table.parse_json" <|
         columns.act_if_any self error_on_missing_columns selected->
             selected.fold self current->column_name->
-                json_column = current.get column_name . parse_json on_problems
+                input_column = current.get column_name
+                if input_column.is_a Text_Column . not then Error.throw (Illegal_Argument.Error ('Column ' + column_name + ' is not a text column and cannot be parsed as JSON.'))
+                json_column = input_column.parse_json on_problems
                 current.set json_column column_name
 
     ## ---
