@@ -123,12 +123,10 @@ electron_builder_bin.electron_builder(
     srcs = npm_link_targets() + [
         "assets/icons/icon.icns",
         "package.json",
-         ":electron-builder-config.cjs",
-         ":selected_bundle",
-         ":selected_gui_dist",
         ":bundle_stamped",
         ":electron_builder_config_stamped",
         ":enso_bundle_marker",
+        "//:dependencies_scala_bin",
         "//:sbt_build_native_engine_distribution",
         "//:sbt_build_small_jdk",
         "//app/gui:dist_stamped",
