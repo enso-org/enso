@@ -1,5 +1,6 @@
 export {
   YjsChannel,
+  identityCodec,
   type ChannelCodec,
   type MessageHandler,
   type YjsChannelServer,

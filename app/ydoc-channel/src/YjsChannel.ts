@@ -23,6 +23,12 @@ export interface ChannelCodec<TMessage, TStored> {
   decode(stored: TStored): TMessage
 }
 
+/** Identity codec that passes values through unchanged. */
+export const identityCodec: ChannelCodec<any, any> = {
+  encode: (message) => message,
+  decode: (stored) => stored,
+}
+
 /**
  * Callback interface for receiving newly established {@link YjsChannel} connections.
  *
@@ -33,7 +39,7 @@ export interface YjsChannelServer<T = unknown> {
    * Called when a new channel is established.
    * @param channel - The newly connected channel
    */
-  onConnect(channel: YjsChannel<T, any>): void
+  onConnect(channel: YjsChannel<T, unknown>): void
 }
 
 /**
@@ -59,7 +65,7 @@ export class YjsChannel<
   private readonly array: Y.Array<TStored>
   private readonly handlers: Set<MessageHandler<TMessage>> = new Set()
   private readonly observeHandler: (event: Y.YArrayEvent<TStored>, tr: Y.Transaction) => void
-  private readonly codec: ChannelCodec<TMessage, TStored> | undefined
+  private readonly codec: ChannelCodec<TMessage, TStored>
 
   /**
    * Creates a new YjsChannel.
@@ -67,7 +73,11 @@ export class YjsChannel<
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    * @param codec - Optional codec for converting between message and storage types
    */
-  constructor(doc: Y.Doc, channelName: string, codec?: ChannelCodec<TMessage, TStored>) {
+  constructor(
+    doc: Y.Doc,
+    channelName: string,
+    codec: ChannelCodec<TMessage, TStored> = identityCodec,
+  ) {
     super()
     this.senderId = crypto.randomUUID()
     this.doc = doc
@@ -112,7 +122,7 @@ export class YjsChannel<
 
         // Notify handlers after deletion
         for (const { value } of inserted) {
-          this.notifyHandlers(this.decode(value))
+          this.notifyHandlers(this.codec.decode(value))
         }
       }
     }
@@ -125,7 +135,7 @@ export class YjsChannel<
    * @param message - The message to send
    */
   send(message: TMessage): void {
-    this.doc.transact(() => this.array.push([this.encode(message)]), this.senderId)
+    this.doc.transact(() => this.array.push([this.codec.encode(message)]), this.senderId)
   }
 
   /**
@@ -144,7 +154,7 @@ export class YjsChannel<
     if (this.array.length > 0) {
       this.doc.transact(() => {
         while (this.array.length > 0) {
-          const item = this.decode(this.array.get(0))
+          const item = this.codec.decode(this.array.get(0))
           try {
             handler(item)
           } catch (e) {
@@ -198,7 +208,7 @@ export class YjsChannel<
       if (this.array.length > 0) {
         this.doc.transact(() => {
           while (this.array.length > 0) {
-            const item = this.decode(this.array.get(0))
+            const item = this.codec.decode(this.array.get(0))
             const messageEvent = { data: item } as MessageEvent
             try {
               cb(messageEvent as WebSocketEventMap[K])
@@ -272,14 +282,6 @@ export class YjsChannel<
         this.emitError(new Error(`Failed to handle message: ${message}`, { cause: e }))
       }
     }
-  }
-
-  private encode(message: TMessage): TStored {
-    return this.codec ? this.codec.encode(message) : (message as unknown as TStored)
-  }
-
-  private decode(stored: TStored): TMessage {
-    return this.codec ? this.codec.decode(stored) : (stored as unknown as TMessage)
   }
 
   /**
