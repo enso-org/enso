@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -88,8 +90,9 @@ type Redshift_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = json_as_text
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we

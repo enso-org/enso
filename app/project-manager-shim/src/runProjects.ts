@@ -60,6 +60,7 @@ export async function runHybridProjectByUrl(
       cloudProjectDirectoryPath,
       cloudProjectId: asset.id,
       cloudProjectSessionId,
+      cloudApiUrl: remoteBackend.baseUrl.toString(),
     })
     return exitCode
   } catch (error) {

@@ -9,6 +9,11 @@
 - [Fixed uploading corrupted projects to the cloud storage][14805]
 - [Drive is now a separate panel instead of tab.][14807]
 - [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
+- [Opened project's Language Server process is restarted after a crash][14832].
+- [Geo Map Visualization may display GeoSpatial data][14859]
+- [Component height can be resized][14849]
+- [Add right click menu for multiple components][14640].
+- [Execution can be scheduled for the specific version tag][14883]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -16,6 +21,11 @@
 [14805]: https://github.com/enso-org/enso/pull/14805
 [14807]: https://github.com/enso-org/enso/pull/14807
 [14820]: https://github.com/enso-org/enso/pull/14820
+[14832]: https://github.com/enso-org/enso/pull/14832
+[14859]: https://github.com/enso-org/enso/pull/14859
+[14849]: https://github.com/enso-org/enso/pull/14849
+[14640]: https://github.com/enso-org/enso/pull/14640
+[14883]: https://github.com/enso-org/enso/pull/14883
 
 #### Enso Standard Library
 
@@ -32,6 +42,8 @@
 - [Redshift schema support.][14735]
 - [`Process_Builder.set_env`.][14799]
 - [New `Profile` API for timing code execution.][14827]
+- [Expanded S3 API with versions and signed uri][14831]
+- [Support for reading JSON data from database connections.][14872]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -46,6 +58,8 @@
 [14735]: https://github.com/enso-org/enso/pull/14735
 [14799]: https://github.com/enso-org/enso/pull/14799
 [14827]: https://github.com/enso-org/enso/pull/14827
+[14831]: https://github.com/enso-org/enso/pull/14831
+[14872]: https://github.com/enso-org/enso/pull/14872
 
 #### Enso Language & Runtime
 

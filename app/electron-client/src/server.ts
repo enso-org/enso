@@ -325,13 +325,14 @@ export class Server {
             type: 'error',
             error: `Unknown endpoint '${route.pathname}'`,
           })
+          const bytes = new TextEncoder().encode(content)
           response
             .writeHead(HTTP_STATUS_NOT_FOUND, [
-              ['Content-Length', String(content.length)],
+              ['Content-Length', String(bytes.length)],
               ['Content-Type', 'application/json'],
               ...COOP_COEP_CORP_HEADERS,
             ])
-            .end(content)
+            .end(bytes)
           break
         }
       }
@@ -377,35 +378,38 @@ export class Server {
   /** Send a HTTP response with a JSON payload. */
   httpOkJson<T = never>(response: http.ServerResponse, body: NoInfer<T>) {
     const content = JSON.stringify(body)
+    const bytes = new TextEncoder().encode(content)
     return response
       .writeHead(HTTP_STATUS_OK, [
-        ['Content-Length', `${content.length}`],
+        ['Content-Length', `${bytes.length}`],
         ['Content-Type', 'application/json'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(content)
+      .end(bytes)
   }
 
   /** Send a HTTP response with a JSON payload. */
   httpOkText(response: http.ServerResponse, content: string) {
+    const bytes = new TextEncoder().encode(content)
     return response
       .writeHead(HTTP_STATUS_OK, [
-        ['Content-Length', `${content.length}`],
+        ['Content-Length', `${bytes.length}`],
         ['Content-Type', 'text/plain'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(content)
+      .end(bytes)
   }
 
   /** Send a HTTP error with a text payload. */
   httpError(response: http.ServerResponse, message: string) {
+    const bytes = new TextEncoder().encode(message)
     return response
       .writeHead(HTTP_STATUS_BAD_REQUEST, [
-        ['Content-Length', `${message.length}`],
+        ['Content-Length', `${bytes.length}`],
         ['Content-Type', 'text/plain'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(message)
+      .end(bytes)
   }
 
   /** The root directory path. */
@@ -835,13 +839,14 @@ export class Server {
       const error = await archive.promise
       if (error) {
         const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
+        const bytes = new TextEncoder().encode(content)
         response
           .writeHead(HTTP_STATUS_NOT_FOUND, [
-            ['Content-Length', String(content.length)],
+            ['Content-Length', String(bytes.length)],
             ['Content-Type', 'application/json'],
             ...COOP_COEP_CORP_HEADERS,
           ])
-          .end(content)
+          .end(bytes)
       }
       await promise
       this.httpOkJson<ExportedArchive>(response, {

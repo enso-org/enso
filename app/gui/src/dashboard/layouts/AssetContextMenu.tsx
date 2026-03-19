@@ -273,6 +273,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                   repeat: { type: 'none' },
                   projectId: asset.id,
                   timeZone,
+                  tag: undefined,
                 },
                 asset.title,
               ])

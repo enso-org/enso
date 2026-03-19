@@ -1,6 +1,7 @@
 package org.enso.logging.service.common;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /** Created from {@link ch.qos.logback.classic.spi.ILoggingEvent}. */
@@ -17,13 +18,17 @@ public record LogMessage(
 
   @Override
   public String toString() {
-    var args = arguments() == null ? "[]" : Arrays.asList(arguments());
     return "LogMessage[loggerName="
         + loggerName()
         + ", message="
         + message()
         + ", arguments="
-        + args
+        + args()
         + "]";
+  }
+
+  private List<Object> args() {
+    var args = arguments() == null ? List.of() : Arrays.asList(arguments());
+    return args;
   }
 }

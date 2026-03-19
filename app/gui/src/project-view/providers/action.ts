@@ -78,23 +78,23 @@ const displayableActions = {
   },
   'components.alignLeft': {
     icon: 'align_left',
-    description: 'Align Selected Components Left',
+    description: 'Align Left',
   },
   'components.alignRight': {
     icon: 'align_right',
-    description: 'Align Selected Components Right',
+    description: 'Align Right',
   },
   'components.alignTop': {
     icon: 'align_top',
-    description: 'Align Selected Components Top',
+    description: 'Align Top',
   },
   'components.alignBottom': {
     icon: 'align_bottom',
-    description: 'Align Selected Components Bottom',
+    description: 'Align Bottom',
   },
   'components.alignCenter': {
     icon: 'align_center',
-    description: 'Center Selected Components Horizontally',
+    description: 'Center',
   },
   'components.deleteAndConnectAround': {
     icon: 'graph',

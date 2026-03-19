@@ -257,13 +257,14 @@ export class ProjectManagerShimMiddleware {
           break
         }
         case 'GET /api/root-directory-path': {
+          const bytes = new TextEncoder().encode(PROJECTS_ROOT_DIRECTORY)
           response
             .writeHead(HTTP_STATUS_OK, {
-              'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
+              'Content-Length': String(bytes.length),
               'Content-Type': 'text/plain',
               ...COMMON_HEADERS,
             })
-            .end(PROJECTS_ROOT_DIRECTORY)
+            .end(bytes)
           break
         }
         default: {
@@ -316,24 +317,26 @@ async function fileExists(path: string) {
 /** Send a HTTP response with a JSON payload. */
 function httpOkJson<T = never>(response: http.ServerResponse, body: NoInfer<T>) {
   const content = JSON.stringify(body)
+  const bytes = new TextEncoder().encode(content)
   return response
     .writeHead(HTTP_STATUS_OK, [
-      ['Content-Length', `${content.length}`],
+      ['Content-Length', `${bytes.length}`],
       ['Content-Type', 'application/json'],
       ...COOP_COEP_CORP_HEADERS,
     ])
-    .end(content)
+    .end(bytes)
 }
 
 /** Send a HTTP response with a JSON payload. */
 function httpOkText(response: http.ServerResponse, content: string) {
+  const bytes = new TextEncoder().encode(content)
   return response
     .writeHead(HTTP_STATUS_OK, [
-      ['Content-Length', `${content.length}`],
+      ['Content-Length', `${bytes.length}`],
       ['Content-Type', 'text/plain'],
       ...COOP_COEP_CORP_HEADERS,
     ])
-    .end(content)
+    .end(bytes)
 }
 
 /** Get details for an asset by its path. */
@@ -540,13 +543,14 @@ async function httpDownloadArchive(
   const error = await archive.promise
   if (error) {
     const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
+    const bytes = new TextEncoder().encode(content)
     response
       .writeHead(HTTP_STATUS_NOT_FOUND, [
-        ['Content-Length', String(content.length)],
+        ['Content-Length', String(bytes.length)],
         ['Content-Type', 'application/json'],
         ...COOP_COEP_CORP_HEADERS,
       ])
-      .end(content)
+      .end(bytes)
   }
   await promise
   httpOkJson<ExportedArchive>(response, {

@@ -191,6 +191,7 @@ export interface CloudParams {
   readonly cloudProjectDirectoryPath: string
   readonly cloudProjectId: string
   readonly cloudProjectSessionId: string
+  readonly cloudApiUrl: string
 }
 
 /** Parameters for the "open project" endpoint. */
