@@ -1677,6 +1677,24 @@ type Table
             self.implementation.parse self.underlying selected type format error_on_missing_columns=True on_problems
 
     ## ---
+       group: Standard.Base.Conversions
+       icon: conversion
+       ---
+       Parses a column containing JSON strings into a column of the corresponding
+       data.
+
+       ## Arguments
+        - `columns`: The columns to parse.
+        - `on_problems`: Specifies how to handle if a problem occurs, raising as
+          a warning by default.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    parse_json self (columns : Table_Selector = Missing_Argument.throw "columns") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Invalid_JSON | Illegal_Argument = Profile.time_execution _profile_level "Table.parse_json" <|
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                json_column = current.get column_name . parse_json on_problems
+                current.set json_column column_name
+
+    ## ---
        aliases: [to_char, to_string, to_text]
        group: Standard.Base.Conversions
        icon: convert
