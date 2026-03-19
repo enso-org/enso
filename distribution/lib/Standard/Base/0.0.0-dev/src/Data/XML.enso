@@ -440,6 +440,32 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_document XPathConstants.NODESET)
+    ## ---
+       icon: parse3
+       ---
+       Gets the text of the first element denoted by the given XPath key.
+
+       ## Arguments
+        - `key`: The XPath string to use to search for elements.
+
+       ## Examples
+       ### Get the text of an element by xpath.
+
+       ```
+             root = XML_Document.from_file test_file
+             root.get_xpath_text "/class/teacher[1]/firstname"
+             # => "Alice"
+       ```
+    get_xpath_text : Text -> Text | Nothing ! XML_Error
+    get_xpath_text self key:Text =
+        XML_Error.handle_java_exceptions <|
+            xpath = XPathFactory.newInstance.newXPath
+            node_list = xpath.evaluate key self.java_document XPathConstants.NODESET
+            target = only_wanted_nodes node_list only_first=True
+            if target.length == 0 then Nothing else case target.first of
+                t : Text -> t
+                e : XML_Element -> e.text
+
 
     ## ---
        icon: parse3
@@ -807,6 +833,31 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
+    ## ---
+       icon: parse3
+       ---
+       Gets the text of the first element denoted by the given XPath key.
+
+       ## Arguments
+        - `key`: The XPath string to use to search for elements.
+
+       ## Examples
+       ### Get the text of an element by xpath.
+
+       ```
+             root = XML_Document.from_file test_file . root_element
+             root.get_xpath_text "/class/teacher[1]/firstname"
+             # => "Alice"
+       ```
+    get_xpath_text : Text -> Text | Nothing ! XML_Error
+    get_xpath_text self key:Text =
+        XML_Error.handle_java_exceptions <|
+            xpath = XPathFactory.newInstance.newXPath
+            node_list = xpath.evaluate key self.java_element XPathConstants.NODESET
+            target = only_wanted_nodes node_list only_first=True
+            if target.length == 0 then Nothing else case target.first of
+                t : Text -> t
+                e : XML_Element -> e.text
 
     ## ---
        icon: parse3
@@ -942,8 +993,8 @@ type XML_Error
    - Elements
    - Text (if not completely whitespace)
    - Attribute values (which only arise in the case of XPath keys)
-only_wanted_nodes : NodeList -> Vector (Text | XML_Element)
-only_wanted_nodes node_list:NodeList =
+only_wanted_nodes : NodeList -> Boolean -> Vector (Text | XML_Element)
+only_wanted_nodes node_list:NodeList only_first:Boolean=False =
     nodes = 0.up_to (node_list.getLength) . map i->
         node_list.item i
     is_wanted : Node -> Boolean
@@ -953,13 +1004,16 @@ only_wanted_nodes node_list:NodeList =
         is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
         is_element || is_attribute || is_non_whitespace_text
 
+    wanted_nodes = if only_first then nodes.filter is_wanted . take (..First 1) else nodes.filter is_wanted
+
     # If an Element, wrap in XML_Element. If Java_Text, extract the string. If an attribute, extract the value.
     convert node =
         if node.getNodeType == Node.ELEMENT_NODE then XML_Element.new node else
             if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
                 if node.getNodeType == Node.ATTRIBUTE_NODE then node.getValue else
                     Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
-    nodes.filter is_wanted . map convert
+
+    wanted_nodes.map convert
 
 ## ---
    private: true
