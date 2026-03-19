@@ -8,6 +8,7 @@ const { action: actionName, label } = defineProps<{
   label?: string
 }>()
 const action = computed(() => resolveAction(actionName))
+const labelOrDescription = computed(() => label ?? toValue(action.value.description))
 
 const descriptionWithShortcut = computed(() => {
   const description = toValue(action.value.description)
@@ -23,7 +24,7 @@ const descriptionWithShortcut = computed(() => {
     :name="toValue(action.icon)"
     :disabled="!toValue(action.enabled)"
     :title="descriptionWithShortcut"
-    :label="label"
+    :label="labelOrDescription"
     :data-testid="`action:${actionName}`"
     @activate="action.action"
   />

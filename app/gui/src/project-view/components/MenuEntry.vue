@@ -17,7 +17,8 @@ const action = computed(() => resolveAction(actionName))
     v-bind="action.toggled != null ? { modelValue: toValue(action.toggled) } : {}"
     @click="action.action"
   >
-    <SvgIcon :name="toValue(action.icon)" class="rowIcon" />
+    <SvgIcon v-if="action.icon" :name="toValue(action.icon)" class="rowIcon" />
+    <div v-else class="rowIcon rowIconPlaceholder" />
     <span v-text="toValue(action.description)" />
     <span
       v-if="toValue(action.shortcut)"
@@ -39,6 +40,11 @@ const action = computed(() => resolveAction(actionName))
 .rowIcon {
   display: inline-block;
   margin-right: 8px;
+
+  &.rowIconPlaceholder {
+    width: var(--icon-width, var(--icon-size, 16px));
+    height: var(--icon-height, var(--icon-size, 16px));
+  }
 }
 
 .shortcutHint {

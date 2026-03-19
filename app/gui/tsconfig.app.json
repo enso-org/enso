@@ -32,7 +32,6 @@
     "./src/components/AppContainerLayout.vue",
     "./src/components/CloseButton.vue",
     "./src/components/CommandPalette.vue",
-    "./src/components/HelpBar.vue",
     "./src/components/LoadingScreen.vue",
     "./src/components/ProtectedLayout.vue",
     "./src/components/RegistrationPage.vue",

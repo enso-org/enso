@@ -1,40 +1,39 @@
 <script setup lang="ts">
-import { useText } from '$/providers/text'
+import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
-import MenuButton from '@/components/MenuButton.vue'
-import MenuPanel from '@/components/MenuPanel.vue'
-import SvgButton from '@/components/SvgButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 
-const text = useText()
+import SvgIcon from '@/components/SvgIcon.vue'
 </script>
 
 <template>
   <div class="HelpBar">
-    <SvgButton class="ensoIcon" name="enso_logo" />
-    <MenuButton class="helpButton">{{ text.getText('whatsNew') }}</MenuButton>
+    <ActionButton class="helpButton" action="help.whatsNew" />
     <div class="communityGroup">
-      <MenuButton class="helpButton">{{ text.getText('community') }}</MenuButton>
+      <ActionButton class="helpButton" action="help.community" />
       <DropdownMenu class="helpButton" :showArrow="false">
         <template #button><SvgIcon name="folder_opened" /></template>
         <template #menu>
-          <MenuPanel>
-            <MenuButton>{{ text.getText('gettingStarted') }}</MenuButton>
-            <MenuButton>{{ text.getText('askAQuestion') }}</MenuButton>
-            <MenuButton>{{ text.getText('componentExamples') }}</MenuButton>
-            <MenuButton>{{ text.getText('exampleWorkflows') }}</MenuButton>
-          </MenuPanel>
+          <ActionMenu
+            :actions="[
+              'help.gettingStarted',
+              'help.askAQuestion',
+              'help.componentExamples',
+              'help.exampleWorkflows',
+            ]"
+          />
         </template>
       </DropdownMenu>
     </div>
-    <MenuButton class="helpButton">{{ text.getText('docs') }}</MenuButton>
-    <MenuButton class="helpButton">{{ text.getText('contactUs') }}</MenuButton>
+    <ActionButton class="helpButton" action="help.docs" />
+    <ActionButton class="helpButton" action="help.contactUs" />
   </div>
 </template>
 
 <style scoped>
 .HelpBar {
   --color-menu-entry-hover-bg: rgb(255 255 255);
+  position: relative;
   flex-shrink: 0;
   display: flex;
   flex-direction: row;
@@ -43,14 +42,8 @@ const text = useText()
   height: var(--top-bar-height);
   align-items: center;
   gap: 0;
-  padding-left: 8px;
+  padding-left: 48px;
   z-index: 1;
-}
-
-.ensoIcon {
-  --icon-size: 32px;
-  margin: 0 8px 0 0;
-  padding: 0;
 }
 
 .communityGroup {
@@ -61,14 +54,14 @@ const text = useText()
 
   & > :first-child {
     --button-right-radius: 0;
-    --button-padding: 0 8px 0 6px;
+    --button-padding: 0 6px 0 12px;
     order: -1;
   }
 
   &::before {
     content: '';
     width: 1px;
-    align-self: stretch;
+    height: 32px;
     background-color: rgba(0 0 0 / 0.1);
   }
 
@@ -80,7 +73,7 @@ const text = useText()
 
 .helpButton {
   height: 32px;
-  margin: 0;
+  margin: calc((var(--top-bar-height) - 32px) / 2) 0;
   --button-height: 32px;
   --button-padding: 0 12px;
 }

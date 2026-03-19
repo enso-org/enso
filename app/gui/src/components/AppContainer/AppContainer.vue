@@ -8,7 +8,7 @@ import { ContainerProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import { appContainerBindings } from '@/bindings'
 import { useEvent } from '@/composables/events'
-import { registerHandlers } from '@/providers/action'
+import { registerHandlers, type ActionName } from '@/providers/action'
 import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
@@ -20,6 +20,7 @@ import { normalizeSlashes } from 'enso-common/src/utilities/file'
 import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
 import MiddlePanel from './MiddlePanel.vue'
 
+import { useNavigateLink } from '$/utils/links'
 import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import LeftPanel from './LeftPanel.vue'
 import RightPanel from './RightPanel.vue'
@@ -42,10 +43,25 @@ provideAsyncResources(openedProjects)
 provideRightPanelData(toRef(containerData, 'focusedPanel'))
 provideFullscreenRoot(fullscreenRoot)
 
+const HELP_URLS: Record<ActionName & `help.${string}`, string> = {
+  'help.whatsNew': 'https://community.ensoanalytics.com/c/what-is-new-in-enso/',
+  'help.community': 'https://community.ensoanalytics.com/',
+  'help.gettingStarted':
+    'https://community.ensoanalytics.com/c/start-here/welcome-to-enso-community',
+  'help.askAQuestion': 'https://community.ensoanalytics.com/c/q_and_a/',
+  'help.componentExamples': 'https://community.ensoanalytics.com/c/enso-component-examples/',
+  'help.exampleWorkflows': 'https://community.ensoanalytics.com/c/example-workflows/',
+  'help.docs': 'https://help.enso.org/',
+  'help.contactUs': 'https://ensoanalytics.com/contact',
+}
+
+const navigate = useNavigateLink()
+
 const actionHandlers = registerHandlers({
   'app.closeTab': {
     action: closeCurrentTab,
   },
+  ...objects.mapEntries(HELP_URLS, (key, value) => ({ action: () => navigate(value) })),
 })
 
 const keydownHandler = appContainerBindings.handler(
@@ -99,7 +115,7 @@ onUnmounted(() => {
 
         <ModalWrapper />
         <LeftPanel :middlePanelShown="anyTabs" :class="{ noMiddlePanel: !anyTabs }" />
-        <div class="mainView">
+        <div class="mainView" :class="{ noMiddlePanel: !anyTabs }">
           <div class="bar">
             <TabBar />
             <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
@@ -145,19 +161,23 @@ onUnmounted(() => {
   flex-grow: 1;
   flex-shrink: 1000000;
   min-width: 48px;
-  display: flex;
-  flex-direction: column;
   position: relative;
+
+  &.noMiddlePanel {
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
 }
 
 .bar {
+  /* The bar should not contribute to "mainView" width when there's no middle panel. */
+  position: absolute;
+  width: 100%;
   display: flex;
   flex-direction: row;
-  align-items: left;
   justify-content: right;
   height: var(--top-bar-height);
   min-height: var(--top-bar-height);
-  position: relative;
   padding: 0 8px 0 0;
   z-index: 1;
 }
@@ -168,6 +188,7 @@ onUnmounted(() => {
 }
 
 .belowBar {
+  margin-top: var(--top-bar-height);
   display: flex;
   flex-direction: row;
   flex-grow: 1;
