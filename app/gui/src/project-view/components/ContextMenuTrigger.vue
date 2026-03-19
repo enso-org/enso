@@ -11,6 +11,7 @@ const emit = defineEmits<{
   shown: []
   hidden: []
 }>()
+const ctx = provideActionContext()
 const interaction = injectInteractionHandler()
 
 function show(at: typeof ctx.openPosition) {
@@ -22,18 +23,6 @@ function hide() {
   ctx.openPosition = null
   emit('hidden')
 }
-
-const ctx = provideActionContext({
-  closeMenu: hide,
-  endInteraction: () => {
-    const menuInteraction = ctx.menuInteraction
-    if (menuInteraction) {
-      interaction.end(menuInteraction)
-    } else {
-      hide()
-    }
-  },
-})
 
 defineExpose({
   close: hide,
