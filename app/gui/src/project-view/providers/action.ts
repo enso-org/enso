@@ -97,20 +97,20 @@ const displayableActions = {
     description: 'Center',
   },
   'components.spaceVertical': {
-    icon: 'sort',
-    description: 'Space Selected Components Vertically',
+    icon: 'space_default',
+    description: 'Default Spacing',
   },
   'components.spaceVerticalTight': {
-    icon: 'sort_ascending',
-    description: 'Space Selected Components Vertically (Tight)',
+    icon: 'space_tight',
+    description: 'Tight Spacing',
   },
   'components.spaceVerticalZero': {
-    icon: 'sort',
-    description: 'Space Selected Components Vertically (Near Zero)',
+    icon: 'space_zero',
+    description: 'Zero Spacing',
   },
   'components.spaceVerticalWide': {
-    icon: 'sort_descending',
-    description: 'Space Selected Components Vertically (Wide)',
+    icon: 'space_wide',
+    description: 'Wide Spacing',
   },
   'components.deleteAndConnectAround': {
     icon: 'graph',

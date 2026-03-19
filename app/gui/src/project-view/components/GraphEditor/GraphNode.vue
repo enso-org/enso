@@ -513,7 +513,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       <template #menuElements>
         <div v-if="hasMultiSelection">
           <GraphNodeSubmenu label="Align" icon="align_left" :actions="alignmentMenuActions" />
-          <GraphNodeSubmenu label="Spacing" icon="align_left" :actions="spacingMenuActions" />
+          <GraphNodeSubmenu label="Spacing" icon="space_default" :actions="spacingMenuActions" />
         </div>
       </template>
       <div

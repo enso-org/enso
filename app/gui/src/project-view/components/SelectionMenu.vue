@@ -79,16 +79,18 @@ const spacingActions: DisplayableActionName[] = [
     <DropdownMenu
       v-model:open="spacingMenuOpen"
       placement="bottom-start"
-      title="Align"
+      title="Spacing"
       alwaysShowArrow
     >
       <template #button>
-        <SvgIcon name="align_left" />
+        <SvgIcon name="space_default" />
       </template>
       <template #menu>
         <ActionMenu :actions="spacingActions" @close="spacingMenuOpen = false" />
       </template>
     </DropdownMenu>
+    <ActionButton action="components.copy" />
+    <ActionButton action="components.deleteSelected" />
     <Teleport to="body">
       <ColorPickerMenu
         v-if="toValue(pickColorMulti.toggled)"
