@@ -11,6 +11,7 @@ const emit = defineEmits<{
   shown: []
   hidden: []
 }>()
+
 const ctx = provideActionContext()
 const interaction = injectInteractionHandler()
 
