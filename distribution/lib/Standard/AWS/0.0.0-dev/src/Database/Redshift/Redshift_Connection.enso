@@ -6,7 +6,7 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
-from Standard.Table import Table
+from Standard.Table import Table, Data_Formatter
 import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Internal.In_Memory_Helpers
 import Standard.Table.Rows_To_Read.Rows_To_Read
@@ -446,7 +446,10 @@ type Redshift_Connection
 
             ## Assuming we managed to create the table, proceed with copy
             created_table.if_not_error <|
-                self.execute ("COPY " + table_name + " FROM '" + s3_file_path + "'" + " IAM_ROLE '" + iam_role + "'" + " FORMAT AS CSV" + " IGNOREHEADER 1;")
+                result = self.execute ("COPY " + table_name + " FROM '" + s3_file_path + "'" + " IAM_ROLE '" + iam_role + "'" + " FORMAT AS CSV" + " IGNOREHEADER 1;")
+                if result.is_error then
+                    s3_file.delete
+                    Error.throw result
 
             s3_file.delete
             created_table
