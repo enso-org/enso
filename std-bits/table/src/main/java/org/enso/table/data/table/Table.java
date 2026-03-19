@@ -17,6 +17,7 @@ import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.JsonOperation;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -43,7 +44,7 @@ import org.graalvm.polyglot.Value;
 public final class Table {
   private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
-  private String versionId;
+  private final String versionId;
 
   /**
    * Creates a new table from a single column.
@@ -665,5 +666,11 @@ public final class Table {
       newColumns[i] = columns[i].mask(indexMapper);
     }
     return new Table(newColumns);
+  }
+
+  public String tableVizJSON(
+      List<String> valueTypeDisplay, long allRowsCount, boolean useServerMode) {
+    return JsonOperation.makeTableVizJSON(
+        versionId, columns, allRowsCount, useServerMode, valueTypeDisplay, "get_row");
   }
 }

@@ -15,7 +15,6 @@ import project.Internal.DDL_Transaction.Transactional_Table_Description
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 from project.Errors import Different_Connections, SQL_Error, Table_Already_Exists
-from project.Internal.JDBC_Connection import log_sql_if_enabled
 from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
 from project.Internal.Upload.Helpers.Error_Helpers import internal_translate_known_upload_errors
@@ -30,7 +29,6 @@ create_table_structure connection table_name structure primary_key temporary on_
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
         update_result = create_table_statement.if_not_error <|
-            log_sql_if_enabled connection.jdbc_connection create_table_statement.to_text
             connection.execute create_table_statement
         final_result = update_result.if_not_error table_name
         final_result.catch SQL_Error sql_error->
@@ -101,7 +99,8 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
     expected_type_hints = aligned_structure.map .value_type
     table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
 
-    callback _ = In_Transaction.ensure_in_transaction <|
+    callback _ =
+        In_Transaction.ensure_in_transaction
         upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
             Panic.rethrow <|
                 connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size expected_type_hints=expected_type_hints row_limit=row_limit
@@ -131,7 +130,8 @@ private _create_database_table_upload_op (source_table : Table & DB_Table) conne
         copy_into_statement = connection.dialect.generate_sql <|
             SQL_IR_Statement.Insert_From_Select table_name (effective_source_table:Table).column_names effective_source_table.to_select_query
 
-        callback _ = In_Transaction.ensure_in_transaction <|
+        callback _ =
+            In_Transaction.ensure_in_transaction
             upload_status =
                 internal_translate_known_upload_errors source_table connection primary_key <|
                     Panic.rethrow <| connection.execute_update copy_into_statement

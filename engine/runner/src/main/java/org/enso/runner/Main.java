@@ -1463,6 +1463,10 @@ public class Main {
     try {
       var projectPath = line.getOptionValue(IN_PROJECT_OPTION);
       var path = line.getOptionValue(RUN_OPTION);
+      // Also check ROOT_PATH_OPTION for language server mode
+      if (path == null) {
+        path = line.getOptionValue(LanguageServerApi.ROOT_PATH_OPTION);
+      }
       if (path == null) {
         return false;
       }

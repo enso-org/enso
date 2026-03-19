@@ -19,7 +19,10 @@ abstract class InstrumentTestContext(packageName: String) {
   protected val messageQueue: LinkedBlockingQueue[Api.Response] =
     new LinkedBlockingQueue()
 
-  protected val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
+  protected val packagesTmpDir: Path =
+    Files.createTempDirectory("enso-test-packages-")
+  protected val tmpDir: Path =
+    Files.createTempDirectory(packagesTmpDir, s"${packageName}_")
 
   private val lockManager = new ThreadSafeFileLockManager(
     tmpDir.resolve("locks")
@@ -184,7 +187,7 @@ abstract class InstrumentTestContext(packageName: String) {
     }
     Await.ready(runtimeServerEmulator.terminate(), 5.seconds)
     lockManager.reset()
-    FileUtils.deleteQuietly(tmpDir.toFile)
+    FileUtils.deleteQuietly(packagesTmpDir.toFile)
     messageQueue.clear()
   }
 

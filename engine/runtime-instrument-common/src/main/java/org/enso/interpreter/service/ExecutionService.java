@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
@@ -186,13 +187,14 @@ public final class ExecutionService {
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
       Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
-    return submitExecution(
-        () -> {
+    return submitExecutionWithCacheAccess(
+        cache,
+        (cacheMut) -> {
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
-                  cache,
+                  cacheMut,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -370,8 +372,9 @@ public final class ExecutionService {
       Object function,
       Object... arguments) {
 
-    return submitExecution(
-        () -> {
+    return submitExecutionWithCacheAccess(
+        cache,
+        (cacheMut) -> {
           var fn = function;
           UUID nextExecutionItem = null;
           CallTarget entryCallTarget =
@@ -392,7 +395,7 @@ public final class ExecutionService {
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
-                  cache,
+                  cacheMut,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -545,11 +548,13 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
+                module.setLiteralSource(rope, simpleUpdate);
                 logger.trace(
-                    "Applied edits. Source has {} lines, last line has {} characters.",
+                    "Applied {} for {}. Source has {} lines, last line has {} characters.",
+                    simpleUpdate != null ? "simple update" : "edits",
+                    module.getName(),
                     rope.lines().length(),
                     rope.lines().drop(rope.lines().length() - 1).characters().length());
-                module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
     }
@@ -651,8 +656,28 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
-    return context.getThreadManager().submit(c);
+  private <T> CompletionStage<T> submitExecutionWithCacheAccess(
+      RuntimeCache cache, java.util.function.Function<RuntimeCache.Mutable, T> action) {
+    // let's assume the submitException knows how to "upgrade" access to cache to a mutable one
+    var cacheMut = (RuntimeCache.Mutable) cache;
+    return submitExecution(() -> action.apply(cacheMut));
+  }
+
+  /**
+   * Performs an operation on a cache with privileged access.
+   *
+   * @param cache runtime cache on which to perform a privileged operation
+   * @param v an additional value to provide to the operation
+   * @param fun a generic operation involving a mutable cache
+   * @return result of the operation
+   */
+  public <T, S> CompletionStage<S> submitExecutionWithCacheAccess(
+      RuntimeCache cache, T v, BiFunction<RuntimeCache.Mutable, T, S> fun) {
+    return submitExecutionWithCacheAccess(cache, (cacheMut) -> fun.apply(cacheMut, v));
+  }
+
+  private <T> CompletionStage<T> submitExecution(Supplier<T> action) {
+    return context.getThreadManager().submit(action);
   }
 
   private static final class ExecuteRootNode extends RootNode {
@@ -1006,7 +1031,10 @@ public final class ExecutionService {
   }
 
   /** Information about the function call. */
-  public record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
+  public record FunctionCallInfo(
+      FunctionPointer functionPointer,
+      int[] notAppliedArguments,
+      FunctionCallInstrumentationNode.FunctionCall ref) {
 
     @Override
     public boolean equals(Object o) {
@@ -1037,7 +1065,7 @@ public final class ExecutionService {
       FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
       int[] notAppliedArguments = collectNotAppliedArguments(call);
 
-      return new FunctionCallInfo(functionPointer, notAppliedArguments);
+      return new FunctionCallInfo(functionPointer, notAppliedArguments, call);
     }
 
     private static int[] collectNotAppliedArguments(

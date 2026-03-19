@@ -26,8 +26,11 @@ import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
 import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeSubmenu from '@/components/GraphEditor/GraphNodeSubmenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useResizeHandles } from '@/components/resizeHandles'
+import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useClickableDraggable } from '@/composables/dragging'
@@ -39,7 +42,6 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { provideWidgetControlledActions } from '@/providers/widgetActions'
 import { Ast } from '@/util/ast'
 import { prefixes } from '@/util/ast/node'
@@ -48,7 +50,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
+import { computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -71,8 +73,8 @@ const emit = defineEmits<{
   toggleDocPanel: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
+  'update:height': [height: number | undefined]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
-  'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
@@ -98,9 +100,7 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
-const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
-const widgetTreeSize = useResizeObserver(widgetTree)
 
 providePopoverRoot(rootNode)
 
@@ -209,15 +209,6 @@ watch(isVisualizationPreviewed, (newVal) => {
   }
 })
 
-provideResizableWidgetRegistry(
-  computed({
-    get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
-    set: (width) => (visualizationWidth.value = width && width / scale.value),
-  }),
-  () => NODE_CONTENT_PADDING * scale.value,
-  () => widgetTreeSize.value.x,
-)
-
 const transform = computed(() => {
   const { x, y } = nodePosition.value
   return `translate(${x}px, ${y}px)`
@@ -257,12 +248,15 @@ const nodeEditHandler = nodeEditBindings.handler({
   edit: () => actionHandlers['component.startEditing'].action(),
 })
 
-const graphSelectionSize = computed(() => visRect.value?.size ?? nodeSize.value)
+/// The visualization's contribution to the node's height.
+const vizBelowNode = computed(() => (visRect.value ? visRect.value.size.y - nodeSize.value.y : 0))
 
-const nodeOuterRect = computed(() => visRect.value ?? nodeRect.value)
+const nodeOuterRect = ref<Rect>()
 watchEffect(() => {
-  if (!nodeOuterRect.value.size.isZero()) {
-    emit('update:rect', nodeOuterRect.value)
+  const newValue = visRect.value ?? nodeRect.value
+  if (!newValue.size.isZero() && !nodeOuterRect.value?.equals(newValue)) {
+    nodeOuterRect.value = newValue
+    emit('update:rect', newValue)
   }
 })
 
@@ -286,13 +280,21 @@ function useRecomputation() {
 
 // === Style and colors ===
 
+/**
+ * Node height: A node is auto-sized unless the user has resized it. When it is auto-sized, its height is determined by
+ * DOM/CSS. Each resizable widget has a preferred size that is used as its `min-height`, with the effect that the node
+ * takes the size of the largest resizable widget present. If the user resizes the node, and the node is in expanded
+ * mode, the specified height overrides any widget preferences.
+ */
+const nodeHeight = computed(() => props.node.height)
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
     minWidth: isVisualizationEnabled.value ? `${visualizationWidth.value ?? 200}px` : undefined,
+    height: nodeHeight.value ? `${nodeHeight.value}px` : undefined,
     '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
-    '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
+    '--viz-below-node': `${vizBelowNode.value}px`,
   }
 })
 
@@ -318,6 +320,7 @@ const nodeClass = computed(() => {
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
     edited: props.edited,
+    nodeHeightOverridden: nodeHeight.value != null,
   }
 })
 
@@ -420,12 +423,42 @@ const nodeMenuActions: DisplayableActionName[] = [
   'components.deleteAndConnectAround',
 ]
 
+const multiSelectionMenuActions: DisplayableActionName[] = [
+  'components.collapse',
+  'components.pickColorMulti',
+  'components.copy',
+  'components.deleteSelected',
+]
+
+const alignmentMenuActions: DisplayableActionName[] = [
+  'components.alignLeft',
+  'components.alignCenter',
+  'components.alignRight',
+  'components.alignTop',
+  'components.alignBottom',
+]
+
+const selectionSize = computed(() => nodeSelection?.selected.size ?? 0)
+const hasMultiSelection = computed(() => selectionSize.value > 1)
+
+const contextMenuActions = computed<DisplayableActionName[]>(() =>
+  hasMultiSelection.value ? multiSelectionMenuActions : nodeMenuActions,
+)
+
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
   updateNodeHover(undefined)
 })
 
 const nodeName = computed(() => props.node.pattern?.code())
+
+// === Node resizing ===
+
+const resizeHandles = useResizeHandles({
+  size: nodeSize,
+  scale,
+})
+resizeHandles.onResizeHeight((value) => emit('update:height', value))
 </script>
 
 <template>
@@ -469,7 +502,12 @@ const nodeName = computed(() => props.node.pattern?.code())
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <ContextMenuTrigger :actions="nodeMenuActions" @contextmenu="ensureSelected">
+    <ContextMenuTrigger :actions="contextMenuActions" @contextmenu="ensureSelected">
+      <template #menuElements>
+        <div v-if="hasMultiSelection">
+          <GraphNodeSubmenu label="Align" icon="align_left" :actions="alignmentMenuActions" />
+        </div>
+      </template>
       <div
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"
@@ -479,8 +517,8 @@ const nodeName = computed(() => props.node.pattern?.code())
         @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
         @pointermove="updateNodeHover"
       >
+        <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
         <ComponentWidgetTree
-          ref="widgetTree"
           :ast="props.node.innerExpr"
           :nodeId="nodeId"
           :rootElement="rootNode"
@@ -490,6 +528,7 @@ const nodeName = computed(() => props.node.pattern?.code())
           :showDetails="detailedView"
           :expanded="expanded"
         />
+        <ResizeHandles v-if="isExpanded" bottom v-on="resizeHandles.events" />
       </div>
     </ContextMenuTrigger>
     <div class="statuses">
@@ -500,7 +539,6 @@ const nodeName = computed(() => props.node.pattern?.code())
       v-bind="visibleMessage"
       class="afterNode shiftWhenMenuVisible"
     />
-    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
 </template>
 
@@ -510,6 +548,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  min-height: var(--node-base-height);
   --z-index-component: 24;
   --z-index-component-menu: 20;
   --z-index-selection-submenu: 25;
@@ -524,6 +563,12 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   background-color: var(--color-node-background);
   transition: background-color 0.2s ease;
+  /* Prevent this element from confusing Playwright's actionability checks */
+  pointer-events: none;
+}
+
+.ComponentWidgetTree {
+  height: 100%;
 }
 
 .content {
@@ -531,10 +576,11 @@ const nodeName = computed(() => props.node.pattern?.code())
   position: relative;
   top: 0;
   left: 0;
+  height: 100%;
   border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: start;
   white-space: nowrap;
   z-index: var(--z-index-component);
 }

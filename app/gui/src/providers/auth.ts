@@ -59,6 +59,7 @@ export function createUsersMeQuery(
       if (!sessionVal) {
         return null
       }
+
       const user = await remoteBackend.usersMe()
       if (user == null) {
         void setUsername(sessionVal.email)

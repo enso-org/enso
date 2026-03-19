@@ -6,6 +6,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 from Standard.Table import Value_Type
+from Standard.Table.Extensions.Column_Vector_Extensions import all
 
 import project.Column.Column
 import project.Column_Ref.Column_Ref
@@ -48,15 +49,19 @@ type Generate_Rows_Range
             to_column = resolve_to_from to col_type "to"
             from_column.to Vector . zip (to_column.to Vector) f->t->(f.up_to t include_end step)
 
-        case self of
-            Generate_Rows_Range.Integer_Range from to include_end step ->
-                resolve_from_to_range from to include_end step Value_Type.Integer
-            Generate_Rows_Range.Date_Range from to include_end step ->
-                resolve_from_to_range from to include_end step Value_Type.Date
-            Generate_Rows_Range.Range value ->
-                table.make_constant_column_from_vector value
-            Generate_Rows_Range.Integer_Column column ->
-                column.map t->(0.up_to t)
+        if table.row_count == 0 then
+            ## If the table is empty, we won't have any values to generate ranges from, but we still want to return an empty column of the correct type
+            self._make_empty_column_of_correct_type
+        else
+            case self of
+                Generate_Rows_Range.Integer_Range from to include_end step ->
+                    resolve_from_to_range from to include_end step Value_Type.Integer
+                Generate_Rows_Range.Date_Range from to include_end step ->
+                    resolve_from_to_range from to include_end step Value_Type.Date
+                Generate_Rows_Range.Range value ->
+                    table.make_constant_column_from_vector value
+                Generate_Rows_Range.Integer_Column column ->
+                    column.map t->(0.up_to t)
 
     ## ---
        private: true
@@ -68,6 +73,13 @@ type Generate_Rows_Range
         date_input_column = Widget_Helpers.make_column_ref_by_name_selector table add_date=True
         date_range = Option "..Date_Range" "..Date_Range" [["from", date_input_column], ["to", date_input_column]]
         Single_Choice [integer_range, date_range] display=display
+
+    private _make_empty_column_of_correct_type self -> Column =
+        case self of
+            Generate_Rows_Range.Integer_Range _ _ _ _ -> Column.from_vector "Empty" [] Value_Type.Integer
+            Generate_Rows_Range.Date_Range _ _ _ _ -> Column.from_vector "Empty" [] Value_Type.Date
+            Generate_Rows_Range.Range value -> Column.from_vector "Empty" [] value.to_column.value_type
+            Generate_Rows_Range.Integer_Column _ -> Column.from_vector "Empty" [] Value_Type.Integer
 
 ## Convert an integer to a Generate_Rows_Range
 Generate_Rows_Range.from (that:Integer) =

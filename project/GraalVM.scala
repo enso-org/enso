@@ -184,7 +184,8 @@ object GraalVM {
     Seq(
       "org.graalvm.js"       % "js-language" % version,
       "org.graalvm.regex"    % "regex"       % version,
-      "org.graalvm.shadowed" % "icu4j"       % version
+      "org.graalvm.shadowed" % "icu4j"       % version,
+      "org.graalvm.shadowed" % "xz"          % version
     )
 
   val chromeInspectorPkgs = Seq(

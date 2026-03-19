@@ -19,6 +19,8 @@ import {
   type ZipAssetsJobId,
 } from './types.js'
 
+/** Relative HTTP path to "get configuration" endpoint of the Cloud backend API. */
+export const CONFIGURATION_PATH = 'utils/config'
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "create user" endpoint of the Cloud backend API. */
@@ -273,6 +275,10 @@ export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
 /** Relative HTTP path to the "import archive job status" endpoint of the Cloud backend API. */
 export function getImportArchiveJobStatusPath(jobId: UnzipAssetsJobId) {
   return HttpsUrl(`assets/unzip/${jobId}`)
+}
+/** Relative HTTP path to the "download project session logs" endpoint of the Cloud backend API. */
+export function getDownloadProjectSessionLogsPath(projectSessionId: ProjectSessionId) {
+  return HttpsUrl(`project-sessions/${projectSessionId}/download`)
 }
 
 /** The ID of the directory containing the home directories of all users. */

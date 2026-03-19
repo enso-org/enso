@@ -9,10 +9,10 @@ cargo_build_script(
     build_script_env = {
         "ENSO_INSTALL_ARCHIVE_PATH": "$(execpath //app/electron-client:installer_payload.tar.gz)",
         "ENSO_INSTALL_METADATA_PATH": "$(execpath //app/electron-client:installer_metadata.json)",
-        "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:electron_builder_config)",
+        "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:exported_config)",
     },
     data = [
-        "//app/electron-client:electron_builder_config",
+        "//app/electron-client:exported_config",
         "//app/electron-client:installer_metadata.json",
         "//app/electron-client:installer_payload.tar.gz",
     ],

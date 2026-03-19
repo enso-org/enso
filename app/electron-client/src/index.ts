@@ -36,6 +36,7 @@ import {
   parseClientArguments,
   setOpenFileEventHandler,
 } from './fileAssociations.js'
+import { loadGuiConfig } from './guiConfig.js'
 import { Channel } from './ipc.js'
 import { setupLogger } from './log.js'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems.js'
@@ -47,8 +48,8 @@ import { getUrlToOpen, handleOpenUrl, registerAssociations } from './urlAssociat
 
 type Electron = typeof import('electron')
 
-const DEFAULT_WINDOW_WIDTH = 1380
-const DEFAULT_WINDOW_HEIGHT = 900
+const DEFAULT_WINDOW_WIDTH = 1780
+const DEFAULT_WINDOW_HEIGHT = 1000
 
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
@@ -342,10 +343,14 @@ class App {
       return
     }
     console.log('Creating the window.')
+
+    const guiConfig = await loadGuiConfig()
+    const encodedGuiConfig = Buffer.from(JSON.stringify(guiConfig), 'utf8').toString('base64')
     const webPreferences: WebPreferences = {
       preload: joinPath(appPath(this.electron), 'preload.mjs'),
       sandbox: true,
       spellcheck: false,
+      additionalArguments: [`--enso-gui-config=${encodedGuiConfig}`],
       ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
     }
     const windowPreferences: BrowserWindowConstructorOptions = {
@@ -520,19 +525,21 @@ class App {
       const projectToOpen = args.startup.project
       if (projectToOpen.startsWith(`${DEEP_LINK_SCHEME}:`)) {
         try {
-          await runHybridProjectByUrl(
+          const exitCode = await runHybridProjectByUrl(
             EnsoPath(projectToOpen.toString()),
             await createRemoteBackend(),
           )
-          this.exit(0)
+          // Forward exact failure exit code if available (or 0 if no error).
+          this.exit(exitCode)
         } catch (error) {
           console.error(`Error starting hybrid project '${projectToOpen}':`, error)
           return this.exit(1)
         }
       } else if (projectToOpen) {
         try {
-          await runLocalProjectByPath(Path(projectToOpen))
-          this.exit(0)
+          const exitCode = await runLocalProjectByPath(Path(projectToOpen))
+          // Forward exact failure exit code if available (or 0 if no error).
+          this.exit(exitCode)
         } catch (error) {
           console.error(`Error starting local project '${projectToOpen}':`, error)
           return this.exit(1)

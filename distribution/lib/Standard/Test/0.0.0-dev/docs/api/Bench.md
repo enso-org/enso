@@ -3,7 +3,7 @@
 - type Bench
     - All groups:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
     - Group name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options specs:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
-    - Spec name:Standard.Base.Data.Text.Text code:Standard.Base.Any.Any
+    - Spec name:Standard.Base.Data.Text.Text code:(Standard.Base.Any.Any -> Standard.Base.Any.Any)
     - build fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - estimated_runtime self -> Standard.Base.Any.Any
     - fold self value:Standard.Base.Any.Any fn:Standard.Base.Any.Any -> Standard.Base.Any.Any

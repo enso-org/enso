@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.enso.common.MethodNames;
@@ -448,7 +449,9 @@ public final class Builtins {
       context.getPackageRepository().ensurePackageIsLoaded(stdBase);
       moduleOpt = context.getTopScope().getModule(moduleName);
     }
-    assert moduleOpt.isPresent() : moduleName;
+    if (!moduleOpt.isPresent()) {
+      throw new NoSuchElementException(moduleName);
+    }
     var module = moduleOpt.get();
     var scope = module.compileScope(context);
     return scope;

@@ -139,6 +139,9 @@ public final class OtherJvmPool extends Channel.Config {
   @SuppressWarnings("unchecked")
   public final Persistance.Pool createPool(Channel<?> rawChannel) {
     var channel = (Channel<OtherJvmPool>) rawChannel;
+    if (channel.isDualJvmMode() && !channel.isMaster()) {
+      OtherJvmLogger.initialize(channel);
+    }
     var withRead =
         Persistables.POOL.withReadResolve(
             obj -> {

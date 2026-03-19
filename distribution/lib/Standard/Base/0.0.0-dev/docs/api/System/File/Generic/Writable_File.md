@@ -13,9 +13,9 @@
     - to_text self -> Standard.Base.Data.Text.Text
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_overridden_return self file_for_return:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - write self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - write_handling_dry_run self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - write_requiring_local_file self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - write self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:(Standard.Base.System.Output_Stream.Output_Stream -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - write_handling_dry_run self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:(Standard.Base.Any.Any -> Standard.Base.System.Output_Stream.Output_Stream -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - write_requiring_local_file self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:(Standard.Base.System.File.File -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
 - Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.Data.Text.Text -> Standard.Base.System.File.Generic.Writable_File.Writable_File
 - Standard.Base.System.File_Format_Metadata.File_Format_Metadata.from that:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 - Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.System.File.Generic.File_Like.File_Like

@@ -3,14 +3,14 @@
 - type List
     - Cons x:Standard.Base.Any.Any xs:Standard.Base.Data.List.List
     - Nil
-    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
-    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - contains self elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - drop_start self count:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - each self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
-    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
+    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - first self -> Standard.Base.Any.Any
     - fold self init:Standard.Base.Any.Any f:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -23,7 +23,7 @@
     - length self -> Standard.Base.Any.Any
     - map self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - not_empty self -> Standard.Base.Any.Any
-    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - reduce self function:Standard.Base.Any.Any ~if_empty:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - reverse self -> Standard.Base.Any.Any
     - second self -> Standard.Base.Any.Any

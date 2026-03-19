@@ -37,9 +37,9 @@ type SQL_Type_Mapping
        advanced: true
        ---
        Converts the given SQL_Type to its corresponding Value_Type.
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
-        _ = sql_type
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = [sql_type, json_as_text]
         Unimplemented.throw "This is an interface only."
 
     ## ---

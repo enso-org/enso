@@ -73,6 +73,8 @@ func2 a =
 
    Here is a link: <https://example.com>
 
+   [A reference to another project](enso://Users/user%20name/MockProject)
+
    Nested lists:
     - List element
       - Nested list element
@@ -154,11 +156,6 @@ const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => U
       ],
     }),
     'Standard.Visualization.Geo_Map.process_to_json_text': encodeJSON({
-      latitude: 37.8,
-      longitude: -122.45,
-      zoom: 15,
-      controller: true,
-      showingLabels: true, // Enables presenting labels when hovering over a point.
       layers: [
         {
           type: 'Scatterplot_Layer',

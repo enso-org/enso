@@ -9,6 +9,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.NoSuchElementException;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -159,7 +160,13 @@ public final class EqualsNode extends Node {
     private static boolean findConversionImpl(
         EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
       var selfScope = selfType.getDefinitionScope();
-      var comparableType = ctx.getBuiltins().comparableType();
+      Type comparableType;
+      try {
+        comparableType = ctx.getBuiltins().comparableType();
+      } catch (NoSuchElementException e) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return false;
+      }
 
       var fromSelfType =
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);

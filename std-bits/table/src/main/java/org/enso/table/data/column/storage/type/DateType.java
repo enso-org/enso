@@ -18,6 +18,11 @@ public final class DateType implements StorageType<LocalDate> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Date";
+  }
+
+  @Override
   public boolean hasDate() {
     return true;
   }

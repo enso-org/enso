@@ -49,12 +49,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
   public ProblemSummary summarize() {
     var summary = super.summarize();
     if (overflowCount > 0) {
-      summary.add(
-          new ArithmeticOverflow(
-              overflowTargetType.typeChar(),
-              overflowTargetType.size(),
-              overflowCount,
-              overflowExample));
+      summary.add(new ArithmeticOverflow(overflowTargetType, overflowCount, overflowExample));
     }
     return summary;
   }

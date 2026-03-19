@@ -8,7 +8,7 @@ import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '$/providers/react'
+import { useRemoteConfig, useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as salesforce from './salesforce'
 import type { CredentialFormProps } from './types'
@@ -18,6 +18,8 @@ export function SalesforceCredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const apiUrl = useRemoteConfig('ENSO_IDE_API_URL')
+  const oauthId = useRemoteConfig('ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID')
 
   return (
     <Form
@@ -30,7 +32,7 @@ export function SalesforceCredentialsForm(props: CredentialFormProps) {
       className="w-full"
       onSubmit={async (values) => {
         try {
-          await salesforce.submitForm(createCredentials, values)
+          await salesforce.submitForm(apiUrl, oauthId, createCredentials, values)
         } catch (error) {
           toastAndLog(null, error)
         }

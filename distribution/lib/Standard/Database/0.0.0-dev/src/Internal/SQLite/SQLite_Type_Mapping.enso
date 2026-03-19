@@ -82,12 +82,11 @@ type SQLite_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
-        on_not_found =
-            Value_Type.Unsupported_Data_Type sql_type.name sql_type
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = json_as_text
         do_simple_mapping =
-            simple_types_map.get sql_type.typeid if_missing=on_not_found
+            simple_types_map.get sql_type.typeid if_missing=(Value_Type.Unsupported_Data_Type sql_type.name sql_type)
         name_based_workarounds.get sql_type.name if_missing=do_simple_mapping
 
     ## ---

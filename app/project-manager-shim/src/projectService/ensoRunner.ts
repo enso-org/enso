@@ -9,8 +9,12 @@ import * as portfinder from 'portfinder'
 import { extract } from 'tar'
 import { Path } from './types.js'
 
+const HEALTHCHECK_FAILURES_TO_RESTART = 3
+const LOAD_HEALTHCHECK_INTERVAL = 250
+const WATCHDOG_HEALTHCHECK_INTERVAL = 3000
+
 export interface Runner {
-  runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<void>
+  runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<number>
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
   openProject(
     projectPath: Path,
@@ -18,16 +22,16 @@ export interface Runner {
     extraArgs?: readonly string[],
     extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets>
-  closeProject(projectId: string): Promise<void>
-  isProjectRunning(projectId: string): Promise<boolean>
+  closeProject(projectPath: Path): Promise<void>
+  isProjectRunning(projectPath: Path): Promise<boolean>
   renameProject(
-    projectId: string,
+    projectPath: Path,
     namespace: string,
     oldPackage: string,
     newPackage: string,
   ): Promise<void>
   registerShutdownHook(
-    projectId: string,
+    projectPath: Path,
     hookType: ShutdownHookType,
     hook: () => Promise<void>,
   ): Promise<void>
@@ -62,23 +66,190 @@ export interface Socket {
  */
 export interface ShutdownHookRegistry {
   'rename-project-directory': true
+  'remove-from-list': true
 }
 
 export type ShutdownHookType = keyof ShutdownHookRegistry
 
-interface RunningProject {
-  process: childProcess.ChildProcess
-  sockets: LanguageServerSockets
-  shutdownHooks: Map<ShutdownHookType, () => void | Promise<void>>
-}
-
 const DEFAULT_JSONRPC_PORT = 30616
 const LANGUAGE_SERVER_STARTUP_TIMEOUT = 30000
 
+class OpenedProject {
+  loaded: Promise<void>
+  shutdownHooks: Map<ShutdownHookType, () => void | Promise<void>> = new Map()
+  private closed = false
+  private nextWatchdogCheck: ReturnType<typeof setTimeout> | undefined
+
+  private constructor(
+    private path: Path,
+    public process: childProcess.ChildProcess,
+    public sockets: LanguageServerSockets,
+    private spawner: () => Promise<childProcess.ChildProcess>,
+  ) {
+    this.loaded = this.loadingRoutine()
+  }
+
+  static async create(
+    path: Path,
+    jsonPort: number,
+    binaryPort: number,
+    ydocPort: number,
+    spawner: () => Promise<childProcess.ChildProcess>,
+  ) {
+    const sockets = {
+      jsonSocket: { host: '127.0.0.1', port: jsonPort },
+      binarySocket: { host: '127.0.0.1', port: binaryPort },
+      ydocSocket: { host: '127.0.0.1', port: ydocPort },
+    }
+    const process = await spawner()
+
+    return new OpenedProject(path, process, sockets, spawner)
+  }
+
+  async close() {
+    console.log('Closing Project', this.path)
+    this.closed = true
+    clearTimeout(this.nextWatchdogCheck)
+    await this.terminateProcess()
+
+    for (const [hookType, hook] of this.shutdownHooks) {
+      try {
+        this.shutdownHooks.delete(hookType)
+        await hook()
+      } catch (error) {
+        console.error(
+          `Error executing shutdown hook '${hookType}' for project ${this.path}:`,
+          error,
+        )
+      }
+    }
+  }
+
+  private loadingRoutine(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let resolved = false
+
+      const healthCheck = async () => {
+        const isReady = await this.checkServerHealth()
+        if (isReady) {
+          resolved = true
+          this.runWatchdog()
+          resolve()
+        } else {
+          // Not using setInterval to not pile slow-responding healthchecks.
+          setTimeout(healthCheck, LOAD_HEALTHCHECK_INTERVAL)
+        }
+      }
+      setTimeout(healthCheck, 250)
+
+      // Timeout if server doesn't start (skip timeout in debug mode)
+      const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
+      const isDebugMode = javaToolOptions?.includes('jdwp')
+      if (!isDebugMode) {
+        setTimeout(() => {
+          if (!resolved) {
+            this.process.kill('SIGKILL')
+            reject(new Error('Language server startup timeout'))
+          }
+        }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
+      }
+    })
+  }
+
+  private runWatchdog() {
+    const restart = async (processExited = false) => {
+      if (!processExited) await this.terminateProcess()
+      if (!this.closed) {
+        this.process = await this.spawner()
+        this.loaded = this.loadingRoutine()
+      }
+    }
+
+    this.process.on('exit', () => {
+      if (this.closed) return
+      console.error(
+        'Language Server process for project',
+        this.path,
+        ' exited unexpectedly, restarting',
+      )
+      clearTimeout(this.nextWatchdogCheck)
+      restart(true)
+    })
+
+    let failures = 0
+    const check = async () => {
+      if (this.closed) return
+      if (await this.checkServerHealth()) {
+        failures = 0
+      } else {
+        console.error('Healthcheck failed! Project:', this.path)
+        failures += 1
+      }
+
+      if (failures >= HEALTHCHECK_FAILURES_TO_RESTART) {
+        console.error(
+          'Healthcheck of ',
+          this.path,
+          'failed',
+          HEALTHCHECK_FAILURES_TO_RESTART,
+          'times in a row, restarting.',
+        )
+        restart()
+        // do not schedule next check; the restart process does this once project is initialized.
+      } else {
+        // Not using setInterval to not pile slow-responding healthchecks.
+        this.nextWatchdogCheck = setTimeout(check, WATCHDOG_HEALTHCHECK_INTERVAL)
+      }
+    }
+    this.nextWatchdogCheck = setTimeout(check, WATCHDOG_HEALTHCHECK_INTERVAL)
+  }
+
+  private terminateProcess(): Promise<void> {
+    console.log('Terminating language server process of', this.path)
+    const process = this.process
+    return new Promise((resolve) => {
+      // Set a timeout in case the process doesn't exit gracefully
+      const timeout = setTimeout(async () => {
+        if (!process.killed) {
+          console.error('Language Server process of', this.path, "didn't finish in time. Killing.")
+          process.kill('SIGKILL')
+        }
+        resolve()
+      }, 10000)
+
+      // Listen for the process to exit
+      process.on('exit', async () => {
+        console.log('Language server process of ', this.path, 'exited')
+        clearTimeout(timeout)
+        resolve()
+      })
+
+      // Send line break to stdin to trigger graceful shutdown
+      if (process.stdin && !process.stdin.destroyed) {
+        process.stdin.write('\n')
+      } else {
+        process.kill('SIGTERM')
+      }
+    })
+  }
+
+  // Health check function
+  async checkServerHealth(): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `http://${this.sockets.jsonSocket.host}:${this.sockets.jsonSocket.port}/_health`,
+      )
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+}
+
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
-  private runningProjects = new Map<string, RunningProject>()
-  private loadingProjects = new Map<string, Promise<LanguageServerSockets>>()
+  private runningProjects = new Map<Path, OpenedProject>()
+  private loadingProjects = new Map<Path, Promise<OpenedProject>>()
 
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
@@ -129,11 +300,11 @@ export class EnsoRunner implements Runner {
     })
   }
 
-  /** Run an existing Enso project at the specified path. */
+  /** Run an existing Enso project at the specified path. Returns the exit code of the process. */
   async runProject(
     projectPath: Path,
     extraEnv?: readonly (readonly [string, string])[],
-  ): Promise<void> {
+  ): Promise<number> {
     const args = ['--run', projectPath]
     const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
     const cwd = path.dirname(projectPath)
@@ -144,13 +315,7 @@ export class EnsoRunner implements Runner {
       spawnedProcess.on('error', (error) => {
         reject(new Error(`Failed to spawn enso process: ${error.message}`))
       })
-      spawnedProcess.on('exit', (code) => {
-        if (code === 0) {
-          resolve()
-        } else {
-          reject(new Error(`Enso process exited with code ${code}.`))
-        }
-      })
+      spawnedProcess.on('exit', resolve)
     })
   }
 
@@ -173,20 +338,20 @@ export class EnsoRunner implements Runner {
     extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets> {
     // Check if the project is already running
-    const runningProject = this.runningProjects.get(projectId)
+    const runningProject = this.runningProjects.get(projectPath)
     if (runningProject) {
       return runningProject.sockets
     }
-    const loadingProject = this.loadingProjects.get(projectId)
+    const loadingProject = this.loadingProjects.get(projectPath)
     if (loadingProject) {
-      return loadingProject
+      return (await loadingProject).sockets
     }
 
     // Finding server ports is not reliable if another project is opening.
     while (this.loadingProjects.size > 0) {
       await this.loadingProjects.values().next().value
     }
-    const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(
+    const openedProject = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(
       async ([jsonPort, binaryPort, ydocPort]) => {
         const rootId = crypto.randomUUID()
         const args: readonly string[] = [
@@ -213,177 +378,66 @@ export class EnsoRunner implements Runner {
         }
 
         const cwd = path.dirname(projectPath)
-        const serverProcess = await this.runProcess(args, (cmd, cmdArgs) =>
-          childProcess.spawn(cmd, cmdArgs, {
-            env,
-            detached: false,
-            cwd,
-            stdio: ['pipe', 'inherit', 'inherit'],
-            windowsHide: true,
-          }),
+        const project = await OpenedProject.create(
+          projectPath,
+          jsonPort,
+          binaryPort,
+          ydocPort,
+          () =>
+            this.runProcess(args, (cmd, cmdArgs) =>
+              childProcess.spawn(cmd, cmdArgs, {
+                env,
+                detached: false,
+                cwd,
+                stdio: ['pipe', 'inherit', 'inherit'],
+                windowsHide: true,
+              }),
+            ),
         )
-
-        return new Promise<LanguageServerSockets>((resolve, reject) => {
-          let resolved = false
-
-          // Health check function
-          const checkServerHealth = async (): Promise<boolean> => {
-            try {
-              const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
-              return response.ok
-            } catch {
-              return false
-            }
-          }
-
-          // Start polling for server readiness after initial delay
-          const startHealthCheck = () => {
-            const pollInterval = setInterval(async () => {
-              if (resolved) {
-                clearInterval(pollInterval)
-                return
-              }
-
-              const isReady = await checkServerHealth()
-              if (isReady) {
-                clearInterval(pollInterval)
-                resolved = true
-                const sockets: LanguageServerSockets = {
-                  jsonSocket: { host: '127.0.0.1', port: jsonPort },
-                  binarySocket: { host: '127.0.0.1', port: binaryPort },
-                  ydocSocket: { host: '127.0.0.1', port: ydocPort },
-                }
-                this.runningProjects.set(projectId, {
-                  process: serverProcess,
-                  sockets: sockets,
-                  shutdownHooks: new Map(),
-                })
-                resolve(sockets)
-              }
-            }, 250) // Poll every 250ms
-          }
-
-          // Start health check after initial delay
-          setTimeout(startHealthCheck, 250)
-
-          serverProcess.on('error', (error) => {
-            console.error(error.toString())
-            if (!resolved) {
-              reject(new Error(`Failed to start language server: ${error.message}`))
-            }
-          })
-
-          serverProcess.on('close', async (code) => {
-            // Execute shutdown hooks if the process exits unexpectedly
-            const runningProject = this.runningProjects.get(projectId)
-            if (runningProject && runningProject.shutdownHooks) {
-              for (const [hookType, hook] of runningProject.shutdownHooks) {
-                try {
-                  runningProject.shutdownHooks.delete(hookType)
-                  await hook()
-                } catch (error) {
-                  console.error(
-                    `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
-                    error,
-                  )
-                }
-              }
-            }
-
-            // Remove from running projects when it closes
-            this.runningProjects.delete(projectId)
-            if (!resolved) {
-              reject(new Error(`Language server process exited with code ${code}.`))
-            }
-          })
-
-          // Timeout if server doesn't start (skip timeout in debug mode)
-          const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
-          const isDebugMode = javaToolOptions?.includes('jdwp')
-          if (!isDebugMode) {
-            setTimeout(() => {
-              if (!resolved) {
-                serverProcess.kill('SIGKILL')
-                reject(new Error('Language server startup timeout'))
-              }
-            }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
-          }
+        project.shutdownHooks.set('remove-from-list', () => {
+          this.runningProjects.delete(projectPath)
+          this.loadingProjects.delete(projectPath)
         })
+        return project.loaded.then(() => project)
       },
     )
-    this.loadingProjects.set(projectId, promise)
-    promise.finally(() => this.loadingProjects.delete(projectId))
-    return promise
+
+    this.loadingProjects.set(projectPath, openedProject)
+    openedProject.then((project) => {
+      this.runningProjects.set(projectPath, project)
+    })
+    openedProject.finally(() => {
+      this.loadingProjects.delete(projectPath)
+    })
+    return openedProject.then((project) => project.sockets)
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(projectId: string): Promise<void> {
+  async closeProject(projectPath: Path): Promise<void> {
     // First wait for potential initialization end.
-    await this.loadingProjects.get(projectId)
-    const runningProject = this.runningProjects.get(projectId)
+    await this.loadingProjects.get(projectPath)
+    const runningProject = this.runningProjects.get(projectPath)
 
     if (!runningProject) {
       // Project is not running or already closed
       return
     }
 
-    const { process, shutdownHooks } = runningProject
-
-    return new Promise((resolve) => {
-      // Function to execute shutdown hooks
-      const executeShutdownHooks = async () => {
-        for (const [hookType, hook] of shutdownHooks) {
-          try {
-            shutdownHooks.delete(hookType)
-            await hook()
-          } catch (error) {
-            console.error(
-              `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
-              error,
-            )
-          }
-        }
-      }
-
-      // Set a timeout in case the process doesn't exit gracefully
-      const timeout = setTimeout(async () => {
-        if (!process.killed) {
-          process.kill('SIGKILL')
-        }
-        await executeShutdownHooks()
-        this.runningProjects.delete(projectId)
-        resolve()
-      }, 10000)
-
-      // Listen for the process to exit
-      process.on('exit', async () => {
-        clearTimeout(timeout)
-        await executeShutdownHooks()
-        this.runningProjects.delete(projectId)
-        resolve()
-      })
-
-      // Send line break to stdin to trigger graceful shutdown
-      if (process.stdin && !process.stdin.destroyed) {
-        process.stdin.write('\n')
-      } else {
-        process.kill('SIGTERM')
-      }
-    })
+    return runningProject.close()
   }
 
   /** Checks if a project's language server is currently running. */
-  async isProjectRunning(projectId: string): Promise<boolean> {
-    return this.runningProjects.has(projectId)
+  async isProjectRunning(projectPath: Path): Promise<boolean> {
+    return this.runningProjects.has(projectPath)
   }
 
   /** Registers an action to be executed when the project is closed. */
   async registerShutdownHook(
-    projectId: string,
+    projectPath: Path,
     hookType: ShutdownHookType,
     hook: () => void | Promise<void>,
   ): Promise<void> {
-    const runningProject = this.runningProjects.get(projectId)
+    const runningProject = this.runningProjects.get(projectPath)
 
     if (!runningProject) {
       // If project is not running, execute the hook immediately
@@ -394,16 +448,20 @@ export class EnsoRunner implements Runner {
     runningProject.shutdownHooks.set(hookType, hook)
   }
 
-  /** Renames the running language server project. */
+  /**
+   * Renames the running language server project.
+   *
+   * It does _not_ rename it's directory.
+   */
   async renameProject(
-    projectId: string,
+    projectPath: Path,
     namespace: string,
     oldPackage: string,
     newPackage: string,
   ): Promise<void> {
-    const runningProject = this.runningProjects.get(projectId)
+    const runningProject = this.runningProjects.get(projectPath)
     if (!runningProject) {
-      throw new Error(`Project ${projectId} is not running`)
+      throw new Error(`Project ${projectPath} is not running`)
     }
 
     const { sockets } = runningProject

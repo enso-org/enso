@@ -481,7 +481,7 @@ export async function mockCloudApi(page: Page) {
 
     return createAsset({
       type: backend.AssetType.project,
-      id: backend.ProjectId('project-' + uniqueString()),
+      id: backend.ProjectId('project-' + uniqueString(27)),
       title,
       projectState: {
         type: backend.ProjectState.closed,
@@ -764,7 +764,7 @@ export async function mockCloudApi(page: Page) {
     })
     await get(paths.LIST_TAGS_PATH, () => {
       called('listTags', {})
-      return { tags: labels } satisfies backend.ListTagsResponseBody
+      return { tags: labels, assetVersionTags: [] } satisfies backend.ListTagsResponseBody
     })
     await get(paths.LIST_USERS_PATH, async (route) => {
       called('listUsers', {})
@@ -781,6 +781,13 @@ export async function mockCloudApi(page: Page) {
     })
 
     // === Endpoints with dummy implementations ===
+
+    await get(paths.CONFIGURATION_PATH, () => ({
+      ENSO_IDE_API_URL: BASE_URL,
+      ENSO_IDE_COGNITO_USER_POOL_ID: 'mars_AAAAAAAAA',
+      ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID: 'zzzzzzzzzzzzzzzzzzzzzzzzzz',
+    }))
+
     await get(paths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, _, [maybeId], params) => {
       if (!maybeId) return
       const presigned = params.get('presigned') === 'true'
@@ -792,7 +799,7 @@ export async function mockCloudApi(page: Page) {
         throw new Error(`Cannot get details for a project that does not exist. Project ID: ${projectId} \n
         Please make sure that you've created the project before opening it.
         ------------------------------------------------------------------------------------------------
-        
+
         Existing projects: ${Array.from(assetMap.values())
           .filter((asset) => asset.type === backend.AssetType.project)
           .map((asset) => asset.id)

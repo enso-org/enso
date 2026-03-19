@@ -1,9 +1,9 @@
 /** @file */
 export enum AuthEvent {
   customOAuthState = 'customOAuthState',
-  cognitoHostedUi = 'cognitoHostedUI',
-  signIn = 'signIn',
-  signOut = 'signOut',
+  signInWithRedirect = 'signInWithRedirect',
+  signedIn = 'signedIn',
+  signedOut = 'signedOut',
 }
 
 export let authEventListener: ((event: AuthEvent, data?: unknown) => void) | null

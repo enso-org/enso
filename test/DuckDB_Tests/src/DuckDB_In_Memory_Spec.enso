@@ -1,5 +1,7 @@
 from Standard.Base import all
+
 from Standard.Table import all
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 from Standard.Database import all
 from Standard.Database.Errors import Table_Already_Exists
@@ -7,6 +9,8 @@ from Standard.Database.Errors import Table_Already_Exists
 from Standard.DuckDB import all
 
 from Standard.Test import all
+
+import enso_dev.Table_Tests.Database.Postgres_Spec.JSON_Table_Data
 
 make_table start:Integer length:Integer=10 =
     node1 = start.up_to (start + length) True
@@ -27,8 +31,32 @@ compare_table db_table_read table =
         expected = table.at column . to_vector . map x-> if x.is_a Date_Time then x.date_add -x.nanosecond ..Nanosecond else x
         [column]+values . should_equal [column]+expected
 
-
 add_specs suite_builder =
+    suite_builder.group "DuckDB JSON" group_builder->
+        json_connection = JSON_Table_Data.setup (_ -> Database.connect DuckDB.In_Memory) ["json"]
+
+        group_builder.teardown <|
+            json_connection.teardown
+
+        group_builder.specify "query a table with JSON" <|
+            db_table = json_connection.connection.query "tbl_json_test"
+            Problems.assume_no_problems db_table
+            db_table.column_names.should_equal ["id", "payload"]
+            db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            json_type = db_table.at "payload" . value_type
+            json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+            json_type.type_name.should_equal "JSON"
+            db_table.row_count.should_equal 12
+
+        group_builder.specify "read a table with JSON as text with warning" <|
+            table = json_connection.connection.read "tbl_json_test"
+            Problems.expect_only_warning Inexact_Type_Coercion table
+            table.column_names.should_equal ["id", "payload"]
+            table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            table.at "payload" . value_type . should_equal Value_Type.Char
+            table.row_count . should_equal 12
+            table.at "payload" . to_vector . should_equal json_connection.expected
+
     suite_builder.group "DuckDB_Parquet" group_builder->
         connect = Database.connect DuckDB.In_Memory
 

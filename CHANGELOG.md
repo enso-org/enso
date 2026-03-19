@@ -5,9 +5,27 @@
 - [Add component alignment options][14590].
 - [Components have Expanded/Collapsed modes][14678]. The effect is visible in
   Table.input components.
+- [Text widgets have a fixed maximum size in collapsed mode][14775]
+- [Fixed uploading corrupted projects to the cloud storage][14805]
+- [Drive is now a separate panel instead of tab.][14807]
+- [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
+- [Opened project's Language Server process is restarted after a crash][14832].
+- [Geo Map Visualization may display GeoSpatial data][14859]
+- [Component height can be resized][14849]
+- [Add right click menu for multiple components][14640].
+- [Execution can be scheduled for the specific version tag][14883]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
+[14775]: https://github.com/enso-org/enso/pull/14775
+[14805]: https://github.com/enso-org/enso/pull/14805
+[14807]: https://github.com/enso-org/enso/pull/14807
+[14820]: https://github.com/enso-org/enso/pull/14820
+[14832]: https://github.com/enso-org/enso/pull/14832
+[14859]: https://github.com/enso-org/enso/pull/14859
+[14849]: https://github.com/enso-org/enso/pull/14849
+[14640]: https://github.com/enso-org/enso/pull/14640
+[14883]: https://github.com/enso-org/enso/pull/14883
 
 #### Enso Standard Library
 
@@ -20,6 +38,12 @@
 - [Add Amazon SES email provider][14597]
 - [Support for reading Alteryx YXDB files][14602].
 - [Salesforce OAuth support.][14550]
+- [Launching another Enso process via `Process_Builder`][14753]
+- [Redshift schema support.][14735]
+- [`Process_Builder.set_env`.][14799]
+- [New `Profile` API for timing code execution.][14827]
+- [Expanded S3 API with versions and signed uri][14831]
+- [Support for reading JSON data from database connections.][14872]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -30,6 +54,12 @@
 [14597]: https://github.com/enso-org/enso/pull/14597
 [14602]: https://github.com/enso-org/enso/pull/14602
 [14550]: https://github.com/enso-org/enso/pull/14550
+[14753]: https://github.com/enso-org/enso/pull/14753
+[14735]: https://github.com/enso-org/enso/pull/14735
+[14799]: https://github.com/enso-org/enso/pull/14799
+[14827]: https://github.com/enso-org/enso/pull/14827
+[14831]: https://github.com/enso-org/enso/pull/14831
+[14872]: https://github.com/enso-org/enso/pull/14872
 
 #### Enso Language & Runtime
 
@@ -38,12 +68,14 @@
 - [Lazily initialized local variables with `Ref.new lazy=True`][14554].
 - [Flush system caches via `Runtime.gc`][14557]
 - [Removing `catch_primitive` from the API][14676]
+- [`polyglot java import` loads classes from HotSpot JVM][14798]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
 [14536]: https://github.com/enso-org/enso/pull/14554
 [14557]: https://github.com/enso-org/enso/pull/14557
 [14676]: https://github.com/enso-org/enso/pull/14676
+[14798]: https://github.com/enso-org/enso/pull/14798
 
 # Enso 2025.3
 
@@ -90,6 +122,7 @@
   twice][14507]
 - [Add `Date_Time_Column.set_time_zone` and `.at_time_zone` to in-memory
   tables.][14591]
+- [Fixed copying projects from Team directory to Local][14797]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -124,6 +157,7 @@
 [14500]: https://github.com/enso-org/enso/pull/14500
 [14507]: https://github.com/enso-org/enso/pull/14507
 [14591]: https://github.com/enso-org/enso/pull/14591
+[14797]: https://github.com/enso-org/enso/pull/14797
 
 #### Enso Standard Library
 

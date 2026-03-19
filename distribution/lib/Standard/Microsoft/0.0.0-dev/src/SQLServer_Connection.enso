@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.File_Type
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
@@ -331,9 +333,13 @@ type SQLServer_Connection
        ## Arguments
         - `query`: either raw SQL code as Text or an instance of SQL_Statement
           representing the query to execute.
-    execute_update : Text | SQL_Statement -> Integer
-    execute_update self query =
-        self.connection.execute_update query
+        - `write_operation`: if set to `True`, the query is expected to be a
+          write operation and will only run if the output context is enabled. If
+          set to `False`, the query is expected to be a read operation and will
+          run regardless of the output context. Defaults to `True`.
+    execute_update : Text | SQL_Statement -> Boolean -> Integer
+    execute_update self query write_operation:Boolean=True =
+        self.connection.execute_update query write_operation
 
     ## ---
        private: true
@@ -349,8 +355,19 @@ type SQLServer_Connection
         - `query`: either raw SQL code as Text or an instance of SQL_Statement
           representing the query to execute.
     execute : Text | SQL_Statement -> Integer
-    execute self query =
-        self.connection.execute query
+    execute self query:(Text | SQL_Statement) =
+        ## SQL Server needs an override as it seems to behave differently to prepareStatement
+        compiled_query = if query.is_a Text then query else query.prepare.first
+        self.jdbc_connection.with_connection related_query=compiled_query java_connection->
+            stmt = java_connection.createStatement
+            handle_any caught_panic =
+                stmt.close
+                if caught_panic.payload.is_a Illegal_State . not then Panic.throw caught_panic else
+                    Error.throw (Illegal_Argument.Error caught_panic.payload.message)
+            Panic.catch Any handler=handle_any <|
+                result = stmt.executeUpdate compiled_query
+                Error.return_if_error result
+                stmt.getUpdateCount
 
     ## ---
        private: true

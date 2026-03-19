@@ -119,7 +119,8 @@ export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `e
 export interface UserInfo {
   /**
    * The ID of the parent organization. If this is a sole user, they are implicitly in an
-   * organization consisting of only themselves.
+   * organization consisting of only themselves. For `User`s with `maintainerAccount` set to true this
+   * represents currently active (selected) `Organization`.
    */
   readonly organizationId: OrganizationId
   /** The name of the parent organization. */
@@ -137,6 +138,12 @@ export interface UserInfo {
   readonly email: EmailAddress
   readonly newOrganizationName?: string
   readonly newOrganizationInvite?: 'error' | 'pending'
+  /**
+   * Marks account with enabled feature to be able to switch currently active organization.
+   */
+  readonly maintainerAccount?: boolean
+  /** Array containing all `OrganizationInfo` that `User` belongs to. */
+  readonly organizations?: readonly OrganizationInfo[]
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -415,6 +422,7 @@ export interface ProjectExecutionInfo {
   readonly timeZone: dateTime.IanaTimeZone
   readonly maxDurationMinutes: number
   readonly parallelMode: ProjectParallelMode
+  readonly tag: string | undefined
 }
 
 /** A specific execution schedule of a project. */
@@ -629,6 +637,7 @@ export interface ListSecretsResponseBody {
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
   readonly tags: readonly Label[]
+  readonly assetVersionTags: readonly string[]
 }
 
 /**
@@ -1068,6 +1077,8 @@ export interface S3ObjectVersion {
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
   readonly user?: OtherUser
+  readonly tags?: string[] | undefined
+  readonly comment?: string | undefined
 }
 
 /** A user other than the current user */
@@ -1120,6 +1131,7 @@ export interface CreateUserRequestBody {
 export interface UpdateUserRequestBody {
   readonly username?: string
   readonly organizationId?: OrganizationId
+  readonly switchOrganization?: boolean
 }
 
 /** HTTP request body for the "change user group" endpoint. */
@@ -1215,6 +1227,7 @@ export interface OpenHybridProjectParameters {
   readonly cloudProjectId: ProjectId
   /** Cloud project session id. */
   readonly cloudProjectSessionId: ProjectSessionId
+  readonly cloudApiUrl: string
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -1689,7 +1702,7 @@ export class NotAuthorizedError extends NetworkError {}
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {
   abstract readonly type: BackendType
-  abstract readonly baseUrl: URL
+  abstract baseUrl: URL
   protected getText: DefaultGetText
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
@@ -1729,11 +1742,11 @@ export abstract class Backend {
     }
 
     const error =
-      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+      response == null || !response.headers.get('Content-Type')?.startsWith('application/json') ?
         { message: 'unknown error' }
       : await ((): Promise<Error> => response.json())()
 
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}`
     console.error(message)
 
     const status = response?.status
@@ -1854,6 +1867,8 @@ export abstract class Backend {
   abstract listProjectExecutions(
     projectId: ProjectId,
     title: string,
+    year: number,
+    month: number,
   ): Promise<readonly ProjectExecution[]>
   abstract syncProjectExecution(
     executionId: ProjectExecutionId,
@@ -1984,6 +1999,8 @@ export abstract class Backend {
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<readonly Label[]>
+  /** Return all tags attached to asset versions in the organization. */
+  abstract listAssetVersionTags(): Promise<readonly string[]>
   /** Set the full list of labels for a specific asset. */
   abstract associateTag(
     assetId: AssetId,
@@ -2017,6 +2034,8 @@ export abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
+  /** Download project session logs as a file. */
+  abstract downloadProjectSessionLogs(projectSessionId: ProjectSessionId): Promise<void>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
   /**

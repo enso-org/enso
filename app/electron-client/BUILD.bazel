@@ -6,6 +6,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
 load("@npm//app/electron-client:playwright/package_json.bzl", playwright_bin = "bin")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 load("//internal:stampFiles.bzl", "stamp_files")
 
@@ -96,38 +97,46 @@ stamp_files(
     srcs = [":bundle"],
     out = "bundle_stamped",
     input_dir = "$(location :bundle)",
+    recalculate_hashes = False,
     visibility = ["//visibility:public"],
 )
 
-alias(
-    name = "selected_bundle",
-    actual = select({
-        "//:stamping": ":bundle_stamped",
-        "//conditions:default": ":bundle",
-    }),
+stamp_files(
+    name = "electron_builder_config_stamped",
+    srcs = ["electron-builder-config.cjs"],
+    out = "electron_builder_config_stamped/electron-builder-config.cjs",
+    input_path = "$(location electron-builder-config.cjs)",
+    output_is_directory = False,
+    recalculate_hashes = False,
 )
 
-alias(
-    name = "selected_gui_dist",
-    actual = select({
-        "//:stamping": "//app/gui:dist_stamped",
-        "//conditions:default": "//app/gui:dist",
-    }),
+genrule(
+    name = "enso_bundle_marker",
+    outs = [".enso.bundle"],
+    cmd = "touch $@",
+    cmd_bat = "type NUL > $@",
+    visibility = ["//visibility:public"],
 )
 
 electron_builder_bin.electron_builder(
     name = "dist",
     srcs = npm_link_targets() + [
+        "assets/icons/icon.icns",
         "package.json",
-        ":electron-builder-config.cjs",
-        ":selected_bundle",
-        ":selected_gui_dist",
+         ":electron-builder-config.cjs",
+         ":selected_bundle",
+         ":selected_gui_dist",
+        ":bundle_stamped",
+        ":electron_builder_config_stamped",
+        ":enso_bundle_marker",
         "//:sbt_build_native_engine_distribution",
-        # "//:sbt_build_small_jdk",
+        "//:sbt_build_small_jdk",
+        "//app/gui:dist_stamped",
+        "//internal:dependencies_versions_in_bin",
     ],
     args = [
         "build",
-        "--config electron-builder-config.cjs",
+        "--config electron_builder_config_stamped/electron-builder-config.cjs",
     ],
     chdir = package_name(),
     env = {
@@ -169,9 +178,13 @@ js_binary(
 )
 
 js_run_binary(
-    name = "electron_builder_config",
-    srcs = ["electron-builder-config.cjs"],
-    args = ["$(location electron-builder-config.cjs)"],
+    name = "exported_config",
+    srcs = [
+        ":electron_builder_config_stamped",
+        "//:dependencies_scala_bin",
+        "//internal:dependencies_versions_in_bin",
+    ],
+    args = ["$(location :electron_builder_config_stamped)"],
     stdout = "electron-builder-config.json",
     tool = ":export_config_script",
     visibility = ["//visibility:public"],
@@ -180,6 +193,17 @@ js_run_binary(
 alias(
     name = "win_installer",
     actual = "//build_tools/install/installer:enso_installer",
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "stage_bazel_macos_app",
+    srcs = ["macos/stage-bazel-app.sh"],
+    args = [
+        "$(location :dist)",
+        "dist/ide/bazel-prepackaged",
+    ],
+    data = [":dist"],
     visibility = ["//visibility:public"],
 )
 

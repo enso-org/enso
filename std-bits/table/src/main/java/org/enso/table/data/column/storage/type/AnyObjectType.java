@@ -17,6 +17,11 @@ public final class AnyObjectType implements StorageType<Object> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Mixed";
+  }
+
+  @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof AnyObjectType;
   }

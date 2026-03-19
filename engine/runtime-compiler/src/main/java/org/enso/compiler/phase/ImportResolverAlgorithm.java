@@ -17,7 +17,6 @@ public abstract class ImportResolverAlgorithm<
     ResolvedModuleMethod,
     ResolvedExtensionMethod,
     ResolvedConversionMethod> {
-  protected ImportResolverAlgorithm() {}
 
   protected abstract String nameForImport(Import imp);
 
@@ -48,15 +47,19 @@ public abstract class ImportResolverAlgorithm<
    */
   protected abstract java.util.List<String> onlyNames(Export ex);
 
-  protected abstract java.util.List<ResolvedType> definedEntities(Import name);
+  protected abstract java.util.List<ResolvedType> definedEntities(List<String> parts, Import name);
 
-  protected abstract java.util.List<ResolvedConstructor> definedConstructors(Import name);
+  protected abstract java.util.List<ResolvedConstructor> definedConstructors(
+      List<String> parts, Import name);
 
-  protected abstract java.util.List<ResolvedModuleMethod> definedModuleMethods(Import imp);
+  protected abstract java.util.List<ResolvedModuleMethod> definedModuleMethods(
+      List<String> parts, Import imp);
 
-  protected abstract java.util.List<ResolvedExtensionMethod> definedExtensionMethods(Import imp);
+  protected abstract java.util.List<ResolvedExtensionMethod> definedExtensionMethods(
+      List<String> parts, Import imp);
 
-  protected abstract java.util.List<ResolvedConversionMethod> definedConversionMethods(Import imp);
+  protected abstract java.util.List<ResolvedConversionMethod> definedConversionMethods(
+      List<String> parts, Import imp);
 
   /**
    * Ensure library is loaded and load a module.
@@ -127,23 +130,23 @@ public abstract class ImportResolverAlgorithm<
       if (m != null) {
         return createResolvedImport(imp, exp, m);
       }
-      var typ = tryResolveAsTypeNew(imp);
+      var typ = tryResolveAsTypeNew(parts, imp);
       if (typ != null) {
         return createResolvedType(imp, exp, typ);
       }
-      var cons = tryResolveAsConstructor(imp);
+      var cons = tryResolveAsConstructor(parts, imp);
       if (cons != null) {
         return createResolvedConstructor(imp, exp, cons);
       }
-      var moduleMethod = tryResolveAsModuleMethod(imp);
+      var moduleMethod = tryResolveAsModuleMethod(parts, imp);
       if (moduleMethod != null) {
         return createResolvedModuleMethod(imp, exp, moduleMethod);
       }
-      var extensionMethods = tryResolveAsExtensionMethods(imp);
+      var extensionMethods = tryResolveAsExtensionMethods(parts, imp);
       if (extensionMethods != null) {
         return createResolvedExtensionMethods(imp, exp, extensionMethods);
       }
-      var conversionMethods = tryResolveAsConversionMethods(imp);
+      var conversionMethods = tryResolveAsConversionMethods(parts, imp);
       if (conversionMethods != null) {
         return createResolvedConversionMethods(imp, exp, conversionMethods);
       }
@@ -153,11 +156,10 @@ public abstract class ImportResolverAlgorithm<
     }
   }
 
-  private ResolvedType tryResolveAsTypeNew(Import name) {
-    var parts = partsForImport(name);
+  private ResolvedType tryResolveAsTypeNew(List<String> parts, Import name) {
     var last = parts.size() - 1;
     var tp = parts.get(last);
-    var entities = definedEntities(name);
+    var entities = definedEntities(parts, name);
     if (entities == null) {
       return null;
     }
@@ -165,12 +167,11 @@ public abstract class ImportResolverAlgorithm<
     return type.orElse(null);
   }
 
-  private ResolvedConstructor tryResolveAsConstructor(Import imp) {
-    var parts = partsForImport(imp);
+  private ResolvedConstructor tryResolveAsConstructor(List<String> parts, Import imp) {
     if (parts.size() < 3) {
       return null;
     }
-    var constructors = definedConstructors(imp);
+    var constructors = definedConstructors(parts, imp);
     if (constructors == null) {
       return null;
     }
@@ -182,12 +183,11 @@ public abstract class ImportResolverAlgorithm<
     return consOpt.orElse(null);
   }
 
-  private ResolvedModuleMethod tryResolveAsModuleMethod(Import imp) {
-    var parts = partsForImport(imp);
+  private ResolvedModuleMethod tryResolveAsModuleMethod(List<String> parts, Import imp) {
     if (parts.size() < 3) {
       return null;
     }
-    var moduleMethods = definedModuleMethods(imp);
+    var moduleMethods = definedModuleMethods(parts, imp);
     if (moduleMethods == null) {
       return null;
     }
@@ -206,12 +206,12 @@ public abstract class ImportResolverAlgorithm<
    * @return List with at least one element. null if there are no static methods in the imported
    *     module scope.
    */
-  private java.util.List<ResolvedExtensionMethod> tryResolveAsExtensionMethods(Import imp) {
-    var parts = partsForImport(imp);
+  private java.util.List<ResolvedExtensionMethod> tryResolveAsExtensionMethods(
+      List<String> parts, Import imp) {
     if (parts.size() < 3) {
       return null;
     }
-    var definedExtensionMethods = definedExtensionMethods(imp);
+    var definedExtensionMethods = definedExtensionMethods(parts, imp);
     if (definedExtensionMethods == null) {
       return null;
     }
@@ -234,12 +234,12 @@ public abstract class ImportResolverAlgorithm<
    * @return List of at least one element. null if there are no conversion methods in the imported
    *     module scope.
    */
-  private java.util.List<ResolvedConversionMethod> tryResolveAsConversionMethods(Import imp) {
-    var parts = partsForImport(imp);
+  private java.util.List<ResolvedConversionMethod> tryResolveAsConversionMethods(
+      List<String> parts, Import imp) {
     if (parts.size() < 3) {
       return null;
     }
-    var definedConvMethods = definedConversionMethods(imp);
+    var definedConvMethods = definedConversionMethods(parts, imp);
     if (definedConvMethods == null) {
       return null;
     }

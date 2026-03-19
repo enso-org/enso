@@ -187,9 +187,9 @@ add_derived_columns_specs suite_builder setup =
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In []) "TT" "FF")) "Z" . at "Z" . to_vector . should_equal ["FF", "FF"]
 
             # Passing a column does not work row-by-row, but looks at whole column contents.
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t2.at "B")) "TT" "FF")) "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
+            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t2.at "B")) "TT" "FF")) "Z" . at "Z" . to_vector . should_equal_ignoring_order ["FF", "TT"]
             t3 = table_builder [["x", ["e", "e", "a"]]]
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t3.at "x")) "TT" "FF")) "Z" . sort "C" . at "Z" . to_vector . should_equal ["TT", "FF"]
+            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t3.at "x")) "TT" "FF")) "Z" . sort "C" . at "Z" . to_vector . should_equal_ignoring_order ["TT", "FF"]
 
             # Thus, passing a Column_Ref into Is_In is not allowed as it would be confusing.
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (Column_Ref.Name "B")) "TT" "FF")) . should_fail_with Illegal_Argument

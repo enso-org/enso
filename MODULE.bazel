@@ -33,6 +33,8 @@ single_version_override(
     patches = ["patches/aspect_rules_esbuild_windows_fix.patch"],
 )
 
+bazel_dep(name = "rules_shell", version = "0.4.0")
+
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "22.11.0")
@@ -46,6 +48,9 @@ register_toolchains("//toolchains:windows_builtin_tar_toolchain")
 npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
 npm.npm_translate_lock(
     name = "npm",
+    data = [
+        "//:patches/@aws-amplify__auth.patch",
+    ],
     npmrc = "//:.npmrc",
     pnpm_lock = "//:pnpm-lock.yaml",
     verify_node_modules_ignored = "//:.bazelignore",
@@ -185,11 +190,11 @@ register_toolchains("@sbt_repo//:toolchain")
 
 scala_logging_version = "3.9.4"
 
-scalatest_version = "3.3.0-SNAP4"
+scalatest_version = "3.2.19"
 
-cats_version = "2.9.0"
+cats_version = "2.10.0"
 
-circe_version = "0.14.5"
+circe_version = "0.14.8"
 
 circe_libs = [
     "circe-core",
@@ -199,7 +204,7 @@ circe_libs = [
 
 circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
 
-graal_maven_packages_version = "24.2.0"
+graal_maven_packages_version = "25.0.1"
 
 commons_text_version = "1.10.0"
 
@@ -216,10 +221,6 @@ commons_lang_version = "3.12.0"
 junit_version = "4.13.2"
 
 hamcrest_version = "1.3"
-
-picocli_version = "4.6.1"
-
-minimal_json_version = "0.9.5"
 
 ## TODO: Consider replacing maven extension with
 ## https://github.com/bazeltools/bazel-deps
@@ -243,10 +244,6 @@ maven.install(
         "org.apache.commons:commons-lang3:%s" % commons_lang_version,
         "junit:junit:%s" % junit_version,
         "org.hamcrest:hamcrest-all:%s" % hamcrest_version,
-
-        ## bazel-distribution dependencies
-        "info.picocli:picocli:%s" % picocli_version,
-        "com.eclipsesource.minimal-json:minimal-json:%s" % minimal_json_version,
     ] + circe,
     fail_if_repin_required = True,
     lock_file = "//:maven_install.json",

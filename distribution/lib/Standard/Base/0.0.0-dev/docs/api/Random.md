@@ -7,7 +7,7 @@
     - gaussian standard_deviation:Standard.Base.Data.Numbers.Float= mean:Standard.Base.Data.Numbers.Float= -> Standard.Base.Any.Any
     - indices n:Standard.Base.Data.Numbers.Integer count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - integer min:Standard.Base.Data.Numbers.Integer max:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
-    - items v:(Standard.Base.Any.Any|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer= with_replacement:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - items v:((Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)|(Standard.Base.Data.Array.Array Standard.Base.Any.Any)) count:Standard.Base.Data.Numbers.Integer= with_replacement:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - new_generator seed:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - permute v:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
     - set_seed seed:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
@@ -22,7 +22,7 @@
     - global_random_generator -> Standard.Base.Any.Any
     - indices self n:Standard.Base.Data.Numbers.Integer count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - integer self min:Standard.Base.Data.Numbers.Integer max:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
-    - items self v:(Standard.Base.Any.Any|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer= with_replacement:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - items self v:((Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)|(Standard.Base.Data.Array.Array Standard.Base.Any.Any)) count:Standard.Base.Data.Numbers.Integer= with_replacement:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - java_random self -> Standard.Base.Any.Any
     - new seed:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) -> Standard.Base.Any.Any
     - permute self v:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any

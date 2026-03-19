@@ -1,6 +1,47 @@
 const path = require('node:path')
 const fs = require('node:fs/promises')
 
+const STAMPED_ENSO_IDE_VERSION = '((%__ENSO_IDE_VERSION__%))'
+const DEFAULT_DEV_VERSION = '0.0.0-dev'
+const PLACEHOLDER_REGEX = /^\(\(%__.*__%\)\)$/
+
+function isPlaceholder(value) {
+  return typeof value === 'string' && PLACEHOLDER_REGEX.test(value)
+}
+
+function resolveEnsoVersion() {
+  const version = STAMPED_ENSO_IDE_VERSION
+  return !version || isPlaceholder(version) ? DEFAULT_DEV_VERSION : version
+}
+
+const workspaceRoot = process.env.JS_BINARY__EXECROOT
+if (!workspaceRoot) {
+  throw new Error('JS_BINARY__EXECROOT is not set.')
+}
+
+const bazelBinDir = process.env.BAZEL_BINDIR
+if (!bazelBinDir) {
+  throw new Error('BAZEL_BINDIR is not set.')
+}
+const bazelBinRoot = path.resolve(workspaceRoot, bazelBinDir)
+
+function resolveRuntimeDirName() {
+  try {
+    const { readDependenciesVersions } = require(
+      path.join(bazelBinRoot, 'internal', 'dependenciesVersions.cjs'),
+    )
+    const { graalVersion, graalMavenPackagesVersion } = readDependenciesVersions({
+      workspaceRoot: bazelBinRoot,
+    })
+    return `graalvm-ce-java${graalVersion}-${graalMavenPackagesVersion}`
+  } catch (e) {
+    throw new Error(`Unable to resolve JVM runtime directory name: ${e.message}`)
+  }
+}
+
+const ensoVersion = resolveEnsoVersion()
+const runtimeDirName = resolveRuntimeDirName()
+
 function artifactName(version) {
   return 'enso-${os}-${arch}-' + version + '.${ext}'
 }
@@ -68,9 +109,8 @@ async function patchAppImage(context) {
   const loaderScript = `#!/usr/bin/env bash
       set -u
 
-      # TODO[ib]: quick hack to resolve java binary at runtime on Linux
       SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-      # export PATH="$SCRIPT_DIR/resources/enso/runtime/graalvm-ce-java24.0.1-24.2.0/bin:$PATH"
+      export PATH="$SCRIPT_DIR/resources/enso/runtime/${runtimeDirName}/bin:$PATH"
       exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
       `
   try {
@@ -86,11 +126,10 @@ module.exports = {
   appId: 'org.enso',
   productName: 'Enso',
   extraMetadata: {
-    version: '0.0.0-dev', // FIXME: Replace with the actual version
-    installer: {}, // FIXME: installer config
+    version: ensoVersion,
   },
-  copyright: 'Copyright © 2025 Enso International, Inc.',
-  artifactName: artifactName('0.0.0-dev'), // FIXME: Replace with the actual artifact name
+  copyright: `Copyright © ${new Date().getFullYear()} Enso International, Inc.`,
+  artifactName: artifactName(ensoVersion),
   protocols: [
     {
       name: 'Enso url',
@@ -123,19 +162,9 @@ module.exports = {
       to: '.',
       filter: ['package.json', '!**/node_modules/**/*'],
     },
-    // TODO: here we duplicate `from` location because stamping and non-stamping builds have different output directories.
-    // Can we do it in a more elegant way?
-    {
-      from: 'bundle/',
-      to: '.',
-    },
     {
       from: 'bundle_stamped/',
       to: '.',
-    },
-    {
-      from: '../gui/dist',
-      to: 'assets',
     },
     {
       from: '../gui/dist_stamped',
@@ -144,13 +173,17 @@ module.exports = {
   ],
   extraResources: [
     {
-      from: engineDistributionSource('0.0.0-dev'),
-      to: engineDistributionTarget('0.0.0-dev'),
+      from: engineDistributionSource(ensoVersion),
+      to: engineDistributionTarget(ensoVersion),
     },
-    // {
-    //   from: '../../built-small-jdk/',
-    //   to: 'enso/runtime/graalvm-ce-java24.0.1-24.2.0',
-    // },
+    {
+      from: '../../built-small-jdk/',
+      to: `enso/runtime/${runtimeDirName}`,
+    },
+    {
+      from: '.enso.bundle',
+      to: 'enso/.enso.bundle',
+    },
   ],
   fileAssociations: [
     {

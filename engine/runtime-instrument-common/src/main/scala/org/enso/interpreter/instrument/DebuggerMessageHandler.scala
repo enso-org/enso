@@ -1,12 +1,10 @@
 package org.enso.interpreter.instrument
 
 import java.nio.ByteBuffer
-import com.oracle.truffle.api.TruffleStackTrace
 import com.typesafe.scalalogging.Logger
 import org.enso.polyglot.debugger._
 import org.graalvm.polyglot.io.MessageEndpoint
-
-import scala.jdk.CollectionConverters._
+import org.enso.interpreter.runtime.error.PanicException
 
 /** Helper class that handles communication with Debugger client and delegates
   * request to the execution event node of the ReplDebuggerInstrument.
@@ -130,32 +128,17 @@ object DebuggerMessageHandler {
   private def fillInTruffleStackTraceForSerialization(
     exception: Exception
   ): Exception = {
-    val truffleTrace =
-      Option(TruffleStackTrace.getStackTrace(exception))
-        .map(_.asScala)
-        .getOrElse(Nil)
-
-    val javaTrace = truffleTrace.map { elem =>
-      val rootNode = elem.getTarget.getRootNode
-      val language =
-        Option(rootNode.getLanguageInfo).map(_.getId).getOrElse("unknown")
-      val declaringClass = s"<$language>"
-      val methodName = Option(rootNode.getQualifiedName)
-        .getOrElse("?")
-      val sourceLocation = for {
-        sourceSection <- Option(rootNode.getSourceSection)
-        source        <- Option(sourceSection.getSource)
-      } yield (source.getName, sourceSection.getStartLine)
-      val (fileName, lineNumber) = sourceLocation.getOrElse((null, -1))
-      new StackTraceElement(declaringClass, methodName, fileName, lineNumber)
-    }
+    val javaTrace = PanicException.toJavaStackTrace(exception, true)
 
     if (javaTrace.nonEmpty) {
       var lastException: Throwable = exception
       while (lastException.getCause != null) {
         lastException = lastException.getCause
       }
-      if (lastException.getStackTrace.isEmpty) {
+      if (
+        lastException.getStackTrace.isEmpty || lastException
+          .isInstanceOf[PanicException]
+      ) {
         lastException.setStackTrace(javaTrace.toArray)
       }
     }

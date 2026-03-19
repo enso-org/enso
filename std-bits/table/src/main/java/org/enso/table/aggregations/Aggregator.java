@@ -28,6 +28,7 @@ public abstract class Aggregator {
    * Compute the value for a set of rows
    *
    * @param indexes - indexes to the rows in the source table to aggregate on
+   * @param problemAggregator - the aggregator to report any problems to
    * @return aggregated value
    */
   public abstract Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator);

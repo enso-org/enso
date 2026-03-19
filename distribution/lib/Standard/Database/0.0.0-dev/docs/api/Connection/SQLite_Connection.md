@@ -6,14 +6,14 @@
     - close self -> Standard.Base.Any.Any
     - create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)
-    - create_table self table_name:Standard.Base.Data.Text.Text structure:(Standard.Base.Any.Any|Standard.Table.Table.Table) primary_key:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - create_table self table_name:Standard.Base.Data.Text.Text structure:((Standard.Base.Data.Vector.Vector Standard.Database.Column_Description.Column_Description)|Standard.Table.Table.Table) primary_key:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
     - dialect self -> Standard.Base.Any.Any
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - execute_update self query:Standard.Base.Any.Any write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - fetch_primary_key self table_name:Standard.Base.Data.Text.Text schema_name:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - get_dialect -> Standard.Base.Any.Any
     - jdbc_connection self -> Standard.Base.Any.Any

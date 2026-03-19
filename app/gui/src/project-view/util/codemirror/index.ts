@@ -1,4 +1,5 @@
 import { LINE_BOUNDARIES } from '$/utils/data/string'
+import { useNavigateLink } from '$/utils/links'
 import type { ToValue } from '$/utils/reactivity'
 import { textEditorsBindings } from '@/bindings'
 import type CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
@@ -48,6 +49,7 @@ import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
+export { singleLineDisplay } from '@/util/codemirror/singleLineDisplay'
 
 function disableEditContextApi() {
   ;(EditorView as any).EDIT_CONTEXT = false
@@ -216,6 +218,7 @@ const NULL_EXTENSION: Extension = readonly([])
 
 function useBindings() {
   const keyboard = injectKeyboard(true)
+  const navigateLink = useNavigateLink()
 
   function openLink(event: CmEventExt<AnyHandlerEvent>) {
     const parents = elementHierarchy(event.target)
@@ -225,7 +228,7 @@ function useBindings() {
 
     event.preventDefault()
     event.stopPropagation()
-    window.open(linkElement.href, '_blank', 'noopener,noreferrer')
+    navigateLink(linkElement.href)
     return true
   }
 

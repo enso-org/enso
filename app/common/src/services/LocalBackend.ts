@@ -779,9 +779,24 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
-  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
     const { directoryPath } = getDirectoryAndName(Path(path as string))
-    return this.findAsset(directoryPath, 'ensoPath', path)
+    const directoryContents = await this.listDirectory({
+      parentId: newDirectoryId(directoryPath),
+      filterBy: null,
+      labels: null,
+      recentProjects: false,
+      rootPath: this.rootPath(),
+      sortExpression: null,
+      sortDirection: null,
+      from: null,
+      pageSize: null,
+    })
+    const entry = directoryContents.assets.find((asset) => asset.ensoPath === path)
+    if (entry == null) {
+      throw new backend.AssetDoesNotExistError()
+    }
+    return entry
   }
 
   /** Resolve the data of a project asset relative to the project root directory. */
@@ -877,12 +892,14 @@ export class LocalBackend extends backend.Backend {
     localProjectId: backend.ProjectId,
     parentDirectoryId: backend.DirectoryId,
     defaultHeaders: Record<string, string>,
+    apiUrl: string,
   ): Promise<void> {
     const localProjectDirectory = backend.extractTypeAndPath(localProjectId).path
     const queryString = new URLSearchParams({
       assetId,
       parentDirectoryId,
       directory: localProjectDirectory,
+      apiUrl,
     }).toString()
     const response = await this.post(
       new URL(`/api/watcher/start?${queryString}`, location.href).toString(),
@@ -1033,6 +1050,14 @@ export class LocalBackend extends backend.Backend {
     return Promise.resolve([])
   }
 
+  /**
+   * Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used.
+   */
+  override listAssetVersionTags(): Promise<readonly string[]> {
+    return Promise.resolve([])
+  }
+
   /** Do nothing. This function should never need to be called. */
   override associateTag() {
     return Promise.resolve()
@@ -1109,6 +1134,11 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Invalid operation. */
+  override downloadProjectSessionLogs() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override listApiKeys() {
     return this.invalidOperation()
   }
@@ -1126,33 +1156,6 @@ export class LocalBackend extends backend.Backend {
   /** Invalid operation */
   override getMapboxToken() {
     return this.invalidOperation()
-  }
-
-  /** Find asset details using directory listing. */
-  private async findAsset<Key extends keyof backend.AnyAsset>(
-    directory: Path,
-    key: Key,
-    value: backend.AnyAsset[Key],
-  ) {
-    const directoryContents = await this.listDirectory({
-      parentId: newDirectoryId(directory),
-      filterBy: null,
-      labels: null,
-      recentProjects: false,
-      rootPath: this.rootPath(),
-      sortExpression: null,
-      sortDirection: null,
-      from: null,
-      pageSize: null,
-    })
-    const entry = directoryContents.assets.find((content) => content[key] === value)
-    if (entry == null) {
-      if (backend.isDirectoryId(value)) {
-        throw new backend.DirectoryDoesNotExistError()
-      }
-      throw new backend.AssetDoesNotExistError()
-    }
-    return entry as never
   }
 }
 

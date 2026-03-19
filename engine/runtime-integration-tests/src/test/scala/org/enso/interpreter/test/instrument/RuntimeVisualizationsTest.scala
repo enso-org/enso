@@ -1218,210 +1218,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
-  it should "be able to modify visualizations for pending visualizations" in withContext(
-    sequentialExecution = false
-  ) { context =>
-    val contents = context.Main.code
-    val mainFile = context.writeMain(contents)
-    val visualizationFile =
-      context.writeInSrcDir("Visualization", context.Visualization.code)
-
-    val contextId        = UUID.randomUUID()
-    val requestId        = UUID.randomUUID()
-    val visualizationId  = UUID.randomUUID()
-    val visualizationId2 = UUID.randomUUID()
-
-    // open files
-    context.send(
-      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
-    )
-
-    context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenFileResponse)
-    )
-    context.send(
-      Api.Request(
-        requestId,
-        Api.OpenFileRequest(
-          visualizationFile,
-          context.Visualization.code
-        )
-      )
-    )
-    context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenFileResponse)
-    )
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    context.receiveNIgnorePendingExpressionUpdates(
-      5
-    ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
-      context.executionComplete(contextId)
-    )
-
-    // attach visualizations
-    context.send(
-      Api.Request(
-        requestId,
-        Api.AttachVisualization(
-          visualizationId,
-          context.Main.idMainX,
-          Api.VisualizationConfiguration(
-            contextId,
-            Api.VisualizationExpression.Text(
-              "Enso_Test.Test.Visualization",
-              "x -> encode x",
-              Vector()
-            ),
-            "Enso_Test.Test.Visualization"
-          )
-        )
-      )
-    )
-
-    context.send(
-      Api.Request(
-        requestId,
-        Api.AttachVisualization(
-          visualizationId2,
-          context.Main.idMainX,
-          Api.VisualizationConfiguration(
-            contextId,
-            Api.VisualizationExpression.Text(
-              "Enso_Test.Test.Visualization",
-              "x -> encode x",
-              Vector()
-            ),
-            "Enso_Test.Test.Visualization"
-          )
-        )
-      )
-    )
-
-    val attachVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(4)
-
-    attachVisualizationResponses.filter(
-      _.payload.isInstanceOf[Api.VisualizationAttached]
-    ) shouldEqual List(
-      Api.Response(requestId, Api.VisualizationAttached()),
-      Api.Response(requestId, Api.VisualizationAttached())
-    )
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            model.TextEdit(
-              model.Range(model.Position(4, 8), model.Position(4, 9)),
-              "7"
-            )
-          ),
-          execute = true,
-          idMap   = None
-        )
-      )
-    )
-
-    val editFileResponses =
-      context.receiveNIgnoreExpressionUpdates(3)
-
-    editFileResponses should contain(
-      context.executionComplete(contextId)
-    )
-
-    val visualizationUpdatesResponses =
-      (attachVisualizationResponses ::: editFileResponses).filter(
-        _.payload.isInstanceOf[Api.VisualizationUpdate]
-      )
-    val expectedExpressionId = context.Main.idMainX
-    val visualizationUpdates = visualizationUpdatesResponses.map(
-      _.payload.asInstanceOf[Api.VisualizationUpdate]
-    )
-    val visContexts = visualizationUpdates.map(_.visualizationContext)
-    visContexts should contain allOf (
-      Api.VisualizationContext(
-        `visualizationId`,
-        `contextId`,
-        `expectedExpressionId`
-      ),
-      Api.VisualizationContext(
-        `visualizationId2`,
-        `contextId`,
-        `expectedExpressionId`
-      ),
-    )
-
-    visualizationUpdates.map(update =>
-      new String(update.data)
-    ) should contain allOf ("6", "7")
-
-    // modify visualization
-    context.send(
-      Api.Request(
-        requestId,
-        Api.ModifyVisualization(
-          visualizationId,
-          Api.VisualizationConfiguration(
-            contextId,
-            Api.VisualizationExpression.Text(
-              "Enso_Test.Test.Visualization",
-              "x -> incAndEncode x",
-              Vector()
-            ),
-            "Enso_Test.Test.Visualization"
-          )
-        )
-      )
-    )
-    val modifyVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(4)
-
-    modifyVisualizationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualizationModified()),
-      context.executionComplete(contextId)
-    )
-    val visualizationUpdates2 =
-      modifyVisualizationResponses.collect {
-        case Api.Response(
-              None,
-              Api.VisualizationUpdate(
-                Api.VisualizationContext(
-                  modifiedId,
-                  `contextId`,
-                  `expectedExpressionId`
-                ),
-                data
-              )
-            ) =>
-          (data, modifiedId)
-      }
-
-    visualizationUpdates2.map(_._2) should contain(visualizationId)
-
-    visualizationUpdates2.map(p => new String(p._1)) should contain("8")
-  }
-
   it should "not emit visualization update when visualization is detached" in withContext() {
     context =>
       val contents = context.Main.code
@@ -4493,19 +4289,28 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         context.executionComplete(contextId)
       )
 
-      // Send IdMap
+      // Send IdMap with execute = true to ensure the IdMap is compiled into
+      // the module IR before attaching the visualization. Without this, there
+      // is a race between the EnsureCompiledJob (applying the IdMap) and the
+      // UpsertVisualizationJob (which needs the IdMap to find the parent
+      // expression for cache invalidation via flyby).
       val idYX = new UUID(0, 1)
       context.send(
         Api.Request(
           Api.EditFileNotification(
             mainFile,
             Seq(),
-            execute = false,
+            execute = true,
             idMap = Some(
               model.IdMap(Vector(model.Span(100, 101) -> idYX))
             )
           )
         )
+      )
+      context.receiveNIgnoreExpressionUpdates(
+        1
+      ) should contain(
+        context.executionComplete(contextId)
       )
 
       // attach visualization

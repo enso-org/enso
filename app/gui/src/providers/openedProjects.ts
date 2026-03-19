@@ -1,26 +1,16 @@
-import LocalStorage from '#/utilities/LocalStorage'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
 import {
   IS_OPENING as BACKEND_IS_OPENING,
   IS_OPENING_OR_OPENED as BACKEND_IS_OPENING_OR_OPENED,
   BackendType,
-  Plan,
   ProjectId,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result, type ResultError } from 'enso-common/src/utilities/data/result'
 import { isOnElectron } from 'enso-common/src/utilities/detect'
-import { computed, ref, shallowReactive, watchEffect } from 'vue'
-import * as z from 'zod'
-import { useAuth } from './auth'
-import { useBackends } from './backends'
-import { useFeatureFlag } from './featureFlags'
-import {
-  RUNNING_PROJECT_INFO_SCHEMA,
-  type ProjectInfo,
-  type RunningProjectInfo,
-} from './openedProjects/projectInfo'
+import { ref, shallowReactive } from 'vue'
+import { type ProjectInfo, type RunningProjectInfo } from './openedProjects/projectInfo'
 import {
   useProjectStates,
   type HybridLocallyClosed,
@@ -50,8 +40,6 @@ export interface Project {
   error: ResultError | Error | undefined
 }
 
-LocalStorage.registerKey('openedTabs', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
-
 /**
  * A type for Opened Project Store.
  */
@@ -61,35 +49,11 @@ export type OpenedProjectsStore = ReturnType<typeof useOpenedProjects>
  * Constructor of Opened Project Store.
  */
 export function createOpenedProjectsStore() {
-  const auth = useAuth()
   const projects = shallowReactive(new Map<ProjectId, Project>())
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
+
   const projectStates = useProjectStates()
-  const backends = useBackends()
-  const localStorage = LocalStorage.getInstance()
   const closingOnAppExit = ref(false)
   const projectReadyCallbacks: ((project: Project) => void)[] = []
-
-  /** Whether the user can run projects. */
-  const modesForBackend = computed(() => ({
-    locally: {
-      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
-      [BackendType.remote]: backends.localBackend != null ? ('hybrid' as const) : null,
-    },
-    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
-    // Local projects: Open normally
-    // Cloud projects: Open in Cloud VM
-    natively: {
-      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
-      [BackendType.remote]:
-        (
-          enableCloudExecution.value &&
-          (auth.session?.user.plan === Plan.team || auth.session?.user.plan === Plan.enterprise)
-        ) ?
-          ('cloud' as const)
-        : null,
-    },
-  }))
 
   /** Open project. */
   function openProject(info: ProjectInfo) {
@@ -109,32 +73,6 @@ export function createOpenedProjectsStore() {
     projects.set(info.id, project)
     performProcess(project, 'opening')
     return project
-  }
-
-  /** Checks if project with given backend type may be opened locally. */
-  function canOpenProjectLocally(backend: BackendType) {
-    return modesForBackend.value.locally[backend] != null
-  }
-
-  /** Open project locally, by asset data and backend type. */
-  function openProjectLocally(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
-    const mode = modesForBackend.value.locally[backend]
-    if (mode != null) {
-      return openProject({ ...info, mode })
-    }
-  }
-
-  /** Checks if project with given backend type may be opened natively. */
-  function canOpenProjectNatively(backend: BackendType) {
-    return modesForBackend.value.natively[backend] != null
-  }
-
-  /** Open project natively, by asset data and backend type. */
-  function openProjectNatively(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
-    const mode = modesForBackend.value.natively[backend]
-    if (mode != null) {
-      return openProject({ ...info, mode })
-    }
   }
 
   /**
@@ -237,6 +175,7 @@ export function createOpenedProjectsStore() {
       } else {
         console.error(`${process} process interrupted by error.`, { cause: err })
         project.error = Error(`${process} process interrupted by error.`, { cause: err })
+        project.nextTask = undefined
       }
     }
   }
@@ -340,38 +279,6 @@ export function createOpenedProjectsStore() {
     return projects.get(id)?.nextTask?.process === 'closing'
   }
 
-  /** Register a callback fired every time a project changes it status to 'initialized'. */
-  function onProjectReady(cb: (project: Project) => void) {
-    projectReadyCallbacks.push(cb)
-    return () => projectReadyCallbacks.splice(projectReadyCallbacks.indexOf(cb), 1)
-  }
-
-  /**
-   * Read and restore projects from local storage, and then keep the storage up-to-date about
-   * currently opened projects.
-   */
-  function syncWithLocalStorage() {
-    for (const project of localStorage.get('openedTabs') ?? []) {
-      restoreProject(project)
-    }
-
-    return watchEffect(() => {
-      const openedTabs: RunningProjectInfo[] = []
-      for (const project of projects.values()) {
-        switch (project.state.status) {
-          case 'opened':
-          case 'initialized':
-          case 'hybrid-closed':
-          case 'to-restore':
-          case 'closed-by-backend':
-            openedTabs.push(project.state.info)
-            break
-        }
-      }
-      localStorage.set('openedTabs', openedTabs)
-    })
-  }
-
   // A handler for uploading hybrid projects before app close.
   //
   // They are not removed from local backend, but synchronized with remote in case someone else
@@ -417,22 +324,17 @@ export function createOpenedProjectsStore() {
 
   return {
     openProject,
-    canOpenProjectLocally,
-    openProjectLocally,
-    canOpenProjectNatively,
-    openProjectNatively,
     closeProject,
     closeAllProjects,
     renameProject,
+    restoreProject,
     get,
     listProjects,
     isProjectOpening,
     isProjectOpened,
     isProjectClosing,
     waitForProcess,
-    closingOnAppExit: closingOnAppExit,
-    onProjectReady,
-    syncWithLocalStorage,
+    closingOnAppExit,
   }
 }
 

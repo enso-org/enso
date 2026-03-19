@@ -32,6 +32,9 @@ object JarExtractPlugin extends AutoPlugin {
     val inputJarResolved = taskKey[File](
       "Resolved input jar file from the module ID"
     )
+    val relevantDependencies = taskKey[Seq[File]](
+      "Dependencies to be propagated transitively from a project"
+    )
   }
 
   private lazy val extract = taskKey[Unit](

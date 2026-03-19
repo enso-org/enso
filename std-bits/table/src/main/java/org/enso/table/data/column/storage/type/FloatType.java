@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigDecimal;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForDouble;
@@ -25,6 +26,18 @@ public final class FloatType implements StorageType<Double>, NumericType {
   @Override
   public char typeChar() {
     return 'F';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    var ensoBits = Bits.asEnsoValue(bits());
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), ensoBits);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Float";
   }
 
   @Override

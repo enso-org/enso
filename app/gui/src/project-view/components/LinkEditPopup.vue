@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { useNavigateLink } from '$/utils/links'
 import { textEditorsBindings } from '@/bindings'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import { computed, ref, toRef, useTemplateRef } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, toRef, useTemplateRef } from 'vue'
 
 const props = defineProps<{
   referenceElement: HTMLElement
@@ -10,21 +10,12 @@ const props = defineProps<{
   popOut: boolean
 }>()
 
-const route = useRoute()
-const router = useRouter()
+const navigateLink = useNavigateLink()
 const navigating = ref(false)
 
-const navigationType = computed(() => {
-  const url = URL.parse(props.href)
-  const isEnsoLink = url?.protocol === 'enso:'
-  return isEnsoLink ? ('internal' as const) : ('external' as const)
-})
-
-function navigateInternally() {
+function onClick() {
   navigating.value = true
-  router
-    .push({ params: { path: props.href.split('/') }, query: route.query })
-    .finally(() => (navigating.value = false))
+  navigateLink(props.href).finally(() => (navigating.value = false))
 }
 
 const floatingElement = useTemplateRef<HTMLElement>('floating')
@@ -40,15 +31,7 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
 <template>
   <teleport to="#floatingLayer">
     <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
-      <a
-        v-if="navigationType === 'internal' && !navigating"
-        class="link"
-        @click="navigateInternally"
-        >Follow link</a
-      >
-      <a v-else-if="!navigating" class="link" :href="href" target="_blank" rel="noopener,noreferrer"
-        >Follow link</a
-      >
+      <a v-if="!navigating" class="link" @click="onClick">Follow link</a>
       ({{ textEditorsBindings.bindings.openLink.humanReadable }})
     </div>
   </teleport>

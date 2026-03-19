@@ -195,9 +195,11 @@ export async function edgesToNode(page: Page, node: Locator) {
  */
 export async function outputPortCoordinates(page: Page, node: Locator) {
   const nodeId = await node.getAttribute('data-node-id')
-  const outputPortArea = await page
-    .locator(`.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`)
-    .boundingBox()
+  const outputPort = page.locator(
+    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`,
+  )
+  await outputPort.elementHandle().then((element) => element?.waitForElementState('stable'))
+  const outputPortArea = await outputPort.boundingBox()
   await expect(outputPortArea).toBeTruthy()
   assert(outputPortArea)
   const centerX = outputPortArea.x + outputPortArea.width / 2

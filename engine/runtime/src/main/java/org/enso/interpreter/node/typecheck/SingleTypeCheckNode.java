@@ -34,7 +34,16 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
     this.expectedType = expectedType;
   }
 
-  abstract Object executeConversion(VirtualFrame frame, Object value);
+  final Object executeConversion(
+      VirtualFrame frame, Object value, AbstractTypeCheckNode[] failingCheck) {
+    var res = executeHandleConversion(frame, value);
+    if (res == null && failingCheck != null) {
+      failingCheck[0] = this;
+    }
+    return res;
+  }
+
+  abstract Object executeHandleConversion(VirtualFrame frame, Object value);
 
   @Specialization
   Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {

@@ -7,6 +7,7 @@
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as accessToken from 'enso-common/src/accessToken'
+import type { $Config } from 'enso-gui/src/config'
 import type { ElectronApi } from 'enso-gui/src/electronApi'
 import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import type * as projectManagement from 'project-manager-shim'
@@ -29,6 +30,23 @@ function exposeInMainWorld<Key extends string & keyof Window>(
 ) {
   electron.contextBridge.exposeInMainWorld(key, value)
 }
+
+const GUI_CONFIG_ARGUMENT_PREFIX = '--enso-gui-config='
+
+function loadInjectedGuiConfig(argv: readonly string[]): $Config {
+  const arg = argv.find((item) => item.startsWith(GUI_CONFIG_ARGUMENT_PREFIX))
+  if (arg == null) {
+    throw new Error(
+      `Missing '${GUI_CONFIG_ARGUMENT_PREFIX}...' argument. This is required to keep renderer $config in sync with Electron main process.`,
+    )
+  }
+  const encoded = arg.slice(GUI_CONFIG_ARGUMENT_PREFIX.length)
+  const jsonText = Buffer.from(encoded, 'base64').toString('utf8')
+  return JSON.parse(jsonText) as $Config
+}
+
+// Inject `window.$config` before any app code runs.
+exposeInMainWorld('$config', loadInjectedGuiConfig(process.argv))
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
   string,
@@ -177,7 +195,6 @@ const api: ElectronApi = {
   projectManagement: projectManagementApi,
   fileBrowser,
   versionInfo: debug.VERSION_INFO,
-  mapBoxApiToken: () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '',
   log: {
     log: (msg: any[]) => {
       electron.ipcRenderer.send(ipc.Channel.log, msg)

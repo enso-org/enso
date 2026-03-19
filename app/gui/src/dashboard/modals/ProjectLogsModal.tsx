@@ -96,6 +96,14 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
           onPress={() => logsPages.fetchNextPage()}
           isDisabled={!logsPages.hasNextPage}
         />
+        <Button
+          variant="icon"
+          icon="data_download"
+          aria-label={getText('downloadAsFile')}
+          onPress={async () => {
+            await backend.downloadProjectSessionLogs(projectSessionId)
+          }}
+        />
       </Button.Group>
       {isLoading ?
         <Loader />
