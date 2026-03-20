@@ -211,7 +211,5 @@ type Text_Column
        icon: convert
        ---
        Parses the column assuming it contains JSON strings, and returns a column of the resulting values.
-
-       ## ToDo: Add problem handling for invalid JSON strings.
     parse_json self on_problems:Problem_Behavior=..Report_Warning -> Column ! Invalid_JSON | Illegal_Argument =
         self.operations_implementation.parse_json self.column on_problems
