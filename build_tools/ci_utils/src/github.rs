@@ -184,3 +184,14 @@ pub fn create_client(pat: impl AsRef<str>) -> Result<reqwest::Client> {
     header_map.append(reqwest::header::AUTHORIZATION, format!("Bearer {}", pat.as_ref()).parse()?);
     Ok(reqwest::Client::builder().user_agent("enso-build").default_headers(header_map).build()?)
 }
+
+/// Client has set the authorization header and only uses HTTP/1.1.
+pub fn create_client_http1_only(pat: impl AsRef<str>) -> Result<reqwest::Client> {
+    let mut header_map = reqwest::header::HeaderMap::new();
+    header_map.append(reqwest::header::AUTHORIZATION, format!("Bearer {}", pat.as_ref()).parse()?);
+    Ok(reqwest::Client::builder()
+        .user_agent("enso-build")
+        .default_headers(header_map)
+        .http1_only()
+        .build()?)
+}

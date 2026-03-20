@@ -10,7 +10,6 @@ use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
 use reqwest::Body;
 use reqwest::StatusCode;
-use reqwest::Version;
 use tracing::instrument;
 
 // ==============
@@ -116,25 +115,28 @@ pub trait IsReleaseExt: IsRelease + Sync {
         let upload_url_for_log = upload_url.clone();
         let asset_name_for_log = asset_name.clone();
         let content_type_for_log = content_type.clone();
-        let request = self
-            .octocrab()
-            .client
-            .post(&upload_url)
-            .version(Version::HTTP_11)
-            .query(&[("name", &asset_name)])
-            .header(reqwest::header::ACCEPT, "application/vnd.github.v3+json")
-            .header(reqwest::header::CONTENT_TYPE, content_type.to_string())
-            .header(reqwest::header::CONTENT_LENGTH, content_length)
-            .body(body);
+        let upload_url_for_request = upload_url.clone();
+        let asset_name_for_request = asset_name.clone();
+        let content_type_for_request = content_type.clone();
+        let client = crate::github::retrieve_github_access_token()
+            .and_then(crate::github::create_client_http1_only)
+            .context("Failed to create HTTP/1.1 GitHub upload client.");
 
         async move {
             ensure!(content_length > 0, "Release asset file cannot be empty.");
+            let request = client?
+                .post(&upload_url_for_request)
+                .query(&[("name", &asset_name_for_request)])
+                .header(reqwest::header::ACCEPT, "application/vnd.github.v3+json")
+                .header(reqwest::header::CONTENT_TYPE, content_type_for_request.to_string())
+                .header(reqwest::header::CONTENT_LENGTH, content_length)
+                .body(body);
             debug!(
                 url = %upload_url_for_log,
                 asset = %asset_name_for_log,
                 content_type = %content_type_for_log,
                 content_length,
-                http_version = ?Version::HTTP_11,
+                http1_only = true,
                 "Uploading GitHub release asset."
             );
             crate::io::web::execute(request)

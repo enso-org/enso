@@ -4,19 +4,19 @@ use crate::prelude::*;
 
 use crate::cache::download::DownloadFile;
 use crate::github;
-use crate::github::MAX_PER_PAGE;
 use crate::github::model;
+use crate::github::MAX_PER_PAGE;
 
 use headers::HeaderMap;
 use headers::HeaderValue;
-use octocrab::models::ArtifactId;
-use octocrab::models::AssetId;
-use octocrab::models::ReleaseId;
-use octocrab::models::RunId;
 use octocrab::models::repos::Asset;
 use octocrab::models::repos::Ref;
 use octocrab::models::repos::Release;
 use octocrab::models::workflows::WorkflowListArtifact;
+use octocrab::models::ArtifactId;
+use octocrab::models::AssetId;
+use octocrab::models::ReleaseId;
+use octocrab::models::RunId;
 use octocrab::params::actions::ArchiveFormat;
 use octocrab::params::repos::Reference;
 use reqwest::Response;
