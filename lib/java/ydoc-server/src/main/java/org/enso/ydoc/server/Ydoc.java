@@ -250,14 +250,14 @@ public final class Ydoc implements AutoCloseable {
   public void start() throws IOException {
     var ydoc = Main.class.getResource(YDOC_PATH);
 
-    var devYdocPath = findYdocServerSrc();
-    if (devYdocPath != null) {
-      var ydocFile = new File(devYdocPath);
+    var ydocDevJs = findYdocServerSrc();
+    if (ydocDevJs != null) {
+      var ydocFile = new File(ydocDevJs);
       if (!ydocFile.canRead()) {
         LOG.log(
             System.Logger.Level.WARNING,
             "Ignoring value {0} of {1} as the path cannot be read",
-            devYdocPath,
+            ydocDevJs,
             YDOC_PATH_ENV_NAME);
       } else {
         ydoc = ydocFile.toURI().toURL();
@@ -268,7 +268,7 @@ public final class Ydoc implements AutoCloseable {
             YDOC_PATH_ENV_NAME);
         // enabling Google Dev Tools debugging of YDOC_PATH_ENV_NAME
         contextBuilder.option("inspect", "true");
-        contextBuilder.option("inspect.Suspend", "" + devYdocPath.contains("suspend"));
+        contextBuilder.option("inspect.Suspend", "" + ydocDevJs.contains("suspend"));
         contextBuilder.option("inspect.Path", "enso_ydoc");
       }
     }
@@ -309,8 +309,14 @@ public final class Ydoc implements AutoCloseable {
     try {
       context = initFuture.get();
     } catch (Exception e) {
-      LOG.log(System.Logger.Level.ERROR, "Failed to initialize Ydoc", e);
-      System.exit(7);
+      var msg = "Failed to initialize Ydoc";
+      LOG.log(System.Logger.Level.ERROR, msg, e);
+      if (ydocDevJs != null) {
+        final var failureInYdocDevJs = 7;
+        System.exit(failureInYdocDevJs);
+      } else {
+        throw new IllegalStateException(msg, e);
+      }
     }
 
     if (LOG.isLoggable(System.Logger.Level.TRACE)) {
