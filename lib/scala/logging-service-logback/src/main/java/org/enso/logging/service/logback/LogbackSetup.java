@@ -184,7 +184,7 @@ public final class LogbackSetup extends LoggerSetup {
         if (logPrefix == null) {
           logPrefix = "enso";
         }
-        var logPostfix = "%d{yyyy-MM-dd-hh-mm}";
+        var logPostfix = "%d{yyyy-MM-dd-HH-mm}";
         String filePattern;
         if (logRoot == null) {
           filePattern = logPrefix + "-" + logPostfix;
