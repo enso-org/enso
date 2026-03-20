@@ -11,9 +11,8 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
-import { computed, ref, toRef, useTemplateRef } from 'vue'
+import { computed, toRefs, useTemplateRef } from 'vue'
 
-const DEFAULT_WIDTH_PX = 600
 const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
   'help.whatsNew',
   'help.community',
@@ -28,17 +27,16 @@ const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
 const props = defineProps<{ middlePanelShown: boolean }>()
 
 const containerData = useContainerData()
-const width = toRef(containerData, 'leftPanelWidth')
-const visible = ref(true)
+const { leftPanelWidth: width, leftPanelToggledOn: toggledOn } = toRefs(containerData)
+const visible = computed(() => toggledOn.value || !props.middlePanelShown)
 
 const root = useTemplateRef('content')
 const cssClass = computed(() => ({
   focusedPanel: containerData.focusedPanel.type === 'drive',
+  middlePanelShown: props.middlePanelShown,
 }))
 const widthStyle = computed(() =>
-  visible.value && props.middlePanelShown ?
-    { width: `${width.value ?? DEFAULT_WIDTH_PX}px` }
-  : { width: '100%' },
+  width.value != null && props.middlePanelShown ? { width: `${width.value}px` } : {},
 )
 
 const resizeHandles = useResizeHandles({
@@ -50,16 +48,12 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
 <template>
   <div class="LeftPanel">
     <SizeTransition width :duration="250">
-      <div
-        v-if="visible || !middlePanelShown"
-        ref="content"
-        class="panel"
-        :class="cssClass"
-        :style="widthStyle"
-      >
-        <HelpBar />
-        <Drive />
-        <ResizeHandles v-if="middlePanelShown" right v-on="resizeHandles.events" />
+      <div v-if="visible" class="sizeWrapper">
+        <div ref="content" class="panel" :class="cssClass" :style="widthStyle">
+          <HelpBar />
+          <Drive />
+          <ResizeHandles v-if="middlePanelShown" right v-on="resizeHandles.events" />
+        </div>
       </div>
     </SizeTransition>
     <div class="shadow" />
@@ -68,7 +62,7 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
       <template #menu><ActionMenu :actions="ENSO_ICON_MENU_ACTIONS" /></template>
     </DropdownMenu>
     <SvgButton
-      v-model="visible"
+      v-model="toggledOn"
       class="toggleVisibilityButton"
       name="right_side_panel"
       title="Toggle Drive Panel"
@@ -85,14 +79,32 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
   z-index: 1;
 }
 
+/* This element's visible width will be overwritten by the size transition, but the inner content's
+ * will not, preventing content reflow. Content reflow is disruptive to the appearance of the transition, and can affect
+ * the framerate drastically.
+ */
+.sizeWrapper {
+  height: 100%;
+  min-width: 0;
+  width: 100%;
+  background-color: var(--panel-background);
+}
+
 .panel {
   position: relative;
   height: 100%;
   width: 100%;
   min-width: 200px;
+  /* max-width: var(--left-panel-max-width); */
   display: flex;
   flex-direction: column;
   gap: 0;
+
+  &.middlePanelShown {
+    /* Default width, overriden in style tag. */
+    width: 600px;
+    max-width: 60vw;
+  }
 }
 
 .shadow {

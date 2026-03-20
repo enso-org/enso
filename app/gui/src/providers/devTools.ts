@@ -13,8 +13,10 @@ export interface PaywallDevtoolsFeatureConfiguration {
   readonly isForceEnabled: boolean | null
 }
 
+/** A store keeping state of Enso and React devtools. */
 export type EnsoDevtoolsStore = ReturnType<typeof createDevtoolsStore>
 
+/** create {@link EnsoDevtoolsStore} */
 export function createDevtoolsStore() {
   const paywallFeatures: Record<PaywallFeatureName, PaywallDevtoolsFeatureConfiguration> =
     unsafeFromEntries(

@@ -112,10 +112,9 @@ onUnmounted(() => {
       <PopoverRootProvider>
         <div class="topBarBackground" />
         <CommandPalette />
-
         <ModalWrapper />
         <LeftPanel :middlePanelShown="anyTabs" :class="{ noMiddlePanel: !anyTabs }" />
-        <div class="mainView" :class="{ noMiddlePanel: !anyTabs }">
+        <div class="tabPanel" :class="{ noMiddlePanel: !anyTabs }">
           <div class="bar">
             <TabBar />
             <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
@@ -150,18 +149,21 @@ onUnmounted(() => {
 }
 
 .LeftPanel {
+  flex-shrink: 1;
+
   &.noMiddlePanel {
     flex-grow: 1;
-    width: 100vw;
   }
 }
 
-.mainView {
+.tabPanel {
   height: 100%;
   flex-grow: 1;
   flex-shrink: 1000000;
-  min-width: 48px;
+  min-width: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
 
   &.noMiddlePanel {
     flex-grow: 0;
@@ -192,17 +194,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
   flex-grow: 1;
+  min-width: 0;
 }
 
 .MiddlePanel {
-  width: 100%;
   min-width: 0;
+  flex-grow: 1;
   /* Middle Panel should first give up place when user is shrinking the window. */
   flex-shrink: 1000000;
 }
 
 .RightPanel {
-  flex-shrink: 1;
+  min-width: 48px;
 }
 
 .FullscreenRoot {

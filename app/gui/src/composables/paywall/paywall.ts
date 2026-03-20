@@ -7,6 +7,9 @@ import {
   type PaywallFeatureName,
 } from './FeaturesConfiguration'
 
+/**
+ * A composable returning function checking if the given feature is under current user's paywall.
+ */
 export function useIsFeatureUnderPaywall() {
   const auth = useAuth()
   const features = toRef(useDevtoolsStore(), 'paywallFeatures')

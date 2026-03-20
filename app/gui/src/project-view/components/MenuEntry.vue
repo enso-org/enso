@@ -17,8 +17,7 @@ const action = computed(() => resolveAction(actionName))
     v-bind="action.toggled != null ? { modelValue: toValue(action.toggled) } : {}"
     @click="action.action"
   >
-    <SvgIcon v-if="action.icon" :name="toValue(action.icon)" class="rowIcon" />
-    <div v-else class="rowIcon rowIconPlaceholder" />
+    <SvgIcon :name="toValue(action.icon)" class="rowIcon" />
     <span v-text="toValue(action.description)" />
     <span
       v-if="toValue(action.shortcut)"

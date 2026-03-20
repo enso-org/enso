@@ -52,18 +52,4 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-.MiddlePanel {
-  display: flex;
-  flex-direction: column;
-}
-.tablist {
-  background-color: rgba(0, 0, 0, 0.1);
-  padding: 0 8px;
-  display: flex;
-  flex-direction: row;
-  /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
-  isolation: isolate;
-  font-family: var(--font-sans);
-}
-</style>
+<style scoped></style>
