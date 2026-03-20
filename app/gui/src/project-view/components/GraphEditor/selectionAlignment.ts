@@ -103,11 +103,11 @@ export function createSelectionAlignmentHandlers(graphStore: GraphStore, module:
     if (!Number.isFinite(initialTop)) return
     let top = initialTop
     const updates = sorted.map(({ node, rect }) => {
-      const delta = top - rect.top
+      const newPosY = top
       top = top + rect.height + gap
       return {
         node,
-        position: new Vec2(node.position.x, node.position.y + delta),
+        position: new Vec2(node.position.x, newPosY),
       }
     })
     batchUpdatePositions(updates)
