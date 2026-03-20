@@ -22,15 +22,8 @@ import { useEffect, useState } from 'react'
 
 const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
-/** Properties of {@link Registration} component. */
-export interface RegistrationProps {
-  /** Called when the user agrees to the current Terms of Service and Privacy Policy. */
-  readonly userAgreed: () => void
-}
-
 /** A form for users to register an account. */
-export default function Registration(props: RegistrationProps) {
-  const { userAgreed } = props
+export default function Registration() {
   const { signUp, confirmSignUp, resendSignUp, signInWithPassword } = useSession()
 
   const { router } = useRouter()
@@ -72,8 +65,6 @@ export default function Registration(props: RegistrationProps) {
           }
         }),
     onSubmit: async ({ email, password }) => {
-      userAgreed()
-
       await signUp(email, password, organizationId ?? null)
 
       stepperState.nextStep()

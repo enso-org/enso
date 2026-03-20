@@ -1251,6 +1251,8 @@ export async function mockCloudApi(page: Page) {
         isOrganizationAdmin: true,
         isEnsoTeamMember: true,
         plan: backend.Plan.free,
+        tosAccepted: '1c8a655202e59f0efebf5a83a703662527aa97247052964f959a8488382604b8',
+        ppAccepted: '31b113f5f2b6ab7131ca02d70ad3f0c158075020c3670a5eefe8670ba829bcc9',
       }
       return currentUser
     })

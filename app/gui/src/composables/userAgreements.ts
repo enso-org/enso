@@ -1,27 +1,15 @@
-import LocalStorage from '#/utilities/LocalStorage'
+import { useAuth } from '$/providers/auth'
+import { useBackends } from '$/providers/backends'
 import { proxyRefs } from '$/utils/reactivity'
 import * as vueQuery from '@tanstack/vue-query'
 import { computed, effectScope } from 'vue'
 import * as z from 'zod'
 
-declare module '#/utilities/LocalStorage' {
-  /** Metadata containing the version hash of the terms of service that the user has accepted. */
-  interface LocalStorageData {
-    readonly termsOfService: z.infer<typeof TOS_SCHEMA>
-    readonly privacyPolicy: z.infer<typeof PRIVACY_POLICY_SCHEMA>
-  }
-}
-
 const TEN_MINUTES_MS = 600_000
-const TOS_SCHEMA = z.object({ versionHash: z.string() })
-const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
 const TOS_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 
-LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
-LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
-
-const latestTermsOfServiceQueryOptions = vueQuery.queryOptions({
+export const latestTermsOfServiceQueryOptions = vueQuery.queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: async () => {
     const response = await fetch(new URL('/eula.json', $config.HOST))
@@ -37,7 +25,7 @@ const latestTermsOfServiceQueryOptions = vueQuery.queryOptions({
   refetchInterval: TEN_MINUTES_MS,
 })
 
-const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
+export const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
   queryKey: ['privacyPolicy', 'currentVersion'],
   queryFn: async () => {
     const response = await fetch(new URL('/privacy.json', $config.HOST))
@@ -58,9 +46,11 @@ const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
  * and Privacy Policy.
  */
 export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
-  const localStorage = LocalStorage.getInstance()
-  const cachedTosHash = computed(() => localStorage.get('termsOfService'))
-  const cachedPrivacyPolicyHash = computed(() => localStorage.get('privacyPolicy'))
+  const { remoteBackend } = useBackends()
+  const auth = useAuth()
+
+  const cachedTosHash = computed(() => ({ versionHash: auth.session?.user?.tosAccepted }))
+  const cachedPrivacyPolicyHash = computed(() => ({ versionHash: auth.session?.user?.ppAccepted }))
 
   // a scope to run after await -
   const scope = effectScope()
@@ -85,10 +75,8 @@ export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
     const agreedToPrivacyPolicy = computed(
       () => privacyPolicyHash.value === cachedPrivacyPolicyHash.value?.versionHash,
     )
-
     const userAgreed = () => {
-      localStorage.set('termsOfService', { versionHash: tosHash.value })
-      localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash.value })
+      remoteBackend.updateUser({ tosAccepted: tosHash.value, ppAccepted: privacyPolicyHash.value })
     }
 
     return proxyRefs({
