@@ -27,19 +27,9 @@ from project.Data.Text.Extensions import all
 from project.Metadata import Display, make_single_choice, Widget
 from project.Nothing import all
 
-polyglot java import javax.xml.xpath.XPath
-polyglot java import javax.xml.xpath.XPathConstants
-polyglot java import javax.xml.xpath.XPathFactory
 polyglot java import org.enso.base.XML_Utils
-polyglot java import org.w3c.dom.Attr
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
-polyglot java import org.w3c.dom.NamedNodeMap
-polyglot java import org.w3c.dom.Node
-polyglot java import org.w3c.dom.NodeList
-polyglot java import org.w3c.dom.Text as Java_Text
-polyglot java import org.xml.sax.SAXException
-polyglot java import org.xml.sax.SAXParseException
 
 type XML_Document
     ## ---
@@ -210,7 +200,6 @@ type XML_Document
     get_child_element : Text | Integer -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get_child_element self key:(Text | Integer)="." =
         self.root_element.get key
-
 
     ## ---
        group: Selections
@@ -658,18 +647,16 @@ type XML_Element
     @name (e-> make_single_choice e.attribute_names)
     attribute : Text -> Any -> Text | Any ! XML_Error
     attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
-        XML_Error.handle_java_exceptions <|
-            attr = self.java_element.getAttributeNode name
-            if attr.is_nothing then if_missing else attr.getValue
+        XML_Utils.getAttribute self.java_element name . if_nothing if_missing
 
     ## ---
        private: true
        ---
        Gets a set of the attributes of an XML element.
     attribute_names : Vector Text ! XML_Error
-    attribute_names self = XML_Error.handle_java_exceptions <|
-        named_node_map = self.java_element.getAttributes
-        Vector.new named_node_map.getLength i-> named_node_map.item i . getNodeName
+    attribute_names self =
+        array = XML_Utils.getAttributeNames self.java_element
+        Vector.from_polyglot_array array
 
     ## ---
        group: Selections
@@ -684,12 +671,7 @@ type XML_Element
        ```
     attributes : Dictionary Text Text ! XML_Error
     attributes self =
-        XML_Error.handle_java_exceptions <|
-            named_node_map = self.java_element.getAttributes
-            keys_and_values = 0.up_to named_node_map.getLength . map i->
-                node = named_node_map.item i
-                [node.getNodeName, node.getNodeValue]
-            Dictionary.from_vector keys_and_values
+        XML_Utils.getAttributes self.java_element
 
     ## ---
        group: Selections
@@ -707,8 +689,7 @@ type XML_Element
        ```
     text : Text ! XML_Error
     text self =
-        XML_Error.handle_java_exceptions <|
-            self.java_element.getTextContent
+        XML_Utils.getText self.java_element
 
     ## ---
        icon: metadata
@@ -808,9 +789,8 @@ type XML_Element
        ```
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
     get_xpath self key:Text =
-        XML_Error.handle_java_exceptions <|
-            xpath = XPathFactory.newInstance.newXPath
-            only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
+        XML_Utils.getXPath self.java_element key (e-> XML_Element.new e) False
+
     ## ---
        icon: parse3
        ---
@@ -829,13 +809,10 @@ type XML_Element
        ```
     get_xpath_text : Text -> Text | Nothing ! XML_Error
     get_xpath_text self key:Text =
-        XML_Error.handle_java_exceptions <|
-            xpath = XPathFactory.newInstance.newXPath
-            node_list = xpath.evaluate key self.java_element XPathConstants.NODESET
-            target = only_wanted_nodes node_list only_first=True
-            if target.length == 0 then Nothing else case target.first of
-                t : Text -> t
-                e : XML_Element -> e.text
+        target = XML_Utils.getXPath self.java_element key (e-> XML_Element.new e) True
+        if target.length == 0 then Nothing else case target.first of
+            t : Text -> t
+            e : XML_Element -> e.text
 
     ## ---
        icon: parse3
@@ -847,8 +824,7 @@ type XML_Element
     @tag_name (e-> make_single_choice e.child_names)
     get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_children_by_tag_name self tag_name:Text = if tag_name == "*" then self.children_cache else
-        XML_Error.handle_java_exceptions <|
-           self.children_cache.filter (c-> c.name == tag_name)
+       self.children_cache.filter (c-> c.name == tag_name)
 
     ## ---
        icon: parse3
@@ -867,8 +843,7 @@ type XML_Element
        ```
     get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_descendants_by_tag_name self tag_name:Text =
-        XML_Error.handle_java_exceptions <|
-            only_wanted_nodes (self.java_element.getElementsByTagName tag_name)
+        XML_Utils.getElementsByTagName self.java_element tag_name (e-> XML_Element.new e)
 
     ## ---
        private: true
@@ -895,7 +870,8 @@ type XML_Element
        ---
        Build a new XML_Element, populating the lazy `children_cache` field.
     new : Element -> XML_Element
-    new java_element = XML_Element.Value java_element (build_child_list java_element)
+    new java_element =
+        XML_Element.Value java_element (XML_Utils.getChildren java_element (e-> XML_Element.new e))
 
     ## ---
        private: true
@@ -948,48 +924,8 @@ type XML_Error
 ## ---
    private: true
    ---
-   Filter out unwanted nodes.
-   Wanted nodes are:
-   - Elements
-   - Text (if not completely whitespace)
-   - Attribute values (which only arise in the case of XPath keys)
-only_wanted_nodes : NodeList -> Boolean -> Vector (Text | XML_Element)
-only_wanted_nodes node_list:NodeList only_first:Boolean=False =
-    nodes = 0.up_to (node_list.getLength) . map i->
-        node_list.item i
-    is_wanted : Node -> Boolean
-    is_wanted node:Node =
-        is_element = node.getNodeType == Node.ELEMENT_NODE
-        is_attribute = node.getNodeType == Node.ATTRIBUTE_NODE
-        is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
-        is_element || is_attribute || is_non_whitespace_text
-
-    wanted_nodes = if only_first then nodes.filter is_wanted . take (..First 1) else nodes.filter is_wanted
-
-    # If an Element, wrap in XML_Element. If Java_Text, extract the string. If an attribute, extract the value.
-    convert node =
-        if node.getNodeType == Node.ELEMENT_NODE then XML_Element.new node else
-            if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
-                if node.getNodeType == Node.ATTRIBUTE_NODE then node.getValue else
-                    Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
-
-    wanted_nodes.map convert
-
-## ---
-   private: true
-   ---
-   Build the child list, filtering out unwanted child nodes.
-build_child_list : Element -> Vector (XML_Element | Text) ! XML_Error
-build_child_list java_element =
-    XML_Error.handle_java_exceptions <|
-        only_wanted_nodes java_element.getChildNodes
-
-## ---
-   private: true
-   ---
    Create the element selector for an XML document or element.
-child_selector : XML_Element | XML_Document -> Widget
-child_selector node:(XML_Element | XML_Document) =
+private child_selector node:(XML_Element | XML_Document) -> Widget =
     attributes = case node of
         _ : XML_Element -> node.attribute_names.map (n->"@"+n)
         _ -> []
@@ -999,9 +935,9 @@ child_selector node:(XML_Element | XML_Document) =
    private: true
    ---
    write an XML document or element to a file.
-write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
+private write_impl node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = True) (on_problems : Problem_Behavior = ..Report_Warning) =
     declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set_name + '\"?>\n' else ""
-    XML_Error.handle_java_exceptions <|
-        (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems
+    outer_xml = XML_Utils.outerXML node True
+    (declaration + outer_xml).write path encoding on_existing_file on_problems
 
 XML_Element.from (that:XML_Document) = that.root_element
