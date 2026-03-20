@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ActionButton from '@/components/ActionButton.vue'
+import ActionButton, { UseActionDescription } from '@/components/ActionButton.vue'
 import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 
@@ -8,9 +8,9 @@ import SvgIcon from '@/components/SvgIcon.vue'
 
 <template>
   <div class="HelpBar">
-    <ActionButton class="helpButton" action="help.whatsNew" />
+    <ActionButton class="helpButton" action="help.whatsNew" :label="UseActionDescription" />
     <div class="communityGroup">
-      <ActionButton class="helpButton" action="help.community" />
+      <ActionButton class="helpButton" action="help.community" :label="UseActionDescription" />
       <DropdownMenu class="helpButton" :showArrow="false">
         <template #button><SvgIcon name="folder_opened" /></template>
         <template #menu>
@@ -25,8 +25,8 @@ import SvgIcon from '@/components/SvgIcon.vue'
         </template>
       </DropdownMenu>
     </div>
-    <ActionButton class="helpButton" action="help.docs" />
-    <ActionButton class="helpButton" action="help.contactUs" />
+    <ActionButton class="helpButton" action="help.docs" :label="UseActionDescription" />
+    <ActionButton class="helpButton" action="help.contactUs" :label="UseActionDescription" />
   </div>
 </template>
 
