@@ -9,6 +9,7 @@ use octocrab::models::repos::Asset;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
 use reqwest::Body;
+use reqwest::StatusCode;
 use reqwest::Version;
 use tracing::instrument;
 
@@ -200,11 +201,14 @@ pub trait IsReleaseExt: IsRelease + Sync {
             let metadata = crate::fs::tokio::metadata(path).await?;
             trace!("File metadata: {metadata:#?}.");
             let file_size = metadata.len();
-            crate::io::retry(|| async {
-                let file = crate::fs::tokio::open_stream(path).await?;
-                let body = Body::wrap_stream(file);
-                self.upload_asset(asset_name.as_str(), content_type.clone(), file_size, body).await
-            })
+            crate::io::retry_if(
+                || async {
+                    let file = crate::fs::tokio::open_stream(path).await?;
+                    let body = Body::wrap_stream(file);
+                    self.upload_asset(asset_name.as_str(), content_type.clone(), file_size, body).await
+                },
+                |error| !matches!(extract_http_status(error), Some(status) if status.is_client_error()),
+            )
             .await
         }
         .await
@@ -259,6 +263,10 @@ pub trait IsReleaseExt: IsRelease + Sync {
 }
 
 impl<T> IsReleaseExt for T where T: IsRelease + Sync {}
+
+fn extract_http_status(error: &anyhow::Error) -> Option<StatusCode> {
+    error.chain().find_map(|cause| cause.downcast_ref::<reqwest::Error>()?.status())
+}
 
 /// A release on GitHub.
 #[derive(Clone)]

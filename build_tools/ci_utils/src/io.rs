@@ -66,10 +66,21 @@ pub async fn download_and_extract(
 }
 
 /// Retry a given action until it succeeds or the maximum number of attempts is reached.
-pub async fn retry<Fn, Fut, Ret>(mut action: Fn) -> Result<Ret>
+pub async fn retry<Fn, Fut, Ret>(action: Fn) -> Result<Ret>
 where
     Fn: FnMut() -> Fut,
     Fut: Future<Output = Result<Ret>>,
+{
+    retry_if(action, |_| true).await
+}
+
+/// Retry a given action until it succeeds, should not be retried, or the maximum number of
+/// attempts is reached.
+pub async fn retry_if<Action, Fut, Ret, Pred>(mut action: Action, should_retry: Pred) -> Result<Ret>
+where
+    Action: FnMut() -> Fut,
+    Fut: Future<Output = Result<Ret>>,
+    Pred: Fn(&anyhow::Error) -> bool,
 {
     let growth_factor = 1.5;
     let mut attempts = 5;
@@ -83,6 +94,9 @@ where
                 let warning = format!("Failed to execute action: {err:?}");
                 crate::actions::workflow::warn(&warning);
                 warn!("{warning}");
+                if !should_retry(&err) {
+                    return Err(err);
+                }
                 if attempts == 0 {
                     return Err(err);
                 }
@@ -133,13 +147,11 @@ mod tests {
         mirror_directory(foo.parent().unwrap(), foo.parent().unwrap().with_file_name("dest2"))
             .await?;
 
-        assert!(
-            tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
-                .arg("-laR")
-                .status()
-                .await?
-                .success()
-        );
+        assert!(tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
+            .arg("-laR")
+            .status()
+            .await?
+            .success());
 
         Ok(())
     }
