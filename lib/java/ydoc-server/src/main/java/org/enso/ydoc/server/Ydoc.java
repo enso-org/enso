@@ -266,11 +266,11 @@ public final class Ydoc implements AutoCloseable {
             "Loading {0} specified by {1} as Ydoc server script",
             ydoc,
             YDOC_PATH_ENV_NAME);
+        // enabling Google Dev Tools debugging of YDOC_PATH_ENV_NAME
+        contextBuilder.option("inspect", "true");
+        contextBuilder.option("inspect.Suspend", "" + devYdocPath.contains("suspend"));
+        contextBuilder.option("inspect.Path", "enso_ydoc");
       }
-      // enabling Google Dev Tools debugging of YDOC_PATH_ENV_NAME
-      contextBuilder.option("inspect", "true");
-      contextBuilder.option("inspect.Suspend", "" + devYdocPath.contains("suspend"));
-      contextBuilder.option("inspect.Path", "enso_ydoc");
     }
 
     if (ydoc == null) {
