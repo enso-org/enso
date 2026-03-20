@@ -61,6 +61,7 @@ jobs:
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
   enso-build-ci-gen-job-deploy-runtime-linux-amd64:
     name: Upload Runtime to ECR (linux, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-linux-amd64
@@ -119,6 +120,7 @@ jobs:
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-job-dispatch-build-image-linux-amd64:
     name: Dispatch Cloud build-image workflow (linux, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-job-deploy-runtime-linux-amd64
     runs-on:
@@ -169,6 +171,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-upload-backend-linux-amd64:
     name: Upload Backend (linux, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
@@ -281,6 +284,7 @@ jobs:
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-job-upload-backend-windows-amd64:
     name: Upload Backend (windows, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
@@ -334,6 +338,7 @@ jobs:
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-publish-release-linux-amd64:
     name: Publish release (linux, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-dispatch-build-image-linux-amd64
@@ -399,6 +404,7 @@ jobs:
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-upload-ide-linux-amd64:
     name: Build IDE (linux, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-linux-amd64
@@ -565,6 +571,7 @@ jobs:
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-upload-ide-windows-amd64:
     name: Build IDE (windows, amd64)
+    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-windows-amd64
