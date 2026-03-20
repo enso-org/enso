@@ -27,7 +27,6 @@ from project.Data.Text.Extensions import all
 from project.Metadata import Display, make_single_choice, Widget
 from project.Nothing import all
 
-polyglot java import java.lang.Exception as JException
 polyglot java import javax.xml.xpath.XPath
 polyglot java import javax.xml.xpath.XPathConstants
 polyglot java import javax.xml.xpath.XPathFactory
@@ -83,9 +82,8 @@ type XML_Document
        ```
     from_stream : Input_Stream -> XML_Document ! XML_Error
     from_stream input_stream:Input_Stream =
-        XML_Error.handle_java_exceptions <|
-           input_stream.with_java_stream java_stream->
-                XML_Document.Value (XML_Utils.parseStream java_stream)
+       input_stream.with_java_stream java_stream->
+            XML_Utils.parseStream java_stream (d-> XML_Document.Value d)
 
     ## ---
        group: Conversions
@@ -106,8 +104,7 @@ type XML_Document
        ```
     parse : Text -> XML_Document ! XML_Error
     parse xml_string:Text =
-        XML_Error.handle_java_exceptions <|
-            XML_Document.Value (XML_Utils.parseString xml_string)
+        XML_Utils.parseString xml_string (d-> XML_Document.Value d)
 
     ## ---
        private: true
@@ -129,12 +126,6 @@ type XML_Document
     ## ---
        private: true
        ---
-       Wrap Java's Document to XML_Document
-    new doc:Document = XML_Document.Value doc
-
-    ## ---
-       private: true
-       ---
     private Value (java_document:Document)
 
     ## ---
@@ -150,11 +141,10 @@ type XML_Document
              doc = XML_Document.from_file file
              root = doc.root_element
        ```
-    root_element : XML_Element ! XML_Error
+    root_element : XML_Element
     root_element self =
-        XML_Error.handle_java_exceptions <|
-            java_element = self.java_document.getDocumentElement
-            XML_Element.new java_element
+        java_element = self.java_document.getDocumentElement
+        XML_Element.new java_element
 
     ## ---
        group: Metadata
@@ -169,7 +159,7 @@ type XML_Document
              XML_Document.parse '<foo>hello</foo>' . name
              # => "foo"
        ```
-    name : Text ! XML_Error
+    name : Text
     name self = self.root_element.name
 
     ## ---
@@ -200,7 +190,7 @@ type XML_Document
              # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
        ```
     @key child_selector
-    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    get : Text | Integer -> Any -> XML_Element | Any
     get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
         _ : Integer -> if key == 0 then self.root_element else if_missing
         _ : Text -> if key == self.root_element.name then self.root_element else if_missing
@@ -219,8 +209,7 @@ type XML_Document
     @key child_selector
     get_child_element : Text | Integer -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get_child_element self key:(Text | Integer)="." =
-        root = self.get 0
-        root.get key
+        self.root_element.get key
 
 
     ## ---
@@ -252,7 +241,7 @@ type XML_Document
              # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
        ```
     @key child_selector
-    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    at : Text | Integer -> XML_Element ! No_Such_Key | Index_Out_Of_Bounds
     at self key:(Text | Integer)="." =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
@@ -273,8 +262,7 @@ type XML_Document
        ```
     outer_xml : Text ! XML_Error
     outer_xml self =
-        XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_document False
+        XML_Utils.outerXML self.java_document False
 
     ## ---
        icon: metadata
@@ -290,8 +278,7 @@ type XML_Document
        ```
     inner_xml : Text ! XML_Error
     inner_xml self =
-        XML_Error.handle_java_exceptions <|
-            XML_Utils.innerXML self.java_document
+        XML_Utils.innerXML self.java_document
 
     ## ---
        aliases: [export, output, save, to_file]
@@ -351,7 +338,7 @@ type XML_Document
        ```
              # => [XML_Element'<foo><baz>hello</baz></foo>']
        ```
-    children : Vector (XML_Element | Text) ! XML_Error
+    children : Vector XML_Element
     children self = [self.root_element]
 
     ## ---
@@ -378,7 +365,7 @@ type XML_Document
        icon: text
        ---
        Gets the unique set of child names of an XML document.
-    child_names : Vector Text ! XML_Error
+    child_names : Vector Text
     child_names self = [self.root_element.name]
 
     ## ---
@@ -391,7 +378,7 @@ type XML_Document
         - `name`: The name of the attribute to get.
         - `if_missing`: The value returned if the attribute does not exist.
     @name (e-> make_single_choice e.attribute_names)
-    attribute : Text -> Any -> Text | Any ! XML_Error
+    attribute : Text -> Any -> Text | Any ! No_Such_Key
     attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
         if_missing
 
@@ -399,7 +386,7 @@ type XML_Document
        private: true
        ---
        Gets a set of the attributes of an XML document.
-    attribute_names : Vector Text ! XML_Error
+    attribute_names : Vector Text
     attribute_names self = []
 
     ## ---
@@ -407,7 +394,7 @@ type XML_Document
        icon: array_new
        ---
        Gets a Dictionary containing of the attributes of an XML document.
-    attributes : Dictionary Text Text ! XML_Error
+    attributes : Dictionary Text Text
     attributes self = Dictionary.empty
 
     ## ---
@@ -437,9 +424,8 @@ type XML_Document
        ```
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
     get_xpath self key:Text =
-        XML_Error.handle_java_exceptions <|
-            xpath = XPathFactory.newInstance.newXPath
-            only_wanted_nodes (xpath.evaluate key self.java_document XPathConstants.NODESET)
+        XML_Utils.getXPath self.java_document key (e-> XML_Element.new e) False
+
     ## ---
        icon: parse3
        ---
@@ -458,14 +444,10 @@ type XML_Document
        ```
     get_xpath_text : Text -> Text | Nothing ! XML_Error
     get_xpath_text self key:Text =
-        XML_Error.handle_java_exceptions <|
-            xpath = XPathFactory.newInstance.newXPath
-            node_list = xpath.evaluate key self.java_document XPathConstants.NODESET
-            target = only_wanted_nodes node_list only_first=True
-            if target.length == 0 then Nothing else case target.first of
-                t : Text -> t
-                e : XML_Element -> e.text
-
+        target = XML_Utils.getXPath self.java_document key (e-> XML_Element.new e) True
+        if target.length == 0 then Nothing else case target.first of
+            t : Text -> t
+            e : XML_Element -> e.text
 
     ## ---
        icon: parse3
@@ -539,10 +521,9 @@ type XML_Element
              XML_Document.parse '<foo>hello</foo>' . root_element . name
              # => "foo"
        ```
-    name : Text ! XML_Error
+    name : Text
     name self =
-        XML_Error.handle_java_exceptions <|
-            self.java_element.getNodeName
+        self.java_element.getNodeName
 
     ## ---
        group: Selections
@@ -654,8 +635,7 @@ type XML_Element
        Gets the unique set of child names of an XML element.
     child_names : Vector Text ! XML_Error
     child_names self =
-        XML_Error.handle_java_exceptions <|
-            self.children_cache.map  n->n.name . distinct
+        self.children_cache.map  n->n.name . distinct
 
     ## ---
        group: Selections
@@ -744,8 +724,7 @@ type XML_Element
        ```
     outer_xml : Text ! XML_Error
     outer_xml self =
-        XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_element False
+        XML_Utils.outerXML self.java_element False
 
     ## ---
        icon: metadata
@@ -762,8 +741,7 @@ type XML_Element
        ```
     inner_xml : Text ! XML_Error
     inner_xml self =
-        XML_Error.handle_java_exceptions <|
-            XML_Utils.innerXML self.java_element
+        XML_Utils.innerXML self.java_element
 
     ## ---
        aliases: [export, output, save, to_file]
@@ -957,24 +935,6 @@ type XML_Error
 
     ## Any other XML-related Java exception.
     Other (error : Text)
-
-    ## ---
-       private: true
-       ---
-       Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions : Any -> Any ! XML_Error
-    handle_java_exceptions ~action =
-        Panic.catch JException action caught_panic->
-            XML_Error.wrap_java_exception caught_panic.payload
-
-    ## ---
-       private: true
-       ---
-       Converts a Java `Exception` into its Enso counterpart.
-    wrap_java_exception : JException -> XML_Error
-    wrap_java_exception exception:JException = case exception of
-        _ : SAXParseException -> Error.throw (XML_Error.Parse_Error exception.getLineNumber exception.getColumnNumber)
-        _ -> Error.throw (XML_Error.Other "An Exception has occurred: "+exception.to_text)
 
     ## ---
        private: true
