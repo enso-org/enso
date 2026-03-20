@@ -181,12 +181,15 @@ public final class LogbackSetup extends LoggerSetup {
         fileAppender = rollingFileAppender;
         fileAppender.setContext(
             env.ctx); // Context needs to be set prior to rolling policy initialization
+        if (logPrefix == null) {
+          logPrefix = "enso";
+        }
+        var logPostfix = "%d{yyyy-MM-dd-hh-mm}";
         String filePattern;
-        if (logRoot == null || logPrefix == null) {
-          filePattern = "enso-%d{yyyy-MM-dd}";
+        if (logRoot == null) {
+          filePattern = logPrefix + "-" + logPostfix;
         } else {
-          filePattern =
-              logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + "%d{yyyy-MM-dd}";
+          filePattern = logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + logPostfix;
         }
 
         org.enso.logging.config.FileAppender.RollingPolicy rollingPolicy =
