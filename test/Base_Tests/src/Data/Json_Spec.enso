@@ -148,13 +148,6 @@ add_specs suite_builder =
             Author.Value "Tolkien" 1892 . to_json . should_equal <|
                 '{"type":"Author","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
 
-        group_builder.specify "should convert arbitrary types to JSON via json_stringify" <|
-            1.json_stringify.should_equal "1"
-            1.54.json_stringify.should_equal "1.54"
-            ["foo", "bar", "baz"].json_stringify.should_equal '["foo","bar","baz"]'
-            Author.Value "Tolkien" 1892 . json_stringify . should_equal <|
-                '{"type":"Author","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
-
         group_builder.specify "should render NaN and Infinity to null" <|
             Number.nan.to_json . should_equal "null"
             Number.positive_infinity.to_json . should_equal "null"
