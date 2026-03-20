@@ -8,6 +8,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Missing_Argument
 import project.Errors.Deprecated.Deprecated
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
@@ -33,7 +34,6 @@ polyglot java import org.w3c.dom.Element
 
 type XML_Document
     ## ---
-       private: true
        icon: data_input
        ---
        Read an XML document from a file.
@@ -51,11 +51,12 @@ type XML_Document
              doc = XML_Document.from_file test_file
        ```
     from_file : File -> XML_Document ! XML_Error | File_Error
-    from_file file:File =
+    from_file file:File=(Missing_Argument.throw "file") =
         File_Error.handle_java_exceptions file <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
     ## ---
+       private: true
        icon: data_input
        ---
        Read an XML document from an input stream.
@@ -93,7 +94,7 @@ type XML_Document
              doc = XML_Document.parse xml_string
        ```
     parse : Text -> XML_Document ! XML_Error
-    parse xml_string:Text =
+    parse xml_string:Text=(Missing_Argument.throw "xml_string") =
         XML_Utils.parseString xml_string (d-> XML_Document.Value d)
 
     ## ---
@@ -313,7 +314,7 @@ type XML_Document
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
+    write self path:Writable_File=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
         write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## ---
@@ -368,7 +369,7 @@ type XML_Document
         - `if_missing`: The value returned if the attribute does not exist.
     @name (e-> make_single_choice e.attribute_names)
     attribute : Text -> Any -> Text | Any ! No_Such_Key
-    attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+    attribute self name:Text=(Missing_Argument.throw "name") ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
         if_missing
 
     ## ---
@@ -412,7 +413,7 @@ type XML_Document
              # => [XML_Document.parse "<firstname>Alice</firstname>" . root_element]
        ```
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
-    get_xpath self key:Text =
+    get_xpath self key:Text=(Missing_Argument.throw "key") =
         XML_Utils.getXPath self.java_document key (e-> XML_Element.new e) False
 
     ## ---
@@ -432,7 +433,7 @@ type XML_Document
              # => "Alice"
        ```
     get_xpath_text : Text -> Text | Nothing ! XML_Error
-    get_xpath_text self key:Text =
+    get_xpath_text self key:Text=(Missing_Argument.throw "key") =
         target = XML_Utils.getXPath self.java_document key (e-> XML_Element.new e) True
         if target.length == 0 then Nothing else case target.first of
             t : Text -> t
@@ -447,7 +448,7 @@ type XML_Document
         - `tag_name`: The tag name to search for.
     @tag_name (e-> make_single_choice e.child_names)
     get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_children_by_tag_name self tag_name:Text =
+    get_children_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") =
         if tag_name=="*" || tag_name==self.root_element.name then [self.root_element] else []
 
     ## ---
@@ -466,7 +467,7 @@ type XML_Document
              # => [XML_Document.parse "<baz>hello</baz>" . root_element, XML_Document.parse "<baz>goodbye</baz>" . root_element]
        ```
     get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_descendants_by_tag_name self tag_name:Text =
+    get_descendants_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") =
         root = if tag_name == self.root_element.name then [self.root_element] else []
         root + (self.root_element.get_descendants_by_tag_name tag_name)
 
@@ -646,7 +647,7 @@ type XML_Element
        ```
     @name (e-> make_single_choice e.attribute_names)
     attribute : Text -> Any -> Text | Any ! XML_Error
-    attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+    attribute self name:Text=(Missing_Argument.throw "name") ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
         XML_Utils.getAttribute self.java_element name . if_nothing if_missing
 
     ## ---
@@ -768,7 +769,7 @@ type XML_Element
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
+    write self path:Writable_File=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
         write_impl self.java_element path encoding on_existing_file include_xml_declaration on_problems
 
     ## ---
@@ -788,7 +789,7 @@ type XML_Element
              # => [XML_Document.parse "<firstname>Alice</firstname>" . root_element]
        ```
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
-    get_xpath self key:Text =
+    get_xpath self key:Text=(Missing_Argument.throw "key") =
         XML_Utils.getXPath self.java_element key (e-> XML_Element.new e) False
 
     ## ---
@@ -808,7 +809,7 @@ type XML_Element
              # => "Alice"
        ```
     get_xpath_text : Text -> Text | Nothing ! XML_Error
-    get_xpath_text self key:Text =
+    get_xpath_text self key:Text=(Missing_Argument.throw "key") =
         target = XML_Utils.getXPath self.java_element key (e-> XML_Element.new e) True
         if target.length == 0 then Nothing else case target.first of
             t : Text -> t
@@ -823,7 +824,7 @@ type XML_Element
         - `tag_name`: The tag name to search for.
     @tag_name (e-> make_single_choice e.child_names)
     get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_children_by_tag_name self tag_name:Text = if tag_name == "*" then self.children_cache else
+    get_children_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") = if tag_name == "*" then self.children_cache else
        self.children_cache.filter (c-> c.name == tag_name)
 
     ## ---
@@ -842,7 +843,7 @@ type XML_Element
              # => [XML_Document.parse "<baz>hello</baz>" . root_element, XML_Document.parse "<baz>goodbye</baz>" . root_element]
        ```
     get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_descendants_by_tag_name self tag_name:Text =
+    get_descendants_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") =
         XML_Utils.getElementsByTagName self.java_element tag_name (e-> XML_Element.new e)
 
     ## ---
