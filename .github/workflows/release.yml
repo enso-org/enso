@@ -171,7 +171,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-upload-backend-linux-amd64:
     name: Upload Backend (linux, amd64)
-    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
@@ -404,7 +403,6 @@ jobs:
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-upload-ide-linux-amd64:
     name: Build IDE (linux, amd64)
-    if: ${{ false }}
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-linux-amd64

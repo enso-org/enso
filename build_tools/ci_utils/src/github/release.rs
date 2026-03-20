@@ -205,8 +205,13 @@ pub trait IsReleaseExt: IsRelease + Sync {
             let file_size = metadata.len();
             crate::io::retry_if(
                 || async {
-                    let file = crate::fs::tokio::open_stream(path).await?;
-                    let body = Body::wrap_stream(file);
+                    let body = crate::fs::tokio::read(path).await?;
+                    debug!(
+                        source = %path.display(),
+                        asset = %asset_name.display(),
+                        buffered_bytes = body.len(),
+                        "Buffered release asset in memory before upload."
+                    );
                     self.upload_asset(asset_name.as_str(), content_type.clone(), file_size, body).await
                 },
                 |error| !matches!(extract_http_status(error), Some(status) if status.is_client_error()),
