@@ -23,7 +23,7 @@ once one **opts-in** to it via `ENSO_LAUNCHER` option.
 - [No Cross-Compilation](#no-cross-compilation)
 - [Configuration](#configuration)
   - [`ensoup` Configuration](#ensoup-configuration)
-  - [Project Manager Configuration](#project-manager-configuration)
+  - [Engine Configuration](#engine-configuration)
 - [Tips and tricks](#tips-and-tricks)
 
 <!-- /MarkdownTOC -->
@@ -177,17 +177,19 @@ using Akka, so it is enough to just add it as a dependency. It does not handle
 other reflective accesses that are related to Akka, because the ones that are
 needed are gathered automatically using the tool described above.
 
-### Engine runner Configuration
+### Engine Configuration
 
-The Native Image generation for the Engine Runner is on by default for releases.
-In development mode, Native Image build has to be enabled explicitly. It is
-triggered by `ENSO_LAUNCHER` environment variable. Its value can be one of the
-following:
+The Native Image generation for the Engine `enso` binary is on by default for
+releases. In development mode, Native Image build has to be enabled explicitly.
+It is triggered by `ENSO_LAUNCHER` environment variable. Its value can be one of
+the following:
 
-- `shell`: The default value. `buildEngineDistribution` command does not build
-  the native image.
+- `shell`: The default value for `0.0.0-dev` version - `buildEngineDistribution`
+  command does not build the native image and uses shell or `.bat` launchers to
+  speed the development up.
 - `native`: `buildEngineDistribution` command builds native image in _release
-  mode_ - e.g. turns on maximal optimizations increasing the build time.
+  mode_ - e.g. turns on maximal optimizations increasing the build time. This is
+  the default for _non-development versions_
 - There are additional variants of `native` useful for _development_. They are
   specified as comma separated attributes following `native`:
   - using `native,fast` turns on _native image_ build, but disables
@@ -277,9 +279,9 @@ value:
 $ JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
 ```
 
-Espresso support works also with
-[native image support](#engine-runner-configuration). Just make sure
-`ENSO_JAVA=espresso` is specified when building the `runner` executable:
+Espresso support works also with [native image support](#engine-configuration).
+Just make sure `ENSO_JAVA=espresso` is specified when building the `runner`
+executable:
 
 ```bash
 enso$ rm ./built-distribution/enso-engine-*/enso-*/bin/enso
@@ -287,9 +289,9 @@ enso$ ENSO_JAVA=espresso sbt --java-home /graalvm
 sbt> engine-runner/buildNativeImage
 ```
 
-as suggested in the [native image support](#engine-runner-configuration). The
-build script detects presence of Espresso and automatically adds
-`--language:java` when creating the image. Then you can use
+as suggested in the [native image support](#engine-configuration). The build
+script detects presence of Espresso and automatically adds `--language:java`
+when creating the image. Then you can use
 
 ```bash
 $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run hello.enso

@@ -264,7 +264,7 @@ export class EnsoRunner implements Runner {
       : [this.ensoPath, args]
     const isDevMode = process.env.NODE_ENV === 'development'
     if (isDevMode) {
-      console.log('runProcess', cmd, 'with', cmdArgs)
+      console.log('runProcess', cmd, cmdArgs.join(' '))
     }
     return spawnCallback(cmd, cmdArgs)
   }

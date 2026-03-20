@@ -24,6 +24,7 @@ Language Server through dedicated message channels.
 - [Thread Safety](#thread-safety)
 - [Startup Flow](#startup-flow)
 - [Source Code Layout](#source-code-layout)
+- [Debugging](#debugging)
 
 <!-- /MarkdownTOC -->
 
@@ -167,3 +168,71 @@ on the owner thread.
   `YjsBinaryChannel`
 - [`app/ydoc-server-polyglot/`](../../app/ydoc-server-polyglot/) - GraalJS entry
   point
+
+## Debugging
+
+The more and more TypeScript code we execute on the language server side, the
+more important it is to be able to _debug it properly_. Classical
+[mixed debugging](../debugger/mixed-debugging.md) works, but the standard way to
+debug JavaScript is to use Chrome Dev Tools. There is a dedicated page for
+generic [Debugging of Enso in Chrome](../debugger/chrome-devtools.md). There are
+general instructions how to [run the Enso IDE](../CONTRIBUTING.md#running-ide)
+during development. Additional alternations to those instructions are given
+here.
+
+Make sure you build the JavaScript bundle (a single JavaScript file without
+imports) that you want to execute and debug. Typically use:
+
+```bash
+enso$ corepack pnpm compile
+enso$ ls -1 app/ydoc-server-polyglot/dist/
+main.cjs
+main.cjs.map
+```
+
+With the `main.cjs` file generated continue to launch the `dev:gui` with
+additional environment variables:
+
+```bash
+enso$ ENSO_ENGINE_ARGS=--jvm \
+      JAVA_TOOL_OPTIONS="-ea" \
+      YDOC_SERVER_JS=`pwd`/app/ydoc-server-polyglot/dist/main.cjs \
+      corepack pnpm dev:gui
+```
+
+The first environment makes sure engine will be running in `--jvm` mode and that
+we can _enable assertions_ in that mode by the second environment variable. When
+assertions are on and the `YDOC_SERVER_JS` is specified and appropriate file
+exists, it will be loaded in instead of the builtin version embedded in `enso`
+binary itself.
+
+<img width="1990" height="1060" alt="chrome dev tools in JVM mode" src="https://github.com/user-attachments/assets/43d1c9af-6b36-422c-b5bb-c2c662fb717d" />
+
+The Chrome Dev Tools URL gets printed on the console and can be used to attach
+to the `YDOC_SERVER_JS` script. Should the be a need to _"attach early"_ one can
+rename the file to include word _"suspend"_ in its name - like
+`main-suspend.cjs` for example. Then the execution stops before the debugger is
+attached.
+
+#### Debugging `enso` _Native Image_ Binary
+
+Sometimes it may be beneficial to debug _native image_ version of `enso` binary.
+Then one has to get a binary with _enabled assertions_ - according to the
+[native image configuration](./native-image.md#engine-configuration) page one
+can use:
+
+```bash
+enso$ ENSO_LAUNCHER=native,test sbt buildEngineDistribution
+```
+
+with such an `enso` binary one can skip `--jvm` argument and just use:
+
+```
+enso$ corepack pnpm compile
+enso$ YDOC_SERVER_JS=`pwd`/app/ydoc-server-polyglot/dist/main.cjs \
+  corepack pnpm dev:gui
+```
+
+Compiling _native image_ version takes more time, however launching the _native
+image_ version is usually way faster than the `--jvm` version. Moreover it more
+closely mimics the _production mode_ used by majority of Enso users.

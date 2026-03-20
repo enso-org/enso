@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Test import all
 
-from project.Enso_Bin_Utils import create_tmp_dir, enso_run, create_new_project
+from project.Enso_Bin_Utils import create_tmp_dir, enso_run, create_new_project, runs_in_aot
 
 polyglot java import java.lang.System as J_System
 
@@ -140,6 +140,44 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             Test.with_clue ("No .tgz files in " + file_names.to_text) <|
                 file_names.filter (_.ends_with "tgz") . is_empty . should_be_true
 
+    group_builder.specify "Executing language server with YDOC_SERVER_JS" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+
+            enso_args = [ "--server", "--daemon" ]
+                + [ "--root-id", "fbfd4950-2324-4108-99b7-019a614f94ab"]
+                + [ "--project-id", "2b27d943-7c6b-4481-8e69-67d0c57a02ed" ]
+                + [ "--path",  proj_dir.path, "--interface", "127.0.0.1", "--rpc-port", "37432", "--data-port", "37617" ]
+                + if runs_in_aot then [] else [ "--jvm" ]
+
+            js_file = File.create_temporary_file "custom_ydoc" ".js"
+            js_code = """
+                console.log("Custom JavaScript is running");
+                let msg = "Preventing the startup by throwing an exception";
+                console.log(msg)
+                throw msg;
+
+
+            js_code.write js_file
+
+            proc_bldr = Process.new_builder "enso"
+                . set_arguments enso_args
+                . set_env "JAVA_TOOL_OPTIONS" "-ea"
+                . set_env "YDOC_SERVER_JS" js_file.to_text
+                . set_directory proj_dir.parent
+
+            proc = proc_bldr.create
+            if proc.exit_code != Exit_Code.Failure 7 then
+                Test.fail "Unexpected exit code: "+proc.exit_code.to_text+'\n'+proc.stdout+proc.stderr
+
+            proc.stdout . should_contain "Custom JavaScript is running"
+            proc.stdout . should_contain "Preventing the startup by throwing an exception"
+            proc.stderr . should_contain "Debugger listening on ws://127.0.0.1:9229/enso_ydoc"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
