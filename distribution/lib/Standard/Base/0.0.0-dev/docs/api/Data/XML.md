@@ -19,7 +19,6 @@
     - get_xpath_text self key:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - inner_xml self -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
-    - new doc:Standard.Base.Data.XML.Document -> Standard.Base.Any.Any
     - outer_xml self -> Standard.Base.Any.Any
     - parse xml_string:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - root_element self -> Standard.Base.Any.Any
@@ -53,11 +52,5 @@
 - type XML_Error
     - Other error:Standard.Base.Data.Text.Text
     - Parse_Error line_number:Standard.Base.Data.Numbers.Integer column_number:Standard.Base.Data.Numbers.Integer
-    - handle_java_exceptions ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-    - wrap_java_exception exception:Standard.Base.Data.XML.JException -> Standard.Base.Any.Any
-- build_child_list java_element:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- child_selector node:(Standard.Base.Data.XML.XML_Element|Standard.Base.Data.XML.XML_Document) -> Standard.Base.Any.Any
-- only_wanted_nodes node_list:Standard.Base.Data.XML.NodeList only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-- write_impl node:Standard.Base.Data.XML.Node path:Standard.Base.System.File.Generic.Writable_File.Writable_File encoding:Standard.Base.Data.Text.Encoding.Encoding= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= include_xml_declaration:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
 - Standard.Base.Data.XML.XML_Element.from that:Standard.Base.Data.XML.XML_Document -> Standard.Base.Data.XML.XML_Element
