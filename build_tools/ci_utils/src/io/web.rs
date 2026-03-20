@@ -23,6 +23,20 @@ pub async fn get(url: impl IntoUrl) -> Result<Response> {
 
 pub async fn handle_error_response(response: Response) -> Result<Response> {
     if let Some(e) = response.error_for_status_ref().err() {
+        let status = response.status();
+        let version = response.version();
+        let url = response.url().clone();
+        let headers = response.headers().clone();
+        warn!(
+            %url,
+            %status,
+            ?version,
+            headers = ?headers,
+            github_request_id = headers
+                .get("x-github-request-id")
+                .and_then(|value| value.to_str().ok()),
+            "HTTP request failed."
+        );
         let e = Err(e);
         match response.text().await {
             Ok(body) => e.context(format!("Error message body: {body}")),

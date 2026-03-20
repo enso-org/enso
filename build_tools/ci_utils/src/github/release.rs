@@ -5,10 +5,11 @@ use crate::prelude::*;
 use crate::github::Repo;
 
 use mime::Mime;
-use octocrab::models::ReleaseId;
 use octocrab::models::repos::Asset;
 use octocrab::models::repos::Release;
+use octocrab::models::ReleaseId;
 use reqwest::Body;
+use reqwest::Version;
 use tracing::instrument;
 
 // ==============
@@ -111,10 +112,14 @@ pub trait IsReleaseExt: IsRelease + Sync {
             release_id = self.id(),
         );
         let body = body.into();
+        let upload_url_for_log = upload_url.clone();
+        let asset_name_for_log = asset_name.clone();
+        let content_type_for_log = content_type.clone();
         let request = self
             .octocrab()
             .client
             .post(&upload_url)
+            .version(Version::HTTP_11)
             .query(&[("name", &asset_name)])
             .header(reqwest::header::ACCEPT, "application/vnd.github.v3+json")
             .header(reqwest::header::CONTENT_TYPE, content_type.to_string())
@@ -123,6 +128,14 @@ pub trait IsReleaseExt: IsRelease + Sync {
 
         async move {
             ensure!(content_length > 0, "Release asset file cannot be empty.");
+            debug!(
+                url = %upload_url_for_log,
+                asset = %asset_name_for_log,
+                content_type = %content_type_for_log,
+                content_length,
+                http_version = ?Version::HTTP_11,
+                "Uploading GitHub release asset."
+            );
             crate::io::web::execute(request)
                 .await?
                 .json()
