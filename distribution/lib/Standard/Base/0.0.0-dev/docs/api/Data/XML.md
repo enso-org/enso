@@ -52,4 +52,5 @@
     - Other error:Standard.Base.Data.Text.Text
     - Parse_Error line_number:Standard.Base.Data.Numbers.Integer column_number:Standard.Base.Data.Numbers.Integer
     - to_display_text self -> Standard.Base.Data.Text.Text
+- from_java_document doc:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.XML.XML_Element.from that:Standard.Base.Data.XML.XML_Document -> Standard.Base.Data.XML.XML_Element

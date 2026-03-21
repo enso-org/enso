@@ -19,6 +19,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
+from Standard.Base.Data.XML import from_java_document
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
@@ -718,7 +719,7 @@ type In_Memory_Table_Implementation
             java_element_columns = resolved_element_columns.map c->(c:In_Memory_Column).java_column
             java_attribute_column = resolved_attribute_columns.map c->(c:In_Memory_Column).java_column
             java_value_column = if value_column.is_nothing then Nothing else (resolved_value_column:In_Memory_Column).java_column
-            XML_Document.new (Java_TableToXml.to_xml this_table.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
+            from_java_document (Java_TableToXml.to_xml this_table.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
 
     columns_helper (this_table : Table & In_Memory_Table) =
         Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.columns (x->x) this_table (x->x)

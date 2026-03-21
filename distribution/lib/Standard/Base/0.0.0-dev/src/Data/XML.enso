@@ -893,3 +893,9 @@ private write_impl node path:Writable_File (encoding : Encoding = Encoding.utf_8
     (declaration + outer_xml).write path encoding on_existing_file on_problems
 
 XML_Element.from (that:XML_Document) = that.root_element
+
+## ---
+   private: true
+   ---
+   Helper function to create an XML_Document from a Java XML Document object.
+from_java_document doc = XML_Document.Value doc
