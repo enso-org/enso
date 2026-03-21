@@ -34,6 +34,7 @@ public class XML_Utils {
 
   /**
    * Gets the Document Element of an XML Document.
+   *
    * @param document the document to get the element from.
    * @return the root XML element.
    */
@@ -43,6 +44,7 @@ public class XML_Utils {
 
   /**
    * Gets the name of an XML element, which is the tag name for element nodes.
+   *
    * @param element the XML element to get the name of.
    * @return the tag name.
    */
