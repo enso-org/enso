@@ -30,6 +30,26 @@ import org.xml.sax.SAXParseException;
  * Errors.
  */
 public class XML_Utils {
+  private XML_Utils() {}
+
+  /**
+   * Gets the Document Element of an XML Document.
+   * @param document the document to get the element from.
+   * @return the root XML element.
+   */
+  public static Element getDocumentElement(Document document) {
+    return document.getDocumentElement();
+  }
+
+  /**
+   * Gets the name of an XML element, which is the tag name for element nodes.
+   * @param element the XML element to get the name of.
+   * @return the tag name.
+   */
+  public static String getNodeName(Element element) {
+    return element.getNodeName();
+  }
+
   private static Value handleExceptions(Exception exception) {
     if (exception instanceof SAXParseException parseException) {
       var parseError =

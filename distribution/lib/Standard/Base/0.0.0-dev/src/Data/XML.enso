@@ -29,8 +29,6 @@ from project.Metadata import Display, make_single_choice, Widget
 from project.Nothing import all
 
 polyglot java import org.enso.base.XML_Utils
-polyglot java import org.w3c.dom.Document
-polyglot java import org.w3c.dom.Element
 
 type XML_Document
     ## ---
@@ -50,8 +48,7 @@ type XML_Document
              file = enso_project.data / "doc.xml"
              doc = XML_Document.from_file test_file
        ```
-    from_file : File -> XML_Document ! XML_Error | File_Error
-    from_file file:File=(Missing_Argument.throw "file") =
+    from_file file:File=(Missing_Argument.throw "file") -> XML_Document ! XML_Error | File_Error =
         File_Error.handle_java_exceptions file <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
@@ -71,8 +68,7 @@ type XML_Document
        ```
              doc = XML_Document.from_stream input_stream
        ```
-    from_stream : Input_Stream -> XML_Document ! XML_Error
-    from_stream input_stream:Input_Stream =
+    from_stream input_stream:Input_Stream -> XML_Document ! XML_Error =
        input_stream.with_java_stream java_stream->
             XML_Utils.parseStream java_stream (d-> XML_Document.Value d)
 
@@ -93,8 +89,7 @@ type XML_Document
              xml_string = "<foo></foo>"
              doc = XML_Document.parse xml_string
        ```
-    parse : Text -> XML_Document ! XML_Error
-    parse xml_string:Text=(Missing_Argument.throw "xml_string") =
+    parse xml_string:Text=(Missing_Argument.throw "xml_string") -> XML_Document ! XML_Error =
         XML_Utils.parseString xml_string (d-> XML_Document.Value d)
 
     ## ---
@@ -109,15 +104,14 @@ type XML_Document
 
        ## Arguments
         - `xml_string`: The string to read the XML document from.
-    from_text : Text -> XML_Document ! XML_Error
-    from_text xml_string:Text =
+    from_text xml_string:Text -> XML_Document ! XML_Error =
         Warning.attach (Deprecated.Warning "Standard.Base.Data.XML.XML_Document" "from_text" "Deprecated: use `XML_Document.parse` instead.") <|
             XML_Document.parse xml_string
 
     ## ---
        private: true
        ---
-    private Value (java_document:Document)
+    private Value java_document
 
     ## ---
        group: Metadata
@@ -132,9 +126,8 @@ type XML_Document
              doc = XML_Document.from_file file
              root = doc.root_element
        ```
-    root_element : XML_Element
-    root_element self =
-        java_element = self.java_document.getDocumentElement
+    root_element self -> XML_Element =
+        java_element = XML_Utils.getDocumentElement self.java_document
         XML_Element.new java_element
 
     ## ---
@@ -150,8 +143,7 @@ type XML_Document
              XML_Document.parse '<foo>hello</foo>' . name
              # => "foo"
        ```
-    name : Text
-    name self = self.root_element.name
+    name self -> Text = self.root_element.name
 
     ## ---
        group: Selections
@@ -181,8 +173,7 @@ type XML_Document
              # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
        ```
     @key child_selector
-    get : Text | Integer -> Any -> XML_Element | Any
-    get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
+    get self key:(Text | Integer)="." ~if_missing=Nothing -> XML_Element | Any = case key of
         _ : Integer -> if key == 0 then self.root_element else if_missing
         _ : Text -> if key == self.root_element.name then self.root_element else if_missing
 
@@ -198,9 +189,8 @@ type XML_Document
           attribute with the given name otherwise returns the first child element
           with the given name.
     @key child_selector
-    get_child_element : Text | Integer -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    get_child_element self key:(Text | Integer)="." =
-        self.root_element.get key
+    get_child_element self key:(Text | Integer)="." -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error =
+        self.root_element.at key
 
     ## ---
        group: Selections
@@ -231,8 +221,7 @@ type XML_Document
              # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
        ```
     @key child_selector
-    at : Text | Integer -> XML_Element ! No_Such_Key | Index_Out_Of_Bounds
-    at self key:(Text | Integer)="." =
+    at self key:(Text | Integer)="." -> XML_Element ! No_Such_Key | Index_Out_Of_Bounds | XML_Error =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
@@ -250,8 +239,7 @@ type XML_Document
              XML_Document.parse '<foo>hello</foo>' . outer_xml
              # => '<foo>hello</foo>'
        ```
-    outer_xml : Text ! XML_Error
-    outer_xml self =
+    outer_xml self -> Text ! XML_Error =
         XML_Utils.outerXML self.java_document False
 
     ## ---
@@ -266,8 +254,7 @@ type XML_Document
              XML_Document.parse '<foo><bar>hello</bar></foo>' . inner_xml
              # => '<foo><bar>hello</bar></foo>'
        ```
-    inner_xml : Text ! XML_Error
-    inner_xml self =
+    inner_xml self -> Text ! XML_Error =
         XML_Utils.innerXML self.java_document
 
     ## ---
@@ -313,8 +300,7 @@ type XML_Document
        This allows for building the workflow without affecting the real files.
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
-    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
+    write self path:Writable_File=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = True) (on_problems : Problem_Behavior = ..Report_Warning) -> File =
         write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## ---
@@ -328,8 +314,7 @@ type XML_Document
        ```
              # => [XML_Element'<foo><baz>hello</baz></foo>']
        ```
-    children : Vector XML_Element
-    children self = [self.root_element]
+    children self -> Vector XML_Element = [self.root_element]
 
     ## ---
        group: Metadata
@@ -347,16 +332,14 @@ type XML_Document
              XML_Document.parse '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . child_count
              # => 1
        ```
-    child_count : Integer
-    child_count self = 1
+    child_count self -> Integer = 1
 
     ## ---
        group: Metadata
        icon: text
        ---
        Gets the unique set of child names of an XML document.
-    child_names : Vector Text
-    child_names self = [self.root_element.name]
+    child_names self -> Vector Text = [self.root_element.name]
 
     ## ---
        group: Selections
@@ -368,24 +351,21 @@ type XML_Document
         - `name`: The name of the attribute to get.
         - `if_missing`: The value returned if the attribute does not exist.
     @name (e-> make_single_choice e.attribute_names)
-    attribute : Text -> Any -> Text | Any ! No_Such_Key
-    attribute self name:Text=(Missing_Argument.throw "name") ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+    attribute self name:Text=(Missing_Argument.throw "name") ~if_missing=(Error.throw (No_Such_Key.Error self name)) -> Text | Any ! No_Such_Key =
         if_missing
 
     ## ---
        private: true
        ---
        Gets a set of the attributes of an XML document.
-    attribute_names : Vector Text
-    attribute_names self = []
+    attribute_names self -> Vector Text = []
 
     ## ---
        group: Selections
        icon: array_new
        ---
        Gets a Dictionary containing of the attributes of an XML document.
-    attributes : Dictionary Text Text
-    attributes self = Dictionary.empty
+    attributes self -> Dictionary Text Text = Dictionary.empty
 
     ## ---
        group: Selections
@@ -393,8 +373,7 @@ type XML_Document
        ---
        Gets the text (non-markup) contents of the element and its descendants, if
        any.
-    text : Text ! XML_Error
-    text self = self.root_element.text
+    text self -> Text ! XML_Error = self.root_element.text
 
     ## ---
        icon: parse3
@@ -412,8 +391,7 @@ type XML_Document
              root.get_xpath "/class/teacher[1]/firstname"
              # => [XML_Document.parse "<firstname>Alice</firstname>" . root_element]
        ```
-    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
-    get_xpath self key:Text=(Missing_Argument.throw "key") =
+    get_xpath self key:Text=(Missing_Argument.throw "key") -> Vector (Text | XML_Element) ! XML_Error =
         XML_Utils.getXPath self.java_document key (e-> XML_Element.new e) False
 
     ## ---
@@ -432,8 +410,7 @@ type XML_Document
              root.get_xpath_text "/class/teacher[1]/firstname"
              # => "Alice"
        ```
-    get_xpath_text : Text -> Text | Nothing ! XML_Error
-    get_xpath_text self key:Text=(Missing_Argument.throw "key") =
+    get_xpath_text self key:Text=(Missing_Argument.throw "key") -> Text | Nothing ! XML_Error =
         target = XML_Utils.getXPath self.java_document key (e-> XML_Element.new e) True
         if target.length == 0 then Nothing else case target.first of
             t : Text -> t
@@ -447,8 +424,7 @@ type XML_Document
        ## Arguments
         - `tag_name`: The tag name to search for.
     @tag_name (e-> make_single_choice e.child_names)
-    get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_children_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") =
+    get_children_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") -> Vector XML_Element ! XML_Error =
         if tag_name=="*" || tag_name==self.root_element.name then [self.root_element] else []
 
     ## ---
@@ -466,8 +442,7 @@ type XML_Document
        ```
              # => [XML_Document.parse "<baz>hello</baz>" . root_element, XML_Document.parse "<baz>goodbye</baz>" . root_element]
        ```
-    get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_descendants_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") =
+    get_descendants_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") -> Vector XML_Element ! XML_Error =
         root = if tag_name == self.root_element.name then [self.root_element] else []
         root + (self.root_element.get_descendants_by_tag_name tag_name)
 
@@ -475,23 +450,20 @@ type XML_Document
        private: true
        ---
        Convert to a JavaScript Object representing this XML_Document.
-    to_js_object : JS_Object
-    to_js_object self = self.root_element.to_js_object
+    to_js_object self -> JS_Object ! XML_Error = self.root_element.to_js_object
 
     ## ---
        private: true
        ---
        Convert to a display representation of this XML_Document.
-    to_display_text : Text
-    to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
+    to_display_text self -> Text = "XML_Document (" + self.root_element.to_display_text + ")"
 
     ## ---
        private: true
        ---
        Transform the XML document into text for displaying as part of its default
        visualization.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
+    to_default_visualization_data self -> Text =
         outer_vec = Vector.build initial_capacity=2 builder->
             builder.append ["type", "XML_Document"]
             builder.append ["root_element", self.root_element.to_default_visualization_data as_js_object=True]
@@ -511,9 +483,8 @@ type XML_Element
              XML_Document.parse '<foo>hello</foo>' . root_element . name
              # => "foo"
        ```
-    name : Text
-    name self =
-        self.java_element.getNodeName
+    name self -> Text =
+        XML_Utils.getNodeName self.java_element
 
     ## ---
        group: Selections
@@ -542,8 +513,7 @@ type XML_Element
              # => "one"
        ```
     @key child_selector
-    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
+    get self key:(Text | Integer)="." ~if_missing=Nothing -> Text | XML_Element | Vector (Text | XML_Element) | Any ! No_Such_Key | Index_Out_Of_Bounds | XML_Error = case key of
         _ : Integer -> self.children_cache.get key if_missing
         _ : Text -> if key.starts_with "@" then self.attribute (key.drop 1) if_missing else
             self.children.find (c-> c.name == key) . if_nothing if_missing
@@ -576,8 +546,7 @@ type XML_Element
              # => "one"
        ```
     @key child_selector
-    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    at self key:(Text | Integer)="." =
+    at self key:(Text | Integer)="." -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
@@ -596,8 +565,7 @@ type XML_Element
        ```
              # => [XML_Document.parse "<baz>hello</baz>"]
        ```
-    children : Vector (XML_Element | Text) ! XML_Error
-    children self = self.children_cache
+    children self -> Vector (XML_Element | Text) ! XML_Error = self.children_cache
 
     ## ---
        group: Metadata
@@ -615,16 +583,14 @@ type XML_Element
              XML_Document.parse '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . child_count
              # => 2
        ```
-    child_count : Integer ! XML_Error
-    child_count self = self.children_cache.length
+    child_count self -> Integer ! XML_Error = self.children_cache.length
 
     ## ---
        group: Metadata
        icon: text
        ---
        Gets the unique set of child names of an XML element.
-    child_names : Vector Text ! XML_Error
-    child_names self =
+    child_names self -> Vector Text ! XML_Error =
         self.children_cache.map  n->n.name . distinct
 
     ## ---
@@ -646,16 +612,14 @@ type XML_Element
              # => "one"
        ```
     @name (e-> make_single_choice e.attribute_names)
-    attribute : Text -> Any -> Text | Any ! XML_Error
-    attribute self name:Text=(Missing_Argument.throw "name") ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+    attribute self name:Text=(Missing_Argument.throw "name") ~if_missing=(Error.throw (No_Such_Key.Error self name)) -> Text | Any ! XML_Error =
         XML_Utils.getAttribute self.java_element name . if_nothing if_missing
 
     ## ---
        private: true
        ---
        Gets a set of the attributes of an XML element.
-    attribute_names : Vector Text ! XML_Error
-    attribute_names self =
+    attribute_names self -> Vector Text ! XML_Error =
         array = XML_Utils.getAttributeNames self.java_element
         Vector.from_polyglot_array array
 
@@ -670,8 +634,7 @@ type XML_Element
        ```
            # => Dictionary.from_vector [["bar", "one"]]
        ```
-    attributes : Dictionary Text Text ! XML_Error
-    attributes self =
+    attributes self -> Dictionary Text Text ! XML_Error =
         XML_Utils.getAttributes self.java_element
 
     ## ---
@@ -688,8 +651,7 @@ type XML_Element
              XML_Document.parse '<foo>hello</foo>' . root_element . text
              # => "hello"
        ```
-    text : Text ! XML_Error
-    text self =
+    text self -> Text ! XML_Error =
         XML_Utils.getText self.java_element
 
     ## ---
@@ -704,8 +666,7 @@ type XML_Element
              XML_Document.parse '<foo>hello</foo>' . root_element . outer_xml
              # => '<foo>hello</foo>'
        ```
-    outer_xml : Text ! XML_Error
-    outer_xml self =
+    outer_xml self -> Text ! XML_Error =
         XML_Utils.outerXML self.java_element False
 
     ## ---
@@ -721,8 +682,7 @@ type XML_Element
              XML_Document.parse '<foo><bar>hello</bar></foo>' . root_element . inner_xml
              # => '<bar>hello</bar>'
        ```
-    inner_xml : Text ! XML_Error
-    inner_xml self =
+    inner_xml self -> Text ! XML_Error =
         XML_Utils.innerXML self.java_element
 
     ## ---
@@ -768,8 +728,7 @@ type XML_Element
        This allows for building the workflow without affecting the real files.
     @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
-    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
-    write self path:Writable_File=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = ..Report_Warning) =
+    write self path:Writable_File=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = ..Backup) (include_xml_declaration : Boolean = True) (on_problems : Problem_Behavior = ..Report_Warning) -> File =
         write_impl self.java_element path encoding on_existing_file include_xml_declaration on_problems
 
     ## ---
@@ -788,8 +747,7 @@ type XML_Element
              root.get_xpath "/class/teacher[1]/firstname"
              # => [XML_Document.parse "<firstname>Alice</firstname>" . root_element]
        ```
-    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
-    get_xpath self key:Text=(Missing_Argument.throw "key") =
+    get_xpath self key:Text=(Missing_Argument.throw "key") -> Vector (Text | XML_Element) ! XML_Error =
         XML_Utils.getXPath self.java_element key (e-> XML_Element.new e) False
 
     ## ---
@@ -808,8 +766,7 @@ type XML_Element
              root.get_xpath_text "/class/teacher[1]/firstname"
              # => "Alice"
        ```
-    get_xpath_text : Text -> Text | Nothing ! XML_Error
-    get_xpath_text self key:Text=(Missing_Argument.throw "key") =
+    get_xpath_text self key:Text=(Missing_Argument.throw "key") -> Text | Nothing ! XML_Error =
         target = XML_Utils.getXPath self.java_element key (e-> XML_Element.new e) True
         if target.length == 0 then Nothing else case target.first of
             t : Text -> t
@@ -823,9 +780,9 @@ type XML_Element
        ## Arguments
         - `tag_name`: The tag name to search for.
     @tag_name (e-> make_single_choice e.child_names)
-    get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_children_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") = if tag_name == "*" then self.children_cache else
-       self.children_cache.filter (c-> c.name == tag_name)
+    get_children_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") -> Vector XML_Element ! XML_Error =
+        if tag_name == "*" then self.children_cache else
+           self.children_cache.filter (c-> c.name == tag_name)
 
     ## ---
        icon: parse3
@@ -842,23 +799,20 @@ type XML_Element
        ```
              # => [XML_Document.parse "<baz>hello</baz>" . root_element, XML_Document.parse "<baz>goodbye</baz>" . root_element]
        ```
-    get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_descendants_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") =
+    get_descendants_by_tag_name self tag_name:Text=(Missing_Argument.throw "tag_name") -> Vector XML_Element ! XML_Error =
         XML_Utils.getElementsByTagName self.java_element tag_name (e-> XML_Element.new e)
 
     ## ---
        private: true
        ---
        Convert to a display representation of this XML_Element.
-    to_display_text : Text
-    to_display_text self = 'XML_Element "' + self.name + '"'
+    to_display_text self -> Text = 'XML_Element "' + self.name + '"'
 
     ## ---
        private: true
        ---
        Convert to a JavaScript Object representing this XML_Element.
-    to_js_object : JS_Object ! XML_Error
-    to_js_object self =
+    to_js_object self -> JS_Object ! XML_Error =
         vec = Vector.build initial_capacity=4 builder->
             builder.append ["type", "XML_Element"]
             builder.append ["tag", self.name]
@@ -870,22 +824,20 @@ type XML_Element
        private: true
        ---
        Build a new XML_Element, populating the lazy `children_cache` field.
-    new : Element -> XML_Element
-    new java_element =
+    private new java_element -> XML_Element =
         XML_Element.Value java_element (XML_Utils.getChildren java_element (e-> XML_Element.new e))
 
     ## ---
        private: true
        ---
-    private Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
+    private Value java_element (~children_cache:(Vector (XML_Element | Text)))
 
     ## ---
        private: true
        ---
        Transform the vector into text for displaying as part of its default
        visualization.
-    to_default_visualization_data : Boolean -> Boolean -> Text | JS_Object
-    to_default_visualization_data self nested:Boolean=False as_js_object:Boolean=False =
+    to_default_visualization_data self nested:Boolean=False as_js_object:Boolean=False -> Text | JS_Object =
         vec = Vector.build initial_capacity=4 builder->
             builder.append ["type", "XML_Element"]
             builder.append ["tag", self.name]
@@ -917,8 +869,7 @@ type XML_Error
        private: true
        ---
        Convert the XML_Error to a human-readable format.
-    to_display_text : Text
-    to_display_text self = case self of
+    to_display_text self -> Text = case self of
         XML_Error.Parse_Error line_number column_number -> "The XML document could not be parsed at line " + line_number.to_text + ", column " + column_number.to_text
         XML_Error.Other error -> error
 
