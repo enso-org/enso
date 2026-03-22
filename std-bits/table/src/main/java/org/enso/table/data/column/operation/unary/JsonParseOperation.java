@@ -70,7 +70,12 @@ public class JsonParseOperation implements UnaryOperation {
       case NULL -> null;
       case BOOLEAN -> node.asBoolean();
       case STRING -> node.asText();
-      case NUMBER -> node.isIntegralNumber() ? node.asLong() : node.asDouble();
+      case NUMBER -> {
+        if (node.canConvertToExactIntegral()) {
+          yield node.asLong();
+        }
+        yield node.asDouble();
+      }
       case ARRAY -> parseJsonArray(node);
       case OBJECT -> parseJsonObject((ObjectNode) node);
       default ->
@@ -109,6 +114,16 @@ public class JsonParseOperation implements UnaryOperation {
       case "Date_Time" -> parseJsonDateTime(node);
       case "Decimal" -> parseJsonDecimal(node);
       case "Integer" -> parseJsonInteger(node);
+      case "Float" -> parseJsonFloat(node);
+      default -> makeJSObject(node);
+    };
+  }
+
+  private static Object parseJsonFloat(ObjectNode node) {
+    return switch (getTextValue(node, "value", "")) {
+      case "Infinity" -> Double.POSITIVE_INFINITY;
+      case "-Infinity" -> Double.NEGATIVE_INFINITY;
+      case "NaN" -> Double.NaN;
       default -> makeJSObject(node);
     };
   }

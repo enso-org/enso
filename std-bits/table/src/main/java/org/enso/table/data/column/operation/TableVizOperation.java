@@ -121,7 +121,7 @@ public class TableVizOperation {
       builder.append(
           doubleStorage.isNothing(i)
               ? "null"
-              : JsonOperation.toJson(doubleStorage.getItemAsDouble(i)));
+              : JsonOperation.toJson(doubleStorage.getItemAsDouble(i), true));
       context.safepoint();
     }
     builder.append("]");

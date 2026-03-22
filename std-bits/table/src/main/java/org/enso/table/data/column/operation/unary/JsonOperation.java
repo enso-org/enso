@@ -103,8 +103,8 @@ public class JsonOperation implements UnaryOperation {
       case Integer i -> toJson(i);
       case Short s -> toJson(s);
       case Byte b -> toJson(b & 0xFF);
-      case Double d -> toJson(d);
-      case Float f -> toJson(f);
+      case Double d -> toJson(d, includeDisplayText);
+      case Float f -> toJson(f, includeDisplayText);
       case String s -> toJson(s);
       case BigInteger bi -> toJson(bi);
       case BigDecimal bd -> toJson(bd);
@@ -164,17 +164,16 @@ public class JsonOperation implements UnaryOperation {
     return String.valueOf(value);
   }
 
-  public static String toJson(double value) {
+  public static String toJson(double value, boolean includeDisplayText) {
     if (Double.isNaN(value)) {
-      return "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}";
+      return includeDisplayText
+          ? "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}"
+          : "{\"type\":\"Float\",\"value\":\"NaN\"}";
     }
     if (Double.isInfinite(value)) {
       var txtValue = value > 0 ? "Infinity" : "-Infinity";
-      return "{\"_display_text_\":\""
-          + txtValue
-          + "\",\"type\":\"Float\",\"value\":\""
-          + txtValue
-          + "\"}";
+      var displayText = includeDisplayText ? "\"_display_text_\":\"" + txtValue + "\"," : "";
+      return "{" + displayText + "\"type\":\"Float\",\"value\":\"" + txtValue + "\"}";
     }
     return String.valueOf(value);
   }
