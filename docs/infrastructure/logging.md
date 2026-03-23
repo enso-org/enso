@@ -421,10 +421,10 @@ warning in the logs, and nothing will be sent.
 ### Log level
 
 TelemetryAppender is enabled by default for all logging levels. If you wish to
-send telemetry event only to the TelemetryAppender, use `TRACE` level. If you
-use `DEBUG` level, it will, by default, be also send to the FileAppender. If you
-use `INFO` level, it will, by default, be also send to the FileAppender and
-ConsoleAppender.
+send telemetry event only to the TelemetryAppender, use `TRACE` or `DEBUG`
+levels. If you use `INFO` level, it will, by default, be also send to the
+[file appender](#file-appender). If you for some reason use even higher level it
+will also appear on a console.
 
 Note that changing the log level for the `org.enso.telemetry` namespace, either
 via `application.conf` or via system property, will not affect the Telemetry
@@ -432,32 +432,27 @@ Appender. The Telemetry Appender is always enabled for all log levels.
 
 ## JVM Architecture
 
-Enso's logging makes use of two logging APIs - `java.util.logging` and
-`org.slf4j`. The former is being used by the Truffle runtime, which itself
-relies on `jul`, while the latter is used everywhere else. The implementation of
-the logging is using off the shelf `Logback` implementation with some custom
-setup methods. The two APIss cooperate by essentially forwarding log messages
-from the former to the latter.
+Enso's logging makes use of three logging APIs - `System.getLogger`,
+`java.util.logging` and `org.slf4j`. The former is being used by the Truffle
+runtime, which itself relies on `jul`, while the latter is used everywhere else.
 
-While typically any SLF4J customization would be performed via custom
-`LoggerFactory` and `Logger` implementation that is returned via a
-`StaticLoggerBinder` instance, this is not possible for our use-case:
-
-- file logging requires Enso-specific directory which is only known during
-  runtime
-- centralized logging
-- modifying log levels without recompilation
+The actual logging uses off the shelf `Logback` implementation with some custom
+setup methods. The all logging APIs cooperate by sending their messages to the
+`Logback` implementation. The proper configuration depends on parsing the CLI
+arguments of the `enso` executable - while such configuration happens as soon as
+possible, it may suffer from bootstrapping quirks.
 
 ### SLF4J Interface
 
 The user code must not be calling any of the underlying implementations, such as
 Log4J or Logback, and should only request loggers via factory methods.
 
-One can use the `org.slf4j.LoggerFactory` directly to retrieve class-specific
-logger. For Scala code, it is recommended to use the
-`com.typesafe.scalalogging.Logger` instead which wraps the SLF4J logger with
-macros that compute the log messages only if the given logging level is enabled,
-and allows much prettier initialisation.
+- use the `org.slf4j.LoggerFactory` directly to retrieve class-specific logger.
+- alternatively use JDK's `System.getLogger`
+- avoid using `java.util.logging` unless done by 3rd party library
+- Scala code is likely to use `com.typesafe.scalalogging.Logger`
+
+Typical logging code in Java follows:
 
 ```java
 package foo;
