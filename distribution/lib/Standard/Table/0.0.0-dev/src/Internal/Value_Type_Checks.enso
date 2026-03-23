@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+import project.Internal.Value_Type_Helpers
+from project.Errors import Invalid_Value_Type
+
+## Checks that both arguments can be compared for ordering and runs the
+   following action or reports an error.
+are_comparable arg1:Any arg2:Any -> Nothing ! Invalid_Value_Type =
+    type_1 = Value_Type_Helpers.find_argument_type arg1
+    if type_1.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_1)
+
+    type_2 = Value_Type_Helpers.find_argument_type arg2
+    if type_2.is_nothing.not && type_2.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_2)
+
+    if type_2.is_nothing.not && (Value_Type.are_comparable type_1 type_2 . not) then Error.throw (Invalid_Value_Type.Incomparable type_1 type_2)
+    Nothing

@@ -26,6 +26,7 @@ import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Offset_Helper
 import project.Internal.Storage
+import project.Internal.Value_Type_Checks
 import project.Internal.Value_Type_Helpers
 import project.Refined_Types.Text_Column.Text_Column
 import project.Rows_To_Read.Rows_To_Read
@@ -110,35 +111,45 @@ type In_Memory_Column_Implementation
             a != b
         _call_comparator this_column other new_name (Comparators.notEq this_column.java_column (_java_other other)) fallback
 
-    greater_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    greater_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name ">=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.>= self=a that=b
-        _call_comparator this_column other new_name (Comparators.greaterThanEq this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.greaterThanEq this_column.java_column (_java_other other)) fallback
 
-    less_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    less_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name "<=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.<= self=a that=b
-        _call_comparator this_column other new_name (Comparators.lessThanEq this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.lessThanEq this_column.java_column (_java_other other)) fallback
 
-    greater_than (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    greater_than (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name ">" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.> self=a that=b
-        _call_comparator this_column other new_name (Comparators.greaterThan this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.greaterThan this_column.java_column (_java_other other)) fallback
 
-    less_than (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    less_than (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name "<" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.< self=a that=b
-        _call_comparator this_column other new_name (Comparators.lessThan this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.lessThan this_column.java_column (_java_other other)) fallback
 
-    between (this_column : Column & In_Memory_Column) (lower : Column | Any) (upper : Column | Any) = Value_Type.expect_comparable this_column lower <| Value_Type.expect_comparable this_column upper <|
+    between (this_column : Column & In_Memory_Column) (lower : Column | Any) (upper : Column | Any) =
+        Value_Type_Checks.are_comparable this_column lower
+        Value_Type_Checks.are_comparable this_column upper
         new_name = naming_helper.concat <|
             [naming_helper.to_expression_text this_column, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
         lower_check = (this_column >= lower)

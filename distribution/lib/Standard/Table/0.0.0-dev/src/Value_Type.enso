@@ -441,21 +441,6 @@ type Value_Type
                 if bucket_1.is_nothing || bucket_2.is_nothing then False else
                     bucket_1 == bucket_2
 
-
-    ## ---
-       private: true
-       ---
-       Checks that both arguments can be compared for ordering and runs the
-       following action or reports an error.
-    expect_comparable : Any -> Any -> Any -> Any ! Invalid_Value_Type
-    expect_comparable arg1 arg2 ~action =
-        type_1 = Value_Type_Helpers.find_argument_type arg1
-        type_2 = Value_Type_Helpers.find_argument_type arg2
-        if type_1.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_1) else
-            if type_2.is_nothing.not && type_2.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_2) else
-                if type_2.is_nothing.not && (Value_Type.are_comparable type_1 type_2 . not) then Error.throw (Invalid_Value_Type.Incomparable type_1 type_2) else
-                    action
-
     ## ---
        private: true
        advanced: true

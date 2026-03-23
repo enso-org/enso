@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Value_Type_Checks
 import project.Join_Condition.Join_Condition
 import project.Value_Type.Value_Type
 from project.Errors import Missing_Input_Columns, No_Such_Column
@@ -51,10 +52,10 @@ type Join_Condition_Resolver
             left = resolve_left left_selector
             right = resolve_right right_selector
             if is_nothing left || is_nothing right then Nothing else
-                Value_Type.expect_comparable left right <|
-                    if left.name == right.name then
-                        redundant_names.append right.name
-                    self.make_equals problem_builder left right
+                Value_Type_Checks.are_comparable left right
+                if left.name == right.name then
+                    redundant_names.append right.name
+                self.make_equals problem_builder left right
         converted = conditions_vector.map on_problems=No_Wrap.Value condition-> case condition of
             Join_Condition.Equals left_selector right_selector ->
                 right_resolved = if right_selector == "" then left_selector else right_selector
@@ -72,9 +73,9 @@ type Join_Condition_Resolver
                 right_lower = resolve_right right_lower_selector
                 right_upper = resolve_right right_upper_selector
                 if is_nothing left || is_nothing right_lower || is_nothing right_upper then Nothing else
-                    Value_Type.expect_comparable left right_lower <|
-                        Value_Type.expect_comparable left right_upper <|
-                            self.make_between problem_builder left right_lower right_upper
+                    Value_Type_Checks.are_comparable left right_lower
+                    Value_Type_Checks.are_comparable left right_upper
+                    self.make_between problem_builder left right_lower right_upper
             Join_Condition.Custom_SQL sql left_selector right_selector ->
                 left = resolve_left left_selector
                 right = resolve_right right_selector
