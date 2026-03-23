@@ -142,40 +142,46 @@ type DB_Column_Implementation
                 Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
 
     multiply (this_column : Column & DB_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            make_binary_op this_column "*" other
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        make_binary_op this_column "*" other
 
     divide (this_column : Column & DB_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            other_is_decimal = case other of
-                _ : Column -> other.value_type.is_decimal
-                _ -> False
-            either_is_decimal = this_column.value_type.is_decimal || other_is_decimal
-            new_name = (naming_helper this_column).binary_operation_name "/" this_column other
-            if either_is_decimal then make_binary_op this_column "DECIMAL_DIV" other new_name else
-                make_binary_op this_column "/" other new_name
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        other_is_decimal = case other of
+            _ : Column -> other.value_type.is_decimal
+            _ -> False
+        either_is_decimal = this_column.value_type.is_decimal || other_is_decimal
+        new_name = (naming_helper this_column).binary_operation_name "/" this_column other
+        if either_is_decimal then make_binary_op this_column "DECIMAL_DIV" other new_name else
+            make_binary_op this_column "/" other new_name
 
     modulus (this_column : Column & DB_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            other_type = Value_Type_Helpers.find_argument_type other
-            # Different implementation may be used for integer types.
-            op = if this_column.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "MOD"
-            new_name = (naming_helper this_column).binary_operation_name "%" this_column other
-            make_binary_op this_column op other new_name
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        other_type = Value_Type_Helpers.find_argument_type other
+        # Different implementation may be used for integer types.
+        op = if this_column.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "MOD"
+        new_name = (naming_helper this_column).binary_operation_name "%" this_column other
+        make_binary_op this_column op other new_name
 
     power (this_column : Column & DB_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            make_binary_op this_column '^' other
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        make_binary_op this_column '^' other
 
     and (this_column : Column & DB_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            new_name = (naming_helper this_column).binary_operation_name "&&" this_column other
-            make_binary_op this_column "AND" other new_name
+        Value_Type_Checks.is_boolean this_column
+        Value_Type_Checks.is_boolean other
+        new_name = (naming_helper this_column).binary_operation_name "&&" this_column other
+        make_binary_op this_column "AND" other new_name
 
     or (this_column : Column & DB_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            new_name = (naming_helper this_column).binary_operation_name "||" this_column other
-            make_binary_op this_column "OR" other new_name
+        Value_Type_Checks.is_boolean this_column
+        Value_Type_Checks.is_boolean other
+        new_name = (naming_helper this_column).binary_operation_name "||" this_column other
+        make_binary_op this_column "OR" other new_name
 
     not (this_column : Column & DB_Column) =
         Value_Type_Checks.is_boolean this_column

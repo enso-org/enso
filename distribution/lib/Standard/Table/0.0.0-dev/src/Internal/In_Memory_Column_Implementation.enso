@@ -178,42 +178,49 @@ type In_Memory_Column_Implementation
                     _call_binary_operator this_column other new_name operation
 
     multiply (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.multiply (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported multiply operation.")
-            new_name = naming_helper.binary_operation_name "*" this_column other
-            _call_binary_operator this_column other new_name operation
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.multiply (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported multiply operation.")
+        new_name = naming_helper.binary_operation_name "*" this_column other
+        _call_binary_operator this_column other new_name operation
 
     divide (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.divide (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported divide operation.")
-            new_name = naming_helper.binary_operation_name "/" this_column other
-            _call_binary_operator this_column other new_name operation
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.divide (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported divide operation.")
+        new_name = naming_helper.binary_operation_name "/" this_column other
+        _call_binary_operator this_column other new_name operation
 
     modulus (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.modulus (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported modulo operation.")
-            new_name = naming_helper.binary_operation_name "%" this_column other
-            _call_binary_operator this_column other new_name operation
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.modulus (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported modulo operation.")
+        new_name = naming_helper.binary_operation_name "%" this_column other
+        _call_binary_operator this_column other new_name operation
 
-    power (this_column : Column & In_Memory_Column) (other : Column | Any) = Illegal_Argument.handle_java_exception <|
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.power (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported power operation.")
-            new_name = naming_helper.binary_operation_name "^" this_column other
+    power (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.power (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported power operation.")
+        new_name = naming_helper.binary_operation_name "^" this_column other
+        Illegal_Argument.handle_java_exception <|
             _call_binary_operator this_column other new_name operation
 
     and (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            new_name = naming_helper.binary_operation_name "&&" this_column other
-            _call_binary_operator this_column other new_name LogicalOperations.AND
+        Value_Type_Checks.is_boolean this_column
+        Value_Type_Checks.is_boolean other
+        new_name = naming_helper.binary_operation_name "&&" this_column other
+        _call_binary_operator this_column other new_name LogicalOperations.AND
 
     or (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            new_name = naming_helper.binary_operation_name "||" this_column other
-            _call_binary_operator this_column other new_name LogicalOperations.OR
+        Value_Type_Checks.is_boolean this_column
+        Value_Type_Checks.is_boolean other
+        new_name = naming_helper.binary_operation_name "||" this_column other
+        _call_binary_operator this_column other new_name LogicalOperations.OR
 
     not (this_column : Column & In_Memory_Column) =
         Value_Type_Checks.is_boolean this_column
