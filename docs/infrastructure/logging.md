@@ -55,17 +55,20 @@ problems, but don't overload by too much logging. The system allows to
 
 ## User Config
 
-The overall logging level can be configured by `--log-level` argument to `enso`
-executable. The parameter to the argument sets the
-[custom Log Level](#custom-log-levels) to enable. E.g. using `--log-level debug`
-enables debug messages. `--log-level trace` enables all messages.
+The overall logging level can be configured by `--log-level` command line option
+of the `enso` executable. The argument to the CLI option sets the
+[custom Log Level](#custom-log-levels) to enable globally for all loggers. Using
+`--log-level debug` makes sure debug messages are visible. Setting the global
+level to `--log-level trace` increases the verbosity to maximum level and shows
+all messages logged by the code.
 
 It is possible to configure individual loggers by setting their logging level.
-Any custom log level is therefore defined with `--vm.D=x.y.Z.Logger.level=debug`
-where `x`, `y` and `Z` refer to the package elements and class name,
-respectively and `debug` or co. is a valid level name. System properties always
-have a higher priority over those defined in the `application.conf` file (see
-[custom Log Levels](#custom-log-levels) section).
+Each logger is associated with a _fully qualified name_. Any custom log level is
+therefore defined with `--vm.D=x.y.Z.Logger.level=debug` where `x`, `y` and `Z`
+refer to the _FQN_ of the logger - e.g. usually the package elements and class
+name. The `debug` value (or other) shall represent a valid level name. System
+properties always take priority over any default values defined in embedded
+`application.conf` file (see [custom Log Levels](#custom-log-levels) section).
 
 ## Configuration in Code
 
