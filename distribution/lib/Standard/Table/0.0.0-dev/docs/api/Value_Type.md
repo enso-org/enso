@@ -37,7 +37,6 @@
     - expect_date_time argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_has_date argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_has_time argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - expect_numeric argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_text argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_type value:Standard.Base.Any.Any predicate:Standard.Base.Any.Any type_kind:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - has_date self -> Standard.Base.Any.Any

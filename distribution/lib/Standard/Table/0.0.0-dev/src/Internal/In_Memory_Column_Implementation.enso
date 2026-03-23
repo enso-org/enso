@@ -238,7 +238,8 @@ type In_Memory_Column_Implementation
     const (this_column : Column & In_Memory_Column) value = this_column.to_table.make_constant_column value
 
     round (this_column : Column & In_Memory_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
-        Value_Type.expect_numeric this_column <| Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
+        Value_Type_Checks.is_numeric this_column
+        Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [this_column]
             round_operation = RoundOperation.create (this_column:In_Memory_Column).java_column decimal_places (rounding_mode == Rounding_Mode.Bankers)
             apply_unary_operation this_column round_operation new_name
@@ -258,7 +259,8 @@ type In_Memory_Column_Implementation
                     apply_unary_operation this_column DateTruncateOperation.TRUNCATE_INSTANCE
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" this_column.value_type this_column.name
 
-    ceil (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    ceil (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         case this_column.inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "ceil" [this_column]
@@ -266,7 +268,8 @@ type In_Memory_Column_Implementation
             False ->
                 apply_unary_operation this_column UnaryRoundOperation.CEIL_INSTANCE
 
-    floor (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    floor (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         case this_column.inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "floor" [this_column]
@@ -297,24 +300,20 @@ type In_Memory_Column_Implementation
         new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is Nothing"]
         apply_unary_operation this_column IsNothingOperation.INSTANCE new_name
 
-    is_nan (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
-        In_Memory_Column_Implementation.internal_is_nan this_column
+    is_nan (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
+        internal_is_nan this_column
 
-    internal_is_nan (this_column : Column & In_Memory_Column) =
-        new_name = naming_helper.function_name "is_nan" [this_column]
-        fallback x = case x of
-            _ : Float   -> x.is_nan
-            _           -> False
-        apply_unary_operation this_column DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
-
-    is_infinite (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    is_infinite (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         new_name = naming_helper.function_name "is_infinite" [this_column]
         fallback x = case x of
             _ : Float   -> x.is_infinite
             _           -> False
         apply_unary_operation this_column DoubleIsOperation.IS_INFINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
-    is_finite (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    is_finite (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         new_name = naming_helper.function_name "is_finite" [this_column]
         fallback x = case x of
             _ : Float   -> x.is_finite
@@ -322,15 +321,7 @@ type In_Memory_Column_Implementation
         apply_unary_operation this_column DoubleIsOperation.IS_FINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
     is_empty (this_column : Column & In_Memory_Column) = Value_Type.expect_text this_column <|
-        In_Memory_Column_Implementation.internal_is_empty this_column
-
-    internal_is_empty (this_column : Column & In_Memory_Column) =
-        new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is empty"]
-        fallback x = case x of
-            _ : Text -> x == ""
-            Nothing  -> True
-            _        -> False
-        apply_unary_operation this_column IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean nothing_unchanged=False)
+        internal_is_empty this_column
 
     is_present (this_column : Column & In_Memory_Column) =
         new_name = naming_helper.function_name "is_present" [this_column]
@@ -341,9 +332,9 @@ type In_Memory_Column_Implementation
         result = case this_column.value_type of
             Value_Type.Char _ _ -> this_column.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then this_column.is_nothing.iif True (In_Memory_Column_Implementation.internal_is_nan this_column) else this_column.is_nothing
+                if treat_nans_as_blank then this_column.is_nothing.iif True (internal_is_nan this_column) else this_column.is_nothing
             Value_Type.Mixed ->
-                (In_Memory_Column_Implementation.internal_is_empty this_column) || (if treat_nans_as_blank then this_column.is_nothing.iif True (In_Memory_Column_Implementation.internal_is_nan this_column) else this_column.is_nothing)
+                (internal_is_empty this_column) || (if treat_nans_as_blank then this_column.is_nothing.iif True (internal_is_nan this_column) else this_column.is_nothing)
             _ -> this_column.is_nothing
         result.rename new_name
 
@@ -908,6 +899,20 @@ private apply_case_sensitive_text_operation left:Column (other : Column | Text |
    to 'regain' that part.
 In_Memory_Column.from (that : Column) = get_underlying_from_column that
 
+private internal_is_nan (this_column : Column & In_Memory_Column) =
+    new_name = naming_helper.function_name "is_nan" [this_column]
+    fallback x = case x of
+        _ : Float   -> x.is_nan
+        _           -> False
+    apply_unary_operation this_column DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
+
+private internal_is_empty (this_column : Column & In_Memory_Column) =
+    new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is empty"]
+    fallback x = case x of
+        _ : Text -> x == ""
+        Nothing  -> True
+        _        -> False
+    apply_unary_operation this_column IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean nothing_unchanged=False)
 
 ## ---
    private: true

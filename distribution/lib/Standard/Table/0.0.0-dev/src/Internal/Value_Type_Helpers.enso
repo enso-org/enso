@@ -301,9 +301,9 @@ resolve_subtraction_kind arg1 arg2 -> Subtraction_Kind | Nothing =
    Checks that both provided arguments have numeric type and runs the action if
    they do.
 check_binary_numeric_op arg1 arg2 ~action =
-    Value_Type.expect_numeric arg1 <|
-        Value_Type.expect_numeric arg2 <|
-            action
+    Value_Type_Checks.is_numeric arg1
+    Value_Type_Checks.is_numeric arg2
+    action
 
 ## ---
    private: true

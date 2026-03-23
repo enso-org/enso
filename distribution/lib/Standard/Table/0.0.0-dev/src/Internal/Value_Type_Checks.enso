@@ -16,6 +16,11 @@ are_comparable arg1:Any arg2:Any -> Nothing ! Invalid_Value_Type =
     if type_2.is_nothing.not && (_are_comparable type_1 type_2 . not) then Error.throw (Invalid_Value_Type.Incomparable type_1 type_2)
     Nothing
 
+## Checks that the argument (either a value or a Column) is of a numeric type.
+   Reports an Invalid_Value_Type error if not.
+is_numeric argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .is_numeric "a numeric"
+
 ## Checks that the argument (either a value or a Column) is of an integer type.
    Reports an Invalid_Value_Type error if not.
 is_integer argument:Any -> Nothing ! Invalid_Value_Type =

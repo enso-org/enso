@@ -444,16 +444,6 @@ type Value_Type
        private: true
        advanced: true
        ---
-       Checks if the provided argument (which may be a value or a Column) is of a
-       numeric type and runs the following action or reports a type error.
-    expect_numeric : Any -> Any -> Any ! Invalid_Value_Type
-    expect_numeric argument ~action =
-        Value_Type.expect_type argument .is_numeric "a numeric" action
-
-    ## ---
-       private: true
-       advanced: true
-       ---
        Checks if the provided argument (which may be a value or a Column) is a
        `Date`.
     expect_date : Any -> Any -> Any ! Invalid_Value_Type
