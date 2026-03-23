@@ -261,6 +261,7 @@ private time_visualization module ~name ~action =
             Panic.throw caught_panic
         if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
         result
+    # TBD: also need to replace this usage of Logging.Profile
     Profile.time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
 
 private _profile_suffix value = case value of
