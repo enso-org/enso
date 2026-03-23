@@ -3,7 +3,7 @@ package org.enso.table.data.table;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.JsonOperation;
+import org.enso.table.data.column.operation.TableVizOperation;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -229,7 +229,7 @@ public final class Column {
 
   public String tableVizJSON(
       List<String> valueTypeDisplay, long allRowsCount, boolean useServerMode) {
-    return JsonOperation.makeTableVizJSON(
+    return TableVizOperation.makeJSON(
         "Column-" + storage.uniqueKey(),
         new Column[] {this},
         allRowsCount,

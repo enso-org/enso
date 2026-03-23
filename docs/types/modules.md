@@ -26,7 +26,9 @@ types).
 
 ## Resolving Name Clashes
 
-> [!WARNING] There is no `here` keyword anymore and the clash resultion is
+<!-- prettier-ignore -->
+> [!WARNING]
+> There is no `here` keyword anymore and the clash resultion is
 > probably also not working.
 >
 > Enso modules employ the following rules in order to avoid name clashes:
@@ -39,7 +41,9 @@ types).
 
 ## Scoping and Imports
 
-> [!WARNING] Review by an _imports expert_ is needed!
+<!-- prettier-ignore -->
+> [!WARNING]
+> Review by an _imports expert_ is needed!
 
 To use the contents of a module we need a way to bring them into scope. Like
 most languages, Enso provides an _import_ mechanism for this. Enso has four

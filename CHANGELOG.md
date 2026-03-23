@@ -47,6 +47,7 @@
 - [Expanded S3 API with versions and signed uri][14831]
 - [Support for reading JSON data from database connections.][14872]
 - [Add Redshift bulk loading][14860]
+- [JSON functions on Table and Column. XML and Hashset fixes.][14884]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -64,6 +65,7 @@
 [14831]: https://github.com/enso-org/enso/pull/14831
 [14872]: https://github.com/enso-org/enso/pull/14872
 [14860]: https://github.com/enso-org/enso/pull/14860
+[14884]: https://github.com/enso-org/enso/pull/14884
 
 #### Enso Language & Runtime
 

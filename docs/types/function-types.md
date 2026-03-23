@@ -11,7 +11,9 @@ order: 3
 As a functional programming language, the type of functions in Enso (`->`) is
 key. There are a few things that should be noted about functions in Enso.
 
-> [!NOTE] The actionables for this section:
+<!-- prettier-ignore -->
+> [!NOTE]
+> The actionables for this section:
 >
 > - Work out a full specification for function typing and behaviour.
 > - Calling a function with an upper-case letter instantiates all of its type
@@ -47,6 +49,7 @@ Scope lookup proceeds from the function body outwards, as is standard for
 lexical scoping. For a detailed discussion of scoping, please see
 [the scoping documentation](../semantics/scoping.md).
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > PLEASE NOTE. THIS IS OUT OF DATE.
@@ -114,7 +117,9 @@ all arguments have been applied. This operator is `>>` (and its backwards cousin
 arguments, and the result consumes `n` arguments, applies them to `f`, and then
 applies the result of that plus any additional arguments to `g`.
 
-> [!WARNING] Enso does support `>>` as well as `<<` operators, but
+<!-- prettier-ignore -->
+> [!WARNING]
+> Enso does support `>>` as well as `<<` operators, but
 >
 > ```ruby
 > computeCoeff = (+) >> (*5)
@@ -132,7 +137,9 @@ applies the result of that plus any additional arguments to `g`.
 In addition, we have the operator `.`, which acts as standard forward function
 chaining in Enso, and its backwards chaining cousin `<|`.
 
-> [!NOTE] The actionables from this section are:
+<!-- prettier-ignore -->
+> [!NOTE]
+> The actionables from this section are:
 >
 > - Examples for the more advanced use-cases of `>>` to decide if the type
 >   complexity is worth it.

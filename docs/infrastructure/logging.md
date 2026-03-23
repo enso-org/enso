@@ -176,7 +176,9 @@ executing:
 
 #### Project Manager
 
-> [!WARNING] Project Manager has been Removed. Can this section be updated?
+<!-- prettier-ignore -->
+> [!WARNING] 
+> Project Manager has been Removed. Can this section be updated?
 
 Project manager by default starts a centralized logging server that collects
 logs (as defined in `logging-service.server` config key) and the logs output can

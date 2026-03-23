@@ -60,6 +60,7 @@ polyglot java import org.enso.table.data.column.operation.unary.DuplicateCountOp
 polyglot java import org.enso.table.data.column.operation.unary.FillFromPreviousOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
+polyglot java import org.enso.table.data.column.operation.unary.JsonOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.RoundOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -579,6 +580,9 @@ type In_Memory_Column_Implementation
                 formatter = make_value_formatter_for_value_type this_column.value_type locale format
                 apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
 
+    json_stringify (this_column : Column & In_Memory_Column) =
+        apply_unary_operation this_column JsonOperation.INSTANCE
+
     cast (this_column : Column & In_Memory_Column) value_type:Value_Type on_problems:Problem_Behavior =
         Cast_Helpers.check_cast_compatibility this_column.value_type value_type
         target_storage_type = Storage.from_value_type value_type on_problems
@@ -818,9 +822,9 @@ naming_helper = Column_Naming_Helper.in_memory
     - `new_name`: The name of the column created as the result of this operation.
     - `if_unsupported`: The result if the operation is not supported for the
       column.
-apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
+apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) on_problems:Problem_Behavior=..Report_Warning =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
-    with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
+    with_map_operation_problem_aggregator column.name on_problems java_problem_aggregator->
         java_column = UnaryOperation.apply (column:In_Memory_Column).java_column operation used_name java_problem_aggregator
         if java_column.is_nothing then if_unsupported else In_Memory_Column.from_java_column java_column
 
