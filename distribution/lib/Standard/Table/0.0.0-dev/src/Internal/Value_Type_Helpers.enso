@@ -311,9 +311,9 @@ check_binary_numeric_op arg1 arg2 ~action =
    Checks that both provided arguments have boolean type and runs the action if
    they do.
 check_binary_boolean_op arg1 arg2 ~action =
-    Value_Type.expect_boolean arg1 <|
-        Value_Type.expect_boolean arg2 <|
-            action
+    Value_Type_Checks.is_boolean arg1
+    Value_Type_Checks.is_boolean arg2
+    action
 
 ## ---
    private: true

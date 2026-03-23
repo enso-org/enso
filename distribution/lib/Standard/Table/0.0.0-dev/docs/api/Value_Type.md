@@ -32,7 +32,6 @@
     - Time
     - Unsupported_Data_Type type_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= underlying_type:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)=
     - can_be_widened_to self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - expect_boolean argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_date argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_date_time argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_has_date argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -27,85 +27,85 @@ polyglot java import org.enso.table.data.column.storage.type.TextType
 
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "abs" [column]
         apply_unary_operation column AbsOperation.INSTANCE new_name
 
     signum (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "signum" [column]
         apply_unary_operation column SignumOperation.INSTANCE new_name
 
     randbetween (column : Column & In_Memory_Column) limit seed:Integer =
-        Value_Type.is_numeric column
-        Value_Type.is_numeric limit
+        Value_Type_Checks.is_numeric column
+        Value_Type_Checks.is_numeric limit
         operation = RandBetweenOperation.create (column:In_Memory_Column).java_column (_java_other limit) seed
         if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported randbetween operation.")
         new_name = naming_helper.function_name "randbetween" [column, limit]
         _call_binary_operator column limit new_name operation
 
     sin (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "sin" [column]
         apply_unary_operation column DoubleUnaryOperation.SIN_INSTANCE new_name
 
     asin (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "asin" [column]
         apply_unary_operation column DoubleUnaryOperation.ASIN_INSTANCE new_name
 
     cos (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "cos" [column]
         apply_unary_operation column DoubleUnaryOperation.COS_INSTANCE new_name
 
     acos (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "acos" [column]
         apply_unary_operation column DoubleUnaryOperation.ACOS_INSTANCE new_name
 
     tan (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "tan" [column]
         apply_unary_operation column DoubleUnaryOperation.TAN_INSTANCE new_name
 
     atan (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "atan" [column]
         apply_unary_operation column DoubleUnaryOperation.ATAN_INSTANCE new_name
 
     sinh (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "sinh" [column]
         apply_unary_operation column DoubleUnaryOperation.SINH_INSTANCE new_name
 
     cosh (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "cosh" [column]
         apply_unary_operation column DoubleUnaryOperation.COSH_INSTANCE new_name
 
     tanh (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "tanh" [column]
         apply_unary_operation column DoubleUnaryOperation.TANH_INSTANCE new_name
 
     sqrt (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "sqrt" [column]
         apply_unary_operation column DoubleUnaryOperation.SQRT_INSTANCE new_name
 
     ln (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "ln" [column]
         apply_unary_operation column DoubleUnaryOperation.LN_INSTANCE new_name
 
     exp (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "exp" [column]
         apply_unary_operation column DoubleUnaryOperation.EXP_INSTANCE new_name
 
     log10 (column : Column & In_Memory_Column) =
-        Value_Type.is_numeric column
+        Value_Type_Checks.is_numeric column
         new_name = naming_helper.function_name "log10" [column]
         apply_unary_operation column DoubleUnaryOperation.LOG10_INSTANCE new_name
 

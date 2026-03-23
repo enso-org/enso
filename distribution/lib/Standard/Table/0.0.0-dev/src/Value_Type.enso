@@ -434,16 +434,6 @@ type Value_Type
        private: true
        advanced: true
        ---
-       Checks if the provided argument (which may be a value or a Column) is of a
-       text type and runs the following action or reports a type error.
-    expect_boolean : Any -> Any -> Any ! Invalid_Value_Type
-    expect_boolean argument ~action =
-        Value_Type.expect_type argument .is_boolean Value_Type.Boolean action
-
-    ## ---
-       private: true
-       advanced: true
-       ---
        Checks if the provided argument (which may be a value or a Column) is a
        `Date`.
     expect_date : Any -> Any -> Any ! Invalid_Value_Type

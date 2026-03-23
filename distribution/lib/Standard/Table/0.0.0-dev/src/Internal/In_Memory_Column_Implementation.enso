@@ -216,11 +216,12 @@ type In_Memory_Column_Implementation
             _call_binary_operator this_column other new_name LogicalOperations.OR
 
     not (this_column : Column & In_Memory_Column) =
-        Value_Type.expect_boolean this_column <|
-            new_name = naming_helper.concat ["not", naming_helper.to_expression_text this_column]
-            apply_unary_operation this_column NotOperation.INSTANCE new_name
+        Value_Type_Checks.is_boolean this_column
+        new_name = naming_helper.concat ["not", naming_helper.to_expression_text this_column]
+        apply_unary_operation this_column NotOperation.INSTANCE new_name
 
-    iif this_column (when_true : Column | Any) (when_false : Column | Any) = Value_Type.expect_boolean this_column <|
+    iif this_column (when_true : Column | Any) (when_false : Column | Any) =
+        Value_Type_Checks.is_boolean this_column
         common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
         storage_type = Storage.from_value_type_strict common_type
         storage_type.if_not_error <|

@@ -178,18 +178,18 @@ type DB_Column_Implementation
             make_binary_op this_column "OR" other new_name
 
     not (this_column : Column & DB_Column) =
-        Value_Type.expect_boolean this_column <|
-            new_name = (naming_helper this_column).concat ["not", (naming_helper this_column).to_expression_text this_column]
-            make_unary_op this_column "NOT" new_name
+        Value_Type_Checks.is_boolean this_column
+        new_name = (naming_helper this_column).concat ["not", (naming_helper this_column).to_expression_text this_column]
+        make_unary_op this_column "NOT" new_name
 
     iif (this_column : Column & DB_Column) when_true:Any when_false:Any =
-        Value_Type.expect_boolean this_column <|
-            common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
-            common_type.if_not_error <|
-                new_name = (naming_helper this_column).concat <|
-                    ["if", (naming_helper this_column).to_expression_text this_column, "then", (naming_helper this_column).to_expression_text when_true, "else", (naming_helper this_column).to_expression_text when_false]
-                op_result = make_op this_column "IIF" [when_true, when_false] new_name
-                adapt_unified_column op_result common_type
+        Value_Type_Checks.is_boolean this_column
+        common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
+        common_type.if_not_error <|
+            new_name = (naming_helper this_column).concat <|
+                ["if", (naming_helper this_column).to_expression_text this_column, "then", (naming_helper this_column).to_expression_text when_true, "else", (naming_helper this_column).to_expression_text when_false]
+            op_result = make_op this_column "IIF" [when_true, when_false] new_name
+            adapt_unified_column op_result common_type
 
     const (this_column : Column & DB_Column) value = this_column.to_table.make_constant_column value
 
