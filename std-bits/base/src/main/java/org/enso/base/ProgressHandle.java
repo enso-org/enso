@@ -8,19 +8,21 @@ public class ProgressHandle {
 
   private final String name;
   private final long count;
-  boolean closed = false;
+  private final long then;
+  private Long took;
 
   public ProgressHandle(String name, long count) {
     this.name = name;
     this.count = count;
+    this.then = System.currentTimeMillis();
   }
 
   public void close() {
-    if (closed) {
+    if (took != null) {
       return;
     }
-    closed = true;
-    LOGGER.trace("ADVANCE {}+{}", this, count);
+    took = System.currentTimeMillis() - then;
+    LOGGER.trace("ADVANCE {}+{}~{}ms", this, count, took);
   }
 
   @Override
