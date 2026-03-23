@@ -13,7 +13,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Logging.Log_Level
-import Standard.Base.Logging.Profile
+import Standard.Base.Logging.Progress
 import Standard.Base.Runtime.State
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
@@ -4170,4 +4170,8 @@ private _profile_time_execution ~label:Text ~function =
             level = Log_Level.from env_val
             if level.is_error then Nothing else level
     level = State.get Table if_missing=profile_level_from_env
-    Profile.time_execution level label module=Table function
+    if level == Nothing then
+        function
+    else
+        Progress.run handle_name="Table" label=label up_to=1 action=_->
+            function

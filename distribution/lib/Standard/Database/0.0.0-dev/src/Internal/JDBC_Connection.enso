@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Logging.Log_Level
-import Standard.Base.Logging.Profile
+import Standard.Base.Logging.Progress
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.State
@@ -296,4 +296,9 @@ private _profile_time_execution ~label:Text ~function =
             level = Log_Level.from env_val
             if level.is_error then Nothing else level
     level = State.get Table if_missing=profile_level_from_env
-    Profile.time_execution level label module=JDBC_Connection function
+
+    if level == Nothing then
+        function
+    else
+        Progress.run handle_name="JDBC_Connection" label=label up_to=1 action=_->
+            function
