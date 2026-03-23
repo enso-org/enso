@@ -5,7 +5,7 @@ import project.Internal.Value_Type_Helpers
 from project.Errors import Invalid_Value_Type
 
 ## Checks that both arguments can be compared for ordering.
-   Reports an Invalid_Value_Type error if not.
+   Reports an `Invalid_Value_Type` error if not.
 are_comparable arg1:Any arg2:Any -> Nothing ! Invalid_Value_Type =
     type_1 = Value_Type_Helpers.find_argument_type arg1
     if type_1.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_1)
@@ -16,40 +16,51 @@ are_comparable arg1:Any arg2:Any -> Nothing ! Invalid_Value_Type =
     if type_2.is_nothing.not && (_are_comparable type_1 type_2 . not) then Error.throw (Invalid_Value_Type.Incomparable type_1 type_2)
     Nothing
 
-## Checks that the argument (either a value or a Column) is of a boolean type.
-   Reports an Invalid_Value_Type error if not.
+## Checks that the provided argument (either a value or a Column) is of a
+   boolean type. Reports an `Invalid_Value_Type` error if not.
 is_boolean argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_boolean Value_Type.Boolean
 
-## Checks that the argument (either a value or a Column) is of a numeric type.
-   Reports an Invalid_Value_Type error if not.
+## Checks that the provided argument (either a value or a Column) is of a
+   numeric type. Reports an `Invalid_Value_Type` error if not.
 is_numeric argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_numeric "a numeric"
 
-## Checks that the argument (either a value or a Column) is of an integer type.
-   Reports an Invalid_Value_Type error if not.
+## Checks that the provided argument (either a value or a Column) is of an
+   integer type. Reports an `Invalid_Value_Type` error if not.
 is_integer argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_integer Value_Type.Integer.to_name
 
-## Checks that the argument (either a value or a Column) is of a text type.
-   Reports an Invalid_Value_Type error if not.
+## Checks that the provided argument (either a value or a Column) is of a text
+   type. Reports an `Invalid_Value_Type` error if not.
 is_text argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_text Value_Type.Char.to_name
 
-## Checks that the argument (either a value or a Column) is of a Date type.
-   Reports an Invalid_Value_Type error if not.
+## Checks that the provided argument (either a value or a Column) is of a Date
+   type. Reports an `Invalid_Value_Type` error if not.
 is_date argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_date Value_Type.Date
 
 ## Checks if the provided argument (which may be a value or a Column) has
-   type `Date` or `Date_Time`.
+   type `Date` or `Date_Time`. Reports an `Invalid_Value_Type` error if not.
 has_date argument:Any -> Nothing ! Invalid_Value_Type =
-    _check_value_type argument .has_is_date "Date or Date_Time"
+    _check_value_type argument .has_date "Date or Date_Time"
 
-## Checks that the argument (either a value or a Column) is of a Date_Time type.
-   Reports an Invalid_Value_Type error if not.
+## Checks if the provided argument (which may be a value or a Column) has
+   type `Time_Of_Day` or `Date_Time`. Reports an `Invalid_Value_Type` error if
+   not.
+has_time argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .has_time "Time_Of_Day or Date_Time"
+
+## Checks that the provided argument (either a value or a Column) is of a
+   `Date_Time` type. Reports an `Invalid_Value_Type` error if not.
 is_date_time argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_date_time Value_Type.Date_Time.to_name
+
+## Checks that the provided argument (either a value or a Column) has type `Date`,
+   `Time_Of_Day` or `Date_Time`. Reports an `Invalid_Value_Type error` if not.
+is_date_or_time argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .is_date_or_time "date/time"
 
 private _check_value_type argument:Any condition:(Value_Type->Boolean) type_kind:(Text|Value_Type) -> Nothing ! Invalid_Value_Type =
     typ = Value_Type_Helpers.find_argument_type argument

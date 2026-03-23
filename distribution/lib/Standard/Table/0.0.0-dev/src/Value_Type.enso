@@ -422,26 +422,6 @@ type Value_Type
 
     ## ---
        private: true
-       advanced: true
-       ---
-       Checks if the provided argument (which may be a value or a Column) has
-       type `Time_Of_Day` or `Date_Time`.
-    expect_has_time : Any -> Any -> Any ! Invalid_Value_Type
-    expect_has_time argument ~action =
-        Value_Type.expect_type argument .has_time "Time_Of_Day or Date_Time" action
-
-    ## ---
-       private: true
-       ---
-       A helper for generating the `Value_Type.expect_` checks.
-    expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
-    expect_type value predicate type_kind ~action =
-        typ = Value_Type_Helpers.find_argument_type value
-        if (typ == Value_Type.Null) || predicate typ then action else
-            Value_Type_Helpers.raise_unexpected_type type_kind value
-
-    ## ---
-       private: true
        ---
        Provides a text representation of the `Value_Type` meant for displaying to
        the user.

@@ -94,9 +94,9 @@ type DB_Column_Implementation
     equals_ignore_case (this_column : Column & DB_Column) (other : Column | Any) locale:Locale =
         Value_Type_Checks.is_text this_column
         Value_Type_Checks.is_text other
-        Helpers.assume_default_locale locale <|
-            new_name = (naming_helper this_column).function_name "equals_ignore_case" [this_column, other]
-            make_binary_op this_column "EQUALS_IGNORE_CASE" other new_name
+        Helpers.check_default_locale locale
+        new_name = (naming_helper this_column).function_name "equals_ignore_case" [this_column, other]
+        make_binary_op this_column "EQUALS_IGNORE_CASE" other new_name
 
     not_equals (this_column : Column & DB_Column) (other : Column | Any) =
         make_equality_check_with_floating_point_handling this_column other "!="
@@ -447,37 +447,44 @@ type DB_Column_Implementation
         Value_Type_Checks.has_date this_column
         make_unary_op this_column "day_of_week"
 
-    hour (this_column : Column & DB_Column) = Value_Type.expect_has_time this_column <|
+    hour (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_time this_column
         make_unary_op this_column "hour"
 
-    minute (this_column : Column & DB_Column) = Value_Type.expect_has_time this_column <|
+    minute (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_time this_column
         make_unary_op this_column "minute"
 
-    second (this_column : Column & DB_Column) = Value_Type.expect_has_time this_column <|
+    second (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_time this_column
         make_unary_op this_column "second"
 
     date_part (this_column : Column & DB_Column) (period : Date_Period | Time_Period) =
         Date_Time_Helpers.make_date_part_function this_column period (column->op_name-> make_unary_op column op_name) (naming_helper this_column)
 
     date_diff (this_column : Column & DB_Column) (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period) =
-        Value_Type.expect_type this_column .is_date_or_time "date/time" <|
-            my_type = this_column.inferred_precise_value_type
-            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = (naming_helper this_column).function_name "date_diff" [this_column, end, period]
-                    metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
-                    make_op this_column "date_diff" [end] new_name metadata
+        Value_Type_Checks.is_date_or_time this_column
+        my_type = this_column.inferred_precise_value_type
+
+        end_type = Value_Type_Helpers.find_argument_type end
+        if end_type!=Value_Type.Null && end_type!=my_type then Value_Type_Helpers.raise_unexpected_type my_type.to_display_text end
+
+        aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+        aligned_period.if_not_error <|
+            new_name = (naming_helper this_column).function_name "date_diff" [this_column, end, period]
+            metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
+            make_op this_column "date_diff" [end] new_name metadata
 
     date_add (this_column : Column & DB_Column) (amount : Column | Integer) (period : Date_Period | Time_Period) =
-        Value_Type.expect_type this_column .is_date_or_time "date/time" <|
-            my_type = this_column.inferred_precise_value_type
-            Helpers.expect_specific_integer_type this_column amount <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = (naming_helper this_column).function_name "date_add" [this_column, amount, period]
-                    metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
-                    make_op this_column "date_add" [amount] new_name metadata
+        Value_Type_Checks.is_date_or_time this_column
+        Helpers.is_specific_integer_type this_column amount
+
+        my_type = this_column.inferred_precise_value_type
+        aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+        aligned_period.if_not_error <|
+            new_name = (naming_helper this_column).function_name "date_add" [this_column, amount, period]
+            metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
+            make_op this_column "date_add" [amount] new_name metadata
 
     is_in (this_column : Column & DB_Column) (vector : Column | Vector | Array) =
         new_name = (naming_helper this_column).binary_operation_name "in" this_column vector
@@ -562,7 +569,8 @@ private make_text_case_op left op other case_sensitivity new_name =
                 make_unary_op column "MAKE_CASE_SENSITIVE" "MAKE_CASE_SENSITIVE"
             cs_other = if other.is_a Column then make_sensitive other else other
             make_binary_op (make_sensitive left) op cs_other
-        Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
+        Case_Sensitivity.Insensitive locale ->
+            Helpers.check_default_locale locale
             fold_case column =
                 make_unary_op column "FOLD_CASE" "FOLD_CASE"
             ci_other = if other.is_a Column then fold_case other else other.to_case Case.Lower
