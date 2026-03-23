@@ -4170,4 +4170,4 @@ private _profile_time_execution ~label:Text ~function =
             level = Log_Level.from env_val
             if level.is_error then Nothing else level
     level = State.get Table if_missing=profile_level_from_env
-    Profile.time_execution level label function
+    Profile.time_execution level label module=Table function
