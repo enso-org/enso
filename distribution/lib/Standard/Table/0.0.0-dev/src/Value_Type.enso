@@ -454,26 +454,6 @@ type Value_Type
        private: true
        advanced: true
        ---
-       Checks if the provided argument (which may be a value or a Column) is of a
-       floating point type and runs the following action or reports a type error.
-    expect_floating_point : Any -> Any -> Any ! Invalid_Value_Type
-    expect_floating_point argument ~action =
-        Value_Type.expect_type argument .is_floating_point "Float" action
-
-    ## ---
-       private: true
-       advanced: true
-       ---
-       Checks if the provided argument (which may be a value or a Column) is of
-       an integer type and runs the following action or reports a type error.
-    expect_integer : Any -> Any -> Any ! Invalid_Value_Type
-    expect_integer argument ~action =
-        Value_Type.expect_type argument .is_integer "Integer" action
-
-    ## ---
-       private: true
-       advanced: true
-       ---
        Checks if the provided argument (which may be a value or a Column) is a
        `Date`.
     expect_date : Any -> Any -> Any ! Invalid_Value_Type

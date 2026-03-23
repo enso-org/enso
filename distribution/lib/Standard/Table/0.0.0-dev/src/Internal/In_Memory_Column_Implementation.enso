@@ -534,18 +534,20 @@ type In_Memory_Column_Implementation
     date_add (this_column : Column & In_Memory_Column) (amount : Column | Integer) (period : Date_Period | Time_Period) =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
-            Value_Type.expect_integer amount <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_add" [this_column, amount, period]
-                    java_unit = aligned_period.to_java_unit
-                    ## Here we do not need a Time_Utils helper like in scalar
-                       implementations of `date_add`, because the date coming
-                       from the column will always be already converted into a
-                       Java instance.
-                    fn date amount =
-                        java_unit.addTo date amount
-                    _apply_binary_map this_column fn amount new_name
+            Value_Type_Checks.is_integer amount
+
+            aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+            Error.return_if_error aligned_period
+
+            new_name = naming_helper.function_name "date_add" [this_column, amount, period]
+            java_unit = aligned_period.to_java_unit
+            ## Here we do not need a Time_Utils helper like in scalar
+               implementations of `date_add`, because the date coming
+               from the column will always be already converted into a
+               Java instance.
+            fn date amount =
+                java_unit.addTo date amount
+            _apply_binary_map this_column fn amount new_name
 
     is_in (this_column : Column & In_Memory_Column) (vector : Vector | Column | Array) =
         as_vector = case vector of

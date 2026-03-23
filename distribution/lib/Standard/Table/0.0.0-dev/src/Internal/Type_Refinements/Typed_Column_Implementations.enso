@@ -8,6 +8,7 @@ import project.Column.Rest_Of_String
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
+import project.Internal.Value_Type_Checks
 import project.Value_Type.Value_Type
 from project.Internal.In_Memory_Column_Implementation import _apply_binary_map, _call_binary_operator, _java_other, apply_case_sensitive_text_operation, apply_unary_map, apply_unary_operation, naming_helper
 
@@ -145,17 +146,20 @@ type In_Memory_Text_Column_Implementation
             apply_unary_operation column operation new_name
 
     left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
+        Value_Type_Checks.is_integer n
+        Value_Type.expect_text this_column <|
             new_name = naming_helper.function_name "left" [this_column, n]
             apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
 
     right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
+        Value_Type_Checks.is_integer n
+        Value_Type.expect_text this_column <|
             new_name = naming_helper.function_name "right" [this_column, n]
             apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
 
     mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
+        Value_Type_Checks.is_integer start
+        Value_Type.expect_text this_column <|
             new_name = naming_helper.function_name "mid" [this_column, start, length]
 
             # Returns Nothing if any argument is Nothing, and returns "" for start out-of-bounds or if length is negative.
@@ -174,25 +178,25 @@ type In_Memory_Text_Column_Implementation
                 True ->
                     case length_is_column of
                         True ->
-                            Value_Type.expect_integer length <|
-                                row_count = this_column.row_count
-                                java_this = this_column.java_column
-                                java_start = (start:In_Memory_Column).java_column
-                                java_length = (length:In_Memory_Column).java_column
+                            Value_Type_Checks.is_integer length
+                            row_count = this_column.row_count
+                            java_this = this_column.java_column
+                            java_start = (start:In_Memory_Column).java_column
+                            java_length = (length:In_Memory_Column).java_column
 
-                                builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
-                                0.up_to row_count . each i->
-                                    replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
-                                    builder.append replaced
+                            builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
+                            0.up_to row_count . each i->
+                                replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
+                                builder.append replaced
 
-                                In_Memory_Column.from_storage new_name builder.seal
+                            In_Memory_Column.from_storage new_name builder.seal
                         False ->
                             _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char
                 False ->
                     case length_is_column of
                         True ->
-                            Value_Type.expect_integer length <|
-                                _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
+                            Value_Type_Checks.is_integer length
+                            _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
                         False ->
                             apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
 
