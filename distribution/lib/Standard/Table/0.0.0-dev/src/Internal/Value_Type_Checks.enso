@@ -36,9 +36,14 @@ is_integer argument:Any -> Nothing ! Invalid_Value_Type =
 is_text argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_text "Char"
 
+## Checks that the argument (either a value or a Column) is of a Date type.
+   Reports an Invalid_Value_Type error if not.
+is_date argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .is_date Value_Type.Date
+
 private _check_value_type argument:Any condition:(Value_Type->Boolean) type_kind:(Text|Value_Type) -> Nothing ! Invalid_Value_Type =
     typ = Value_Type_Helpers.find_argument_type argument
-    if condition typ . not then Value_Type_Helpers.raise_unexpected_type type_kind argument
+    if typ!=Value_Type.Null && condition typ . not then Value_Type_Helpers.raise_unexpected_type type_kind argument
     Nothing
 
 private _are_comparable type_1:Value_Type type_2:Value_Type -> Boolean =

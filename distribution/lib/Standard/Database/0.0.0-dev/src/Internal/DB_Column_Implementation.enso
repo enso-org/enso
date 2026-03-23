@@ -299,7 +299,7 @@ type DB_Column_Implementation
         make_unary_op this_column "IS_FINITE" new_name
 
     is_empty (this_column : Column & DB_Column) =
-        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_text this_column
         new_name = (naming_helper this_column).concat [(naming_helper this_column).to_expression_text this_column, "is empty"]
         make_unary_op this_column "IS_EMPTY" new_name
 

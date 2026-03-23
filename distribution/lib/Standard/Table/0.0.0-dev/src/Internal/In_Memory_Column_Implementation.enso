@@ -457,30 +457,32 @@ type In_Memory_Column_Implementation
         case parsed_term of
             _ : Text -> if parsed_term.is_empty then this_column.rename new_name else perform_scalar parsed_term
             _ : Regex -> perform_scalar parsed_term
-            _ : Column -> case parsed_new of
-                _ : Text ->
-                    fn = t-> s-> if t.is_nothing then Nothing else
-                        if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
-                    _apply_binary_map this_column fn parsed_term new_name skip_nulls=False expected_result_type=Value_Type.Char
-                _ : Column ->
-                    Value_Type_Checks.is_text parsed_new
-                    ## Three Columns To Deal With (all are text)
-                    fn = t-> s-> r-> if t.is_nothing then Nothing else
-                        if s.is_nothing || s.is_empty then t else
-                            if r.is_nothing.not then t.replace s r case_sensitivity only_first else
-                                if t.contains s then Nothing else t
+            _ : Column ->
+                Value_Type_Checks.is_text parsed_term
+                case parsed_new of
+                    _ : Text ->
+                        fn = t-> s-> if t.is_nothing then Nothing else
+                            if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
+                        _apply_binary_map this_column fn parsed_term new_name skip_nulls=False expected_result_type=Value_Type.Char
+                    _ : Column ->
+                        Value_Type_Checks.is_text parsed_new
+                        ## Three Columns To Deal With (all are text)
+                        fn = t-> s-> r-> if t.is_nothing then Nothing else
+                            if s.is_nothing || s.is_empty then t else
+                                if r.is_nothing.not then t.replace s r case_sensitivity only_first else
+                                    if t.contains s then Nothing else t
 
-                    row_count = this_column.row_count
-                    java_this = this_column.java_column
-                    java_term = (parsed_term:In_Memory_Column).java_column
-                    java_new = (parsed_new:In_Memory_Column).java_column
+                        row_count = this_column.row_count
+                        java_this = this_column.java_column
+                        java_term = (parsed_term:In_Memory_Column).java_column
+                        java_new = (parsed_new:In_Memory_Column).java_column
 
-                    builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
-                    0.up_to row_count . each i->
-                        replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
-                        builder.append replaced
+                        builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
+                        0.up_to row_count . each i->
+                            replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
+                            builder.append replaced
 
-                    In_Memory_Column.from_storage new_name builder.seal
+                        In_Memory_Column.from_storage new_name builder.seal
 
     text_cleanse (this_column : Column & In_Memory_Column) (remove : Vector Named_Pattern) =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
