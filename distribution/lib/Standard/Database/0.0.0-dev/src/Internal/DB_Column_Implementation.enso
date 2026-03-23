@@ -427,19 +427,24 @@ type DB_Column_Implementation
     text_cleanse (this_column : Column & DB_Column) (remove : Vector Named_Pattern) =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
 
-    year (this_column : Column & DB_Column) = Value_Type.expect_has_date this_column <|
+    year (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_date this_column
         make_unary_op this_column "year"
 
-    month (this_column : Column & DB_Column) = Value_Type.expect_has_date this_column <|
+    month (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_date this_column
         make_unary_op this_column "month"
 
-    day (this_column : Column & DB_Column) = Value_Type.expect_has_date this_column <|
+    day (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_date this_column
         make_unary_op this_column "day"
 
-    day_of_year (this_column : Column & DB_Column) = Value_Type.expect_has_date this_column <|
+    day_of_year (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_date this_column
         make_unary_op this_column "day_of_year"
 
-    day_of_week (this_column : Column & DB_Column) = Value_Type.expect_has_date this_column <|
+    day_of_week (this_column : Column & DB_Column) =
+        Value_Type_Checks.has_date this_column
         make_unary_op this_column "day_of_week"
 
     hour (this_column : Column & DB_Column) = Value_Type.expect_has_time this_column <|

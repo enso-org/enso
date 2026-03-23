@@ -487,19 +487,24 @@ type In_Memory_Column_Implementation
     text_cleanse (this_column : Column & In_Memory_Column) (remove : Vector Named_Pattern) =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
 
-    year (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    year (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.YEAR_INSTANCE
 
-    month (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    month (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.MONTH_INSTANCE
 
-    day (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    day (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.DAY_INSTANCE
 
-    day_of_year (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    day_of_year (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.DAY_OF_YEAR_INSTANCE
 
-    day_of_week (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    day_of_week (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.DAY_OF_WEEK_INSTANCE
 
     hour (this_column : Column & In_Memory_Column) = Value_Type.expect_has_time this_column <|

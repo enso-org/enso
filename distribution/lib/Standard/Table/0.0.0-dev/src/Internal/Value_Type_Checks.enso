@@ -29,17 +29,27 @@ is_numeric argument:Any -> Nothing ! Invalid_Value_Type =
 ## Checks that the argument (either a value or a Column) is of an integer type.
    Reports an Invalid_Value_Type error if not.
 is_integer argument:Any -> Nothing ! Invalid_Value_Type =
-    _check_value_type argument .is_integer "Integer"
+    _check_value_type argument .is_integer Value_Type.Integer.to_name
 
 ## Checks that the argument (either a value or a Column) is of a text type.
    Reports an Invalid_Value_Type error if not.
 is_text argument:Any -> Nothing ! Invalid_Value_Type =
-    _check_value_type argument .is_text "Char"
+    _check_value_type argument .is_text Value_Type.Char.to_name
 
 ## Checks that the argument (either a value or a Column) is of a Date type.
    Reports an Invalid_Value_Type error if not.
 is_date argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_date Value_Type.Date
+
+## Checks if the provided argument (which may be a value or a Column) has
+   type `Date` or `Date_Time`.
+has_date argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .has_is_date "Date or Date_Time"
+
+## Checks that the argument (either a value or a Column) is of a Date_Time type.
+   Reports an Invalid_Value_Type error if not.
+is_date_time argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .is_date_time Value_Type.Date_Time.to_name
 
 private _check_value_type argument:Any condition:(Value_Type->Boolean) type_kind:(Text|Value_Type) -> Nothing ! Invalid_Value_Type =
     typ = Value_Type_Helpers.find_argument_type argument
