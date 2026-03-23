@@ -8,17 +8,31 @@ order: 7
 
 # Logging
 
-The Enso project features a centralised logging service to allow for the
-aggregation of logs from multiple components. This service can be started with
-one of the main components, allowing other components to connect to it. The
-service aggregates all logs in one place for easier analysis of the interaction
-between components. Components can also log to console or files directly without
-involving the centralized logging service. For more information about this
-architecture, see [Logging server](#logging-server).
+The `enso` executable configures a centralized logging service on its startup
+and redirects all major logging methods (slf4j library, JDK's `System.getLogger`
+and Ento `Standard.Base.Logging`) to the same set of [appenders](#appenders).
+This behavior is the same when running in `--jvm` mode as well as
+[dual JVM mode](./dual_jvm.md).
+
+<!-- if not, report a bug like #14881 -->
+
+The idea is to aggregate all logs in one place and dispatch the log messages
+appropriately to configured [appenders](#appenders):
+
+- ## errors and warnings are printed to the console stderr
+- the above and informational messages are recorded in the log
+  [File](#file-appender)
+- [telemetry](#telemetry) & co. is sent over [Network](#socket-appender)
+
+for easier analysis of the interaction between components. Components can also
+log to console or files directly without involving the centralized logging
+service. For more information about this architecture, see
+[Logging server](#logging-server).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Configuration](#configuration)
+- [User config](#user-config)
+- [Configuration in Code](#configuration-in-code)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
     - [Engine runner](#engine-runner)
@@ -40,7 +54,21 @@ architecture, see [Logging server](#logging-server).
 
 <!-- /MarkdownTOC -->
 
-## Configuration
+## User Config
+
+The overall logging level can be configured by `--log-level` argument to `enso`
+executable. The parameter to the argument sets the
+[custom Log Level](#custom-log-levels) to enable. E.g. using `--log-level debug`
+enables debug messages. `--log-level trace` enables all messages.
+
+It is possible to configure individual loggers by setting their logging level.
+Any custom log level is therefore defined with `--vm.D=x.y.Z.Logger.level=debug`
+where `x`, `y` and `Z` refer to the package elements and class name,
+respectively and `debug` or co. is a valid level name. System properties always
+have a higher priority over those defined in the `application.conf` file (see
+[custom Log Levels](#custom-log-levels) section).
+
+## Configuration in Code
 
 All logging settings are configured via the `logging-service` section of the
 `application.conf` config file. Each of the main components can customize format
@@ -274,6 +302,10 @@ The two fields can be overridden via environment variables:
 The following section describes the _logging server_ architecture when user
 opens a project from IDE. In CLI mode (i.e. running `enso --run script.enso`),
 there is no _logging server_ - see [Engine runner appender](#engine-runner).
+
+> [!WARNING]
+>
+> Project manager has been removed. The following information may be outdated.
 
 The centralized logging service is implemented as a logging server started by
 the
