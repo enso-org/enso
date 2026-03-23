@@ -195,8 +195,8 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
     resolve_text c =
         internal_column = resolve c
         col = columns_helper.make_column internal_column
-        Value_Type.expect_text col <|
-            internal_column
+        Value_Type_Checks.is_text col
+        internal_column
 
     result = case aggregate_column:Aggregate_Column of
         Aggregate_Column.Group_By c as -> Aggregate_Column.Group_By (resolve c) as

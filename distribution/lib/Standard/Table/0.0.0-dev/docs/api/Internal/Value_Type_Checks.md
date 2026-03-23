@@ -4,3 +4,4 @@
 - is_boolean argument:Standard.Base.Any.Any -> Standard.Base.Nothing.Nothing!Standard.Table.Errors.Invalid_Value_Type
 - is_integer argument:Standard.Base.Any.Any -> Standard.Base.Nothing.Nothing!Standard.Table.Errors.Invalid_Value_Type
 - is_numeric argument:Standard.Base.Any.Any -> Standard.Base.Nothing.Nothing!Standard.Table.Errors.Invalid_Value_Type
+- is_text argument:Standard.Base.Any.Any -> Standard.Base.Nothing.Nothing!Standard.Table.Errors.Invalid_Value_Type

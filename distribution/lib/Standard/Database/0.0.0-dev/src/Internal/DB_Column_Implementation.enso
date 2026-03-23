@@ -92,11 +92,11 @@ type DB_Column_Implementation
         make_equality_check_with_floating_point_handling this_column other "=="
 
     equals_ignore_case (this_column : Column & DB_Column) (other : Column | Any) locale:Locale =
-        Value_Type.expect_text this_column <|
-            Value_Type.expect_text other <|
-                Helpers.assume_default_locale locale <|
-                    new_name = (naming_helper this_column).function_name "equals_ignore_case" [this_column, other]
-                    make_binary_op this_column "EQUALS_IGNORE_CASE" other new_name
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text other
+        Helpers.assume_default_locale locale <|
+            new_name = (naming_helper this_column).function_name "equals_ignore_case" [this_column, other]
+            make_binary_op this_column "EQUALS_IGNORE_CASE" other new_name
 
     not_equals (this_column : Column & DB_Column) (other : Column | Any) =
         make_equality_check_with_floating_point_handling this_column other "!="
@@ -327,9 +327,10 @@ type DB_Column_Implementation
 
     fill_empty (this_column : Column & DB_Column) (default : Column | Previous_Value | Any) =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument") else
-            Value_Type.expect_text this_column <| Value_Type.expect_text default <|
-                result = this_column.is_empty.iif default this_column
-                result.rename this_column.name
+            Value_Type_Checks.is_text this_column
+            Value_Type_Checks.is_text default
+            result = this_column.is_empty.iif default this_column
+            result.rename this_column.name
 
     offset (this_column : Column & DB_Column) n:Integer fill_with:Fill_With =
         _ = [this_column, n, fill_with]
@@ -358,59 +359,62 @@ type DB_Column_Implementation
         make_text_case_op this_column "ENDS_WITH" other case_sensitivity new_name
 
     text_length (this_column : Column & DB_Column) =
-        Value_Type.expect_text this_column <|
-            new_name = (naming_helper this_column).function_name "text_length" [this_column]
-            make_unary_op this_column "LENGTH" new_name
+        Value_Type_Checks.is_text this_column
+        new_name = (naming_helper this_column).function_name "text_length" [this_column]
+        make_unary_op this_column "LENGTH" new_name
 
     text_left this_column  n:Column|Integer =
-        Value_Type.expect_text this_column <|
-            new_name = (naming_helper this_column).function_name "text_left" [this_column, n]
-            (this_column : Text_Column) . left n . rename new_name
+        Value_Type_Checks.is_text this_column
+        new_name = (naming_helper this_column).function_name "text_left" [this_column, n]
+        (this_column : Text_Column) . left n . rename new_name
 
     text_right this_column n:Column|Integer =
-        Value_Type.expect_text this_column <|
-            new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
-            (this_column : Text_Column) . right n . rename new_name
+        Value_Type_Checks.is_text this_column
+        new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
+        (this_column : Text_Column) . right n . rename new_name
 
     text_mid this_column (start : Column | Any) (length : Column | Any) =
-        Value_Type.expect_text this_column <|
-            new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
-            (this_column : Text_Column) . mid start length . rename new_name
+        Value_Type_Checks.is_text this_column
+        new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
+        (this_column : Text_Column) . mid start length . rename new_name
 
     contains (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "contains" [this_column, other]
         make_text_case_op this_column "CONTAINS" other case_sensitivity new_name
 
     like (this_column : Column & DB_Column) (pattern : Column | Text | Any) =
-        Value_Type.expect_text this_column <|
-            Value_Type.expect_text pattern <|
-                new_name = (naming_helper this_column).binary_operation_name "like" this_column pattern
-                make_binary_op this_column "LIKE" pattern new_name
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text pattern
+        new_name = (naming_helper this_column).binary_operation_name "like" this_column pattern
+        make_binary_op this_column "LIKE" pattern new_name
 
     regex_match (this_column : Column & DB_Column) (pattern : Column | Text | Regex) =
         string_pattern = case pattern of
             Regex.Value _ _ -> pattern.pattern
             _ -> pattern
-        Value_Type.expect_text this_column <| Value_Type.expect_text string_pattern <|
-            ## regex_match is a match if it matches the entire string. So we wrap in ^ and $.
-            pattern_with_start_end = "^" + string_pattern + "$"
-            new_name = (naming_helper this_column).binary_operation_name "regex_match" this_column pattern
-            if this_column.connection.dialect.is_operation_supported "REGEX_MATCH" then make_binary_op this_column "REGEX_MATCH" pattern_with_start_end new_name else
-                Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text string_pattern
+        ## regex_match is a match if it matches the entire string. So we wrap in ^ and $.
+        pattern_with_start_end = "^" + string_pattern + "$"
+        new_name = (naming_helper this_column).binary_operation_name "regex_match" this_column pattern
+        if this_column.connection.dialect.is_operation_supported "REGEX_MATCH" then make_binary_op this_column "REGEX_MATCH" pattern_with_start_end new_name else
+            Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
     trim (this_column : Column & DB_Column) where:Location=..Both (what : Column | Text) =
-        Value_Type.expect_text this_column <| Value_Type.expect_text what <|
-            new_name = (naming_helper this_column).function_name "trim" [this_column]
-            operator = case where of
-                Location.Both -> "TRIM"
-                Location.Left -> "LTRIM"
-                Location.Right -> "RTRIM"
-            if this_column.connection.dialect.is_operation_supported operator then make_binary_op this_column operator what new_name else
-                Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text what
+        new_name = (naming_helper this_column).function_name "trim" [this_column]
+        operator = case where of
+            Location.Both -> "TRIM"
+            Location.Left -> "LTRIM"
+            Location.Right -> "RTRIM"
+        if this_column.connection.dialect.is_operation_supported operator then make_binary_op this_column operator what new_name else
+            Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
     text_replace (this_column : Column & DB_Column) (term : Text | Regex | Column) (new_text : Text | Column) case_sensitivity:Case_Sensitivity only_first:Boolean =
-        Value_Type.expect_text this_column <| case_sensitivity.disallow_non_default_locale <|
+        Value_Type_Checks.is_text this_column
+        case_sensitivity.disallow_non_default_locale <|
             input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
             this_column.connection.dialect.if_replace_params_supports params <|
@@ -498,14 +502,14 @@ type DB_Column_Implementation
                 DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
     parse (this_column : Column & DB_Column) (type : Value_Type | Auto) (format : Text | Data_Formatter) on_problems:Problem_Behavior =
-        if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
-            if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
-                if this_column.value_type.is_same_type type then this_column else
-                    Value_Type.expect_text this_column <|
-                        ## In the future we may have some specific logic, for example
-                           allowing to support formatting settings. For now, the
-                           Database parse just boils down to a simple CAST.
-                        internal_do_cast this_column type on_problems
+        if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type")
+        if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting")
+        if this_column.value_type.is_same_type type then this_column else
+            Value_Type_Checks.is_text this_column
+            ## In the future we may have some specific logic, for example
+               allowing to support formatting settings. For now, the
+               Database parse just boils down to a simple CAST.
+            internal_do_cast this_column type on_problems
 
     format (this_column : Column & DB_Column) (format : Text | Date_Time_Formatter | Column) locale:Locale =
         if format != "" || locale != Locale.default then Error.throw (Unsupported_Database_Operation.Error "Custom formatting")
@@ -543,8 +547,10 @@ naming_helper this_column = (this_column:DB_Column).connection.base_connection.c
    private: true
    ---
    Helper for case case_sensitivity based text operations
-make_text_case_op left op other case_sensitivity new_name =
-    result = Value_Type.expect_text left <| Value_Type.expect_text other <| case case_sensitivity of
+private make_text_case_op left op other case_sensitivity new_name =
+    Value_Type_Checks.is_text left
+    Value_Type_Checks.is_text other
+    result = case case_sensitivity of
         Case_Sensitivity.Default -> make_binary_op left op other
         Case_Sensitivity.Sensitive ->
             make_sensitive column =

@@ -31,6 +31,11 @@ is_numeric argument:Any -> Nothing ! Invalid_Value_Type =
 is_integer argument:Any -> Nothing ! Invalid_Value_Type =
     _check_value_type argument .is_integer "Integer"
 
+## Checks that the argument (either a value or a Column) is of a text type.
+   Reports an Invalid_Value_Type error if not.
+is_text argument:Any -> Nothing ! Invalid_Value_Type =
+    _check_value_type argument .is_text "Char"
+
 private _check_value_type argument:Any condition:(Value_Type->Boolean) type_kind:(Text|Value_Type) -> Nothing ! Invalid_Value_Type =
     typ = Value_Type_Helpers.find_argument_type argument
     if condition typ . not then Value_Type_Helpers.raise_unexpected_type type_kind argument
