@@ -14,14 +14,46 @@ import {
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
-const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
 const LOG_DIAGNOSTICS =
   process.env.ENSO_PW_LOG_CONSOLE === '1' || process.env.ENSO_PW_LOG_CONSOLE === 'true'
-const POSSIBLE_ELECTRON_DIRS = [
-  ...(process.env.ENSO_EXEC_PATH ? [process.env.ENSO_EXEC_PATH] : []),
-  '../ide-dist/',
-  '../../../dist/ide/',
-]
+const RUNFILES_WORKSPACE_ROOT =
+  process.env.JS_BINARY__RUNFILES ? path.join(process.env.JS_BINARY__RUNFILES, '_main') : undefined
+
+function uniquePaths(paths: readonly (string | undefined)[]): string[] {
+  return [
+    ...new Set(paths.filter((value): value is string => value != null).map((p) => path.resolve(p))),
+  ]
+}
+
+function workspacePathCandidates(relativeOrAbsolutePath: string): string[] {
+  if (path.isAbsolute(relativeOrAbsolutePath)) {
+    return [relativeOrAbsolutePath]
+  }
+  return uniquePaths([
+    path.resolve(process.cwd(), relativeOrAbsolutePath),
+    RUNFILES_WORKSPACE_ROOT ?
+      path.join(RUNFILES_WORKSPACE_ROOT, relativeOrAbsolutePath)
+    : undefined,
+  ])
+}
+
+function logCandidatePaths(label: string, candidates: readonly string[]) {
+  if (LOG_DIAGNOSTICS) {
+    console.log(`[pw:${label}] ${JSON.stringify(candidates)}`)
+  }
+}
+
+const TEST_USER_FILE_CANDIDATES = uniquePaths([
+  path.join(import.meta.dirname, '../playwright/.auth/user.json'),
+  path.join(process.cwd(), 'playwright/.auth/user.json'),
+  ...workspacePathCandidates('app/electron-client/playwright/.auth/user.json'),
+])
+
+const POSSIBLE_ELECTRON_DIRS = uniquePaths([
+  ...(process.env.ENSO_EXEC_PATH ? workspacePathCandidates(process.env.ENSO_EXEC_PATH) : []),
+  path.join(import.meta.dirname, '../ide-dist'),
+  path.join(import.meta.dirname, '../../../dist/ide'),
+])
 
 const POSSIBLE_ELECTRON_PATHS = POSSIBLE_ELECTRON_DIRS.flatMap((dir) => [
   path.join(dir, 'linux-unpacked/enso'),
@@ -30,31 +62,58 @@ const POSSIBLE_ELECTRON_PATHS = POSSIBLE_ELECTRON_DIRS.flatMap((dir) => [
   path.join(dir, 'mac-arm64/Enso.app/Contents/MacOS/Enso'),
 ])
 
-export const credentials: { readonly user: string; readonly password: string } = await fs
-  .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
-  .then(
-    (contents) => JSON.parse(contents),
-    (error) => {
-      throw new Error(`Cannot read Test User credentials from '${TEST_USER_FILE}'.`, {
-        cause: error,
-      })
-    },
+logCandidatePaths('credentials', TEST_USER_FILE_CANDIDATES)
+logCandidatePaths('executables', POSSIBLE_ELECTRON_PATHS)
+
+type TestCredentials = { readonly user: string; readonly password: string }
+
+async function readCredentialsFile(filePath: string): Promise<TestCredentials> {
+  const contents = await fs.readFile(filePath, { encoding: 'utf-8' })
+  const parsed = JSON.parse(contents) as Partial<TestCredentials>
+  if (!parsed.user || !parsed.password) {
+    throw new Error(`Missing 'user' or 'password' key in '${filePath}'.`)
+  }
+  return { user: parsed.user, password: parsed.password }
+}
+
+async function loadCredentials(): Promise<TestCredentials> {
+  let lastError: unknown = undefined
+  for (const candidate of TEST_USER_FILE_CANDIDATES) {
+    try {
+      return await readCredentialsFile(candidate)
+    } catch (error) {
+      lastError = error
+      const code = typeof error === 'object' && error != null && 'code' in error ? error.code : null
+      if (code !== 'ENOENT') {
+        console.warn(`[pw:credentials] Failed to read '${candidate}':`, error)
+      }
+    }
+  }
+
+  if (process.env.ENSO_TEST_USER && process.env.ENSO_TEST_PASS) {
+    return { user: process.env.ENSO_TEST_USER, password: process.env.ENSO_TEST_PASS }
+  }
+
+  throw new Error(
+    `Cannot load test credentials. Set ENSO_TEST_USER and ENSO_TEST_PASS, or create one of: ${TEST_USER_FILE_CANDIDATES.join(', ')}`,
+    { cause: lastError },
   )
-  .catch((error) => {
-    throw new Error(`Cannot parse Test User credentials from '${TEST_USER_FILE}'.`, {
-      cause: error,
-    })
-  })
+}
+
+export const credentials = await loadCredentials()
 
 let cachedElectronPath: string | undefined
 
 export async function getElectronExecutablePath(): Promise<string | undefined> {
   if (cachedElectronPath !== undefined) return cachedElectronPath
   try {
-    const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
-      (p) => fs.access(p, fs.constants.X_OK).then(() => p),
+    const promises = POSSIBLE_ELECTRON_PATHS.map((p) =>
+      fs.access(p, fs.constants.X_OK).then(() => p),
     )
     cachedElectronPath = await Promise.any(promises)
+    if (LOG_DIAGNOSTICS) {
+      console.log(`[pw:executable] Using '${cachedElectronPath}'.`)
+    }
     return cachedElectronPath
   } catch {
     return undefined
@@ -87,12 +146,13 @@ export const electronFixtures = {
     use: (value: string) => Promise<void>,
   ) {
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
+    await fs.mkdir(projectsDir, { recursive: true })
     await use(projectsDir)
   },
 
   /** Setup for all tests: Create an electron-based app instance. */
   app: async function (
-    { projectsDir }: { projectsDir: string },
+    { projectsDir, testRunId }: { projectsDir: string; testRunId: string },
     use: (value: ElectronApplication) => Promise<void>,
     testInfo: TestInfo,
   ) {
@@ -106,7 +166,9 @@ export const electronFixtures = {
       args,
       env: {
         ...process.env,
+        HOME: process.env.HOME ?? os.homedir(),
         ENSO_TEST: 'true',
+        ENSO_TEST_PARTITION: `enso-test-${testRunId}`,
         ENSO_TEST_PROJECTS_DIR: projectsDir.replace(/\\/g, '/'),
       },
     })
@@ -248,6 +310,13 @@ export async function visualizeData(page: Page) {
   await showViz.click({ timeout: 5000 })
 }
 
+/** Click a locator even when Playwright cannot bring it into the viewport. */
+export async function clickWithoutViewportConstraints(locator: Locator) {
+  const target = locator.first()
+  await expect(target).toBeVisible()
+  await target.dispatchEvent('click', { bubbles: true, cancelable: true })
+}
+
 /**
  * Open new component browser refefencing the last created component
  */
@@ -262,7 +331,29 @@ export async function createNewComponent(page: Page) {
  * Open new component browser based on the name of referenced parent component
  */
 export async function openComponentBrowser(page: Page, parentComponent: string) {
-  await page.getByText(parentComponent, { exact: true }).click()
+  await clickWithoutViewportConstraints(page.getByText(parentComponent, { exact: true }))
+  await page.keyboard.press('Enter')
+}
+
+/** Select a component browser entry without relying on viewport-based mouse input. */
+export async function selectComponentEntry(page: Page, name: string | RegExp) {
+  await clickWithoutViewportConstraints(page.locator('.ComponentEntry', { hasText: name }))
+}
+
+/** Open component browser without relying on viewport-bound right click. */
+export async function openComponentBrowserFromGraphNode(
+  page: Page,
+  parentComponent: string,
+  occurrence = 0,
+) {
+  const target = page.getByText(parentComponent, { exact: true }).nth(occurrence)
+  await expect(target).toBeVisible()
+  await target.dispatchEvent('contextmenu', {
+    button: 2,
+    buttons: 2,
+    bubbles: true,
+    cancelable: true,
+  })
   await page.keyboard.press('Enter')
 }
 
@@ -303,7 +394,9 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
 
 /** Open drop-down menu in WidgetSelection with given label. */
 export function openDropdownInWidget(page: Page, label: string) {
-  return page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
+  return clickWithoutViewportConstraints(
+    page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }),
+  )
 }
 
 /** Find and click + button in an empty Vector Widget inside provided locator. */

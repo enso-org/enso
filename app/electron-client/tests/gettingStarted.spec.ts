@@ -4,13 +4,16 @@ import path from 'path'
 import { test as base, expect } from 'playwright/test'
 import {
   addFirstElementToWidgetVector,
+  clickWithoutViewportConstraints,
   closeWelcome,
   createNewProject,
   electronFixtures,
   fillWidgetText,
   loginAsTestUser,
   openComponentBrowser,
+  openComponentBrowserFromGraphNode,
   openDropdownInWidget,
+  selectComponentEntry,
   visualizeData,
   waitForDownload,
 } from './electronTest'
@@ -30,9 +33,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await expect(addComponent).toBeVisible()
     await addComponent.click()
 
-    const dataReadEntry = page.locator('.ComponentEntry', { hasText: /^Data\.read$/ })
-    await expect(dataReadEntry).toBeVisible()
-    await dataReadEntry.click()
+    await selectComponentEntry(page, /^Data\.read$/)
 
     // Create relative path to file
     const filePath = path.join(projectsDir, 'Samples', 'Data', 'sample_bank_data.xlsx')
@@ -62,7 +63,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
   await test.step('Objective 2: Filter Data to find “exception” records', async () => {
     // Adding set component
     await openComponentBrowser(page, 'readquery‘Sheet1’')
-    await page.locator('.ComponentEntry', { hasText: 'set' }).click()
+    await selectComponentEntry(page, 'set')
 
     // Playwright seems to not always fire proper pointerleave event
     // We must do that ourselves, to hide circular menu of the node.
@@ -95,7 +96,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     // Adding filter component
     await openComponentBrowser(page, 'set')
 
-    await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
+    await selectComponentEntry(page, 'filter')
     await openDropdownInWidget(page, 'column')
 
     // Click with the assurance of component being in vision
@@ -133,7 +134,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await page.getByText('set', { exact: true }).click({ button: 'right' })
     await page.keyboard.press('Enter')
 
-    await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
+    await selectComponentEntry(page, 'filter')
     await openDropdownInWidget(page, 'column')
 
     // Click with the assurance of component being in vision
@@ -172,9 +173,7 @@ test('Exercise 2', async ({ page }) => {
     await expect(addComponent).toBeVisible()
     await addComponent.click()
 
-    const dataReadEntry = page.locator('.ComponentEntry', { hasText: /^Data\.read$/ })
-    await expect(dataReadEntry).toBeVisible()
-    await dataReadEntry.click()
+    await selectComponentEntry(page, /^Data\.read$/)
 
     // Fill in the url
     await fillWidgetText(page, 'path‘‘', 'Samples/Data/sample_bank_data.xlsx')
@@ -204,20 +203,20 @@ test('Exercise 2', async ({ page }) => {
 
     // Adding aggregate component
     await openComponentBrowser(page, 'readquery‘Sheet1’')
-    await page.locator('.ComponentEntry', { hasText: 'aggregate' }).click()
+    await selectComponentEntry(page, 'aggregate')
 
     // Choosing parameters
     const groupBy = page.getByText('group_by', { exact: true })
 
     // Ensuring 'plus' is visible, to avoid clicking too early
     await expect(page.locator('div').getByLabel('Add a new item').last()).toBeVisible()
-    await groupBy.click()
+    await clickWithoutViewportConstraints(groupBy)
 
     const productBtn = page.getByRole('button', { name: 'product_name', exact: true })
-    await productBtn.click()
+    await clickWithoutViewportConstraints(productBtn)
 
     // Close the dropdown
-    await page.getByText('aggregate').click()
+    await clickWithoutViewportConstraints(page.getByText('aggregate', { exact: true }))
 
     await addFirstElementToWidgetVector(
       page.locator('div.WidgetTopLevelArgument', { hasText: 'columns' }),
@@ -229,7 +228,7 @@ test('Exercise 2', async ({ page }) => {
 
     // Adding sort component
     await openComponentBrowser(page, 'aggregate')
-    await page.locator('.ComponentEntry', { hasText: 'sort' }).click()
+    await selectComponentEntry(page, 'sort')
 
     await addFirstElementToWidgetVector(
       page.locator('div.WidgetTopLevelArgument', { hasText: 'columns' }),
@@ -241,10 +240,12 @@ test('Exercise 2', async ({ page }) => {
       .filter({ hasText: /^‘product_name’$/ })
       .nth(4)
       .click()
-    await page.getByRole('button', { name: 'Count', exact: true }).click()
+    await clickWithoutViewportConstraints(page.getByRole('button', { name: 'Count', exact: true }))
 
-    await page.getByText('direction', { exact: true }).click()
-    await page.getByRole('button', { name: '..Descending', exact: true }).click()
+    await clickWithoutViewportConstraints(page.getByText('direction', { exact: true }))
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: '..Descending', exact: true }),
+    )
 
     await visualizeData(page)
   })
@@ -255,33 +256,36 @@ test('Exercise 2', async ({ page }) => {
     await page.mouse.wheel(0, -200)
 
     // Creating cross_tab component
-    const readComponent = page.getByText('read', { exact: true }).nth(2)
-    await readComponent.click({ button: 'right' })
-
-    await page.keyboard.press('Enter')
-    await page.locator('.ComponentEntry', { hasText: 'cross_tab' }).click()
+    await openComponentBrowserFromGraphNode(page, 'read', 2)
+    await selectComponentEntry(page, 'cross_tab')
 
     // Choosing the right parameters
-    const crossGroup = await page.getByText('group_by', { exact: true }).nth(1)
+    const crossGroup = page.getByText('group_by', { exact: true }).nth(1)
 
     // Ensuring 'plus' is visible, to avoid clicking too early
     await expect(page.locator('div').getByLabel('Add a new item').last()).toBeVisible()
-    await crossGroup.click()
-    await page.getByRole('button', { name: 'product_name', exact: true }).click()
+    await clickWithoutViewportConstraints(crossGroup)
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: 'product_name', exact: true }),
+    )
 
     await openDropdownInWidget(page, 'names')
     const curRCode = page.getByRole('button', { name: 'currency_code' }).first()
     await expect(curRCode).toBeVisible()
-    await curRCode.click()
+    await clickWithoutViewportConstraints(curRCode)
 
-    await page.getByText('values', { exact: true }).click()
-    await page.getByRole('button', { name: '..Count_Distinct', exact: true }).click()
+    await clickWithoutViewportConstraints(page.getByText('values', { exact: true }))
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: '..Count_Distinct', exact: true }),
+    )
 
     // Click the plus and select argument
     await addFirstElementToWidgetVector(
       page.locator('div.WidgetTopLevelArgument', { hasText: 'columns' }),
     )
-    await page.getByRole('button', { name: 'account_id', exact: true }).click()
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: 'account_id', exact: true }),
+    )
 
     await visualizeData(page)
 
@@ -296,41 +300,45 @@ test('Exercise 2', async ({ page }) => {
     await page.mouse.wheel(0, -200)
 
     // Creating set component
-    const readComponent = page.getByText('read', { exact: true }).nth(2)
-    await readComponent.click({ button: 'right' })
-
-    await page.keyboard.press('Enter')
-    await page.locator('.ComponentEntry', { hasText: 'set' }).click()
+    await openComponentBrowserFromGraphNode(page, 'read', 2)
+    await selectComponentEntry(page, 'set')
 
     // Choosing right parameters
     await openDropdownInWidget(page, 'value')
-    await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: '<Simple Expression>', exact: true }),
+    )
 
     await openDropdownInWidget(page, 'input')
-    await page.getByRole('button', { name: 'currency_code', exact: true }).click()
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: 'currency_code', exact: true }),
+    )
 
     await openDropdownInWidget(page, 'operation')
-    await page.getByRole('button', { name: 'if', exact: true }).click()
+    await clickWithoutViewportConstraints(page.getByRole('button', { name: 'if', exact: true }))
 
     await openDropdownInWidget(page, 'condition')
-    await page.getByRole('button', { name: '..Equal', exact: true }).click()
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: '..Equal', exact: true }),
+    )
 
     await openDropdownInWidget(page, 'to')
-    await page.getByRole('button', { name: '<Text Value>' }).click()
+    await clickWithoutViewportConstraints(page.getByRole('button', { name: '<Text Value>' }))
 
     // Write in the textbox
     await fillWidgetText(page, '..Equal“”', 'G')
 
-    await page.getByText('true_value', { exact: true }).click()
-    await page.getByRole('button', { name: '<Text Value>', exact: true }).click()
+    await clickWithoutViewportConstraints(page.getByText('true_value', { exact: true }))
+    await clickWithoutViewportConstraints(
+      page.getByRole('button', { name: '<Text Value>', exact: true }),
+    )
 
     // // Write in the textbox
     await fillWidgetText(page, '..If(..Equal“G”)“”', 'GBP', 1)
 
-    await page.getByText('false_value', { exact: true }).click()
+    await clickWithoutViewportConstraints(page.getByText('false_value', { exact: true }))
     const option = page.getByRole('button', { name: 'currency_code', exact: true })
-    await option.hover()
-    await option.click()
+    await clickWithoutViewportConstraints(option)
 
     // Write in the textbox
     await fillWidgetText(page, 'as“”', 'currency_code')

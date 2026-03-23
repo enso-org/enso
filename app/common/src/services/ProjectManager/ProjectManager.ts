@@ -411,7 +411,31 @@ export class ProjectManager {
     if ('result' in json) {
       return json.result
     } else {
-      throw new Error(json.error.message)
+      const detail =
+        json.error.data != null ? extractProjectServiceErrorDetail(json.error.data) : undefined
+      console.error(`[ProjectManager] ${name} failed`, {
+        requestBody: body,
+        responseStatus: response.status,
+        error: json.error,
+      })
+      throw new Error(detail ? `${json.error.message}: ${detail}` : json.error.message)
     }
   }
+}
+
+function extractProjectServiceErrorDetail(data: unknown): string | undefined {
+  if (data == null) {
+    return undefined
+  }
+  if (typeof data === 'string') {
+    return data
+  }
+  if (typeof data === 'object') {
+    const maybeMessage = 'message' in data ? data.message : undefined
+    if (typeof maybeMessage === 'string') {
+      const maybeCause = 'cause' in data ? extractProjectServiceErrorDetail(data.cause) : undefined
+      return maybeCause ? `${maybeMessage}; cause: ${maybeCause}` : maybeMessage
+    }
+  }
+  return undefined
 }

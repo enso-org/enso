@@ -6,6 +6,7 @@
 import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as crypto from 'node:crypto'
+import { access } from 'node:fs/promises'
 import {
   EnsoRunner,
   findEnsoExecutable,
@@ -130,7 +131,17 @@ export class ProjectService {
     }
 
     // Create project structure
-    await this.runner.createProject(projectPath, actualName, projectTemplate)
+    try {
+      await this.runner.createProject(projectPath, actualName, projectTemplate)
+    } catch (error) {
+      const projectsDirectoryExists = await access(projectsDirectory)
+        .then(() => true)
+        .catch(() => false)
+      throw new Error(
+        `Failed to create project '${actualName}' in '${projectsDirectory}' (exists=${projectsDirectoryExists}) at '${projectPath}'.`,
+        { cause: error },
+      )
+    }
 
     // Update metadata
     await repo.update(project)

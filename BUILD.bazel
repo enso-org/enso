@@ -94,8 +94,6 @@ ENGINE_DIST_GLOB_EXCLUDES = [
     "**/.metals/**",
     "**/.enso/**",
     "**/.enso-sources*",
-    # Generated/downloaded resources should not be treated as inputs.
-    "lib/scala/pkg/src/main/resources/**",
     # Binary test fixtures (often ignored) should not affect distribution builds.
     "lib/scala/runtime-version-manager/src/test/resources/**",
 ]

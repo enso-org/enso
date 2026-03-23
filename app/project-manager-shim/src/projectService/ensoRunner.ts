@@ -263,12 +263,25 @@ export class EnsoRunner implements Runner {
     return spawnCallback(cmd, cmdArgs)
   }
 
+  private processEnv(extraEnv?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+    const env = { ...process.env, ...extraEnv }
+    const homeDir = os.homedir()
+    if (!env.HOME) {
+      env.HOME = homeDir
+    }
+    if (process.platform === 'win32' && !env.USERPROFILE) {
+      env.USERPROFILE = homeDir
+    }
+    return env
+  }
+
   private async runCommand(
     args: readonly string[],
     options?: childProcess.SpawnOptionsWithoutStdio,
   ): Promise<void> {
+    const env = this.processEnv(options?.env)
     const process = await this.runProcess(args, (cmd, cmdArgs) =>
-      childProcess.spawn(cmd, cmdArgs, options),
+      childProcess.spawn(cmd, cmdArgs, { ...options, env }),
     )
     return new Promise((resolve, reject) => {
       let stdout = ''
@@ -306,7 +319,7 @@ export class EnsoRunner implements Runner {
     extraEnv?: readonly (readonly [string, string])[],
   ): Promise<number> {
     const args = ['--run', projectPath]
-    const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
+    const env = this.processEnv(extraEnv ? Object.fromEntries(extraEnv) : undefined)
     const cwd = path.dirname(projectPath)
     const spawnedProcess = await this.runProcess(args, (cmd, cmdArgs) =>
       childProcess.spawn(cmd, cmdArgs, { env, cwd, stdio: ['inherit', 'inherit', 'inherit'] }),
@@ -371,11 +384,10 @@ export class EnsoRunner implements Runner {
           ...(extraArgs ?? []),
         ]
 
-        const env = {
-          ...process.env,
+        const env = this.processEnv({
           LANGUAGE_SERVER_YDOC_PORT: ydocPort.toString(),
           ...(extraEnv ? Object.fromEntries(extraEnv) : {}),
-        }
+        })
 
         const cwd = path.dirname(projectPath)
         const project = await OpenedProject.create(
@@ -514,7 +526,7 @@ export class EnsoRunner implements Runner {
       const args = ['--version']
       const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
       const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-      const process = childProcess.spawn(cmd, cmdArgs)
+      const process = childProcess.spawn(cmd, cmdArgs, { env: this.processEnv() })
 
       let stdout = ''
       let stderr = ''

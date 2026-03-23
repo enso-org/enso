@@ -346,12 +346,13 @@ class App {
 
     const guiConfig = await loadGuiConfig()
     const encodedGuiConfig = Buffer.from(JSON.stringify(guiConfig), 'utf8').toString('base64')
+    const testPartition = process.env.ENSO_TEST ? (process.env.ENSO_TEST_PARTITION ?? 'test') : null
     const webPreferences: WebPreferences = {
       preload: joinPath(appPath(this.electron), 'preload.mjs'),
       sandbox: true,
       spellcheck: false,
       additionalArguments: [`--enso-gui-config=${encodedGuiConfig}`],
-      ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
+      ...(testPartition ? { partition: testPartition } : {}),
     }
     const windowPreferences: BrowserWindowConstructorOptions = {
       webPreferences,

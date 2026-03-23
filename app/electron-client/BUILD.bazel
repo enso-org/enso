@@ -237,7 +237,8 @@ write_source_files(
 
 playwright_bin.playwright_test(
     name = "test",
-    data = npm_link_targets() + glob(["tests/*.ts"]) + glob(["playwright/.auth/user.json"], allow_empty = True) + [
+    data = npm_link_targets() + glob(["tests/*.ts"]) + [
+        "playwright/.auth/user.json",
         ":dist",
         "playwright.config.ts",
         "tests/package.json",
