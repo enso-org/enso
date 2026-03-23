@@ -41,6 +41,7 @@ main = (Foo.One 3.14):(Foo Float Integer Text) # yields (One 3.14)
 
 Arguments to atom constructors can have defaults and explicit type signatures.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > Following seems to be off a bit:
@@ -117,6 +118,7 @@ main =
 
 constructs a two item list and yields `(Cons 3 (Cons 14 Nil))`.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > This is not at all what we currently do:
@@ -139,6 +141,7 @@ constructs a two item list and yields `(Cons 3 (Cons 14 Nil))`.
 
 `List` acts as a container holding its static methods.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > Type constructors aren't really implemented in Enso as of now:
@@ -149,6 +152,7 @@ constructs a two item list and yields `(Cons 3 (Cons 14 Nil))`.
 `List Int` is currently _erased_ to `List` and the additional type element
 information of `Int` is lost during execution.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > Enso supports just static methods
@@ -166,6 +170,7 @@ type Vector a
   from (that : List x): Vector x = MkVec (Array.from that)
 ```
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > This is not how it works:
@@ -203,6 +208,7 @@ Vector.from_polyglot_array [1,2,3] : Vector Int
 where 'Vector' is playing double duty as a type constructor (currently erased
 just to raw type `Vector`) and as the bag of static methods.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > Another example with `.type` that's unlikely valid:
@@ -259,6 +265,7 @@ just to raw type `Vector`) and as the bag of static methods.
 The static methods get attached to the type definition. This means they do not
 have access to any of the type's atom arguments themselves.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > No plans for `explicit` static methods

@@ -7,15 +7,12 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Metadata.Widget import Text_Input
-from Standard.Base.Widget_Helpers import make_format_chooser
 
 import Standard.Table.Fill_With.Fill_With
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
-import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Refined_Types.Text_Column.Text_Column
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Table, Value_Type
@@ -394,7 +391,6 @@ type DB_Column_Implementation
             if this_column.connection.dialect.is_operation_supported operator then make_binary_op this_column operator what new_name else
                 Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
-    @new_text (Text_Input display=..Always)
     text_replace (this_column : Column & DB_Column) (term : Text | Regex | Column) (new_text : Text | Column) case_sensitivity:Case_Sensitivity only_first:Boolean =
         Value_Type.expect_text this_column <| case_sensitivity.disallow_non_default_locale <|
             input_type = if term.is_error then term else Meta.type_of term
@@ -483,7 +479,6 @@ type DB_Column_Implementation
                     Error.throw (Illegal_State.Error "The dialect "+this_column.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
                 DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
-    @format (make_format_chooser include_number=False)
     parse (this_column : Column & DB_Column) (type : Value_Type | Auto) (format : Text | Data_Formatter) on_problems:Problem_Behavior =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
@@ -494,11 +489,13 @@ type DB_Column_Implementation
                            Database parse just boils down to a simple CAST.
                         internal_do_cast this_column type on_problems
 
-
-    @format (this_column-> Widget_Helpers.make_format_chooser_for_type this_column.value_type)
     format (this_column : Column & DB_Column) (format : Text | Date_Time_Formatter | Column) locale:Locale =
         if format != "" || locale != Locale.default then Error.throw (Unsupported_Database_Operation.Error "Custom formatting")
         DB_Column_Implementation.cast this_column Value_Type.Char on_problems=Problem_Behavior.Ignore
+
+    json_stringify (this_column : Column & DB_Column) =
+        _ = [this_column]
+        Error.throw <| Unsupported_Database_Operation.Error "json_stringify"
 
     cast (this_column : Column & DB_Column) value_type:Value_Type on_problems:Problem_Behavior =
         check_cast_compatibility this_column.value_type value_type allow_unsupported=True

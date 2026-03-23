@@ -18,6 +18,7 @@ polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleUnaryOperation
+polyglot java import org.enso.table.data.column.operation.unary.JsonParseOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextCharLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -34,7 +35,7 @@ type In_Memory_Numeric_Column_Implementation
             new_name = naming_helper.function_name "signum" [column]
             apply_unary_operation column SignumOperation.INSTANCE new_name
 
-    randbetween (column : Column & In_Memory_Column) limit seed:Integer=0 =
+    randbetween (column : Column & In_Memory_Column) limit seed:Integer =
         Value_Type.expect_numeric column <| Value_Type.expect_numeric limit <|
             operation = RandBetweenOperation.create (column:In_Memory_Column).java_column (_java_other limit) seed
             if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported randbetween operation.")
@@ -107,7 +108,7 @@ type In_Memory_Numeric_Column_Implementation
             apply_unary_operation column DoubleUnaryOperation.LOG10_INSTANCE new_name
 
 type In_Memory_Text_Column_Implementation
-    to_case (column : Column & In_Memory_Column) case_option:Case=..Lower locale:Locale=Locale.default =
+    to_case (column : Column & In_Memory_Column) case_option:Case locale:Locale =
         Value_Type.expect_text column <|
             new_name = naming_helper.function_name "to_case" [column, case_option.to_text]
             operation = CaseOperation.new case_option.to_java locale.java_locale
@@ -197,10 +198,16 @@ type In_Memory_Text_Column_Implementation
 
             res . cast this_column.value_type
 
-    index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
+    index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         Value_Type.expect_text column <| Value_Type.expect_text other <|
             new_name = naming_helper.function_name "index_of" [column, other]
             apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
+
+    parse_json (column : Column & In_Memory_Column) (on_problems:Problem_Behavior) =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "parse_json" [column]
+            operation = JsonParseOperation.new
+            apply_unary_operation column operation new_name on_problems=on_problems
 
 type In_Memory_Date_Column_Implementation
     first_of_month (column : Column & In_Memory_Column) =
