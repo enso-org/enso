@@ -10,7 +10,7 @@ order: 7
 
 The `enso` executable configures a centralized logging service on its startup
 and redirects all major logging methods (slf4j library, JDK's `System.getLogger`
-and Ento `Standard.Base.Logging`) to the same set of [appenders](#appenders).
+and Enso `Standard.Base.Logging`) to the same set of [appenders](#appenders).
 This behavior is the same when running in `--jvm` mode as well as
 [dual JVM mode](./dual_jvm.md).
 
@@ -19,15 +19,14 @@ This behavior is the same when running in `--jvm` mode as well as
 The idea is to aggregate all logs in one place and dispatch the log messages
 appropriately to configured [appenders](#appenders):
 
-- ## errors and warnings are printed to the console stderr
-- the above and informational messages are recorded in the log
-  [File](#file-appender)
-- [telemetry](#telemetry) & co. is sent over [Network](#socket-appender)
+- errors and warnings are printed to the console stderr
+- errors, warnings and info messages are recorded by the [File](#file-appender)
+- [telemetry](#telemetry) & co. is sent over [network](#socket-appender)
 
-for easier analysis of the interaction between components. Components can also
-log to console or files directly without involving the centralized logging
-service. For more information about this architecture, see
-[Logging server](#logging-server).
+The system provides reasonable _default behavior_ to raise attention of
+problems, but don't overload by too much logging. The system allows to
+**opt-in** for more detailed logging either globally or on per-logger basis. See
+[user configuration](#user-config).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
