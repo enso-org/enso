@@ -36,6 +36,7 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Table_Helpers.Union_Result_Type
 import Standard.Table.Internal.Table_Ref.Table_Ref
+import Standard.Table.Internal.Value_Type_Checks
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Prefix_Name.Prefix_Name
@@ -842,7 +843,9 @@ type DB_Table_Implementation
             Panic.throw (Type_Error.Error Spatial_Column column "The column '"+column.name+"' is not a spatial column.")
 
     spatial_point (this_table : Table & DB_Table) (longitude : Column) (latitude : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <| Value_Type.expect_numeric longitude <| Value_Type.expect_numeric latitude <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <|
+            Value_Type_Checks.is_numeric longitude
+            Value_Type_Checks.is_numeric latitude
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Point" [longitude, latitude])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_point" [longitude, latitude]
             this_table.set new_column as=new_name
@@ -945,7 +948,8 @@ type DB_Table_Implementation
             this_table.set new_column as=new_name
 
     spatial_from_geojson (this_table : Table & DB_Table) (column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_from_geojson" <| Value_Type.expect_text column <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_from_geojson" <|
+            Value_Type_Checks.is_text column
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_GeomFromGeoJSON" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_from_geojson" [column]
             this_table.set new_column as=new_name
@@ -957,7 +961,8 @@ type DB_Table_Implementation
             this_table.set new_column as=new_name
 
     spatial_from_wkt (this_table : Table & DB_Table) (column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_from_wkt" <| Value_Type.expect_text column <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_from_wkt" <|
+            Value_Type_Checks.is_text column
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_GeomFromText" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_from_wkt" [column]
             this_table.set new_column as=new_name

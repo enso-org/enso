@@ -2,6 +2,7 @@
 ## module Standard.AWS.Database.Redshift.Redshift_Connection
 - type Redshift_Connection
     - base_connection self -> Standard.Base.Any.Any
+    - bulk_load self table:Standard.Table.Table.Table= table_name:Standard.Base.Data.Text.Text= staging_bucket_credentials:(Standard.Database.Connection.Credentials.Credentials|Standard.AWS.AWS_Credential.AWS_Credential)= staging_bucket:Standard.Base.Data.Text.Text= iam_role:Standard.Base.Data.Text.Text= if_exists:Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists= temporary:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any make_new:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)

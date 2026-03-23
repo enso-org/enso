@@ -42,7 +42,7 @@ class ProjectSettingsManagerTest
             "id": 0,
             "result": {
               "parentEdition": ${BuildVersion.currentEdition},
-              "preferLocalLibraries": true
+              "preferLocalLibraries": false
             }
           }
           """)

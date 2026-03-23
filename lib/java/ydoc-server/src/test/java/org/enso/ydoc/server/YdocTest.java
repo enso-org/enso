@@ -2,12 +2,12 @@ package org.enso.ydoc.server;
 
 import io.helidon.common.buffers.BufferData;
 import io.helidon.http.Status;
-import io.helidon.webclient.api.HttpClientResponse;
 import io.helidon.webclient.api.WebClient;
 import io.helidon.webclient.websocket.WsClient;
 import io.helidon.websocket.WsListener;
 import io.helidon.websocket.WsSession;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -118,8 +118,10 @@ public class YdocTest {
     Assert.assertTrue(
         "Binary onConnect callback should be called after client connects", binaryOnConnectCalled);
 
-    WebClient http = WebClient.create();
-    HttpClientResponse healthcheckResponse = http.get(HEALTHCHECK_URL).request();
+    var waitMinute = Duration.ofMinutes(1);
+    var http = WebClient.create();
+    var healthcheckResponse =
+        http.get(HEALTHCHECK_URL).readContinueTimeout(waitMinute).readTimeout(waitMinute).request();
     Assert.assertEquals(Status.OK_200, healthcheckResponse.status());
   }
 

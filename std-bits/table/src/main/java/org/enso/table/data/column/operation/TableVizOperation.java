@@ -1,13 +1,13 @@
 package org.enso.table.data.column.operation;
 
-import static java.time.temporal.ChronoField.*;
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
+import static java.time.temporal.ChronoField.YEAR;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -18,61 +18,24 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.operation.unary.JsonOperation;
+import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Row;
 import org.enso.table.util.LeastRecentlyUsedCache;
 import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 
-/**
- * A utility class for converting column data to JSON format. This is used for visualization
- * purposes.
- */
-public class JsonOperation {
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(JsonOperation.class);
+/** Extension to JsonOperation for TableViz JSON code. */
+public class TableVizOperation {
+  private static JsonOperation JSON_OPERATION =
+      new JsonOperation("Standard.Visualization.Table.Visualization", "Helper", "make_json", true);
 
-  private static Function<Object, String> _ensoJsonCallback;
-
-  private static Function<Object, String> ensoJsonCallback() {
-    if (_ensoJsonCallback != null) {
-      return _ensoJsonCallback;
-    }
-
-    try {
-      var jsonType = EnsoMeta.getType("Standard.Visualization.Table.Visualization", "Helper");
-      var method = jsonType.getMember("make_json");
-      LOGGER.info("Resolved Enso JSON callback: {}", method);
-      _ensoJsonCallback =
-          value -> {
-            LOGGER.info(
-                "Calling Enso JSON callback for value: {} (class {})",
-                value,
-                value == null ? "null" : value.getClass());
-            var result = method.execute(jsonType, value);
-            return result == null || result.isNull() ? "null" : result.asString();
-          };
-      return _ensoJsonCallback;
-    } catch (Exception ex) {
-      LOGGER.warn("Failed to resolve Enso JSON callback.", ex);
-      return null;
-    }
-  }
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(TableVizOperation.class);
 
   private record CacheKey(long storageKey, long start, long length) {}
 
@@ -85,8 +48,38 @@ public class JsonOperation {
     return _jsonCache;
   }
 
-  public static String apply(Column source, long start, long maxLength) {
-    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
+  private static LeastRecentlyUsedCache<String, String> _tableVizCache;
+
+  private static LeastRecentlyUsedCache<String, String> tableVizCache() {
+    if (_tableVizCache == null) {
+      _tableVizCache = new LeastRecentlyUsedCache<>(1000);
+    }
+    return _tableVizCache;
+  }
+
+  private static final int MAX_CELLS_FOR_INLINE = 2500;
+
+  /** Creates a JSON string representing a single Row */
+  public static String makeJSONForRow(Row row) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (int i = 0; i < row.column_count(); i++) {
+      if (i > 0) {
+        sb.append(",");
+      }
+      String name = row.get_name(i);
+      Object value = row.get_value(i, null);
+      sb.append(JSON_OPERATION.objectToJson(name))
+          .append(":")
+          .append(JSON_OPERATION.objectToJson(value));
+    }
+    sb.append("}");
+    return sb.toString();
+  }
+
+  /** Creates a JSON string representing a single Row */
+  public static String makeJSONForColumn(Column column, long start, long maxLength) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(column);
     var cacheKey = new CacheKey(fullStorage.uniqueKey(), start, maxLength);
     final long finalLength = maxLength;
     return jsonCache().computeIfAbsent(cacheKey, _ -> applyImpl(start, fullStorage, finalLength));
@@ -97,6 +90,7 @@ public class JsonOperation {
       // If the start is beyond the size of the storage, return an empty array.
       return "[]";
     }
+
     long length = finalLength;
     if (start + length > fullStorage.getSize()) {
       // If the requested length goes beyond the size of the storage, adjust it.
@@ -125,7 +119,9 @@ public class JsonOperation {
         builder.append(",");
       }
       builder.append(
-          doubleStorage.isNothing(i) ? "null" : toJson(doubleStorage.getItemAsDouble(i)));
+          doubleStorage.isNothing(i)
+              ? "null"
+              : JsonOperation.toJson(doubleStorage.getItemAsDouble(i), true));
       context.safepoint();
     }
     builder.append("]");
@@ -140,7 +136,8 @@ public class JsonOperation {
       if (i > start) {
         builder.append(",");
       }
-      builder.append(longStorage.isNothing(i) ? "null" : toJson(longStorage.getItemAsLong(i)));
+      builder.append(
+          longStorage.isNothing(i) ? "null" : JsonOperation.toJson(longStorage.getItemAsLong(i)));
       context.safepoint();
     }
     builder.append("]");
@@ -157,7 +154,9 @@ public class JsonOperation {
         builder.append(",");
       }
       builder.append(
-          booleanStorage.isNothing(i) ? "null" : toJson(booleanStorage.getItemAsBoolean(i)));
+          booleanStorage.isNothing(i)
+              ? "null"
+              : JsonOperation.toJson(booleanStorage.getItemAsBoolean(i)));
       context.safepoint();
     }
     builder.append("]");
@@ -174,7 +173,7 @@ public class JsonOperation {
       }
 
       Object value = storage.getItemBoxed(i);
-      String jsonValue = objectToJson(value);
+      String jsonValue = JSON_OPERATION.objectToJson(value);
       builder.append(jsonValue);
       context.safepoint();
     }
@@ -189,175 +188,11 @@ public class JsonOperation {
         : "[" + String.join(",", Collections.nCopies(checkedSize, "null")) + "]";
   }
 
-  public static String objectToJson(Object value) {
-    return objectToJson(value, ensoJsonCallback());
-  }
-
-  public static String objectToJson(Object value, Function<Object, String> ensoJsonCallback) {
-    return switch (value) {
-      case null -> "null";
-      case Boolean b -> toJson(b);
-      case Long l -> toJson(l);
-      case Integer i -> toJson(i);
-      case Short s -> toJson(s);
-      case Byte b -> toJson(b & 0xFF);
-      case Double d -> toJson(d);
-      case Float f -> toJson(f);
-      case String s -> toJson(s);
-      case BigInteger bi -> toJson(bi);
-      case BigDecimal bd -> toJson(bd);
-      case LocalDate date -> toJson(date);
-      case LocalTime time -> toJson(time);
-      case ZonedDateTime zdt -> toJson(zdt);
-      default -> {
-        if (ensoJsonCallback == null) {
-          LOGGER.debug("Could not serialize value of type {}.", value.getClass());
-          yield "null";
-        } else {
-          yield ensoJsonCallback.apply(value);
-        }
-      }
-    };
-  }
-
-  private static String toJson(boolean value) {
-    return value ? "true" : "false";
-  }
-
-  private static final long MAX_JSON_LONG = 9007199254740991L;
-  private static final BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
-
-  private static final DateTimeFormatter TIME_SHORT_FORMAT =
-      DateTimeFormatter.ofPattern("HH:mm:ss");
-  private static final DateTimeFormatter TIME_LONG_FORMAT =
-      DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
-  private static final DateTimeFormatter DATE_TIME_SHORT_FORMAT =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-  private static final DateTimeFormatter DATE_TIME_LONG_FORMAT =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-  private static final DateTimeFormatter ZONE_FORMAT = DateTimeFormatter.ofPattern("'['zz']'");
-
-  private static String toJson(long value) {
-    if (value < -MAX_JSON_LONG || value > MAX_JSON_LONG) {
-      return "{\"type\":\"Integer\",\"value\":\"" + value + "\"}";
-    }
-    return String.valueOf(value);
-  }
-
-  private static String toJson(double value) {
-    if (Double.isNaN(value)) {
-      return "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}";
-    }
-    if (Double.isInfinite(value)) {
-      var txtValue = value > 0 ? "Infinity" : "-Infinity";
-      return "{\"_display_text_\":\""
-          + txtValue
-          + "\",\"type\":\"Float\",\"value\":\""
-          + txtValue
-          + "\"}";
-    }
-    return String.valueOf(value);
-  }
-
-  private static String toJson(BigInteger value) {
-    if (value.abs().compareTo(MAX_JSON_LONG_BIGINT) > 0) {
-      return "{\"type\":\"Integer\",\"value\":\"" + value + "\"}";
-    }
-    return value.toString();
-  }
-
-  private static String toJson(BigDecimal value) {
-    return "{\"type\":\"Decimal\",\"value\":\""
-        + value
-        + "\",\"scale\":"
-        + value.scale()
-        + ",\"precision\":"
-        + value.precision()
-        + "}";
-  }
-
-  private static String toJson(String value) {
-    try {
-      return OBJECT_MAPPER.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static String toJson(LocalDate date) {
-    return "{\"type\":\"Date\",\"constructor\":\"new\",\"_display_text_\":\""
-        + date.toString()
-        + "\",\"day\":"
-        + date.getDayOfMonth()
-        + ",\"month\":"
-        + date.getMonthValue()
-        + ",\"year\":"
-        + date.getYear()
-        + "}";
-  }
-
-  private static String toJson(LocalTime time) {
-    var timeString = time.format(time.getNano() == 0 ? TIME_SHORT_FORMAT : TIME_LONG_FORMAT);
-    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\",\"_display_text_\":\""
-        + timeString
-        + "\",\"hour\":"
-        + time.getHour()
-        + ",\"minute\":"
-        + time.getMinute()
-        + ",\"second\":"
-        + time.getSecond()
-        + ",\"nanosecond\":"
-        + time.getNano()
-        + "}";
-  }
-
-  private static String toJson(ZonedDateTime datetime) {
-    var datetimeString =
-        datetime.format(datetime.getNano() == 0 ? DATE_TIME_SHORT_FORMAT : DATE_TIME_LONG_FORMAT);
-    var zoneString =
-        datetime.getZone() == ZoneId.systemDefault() ? "" : datetime.format(ZONE_FORMAT);
-    var zone_json =
-        "{\"type\":\"Time_Zone\",\"constructor\":\"parse\",\"id\":\""
-            + datetime.getZone().getId()
-            + "\"}";
-    return "{\"type\":\"Date_Time\",\"constructor\":\"new\",\"_display_text_\":\""
-        + datetimeString
-        + zoneString
-        + "\",\"year\":"
-        + datetime.getYear()
-        + ",\"month\":"
-        + datetime.getMonthValue()
-        + ",\"day\":"
-        + datetime.getDayOfMonth()
-        + ",\"hour\":"
-        + datetime.getHour()
-        + ",\"minute\":"
-        + datetime.getMinute()
-        + ",\"second\":"
-        + datetime.getSecond()
-        + ",\"nanosecond\":"
-        + datetime.getNano()
-        + ",\"zone\":"
-        + zone_json
-        + "}";
-  }
-
-  private static LeastRecentlyUsedCache<String, String> _tableVizCache;
-
-  private static LeastRecentlyUsedCache<String, String> tableVizCache() {
-    if (_tableVizCache == null) {
-      _tableVizCache = new LeastRecentlyUsedCache<>(1000);
-    }
-    return _tableVizCache;
-  }
-
-  private static final int MAX_CELLS_FOR_INLINE = 2500;
-
   /**
    * Creates a JSON string representing the table visualization metadata, including column headers,
    * value types, and various properties related to the table's structure and behavior.
    */
-  public static String makeTableVizJSON(
+  public static String makeJSON(
       String versionId,
       Column[] columns,
       long allRowsCount,
@@ -384,7 +219,7 @@ public class JsonOperation {
             .computeIfAbsent(
                 versionId,
                 _ ->
-                    makeTableVizJSON(
+                    makeJSON(
                         versionId,
                         columns,
                         columns[0].getSize(),
@@ -409,7 +244,7 @@ public class JsonOperation {
         headers.append(",");
         valueTypes.append(",");
       }
-      headers.append(toJson(columns[i].getName()));
+      headers.append(JSON_OPERATION.objectToJson(columns[i].getName()));
 
       var columnType = columns[i].getStorageType().ensoConstructorName();
       valueTypes
@@ -452,7 +287,7 @@ public class JsonOperation {
     if (builder.length() > 1) {
       builder.append(",");
     }
-    builder.append("\"").append(name).append("\":").append(objectToJson(value));
+    builder.append("\"").append(name).append("\":").append(JSON_OPERATION.objectToJson(value));
   }
 
   private static void makeDataQualityMetrics(StringBuilder json, List<Map<String, Object>> dqs) {
@@ -514,7 +349,7 @@ public class JsonOperation {
     return false;
   }
 
-  public static boolean addRange(
+  private static boolean addRange(
       StringBuilder builder, List<Map<String, Object>> metrics, boolean first) {
     boolean hasRange = false;
     List<String> ranges = new ArrayList<>();
@@ -531,7 +366,7 @@ public class JsonOperation {
           Boolean.TRUE.equals(metric.get(DataQualityMetrics.SINGLE_VALUE))
               ? toDisplayText(min)
               : toDisplayText(min) + " - " + toDisplayText(metric.get(DataQualityMetrics.MAXIMUM));
-      ranges.add(objectToJson(rangeValue));
+      ranges.add(JSON_OPERATION.objectToJson(rangeValue));
     }
 
     if (!hasRange) {
@@ -610,7 +445,8 @@ public class JsonOperation {
       if (i != 0) {
         builder.append(",");
       }
-      builder.append(objectToJson(metrics.get(i).getOrDefault(metric, defaultValue)));
+      builder.append(
+          JSON_OPERATION.objectToJson(metrics.get(i).getOrDefault(metric, defaultValue)));
     }
     builder.append("]");
   }
@@ -618,7 +454,7 @@ public class JsonOperation {
   private static String dataToJson(Column[] columns) {
     var output = new ArrayList<String>();
     for (Column column : columns) {
-      output.add(apply(column, 0, column.getSize()));
+      output.add(makeJSONForColumn(column, 0, column.getSize()));
     }
     return output.stream().collect(Collectors.joining(",", "[", "]"));
   }

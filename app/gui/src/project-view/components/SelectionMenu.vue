@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import type { DisplayableActionName } from '@/providers/action'
 import { resolveAction } from '@/providers/action'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { flip, offset, shift, useFloating } from '@floating-ui/vue'
@@ -28,6 +30,13 @@ watch(
 )
 
 const alignmentMenuOpen = ref(false)
+const spacingMenuOpen = ref(false)
+const spacingActions: DisplayableActionName[] = [
+  'components.spaceVertical',
+  'components.spaceVerticalTight',
+  'components.spaceVerticalZero',
+  'components.spaceVerticalWide',
+]
 </script>
 
 <template>
@@ -65,6 +74,19 @@ const alignmentMenuOpen = ref(false)
             <ActionButton action="components.alignBottom" @click="alignmentMenuOpen = false" />
           </div>
         </MenuPanel>
+      </template>
+    </DropdownMenu>
+    <DropdownMenu
+      v-model:open="spacingMenuOpen"
+      placement="bottom-start"
+      title="Spacing"
+      alwaysShowArrow
+    >
+      <template #button>
+        <SvgIcon name="space_default" />
+      </template>
+      <template #menu>
+        <ActionMenu :actions="spacingActions" @close="spacingMenuOpen = false" />
       </template>
     </DropdownMenu>
     <ActionButton action="components.copy" />
