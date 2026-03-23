@@ -184,7 +184,7 @@ public final class LogbackSetup extends LoggerSetup {
         if (logPrefix == null) {
           logPrefix = "enso";
         }
-        var logPostfix = "%d{yyyy-MM-dd-HH-mm}";
+        var logPostfix = "%d{yyyy-MM-dd-HH-mm-ss}";
         String filePattern;
         if (logRoot == null) {
           filePattern = logPrefix + "-" + logPostfix;
@@ -192,9 +192,8 @@ public final class LogbackSetup extends LoggerSetup {
           filePattern = logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + logPostfix;
         }
 
-        org.enso.logging.config.FileAppender.RollingPolicy rollingPolicy =
-            appenderConfig.getRollingPolicy();
-        SizeAndTimeBasedRollingPolicy logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy();
+        var rollingPolicy = appenderConfig.getRollingPolicy();
+        var logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy<ILoggingEvent>();
         logbackRollingPolicy.setContext(env.ctx);
         logbackRollingPolicy.setParent(fileAppender);
         logbackRollingPolicy.setMaxFileSize(FileSize.valueOf(rollingPolicy.maxFileSize()));
@@ -202,6 +201,10 @@ public final class LogbackSetup extends LoggerSetup {
         logbackRollingPolicy.setTotalSizeCap(FileSize.valueOf(rollingPolicy.totalSizeCap()));
         logbackRollingPolicy.setFileNamePattern(filePattern + ".%i.log.gz");
         logbackRollingPolicy.start();
+        // store initial time
+        logbackRollingPolicy
+            .getTimeBasedFileNamingAndTriggeringPolicy()
+            .setCurrentTime(System.currentTimeMillis());
 
         rollingFileAppender.setRollingPolicy(logbackRollingPolicy);
       } else {
