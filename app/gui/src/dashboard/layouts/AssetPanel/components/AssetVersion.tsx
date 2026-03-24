@@ -2,12 +2,14 @@
 import { Badge } from '#/components/Badge'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
+import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
 import { Menu } from '#/components/Menu'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { VisualTooltip } from '#/components/VisualTooltip'
+import { addAssetVersionTag } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { setModal } from '#/providers/ModalProvider'
@@ -16,12 +18,47 @@ import type { Backend } from 'enso-common/src/services/Backend'
 import * as backendService from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
+import { useState } from 'react'
 import { AssetDiffView } from './AssetDiffView'
 
 const HEADER_GAP_PX = 8
 const TAG_GAP_PX = 4
 const MIN_TAG_WIDTH_CH = 8
 const MAX_TAG_WIDTH_CH = 32
+
+/** Options for add tag compontent. */
+interface AddTagProps {
+  readonly backend: Backend
+  readonly item: backendService.AnyAsset
+  readonly version: Version
+  readonly isEditingTag: backendService.S3ObjectVersionId | null
+  readonly setIsEditingTag: (tag: backendService.S3ObjectVersionId | null) => void
+}
+
+/** Editable input compontent for adding asset version tag. */
+function AddTag(props: AddTagProps) {
+  const { item, version, backend, isEditingTag, setIsEditingTag } = props
+
+  const addTag = addAssetVersionTag(backend)
+  const onSubmit = async (tag: string) => {
+    await addTag(item.id, version.versionId, tag, false)
+    setIsEditingTag(null)
+  }
+
+  return (
+    <div className="group flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child">
+      <EditableSpan
+        data-testid="asset-version-tag"
+        editable={isEditingTag === version.versionId}
+        onSubmit={onSubmit}
+        children=""
+        onCancel={() => {
+          setIsEditingTag(null)
+        }}
+      />
+    </div>
+  )
+}
 
 /** A version of an asset. */
 export interface Version extends backendService.S3ObjectVersion {
@@ -61,6 +98,8 @@ export function AssetVersion(props: AssetVersionProps) {
 
   const { getText } = useText()
 
+  const [isEditingTag, setIsEditingTag] = useState<backendService.S3ObjectVersionId | null>(null)
+
   const isProject = item.type === backendService.AssetType.project
   const comparableVersions = otherVersions
     .map((v, index) => ({ ...v, number: otherVersions.length - index }))
@@ -70,6 +109,8 @@ export function AssetVersion(props: AssetVersionProps) {
   const doRestore = useEventCallback(async () => {
     await doRestoreRaw(version)
   })
+
+  const onDelete = addAssetVersionTag(backend)
 
   // Conditional collapsing based on available headerBounds with respect to the approximate width of all tags.
   // The width of tags is based on the first tag, so it can be innacurate, but should be reasonable in practice.
@@ -132,11 +173,39 @@ export function AssetVersion(props: AssetVersionProps) {
                     className={`min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink overflow-hidden`}
                   >
                     <Badge variant="outline" className="w-full">
-                      {tag}
+                      <Button
+                        icon="tab_close"
+                        variant="icon"
+                        size="xxsmall"
+                        onPress={() => onDelete(item.id, version.versionId, tag, true)}
+                        className="m-0 p-0"
+                      >
+                        {tag}
+                      </Button>
                     </Badge>
                   </VisualTooltip>
                 ))}
               </div>)}
+          <Dialog.Trigger>
+            <Button
+              showIconOnHover
+              variant="icon"
+              size="xxsmall"
+              fullWidth
+              icon="add"
+              tooltip={'add tag'}
+              onPress={() => {
+                setIsEditingTag(version.versionId)
+              }}
+            />
+            <AddTag
+              item={item}
+              version={version}
+              backend={backend}
+              setIsEditingTag={setIsEditingTag}
+              isEditingTag={isEditingTag}
+            />
+          </Dialog.Trigger>
         </div>
 
         {/* Tags list copies to measure sizes for conditional collapse behavior. */}

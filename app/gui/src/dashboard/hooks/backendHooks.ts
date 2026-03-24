@@ -564,3 +564,27 @@ export function useRenameAsset(backend: Backend) {
     },
   )
 }
+
+/** Return a function to add tag to an asset version. */
+export function addAssetVersionTag(backend: Backend) {
+  const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
+
+  return useEventCallback(
+    (
+      assetId: AssetId,
+      versionId: backendModule.S3ObjectVersionId,
+      tag: string,
+      remove: boolean,
+    ) => {
+      return updateAsset([
+        assetId,
+        {
+          versionId,
+          tag,
+          remove,
+        },
+        assetId,
+      ])
+    },
+  )
+}

@@ -149,7 +149,6 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
             doRestore={doRestore}
             doDuplicate={doDuplicate}
           />
-
           {index !== versions.length - 1 && <div className="ml-[3px] h-5 w-[0.5px] bg-primary" />}
         </div>
       ))}
