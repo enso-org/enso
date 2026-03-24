@@ -65,10 +65,13 @@ type Salesforce
                 'picklist' -> d.get 'label'
                 'double' -> d.get 'value'
                 'percent' -> d.get 'value'
-                'date' -> 
+                'date' ->
                     v = d.get 'value' 
                     v.if_not_nothing <| v.parse_date
-                'currency' -> 
+                'datetime' ->
+                    v = d.get 'value' 
+                    v.if_not_nothing <| v.parse_date_time
+                'currency' ->
                     v = d.get 'value' 
                     v.if_not_nothing <| v.get 'amount'
                 'boolean' -> d.get 'value'
@@ -76,6 +79,9 @@ type Salesforce
             
         Table.from_rows column_names data
 
+    ## ---
+       private: true
+       ---
     get_instance_url self =
         self.salesforce_service.getInstanceUrl
 
