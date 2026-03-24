@@ -108,7 +108,8 @@ private _get_report_id salesforce name =
 
 private _make_report_name_widget salesforce -> Widget =
     options = (_get_raw_reports salesforce).map r->
-        name = '"' + (r.get 'name') + '"'
-        Option name name
+        name = r.get 'name'
+        quoted_name = '"' + name + '"'
+        Option name quoted_name
     Widget.Single_Choice values=options display=..Always
 
