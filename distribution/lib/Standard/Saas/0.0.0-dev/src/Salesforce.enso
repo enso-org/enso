@@ -3,7 +3,6 @@ from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata.Choice import Option
 
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 
 from Standard.Table import Table
