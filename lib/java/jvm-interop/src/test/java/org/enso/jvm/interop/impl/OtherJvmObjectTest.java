@@ -48,7 +48,7 @@ public class OtherJvmObjectTest {
 
   @BeforeClass
   public static void initializeChannel() {
-    System.setProperty("org.enso.jvm.interop.limit", "" + Integer.MAX_VALUE);
+    System.setProperty(OtherJvmPool.DUMP_MESSAGE_PROPERTY, "" + Integer.MAX_VALUE);
     CHANNEL = Channel.create(null, OtherJvmPool.class);
     CHANNEL
         .getConfig()

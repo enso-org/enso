@@ -12,13 +12,17 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.profiling.events.EventsMonitor
 import org.enso.editions.updater.EditionManager
-import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
+import org.enso.jsonrpc.{
+  JsonRpcServer,
+  SecureConnectionConfig,
+  YdocJsonRpcServer
+}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
 import org.enso.languageserver.filemanager._
-import org.enso.languageserver.http.server.BinaryWebSocketServer
+import org.enso.languageserver.http.server.BinaryYdocServer
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
@@ -56,6 +60,7 @@ import org.enso.common.{
   RuntimeOptions
 }
 import org.enso.filewatcher.WatcherFactory
+import org.enso.languageserver.boot.resource.TruffleContextInitialization
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.searcher.memory.InMemorySuggestionsRepo
@@ -70,6 +75,8 @@ import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+import java.util.concurrent.Executors
+
 import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
@@ -457,14 +464,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
 
+  private val truffleContext = {
+    val contextInitialization =
+      new TruffleContextInitialization(
+        system.dispatcher,
+        builder,
+        contextSupervisor,
+        system.eventStream
+      )
+    contextInitialization.initComponent()
+    contextInitialization.getContext
+  }
   private val initializationComponent =
     ResourcesInitialization(
       system.eventStream,
       directoriesConfig,
       jsonRpcProtocolFactory,
       suggestionsRepo,
-      builder,
-      contextSupervisor,
       zioRuntime
     )(system.dispatcher)
 
@@ -501,7 +517,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   val materializer: Materializer = Materializer.createMaterializer(system)
   val jsonRpcServer =
-    new JsonRpcServer(
+    new YdocJsonRpcServer(
       jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
@@ -512,26 +528,39 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         ),
       List(healthCheckEndpoint, idlenessEndpoint, renameProjectEndpoint),
       messagesCallback
-    )(system, materializer)
+    )(system)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
-  val binaryServer =
-    new BinaryWebSocketServer(
+  val binaryChannelCallbacks =
+    new BinaryYdocServer.BinaryServerCallbacks(
       InboundMessageDecoder,
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)(system),
-      BinaryWebSocketServer.Config(
-        outgoingBufferSize = 1024,
-        lazyMessageTimeout = 10.seconds,
-        secureConfig       = secureConfig
-      ),
-      messagesCallback
-    )(system, materializer)
-  log.trace("Created Binary WebSocket Server [{}]", binaryServer)
+      messagesCallback,
+      truffleContext,
+      system
+    )
+  log.trace("Created Binary Channel Callbacks [{}]", binaryChannelCallbacks)
 
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
-    org.enso.runner.common.YdocServerApi.launchYdocServer(c.hostname, c.port)
+    val ydocExecutor = Executors.newSingleThreadExecutor(r => {
+      val thread = new Thread(r)
+      thread.setName("Ydoc main thread")
+      // Ydoc should not prevent JVM from exiting
+      thread.setDaemon(true)
+      thread
+    })
+    ydocExecutor.execute(() =>
+      org.enso.ydoc.api.YdocServerApi
+        .launchYdocServer(
+          c.hostname,
+          c.port,
+          jsonRpcServer.yjsChannelCallbacks,
+          binaryChannelCallbacks
+        )
+    )
+    ydocExecutor
   }
 
   log.debug(
@@ -543,7 +572,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     contextSupervisor.close()
-    ydoc.close()
+    ydoc.shutdownNow()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
     MDC.remove("projectLocalId")

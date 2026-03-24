@@ -8,6 +8,7 @@ app/lezer-markdown/node_modules
 app/project-manager-shim/node_modules
 app/table-expression/node_modules
 app/rust-ffi/node_modules
+app/ydoc-channel/node_modules
 app/ydoc-server/node_modules
 app/ydoc-server-nodejs/node_modules
 app/ydoc-server-polyglot/node_modules

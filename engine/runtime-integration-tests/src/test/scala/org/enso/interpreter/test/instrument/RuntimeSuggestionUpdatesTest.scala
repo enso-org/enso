@@ -28,7 +28,7 @@ import scala.collection.immutable.ListSet
 class RuntimeSuggestionUpdatesTest extends AnyFlatSpec with Matchers {
 
   class TestContext(packageName: String, enableGlobalSuggestions: Boolean)
-      extends InstrumentTestContext(packageName) {
+      extends InstrumentTestContext(packageName, preferLocalLibraries = true) {
 
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val context =

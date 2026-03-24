@@ -1,5 +1,6 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -218,6 +219,14 @@ public final class OtherJvmPool extends Channel.Config {
   // Support for histogram of messages
   //
 
+  static final String DUMP_MESSAGE_PROPERTY = "org.enso.jvm.interop.limit";
+  private static final int DUMP_MESSAGE_STACK_SIZE = 8;
+
+  /**
+   * @GuardedBy("this")
+   */
+  private Map<Message, WhereAndCount> histogram;
+
   /**
    * Enable histogram of messages for example by:
    *
@@ -227,18 +236,7 @@ public final class OtherJvmPool extends Channel.Config {
    *    --vm.D=polyglot.enso.classLoading=guest
    *    --run test/Generic_JDBC_Tests
    * </pre>
-   */
-  private static final int DUMP_MESSAGES_COUNT =
-      Integer.getInteger("org.enso.jvm.interop.limit", -1);
-
-  private static final int DUMP_MESSAGE_STACK_SIZE = 8;
-
-  /**
-   * @GuardedBy("this")
-   */
-  private Map<Message, WhereAndCount> histogram;
-
-  /**
+   *
    * @GuardedBy("this")
    */
   private int countMessages;
@@ -248,33 +246,60 @@ public final class OtherJvmPool extends Channel.Config {
    */
   private long countSince;
 
+  final void profileMessage(Message message, Object[] args) {
+    incrementMessage(message);
+  }
+
   private synchronized void incrementMessage(Message message) {
-    assert DUMP_MESSAGES_COUNT > 0;
-    if (histogram == null) {
-      histogram = new ConcurrentHashMap<>();
-      countMessages = 0;
-      countSince = System.currentTimeMillis();
+    if (countMessages == Integer.MIN_VALUE) {
+      // disabled
+      return;
     }
-    var count = histogram.computeIfAbsent(message, (ignore) -> new WhereAndCount());
-    count.count++;
-    if (++countMessages >= DUMP_MESSAGES_COUNT) {
-      var logger = System.getLogger("org.enso.jvm.interop");
-      logger.log(System.Logger.Level.ERROR, dumpMessages());
-      countMessages = 0;
+    if (histogram == null) {
+      resetCountMessages(true);
+      if (countMessages < 0) {
+        return;
+      }
+      histogram = new ConcurrentHashMap<>();
+    }
+    var withCount = histogram.computeIfAbsent(message, (ignore) -> new WhereAndCount());
+    withCount.count++;
+    if (--countMessages <= 0) {
+      dumpMessagesAndReset();
+    }
+  }
+
+  private synchronized void resetCountMessages(boolean forceInit) {
+    var newValue = Integer.getInteger(DUMP_MESSAGE_PROPERTY, Integer.MIN_VALUE);
+    if (forceInit || newValue != Integer.MAX_VALUE) {
+      countMessages = newValue;
+      countSince = System.currentTimeMillis();
     }
   }
 
   private synchronized Map<Message, WhereAndCount> clearMessages(StringBuilder sb) {
     var prev = histogram;
     histogram = null;
-    long took = System.currentTimeMillis() - countSince;
-    sb.append("\n======== Interop JVM Messages Chart in last %d ms ========\n".formatted(took));
+    var took = System.currentTimeMillis() - countSince;
+    countSince = System.currentTimeMillis();
+    var jvm = System.getProperty("java.vm.name");
+    if (jvm == null) {
+      jvm = "JVM";
+    }
+    sb.append("\n======== Interop %s Messages Chart in last %d ms ========\n".formatted(jvm, took));
     return prev;
   }
 
-  private String dumpMessages() {
+  @CompilerDirectives.TruffleBoundary
+  private void dumpMessagesAndReset() {
     var sb = new StringBuilder();
     var prev = clearMessages(sb);
+    var logger = System.getLogger("org.enso.jvm.interop");
+    logger.log(System.Logger.Level.ERROR, dumpMessages(sb, prev));
+    resetCountMessages(false);
+  }
+
+  private static String dumpMessages(StringBuilder sb, Map<Message, WhereAndCount> prev) {
     if (prev == null) {
       return sb.toString();
     }
@@ -301,26 +326,19 @@ public final class OtherJvmPool extends Channel.Config {
     return sb.toString();
   }
 
-  final void profileMessage(Message message, Object[] args) {
-    if (DUMP_MESSAGES_COUNT >= 0) {
-      incrementMessage(message);
-    }
-  }
-
   final void assertMessagesCount(String msg, int cnt, Runnable run) {
-    assert DUMP_MESSAGES_COUNT == Integer.MAX_VALUE;
     clearMessages(new StringBuilder());
-    countMessages = 0;
+    countMessages = cnt;
     run.run();
-    if (countMessages > cnt) {
-      var txt =
-          msg
-              + ", expected at most "
-              + cnt
-              + " messages, but was "
-              + countMessages
-              + dumpMessages();
-      throw new AssertionError(txt);
+    if (countMessages < 0) {
+      var sb = new StringBuilder();
+      sb.append(msg)
+          .append(", expected at most ")
+          .append(cnt)
+          .append(" messages, but was ")
+          .append(-countMessages)
+          .append(" more");
+      throw new AssertionError(sb.toString());
     }
   }
 

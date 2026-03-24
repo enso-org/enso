@@ -273,6 +273,15 @@
         "parameterTypes": ["java.lang.String[]"]
       }
     ]
+  },
+  {
+    "name": "org.enso.ydoc.server.YjsChannelSynchronized",
+    "methods": [
+      {
+        "name": "subscribe",
+        "parameterTypes": ["java.util.function.Consumer"]
+      }
+    ]
   }
 
 ]

@@ -258,8 +258,14 @@ export class EnsoRunner implements Runner {
     args: readonly string[],
     spawnCallback: (cmd: string, cmdArgs: readonly string[]) => T,
   ) {
-    const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
-    const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
+    const [cmd, cmdArgs] =
+      this.ensoPath.endsWith('.bat') ?
+        ['cmd.exe', ['/c', this.ensoPath, ...args]]
+      : [this.ensoPath, args]
+    const isDevMode = process.env.NODE_ENV === 'development'
+    if (isDevMode) {
+      console.log('runProcess', cmd, 'with', cmdArgs)
+    }
     return spawnCallback(cmd, cmdArgs)
   }
 

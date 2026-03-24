@@ -245,7 +245,7 @@ public class RuntimeProgressTest {
     private Context _context;
 
     TestContext(String packageName) {
-      super(packageName);
+      super(packageName, false);
     }
 
     @Override

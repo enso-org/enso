@@ -551,6 +551,9 @@ importers:
       y-websocket:
         specifier: ^1.5.4
         version: 1.5.4(yjs@13.6.21)
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       ydoc-shared:
         specifier: workspace:*
         version: link:../ydoc-shared
@@ -868,6 +871,28 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
 
+  app/ydoc-channel:
+    dependencies:
+      lib0:
+        specifier: ^0.2.99
+        version: 0.2.99
+      yjs:
+        specifier: ^13.6.19
+        version: 13.6.21
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.2.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.2
+      vite-plugin-wasm:
+        specifier: ^3.5.0
+        version: 3.5.0(vite@7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
+
   app/ydoc-server:
     dependencies:
       debug:
@@ -888,6 +913,9 @@ importers:
       y-protocols:
         specifier: ^1.0.6
         version: 1.0.6(yjs@13.6.21)
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       ydoc-shared:
         specifier: workspace:*
         version: link:../ydoc-shared
@@ -922,12 +950,12 @@ importers:
 
   app/ydoc-server-polyglot:
     dependencies:
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       ydoc-server:
         specifier: workspace:*
         version: link:../ydoc-server
-      ydoc-shared:
-        specifier: workspace:*
-        version: link:../ydoc-shared
     devDependencies:
       '@fal-works/esbuild-plugin-global-externals':
         specifier: ^2.1.2
@@ -989,6 +1017,9 @@ importers:
       rust-ffi:
         specifier: workspace:*
         version: link:../rust-ffi
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       yjs:
         specifier: ^13.6.21
         version: 13.6.21

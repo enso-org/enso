@@ -6,6 +6,7 @@ from Standard.Base.Runtime import assert
 import project.Column.Column
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Storage
+import project.Internal.Value_Type_Checks
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 from project.Errors import Invalid_Value_Type, Mixing_Date_Time_Types, No_Common_Type
@@ -297,26 +298,6 @@ resolve_subtraction_kind arg1 arg2 -> Subtraction_Kind | Nothing =
 ## ---
    private: true
    ---
-   Checks that both provided arguments have numeric type and runs the action if
-   they do.
-check_binary_numeric_op arg1 arg2 ~action =
-    Value_Type.expect_numeric arg1 <|
-        Value_Type.expect_numeric arg2 <|
-            action
-
-## ---
-   private: true
-   ---
-   Checks that both provided arguments have boolean type and runs the action if
-   they do.
-check_binary_boolean_op arg1 arg2 ~action =
-    Value_Type.expect_boolean arg1 <|
-        Value_Type.expect_boolean arg2 <|
-            action
-
-## ---
-   private: true
-   ---
    Checks that all provided argument are comparable with the provided column.
 
    ## Arguments
@@ -326,8 +307,8 @@ check_binary_boolean_op arg1 arg2 ~action =
 check_multi_argument_comparable_op column arg_or_args ~action =
     args = Vector.unify_vector_or_element arg_or_args
     checked = args.map on_problems=No_Wrap.Value arg->
-        Value_Type.expect_comparable column arg <|
-            True
+        Value_Type_Checks.are_comparable column arg
+        True
     checked.if_not_error <|
         action
 
