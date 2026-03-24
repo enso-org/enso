@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+from Standard.Table import Table
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.saas.salesforce.SalesforceService
@@ -31,11 +32,36 @@ type Salesforce
         result = raw_result.decode_as_json
         result
 
-    report self report_id =
+    report_raw self report_id =
         url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
         raw_result = _salesforce_get self url
         result = raw_result.decode_as_json
         result
+
+    report self report_id =
+        url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
+        raw_result = _salesforce_get self url . decode_as_json
+        raw_columns = raw_result.get 'reportExtendedMetadata' . get 'detailColumnInfo'
+        parsed_columns_vector = raw_columns.to_vector
+        column_names = parsed_columns_vector.map c->((c.at 1).get 'label')
+        column_types = parsed_columns_vector.map c->((c.at 1).get 'dataType')
+        raw_data = raw_result.get 'factMap' . get 'T!T' . get 'rows'
+        data = raw_data.map c-> c.get "dataCells" . map_with_index ix-> d-> 
+            case column_types.at ix of 
+                'string' -> d.get 'label'
+                'picklist' -> d.get 'label'
+                'double' -> d.get 'value'
+                'percent' -> d.get 'value'
+                'date' -> 
+                    v = d.get 'value' 
+                    v.if_not_nothing <| v.parse_date
+                'currency' -> 
+                    v = d.get 'value' 
+                    v.if_not_nothing <| v.get 'amount'
+                'boolean' -> d.get 'value'
+                _ -> d.get 'label'
+            
+        Table.from_rows column_names data
 
     get_instance_url self =
         self.salesforce_service.getInstanceUrl
