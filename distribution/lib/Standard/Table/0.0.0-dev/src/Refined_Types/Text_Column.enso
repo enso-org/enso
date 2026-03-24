@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Data.Json.Invalid_JSON
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
 import project.Column.Rest_Of_String
@@ -203,3 +205,11 @@ type Text_Column
         ```  
     index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
         self.operations_implementation.index_of self.column other case_sensitivity
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Parses the column assuming it contains JSON strings, and returns a column of the resulting values.
+    parse_json self on_problems:Problem_Behavior=..Report_Warning -> Column ! Invalid_JSON | Illegal_Argument =
+        self.operations_implementation.parse_json self.column on_problems

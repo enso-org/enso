@@ -20,13 +20,16 @@
     - map_keys self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - map_with_key self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - not_empty self -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
     - remove self key:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - singleton key:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - size self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - to_vector self -> Standard.Base.Any.Any
     - transform self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - values self -> Standard.Base.Any.Any
 - key_value_widget -> Standard.Base.Metadata.Widget
 - key_widget dict:Standard.Base.Data.Dictionary.Dictionary -> Standard.Base.Metadata.Widget
-- Standard.Base.Data.Dictionary.Dictionary.from that:Standard.Base.Data.Vector.Vector -> Standard.Base.Data.Dictionary.Dictionary
+- Standard.Base.Data.Dictionary.Dictionary.from that:Standard.Base.Data.Vector.Vector error_on_duplicates:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Dictionary.Dictionary
+- Standard.Base.Data.Vector.Vector.from that:Standard.Base.Data.Dictionary.Dictionary -> Standard.Base.Data.Vector.Vector

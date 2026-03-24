@@ -32,8 +32,8 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
             problem_builder.report_other_warning (Floating_Point_Equality.Error right.name)
         SQL_IR_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =
-        Helpers.assume_default_locale locale <|
-            SQL_IR_Expression.Operation "EQUALS_IGNORE_CASE" [resolve_left left, resolve_right right]
+        Helpers.check_default_locale locale
+        SQL_IR_Expression.Operation "EQUALS_IGNORE_CASE" [resolve_left left, resolve_right right]
     make_between _ left right_lower right_upper =
         args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
         SQL_IR_Expression.Operation "BETWEEN" args

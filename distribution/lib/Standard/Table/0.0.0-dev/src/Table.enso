@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Json.Invalid_JSON
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -50,6 +51,7 @@ import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
+import project.Refined_Types.Text_Column.Text_Column
 import project.Row.Row
 import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
@@ -1677,6 +1679,26 @@ type Table
             self.implementation.parse self.underlying selected type format error_on_missing_columns=True on_problems
 
     ## ---
+       group: Standard.Base.Conversions
+       icon: conversion
+       ---
+       Parses a column containing JSON strings into a column of the corresponding
+       data.
+
+       ## Arguments
+        - `columns`: The columns to parse.
+        - `on_problems`: Specifies how to handle if a problem occurs, raising as
+          a warning by default.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    parse_json self (columns : Table_Selector = Missing_Argument.throw "columns") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Invalid_JSON | Illegal_Argument = Profile.time_execution _profile_level "Table.parse_json" <|
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                input_column = current.get column_name
+                if input_column.is_a Text_Column . not then Error.throw (Illegal_Argument.Error ('Column ' + column_name + ' is not a text column and cannot be parsed as JSON.'))
+                json_column = input_column.parse_json on_problems
+                current.set json_column column_name
+
+    ## ---
        aliases: [to_char, to_string, to_text]
        group: Standard.Base.Conversions
        icon: convert
@@ -1779,6 +1801,19 @@ type Table
     format self (columns : Table_Selector = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument = Profile.time_execution _profile_level "Table.format" <|
         columns.act_if_any self error_on_missing_columns selected->
             self.implementation.format self.underlying selected format locale error_on_missing_columns=True on_problems
+
+    ## ---
+       aliases: [to_json]
+       group: Standard.Base.Conversions
+       icon: conversion
+       ---
+       Converts a column into a JSON string representation of its values.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    json_stringify self (columns : Table_Selector = Missing_Argument.throw "columns") error_on_missing_columns:Boolean=True -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument = Profile.time_execution _profile_level "Table.json_stringify" <|
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                json_column = current.get column_name . json_stringify
+                current.set json_column column_name
 
     ## ---
        group: Standard.Base.Conversions

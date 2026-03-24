@@ -16,7 +16,7 @@ from project.Helpers import time_visualization, short_display
 ## ---
    private: true
    ---
-   Helper for JsonOperation
+   Provides the callback for TableVizOperation which converts tables, columns and rows to JSON
 type Helper
     ## ---
        private: true
@@ -41,6 +41,7 @@ prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepa
             v : Vector -> make_json_for_vector v max_rows . to_json
             v : Array -> prepare_visualization v.to_vector max_rows
             v : Dictionary -> make_json_for_dictionary v max_rows
+            v : Hashset -> _make_json_for_hashset v max_rows
             v : JS_Object -> make_json_for_js_object v max_rows
             v : Row -> make_json_for_row v
             t : In_Memory_Table -> t.to_table_viz_json
@@ -53,8 +54,8 @@ prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepa
                 JS_Object.from_pairs [["json", value]] . to_json
             v : Number ->
                 JS_Object.from_pairs [["json", _make_json_for_value v]] . to_json
-            v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
-            v : XML_Element -> make_json_for_xml_element v max_rows
+            v : XML_Document -> _make_json_for_xml_element v.root_element max_rows "XML_Document"
+            v : XML_Element -> _make_json_for_xml_element v max_rows
             _ -> (Table_Viz_Data.from x).get_js_object.to_json
 
 ## ---
@@ -167,6 +168,18 @@ make_json_for_dictionary dict max_items =
 ## ---
    private: true
    ---
+   Render Hashset to JSON
+private _make_json_for_hashset hashset:Hashset max_items:Integer -> Text =
+    header = ["header", ["key"]]
+    all_rows = ["all_rows_count", hashset.size]
+    as_vector = Warning.clear (hashset.to_vector.take max_items)
+    mapped = as_vector . map _make_json_for_value
+    data = ["data", [mapped]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]] . to_json
+
+## ---
+   private: true
+   ---
    Render JS_Object to JSON
 make_json_for_js_object : JS_Object -> Integer -> Text
 make_json_for_js_object js_object max_items =
@@ -182,8 +195,7 @@ make_json_for_js_object js_object max_items =
    private: true
    ---
    Render XML_Element to JSON
-make_json_for_xml_element : XML_Element -> Integer -> Text -> Text
-make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
+private _make_json_for_xml_element xml_element:XML_Element max_items:Integer type:Text="XML_Element" -> Text =
     header = ["header", ["key", "type", "value"]]
     all_rows = ["all_rows_count", xml_element.attributes.length + xml_element.children.length]
 
@@ -308,7 +320,7 @@ Table_Viz_Data.from (that:Any) = Table_Viz_Data.Value (_make_json_for_other that
    ---
    Create JSON serialization of values.
 _make_json_for_other : Any -> JS_Object
-_make_json_for_other x =
+private _make_json_for_other x =
     js_value = Panic.recover Any x.to_js_object
     supports_js_object = js_value.is_error.not
     case supports_js_object of
@@ -336,7 +348,7 @@ _make_json_for_other x =
    ---
    Create JSON serialization of values for the table.
 _make_json_for_value : Any -> Integer -> JS_Object
-_make_json_for_value val level=0 = case val of
+private _make_json_for_value val level:Integer=0 = case val of
     Nothing -> Nothing
     txt : Text -> txt
     num : Number ->
@@ -352,9 +364,14 @@ _make_json_for_value val level=0 = case val of
             "[" + (prepared.join ", ") + "]"
     array : Array -> _make_json_for_value array.to_vector level
     dict : Dictionary ->
-        if level != 0 then "{… "+dict.size.to_text+" items}" else
+        if level != 0 then "{… "+dict.length.to_text+" items}" else
             truncated = dict.keys.take 5 . map k-> k.to_text + ": " + (_make_json_for_value (val.get k) level+1).to_text
             prepared = if dict.length > 5 then truncated + ["… " + (dict.length - 5).to_text+ " items"] else truncated
+            "{" + (prepared.join ", ") + "}"
+    set : Hashset ->
+        if level != 0 then "{… "+set.length.to_text+" items}" else
+            truncated = set.to_vector.take 5 . map k-> (_make_json_for_value k level+1).to_text
+            prepared = if set.length > 5 then truncated + ["… " + (set.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
     row : Row ->
         if level != 0 then "Row{" + row.length + " columns}" else
