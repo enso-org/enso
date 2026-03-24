@@ -11,10 +11,10 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
 
-public class TextIndexOf extends BinaryOperationBase<String, Long> {
-  public static final TextIndexOf INSTANCE = new TextIndexOf();
+public class TextLastIndexOf extends BinaryOperationBase<String, Long> {
+  public static final TextLastIndexOf INSTANCE = new TextLastIndexOf();
 
-  private TextIndexOf() {
+  private TextLastIndexOf() {
     super(TextType.VARIABLE_LENGTH, IntegerType.INT_64, true);
   }
 
@@ -73,7 +73,7 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
     if (needle.isEmpty()) {
       return null;
     }
-    int codeunitIndex = value.indexOf(needle);
+    int codeunitIndex = value.lastIndexOf(needle);
     if (codeunitIndex == -1) {
       return -1L;
     }

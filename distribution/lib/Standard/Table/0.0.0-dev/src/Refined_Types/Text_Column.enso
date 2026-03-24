@@ -207,6 +207,24 @@ type Text_Column
         self.operations_implementation.index_of self.column other case_sensitivity
 
     ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Returns the index of the last occurrence of `other` in each element of the column.
+       The index is zero-based. If `other` is not found, -1 is returned
+
+        ## Examples
+        ### Find the last index of a substring in each element of a column.
+
+        ```
+            import Standard.Examples
+
+            example_last_index_of = Examples.text_column_1.last_index_of "e"
+        ```
+    last_index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
+        self.operations_implementation.last_index_of self.column other case_sensitivity
+
+    ## ---
        group: Standard.Base.Conversions
        icon: convert
        ---
