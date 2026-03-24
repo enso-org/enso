@@ -31,23 +31,18 @@ type Salesforce
        icon: people
        ---
        Get the Salesforce information about the authenticated user.
-    user self =
+    get_user self =
         raw_result = _salesforce_get self "https://login.salesforce.com/services/oauth2/userinfo"
         result = raw_result.decode_as_json
         result
 
-    report_raw self report_id =
-        url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
-        raw_result = _salesforce_get self url
-        result = raw_result.decode_as_json
-        result
+    ## ---
+       icon: data_input
+       ---
+       Get a report from Salesforce by its name and return it as a table.
 
-    reports self =
-        url = self.get_instance_url + "/services/data/v60.0/analytics/reports"
-        raw_result = _salesforce_get self url
-        result = raw_result.decode_as_json
-        result
-
+       ## Arguments:
+       - `name`: the name of the report to retrieve.
     @name _make_report_name_widget
     get_report self name =
         report_id = _get_report_id self name
