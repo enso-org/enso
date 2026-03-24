@@ -1,10 +1,12 @@
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
-import Standard.Base.Errors.Unimplemented.Unimplemented
-from Standard.Table import Table
 from Standard.Base.Metadata.Choice import Option
+
+import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
+
+from Standard.Table import Table
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.saas.salesforce.SalesforceService
