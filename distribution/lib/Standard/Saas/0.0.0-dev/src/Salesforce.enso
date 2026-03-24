@@ -2,6 +2,9 @@ from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 import Standard.Base.Errors.Unimplemented.Unimplemented
 from Standard.Table import Table
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.saas.salesforce.SalesforceService
@@ -45,6 +48,7 @@ type Salesforce
         result = raw_result.decode_as_json
         result
 
+    @name _make_report_name_widget
     get_report self name =
         report_id = _get_report_id self name
         url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
@@ -101,4 +105,10 @@ private _get_report_id salesforce name =
     raw_reports = _get_raw_reports salesforce
     report_metadata = raw_reports.find r->((r.get 'name')==name)
     report_metadata.get 'id'
+
+private _make_report_name_widget salesforce -> Widget =
+    options = (_get_raw_reports salesforce).map r->
+        name = '"' + (r.get 'name') + '"'
+        Option name name
+    Widget.Single_Choice values=options display=..Always
 
