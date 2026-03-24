@@ -69,10 +69,10 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
     throw new IllegalArgumentException("Unsupported storage types.");
   }
 
-  private static Long calculateIndex(String value, String needle) {
+  private static long calculateIndex(String value, String needle) {
     int codeunitIndex = value.indexOf(needle);
     if (codeunitIndex == -1) {
-      return -1L;
+      return -1;
     }
     return Text_Utils.utf16_index_to_grapheme_index(value, codeunitIndex);
   }
