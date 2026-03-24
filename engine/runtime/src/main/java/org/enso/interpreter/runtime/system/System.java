@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.System.Logger;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.Builtin;
@@ -88,110 +89,119 @@ public final class System {
       @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
-    var arrArguments = coerce.execute(arguments);
-    var cmd = new String[arrArguments.length + 1];
-    cmd[0] = expectStringNode.execute(command);
-    for (int i = 1; i <= arrArguments.length; i++) {
-      cmd[i] = expectStringNode.execute(arrArguments[i - 1]);
-    }
-    TruffleProcessBuilder pb = ctx.newProcessBuilder(cmd);
-    if (ctx.getNothing() != cwdOrNothing) {
-      var path = expectStringNode.execute(cwdOrNothing);
-      var tPath = ctx.getPublicTruffleFile(path);
-      pb.directory(tPath);
-    }
+    try {
+      var arrArguments = coerce.execute(arguments);
+      var cmd = new String[arrArguments.length + 1];
+      cmd[0] = expectStringNode.execute(command);
+      for (int i = 1; i <= arrArguments.length; i++) {
+        cmd[i] = expectStringNode.execute(arrArguments[i - 1]);
+      }
+      TruffleProcessBuilder pb = ctx.newProcessBuilder(cmd);
+      if (ctx.getNothing() != cwdOrNothing) {
+        var path = expectStringNode.execute(cwdOrNothing);
+        var tPath = ctx.getPublicTruffleFile(path);
+        pb.directory(tPath);
+      }
 
-    if (envOrNothing instanceof EnsoHashMap env) {
-      var vectorOfPairs = HashMapToVectorNode.getUncached().execute(env);
-      var len = ArrayLikeLengthNode.getUncached().executeLength(vectorOfPairs);
-      for (var i = 0L; i < len; i++) {
-        try {
-          var pair = ArrayLikeAtNode.getUncached().executeAt(vectorOfPairs, i);
-          var key = ArrayLikeAtNode.getUncached().executeAt(pair, 0);
-          var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
+      if (envOrNothing instanceof EnsoHashMap env) {
+        var vectorOfPairs = HashMapToVectorNode.getUncached().execute(env);
+        var len = ArrayLikeLengthNode.getUncached().executeLength(vectorOfPairs);
+        for (var i = 0L; i < len; i++) {
+          try {
+            var pair = ArrayLikeAtNode.getUncached().executeAt(vectorOfPairs, i);
+            var key = ArrayLikeAtNode.getUncached().executeAt(pair, 0);
+            var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
 
-          var strKey = expectStringNode.execute(key);
-          var strValue = expectStringNode.execute(value);
-          pb.environment(strKey, strValue);
-        } catch (InvalidArrayIndexException ex) {
-          throw ctx.raiseAssertionPanic(expectStringNode, null, ex);
+            var strKey = expectStringNode.execute(key);
+            var strValue = expectStringNode.execute(value);
+            pb.environment(strKey, strValue);
+          } catch (InvalidArrayIndexException ex) {
+            throw ctx.raiseAssertionPanic(expectStringNode, null, ex);
+          }
         }
       }
+
+      var p = pb.start();
+      var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
+
+      var exec = Executors.newVirtualThreadPerTaskExecutor();
+      var stdin =
+          exec.submit(
+              () -> {
+                handleStdIn(p, redirectIn, ctx, in);
+              });
+
+      var stdout =
+          exec.submit(
+              () -> {
+                return handleStdOut(p, redirectOut, ctx);
+              });
+
+      var stderr =
+          exec.submit(
+              () -> {
+                return handleStdErr(p, redirectErr, ctx);
+              });
+
+      p.waitFor();
+      var exitCode = p.exitValue();
+
+      stdin.get();
+      var returnOut = Text.create(stdout.get());
+      var returnErr = Text.create(stderr.get());
+
+      var system = ctx.getTopScope().getModule("Standard.Base.System").get().getScope();
+      var type = system.getType("System_Process_Result", true);
+      var cons = type.getSingleConstructor();
+      var result =
+          AtomNewInstanceNode.getUncached().newInstance(cons, exitCode, returnOut, returnErr);
+      return result;
+    } catch (ExecutionException ex) {
+      throw ctx.raiseAssertionPanic(coerce, null, ex.getCause());
     }
-
-    var p = pb.start();
-    var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
-    var out = new ByteArrayOutputStream();
-    var err = new ByteArrayOutputStream();
-
-    var exec = Executors.newVirtualThreadPerTaskExecutor();
-    exec.execute(
-        () -> {
-          readOutputStream(p, redirectIn, ctx, in);
-        });
-
-    exec.execute(
-        () -> {
-          writeInputStream(p, redirectOut, ctx, out);
-        });
-
-    exec.execute(
-        () -> {
-          readErrorStream(p, redirectErr, ctx, err);
-        });
-
-    p.waitFor();
-    var exitCode = p.exitValue();
-    var returnOut = Text.create(out.toString());
-    var returnErr = Text.create(err.toString());
-
-    var system = ctx.getTopScope().getModule("Standard.Base.System").get().getScope();
-    var type = system.getType("System_Process_Result", true);
-    var cons = type.getSingleConstructor();
-    var result =
-        AtomNewInstanceNode.getUncached().newInstance(cons, exitCode, returnOut, returnErr);
-    return result;
   }
 
-  private static void readErrorStream(
-      Process p, boolean redirectErr, EnsoContext ctx, ByteArrayOutputStream err) {
+  private static String handleStdErr(Process p, boolean redirectErr, EnsoContext ctx) {
     try (InputStream processErr = p.getErrorStream()) {
       OutputStream stderr;
       if (redirectErr) {
         stderr = ctx.getErr();
       } else {
-        stderr = err;
+        stderr = new ByteArrayOutputStream();
       }
       int nread;
       byte[] buf = new byte[8096];
       while ((nread = processErr.read(buf)) != -1) {
         stderr.write(buf, 0, nread);
       }
+      return redirectErr ? "" : ((ByteArrayOutputStream) stderr).toString();
     } catch (IOException ex) {
       LOG.log(Logger.Level.WARNING, ex);
+      return "";
     }
   }
 
-  private static void writeInputStream(
-      Process p, boolean redirectOut, EnsoContext ctx, ByteArrayOutputStream out) {
+  private static String handleStdOut(Process p, boolean redirectOut, EnsoContext ctx) {
     try (InputStream processOut = p.getInputStream()) {
       OutputStream stdout;
       if (redirectOut) {
         stdout = ctx.getOut();
       } else {
-        stdout = out;
+        stdout = new ByteArrayOutputStream();
       }
       int nread;
       byte[] buf = new byte[8096];
       while ((nread = processOut.read(buf)) != -1) {
         stdout.write(buf, 0, nread);
       }
+      return redirectOut ? "" : ((ByteArrayOutputStream) stdout).toString();
     } catch (IOException ex) {
       LOG.log(Logger.Level.WARNING, ex);
+      return "";
     }
   }
 
-  private static void readOutputStream(
+  private static void handleStdIn(
       Process p, boolean redirectIn, EnsoContext ctx, ByteArrayInputStream in) {
     // boolean startedWritingtoOut = false;
     try (OutputStream processIn = p.getOutputStream()) {
