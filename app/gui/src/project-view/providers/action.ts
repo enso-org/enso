@@ -96,6 +96,22 @@ const displayableActions = {
     icon: 'align_center',
     description: 'Center',
   },
+  'components.spaceVertical': {
+    icon: 'space_default',
+    description: 'Default Spacing',
+  },
+  'components.spaceVerticalTight': {
+    icon: 'space_tight',
+    description: 'Tight Spacing',
+  },
+  'components.spaceVerticalZero': {
+    icon: 'space_zero',
+    description: 'Zero Spacing',
+  },
+  'components.spaceVerticalWide': {
+    icon: 'space_wide',
+    description: 'Wide Spacing',
+  },
   'components.deleteAndConnectAround': {
     icon: 'graph',
     description: 'Delete and Connect Around',

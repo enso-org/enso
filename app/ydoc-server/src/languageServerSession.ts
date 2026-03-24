@@ -4,6 +4,7 @@ import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as zlib from 'node:zlib'
+import { type YjsChannelServer } from 'ydoc-channel'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
 import { combineFileParts, splitFileContents, type EnsoFileParts } from 'ydoc-shared/ensoFile'
@@ -19,7 +20,7 @@ import type {
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
 import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
-import { ReconnectingWebSocketTransport } from 'ydoc-shared/util/net/ReconnectingWSTransport'
+import { YjsServerTransport } from 'ydoc-shared/util/net/YjsTransport'
 import {
   DistributedProject,
   IdMap,
@@ -61,13 +62,13 @@ export class LanguageServerSession {
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(ls: LanguageServer, unregister: () => void) {
+  constructor(ls: LanguageServer, indexDoc: WSSharedDoc, unregister: () => void) {
     this.clientScope = new AbortScope()
     this.docs = new Map()
     this.retainCount = 0
     this.ls = ls
     this.unregister = unregister
-    this.indexDoc = new WSSharedDoc()
+    this.indexDoc = indexDoc
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
     this.projectRootId = null
@@ -88,11 +89,14 @@ export class LanguageServerSession {
   static sessions: Map<string, LanguageServerSession> = new Map<string, LanguageServerSession>()
 
   /** Get a {@link LanguageServerSession} by its URL. */
-  static get(url: string): LanguageServerSession {
+  static get(url: string, callbacks: YjsChannelServer): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
-      const ws = new ReconnectingWebSocketTransport(url)
-      const ls = new LanguageServer(crypto.randomUUID(), ws)
-      return new LanguageServerSession(ls, () => LanguageServerSession.sessions.delete(url))
+      const indexDoc = new WSSharedDoc()
+      const transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
+      const ls = new LanguageServer(crypto.randomUUID(), transport)
+      return new LanguageServerSession(ls, indexDoc, () =>
+        LanguageServerSession.sessions.delete(url),
+      )
     })
     session.retain()
     return session

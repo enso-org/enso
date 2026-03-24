@@ -14,7 +14,7 @@ import { nextEvent } from '@/util/data/observable'
 import type { Opt } from '@/util/data/opt'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
-import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
+import { createDataSocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
@@ -74,15 +74,17 @@ export function createProjectStore(
 
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
-
+  const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
+  const guiRpcId = `gui-rpc-${crypto.randomUUID()}`
   const clientId = crypto.randomUUID() as Uuid
-  const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
+  const lsRpcConnection = createLsRpcConnection(clientId, doc, guiRpcId, abort)
   const projectRootId = lsRpcConnection.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
   onScopeDispose(() => lsRpcConnection.release())
 
-  const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
+  const guiDataId = `gui-data-${crypto.randomUUID()}`
+  const dataConnection = initializeDataConnection(clientId, doc, guiDataId, abort)
   const rpcUrl = new URL(props.engine.rpcUrl)
   const isOnLocalBackend =
     rpcUrl.protocol === 'mock:' ||
@@ -90,6 +92,21 @@ export function createProjectStore(
     rpcUrl.hostname === '127.0.0.1' ||
     rpcUrl.hostname === '[::1]' ||
     rpcUrl.hostname === '0:0:0:0:0:0:0:1'
+
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
+  watchEffect((onCleanup) => {
+    yDocsProvider = attachProvider(
+      ydocUrl.href,
+      'index',
+      { ls: guiRpcId, data: guiDataId },
+      doc,
+      awareness.internal,
+    )
+    onCleanup(() => {
+      yDocsProvider?.dispose()
+      yDocsProvider = undefined
+    })
+  })
 
   const moduleProjectPath = computed((): Result<ProjectPath> | undefined => {
     const filePath = observedFileName.value
@@ -99,22 +116,6 @@ export function createProjectStore(
     const qn = tryQualifiedName(withDotSeparators)
     if (!qn.ok) return qn
     return Ok(ProjectPath.create(undefined, qn.value))
-  })
-
-  const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
-  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
-  watchEffect((onCleanup) => {
-    yDocsProvider = attachProvider(
-      ydocUrl.href,
-      'index',
-      { ls: props.engine.rpcUrl },
-      doc,
-      awareness.internal,
-    )
-    onCleanup(() => {
-      yDocsProvider?.dispose()
-      yDocsProvider = undefined
-    })
   })
 
   const projectModel = new DistributedProject(doc)
@@ -443,8 +444,13 @@ function resolveYDocUrl(rpcUrl: string, url: string): URL {
   return resolved
 }
 
-function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
-  const transport = createRpcTransport(url)
+function createLsRpcConnection(
+  clientId: Uuid,
+  doc: Y.Doc,
+  url: string,
+  abort: AbortScope,
+): LanguageServer {
+  const transport = createRpcTransport(doc, url)
   const connection = new LanguageServer(clientId, transport)
   abort.onAbort(() => {
     connection.stopReconnecting()
@@ -453,8 +459,8 @@ function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): 
   return connection
 }
 
-function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
-  const client = createDataWebsocket(url, 'arraybuffer')
+function initializeDataConnection(clientId: Uuid, doc: Y.Doc, url: string, abort: AbortScope) {
+  const client = createDataSocket(doc, url)
   const connection = new DataServer(clientId, client, abort)
   onScopeDispose(() => connection.dispose())
   return connection

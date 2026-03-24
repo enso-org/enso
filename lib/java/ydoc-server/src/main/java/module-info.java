@@ -1,5 +1,6 @@
 module org.enso.ydoc.server {
   requires io.helidon.common;
+  requires org.enso.ydoc.api;
   requires org.enso.ydoc.polyfill;
   requires org.graalvm.polyglot;
   requires org.slf4j;

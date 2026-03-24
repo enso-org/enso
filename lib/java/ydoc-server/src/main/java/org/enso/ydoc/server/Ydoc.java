@@ -1,41 +1,49 @@
 package org.enso.ydoc.server;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 
 public final class Ydoc implements AutoCloseable {
+  private static final System.Logger LOG = System.getLogger(Ydoc.class.getName());
 
-  private static final String YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor thread";
   private static final String YDOC_PATH = "ydoc.cjs";
 
-  private final ScheduledExecutorService executor;
+  private final YdocScheduledExecutorService executor;
   private final ParserPolyfill parser;
   private final Context.Builder contextBuilder;
   private final String hostname;
   private final int port;
+  private final YjsChannel.Server jsonChannelCallbacks;
+  private final YjsChannel.Server binaryChannelCallbacks;
 
   private Context context;
+  private ScheduledExecutorService statsLoggerExecutor;
 
   private Ydoc(
-      ScheduledExecutorService executor,
+      YdocScheduledExecutorService executor,
       ParserPolyfill parser,
       Context.Builder contextBuilder,
       String hostname,
-      int port) {
+      int port,
+      YjsChannel.Server jsonChannelCallbacks,
+      YjsChannel.Server binaryChannelCallbacks) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
     this.hostname = hostname;
     this.port = port;
+    this.jsonChannelCallbacks = jsonChannelCallbacks;
+    this.binaryChannelCallbacks = binaryChannelCallbacks;
   }
 
   public static final class Builder {
@@ -43,21 +51,97 @@ public final class Ydoc implements AutoCloseable {
     private static final String DEFAULT_HOSTNAME = "localhost";
     private static final int DEFAULT_PORT = 5976;
 
-    private ScheduledExecutorService executor;
+    private YdocScheduledExecutorService executor;
     private ParserPolyfill parser;
     private Context.Builder contextBuilder;
+    private HostAccess hostAccess;
     private String hostname;
     private int port = -1;
+    private YjsChannel.Server jsonChannelCallbacks;
+    private YjsChannel.Server binaryChannelCallbacks;
 
     private Builder() {}
 
-    public Builder executor(ScheduledExecutorService executor) {
+    public static final class DelegateConsumer<T> implements Consumer<T> {
+      private final Consumer<T> delegate;
+
+      DelegateConsumer(Consumer<T> delegate) {
+        this.delegate = delegate;
+      }
+
+      @Override
+      public void accept(T t) {
+        LOG.log(System.Logger.Level.TRACE, "DelegateConsumer.accept[{0}]: {1}", t.getClass(), t);
+        delegate.accept(t);
+        LOG.log(System.Logger.Level.TRACE, "DelegateConsumer.accept finished");
+      }
+    }
+
+    public static final class DelegateYjsChannel implements YjsChannel {
+      private final YjsChannel delegate;
+
+      DelegateYjsChannel(YjsChannel delegate) {
+        this.delegate = delegate;
+      }
+
+      @Override
+      public void send(Object o) {
+        LOG.log(System.Logger.Level.TRACE, "DelegateYjsChannel.send[{0}]: {1}", o.getClass(), o);
+        delegate.send(o);
+        LOG.log(System.Logger.Level.TRACE, "DelegateYjsChannel.send finished");
+      }
+
+      @Override
+      public void subscribe(Consumer<Object> cnsmr) {
+        var wrap = new DelegateConsumer<Object>(cnsmr);
+        LOG.log(
+            System.Logger.Level.TRACE,
+            "DelegateYjsChannel.subscribe[{0}]: {1}",
+            cnsmr.getClass(),
+            cnsmr);
+        delegate.subscribe(wrap);
+        LOG.log(System.Logger.Level.TRACE, "DelegateYjsChannel.subscribe finished");
+      }
+
+      public static final class Server implements YjsChannel.Server {
+        private final String name;
+        private final YjsChannel.Server delegate;
+
+        Server(String name, YjsChannel.Server delegate) {
+          this.name = name;
+          this.delegate = delegate;
+        }
+
+        @HostAccess.Export
+        @Override
+        public void onConnect(YjsChannel channel) {
+          LOG.log(
+              System.Logger.Level.TRACE,
+              "Enter onConnect[{0}] with {1} for {2}",
+              name,
+              channel,
+              delegate);
+          if (delegate != null) {
+            var wrap = new DelegateYjsChannel(channel);
+            delegate.onConnect(wrap);
+          }
+          LOG.log(System.Logger.Level.TRACE, "Exit onConnect[{0}] with {1}", name, channel);
+        }
+      }
+    }
+
+    public Builder executor(YdocScheduledExecutorService executor) {
       this.executor = executor;
       return this;
     }
 
     public Builder parser(ParserPolyfill parser) {
       this.parser = parser;
+      return this;
+    }
+
+    public Builder hostAccess(HostAccess hostAccess) {
+      this.hostAccess = hostAccess;
       return this;
     }
 
@@ -76,23 +160,31 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
+    public Builder jsonChannelCallbacks(YjsChannel.Server callbacks) {
+      this.jsonChannelCallbacks = callbacks;
+      return this;
+    }
+
+    public Builder binaryChannelCallbacks(YjsChannel.Server callbacks) {
+      this.binaryChannelCallbacks = callbacks;
+      return this;
+    }
+
     public Ydoc build() {
       if (executor == null) {
-        executor =
-            Executors.newSingleThreadScheduledExecutor(
-                r -> {
-                  var t = new Thread(r);
-                  t.setName(YDOC_EXECUTOR_THREAD_NAME);
-                  return t;
-                });
+        executor = new YdocScheduledExecutorService();
       }
 
       if (parser == null) {
         parser = new ParserPolyfill();
       }
 
+      if (hostAccess == null) {
+        hostAccess = WebEnvironment.defaultHostAccess.build();
+      }
+
       if (contextBuilder == null) {
-        contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
+        contextBuilder = WebEnvironment.createContext(hostAccess).allowIO(IOAccess.ALL);
       }
 
       if (hostname == null) {
@@ -103,7 +195,21 @@ public final class Ydoc implements AutoCloseable {
         port = DEFAULT_PORT;
       }
 
-      return new Ydoc(executor, parser, contextBuilder, hostname, port);
+      var isTracing = LOG.isLoggable(System.Logger.Level.TRACE);
+      LOG.log(System.Logger.Level.DEBUG, "Created Ydoc [{0}, {1}]", hostname, port);
+
+      return new Ydoc(
+          executor,
+          parser,
+          contextBuilder,
+          hostname,
+          port,
+          isTracing
+              ? new DelegateYjsChannel.Server("JSON", jsonChannelCallbacks)
+              : jsonChannelCallbacks,
+          isTracing
+              ? new DelegateYjsChannel.Server("binary", binaryChannelCallbacks)
+              : binaryChannelCallbacks);
     }
   }
 
@@ -111,11 +217,15 @@ public final class Ydoc implements AutoCloseable {
     return new Builder();
   }
 
-  public Context.Builder getContextBuilder() {
-    return contextBuilder;
+  private YjsChannel.Server getJsonChannelCallbacksSynchronized() {
+    return new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
   }
 
-  public void start() throws ExecutionException, InterruptedException, IOException {
+  private YjsChannel.Server getBinaryChannelCallbacksSynchronized() {
+    return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
+  }
+
+  public void start() throws IOException {
     var ydoc = Main.class.getResource(YDOC_PATH);
     if (ydoc == null) {
       throw new AssertionError(
@@ -125,30 +235,92 @@ public final class Ydoc implements AutoCloseable {
     }
     var ydocJs = Source.newBuilder("js", ydoc).build();
 
-    context =
-        CompletableFuture.supplyAsync(
-                () -> {
-                  var ctx = contextBuilder.build();
-                  WebEnvironment.initialize(ctx, executor);
-                  parser.initialize(ctx);
+    // Submit initialization task
+    var initFuture =
+        executor.submit(
+            () -> {
+              var ctx = contextBuilder.build();
+              WebEnvironment.initialize(ctx, executor.createHighPriorityView());
+              parser.initialize(ctx);
 
-                  var bindings = ctx.getBindings("js");
-                  bindings.putMember("YDOC_HOST", hostname);
-                  bindings.putMember("YDOC_PORT", port);
-                  bindings.putMember("YDOC_LS_DEBUG", "false");
+              var bindings = ctx.getBindings("js");
+              bindings.putMember("YDOC_HOST", hostname);
+              bindings.putMember("YDOC_PORT", port);
+              bindings.putMember(
+                  "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
+              bindings.putMember(
+                  "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
+              var isDebug = LOG.isLoggable(System.Logger.Level.DEBUG);
+              bindings.putMember("YDOC_LS_DEBUG", isDebug);
 
-                  ctx.eval(ydocJs);
+              ctx.eval(ydocJs);
 
-                  return ctx;
-                },
-                executor)
-            .get();
+              return ctx;
+            });
+
+    runEventLoopUntil(initFuture::isDone);
+
+    try {
+      context = initFuture.get();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to initialize Ydoc", e);
+    }
+
+    if (LOG.isLoggable(System.Logger.Level.TRACE)) {
+      statsLoggerExecutor =
+          Executors.newSingleThreadScheduledExecutor(
+              r -> {
+                var t = new Thread(r, "Ydoc stats logger");
+                t.setDaemon(true);
+                return t;
+              });
+      statsLoggerExecutor.scheduleAtFixedRate(
+          () -> {
+            var stats = executor.getDebugStats();
+            if (!stats.isEmpty()) {
+              LOG.log(System.Logger.Level.TRACE, "{0}", stats);
+            }
+          },
+          30,
+          30,
+          TimeUnit.SECONDS);
+    }
+
+    runEventLoopBlocking();
+  }
+
+  /**
+   * Runs the event loop until the given condition returns true.
+   *
+   * @param condition the condition to check; loop exits when it returns true
+   */
+  private void runEventLoopUntil(java.util.function.BooleanSupplier condition) {
+    while (!condition.getAsBoolean() && !executor.isShutdown()) {
+      executor.processPendingTasks();
+      try {
+        long delay = executor.getNextTaskDelayNanos();
+        executor.waitForTasks(delay);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
+  }
+
+  /**
+   * Runs the event loop continuously until {@link #close()} is called. This method blocks and
+   * should typically be run in a dedicated thread.
+   */
+  public void runEventLoopBlocking() {
+    runEventLoopUntil(() -> false);
   }
 
   @Override
   public void close() throws Exception {
-    executor.shutdownNow();
-    executor.awaitTermination(3, TimeUnit.SECONDS);
+    executor.shutdown();
+    if (statsLoggerExecutor != null) {
+      statsLoggerExecutor.shutdownNow();
+    }
     if (context != null) {
       context.close(true);
     }

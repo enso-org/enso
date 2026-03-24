@@ -1,0 +1,20 @@
+[
+  {
+    "name": "org.enso.jsonrpc.YdocJsonRpcServer$OnMessageHandler",
+    "methods": [
+      {
+        "name": "accept",
+        "parameterTypes": ["java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "org.enso.jsonrpc.YdocJsonRpcServer$ServerCallbacks",
+    "methods": [
+      {
+        "name": "onConnect",
+        "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+      }
+    ]
+  }
+]

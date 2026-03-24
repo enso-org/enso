@@ -47,6 +47,8 @@ interface SubdocsEvent {
 export type ProviderParams = {
   /** URL for the project's language server RPC connection. */
   ls: string
+  /** URL for the project's data connection. */
+  data: string
 }
 
 /** TODO: Add docs */

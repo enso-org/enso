@@ -134,6 +134,22 @@
       ]
     },
     {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessibleType": true,
+      "methods": [
+        {
+          "name": "allocateDirect",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "com.sun.crypto.provider.AESCipher$General",
       "methods": [
         {
@@ -540,6 +556,15 @@
       ]
     },
     {
+      "type": "org.enso.languageserver.http.server.BinaryYdocServer$BinaryServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]      
+    },
+    {
       "type": "org.enso.ydoc.polyfill.web.URL",
       "fields": [
         {
@@ -548,7 +573,13 @@
         {
           "name": "searchParams"
         }
-      ]
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]      
     },
     {
       "type": "org.enso.ydoc.polyfill.web.URL$URLSearchParams",
@@ -564,6 +595,15 @@
     {
       "type": "org.enso.ydoc.server.Main",
       "methods": [
+        {
+          "name": "launch",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "org.enso.ydoc.api.YjsChannel$Server",
+            "org.enso.ydoc.api.YjsChannel$Server"
+          ]
+        },
         {
           "name": "main",
           "parameterTypes": [
@@ -842,6 +882,27 @@
           ]
         }
       ]
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannel$Server"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "java.util.function.Consumer"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannel"
+        ]
+      }
     }
   ]
 }

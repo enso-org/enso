@@ -9,11 +9,7 @@
  */
 
 import debug from 'debug'
-import type { Server } from 'http'
-import type { Http2SecureServer } from 'http2'
-import type WS from 'modern-isomorphic-ws'
-import type { IncomingMessage } from 'node:http'
-import { docName, type ConnectionData } from './auth'
+import { docName } from './auth'
 import { deserializeIdMap } from './serialization'
 import { setupGatewayClient, WSSharedDoc, YjsConnection, type YjsSocket } from './ydoc'
 
@@ -28,69 +24,5 @@ export function configureAllDebugLogs(
     const instance = debug(debugModule)
     if (forceEnable) instance.enabled = true
     if (customLogger) instance.log = customLogger
-  }
-}
-
-/** Create a WebSocket server to host the YDoc coordinating server. */
-export async function createGatewayServer(
-  httpServer: Server | Http2SecureServer,
-  overrideLanguageServerUrl?: string,
-): Promise<void> {
-  const { WebSocketServer } = (await import('modern-isomorphic-ws')).default
-  const { parse } = await import('node:url')
-
-  const wss = new WebSocketServer({ noServer: true })
-  wss.on('connection', (ws: WS, _request: IncomingMessage, data: ConnectionData) => {
-    ws.on('error', onWebSocketError)
-    try {
-      const wsArrayBuffer = Object.assign(ws, { binaryType: 'arraybuffer' } as const)
-      setupGatewayClient(wsArrayBuffer, data.lsUrl, data.doc)
-    } catch (e) {
-      if (e instanceof Error) {
-        onWebSocketError(e)
-        ws.close(1003, e.message)
-      } else throw e
-    }
-  })
-
-  httpServer.on('upgrade', (request, socket, head) => {
-    socket.on('error', onHttpSocketError)
-    authenticate(request, function next(err, data) {
-      if (err != null || data == null) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
-        socket.destroy()
-        return
-      }
-      socket.removeListener('error', onHttpSocketError)
-      wss.handleUpgrade(request, socket, head, function done(ws: WS) {
-        wss.emit('connection', ws, request, data)
-      })
-    })
-  })
-
-  function onWebSocketError(err: Error) {
-    console.log('WebSocket error:', err)
-  }
-
-  function onHttpSocketError(err: Error) {
-    console.log('HTTP socket error:', err)
-  }
-
-  function authenticate(
-    request: IncomingMessage,
-    callback: (err: Error | null, authData: ConnectionData | null) => void,
-  ) {
-    // FIXME: Stub. We don't implement authentication for now. Need to be implemented in combination
-    // with the language server.
-    const user = 'mock-user'
-
-    if (request.url == null) return callback(null, null)
-    const { pathname, query } = parse(request.url, true)
-    if (pathname == null) return callback(null, null)
-    const doc = docName(pathname)
-    const lsUrl =
-      overrideLanguageServerUrl ?? (typeof query.ls === 'string' ? (query.ls as string) : null)
-    const data = doc != null ? { lsUrl, doc, user } : null
-    callback(null, data)
   }
 }
