@@ -93,6 +93,8 @@ function projectIcon(project: Project): Icon | undefined {
 .TabBar {
   overflow: auto hidden;
   padding-left: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(180 180 180) var(--color-dashboard-background);
 }
 .tabs {
   display: flex;

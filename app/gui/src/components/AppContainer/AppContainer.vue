@@ -148,18 +148,13 @@ onUnmounted(() => {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-.LeftPanel {
-  flex-shrink: 1;
-
-  &.noMiddlePanel {
-    flex-grow: 1;
-  }
+.LeftPanel.noMiddlePanel {
+  flex-grow: 1;
 }
 
 .tabPanel {
   height: 100%;
   flex-grow: 1;
-  flex-shrink: 1000000;
   min-width: 0;
   position: relative;
   display: flex;
@@ -167,7 +162,6 @@ onUnmounted(() => {
 
   &.noMiddlePanel {
     flex-grow: 0;
-    flex-shrink: 0;
   }
 }
 
@@ -201,8 +195,6 @@ onUnmounted(() => {
 .MiddlePanel {
   min-width: 0;
   flex-grow: 1;
-  /* Middle Panel should first give up place when user is shrinking the window. */
-  flex-shrink: 1000000;
 }
 
 .RightPanel {

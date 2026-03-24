@@ -94,18 +94,6 @@ export function UserBar(props: UserBarProps) {
             <Text className="absolute inset-0 mx-2 cursor-help text-center">{trialText}</Text>
           </VisualTooltip>
         )}
-        {/* <div className={twJoin('flex', isCurrentlyTrialing ? 'md:hidden' : 'sm:hidden')}>
-          <Popover.Trigger>
-            <Button variant="icon" icon="help" aria-label={getText('help')} />
-            <Popover size="auto">
-              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
-            </Popover>
-          </Popover.Trigger>
-        </div>
-        <UserBarHelpSection
-          items={topbarLinks.items}
-          className={twJoin('hidden', isCurrentlyTrialing ? 'md:flex' : 'sm:flex')}
-        /> */}
         {shouldShowInviteButton && (
           <Dialog.Trigger>
             <Button size="medium" variant="outline">
