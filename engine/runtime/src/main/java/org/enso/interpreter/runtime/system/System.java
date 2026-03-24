@@ -10,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.util.concurrent.Executors;
 import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
@@ -23,12 +25,15 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 
-public class System {
+public final class System {
+  private static final Logger LOG = java.lang.System.getLogger(System.class.getName());
 
   private static final Text LINUX = Text.create("linux");
   private static final Text MACOS = Text.create("macos");
   private static final Text WINDOWS = Text.create("windows");
   private static final Text UNKNOWN = Text.create("unknown");
+
+  private System() {}
 
   @Builtin.Method(description = "Get the type of operating system.", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
@@ -119,57 +124,21 @@ public class System {
     var out = new ByteArrayOutputStream();
     var err = new ByteArrayOutputStream();
 
-    boolean startedWritingtoOut = false;
-    try (OutputStream processIn = p.getOutputStream()) {
-      InputStream stdin;
-      if (redirectIn) {
-        stdin = ctx.getIn();
-      } else {
-        stdin = in;
-      }
-      int nread;
-      startedWritingtoOut = true;
-      byte[] buf = new byte[8096];
-      while (stdin.available() > 0 && (nread = stdin.read(buf)) != -1) {
-        processIn.write(buf, 0, nread);
-      }
-    } catch (IOException e) {
-      // Getting the output stream of a finished process results in an IOException.
-      // We can ignore it at this point.
-      // Unless this exception is from writing to buffer/reading from stdin.
-      if (startedWritingtoOut) throw e;
-    }
+    var exec = Executors.newVirtualThreadPerTaskExecutor();
+    exec.execute(
+        () -> {
+          readOutputStream(p, redirectIn, ctx, in);
+        });
 
-    // First read from stdout and stderr from the subprocess to prevent a deadlock.
-    // In other words, call `p.waitFor()` after reading from the streams.
-    // For more info, see https://stackoverflow.com/a/882795/4816269
-    try (InputStream processOut = p.getInputStream()) {
-      OutputStream stdout;
-      if (redirectOut) {
-        stdout = ctx.getOut();
-      } else {
-        stdout = out;
-      }
-      int nread;
-      byte[] buf = new byte[8096];
-      while ((nread = processOut.read(buf)) != -1) {
-        stdout.write(buf, 0, nread);
-      }
-    }
+    exec.execute(
+        () -> {
+          writeInputStream(p, redirectOut, ctx, out);
+        });
 
-    try (InputStream processErr = p.getErrorStream()) {
-      OutputStream stderr;
-      if (redirectErr) {
-        stderr = ctx.getErr();
-      } else {
-        stderr = err;
-      }
-      int nread;
-      byte[] buf = new byte[8096];
-      while ((nread = processErr.read(buf)) != -1) {
-        stderr.write(buf, 0, nread);
-      }
-    }
+    exec.execute(
+        () -> {
+          readErrorStream(p, redirectErr, ctx, err);
+        });
 
     p.waitFor();
     var exitCode = p.exitValue();
@@ -182,5 +151,68 @@ public class System {
     var result =
         AtomNewInstanceNode.getUncached().newInstance(cons, exitCode, returnOut, returnErr);
     return result;
+  }
+
+  private static void readErrorStream(
+      Process p, boolean redirectErr, EnsoContext ctx, ByteArrayOutputStream err) {
+    try (InputStream processErr = p.getErrorStream()) {
+      OutputStream stderr;
+      if (redirectErr) {
+        stderr = ctx.getErr();
+      } else {
+        stderr = err;
+      }
+      int nread;
+      byte[] buf = new byte[8096];
+      while ((nread = processErr.read(buf)) != -1) {
+        stderr.write(buf, 0, nread);
+      }
+    } catch (IOException ex) {
+      LOG.log(Logger.Level.WARNING, ex);
+    }
+  }
+
+  private static void writeInputStream(
+      Process p, boolean redirectOut, EnsoContext ctx, ByteArrayOutputStream out) {
+    try (InputStream processOut = p.getInputStream()) {
+      OutputStream stdout;
+      if (redirectOut) {
+        stdout = ctx.getOut();
+      } else {
+        stdout = out;
+      }
+      int nread;
+      byte[] buf = new byte[8096];
+      while ((nread = processOut.read(buf)) != -1) {
+        stdout.write(buf, 0, nread);
+      }
+    } catch (IOException ex) {
+      LOG.log(Logger.Level.WARNING, ex);
+    }
+  }
+
+  private static void readOutputStream(
+      Process p, boolean redirectIn, EnsoContext ctx, ByteArrayInputStream in) {
+    // boolean startedWritingtoOut = false;
+    try (OutputStream processIn = p.getOutputStream()) {
+      InputStream stdin;
+      if (redirectIn) {
+        stdin = ctx.getIn();
+      } else {
+        stdin = in;
+      }
+      int nread;
+      // startedWritingtoOut = true;
+      byte[] buf = new byte[8096];
+      while (stdin.available() > 0 && (nread = stdin.read(buf)) != -1) {
+        processIn.write(buf, 0, nread);
+      }
+    } catch (IOException ex) {
+      LOG.log(Logger.Level.WARNING, ex);
+      // Getting the output stream of a finished process results in an IOException.
+      // We can ignore it at this point.
+      // Unless this exception is from writing to buffer/reading from stdin.
+      // if (startedWritingtoOut) throw e;
+    }
   }
 }
