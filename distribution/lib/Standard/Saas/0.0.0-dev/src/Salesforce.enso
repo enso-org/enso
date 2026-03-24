@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+import Standard.Base.Errors.Unimplemented.Unimplemented
 from Standard.Table import Table
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
@@ -44,9 +45,16 @@ type Salesforce
         result = raw_result.decode_as_json
         result
 
-    report self report_id =
+    get_report self name =
+        report_id = _get_report_id self name
         url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
         raw_result = _salesforce_get self url . decode_as_json
+
+        if raw_result.get 'groupingsDown' . get 'groupings' . length > 0 then
+            Unimplemented.throw "Row grouped reports are not supported yet."
+        if raw_result.get 'groupingsAcross' . get 'groupings' . length > 0 then
+            Unimplemented.throw "Column grouped reports are not supported yet."
+
         raw_columns = raw_result.get 'reportExtendedMetadata' . get 'detailColumnInfo'
         parsed_columns_vector = raw_columns.to_vector
         column_names = parsed_columns_vector.map c->((c.at 1).get 'label')
@@ -82,3 +90,15 @@ type Salesforce
 private _salesforce_get salesforce url =
     header = Header.authorization_bearer salesforce.salesforce_service.getAccessToken.token
     HTTP.fetch url headers=[header]
+
+private _get_raw_reports salesforce =
+    url = salesforce.get_instance_url + "/services/data/v60.0/analytics/reports"
+    raw_result = _salesforce_get salesforce url
+    result = raw_result.decode_as_json
+    result
+
+private _get_report_id salesforce name =
+    raw_reports = _get_raw_reports salesforce
+    report_metadata = raw_reports.find r->((r.get 'name')==name)
+    report_metadata.get 'id'
+
