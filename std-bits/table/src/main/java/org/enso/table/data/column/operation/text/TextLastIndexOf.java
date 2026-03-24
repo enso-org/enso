@@ -70,9 +70,6 @@ public class TextLastIndexOf extends BinaryOperationBase<String, Long> {
   }
 
   private static Long calculateIndex(String value, String needle) {
-    if (needle.isEmpty()) {
-      return null;
-    }
     int codeunitIndex = value.lastIndexOf(needle);
     if (codeunitIndex == -1) {
       return -1L;

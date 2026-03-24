@@ -701,13 +701,13 @@ contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
    private: true
    ---
 index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
-    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN NULL ELSE instr(" ++ str ++ ", " ++ substr ++ ") - 1 END"
+    SQL_Builder.code "instr(" ++ str ++ ", " ++ substr ++ ") - 1"
 
 ## ---
    private: true
    ---
 last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
-    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN NULL ELSE (WITH RECURSIVE matches(pos) AS (SELECT instr(" ++ str ++ ", " ++ substr ++ ") UNION ALL SELECT pos + instr(substr(" ++ str ++ ", pos + 1), " ++ substr ++ ") FROM matches WHERE pos > 0 AND instr(substr(" ++ str ++ ", pos + 1), " ++ substr ++ ") > 0) SELECT max(pos) - 1 FROM matches) END"
+    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN length(" ++ str ++ ") ELSE (WITH RECURSIVE matches(pos) AS (SELECT instr(" ++ str ++ ", " ++ substr ++ ") UNION ALL SELECT pos + instr(substr(" ++ str ++ ", pos + 1), " ++ substr ++ ") FROM matches WHERE pos > 0 AND instr(substr(" ++ str ++ ", pos + 1), " ++ substr ++ ") > 0) SELECT max(pos) - 1 FROM matches) END"
 
 ## ---
    private: true

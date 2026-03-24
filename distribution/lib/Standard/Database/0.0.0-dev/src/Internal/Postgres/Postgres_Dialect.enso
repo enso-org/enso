@@ -684,13 +684,13 @@ contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
    private: true
    ---
 index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
-    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN NULL ELSE position(" ++ substr ++ " in " ++ str ++ ") - 1 END"
+    SQL_Builder.code "position(" ++ substr ++ " in " ++ str ++ ") - 1"
 
 ## ---
    private: true
    ---
 last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
-    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN NULL ELSE CASE WHEN position(" ++ substr ++ " in " ++ str ++ ") = 0 THEN -1 ELSE char_length(" ++ str ++ ") - position(reverse(" ++ substr ++ ") in reverse(" ++ str ++ ")) - char_length(" ++ substr ++ ") + 1 END END"
+    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN char_length(" ++ str ++ ") ELSE CASE WHEN position(" ++ substr ++ " in " ++ str ++ ") = 0 THEN -1 ELSE char_length(" ++ str ++ ") - position(reverse(" ++ substr ++ ") in reverse(" ++ str ++ ")) - char_length(" ++ substr ++ ") + 1 END END"
 
 ## ---
    private: true

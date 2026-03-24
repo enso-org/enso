@@ -691,13 +691,13 @@ make_contains_expr expr substring = contains.second [expr, substring]
    private: true
    ---
 index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
-    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN NULL ELSE CHARINDEX(" ++ substr ++ ", " ++ str ++ ") - 1 END"
+    SQL_Builder.code "CHARINDEX(" ++ substr ++ ", " ++ str ++ ") - 1"
 
 ## ---
    private: true
    ---
 last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
-    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN NULL ELSE IFF(CHARINDEX(" ++ substr ++ ", " ++ str ++ ") = 0, -1, LENGTH(" ++ str ++ ") - CHARINDEX(REVERSE(" ++ substr ++ "), REVERSE(" ++ str ++ ")) - LENGTH(" ++ substr ++ ") + 1) END"
+    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN LENGTH(" ++ str ++ ") ELSE IFF(CHARINDEX(" ++ substr ++ ", " ++ str ++ ") = 0, -1, LENGTH(" ++ str ++ ") - CHARINDEX(REVERSE(" ++ substr ++ "), REVERSE(" ++ str ++ ")) - LENGTH(" ++ substr ++ ") + 1) END"
 
 ## ---
    private: true

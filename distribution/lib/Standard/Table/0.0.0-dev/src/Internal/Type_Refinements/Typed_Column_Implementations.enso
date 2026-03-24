@@ -208,16 +208,14 @@ type In_Memory_Text_Column_Implementation
         Value_Type_Checks.is_text column
         Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "index_of" [column, other]
-        fallback a b =
-            if b == "" then Nothing else a.index_of b 0 case_sensitivity
-        apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE fallback new_name Value_Type.Integer
+        apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
 
     last_index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         Value_Type_Checks.is_text column
         Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "last_index_of" [column, other]
         fallback a b =
-            if b == "" then Nothing else a.last_index_of b case_sensitivity=case_sensitivity
+            if b == "" then a.length else a.last_index_of b case_sensitivity=case_sensitivity
         apply_case_sensitive_text_operation column other case_sensitivity TextLastIndexOf.INSTANCE fallback new_name Value_Type.Integer
 
     parse_json (column : Column & In_Memory_Column) (on_problems:Problem_Behavior) =

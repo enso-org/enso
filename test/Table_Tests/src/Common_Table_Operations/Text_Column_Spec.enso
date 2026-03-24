@@ -209,7 +209,7 @@ add_text_columns_specs suite_builder setup =
                 False -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
                 True  -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
 
-        group_builder.specify "index_of should return Nothing for empty needle and Nothing haystack, and -1 when not found" <|
+        group_builder.specify "index_of should return primitive results for empty needle, Nothing for Nothing haystack, and -1 when not found" <|
             haystacks = build_sorted_table [["haystacks", ["abc", "", Nothing, "café"]]] . at 0
             empty_needle = haystacks.const ""
             missing = haystacks.index_of "z"
@@ -217,8 +217,8 @@ add_text_columns_specs suite_builder setup =
             empty_column = haystacks.index_of empty_needle
 
             missing . to_vector . should_equal [-1, -1, Nothing, -1]
-            empty_scalar . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-            empty_column . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            empty_scalar . to_vector . should_equal [0, 0, Nothing, 0]
+            empty_column . to_vector . should_equal [0, 0, Nothing, 0]
 
         group_builder.specify "index_of should handle case sensitivity for In-Memory only" <|
             column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
@@ -275,7 +275,7 @@ add_text_columns_specs suite_builder setup =
 
             resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
 
-        group_builder.specify "last_index_of should return Nothing for empty needle and Nothing haystack, and -1 when not found" <|
+        group_builder.specify "last_index_of should return primitive results for empty needle, Nothing for Nothing haystack, and -1 when not found" <|
             haystacks = build_sorted_table [["haystacks", ["abc", "", Nothing, "café"]]] . at 0
             empty_needle = haystacks.const ""
             missing = haystacks.last_index_of "z"
@@ -283,8 +283,8 @@ add_text_columns_specs suite_builder setup =
             empty_column = haystacks.last_index_of empty_needle
 
             missing . to_vector . should_equal [-1, -1, Nothing, -1]
-            empty_scalar . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-            empty_column . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            empty_scalar . to_vector . should_equal [3, 0, Nothing, 4]
+            empty_column . to_vector . should_equal [3, 0, Nothing, 4]
 
         group_builder.specify "last_index_of should handle case sensitivity for In-Memory only" <|
             column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
