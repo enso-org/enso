@@ -123,8 +123,8 @@ onUnmounted(() => {
             <MiddlePanel v-if="anyTabs" />
             <RightPanel />
           </div>
-          <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
         </div>
+        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
       </PopoverRootProvider>
     </div>
   </ContainerProviderForReact>
@@ -195,6 +195,7 @@ onUnmounted(() => {
   flex-direction: row;
   flex-grow: 1;
   min-width: 0;
+  min-height: 0;
 }
 
 .MiddlePanel {
