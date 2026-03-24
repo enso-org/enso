@@ -26,8 +26,10 @@ test('Align Left button aligns multiple nodes to leftmost position', async ({
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align left button
-  const alignLeftButton = selectionMenu.getByLabel('Align Selected Components Left')
+  // Open alignment dropdown and click align left button
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await alignMenu.click()
+  const alignLeftButton = page.getByRole('button', { name: 'Align Left', exact: true })
   await expect(alignLeftButton).toBeVisible()
   await alignLeftButton.click()
 
@@ -70,8 +72,10 @@ test('Align Right button aligns multiple nodes to rightmost position', async ({
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align right button
-  const alignRightButton = selectionMenu.getByLabel('Align Selected Components Right')
+  // Open alignment dropdown and click align right button
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await alignMenu.click()
+  const alignRightButton = page.getByRole('button', { name: 'Align Right', exact: true })
   await expect(alignRightButton).toBeVisible()
   await alignRightButton.click()
 
@@ -116,8 +120,10 @@ test('Align Top button aligns multiple nodes to topmost position', async ({ edit
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align top button
-  const alignTopButton = selectionMenu.getByLabel('Align Selected Components Top')
+  // Open alignment dropdown and click align top button
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await alignMenu.click()
+  const alignTopButton = page.getByRole('button', { name: 'Align Top', exact: true })
   await expect(alignTopButton).toBeVisible()
   await alignTopButton.click()
 
@@ -162,8 +168,10 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align bottom button
-  const alignBottomButton = selectionMenu.getByLabel('Align Selected Components Bottom')
+  // Open alignment dropdown and click align bottom button
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await alignMenu.click()
+  const alignBottomButton = page.getByRole('button', { name: 'Align Bottom', exact: true })
   await expect(alignBottomButton).toBeVisible()
   await alignBottomButton.click()
   await page.waitForTimeout(100)
@@ -205,8 +213,10 @@ test('Align Center button centers multiple nodes horizontally', async ({ editorP
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align center button
-  const alignCenterButton = selectionMenu.getByLabel('Center Selected Components Horizontally')
+  // Open alignment dropdown and click align center button
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await alignMenu.click()
+  const alignCenterButton = page.getByRole('button', { name: 'Center', exact: true })
   await expect(alignCenterButton).toBeVisible()
   await alignCenterButton.click()
 
@@ -261,12 +271,17 @@ test('Alignment buttons are visible when multiple nodes are selected', async ({
   await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
   await expect(selectionMenu).toBeVisible()
 
-  // Verify all alignment buttons are present
-  await expect(selectionMenu.getByLabel('Align Selected Components Left')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Align Selected Components Right')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Align Selected Components Top')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Align Selected Components Bottom')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Center Selected Components Horizontally')).toBeVisible()
+  // Verify alignment dropdown button is present
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await expect(alignMenu).toBeVisible()
+
+  // Open the dropdown and verify all alignment buttons are present
+  await alignMenu.click()
+  await expect(page.getByRole('button', { name: 'Align Left', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Align Right', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Align Top', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Align Bottom', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Center', exact: true })).toBeVisible()
 })
 
 test('Multiple alignment operations can be performed sequentially', async ({
@@ -288,7 +303,9 @@ test('Multiple alignment operations can be performed sequentially', async ({
   await expect(selectionMenu).toBeVisible()
 
   // First align left
-  const alignLeftButton = selectionMenu.getByLabel('Align Selected Components Left')
+  const alignMenu = selectionMenu.getByRole('button', { name: 'Align' })
+  await alignMenu.click()
+  const alignLeftButton = page.getByRole('button', { name: 'Align Left', exact: true })
   await alignLeftButton.click()
 
   // Get positions after left alignment
@@ -297,8 +314,9 @@ test('Multiple alignment operations can be performed sequentially', async ({
   assert(node1AfterLeft)
   assert(node2AfterLeft)
 
-  // Then align top
-  const alignTopButton = selectionMenu.getByLabel('Align Selected Components Top')
+  // Then align top - need to reopen the dropdown
+  await alignMenu.click()
+  const alignTopButton = page.getByRole('button', { name: 'Align Top', exact: true })
   await alignTopButton.click()
 
   // Verify both alignments took effect
@@ -312,4 +330,95 @@ test('Multiple alignment operations can be performed sequentially', async ({
 
   // Both nodes should be at the same y position (from align top)
   expect(node1Final.y).toBeCloseTo(node2Final.y, 0)
+})
+
+test('Right-click on multiple nodes shows group context menu with alignment submenu', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+  const node1 = locate.graphNodeByBinding(page, 'five')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
+
+  // Select both nodes
+  await locate.graphNodeIcon(node1).click()
+  await page.waitForTimeout(300)
+  await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
+
+  // Right-click on one of the selected nodes
+  await locate.graphNodeIcon(node1).click({ button: 'right' })
+
+  // Verify context menu appears with group-specific actions
+  const contextMenu = page.locator('.ActionMenu')
+  await expect(contextMenu).toBeVisible()
+
+  // Verify alignment submenu option is present
+  const alignSubmenu = contextMenu.getByRole('button', { name: 'Align' })
+  await expect(alignSubmenu).toBeVisible()
+})
+
+test('Right-click on background deselects components', async ({ editorPage, page }) => {
+  await editorPage
+  const node1 = locate.graphNodeByBinding(page, 'five')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
+  const selectionMenu = page.locator('.SelectionMenu')
+
+  // Select both nodes
+  await locate.graphNodeIcon(node1).click()
+  await page.waitForTimeout(300)
+  await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
+  await expect(selectionMenu).toBeVisible()
+
+  // Right-click on the background (viewport)
+  const viewport = page.locator('.viewport')
+  const viewportBox = await viewport.boundingBox()
+  assert(viewportBox)
+  // Click in an empty area far from any nodes
+  await page.mouse.click(viewportBox.x + 50, viewportBox.y + 50, { button: 'right' })
+
+  // Verify selection menu disappears (nodes are deselected)
+  await expect(selectionMenu).toBeHidden()
+})
+
+test('Alignment actions work from context menu submenu on click', async ({ editorPage, page }) => {
+  await editorPage
+  const node1 = locate.graphNodeByBinding(page, 'five')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
+
+  // Move node2 to ensure nodes have different x positions
+  await editorPage.dragNode('ten', { x: 20, y: 0 })
+
+  // Select both nodes
+  await locate.graphNodeIcon(node1).click()
+  await page.waitForTimeout(300)
+  await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
+
+  // Get initial positions
+  const node1InitialBBox = await node1.boundingBox()
+  const node2InitialBBox = await node2.boundingBox()
+  assert(node1InitialBBox)
+  assert(node2InitialBBox)
+
+  // Right-click to open context menu
+  await locate.graphNodeIcon(node1).click({ button: 'right' })
+
+  // Open alignment submenu
+  const contextMenu = page.locator('.ActionMenu')
+  const alignSubmenu = contextMenu.getByRole('button', { name: 'Align' })
+  await alignSubmenu.click()
+
+  // Click align left from the submenu
+  const alignLeftButton = page.getByRole('button', { name: 'Align Left', exact: true })
+  await expect(alignLeftButton).toBeVisible()
+  await alignLeftButton.click()
+
+  // Verify nodes are aligned
+  const node1NewBBox = await node1.boundingBox()
+  const node2NewBBox = await node2.boundingBox()
+  assert(node1NewBBox)
+  assert(node2NewBBox)
+
+  const expectedX = Math.min(node1InitialBBox.x, node2InitialBBox.x)
+  expect(node1NewBBox.x).toBeCloseTo(expectedX, 0)
+  expect(node2NewBBox.x).toBeCloseTo(expectedX, 0)
 })

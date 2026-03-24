@@ -1,27 +1,19 @@
 import { onScopeDispose } from 'vue'
+import { YjsChannel } from 'ydoc-channel'
 import { AbortScope } from 'ydoc-shared/util/net'
-import {
-  ReconnectingWebSocket,
-  ReconnectingWebSocketTransport,
-} from 'ydoc-shared/util/net/ReconnectingWSTransport'
+import { YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
+import * as Y from 'yjs'
 
 export { AbortScope }
 
-const WS_OPTIONS = {
-  // We do not want to enqueue any messages, because after reconnecting we have to initProtocol again.
-  maxEnqueuedMessages: 0,
+/** TODO: Add docs */
+export function createRpcTransport(indexDoc: Y.Doc, url: string): YjsTransport {
+  return new YjsTransport(indexDoc, url)
 }
 
 /** TODO: Add docs */
-export function createRpcTransport(url: string): ReconnectingWebSocketTransport {
-  return new ReconnectingWebSocketTransport(url, WS_OPTIONS)
-}
-
-/** TODO: Add docs */
-export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
-  const websocket = new ReconnectingWebSocket(url, undefined, WS_OPTIONS)
-  websocket.binaryType = binaryType
-  return websocket as WebSocket
+export function createDataSocket(indexDoc: Y.Doc, url: string): YjsChannel {
+  return new YjsChannel(indexDoc, url)
 }
 
 export interface WebSocketHandler {

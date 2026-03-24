@@ -374,7 +374,9 @@ final class WebSocket implements ProxyExecutable {
 
     @Override
     public void onError(WsSession session, Throwable t) {
-      log.error("onError ", t);
+      log.error("onError [this={}, session={}]", this, session, t);
+
+      session.close(WsCloseCodes.CLOSED_ABNORMALLY, SOCKET_CLOSED_REASON);
 
       handleCallback(() -> handleError.executeVoid(t.getMessage()));
     }

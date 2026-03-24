@@ -276,6 +276,10 @@ export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
 export function getImportArchiveJobStatusPath(jobId: UnzipAssetsJobId) {
   return HttpsUrl(`assets/unzip/${jobId}`)
 }
+/** Relative HTTP path to the "download project session logs" endpoint of the Cloud backend API. */
+export function getDownloadProjectSessionLogsPath(projectSessionId: ProjectSessionId) {
+  return HttpsUrl(`project-sessions/${projectSessionId}/download`)
+}
 
 /** The ID of the directory containing the home directories of all users. */
 export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')

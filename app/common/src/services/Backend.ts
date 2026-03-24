@@ -422,6 +422,7 @@ export interface ProjectExecutionInfo {
   readonly timeZone: dateTime.IanaTimeZone
   readonly maxDurationMinutes: number
   readonly parallelMode: ProjectParallelMode
+  readonly tag: string | undefined
 }
 
 /** A specific execution schedule of a project. */
@@ -636,6 +637,7 @@ export interface ListSecretsResponseBody {
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
   readonly tags: readonly Label[]
+  readonly assetVersionTags: readonly string[]
 }
 
 /**
@@ -1075,6 +1077,8 @@ export interface S3ObjectVersion {
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
   readonly user?: OtherUser
+  readonly tags?: string[] | undefined
+  readonly comment?: string | undefined
 }
 
 /** A user other than the current user */
@@ -1223,6 +1227,7 @@ export interface OpenHybridProjectParameters {
   readonly cloudProjectId: ProjectId
   /** Cloud project session id. */
   readonly cloudProjectSessionId: ProjectSessionId
+  readonly cloudApiUrl: string
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -2006,6 +2011,8 @@ export abstract class Backend {
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<readonly Label[]>
+  /** Return all tags attached to asset versions in the organization. */
+  abstract listAssetVersionTags(): Promise<readonly string[]>
   /** Set the full list of labels for a specific asset. */
   abstract associateTag(
     assetId: AssetId,
@@ -2039,6 +2046,8 @@ export abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
+  /** Download project session logs as a file. */
+  abstract downloadProjectSessionLogs(projectSessionId: ProjectSessionId): Promise<void>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
   /**

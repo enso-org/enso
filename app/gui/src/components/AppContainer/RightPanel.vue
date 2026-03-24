@@ -13,12 +13,11 @@ import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/DocumentationEditor'
+import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
-import { Rect } from '@/util/data/rect'
-import { Vec2 } from '@/util/data/vec2'
 import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, toRef, toValue, useTemplateRef } from 'vue'
 
@@ -65,8 +64,10 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 }
 
 const contentElement = useTemplateRef('contentElement')
-const size = useResizeObserver(contentElement)
-const bounds = computed(() => new Rect(Vec2.Zero, size.value))
+const resizeHandles = useResizeHandles({
+  size: useResizeObserver(contentElement),
+})
+resizeHandles.onResizeWidth((value) => (width.value = value))
 const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
 </script>
 
@@ -80,7 +81,7 @@ const style = computed(() => (width.value == null ? {} : { '--panel-width': `${w
               <component :is="component" />
             </div>
           </WithFullscreenMode>
-          <ResizeHandles left :modelValue="bounds" @update:modelValue="width = $event.width" />
+          <ResizeHandles left v-on="resizeHandles.events" />
         </div>
       </div>
     </SizeTransition>

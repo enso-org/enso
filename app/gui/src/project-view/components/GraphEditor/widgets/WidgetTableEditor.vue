@@ -3,7 +3,12 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { proxyRefs } from '$/utils/reactivity'
+import ResizableWidget from '@/components/GraphEditor/ResizableWidget.vue'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
+import TableHeader, {
+  type HeaderParams,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
+import { useTableEditHandler } from '@/components/GraphEditor/widgets/WidgetTableEditor/editHandler'
 import {
   CELLS_LIMIT,
   type RowData,
@@ -28,9 +33,6 @@ import type { Result } from 'enso-common/src/utilities/data/result'
 import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
-import ResizableWidget from '../ResizableWidget.vue'
-import TableHeader, { type HeaderParams } from './WidgetTableEditor/TableHeader.vue'
-import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const { suggestionDb, module } = useCurrentProject()
@@ -46,7 +48,8 @@ const configSchema = z.object({
 })
 type Config = z.infer<typeof configSchema>
 
-const DEFAULT_CFG: Config = { size: { x: 200, y: 150 } }
+const PREFERRED_HEIGHT_PX = 150
+const DEFAULT_CFG: Config = { size: { x: 200, y: PREFERRED_HEIGHT_PX } }
 
 const config = computed(() => {
   const configObj = props.input.value.widgetMetadata('WidgetTableEditor')
@@ -231,7 +234,6 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetTableEditor.widgetExpanded {
   border-radius: var(--node-port-border-radius);
-  position: relative;
 }
 
 .WidgetTableEditor.widgetSingleLine .inner {

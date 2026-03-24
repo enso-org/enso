@@ -83,8 +83,12 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
       data.versions.map((version, index) => {
         const number = data.versions.length - index
         const title = getText('versionX', number)
+        const tags = [
+          ...(version.isLatest ? [getText('latestIndicator')] : []),
+          ...(version.tags ?? []),
+        ]
 
-        return { ...version, number, title }
+        return { ...version, number, title, tags }
       }),
   })
 

@@ -33,6 +33,8 @@ single_version_override(
     patches = ["patches/aspect_rules_esbuild_windows_fix.patch"],
 )
 
+bazel_dep(name = "rules_shell", version = "0.4.0")
+
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "22.11.0")

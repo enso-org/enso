@@ -516,6 +516,9 @@ environment variable is set to "true". If JVM assertions are enable, Enso
 assertions are enabled as well.
 -->
 
+Details on [profiling](./profiler/engine.md) are available in a separate
+document.
+
 #### Static Analysis
 
 Additionally, you can check a project/script for basic errors (without running

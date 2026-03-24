@@ -518,6 +518,22 @@ type Dictionary key value
     ## ---
        private: true
        ---
+    to_display_text : Text
+    to_display_text self =
+        texts = self.keys.take (..First 40) . map k-> k.to_display_text + "=" + (self.get k . to_display_text)
+        suffix = if self.length > 40 then " and " + (self.length - 40).to_text + " more elements}" else "}"
+        "{" + (texts.join ", ") + suffix
+
+    ## ---
+       private: true
+       ---
+    pretty : Text
+    pretty self =
+        "Dictionary.from_vector " + self.to_vector.pretty
+
+    ## ---
+       private: true
+       ---
     get_builtin : Any -> Any -> Any
     get_builtin self key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
 
@@ -538,7 +554,9 @@ key_value_widget -> Widget =
     item_editor = Single_Choice display=..Always values=[pair]
     Vector_Editor item_editor=item_editor display=..Always item_default=default
 
-## ---
-   private: true
-   ---
-Dictionary.from (that:Vector) = Dictionary.from_vector that
+## Convert a Vector of key-value pairs to a Dictionary.
+Dictionary.from (that:Vector) (error_on_duplicates:Boolean=True) =
+    Dictionary.from_vector that error_on_duplicates
+
+## Convert Dictionary to a Vector.
+Vector.from (that:Dictionary) = that.to_vector

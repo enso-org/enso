@@ -19,6 +19,10 @@ export function selectionActionHandlers(
     alignTopNodes: (nodes: Node[]) => void
     alignBottomNodes: (nodes: Node[]) => void
     alignCenterNodes: (nodes: Node[]) => void
+    spaceVerticalNodes: (nodes: Node[]) => void
+    spaceVerticalNodesTight: (nodes: Node[]) => void
+    spaceVerticalNodesZero: (nodes: Node[]) => void
+    spaceVerticalNodesWide: (nodes: Node[]) => void
     deleteNodes: (nodes: Node[]) => void
     deleteAndConnectAround: (nodes: Node[]) => void
   },
@@ -74,6 +78,22 @@ export function selectionActionHandlers(
     'components.alignCenter': {
       enabled: computed(() => multipleNodesSelected.value),
       action: action('alignCenterNodes'),
+    },
+    'components.spaceVertical': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('spaceVerticalNodes'),
+    },
+    'components.spaceVerticalTight': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('spaceVerticalNodesTight'),
+    },
+    'components.spaceVerticalZero': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('spaceVerticalNodesZero'),
+    },
+    'components.spaceVerticalWide': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('spaceVerticalNodesWide'),
     },
     'components.deleteAndConnectAround': {
       enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),

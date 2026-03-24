@@ -109,13 +109,28 @@ export function parentId(ast: Ast): AstId | undefined {
   return ast.fields.get('parent')
 }
 
+export interface NodePositionMetadata {
+  x: number
+  y: number
+  h?: number
+}
+export function normalizePosition(
+  position: NodePositionMetadata | (Omit<NodePositionMetadata, 'h'> & { h: undefined }),
+): NodePositionMetadata {
+  const { x, y, h } = position
+  return {
+    x,
+    y,
+    ...(h ? { h } : {}),
+  }
+}
 /** @internal */
 export interface MetadataFields {
   externalId: ExternalId
   widget: Y.Map<unknown>
 }
 export interface NodeMetadataFields {
-  position?: { x: number; y: number } | undefined
+  position?: NodePositionMetadata | undefined
   visualization?: VisualizationMetadata | undefined
   colorOverride?: string | undefined
   displayMode?: 'expanded' | 'collapsed' | undefined

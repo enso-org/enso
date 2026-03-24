@@ -7,6 +7,66 @@
       "allPublicConstructors": true,
       "allDeclaredFields": true,
       "allDeclaredMethods": true
+    },
+    {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessibleType": true,
+      "methods": [
+        {
+          "name": "allocateDirect",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.enso.languageserver.http.server.BinaryYdocServer$BinaryServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]      
+    },
+    {
+      "type": "org.enso.jsonrpc.YdocJsonRpcServer$ServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]
+    },
+    {
+      "type": "org.enso.ydoc.server.YjsChannelSynchronized",
+      "allDeclaredMethods": true,
+      "allPublicMethods": true
+    },
+    {
+      "type": {
+        "proxy": [
+          "java.util.function.Consumer"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannel$Server"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannel"
+        ]
+      }
     }
   ]
 }

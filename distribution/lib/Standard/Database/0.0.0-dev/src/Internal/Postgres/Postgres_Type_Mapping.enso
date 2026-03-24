@@ -86,15 +86,15 @@ type Postgres_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
                continue with the more complex mappings that take stuff like
                precision into account.
             case complex_types_map.get sql_type.typeid Nothing of
-                Nothing -> on_unknown_type sql_type
+                Nothing -> _on_unknown_type sql_type json_as_text
                 builder -> builder sql_type
 
     ## ---
@@ -209,11 +209,11 @@ complex_types_map = Dictionary.from_vector <|
     handle_bit sql_type =
         if sql_type.name == "bool" then Value_Type.Boolean else
             # We currently do not support bit types.
-            on_unknown_type sql_type
+            _on_unknown_type sql_type
     handle_timestamp sql_type = case sql_type.name of
         "timestamptz" -> Value_Type.Date_Time with_timezone=True
         "timestamp"   -> Value_Type.Date_Time with_timezone=False
-        _             -> on_unknown_type sql_type
+        _             -> _on_unknown_type sql_type
 
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
@@ -224,8 +224,15 @@ complex_types_map = Dictionary.from_vector <|
 ## ---
    private: true
    ---
-on_unknown_type sql_type =
-    Value_Type.Unsupported_Data_Type sql_type.name sql_type
+private _on_unknown_type sql_type json_as_text:Boolean=False = if json_as_text.not then Value_Type.Unsupported_Data_Type sql_type.name sql_type else
+    case sql_type.name of
+        "json" ->
+            result = Value_Type.Char size=Nothing variable_length=True
+            Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
+        "jsonb" ->
+            result = Value_Type.Char size=Nothing variable_length=True
+            Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
+        _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
 ## ---
    private: true
