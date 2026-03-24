@@ -47,10 +47,7 @@ type Salesforce
        - `name`: the name of the report to retrieve.
     @name _make_report_name_widget
     get_report self name =
-        report_id = _get_report_id self name
-        url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
-        raw_result = _salesforce_get self url . decode_as_json
-
+        raw_result = self.get_raw_report name
         if raw_result.get 'groupingsDown' . get 'groupings' . length > 0 then
             Unimplemented.throw "Row grouped reports are not supported yet."
         if raw_result.get 'groupingsAcross' . get 'groupings' . length > 0 then
@@ -80,6 +77,20 @@ type Salesforce
                 _ -> d.get 'label'
             
         Table.from_rows column_names data
+
+    ## ---
+       icon: data_input
+       ---
+       Get a report from Salesforce by its name and return it as raw JSON.
+
+       ## Arguments:
+       - `name`: the name of the report to retrieve.
+    @name _make_report_name_widget
+    get_raw_report self name =
+        report_id = _get_report_id self name
+        url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
+        raw_result = _salesforce_get self url . decode_as_json
+        raw_result
 
     ## ---
        private: true
