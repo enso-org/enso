@@ -18,6 +18,7 @@ import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -184,12 +185,33 @@ public final class LogbackSetup extends LoggerSetup {
         if (logPrefix == null) {
           logPrefix = "enso";
         }
-        var logPostfix = "%d{yyyy-MM-dd-HH-mm-ss}";
-        String filePattern;
+        var now = LocalDateTime.now();
+        var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
+
+        String basePath;
         if (logRoot == null) {
-          filePattern = logPrefix + "-" + logPostfix;
+          basePath = logPrefix + "-" + dateStr + "-" + timeStr;
         } else {
-          filePattern = logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + logPostfix;
+          basePath =
+              logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + dateStr + "-" + timeStr;
+        }
+
+        rollingFileAppender.setFile(basePath + ".log");
+
+        // Archive pattern: %d{yyyy-MM-dd} resolves to same date on same day,
+        // time literal ensures per-execution uniqueness, %i for size rollover index
+        String archivePattern;
+        if (logRoot == null) {
+          archivePattern = logPrefix + "-%d{yyyy-MM-dd}-" + timeStr + ".%i.log.gz";
+        } else {
+          archivePattern =
+              logRoot.toAbsolutePath()
+                  + File.separator
+                  + logPrefix
+                  + "-%d{yyyy-MM-dd}-"
+                  + timeStr
+                  + ".%i.log.gz";
         }
 
         var rollingPolicy = appenderConfig.getRollingPolicy();
@@ -199,12 +221,8 @@ public final class LogbackSetup extends LoggerSetup {
         logbackRollingPolicy.setMaxFileSize(FileSize.valueOf(rollingPolicy.maxFileSize()));
         logbackRollingPolicy.setMaxHistory(rollingPolicy.maxHistory());
         logbackRollingPolicy.setTotalSizeCap(FileSize.valueOf(rollingPolicy.totalSizeCap()));
-        logbackRollingPolicy.setFileNamePattern(filePattern + ".%i.log.gz");
+        logbackRollingPolicy.setFileNamePattern(archivePattern);
         logbackRollingPolicy.start();
-        // store initial time
-        logbackRollingPolicy
-            .getTimeBasedFileNamingAndTriggeringPolicy()
-            .setCurrentTime(System.currentTimeMillis());
 
         rollingFileAppender.setRollingPolicy(logbackRollingPolicy);
       } else {
