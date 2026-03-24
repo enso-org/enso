@@ -90,7 +90,7 @@ export class UnauthorizedRecoveryState {
   }
 
   /** Queue a failed query to replay after successful recovery. */
-  queueRepeatedUnauthorizedQuery(query: UnauthorizedFailedQuery) {
+  queueRetryOfUnauthorizedQuery(query: UnauthorizedFailedQuery) {
     this.pendingRepeatedUnauthorizedQueries.set(query.queryHash, query.queryKey)
   }
 

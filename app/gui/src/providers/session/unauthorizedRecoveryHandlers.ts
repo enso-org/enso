@@ -52,7 +52,7 @@ export function installUnauthorizedRecoveryHandlers(options: UnauthorizedRecover
           )
           return
         }
-        options.state.queueRepeatedUnauthorizedQuery(query)
+        options.state.queueRetryOfUnauthorizedQuery(query)
         void options.recoverSessionAfterRepeatedUnauthorizedError(authError)
         return
       }
