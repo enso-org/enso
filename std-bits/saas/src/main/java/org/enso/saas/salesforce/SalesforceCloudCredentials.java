@@ -18,7 +18,8 @@ public final class SalesforceCloudCredentials {
   }
 
   private record SalesforceRefreshToken(String instanceUrl) {
-    private static SalesforceRefreshToken parse(ExternalLibraryCredentialHelper.RefreshToken token) {
+    private static SalesforceRefreshToken parse(
+        ExternalLibraryCredentialHelper.RefreshToken token) {
       JsonNode metadata = token.metadata();
       if (metadata == null || !metadata.isObject()) {
         throw ExternalLibraryCredentialHelper.malformedCredential();
