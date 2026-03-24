@@ -38,6 +38,12 @@ type Salesforce
         result = raw_result.decode_as_json
         result
 
+    reports self =
+        url = self.get_instance_url + "/services/data/v60.0/analytics/reports"
+        raw_result = _salesforce_get self url
+        result = raw_result.decode_as_json
+        result
+
     report self report_id =
         url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
         raw_result = _salesforce_get self url . decode_as_json
