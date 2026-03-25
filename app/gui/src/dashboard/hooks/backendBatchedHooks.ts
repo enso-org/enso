@@ -1,6 +1,5 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import {
   useMutationState,
@@ -381,13 +380,13 @@ export function useMoveAssetsMutationState<Result>(
 export async function getAllTrashedItems(
   queryClient: QueryClient,
   backend: Backend,
-  category: TrashCategory,
+  parentId: DirectoryId | null,
 ): Promise<readonly AnyAsset[]> {
   return (
     await queryClient.ensureQueryData(
       backendQueryOptions(backend, 'listDirectory', [
         {
-          parentId: category.homeDirectoryId,
+          parentId,
           labels: null,
           filterBy: FilterBy.trashed,
           recentProjects: false,

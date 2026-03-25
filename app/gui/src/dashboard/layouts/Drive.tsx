@@ -8,22 +8,26 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetsTable from '#/layouts/AssetsTable'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
+import DriveProvider from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as appUtils from '$/appUtils'
+import { isCloudCategory } from '$/providers/categories'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
-import { useContainerData } from '$/providers/react/container'
+import {
+  useContainerData,
+  useDriveCurrentBackend,
+  useDriveCurrentCategory,
+  useDriveLocation,
+} from '$/providers/react/container'
 import { BackendType, DirectoryDoesNotExistError } from 'enso-common/src/services/Backend'
 import { OfflineError } from 'enso-common/src/utilities/errors'
 import * as React from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
-import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export const Drive = React.memo(function Drive() {
@@ -43,9 +47,10 @@ function DriveInner() {
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const { category } = useCategoriesAPI()
+  const [category, setCategory] = useDriveCurrentCategory()
+  const { setDefaultCategory } = useDriveLocation()
 
-  const isCloud = categoryModule.isCloudCategory(category)
+  const isCloud = isCloudCategory(category)
 
   const supportLocalBackend = localBackend != null
 
@@ -73,7 +78,7 @@ function DriveInner() {
                 size="medium"
                 variant="primary"
                 onPress={() => {
-                  setDriveLocation(null, 'local')
+                  setCategory({ type: 'local' })
                 }}
               >
                 {getText('switchToLocal')}
@@ -107,7 +112,7 @@ function DriveInner() {
               toast.error(getText('directoryDoesNotExistError'), {
                 toastId: 'directory-does-not-exist-error',
               })
-              setDriveLocation(null, null)
+              setDefaultCategory()
               resetQueries()
               resetErrorBoundary()
             }
@@ -130,7 +135,7 @@ function DriveInner() {
 function DriveAssetsView() {
   const { setFocusedPanel } = useContainerData()
   const { isOffline } = offlineHooks.useOffline()
-  const { associatedBackend } = useCategoriesAPI()
+  const associatedBackend = useDriveCurrentBackend()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const isCloud = associatedBackend.type === BackendType.remote
   const isInaccessible = isCloud && isOffline
@@ -176,6 +181,7 @@ function OfflineMessage(props: OfflineMessageProps) {
 
   const { localBackend } = useBackends()
   const { getText } = useText()
+  const [, setCategory] = useDriveCurrentCategory()
 
   return (
     <result.Result
@@ -190,7 +196,7 @@ function OfflineMessage(props: OfflineMessageProps) {
           variant="primary"
           className="mx-auto"
           onPress={() => {
-            setDriveLocation(null, 'local')
+            setCategory({ type: 'local' })
             onPress?.()
           }}
         >

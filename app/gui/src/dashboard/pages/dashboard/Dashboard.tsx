@@ -7,7 +7,6 @@ import Page from '#/components/Page'
 import { Text } from '#/components/Text'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useBindGlobalActions } from '#/hooks/menuHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import SettingsTabType from '#/layouts/Settings/TabType'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -122,19 +121,17 @@ export function Dashboard() {
   }, [closingOnAppExit])
 
   return (
-    <CategoriesProvider>
-      <Page hideInfoBar hideModalWrapper>
-        <div
-          className="flex h-full flex-col text-xs text-primary"
-          onContextMenu={(event) => {
-            event.preventDefault()
-            modalProvider.unsetModal()
-          }}
-        >
-          <AppContainerInner />
-        </div>
-      </Page>
-    </CategoriesProvider>
+    <Page hideInfoBar hideModalWrapper>
+      <div
+        className="flex h-full flex-col text-xs text-primary"
+        onContextMenu={(event) => {
+          event.preventDefault()
+          modalProvider.unsetModal()
+        }}
+      >
+        <AppContainerInner />
+      </div>
+    </Page>
   )
 }
 

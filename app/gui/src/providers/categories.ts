@@ -1,13 +1,25 @@
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useZustandStoreRef } from '$/utils/zustand'
 import type { Opt } from '@/util/data/opt'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { createGlobalState } from '@vueuse/core'
-import type { Path, User, UserGroupId } from 'enso-common/src/services/Backend'
+import {
+  BackendType,
+  isUserGroupId,
+  Path,
+  UserGroupId,
+  type DirectoryId,
+  type User,
+} from 'enso-common/src/services/Backend'
+import { newDirectoryId } from 'enso-common/src/services/LocalBackend'
+import { organizationIdToDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
 import { getFileName } from 'enso-common/src/utilities/file'
 import { computed, toValue } from 'vue'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useAuth } from './auth'
+import { useBackends } from './backends'
+import { useLocalDirectories } from './localDirectories'
 import { useText } from './text'
 
 export interface PredefinedCategory {
@@ -27,6 +39,17 @@ export interface LocalDirectory {
 export type Category = PredefinedCategory | TeamDirectory | LocalDirectory
 export type CategoryType = Category['type']
 
+export const CATEGORY_BACKEND: Record<CategoryType, BackendType> = {
+  cloud: BackendType.remote,
+  recent: BackendType.remote,
+  trash: BackendType.remote,
+  team: BackendType.remote,
+  local: BackendType.local,
+  localDirectory: BackendType.local,
+}
+const TEAM_CATEGORY_KEY_PREFIX = 'team-'
+const LOCAL_DIRECTORY_KEY_PREFIX = 'local-'
+
 export function categoryKey(category: Category) {
   switch (category.type) {
     case 'cloud':
@@ -35,9 +58,62 @@ export function categoryKey(category: Category) {
     case 'local':
       return category.type
     case 'team':
-      return `team/${category.groupId}`
+      return `${TEAM_CATEGORY_KEY_PREFIX}${category.groupId}`
     case 'localDirectory':
-      return `team/${category.path}`
+      return `${LOCAL_DIRECTORY_KEY_PREFIX}${category.path}`
+  }
+}
+
+export function categoryFromKey(key: Opt<string>): Category | null {
+  switch (key) {
+    case 'cloud':
+    case 'recent':
+    case 'trash':
+    case 'local':
+      return { type: key }
+    default:
+      if (key == null) return null
+      else if (key.startsWith(TEAM_CATEGORY_KEY_PREFIX)) {
+        const groupId = key.substring(TEAM_CATEGORY_KEY_PREFIX.length)
+        if (!isUserGroupId(groupId)) return null
+        return {
+          type: 'team',
+          groupId: groupId,
+        }
+      } else if (key.startsWith(LOCAL_DIRECTORY_KEY_PREFIX)) {
+        return {
+          type: 'localDirectory',
+          path: Path(key.substring(LOCAL_DIRECTORY_KEY_PREFIX.length)),
+        }
+      } else return null
+  }
+}
+
+export function categoryEq(a: Opt<Category>, b: Opt<Category>) {
+  return (a ? categoryKey(a) : '') === (b ? categoryKey(b) : '')
+}
+
+export function isCloudCategory(category: Category) {
+  return CATEGORY_BACKEND[category.type] === BackendType.remote
+}
+
+export function isLocalCategory(category: Category) {
+  return CATEGORY_BACKEND[category.type] === BackendType.local
+}
+
+export function categoryIcon(category: CategoryType): Icon {
+  switch (category) {
+    case 'cloud':
+    case 'recent':
+      return category
+    case 'local':
+      return 'system'
+    case 'trash':
+      return 'trash_small'
+    case 'team':
+      return 'people'
+    case 'localDirectory':
+      return 'folder_small'
   }
 }
 
@@ -54,8 +130,14 @@ const localDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
   ),
 )
 
+export type CategoriesStore = ReturnType<typeof createCategoriesStore>
+
 function createCategoriesStore(userData: ToValue<Opt<User>>) {
   const { getText } = useText()
+  const backends = useBackends()
+  // TODO[ao]: Name clash
+  const localDirs = useLocalDirectories()
+
   const teamCategories = computed(
     () =>
       toValue(userData)?.groups?.map(
@@ -68,6 +150,7 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
   const groupById = computed(
     () => new Map(toValue(userData)?.groups?.map((group) => [group.id, group])),
   )
+  const rootPath = computed(() => localDirs.localRootDirectory ?? backends.localBackend?.rootPath())
 
   const localDirectories = useZustandStoreRef(
     localDirectoryStore,
@@ -104,9 +187,50 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
     }
   }
 
+  function categoryDirectoryId(category: Category): DirectoryId | null {
+    const user = toValue(userData)
+    switch (category.type) {
+      case 'cloud':
+        return user?.rootDirectoryId ?? null
+      case 'recent':
+        return null
+      case 'trash':
+        return user != null ? organizationIdToDirectoryId(user?.organizationId) : null
+      case 'local': {
+        return rootPath.value != null ? newDirectoryId(rootPath.value) : null
+      }
+      case 'team':
+        return groupById.value.get(category.groupId)?.homeDirectoryId ?? null
+      case 'localDirectory':
+        return newDirectoryId(category.path)
+    }
+  }
+
+  function getCategoryByDirectoryId(dirId: DirectoryId) {
+    return categoriesList.value.find((category) => categoryDirectoryId(category) === dirId)
+  }
+
+  function categoryRootPath(category: Category): Path | null {
+    switch (category.type) {
+      case 'team': {
+        const group = groupById.value.get(category.groupId)
+        return group != null ? Path(`enso://Teams/${group.name}`) : null
+      }
+      case 'local':
+        return rootPath.value ?? null
+      case 'localDirectory':
+        return category.path
+      default:
+        return null
+    }
+  }
+
   return proxyRefs({
     categoriesList,
     categoryLabel,
+    categoryDirectoryId,
+    getCategoryByDirectoryId,
+    categoryRootPath,
   })
 }
 
@@ -114,3 +238,59 @@ export const useCategories = createGlobalState(() => {
   const auth = useAuth()
   return createCategoriesStore(() => auth.session?.user)
 })
+
+/**
+ * The drop operation to use when transferring assets between categories.
+ * @param from - The category to transfer from.
+ * @param to - The category to transfer to.
+ * @returns The drop operation to use.
+ */
+export function dropOperationBetweenCategories(
+  from: Category,
+  to: Category,
+  parentId: DirectoryId | null = null,
+): 'cancel' | 'copy' | 'move' | undefined {
+  // Moving into the same category without a parentId is not allowed.
+  if (categoryEq(from, to) && parentId == null) {
+    return 'cancel'
+  }
+
+  if (to.type === 'recent' || from.type === 'recent') {
+    return 'cancel'
+  }
+
+  if (isLocalCategory(from)) {
+    if (to.type === 'trash') {
+      return 'cancel'
+    }
+  }
+
+  if (isCloudCategory(from) || isCloudCategory(to)) {
+    if (isLocalCategory(from) || isLocalCategory(to)) {
+      return 'copy'
+    }
+  }
+
+  switch (from.type) {
+    case 'cloud':
+      return 'move'
+    case 'team':
+      return to.type === 'trash' ? 'move' : 'copy'
+    case 'trash':
+      return 'move'
+    case 'local':
+    case 'localDirectory':
+      return isCloudCategory(to) ? 'copy' : 'move'
+  }
+}
+
+/** Whether an asset can be transferred between categories. */
+export function canTransferBetweenCategories(
+  from: Category,
+  to: Category,
+  parentId: DirectoryId | null = null,
+) {
+  const operation = dropOperationBetweenCategories(from, to, parentId)
+
+  return operation !== 'cancel'
+}

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import HelpBar from '$/components/AppContainer/HelpBar.vue'
 import { Drive } from '$/components/AppContainer/reactTabs'
-import { categoryKey, useCategories, type CategoryType } from '$/providers/categories'
+import { categoryEq, categoryIcon, categoryKey, useCategories } from '$/providers/categories'
 import { useContainerData } from '$/providers/container'
+import { useDriveLocation } from '$/providers/drive'
 import { optPx } from '$/utils/dom'
 import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
@@ -13,8 +14,8 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
-import type { Icon } from '@/util/iconMetadata/iconName'
-import { computed, ref, toRefs, useTemplateRef } from 'vue'
+import { startTransition } from 'react'
+import { computed, ref, toRef, toRefs, useTemplateRef } from 'vue'
 
 const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
   'help.whatsNew',
@@ -33,6 +34,7 @@ const categories = useCategories()
 const containerData = useContainerData()
 const { leftPanelWidth: width, leftPanelToggledOn: toggledOn } = toRefs(containerData)
 const visible = computed(() => toggledOn.value || !props.middlePanelShown)
+const currentCategory = toRef(useDriveLocation(), 'currentCategory')
 
 const root = useTemplateRef('content')
 const cssClass = computed(() => ({
@@ -47,22 +49,6 @@ const resizeHandles = useResizeHandles({
 resizeHandles.onResizeWidth((value) => (width.value = value))
 
 const leftBarHovered = ref(false)
-
-function categoryIcon(category: CategoryType): Icon {
-  switch (category) {
-    case 'cloud':
-    case 'recent':
-      return category
-    case 'local':
-      return 'system'
-    case 'trash':
-      return 'trash_small'
-    case 'team':
-      return 'people'
-    case 'localDirectory':
-      return 'folder_small'
-  }
-}
 </script>
 
 <template>
@@ -86,6 +72,12 @@ function categoryIcon(category: CategoryType): Icon {
         class="leftBarIcon"
         :name="categoryIcon(category.type)"
         :label="categories.categoryLabel(category)"
+        :modelValue="categoryEq(category, currentCategory)"
+        @update:modelValue="
+          startTransition(() => {
+            currentCategory = category
+          })
+        "
       />
     </div>
     <SizeTransition width :duration="250">

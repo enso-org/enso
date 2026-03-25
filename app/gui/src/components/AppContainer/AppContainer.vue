@@ -20,6 +20,7 @@ import { normalizeSlashes } from 'enso-common/src/utilities/file'
 import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
 import MiddlePanel from './MiddlePanel.vue'
 
+import { provideDriveLocation } from '$/providers/drive'
 import { useNavigateLink } from '$/utils/links'
 import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import LeftPanel from './LeftPanel.vue'
@@ -42,6 +43,7 @@ const anyTabs = computed(() => containerData.tabList.length > 0)
 provideAsyncResources(openedProjects)
 provideRightPanelData(toRef(containerData, 'focusedPanel'))
 provideFullscreenRoot(fullscreenRoot)
+provideDriveLocation()
 
 const HELP_URLS: Record<ActionName & `help.${string}`, string> = {
   'help.whatsNew': 'https://community.ensoanalytics.com/c/what-is-new-in-enso/',

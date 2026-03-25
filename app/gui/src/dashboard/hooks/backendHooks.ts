@@ -1,8 +1,8 @@
 /** @file Hooks for interacting with the backend. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { Category, CategoryType } from '$/providers/categories'
 import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
 import { useFullUserSession } from '$/providers/react'
 import { useContainerData } from '$/providers/react/container'
@@ -34,16 +34,25 @@ import * as backendModule from 'enso-common/src/services/Backend'
 import {
   AssetType,
   BackendType,
+  FilterBy,
   type AnyAsset,
   type AssetId,
   type DirectoryId,
-  type FilterBy,
   type User,
   type UserGroupInfo,
 } from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
+
+const CATEGORY_TO_FILTER_BY: Readonly<Record<CategoryType, FilterBy | null>> = {
+  cloud: FilterBy.active,
+  local: FilterBy.active,
+  recent: null,
+  trash: FilterBy.trashed,
+  team: FilterBy.active,
+  localDirectory: FilterBy.active,
+}
 
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
@@ -205,7 +214,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     filterBy = CATEGORY_TO_FILTER_BY[category.type],
     infinite = false,
   } = options
-  const rootPath = 'rootPath' in category ? category.rootPath : undefined
+  const rootPath = 'path' in category ? category.path : undefined
   return {
     meta: { persist: false },
     queryKey: [
@@ -381,7 +390,7 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
 }
 
 /** Return query data for the children of a directory, fetching it if it does not exist. */
-export function useEnsureListDirectory(backend: Backend, category: Category) {
+export function useEnsureListDirectory(backend: Backend, category: CategoryType) {
   const queryClient = useQueryClient()
   return useEventCallback(async (parentId: DirectoryId) => {
     return (
@@ -390,8 +399,8 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
           {
             parentId,
             labels: null,
-            filterBy: CATEGORY_TO_FILTER_BY[category.type],
-            recentProjects: category.type === 'recent',
+            filterBy: CATEGORY_TO_FILTER_BY[category],
+            recentProjects: category === 'recent',
             sortExpression: null,
             sortDirection: null,
             from: null,
@@ -405,7 +414,7 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
 }
 
 /** A function to create a new folder. */
-export function useNewFolder(backend: Backend, category: Category) {
+export function useNewFolder(backend: Backend, category: CategoryType) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const setNewestFolderId = useSetAssetToRename()
   const setSelectedAssets = useSetSelectedAssets()
@@ -432,7 +441,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 }
 
 /** A function to create a new project. */
-export function useNewProject(backend: Backend, category: Category) {
+export function useNewProject(backend: Backend, category: CategoryType) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const { openProjectLocally } = useContainerData()
 

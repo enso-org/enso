@@ -4,11 +4,11 @@ import EditableSpan from '#/components/EditableSpan'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
-import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { useDriveCurrentBackend, useDriveCurrentDirectory } from '$/providers/react/container'
 import { titleSchema, type DirectoryAsset } from 'enso-common/src/services/Backend'
 import { useTransition } from 'react'
 
@@ -25,7 +25,8 @@ export interface DirectoryNameColumnProps extends AssetNameColumnProps {
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, isEditable, isNavigating } = props
 
-  const { associatedBackend: backend } = useCategoriesAPI()
+  const backend = useDriveCurrentBackend()
+  const [, setDirectory] = useDriveCurrentDirectory()
   const [isLoading, startNavigation] = useTransition()
   const { getText } = useText()
   const driveStore = useDriveStore()
@@ -66,7 +67,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startNavigation(() => {
-            setDriveLocation(item.id)
+            setDirectory(item.id)
           })
         }}
       />
