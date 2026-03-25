@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.warning;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -30,10 +31,12 @@ public abstract class SetWarningsNode extends Node {
     this.warningsLib = lib;
   }
 
+  @NeverDefault
   public static SetWarningsNode build() {
     return SetWarningsNodeGen.create(WarningsLibrary.getFactory().createDispatched(3));
   }
 
+  @NeverDefault
   public static SetWarningsNode getUncached() {
     if (uncached == null) {
       uncached = SetWarningsNodeGen.create(WarningsLibrary.getUncached());
@@ -41,6 +44,14 @@ public abstract class SetWarningsNode extends Node {
     return uncached;
   }
 
+  /**
+   * Cleans all warnings from the provided value and attaches new ones.
+   *
+   * @param frame frame with local variables
+   * @param value value (potentially with some warnings) to get {@code warnings} attached
+   * @param warnings warnings to attach to {@code value}
+   * @return value with <strong>only</strong> those provided warnings attached
+   */
   public final Object execute(VirtualFrame frame, @AcceptsWarning Object value, Object warnings) {
     Object pure;
     try {
