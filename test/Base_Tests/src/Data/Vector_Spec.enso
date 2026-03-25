@@ -165,6 +165,16 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         empty_vec . reduce (+) . should_fail_with (Empty_Error.Error (Meta.type_of empty_vec))
         empty_vec . reduce (+) 0 . should_equal 0
 
+    group_builder.specify "remove warnings from arraylike object" <|
+        err = My_Error.Error "err"
+        ww = Warning.attach err 21
+        vec = alter [20, ww, 22]
+
+        Warning.get_all vec . length . should_equal 1
+
+        clean_vec = Warning.remove_warnings vec
+        Warning.get_all clean_vec . should_equal []
+
     group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.any (ix -> ix > 3) . should_be_true

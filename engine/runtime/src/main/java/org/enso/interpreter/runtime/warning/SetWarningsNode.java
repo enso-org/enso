@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.warning;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -22,14 +21,37 @@ import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
     name = "set_array",
     description = "Sets all the warnings associated with the value.",
     autoRegister = false)
-@GenerateUncached
 public abstract class SetWarningsNode extends Node {
+  private static SetWarningsNode uncached;
 
-  public static SetWarningsNode build() {
-    return SetWarningsNodeGen.create();
+  @Child private WarningsLibrary warningsLib;
+
+  SetWarningsNode(WarningsLibrary lib) {
+    this.warningsLib = lib;
   }
 
-  public abstract Object execute(VirtualFrame frame, @AcceptsWarning Object value, Object warnings);
+  public static SetWarningsNode build() {
+    return SetWarningsNodeGen.create(WarningsLibrary.getFactory().createDispatched(3));
+  }
+
+  public static SetWarningsNode getUncached() {
+    if (uncached == null) {
+      uncached = SetWarningsNodeGen.create(WarningsLibrary.getUncached());
+    }
+    return uncached;
+  }
+
+  public final Object execute(VirtualFrame frame, @AcceptsWarning Object value, Object warnings) {
+    Object pure;
+    try {
+      pure = warningsLib.removeWarnings(value);
+    } catch (UnsupportedMessageException ex) {
+      pure = value;
+    }
+    return executeAttach(frame, pure, warnings);
+  }
+
+  abstract Object executeAttach(VirtualFrame frame, Object value, Object warnings);
 
   @Specialization(guards = "isEmpty(warnings, interop)")
   Object doEmpty(
