@@ -41,6 +41,7 @@
     "./src/util/net.ts",
     "./src/util/net/MockWSTransport.ts",
     "./src/util/net/ReconnectingWSTransport.ts",
+    "./src/util/net/YjsTransport.ts",
     "./src/util/types.ts",
     "./src/uuid.ts",
     "./src/yjsModel.ts"

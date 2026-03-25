@@ -4,6 +4,7 @@
   "extends": "../../tsconfig.json",
   "files": [
     "../vitest.node.base.ts",
+    "./src/YjsBinaryChannel.ts",
     "./src/__tests__/edits.bench.ts",
     "./src/__tests__/edits.test.ts",
     "./src/auth.ts",

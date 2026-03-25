@@ -10,6 +10,8 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
+import type { YjsChannelServer } from 'ydoc-channel'
+import { YjsBinaryChannel } from './YjsBinaryChannel'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -96,19 +98,31 @@ export class WSSharedDoc {
 export function setupGatewayClient(
   ws: YjsSocket,
   lsUrl: string | undefined | null,
+  dataUrl: string | undefined | null,
   docName: string,
+  byteBuffer: any,
+  jsonChannelServer: YjsChannelServer,
+  binaryChannelServer: YjsChannelServer,
 ): void {
-  console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
-  const lsSession = getSessionForUrl(lsUrl)
+  console.log(
+    `Setting up Gateway Client: docName=${docName}, lsUrl=${lsUrl ?? 'none'}, dataUrl=${dataUrl ?? 'none'}`,
+  )
+  const lsSession = getSessionForUrl(lsUrl, jsonChannelServer)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
     ws.close()
     return
   }
 
+  let dataSocket: YjsBinaryChannel | undefined
+  if (dataUrl) {
+    dataSocket = YjsBinaryChannel.get(wsDoc.doc, dataUrl, binaryChannelServer, byteBuffer)
+  }
+
   const connection = new YjsConnection(ws, wsDoc)
   connection.once('close', async () => {
     try {
+      dataSocket?.close()
       await lsSession.release()
     } catch (error) {
       console.error('Session release failed.\n', error)
@@ -116,10 +130,10 @@ export function setupGatewayClient(
   })
 }
 
-function getSessionForUrl(lsUrl: string | undefined | null) {
+function getSessionForUrl(lsUrl: string | undefined | null, jsonChannelServer: YjsChannelServer) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
-    lsSession = LanguageServerSession.get(lsUrl)
+    lsSession = LanguageServerSession.get(lsUrl, jsonChannelServer)
   } else {
     const anySession = LanguageServerSession.sessions.values().next().value
     if (LanguageServerSession.sessions.size === 1 && anySession) {
@@ -150,7 +164,7 @@ export interface YjsSocket {
   on(event: 'close', listener: (code: number, reason: Buffer) => void): this
   on(event: 'message', listener: (data: ArrayBuffer | Buffer, isBinary: boolean) => void): this
   on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
-  send(data: Uint8Array, cb?: (err?: Error) => void): void
+  send(data: Uint8Array): void
   ping(): void
   close(): void
 }
@@ -222,7 +236,7 @@ export class YjsConnection extends ObservableV2<{ close(): void }> {
       this.close()
     }
     try {
-      this.ws.send(message, (error) => error && this.close())
+      this.ws.send(message)
     } catch {
       this.close()
     }

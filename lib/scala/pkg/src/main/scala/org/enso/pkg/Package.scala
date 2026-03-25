@@ -312,6 +312,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     *                will be used
     * @param jvm should JVM mode be set for the package
     * @param keepDevVersion true if default dev versions should be stored
+    * @param preferLocalLibraries by default `false`
     * @return a package object representing the newly created package.
     */
   def create(
@@ -328,7 +329,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     componentGroups: Option[ComponentGroups] = None,
     services: List[ProvidesWith]             = List(),
     jvm: Option[Boolean]                     = None,
-    keepDevVersions: Boolean                 = false
+    keepDevVersions: Boolean                 = false,
+    preferLocalLibraries: Boolean            = false
   ): Package[F] = {
     val config = Config(
       name                 = name,
@@ -338,7 +340,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       license              = license,
       authors              = authors,
       edition              = edition,
-      preferLocalLibraries = true,
+      preferLocalLibraries = preferLocalLibraries,
       maintainers          = maintainers,
       componentGroups      = componentGroups,
       services             = services,

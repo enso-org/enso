@@ -32,24 +32,6 @@ test('Start editing comment via context menu', async ({ editorPage, page }) => {
   await expect(locate.nodeCommentContent(node)).toBeFocused()
 })
 
-test('Start editing comment via context menu when multiple components initially selected', async ({
-  editorPage,
-  page,
-}) => {
-  await editorPage
-  const otherNode = locate.graphNodeByBinding(page, 'sum')
-  await otherNode.click()
-  const node = locate.graphNodeByBinding(page, 'final')
-  await node.click({ modifiers: ['Shift'] })
-  const anotherNode = locate.graphNodeByBinding(page, 'list')
-  await anotherNode.click({ modifiers: ['Shift'] })
-  await node.click({ button: 'right' })
-  await expect(locate.selectedNodes(page)).toHaveCount(3)
-  await page.getByRole('button', { name: 'Add Comment' }).click()
-  await expect(locate.selectedNodes(page)).toHaveCount(1)
-  await expect(locate.nodeCommentContent(node)).toBeFocused()
-})
-
 test('Add new comment via menu', async ({ editorPage, page }) => {
   await editorPage
   const INITIAL_NODE_COMMENTS = 1

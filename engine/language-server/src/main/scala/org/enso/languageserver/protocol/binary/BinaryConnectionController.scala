@@ -1,7 +1,6 @@
 package org.enso.languageserver.protocol.binary
 
 import akka.actor.{Actor, ActorRef, Props, Stash}
-import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.event.{
@@ -40,11 +39,8 @@ import scala.concurrent.duration._
 /** An actor handling data communications between a single client and the
   * language server. It acts as a front controller responsible for handling
   * all incoming requests and dispatching commands.
-  *
-  * @param clientIp a client ip that the connection controller is created for
   */
 class BinaryConnectionController(
-  clientIp: RemoteAddress.IP,
   fileManager: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -81,9 +77,8 @@ class BinaryConnectionController(
       val session = BinarySession(clientId, self)
       context.system.eventStream.publish(BinarySessionInitialized(session))
       logger.info(
-        "Data session initialized for client: {} [{}].",
-        clientId,
-        clientIp
+        "Data session initialized for client: {}.",
+        clientId
       )
       context.become(
         connectionEndHandler(Some(session))
@@ -122,7 +117,7 @@ class BinaryConnectionController(
     maybeDataSession: Option[BinarySession] = None
   ): Receive = {
     case ConnectionClosed =>
-      logger.info("Connection closed [{}].", clientIp)
+      logger.info("Connection closed.")
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
       )
@@ -130,8 +125,7 @@ class BinaryConnectionController(
 
     case ConnectionFailed(th) =>
       logger.error(
-        "An error occurred during processing web socket connection [{}].",
-        clientIp,
+        "An error occurred during processing web socket connection.",
         th
       )
       maybeDataSession.foreach(session =>

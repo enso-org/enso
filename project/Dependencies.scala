@@ -313,7 +313,7 @@ object Dependencies {
   val httpComponentsVersion      = "4.4.1"
   val apacheArrowVersion         = "14.0.1"
   val `snowflakeJDBCVersion`     = "4.0.1"
-  val mssqlserverJDBCVersion     = "12.6.2.jre11"
+  val mssqlserverJDBCVersion     = "13.2.1.jre11"
   val azureIdentityVersion       = "1.16.1"
   val azureResourceVersion       = "2.50.0"
   val azureBlobStorageVersion    = "12.30.0"

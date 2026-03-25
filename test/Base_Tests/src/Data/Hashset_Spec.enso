@@ -66,8 +66,22 @@ add_specs suite_builder =
         group_builder.specify "should be able to convert to text" <|
             s1 = Hashset.from_vector ["1", "2", "3"]
             s2 = Hashset.from_vector [1, 2, 3]
-            s1.to_text.should_equal "Hashset{'1', '2', '3'}"
-            s2.to_text.should_equal "Hashset{1, 2, 3}"
+            s1.to_text.should_equal "{1, 2, 3}"
+            s2.to_text.should_equal "{1, 2, 3}"
+
+        group_builder.specify "should be able to convert to display text" <|
+            s1 = Hashset.from_vector ["1", "2", "3"]
+            s2 = Hashset.from_vector [1, 2, 3]
+            s3 = Hashset.from_vector (0.up_to 100)
+            s1.to_display_text.should_equal "{1, 2, 3}"
+            s2.to_display_text.should_equal "{1, 2, 3}"
+            s3.to_display_text.should_contain "and 60 more elements"
+
+        group_builder.specify "should be able to convert to Enso code" <|
+            s1 = Hashset.from_vector ["1", "2", "3"]
+            s2 = Hashset.from_vector [1, 2, 3]
+            s1.pretty.should_equal "Hashset.from_vector ['1', '2', '3']"
+            s2.pretty.should_equal "Hashset.from_vector [1, 2, 3]"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

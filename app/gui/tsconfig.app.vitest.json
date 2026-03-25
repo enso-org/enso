@@ -55,7 +55,6 @@
     "./src/project-view/composables/__tests__/selection.test.ts",
     "./src/project-view/providers/__tests__/asyncResources.test.ts",
     "./src/project-view/providers/__tests__/interactionHandler.test.ts",
-    "./src/project-view/providers/__tests__/resizableWidgetRegistry.test.ts",
     "./src/project-view/providers/asyncResources/__tests__/parse.test.ts",
     "./src/project-view/stores/visualization/__tests__/metadata.test.ts",
     "./src/project-view/util/__tests__/array.test.ts",

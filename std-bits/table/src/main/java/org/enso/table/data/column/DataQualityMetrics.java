@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.JsonOperation;
+import org.enso.table.data.column.operation.unary.JsonOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -211,8 +211,9 @@ public abstract class DataQualityMetrics {
           distinctJson =
               "["
                   + distinct.stream()
-                      .map(o -> JsonOperation.objectToJson(o, null))
+                      .filter(JsonOperation::nativeSupport)
                       .filter(Objects::nonNull)
+                      .map(o -> JsonOperation.INSTANCE.objectToJson(o))
                       .sorted()
                       .collect(Collectors.joining())
                   + "]";

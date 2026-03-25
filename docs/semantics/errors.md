@@ -20,7 +20,9 @@ users to deal with errors at runtime in the language.
 
 ## Asynchronous Exceptions
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING]
+> The actionables for this section are:
 >
 > - Why do we call it asynchronous, when they are synchronous!?
 > - Specify the semantics of Enso's async exceptions.
@@ -31,13 +33,17 @@ There is a special [dynamic dispatch](../types/dynamic-dispatch.md) for `Error`
 values. A dataflow error dispatch first checks if it may call a method on
 `Error` type.
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING] 
+> The actionables for this section are:
 >
 > - Specify the semantics of Enso's broken values.
 
 ## Warnings
 
-> [!WARNING] TODO
+<!-- prettier-ignore -->
+> [!WARNING] 
+> TODO
 >
 > - Values in Enso may have warnings attached
 

@@ -53,6 +53,14 @@ add_specs suite_builder =
             doc = XML_Document.parse xml_string
             doc.root_element.name . should_equal "class"
 
+        group_builder.specify "Can convert to an XML_Element" <|
+            xml_string = "<class></class>"
+            doc = XML_Document.parse xml_string
+            doc.should_be_a XML_Document
+            elem = doc.to XML_Element
+            elem.should_be_a XML_Element
+            elem.should_equal doc.root_element
+
         group_builder.specify "Parse error from file" <|
             test_file = enso_project.data / "sample.txt"
             XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error
@@ -170,6 +178,21 @@ add_specs suite_builder =
             data.root.get_xpath "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
 
             data.root.get_xpath "/class/teacher[1]/firstname" . get 0 . text . should_equal "Mary"
+
+        group_builder.specify "Can get values via get_xpath_text" <|
+            teacher = data.root.get_xpath_text "/class/teacher/firstname"
+            teacher.should_be_a Text
+            teacher.should_equal "Mary"
+
+            notfound = data.root.get_xpath_text "/noclass/teacher/firstname"
+            notfound.should_equal Nothing
+
+            data.root.get_xpath_text "/class/teacher/@id" . should_equal "100"
+            data.root.get_xpath_text "/class/teacher[1]/firstname" . should_equal "Mary"
+            data.root.get_xpath_text "/class/teacher[2]/firstname" . should_equal "Bob"
+            data.root.get_xpath_text "/class/teacher[1]/firstname/text()" . should_equal "Mary"
+            data.root.get_xpath_text "/class/teacher[2]/firstname/text()" . should_equal "Bob"
+            data.root.get_xpath_text "/class/teacher/firstname/text()" . should_equal "Mary"
 
         group_builder.specify "Can get children using .get" <|
             data.root.get 0 . get 0 . name . should_equal "firstname"

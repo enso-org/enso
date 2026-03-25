@@ -43,6 +43,10 @@ public final class OtherJvmUtils {
     commandAndArgs.add("--sun-misc-unsafe-memory-access=allow");
     commandAndArgs.add("-Dpolyglot.engine.WarnInterpreterOnly=false");
     commandAndArgs.add("-Dtruffle.UseFallbackRuntime=true");
+    var dumpMessagesLimit = System.getProperty(OtherJvmPool.DUMP_MESSAGE_PROPERTY);
+    if (dumpMessagesLimit != null) {
+      commandAndArgs.add("-D" + OtherJvmPool.DUMP_MESSAGE_PROPERTY + "=" + dumpMessagesLimit);
+    }
     commandAndArgs.add("--enable-native-access=org.graalvm.truffle");
     commandAndArgs.add("--enable-native-access=org.enso.jvm.channel");
     commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
@@ -76,7 +80,7 @@ public final class OtherJvmUtils {
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
     // commandAndArgs.add("-Djdk.module.showModuleResolution=true");
     commandAndArgs.add(
-        "-Dslf4j.provider=org.enso.logging.config.systemlogger.SystemLoggerForSlf4j");
+        "-Dslf4j.provider=org.enso.logging.config.systemlogger.Slf4jViaSystemProvider");
     commandAndArgs.add("-Dslf4j.internal.verbosity=WARN");
     return commandAndArgs.toArray(String[]::new);
   }

@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 import project.Columns_To_Add.Columns_To_Add
+import project.Internal.Value_Type_Checks
 import project.Table.Table
-import project.Value_Type.Value_Type
 from project.Internal.Fan_Out import all
 
 ## ---
@@ -13,8 +13,8 @@ from project.Internal.Fan_Out import all
 split_to_columns : Table -> Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
 split_to_columns table input_column_id delimiter="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Error =
     column = table.at input_column_id
-    Value_Type.expect_text column <|
-        fan_out_to_columns table column.name (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
+    Value_Type_Checks.is_text column
+    fan_out_to_columns table column.name (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
 
 ## ---
    private: true
@@ -24,8 +24,8 @@ split_to_columns table input_column_id delimiter="," column_count:Columns_To_Add
 split_to_rows : Table -> Text | Integer -> Text -> Table
 split_to_rows table input_column_id:(Text | Integer) delimiter="," =
     column = table.at input_column_id
-    Value_Type.expect_text column <|
-        fan_out_to_rows table column.name (handle_nothing (_.split delimiter)) at_least_one_row=True
+    Value_Type_Checks.is_text column
+    fan_out_to_rows table column.name (handle_nothing (_.split delimiter)) at_least_one_row=True
 
 ## ---
    private: true
@@ -36,8 +36,8 @@ split_to_rows table input_column_id:(Text | Integer) delimiter="," =
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> Table
 tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems:Problem_Behavior =
     column = table.at input_column_id
-    Value_Type.expect_text column <|
-        fan_out_to_columns table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
+    Value_Type_Checks.is_text column
+    fan_out_to_columns table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
 
 ## ---
    private: true
@@ -47,8 +47,8 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
 tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
     column = table.at input_column_id
-    Value_Type.expect_text column <|
-        fan_out_to_rows table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
+    Value_Type_Checks.is_text column
+    fan_out_to_rows table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
 
 ## ---
    private: true
@@ -68,9 +68,8 @@ parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensiti
     fun = handle_nothing (regex_parse_to_vectors regex)
     column_names = regex_to_column_names regex column.name
 
-
-    new_table = Value_Type.expect_text column <|
-        fan_out_to_rows_and_columns table column.name fun column_names at_least_one_row=True on_problems=on_problems
+    Value_Type_Checks.is_text column
+    new_table = fan_out_to_rows_and_columns table column.name fun column_names at_least_one_row=True on_problems=on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## ---

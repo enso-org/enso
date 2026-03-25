@@ -68,7 +68,9 @@ want to customise.
 
 ## Optional Parameters
 
-> [!WARNING] Not implemented.
+<!-- prettier-ignore -->
+> [!WARNING]
+> Not implemented.
 
 There are certain cases where the type information for an parameter may be able
 to be inferred by the compiler. This is best explained by example. Consider the
@@ -110,7 +112,9 @@ read text this? = t.fromText text
 
 ## Splats parameters (Variadics)
 
-> [!WARNING] Not implemented.
+<!-- prettier-ignore -->
+> [!WARNING]
+> Not implemented.
 
 Enso provides users with the ability to define variadic functions, or _splats_
 functions in our terminology. These are very useful for defining expressive APIs
@@ -127,7 +131,9 @@ and flexible code.
 
 ## Type Applications
 
-> [!WARNING] Not implemented.
+<!-- prettier-ignore -->
+> [!WARNING]
+> Not implemented.
 
 There are sometimes cases where the user wants to explicitly refine the type of
 an parameter at the _call_ site of a function. This can be useful for debugging,

@@ -15,8 +15,8 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "dependencies": {
-    "ydoc-server": "workspace:*",
-    "ydoc-shared": "workspace:*"
+    "ydoc-channel": "workspace:*",
+    "ydoc-server": "workspace:*"
   },
   "devDependencies": {
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",

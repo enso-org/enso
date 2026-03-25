@@ -6,6 +6,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 import project.Column.Column
+import project.Internal.Value_Type_Checks
 import project.Value_Type.Value_Type
 
 ## ---
@@ -27,23 +28,23 @@ align_period_with_value_type value_type (period : Date_Period | Time_Period) = c
    ---
    Common logic for `Column.date_part`.
 make_date_part_function column period make_unary_op naming_helper =
-    Value_Type.expect_type column .is_date_or_time "date/time" <|
-        my_type = column.inferred_precise_value_type
-        align_period_with_value_type my_type period . if_not_error <|
-            new_name = naming_helper.function_name "date_part" [column, period]
-            result = case period of
-                Date_Period.Year -> make_unary_op column "year"
-                Date_Period.Quarter -> make_unary_op column "quarter"
-                Date_Period.Month -> make_unary_op column "month"
-                Date_Period.Week _ -> make_unary_op column "week"
-                Date_Period.Day -> make_unary_op column "day"
-                Time_Period.Hour -> make_unary_op column "hour"
-                Time_Period.Minute -> make_unary_op column "minute"
-                Time_Period.Second -> make_unary_op column "second"
-                Time_Period.Millisecond -> make_unary_op column "millisecond"
-                Time_Period.Microsecond -> make_unary_op column "microsecond"
-                Time_Period.Nanosecond -> make_unary_op column "nanosecond"
-            result.rename new_name
+    Value_Type_Checks.is_date_or_time column
+    my_type = column.inferred_precise_value_type
+    align_period_with_value_type my_type period . if_not_error <|
+        new_name = naming_helper.function_name "date_part" [column, period]
+        result = case period of
+            Date_Period.Year -> make_unary_op column "year"
+            Date_Period.Quarter -> make_unary_op column "quarter"
+            Date_Period.Month -> make_unary_op column "month"
+            Date_Period.Week _ -> make_unary_op column "week"
+            Date_Period.Day -> make_unary_op column "day"
+            Time_Period.Hour -> make_unary_op column "hour"
+            Time_Period.Minute -> make_unary_op column "minute"
+            Time_Period.Second -> make_unary_op column "second"
+            Time_Period.Millisecond -> make_unary_op column "millisecond"
+            Time_Period.Microsecond -> make_unary_op column "microsecond"
+            Time_Period.Nanosecond -> make_unary_op column "nanosecond"
+        result.rename new_name
 
 ## ---
    private: true

@@ -9,6 +9,12 @@
 - [Fixed uploading corrupted projects to the cloud storage][14805]
 - [Drive is now a separate panel instead of tab.][14807]
 - [Fixed <kbd>Ctrl</kbd>-clicking enso:// links][14820]
+- [Opened project's Language Server process is restarted after a crash][14832].
+- [Geo Map Visualization may display GeoSpatial data][14859]
+- [Component height can be resized][14849]
+- [Add right click menu for multiple components][14640].
+- [Execution can be scheduled for the specific version tag][14883]
+- [Add component spacing options][14888]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -16,6 +22,12 @@
 [14805]: https://github.com/enso-org/enso/pull/14805
 [14807]: https://github.com/enso-org/enso/pull/14807
 [14820]: https://github.com/enso-org/enso/pull/14820
+[14832]: https://github.com/enso-org/enso/pull/14832
+[14859]: https://github.com/enso-org/enso/pull/14859
+[14849]: https://github.com/enso-org/enso/pull/14849
+[14640]: https://github.com/enso-org/enso/pull/14640
+[14883]: https://github.com/enso-org/enso/pull/14883
+[14888]: https://github.com/enso-org/enso/pull/14888
 
 #### Enso Standard Library
 
@@ -33,6 +45,9 @@
 - [`Process_Builder.set_env`.][14799]
 - [New `Profile` API for timing code execution.][14827]
 - [Expanded S3 API with versions and signed uri][14831]
+- [Support for reading JSON data from database connections.][14872]
+- [Add Redshift bulk loading][14860]
+- [JSON functions on Table and Column. XML and Hashset fixes.][14884]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -48,6 +63,9 @@
 [14799]: https://github.com/enso-org/enso/pull/14799
 [14827]: https://github.com/enso-org/enso/pull/14827
 [14831]: https://github.com/enso-org/enso/pull/14831
+[14872]: https://github.com/enso-org/enso/pull/14872
+[14860]: https://github.com/enso-org/enso/pull/14860
+[14884]: https://github.com/enso-org/enso/pull/14884
 
 #### Enso Language & Runtime
 
@@ -57,6 +75,8 @@
 - [Flush system caches via `Runtime.gc`][14557]
 - [Removing `catch_primitive` from the API][14676]
 - [`polyglot java import` loads classes from HotSpot JVM][14798]
+- [Require opt-in to prefer local libraries][14885]
+- [Opt-in to get more detailed logs][14895]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
@@ -64,6 +84,8 @@
 [14557]: https://github.com/enso-org/enso/pull/14557
 [14676]: https://github.com/enso-org/enso/pull/14676
 [14798]: https://github.com/enso-org/enso/pull/14798
+[14885]: https://github.com/enso-org/enso/pull/14885
+[14895]: https://github.com/enso-org/enso/pull/14895
 
 # Enso 2025.3
 
