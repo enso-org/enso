@@ -125,12 +125,6 @@ public final class System {
       var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
 
       var exec = Executors.newVirtualThreadPerTaskExecutor();
-      var stdin =
-          exec.submit(
-              () -> {
-                handleStdIn(p, redirectIn, ctx, in);
-              });
-
       var stdout =
           exec.submit(
               () -> {
@@ -143,10 +137,10 @@ public final class System {
                 return handleStdErr(p, redirectErr, ctx);
               });
 
+      handleStdIn(p, redirectIn, ctx, in);
       p.waitFor();
-      var exitCode = p.exitValue();
 
-      stdin.get();
+      var exitCode = p.exitValue();
       var returnOut = Text.create(stdout.get());
       var returnErr = Text.create(stderr.get());
 
@@ -202,8 +196,8 @@ public final class System {
   }
 
   private static void handleStdIn(
-      Process p, boolean redirectIn, EnsoContext ctx, ByteArrayInputStream in) {
-    // boolean startedWritingtoOut = false;
+      Process p, boolean redirectIn, EnsoContext ctx, ByteArrayInputStream in) throws IOException {
+    boolean startedWritingtoOut = false;
     try (OutputStream processIn = p.getOutputStream()) {
       InputStream stdin;
       if (redirectIn) {
@@ -212,17 +206,16 @@ public final class System {
         stdin = in;
       }
       int nread;
-      // startedWritingtoOut = true;
+      startedWritingtoOut = true;
       byte[] buf = new byte[8096];
       while (stdin.available() > 0 && (nread = stdin.read(buf)) != -1) {
         processIn.write(buf, 0, nread);
       }
-    } catch (IOException ex) {
-      LOG.log(Logger.Level.WARNING, ex);
+    } catch (IOException e) {
       // Getting the output stream of a finished process results in an IOException.
       // We can ignore it at this point.
       // Unless this exception is from writing to buffer/reading from stdin.
-      // if (startedWritingtoOut) throw e;
+      if (startedWritingtoOut) throw e;
     }
   }
 }
