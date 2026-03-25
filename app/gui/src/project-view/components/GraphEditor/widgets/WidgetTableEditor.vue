@@ -3,6 +3,7 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { proxyRefs } from '$/utils/reactivity'
+import AgGridTableView from '@/components/AgGridTableView.vue'
 import ResizableWidget from '@/components/GraphEditor/ResizableWidget.vue'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import TableHeader, {
@@ -15,7 +16,6 @@ import {
   tableInputCallMayBeHandled,
   useTableInputArgument,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
@@ -196,34 +196,31 @@ export const widgetDefinition = defineWidget(
       :config="config"
       :updateCallback="updateCallback"
     >
-      <Suspense v-if="tree.expanded">
-        <AgGridTableView
-          ref="grid"
-          class="inner"
-          :defaultColDef="defaultColDef"
-          :columnDefs="columnDefsTyped"
-          :rowData="rowData"
-          :getRowId="(row) => `${row.data.index}`"
-          :components="{
-            agColumnHeader: TableHeader,
-          }"
-          :stopEditingWhenCellsLoseFocus="true"
-          :suppressDragLeaveHidesColumns="true"
-          :suppressMoveWhenColumnDragging="true"
-          :processDataFromClipboard="processDataFromClipboard"
-          v-on="gridEventHandlers"
-          @keydown.arrow-left.stop
-          @keydown.arrow-right.stop
-          @keydown.arrow-up.stop
-          @keydown.arrow-down.stop
-          @keydown.backspace.stop
-          @keydown.delete.stop
-          @pointerdown.stop
-          @click.stop
-          @columnMoved="onColumnMoved"
-          @rowDragEnd="onRowDragEnd"
-        />
-      </Suspense>
+      <AgGridTableView
+        ref="grid"
+        :defaultColDef="defaultColDef"
+        :columnDefs="columnDefsTyped"
+        :rowData="rowData"
+        :getRowId="(row) => `${row.data.index}`"
+        :components="{
+          agColumnHeader: TableHeader,
+        }"
+        :stopEditingWhenCellsLoseFocus="true"
+        :suppressDragLeaveHidesColumns="true"
+        :suppressMoveWhenColumnDragging="true"
+        :processDataFromClipboard="processDataFromClipboard"
+        v-on="gridEventHandlers"
+        @keydown.arrow-left.stop
+        @keydown.arrow-right.stop
+        @keydown.arrow-up.stop
+        @keydown.arrow-down.stop
+        @keydown.backspace.stop
+        @keydown.delete.stop
+        @pointerdown.stop
+        @click.stop
+        @columnMoved="onColumnMoved"
+        @rowDragEnd="onRowDragEnd"
+      />
     </ResizableWidget>
   </div>
   <div v-else class="WidgetTableEditor widgetSingleLine">
@@ -234,11 +231,6 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetTableEditor.widgetExpanded {
   border-radius: var(--node-port-border-radius);
-}
-
-.WidgetTableEditor.widgetSingleLine .inner {
-  width: 100%;
-  height: 100%;
 }
 
 .collapsed {
@@ -253,34 +245,6 @@ export const widgetDefinition = defineWidget(
   color: rgba(0, 0, 0, 0.4);
 }
 
-/* Those two classes are copied from AgGridTableView component.
-For some reason, Vue cannot load them there, probably because it is used also as Custom Element. */
-:deep(.inner) {
-  width: 100%;
-  height: 100%;
-}
-
-/*
- * FIXME: This is a copy of the style defined within AgGridTableView, which has no effect here due to a bug.
- */
-:deep(.ag-theme-alpine) {
-  --ag-grid-size: 3px;
-  --ag-list-item-height: 20px;
-  --ag-background-color: var(--color-visualization-bg);
-  --ag-odd-row-background-color: color-mix(in srgb, var(--color-visualization-bg) 98%, black);
-  --ag-header-background-color: var(--color-visualization-bg);
-  font-family: var(--font-mono);
-
-  :deep(.ag-header) {
-    background: linear-gradient(
-      to top,
-      var(--ag-odd-row-background-color),
-      var(--ag-background-color)
-    );
-  }
-}
-
-/* Separate, actually widget-specific styling. */
 .WidgetTableEditor:deep(.ag-root-wrapper) {
   --ag-wrapper-border-radius: var(--node-port-border-radius);
   border: none;
