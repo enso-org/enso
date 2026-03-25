@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import HelpBar from '$/components/AppContainer/HelpBar.vue'
 import { Drive } from '$/components/AppContainer/reactTabs'
+import { categoryKey, useCategories, type CategoryType } from '$/providers/categories'
 import { useContainerData } from '$/providers/container'
 import { optPx } from '$/utils/dom'
 import ActionMenu from '@/components/ActionMenu.vue'
@@ -12,7 +13,8 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
-import { computed, toRefs, useTemplateRef } from 'vue'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { computed, ref, toRefs, useTemplateRef } from 'vue'
 
 const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
   'help.whatsNew',
@@ -27,6 +29,7 @@ const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
 
 const props = defineProps<{ middlePanelShown: boolean }>()
 
+const categories = useCategories()
 const containerData = useContainerData()
 const { leftPanelWidth: width, leftPanelToggledOn: toggledOn } = toRefs(containerData)
 const visible = computed(() => toggledOn.value || !props.middlePanelShown)
@@ -42,10 +45,49 @@ const resizeHandles = useResizeHandles({
   size: useResizeObserver(root),
 })
 resizeHandles.onResizeWidth((value) => (width.value = value))
+
+const leftBarHovered = ref(false)
+
+function categoryIcon(category: CategoryType): Icon {
+  switch (category) {
+    case 'cloud':
+    case 'recent':
+      return category
+    case 'local':
+      return 'system'
+    case 'trash':
+      return 'trash_small'
+    case 'team':
+      return 'people'
+    case 'localDirectory':
+      return 'folder_small'
+  }
+}
 </script>
 
 <template>
   <div class="LeftPanel">
+    <div
+      class="leftBar"
+      :class="{ expanded: leftBarHovered }"
+      @mouseenter="leftBarHovered = true"
+      @mouseleave="leftBarHovered = false"
+    >
+      <SvgButton
+        v-model="toggledOn"
+        class="leftBarIcon"
+        name="right_side_panel"
+        title="Toggle Drive Panel"
+        :disabled="!middlePanelShown"
+      />
+      <SvgButton
+        v-for="category of categories.categoriesList"
+        :key="categoryKey(category)"
+        class="leftBarIcon"
+        :name="categoryIcon(category.type)"
+        :label="categories.categoryLabel(category)"
+      />
+    </div>
     <SizeTransition width :duration="250">
       <div v-if="visible" class="sizeWrapper">
         <div ref="content" class="panel" :class="cssClass" :style="widthStyle">
@@ -55,18 +97,11 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
         </div>
       </div>
     </SizeTransition>
-    <div class="shadow" />
     <DropdownMenu class="ensoIcon">
       <template #button><SvgIcon name="enso_logo" /></template>
       <template #menu><ActionMenu :actions="ENSO_ICON_MENU_ACTIONS" /></template>
     </DropdownMenu>
-    <SvgButton
-      v-model="toggledOn"
-      class="toggleVisibilityButton"
-      name="right_side_panel"
-      title="Toggle Drive Panel"
-      :disabled="!middlePanelShown"
-    />
+    <div class="shadow" />
   </div>
 </template>
 
@@ -74,8 +109,26 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
 .LeftPanel {
   position: relative;
   min-width: 48px;
-  height: 100%;
   z-index: 1;
+}
+
+.leftBar {
+  position: absolute;
+  width: 48px;
+  height: 100%;
+  margin-top: var(--top-bar-height);
+  padding: 16px;
+  background-color: var(--color-dashboard-background);
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  align-items: start;
+  gap: 16px;
+  z-index: 2;
+
+  &.expanded {
+    width: fit-content;
+  }
 }
 
 /* This element's visible width will be overwritten by the size transition, but the inner content's
@@ -87,6 +140,7 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
   min-width: 0;
   width: 100%;
   background-color: var(--panel-background);
+  margin-left: 48px;
 }
 
 .panel {
@@ -130,11 +184,5 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
   left: 8px;
   padding: 0;
   z-index: 1;
-}
-
-.toggleVisibilityButton {
-  position: absolute;
-  left: 16px;
-  top: calc(var(--top-bar-height) + 20px);
 }
 </style>

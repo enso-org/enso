@@ -4,12 +4,10 @@ import { Button } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
-import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
-import CategorySwitcher from '#/layouts/CategorySwitcher'
+import AssetsTable from '#/layouts/AssetsTable'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
@@ -130,7 +128,6 @@ function DriveInner() {
 
 /** The assets view of the Drive. */
 function DriveAssetsView() {
-  const { getText } = useText()
   const { setFocusedPanel } = useContainerData()
   const { isOffline } = offlineHooks.useOffline()
   const { associatedBackend } = useCategoriesAPI()
@@ -146,32 +143,19 @@ function DriveAssetsView() {
     <div className="relative flex h-full w-full" onFocus={onFocus}>
       <div
         data-testid="drive-view"
-        className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
+        className="mt-4 flex flex-1 flex-col gap-4 overflow-hidden px-4"
       >
-        <div className="grid flex-1 gap-3 overflow-hidden sm:grid-cols-[180px_minmax(0,1fr)]">
-          <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-12 sm:flex">
-            <div className="flex flex-col gap-2">
-              <Text variant="subtitle" weight="semibold">
-                {getText('category')}
-              </Text>
-              <CategorySwitcher />
-            </div>
+        <div className="flex grow flex-col gap-3">
+          <DriveBar query={query} setQuery={setQuery} />
 
-            <AssetsTableAssetsUnselector />
-          </div>
-
-          <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
-            <DriveBar query={query} setQuery={setQuery} />
-
-            {isInaccessible && <OfflineMessage />}
-            {!isInaccessible && (
-              <Suspense>
-                <ErrorBoundary>
-                  <AssetsTable query={query} setQuery={setQuery} />
-                </ErrorBoundary>
-              </Suspense>
-            )}
-          </div>
+          {isInaccessible && <OfflineMessage />}
+          {!isInaccessible && (
+            <Suspense>
+              <ErrorBoundary>
+                <AssetsTable query={query} setQuery={setQuery} />
+              </ErrorBoundary>
+            </Suspense>
+          )}
         </div>
       </div>
     </div>

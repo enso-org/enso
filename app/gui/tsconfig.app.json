@@ -871,6 +871,7 @@
     "./src/providers/actions.ts",
     "./src/providers/auth.ts",
     "./src/providers/backends.ts",
+    "./src/providers/categories.ts",
     "./src/providers/config.ts",
     "./src/providers/container.ts",
     "./src/providers/devTools.ts",
