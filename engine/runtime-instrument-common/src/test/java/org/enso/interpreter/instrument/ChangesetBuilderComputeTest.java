@@ -428,7 +428,7 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
-  public void editMethodDefinitionBody() {
+  public void editMethodDefinitionBodyInvalidatesCall() {
     var rawCode =
         """
         helper x = x + 1
@@ -445,6 +445,58 @@ public class ChangesetBuilderComputeTest {
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
+  }
+
+  @Test
+  public void editMethodDefinitionBodyInvalidatesBothCalls() {
+    var rawCode =
+        """
+        helper x = x + 1
+
+        main =
+            a = 10
+            b = 20
+            y = helper a
+            z = helper b
+            y
+        """;
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    // Edit: 1 -> 2 in helper body
+    var edit = new TextEdit(new Range(new Position(0, 16), new Position(0, 17)), "2");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertNotInvalidated(result, ir, "a");
+    assertNotInvalidated(result, ir, "b");
+    assertInvalidated(result, ir, "y");
+    assertInvalidated(result, ir, "z");
+  }
+
+  @Test
+  public void editApplicationArgumentInvalidatesSingleCall() {
+    var rawCode =
+        """
+        helper x = x + 1
+
+        main =
+            a = 10
+            b = 20
+            y = helper a
+            z = helper b
+            y
+        """;
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    // Edit: 1 -> 4 in "a = 10"
+    var edit = new TextEdit(new Range(new Position(3, 8), new Position(3, 9)), "4");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertInvalidated(result, ir, "a");
+    assertNotInvalidated(result, ir, "b");
+    assertInvalidated(result, ir, "y");
+    assertNotInvalidated(result, ir, "z");
   }
 
   @Test

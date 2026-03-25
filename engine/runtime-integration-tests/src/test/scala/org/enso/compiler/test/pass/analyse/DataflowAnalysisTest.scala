@@ -531,7 +531,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The `IO.println` expression
       dependencies.getDirect(printlnExprId) shouldEqual Some(
-        Set(printlnArgIOId, printlnArgBId, printlnFnId)
+        Set(printlnFnId)
       )
       dependencies.getDirect(printlnFnId) shouldEqual Some(Set(printlnSymbol))
       dependencies.getDirect(printlnArgIOId) shouldEqual Some(
@@ -549,7 +549,7 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       dependencies.getDirect(cBindNameId) shouldEqual None
       dependencies.getDirect(plusExprId) shouldEqual Some(
-        Set(plusExprFnId, plusExprArgAId, plusExprArgBId)
+        Set(plusExprFnId)
       )
       dependencies.getDirect(plusExprFnId) shouldEqual Some(Set(plusSymbol))
       dependencies.getDirect(plusExprArgAId) shouldEqual Some(
@@ -563,7 +563,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The `frobnicate` expression
       dependencies.getDirect(frobExprId) shouldEqual Some(
-        Set(frobFnId, frobArgAId, frobArgCId)
+        Set(frobFnId)
       )
       dependencies.getDirect(frobFnId) shouldEqual Some(Set(frobnicateSymbol))
       dependencies.getDirect(frobArgAId) shouldEqual Some(Set(frobArgAExprId))
@@ -796,68 +796,23 @@ class DataflowAnalysisTest extends CompilerTest {
           fnId,
           fnBodyId,
           frobExprId,
-          frobArgAId,
-          frobArgAExprId,
-          frobArgCId,
-          frobArgCExprId,
           frobFnId,
-          frobnicateSymbol,
-          cBindExprId,
-          cBindNameId,
-          plusExprId,
-          plusExprFnId,
-          plusSymbol,
-          plusExprArgAId,
-          plusExprArgBId,
-          plusExprArgAExprId,
-          plusExprArgBExprId,
-          fnArgAId,
-          fnArgBId
+          frobnicateSymbol
         )
       )
       dependencies.get(fnId) shouldEqual Some(
         Set(
           fnBodyId,
           frobExprId,
-          frobArgAId,
-          frobArgAExprId,
-          frobArgCId,
-          frobArgCExprId,
           frobFnId,
-          frobnicateSymbol,
-          cBindExprId,
-          cBindNameId,
-          plusExprId,
-          plusExprFnId,
-          plusSymbol,
-          plusExprArgAId,
-          plusExprArgBId,
-          plusExprArgAExprId,
-          plusExprArgBExprId,
-          fnArgAId,
-          fnArgBId
+          frobnicateSymbol
         )
       )
       dependencies.get(fnBodyId) shouldEqual Some(
         Set(
           frobExprId,
-          frobArgAId,
-          frobArgAExprId,
-          frobArgCId,
-          frobArgCExprId,
           frobFnId,
-          frobnicateSymbol,
-          cBindExprId,
-          cBindNameId,
-          plusExprId,
-          plusExprFnId,
-          plusSymbol,
-          plusExprArgAId,
-          plusExprArgBId,
-          plusExprArgAExprId,
-          plusExprArgBExprId,
-          fnArgAId,
-          fnArgBId
+          frobnicateSymbol
         )
       )
       dependencies.get(fnArgAId) shouldEqual None
@@ -867,13 +822,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependencies.get(printlnExprId) shouldEqual Some(
         Set(
           printlnFnId,
-          printlnSymbol,
-          printlnArgIOId,
-          printlnArgIOExprId,
-          ioSymbol,
-          printlnArgBId,
-          printlnArgBExprId,
-          fnArgBId
+          printlnSymbol
         )
       )
       dependencies.get(printlnFnId) shouldEqual Some(Set(printlnSymbol))
@@ -891,27 +840,15 @@ class DataflowAnalysisTest extends CompilerTest {
         Set(
           cBindNameId,
           plusExprId,
-          plusExprArgAId,
-          plusExprArgAExprId,
-          fnArgAId,
           plusExprFnId,
-          plusSymbol,
-          plusExprArgBId,
-          plusExprArgBExprId,
-          fnArgBId
+          plusSymbol
         )
       )
       dependencies.get(cBindNameId) shouldEqual None
       dependencies.get(plusExprId) shouldEqual Some(
         Set(
-          plusExprArgAId,
-          plusExprArgAExprId,
-          fnArgAId,
           plusExprFnId,
-          plusSymbol,
-          plusExprArgBId,
-          plusExprArgBExprId,
-          fnArgBId
+          plusSymbol
         )
       )
       dependencies.get(plusExprArgAId) shouldEqual Some(
@@ -928,23 +865,8 @@ class DataflowAnalysisTest extends CompilerTest {
       // The `frobnicate` expression
       dependencies.get(frobExprId) shouldEqual Some(
         Set(
-          frobArgAId,
-          frobArgAExprId,
-          frobArgCId,
-          frobArgCExprId,
           frobFnId,
-          frobnicateSymbol,
-          cBindExprId,
-          cBindNameId,
-          plusExprId,
-          plusExprFnId,
-          plusSymbol,
-          plusExprArgAId,
-          plusExprArgBId,
-          plusExprArgAExprId,
-          plusExprArgBExprId,
-          fnArgAId,
-          fnArgBId
+          frobnicateSymbol
         )
       )
       dependencies.get(frobArgAId) shouldEqual Some(
@@ -953,17 +875,11 @@ class DataflowAnalysisTest extends CompilerTest {
       dependencies.get(frobArgCId) shouldEqual Some(
         Set(
           frobArgCExprId,
-          cBindExprId,
-          cBindNameId,
           plusExprId,
           plusExprFnId,
           plusSymbol,
-          plusExprArgAId,
-          plusExprArgAExprId,
-          fnArgAId,
-          plusExprArgBId,
-          plusExprArgBExprId,
-          fnArgBId
+          cBindExprId,
+          cBindNameId
         )
       )
     }
@@ -1060,7 +976,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependencies.getDirect(fnId) shouldEqual Some(Set(fnBodyId))
       dependencies.getDirect(fnArgXId) shouldEqual None
       dependencies.getDirect(fnBodyId) shouldEqual Some(
-        Set(plusFnId, plusArgXId, plusArgYId)
+        Set(plusFnId)
       )
       dependencies.getDirect(plusArgXId) shouldEqual Some(Set(plusArgXExprId))
       dependencies.getDirect(plusArgYId) shouldEqual Some(Set(plusArgYExprId))
@@ -1143,7 +1059,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The tests for dependencies
       dependencies.getDirect(appId) shouldEqual Some(
-        Set(appFnId, appArg10Id, appArgFnId)
+        Set(appFnId)
       )
       dependencies.getDirect(appFnId) shouldEqual Some(Set(fooSym))
       dependencies.getDirect(appArg10Id) shouldEqual Some(
@@ -1155,7 +1071,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependencies.getDirect(lamId) shouldEqual Some(Set(mulId))
       dependencies.getDirect(lamArgXId) shouldEqual None
       dependencies.getDirect(mulId) shouldEqual Some(
-        Set(mulFnId, mulArg1Id, mulArg2Id)
+        Set(mulFnId)
       )
       dependencies.getDirect(mulArg1Id) shouldEqual Some(Set(mulArg1ExprId))
       dependencies.getDirect(mulArg1ExprId) shouldEqual Some(Set(lamArgXId))
@@ -1325,7 +1241,7 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       dependencies.getDirect(bindingNameId) shouldEqual None
       dependencies.getDirect(bindingExprId) shouldEqual Some(
-        Set(plusFnId, undefinedArgId, numArgId)
+        Set(plusFnId)
       )
       dependencies.getDirect(numArgId) shouldEqual Some(Set(numArgExprId))
       dependencies.getDirect(plusFnId) shouldEqual Some(Set(plusSym))
@@ -1533,7 +1449,7 @@ class DataflowAnalysisTest extends CompilerTest {
       )
 
       dependencies.getDirect(consBranchExpressionId) shouldEqual Some(
-        Set(aArgId, consBranchFnId, bArgId)
+        Set(consBranchFnId)
       )
       dependencies.getDirect(consBranchFnId) shouldEqual Some(Set(plusSym))
       dependencies.getDirect(aArgId) shouldEqual Some(Set(aUseId))
@@ -1698,7 +1614,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependencies.getDirect(lambdaId) shouldEqual Some(Set(fnBodyId))
       dependencies.getDirect(fnBodyId) shouldEqual Some(Set(fooExprId))
       dependencies.getDirect(fooExprId) shouldEqual Some(
-        Set(fooFunctionId, fooArg1Id, fooArg2Id)
+        Set(fooFunctionId)
       )
       dependencies.getDirect(fooFunctionId) shouldEqual Some(Set(fooSymbol))
       dependencies.getDirect(fooArg1Id) shouldEqual Some(Set(fooArg1ExprId))

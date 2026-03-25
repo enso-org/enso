@@ -155,35 +155,42 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     ): Set[UUID @ExternalID] =
       if (queue.isEmpty) visited.flatMap(_.externalId).toSet
       else {
-        val elem = queue.dequeue()
-        val transitive = metadata.dependents
-          .get(elem)
-          .getOrElse(Set.empty[DependencyInfo.Type])
+        val elem       = queue.dequeue()
+        val transitive = metadata.dependents.get(elem).getOrElse(Set())
+        val dynamic = transitive
+          .flatMap {
+            case s: DependencyInfo.Type.Static =>
+              ChangesetBuilder
+                .getExpressionName(ir, s.id)
+                .map(new DependencyInfo.Type.Dynamic(_, None))
+            case dyn: DependencyInfo.Type.Dynamic =>
+              Some(dyn)
+            case _ =>
+              None
+          }
+          .flatMap(metadata.dependents.get(_))
+          .flatten
+        val combined = transitive
+          .asInstanceOf[scala.collection.Set[
+            org.enso.compiler.pass.analyse.DependencyInfo.Type
+          ]]
+          .union(
+            dynamic.asInstanceOf[scala.collection.Set[
+              org.enso.compiler.pass.analyse.DependencyInfo.Type
+            ]]
+          )
 
         go(
-          queue ++= transitive.diff(visited),
-          visited ++= transitive
+          queue ++= combined.diff(visited),
+          visited ++= combined
         )
       }
 
     val nodeIds = invalidated(edits)
     val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
-    val dynamic = direct
-      .flatMap {
-        case s: DependencyInfo.Type.Static =>
-          ChangesetBuilder
-            .getExpressionName(ir, s.id)
-            .map(new DependencyInfo.Type.Dynamic(_, None))
-        case dyn: DependencyInfo.Type.Dynamic =>
-          Some(dyn)
-        case _ =>
-          None
-      }
-      .flatMap(metadata.dependents.get(_))
-      .flatten
     val transitive =
       go(
-        mutable.Queue().addAll(direct).addAll(dynamic),
+        mutable.Queue().addAll(direct),
         mutable.Set()
       )
     direct.flatMap(_.externalId) ++ transitive
@@ -696,8 +703,6 @@ object ChangesetBuilder {
       { ir =>
         if (ir.getId == id)
           ir match {
-            case name: Name =>
-              return Some(name.name)
             case method: definition.Method =>
               return Some(method.methodName.name)
             case _ =>
