@@ -315,11 +315,13 @@ pad vector n elem =
 
 each vector f =
     0.up_to vector.raw_size . each ix->
-        f (vector.at ix)
+        elem = vector.at ix
+        f elem
 
 each_with_index vector f =
     0.up_to vector.raw_size . each ix->
-        f ix (vector.at ix)
+        elem = vector.at ix
+        f ix elem
 
 reverse vector = Vector.new vector.raw_size (i -> vector.at (vector.raw_size - (1 + i)))
 
