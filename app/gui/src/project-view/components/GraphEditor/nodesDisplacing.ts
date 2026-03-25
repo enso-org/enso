@@ -31,7 +31,7 @@ export function useNodesDisplacing() {
     const displacements = nodeDisplacements(rects, bounds0, bounds1, pushStart)
     if (!displacements) return
     const { moves, pullLimits } = displacements
-    lastPushStart.value = [resizedId, pullLimits]
+    lastPushStart.value = pullLimits && [resizedId, pullLimits]
     module.value.batchEdits(() => {
       for (const [i, pos] of moves) graph.value.setNodePosition(ids[i]!, pos)
     })
@@ -45,6 +45,7 @@ function qmask(a: boolean, b: boolean, c: boolean, d: boolean): QMask {
   return +a | (+b << 1) | (+c << 2) | (+d << 3)
 }
 namespace QMask {
+  /** Bitwise negation. This should be used instead of the ~ operator to avoid setting bits not used by a QMask. */
   export function invert(m: QMask): QMask {
     return ~m & 0b1111
   }
@@ -55,7 +56,6 @@ namespace QMask {
 }
 
 /**
- * @internal
  * A representation of a rectangle that simplifies bounds operations.
  *
  * The signs of the `left` and `top` sides are negated, so the same logic can be used when comparing `left` bounds and

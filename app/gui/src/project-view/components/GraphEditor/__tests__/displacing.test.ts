@@ -14,7 +14,6 @@ interface ResizeCase extends StaticCase {
 }
 
 const UNIT = { top: 0, left: 0, right: 1, bottom: 1 }
-const INFINITE = { top: -Infinity, left: -Infinity, right: Infinity, bottom: Infinity }
 
 const EXPANDING_BOTTOM: ResizeCase = {
   rects: [Quad.fromRect({ ...UNIT, top: 2, bottom: 3 })],
