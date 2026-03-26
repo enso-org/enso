@@ -117,9 +117,9 @@ export function decorateImageWithRendered(
   if (nodeRef.name === 'Image') {
     const parsed = parseLinkLike(nodeRef, doc)
     if (!parsed) return
-    const { text, url } = parsed
+    const { text, url, title } = parsed
     const alt = doc.sliceString(text.from, text.to)
-    const widget = new MediaWidget({ src: url, alt }, vueHost)
+    const widget = new MediaWidget({ src: url, alt, title }, vueHost)
     emitDecoration(
       Range.emptyAt(nodeRef.to),
       Decoration.widget({
@@ -133,9 +133,10 @@ export function decorateImageWithRendered(
 }
 
 class MediaWidget extends VueDecorationWidget<{ alt: string; src: string }> {
-  constructor(props: { alt: string; src: string }, vueHost: VueHost) {
+  constructor(props: { alt: string; src: string; title?: string | undefined }, vueHost: VueHost) {
     const isVideo = props.src.match(/https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[^/]+/)
     const component = isVideo ? DocumentationVideo : DocumentationImage
+    if (!isVideo) delete props.title
     super(component, props, vueHost, 'cm-media-rendered', 'span')
   }
 
