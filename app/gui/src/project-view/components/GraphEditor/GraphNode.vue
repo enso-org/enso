@@ -103,11 +103,21 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const widgetTreeNode = ref<HTMLElement>()
+
 const widgetsDomSizeClientPx = useResizeObserver(widgetTreeNode, false)
 const widgetsDomSize = ref(new Vec2(0, 0))
+// Maintain the size in scene px. The values reported by the resize observer are in client px, so they are dependent on
+// the scale; however, changes to the scale don't cause resize events--so the resize observer is non-reactively (via the
+// DOM) dependent on reactive state. Thus, we must correct for the scale by non-reactively sampling it at the time a
+// resize is observed.
 watch(widgetsDomSizeClientPx, (size) => (widgetsDomSize.value = size.scale(1 / scale.value)), {
   immediate: true,
+  flush: 'sync',
 })
+// Compute the node's natural size based on the size of its widgets. We measure the widget tree instead of the node
+// directly, because measuring the node would cause a cycle:
+// - This value is used as in input to determine the size of the visualization.
+// - The size of the visualization affects the size of the node.
 const nodeDomSize = computed(() =>
   widgetsDomSize.value.add(new Vec2(NODE_CONTENT_PADDING * 2, NODE_CONTENT_PADDING * 2)),
 )
@@ -319,7 +329,7 @@ const { progressAnimating, backgroundProgressEvents } = watchProgress()
 
 const showProgressBar = computed(() => nodeProgress.value !== 100 || progressAnimating.value)
 
-const nodeClass = computed(() => {
+const nodeClass = computed<Record<string, boolean>>(() => {
   return {
     selected: selected.value,
     pending: pending.value,
@@ -329,7 +339,7 @@ const nodeClass = computed(() => {
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
     edited: props.edited,
-    nodeHeightOverridden,
+    nodeHeightOverridden: nodeHeightOverridden.value,
   }
 })
 

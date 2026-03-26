@@ -1,7 +1,6 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
 import { Vec2 } from '@/util/data/vec2'
-import { ref } from 'vue'
 
 interface RectLike {
   top: number
@@ -14,7 +13,7 @@ interface RectLike {
 export function useNodesDisplacing() {
   const { graph, module } = useCurrentProject()
 
-  const lastPushStart = ref<[NodeId, Quad]>()
+  let lastPushStart: [NodeId, Quad] | undefined = undefined
 
   function displaceNodesForResize(resizedId: NodeId, rect0: RectLike, rect1: RectLike) {
     const ids: NodeId[] = []
@@ -27,11 +26,11 @@ export function useNodesDisplacing() {
     }
     const bounds0 = Quad.fromRect(rect0)
     const bounds1 = Quad.fromRect(rect1)
-    const pushStart = lastPushStart.value?.[0] === resizedId ? lastPushStart.value?.[1] : undefined
+    const pushStart = lastPushStart?.[0] === resizedId ? lastPushStart?.[1] : undefined
     const displacements = nodeDisplacements(rects, bounds0, bounds1, pushStart)
     if (!displacements) return
     const { moves, pullLimits } = displacements
-    lastPushStart.value = pullLimits && [resizedId, pullLimits]
+    lastPushStart = pullLimits && [resizedId, pullLimits]
     module.value.batchEdits(() => {
       for (const [i, pos] of moves) graph.value.setNodePosition(ids[i]!, pos)
     })
@@ -87,10 +86,6 @@ export namespace Quad {
    */
   export function deltaToVec2([a, b, c, d]: Quad): Vec2 {
     return new Vec2(b - a, d - c)
-  }
-  /** Returns the left/top position coordinates. */
-  export function pos([a, _b, c, _d]: Quad): Vec2 {
-    return new Vec2(-a, -c)
   }
 
   /**
@@ -196,18 +191,17 @@ export function pushStarts(
   let pushY = starts
   // The bounds of the closest node that would overlap if neither X- nor Y-pushing were applied.
   let pushAny = starts
-  const min = (q: Quad | null, r: Quad) => (q ? Quad.min(q, r) : r)
   for (let bounds of colliding) {
     bounds = Quad.max(bounds0, Quad.sub(bounds, Quad.mask(padding, expanding)))
     if (Quad.lt(boundsWithoutPush, bounds) !== 0) continue
     const expandingBounds = Quad.select(Quad.splat(Infinity), bounds, expanding)
-    pushAny = min(pushAny, expandingBounds)
-    if (Quad.lt(boundsWithXPush, bounds) === 0) pushY = min(pushY, expandingBounds)
-    if (Quad.lt(boundsWithYPush, bounds) === 0) pushX = min(pushX, expandingBounds)
+    pushAny = Quad.min(pushAny, expandingBounds)
+    if (Quad.lt(boundsWithXPush, bounds) === 0) pushY = Quad.min(pushY, expandingBounds)
+    if (Quad.lt(boundsWithYPush, bounds) === 0) pushX = Quad.min(pushX, expandingBounds)
   }
 
   // If the only collision is diagonal from the reference node, a push in either direction may work; prefer Y.
-  if (Quad.eq(pushX, Quad.splat(Infinity)) & QMask.X) pushY = min(pushY, pushAny)
+  if (Quad.eq(pushX, Quad.splat(Infinity)) & QMask.X) pushY = Quad.min(pushY, pushAny)
 
   return Quad.select(pushX, pushY, QMask.Y)
 }
