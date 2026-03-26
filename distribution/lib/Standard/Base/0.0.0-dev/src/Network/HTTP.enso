@@ -31,8 +31,6 @@ from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Nothing import all
 
-polyglot java import java.io.IOException
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpClient.Builder as ClientBuilder
 polyglot java import java.net.http.HttpClient.Redirect
@@ -157,36 +155,34 @@ type HTTP
         # You can only explicitly mention the cache for GET requests.
         if req.method != HTTP_Method.Get && cache_policy == Cache_Policy.Use_Cache then
             Error.throw (Illegal_Argument.Error "Cannot specify cache policy for a "+req.method.to_text+" request")
+        use_cache = cache_policy.should_use_cache req
 
-        handle_request_error =
-            handler caught_panic =
-                exception = caught_panic.payload
-                Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
-            too_large_handler caught_panic =
-                Error.throw (Response_Too_Large.Error caught_panic.payload.getActualSize caught_panic.payload.getLimit)
-            Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler <| Panic.catch ResponseTooLargeException handler=too_large_handler
+        ## Headers are key (Text) and value (Text or Secret)
+        headers = _resolve_headers req
+        Error.return_if_error headers
 
-        handle_request_error <|
-            headers = _resolve_headers req
-            Error.return_if_error headers
+        ## Can throw a File Not Found
+        resolved_body = case req.body of
+            Request_Body.Form_Data form_data url_encoded ->
+                _resolve_form_body form_data url_encoded self.hash_method
+            _ -> EnsoSecretHelper.resolveBody req.body self.hash_method
+        Error.return_if_error resolved_body
 
-            resolved_body = _resolve_body req.body self.hash_method
-            Error.return_if_error resolved_body
+        # Create Unified Header list
+        boundary_header_list = if resolved_body.boundary.is_nothing then [] else [Header.multipart_form_data resolved_body.boundary]
+        all_headers = headers + boundary_header_list
 
-            # Create builder and set method and body
-            builder = HttpRequest.newBuilder
-            builder.method req.method.to_http_method_name resolved_body.publisher
+        # Create HttpClient
+        http_client = self.make_client self resolved_body.hash
 
-            # Create Unified Header list
-            boundary_header_list = if resolved_body.boundary.is_nothing then [] else [Header.multipart_form_data resolved_body.boundary]
-            all_headers = headers + boundary_header_list
-            mapped_headers = all_headers.map on_problems=No_Wrap.Value .to_java_pair
+        java_uri = req.uri.to_java_representation
+        java_response = EnsoSecretHelper.makeRequest http_client req.method.to_http_method_name resolved_body.publisher java_uri all_headers use_cache
 
-            response = Response.new (EnsoSecretHelper.makeRequest (self.make_client self resolved_body.hash) builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
-            if error_on_failure_code.not || response.code.is_success then response else
-                body = response.body.decode_as_text.catch Any _->""
-                message = if body.is_empty then Nothing else body
-                Error.throw (HTTP_Error.Status_Error response.code message response.uri)
+        response = Response.new java_response
+        if error_on_failure_code.not || response.code.is_success then response else
+            body = response.body.decode_as_text.catch Any _->""
+            message = if body.is_empty then Nothing else body
+            Error.throw (HTTP_Error.Status_Error response.code message response.uri)
 
     ## ---
        aliases: [flush]
@@ -266,42 +262,7 @@ _resolve_headers req =
    private: true
    ---
 type Resolved_Body
-    private Value publisher:BodyPublisher boundary:Text|Nothing hash:Text|Nothing
-
-## ---
-   private: true
-   ---
-   Generate body publisher, optional form content boundary and optionally hash
-   from the body
-_resolve_body : Request_Body -> Function | Nothing -> Resolved_Body
-private _resolve_body body:Request_Body hash_function =
-    body_publishers = HttpRequest.BodyPublishers
-    case body of
-        Request_Body.Text text encoding _ ->
-            body_publisher = case encoding of
-                Nothing -> body_publishers.ofString text
-                _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
-            hash = if hash_function.is_nothing then "" else hash_function (text.bytes (encoding.if_nothing Encoding.utf_8))
-            Resolved_Body.Value body_publisher Nothing hash
-        Request_Body.Json x ->
-            json = x.to_json
-            hash = if hash_function.is_nothing then "" else hash_function json.bytes
-            json.if_not_error <| Resolved_Body.Value (body_publishers.ofString json) Nothing hash
-        Request_Body.Binary file ->
-            path = File_Utils.toPath file.path
-            ## ToDo: Support hashing a file.
-            hash = if hash_function.is_nothing then "" else Unimplemented.throw "Hashing a file body is not yet supported."
-            Resolved_Body.Value (body_publishers.ofFile path) Nothing hash
-        Request_Body.Byte_Array bytes ->
-            hash = if hash_function.is_nothing then "" else hash_function bytes
-            Resolved_Body.Value (body_publishers.ofByteArray bytes) Nothing hash
-        Request_Body.Form_Data form_data url_encoded ->
-            _resolve_form_body form_data url_encoded hash_function
-        Request_Body.Empty ->
-            hash = if hash_function.is_nothing then "" else hash_function []
-            Resolved_Body.Value body_publishers.noBody Nothing hash
-        _ ->
-            Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug library."))
+    Value publisher boundary:Text|Nothing hash:Text|Nothing
 
 ## ---
    private: true
@@ -359,7 +320,7 @@ with_hash_and_client http hash_method make_client =
    ---
    Build a Java HttpClient with the given settings.
 internal_http_client : HTTP -> Text -> HttpClient
-internal_http_client http hash =
+private internal_http_client http hash =
     _ = hash
     builder = HttpClient.newBuilder.connectTimeout http.timeout
 

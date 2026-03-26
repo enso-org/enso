@@ -1,13 +1,18 @@
 package org.enso.base.enso_cloud;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,14 +24,123 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
+  private static Value handleRequestException(Exception e) {
+    var wrappedException =
+        switch (e) {
+          case UnsupportedOperationException unsupportedOperationException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.Unimplemented",
+                  "Unimplemented",
+                  "Error",
+                  unsupportedOperationException.getMessage());
+          case IllegalArgumentException argException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.Illegal_Argument",
+                  "Illegal_Argument",
+                  "Error",
+                  argException.getMessage(),
+                  argException);
+          case IOException _ ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Network.HTTP",
+                  "Request_Error",
+                  "Error",
+                  e.getClass().getCanonicalName(),
+                  e.getMessage());
+          case ResponseTooLargeException tl ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors",
+                  "Response_Too_Large",
+                  "Error",
+                  tl.getActualSize(),
+                  tl.getLimit());
+          default -> null;
+        };
+    if (wrappedException == null) {
+      throw new RuntimeException(e);
+    }
+    return EnsoMeta.asDataflowError(wrappedException);
+  }
+
+  /** An interface for Standard.Base.Network.HTTP.Request_Body.Request_Body can match */
+  public interface EnsoRequestBody {
+    String type_name();
+
+    String text_value();
+
+    String charset();
+
+    byte[] bytes_value();
+
+    static HttpRequest.BodyPublisher build(EnsoRequestBody body)
+        throws FileNotFoundException, UnsupportedOperationException {
+      return switch (body.type_name()) {
+        case "Empty" -> HttpRequest.BodyPublishers.noBody();
+        case "Text" -> {
+          var charsetToUse = body.charset();
+          yield charsetToUse == null
+              ? HttpRequest.BodyPublishers.ofString(body.text_value())
+              : HttpRequest.BodyPublishers.ofString(body.text_value(), Charset.forName(charsetToUse));
+        }
+        case "Json" -> HttpRequest.BodyPublishers.ofString(body.text_value());
+        case "Binary" -> HttpRequest.BodyPublishers.ofFile(Path.of(body.text_value()));
+        case "ByteArray" -> HttpRequest.BodyPublishers.ofByteArray(body.bytes_value());
+        default ->
+            throw new UnsupportedOperationException("Cannot build request body for " + body.type_name());
+      };
+    }
+
+    static byte[] hashInput(EnsoRequestBody body) throws UnsupportedOperationException {
+      return switch (body.type_name()) {
+        case "Empty" -> new byte[0];
+        case "Text" -> {
+          var charsetToUse = body.charset();
+          yield charsetToUse == null
+              ? body.text_value().getBytes(StandardCharsets.UTF_8)
+              : body.text_value().getBytes(Charset.forName(charsetToUse));
+        }
+        case "Json" -> body.text_value().getBytes(StandardCharsets.UTF_8);
+        case "ByteArray" -> body.bytes_value();
+        default ->
+            throw new UnsupportedOperationException(
+                "Hashing a " + body.type_name() + " body is not yet supported.");
+      };
+    }
+  }
+
+  public static Value resolveBody(EnsoRequestBody body, Function<byte[], String> hashFunction) {
+    try {
+      var publisher = EnsoRequestBody.build(body);
+      var hash = hashFunction == null ? "" : hashFunction.apply(EnsoRequestBody.hashInput(body));
+      return EnsoMeta.makeInstance(
+          "Standard.Base.Network.HTTP", "Resolved_Body", "Value", publisher, EnsoMeta.getNothing(), hash);
+    } catch (Exception e) {
+      return handleRequestException(e);
+    }
+  }
+
+  /** An interface for Standard.Base.Network.HTTP.Header.Header can match */
+  public interface EnsoHeader {
+    String name();
+
+    EnsoHideableValue hideable_value();
+
+    default HideableValue getValue() {
+      return HideableValue.from(hideable_value());
+    }
+  }
+
   private static EnsoHTTPResponseCache cache;
 
   /**
@@ -60,7 +174,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     try {
       var resolvedQueryParameters =
           uri.queryParameters().stream()
-              .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), resolveValue(p.getValue())))
+              .map(p -> new AbstractMap.SimpleEntry<>(p.name(), resolveValue(p.getValue())))
               .toList();
       var resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
       return resolvedSchematic.build();
@@ -77,18 +191,34 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   }
 
   /** Makes a request with secrets in the query string or headers. * */
-  public static EnsoHttpResponse makeRequest(
+  public static Value makeRequest(
       HttpClient client,
-      Builder origBuilder,
+      String method,
+      HttpRequest.BodyPublisher body,
       URIWithSecrets uri,
-      List<Map.Entry<String, HideableValue>> headers,
+      List<EnsoHeader> headers,
+      boolean useCache) {
+    try {
+      var response = makeRequestInternal(client, method, body, uri, headers, useCache);
+      return Value.asValue(response);
+    } catch (Exception e) {
+      return handleRequestException(e);
+    }
+  }
+
+  private static EnsoHttpResponse makeRequestInternal(
+      HttpClient client,
+      String method,
+      HttpRequest.BodyPublisher body,
+      URIWithSecrets uri,
+      List<EnsoHeader> headers,
       boolean useCache)
       throws IllegalArgumentException,
           IOException,
           InterruptedException,
           ResponseTooLargeException {
     // Clone incoming builder so we can't leak secrets through it
-    var builder = origBuilder.copy();
+    var builder = HttpRequest.newBuilder().method(method, body);
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
@@ -96,9 +226,9 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     var resolvedHeaders =
         headers.stream()
             .map(
-                pair -> {
+                header -> {
                   return new AbstractMap.SimpleEntry<>(
-                      pair.getKey(), resolveValue(pair.getValue()));
+                      header.name(), resolveValue(header.getValue()));
                 })
             .toList();
 
@@ -121,7 +251,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     private final Builder builder;
     private final URIWithSecrets uri;
     private final URI resolvedURI;
-    private final List<? extends Map.Entry<String, HideableValue>> headers;
+    private final List<EnsoHeader> headers;
     private final List<? extends Map.Entry<String, String>> resolvedHeaders;
 
     RequestMaker(
@@ -129,7 +259,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         Builder builder,
         URIWithSecrets uri,
         URI resolvedURI,
-        List<? extends Map.Entry<String, HideableValue>> headers,
+        List<EnsoHeader> headers,
         List<? extends Map.Entry<String, String>> resolvedHeaders) {
       this.client = client;
       this.builder = builder;

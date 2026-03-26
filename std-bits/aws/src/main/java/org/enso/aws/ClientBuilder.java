@@ -80,14 +80,14 @@ public class ClientBuilder {
   /**
    * Builds an HttpClient that will sign requests and payloads using the AWSv4 Signature algorithm.
    */
-  public HttpClient createSignedClient(
-      String regionName, String serviceName, String bodySHA256) {
-    var baseClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(30))
-        .followRedirects(HttpClient.Redirect.ALWAYS)
-        .proxy(ProxySelector.getDefault())
-        .version(HttpClient.Version.HTTP_2)
-        .build();
+  public HttpClient createSignedClient(String regionName, String serviceName, String bodySHA256) {
+    var baseClient =
+        HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .proxy(ProxySelector.getDefault())
+            .version(HttpClient.Version.HTTP_2)
+            .build();
 
     return new SignedHttpClient(
         regionName, serviceName, unsafeBuildCredentialProvider(), baseClient, bodySHA256);

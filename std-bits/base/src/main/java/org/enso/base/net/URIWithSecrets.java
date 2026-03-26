@@ -4,8 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map;
-import org.enso.base.enso_cloud.HideableValue;
+import org.enso.base.enso_cloud.EnsoSecretHelper;
 
 /**
  * A structure representing a URI that contains parts which may need to be updated once data from
@@ -14,13 +13,12 @@ import org.enso.base.enso_cloud.HideableValue;
  * <p>The query parameters are stored separately, because they may contain secrets and will only be
  * resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
  */
-public record URIWithSecrets(URI baseUri, List<Map.Entry<String, HideableValue>> queryParameters) {
-
+public record URIWithSecrets(URI baseUri, List<EnsoSecretHelper.EnsoHeader> queryParameters) {
   /** Creates a schematic that does not disclose secret values and can be returned to the user. */
   public URISchematic makeSchematicForRender() {
     var renderedParameters =
         queryParameters.stream()
-            .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), p.getValue().render()))
+            .map(p -> new AbstractMap.SimpleEntry<>(p.name(), p.getValue().render()))
             .toList();
     return new URISchematic(baseUri, renderedParameters);
   }
@@ -52,7 +50,7 @@ public record URIWithSecrets(URI baseUri, List<Map.Entry<String, HideableValue>>
   private URISchematic makeSchematicForSafeResolve() {
     var resolvedParameters =
         queryParameters.stream()
-            .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), p.getValue().safeResolve()))
+            .map(p -> new AbstractMap.SimpleEntry<>(p.name(), p.getValue().safeResolve()))
             .toList();
     return new URISchematic(baseUri, resolvedParameters);
   }
