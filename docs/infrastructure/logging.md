@@ -31,6 +31,7 @@ problems, but don't overload by too much logging. The system allows to
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [User config](#user-config)
+  - [Progress and Profiling](#progress-and-profiling)
 - [Configuration in Code](#configuration-in-code)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
@@ -69,6 +70,24 @@ refer to the _FQN_ of the logger - e.g. usually the package elements and class
 name. The `debug` value (or other) shall represent a valid level name. System
 properties always take priority over any default values defined in embedded
 `application.conf` file (see [custom Log Levels](#custom-log-levels) section).
+
+### Progress and Profiling
+
+Enso API accompanies `Logging` with additional `Progress` API. Such an API is
+used in the interactive GUI mode to track and report progress of longer running
+tasks. The GUI can then show the progress of component computation:
+
+[FastVisualizationsIntegrated.webm](https://github.com/user-attachments/assets/5bfe60af-d3ba-4ca0-b20b-79a602c61cc9)
+
+Such a reporting isn't only useful in _visual mode_. It can provide valuable
+information in CLI mode as well. In particular it can be used for profiling!
+
+Additional info:
+
+- [Infrastructure for long running computations](https://github.com/enso-org/enso/pull/12163/changes#diff-b0c96c9cbf1aa6b932d3878dfaf5b6cd49c2c2cc15dfca95f94196e19acbd7ebR21)
+- introduced by [Progress API](https://github.com/enso-org/enso/pull/12163)
+- tweaked by https://github.com/enso-org/enso/pull/13947
+- used for profiling by https://github.com/enso-org/enso/pull/14898
 
 ## Configuration in Code
 
