@@ -91,7 +91,7 @@ abstract class Vector extends BuiltinObject {
   }
 
   static Vector fromInteropArray(Object arr) {
-    return new Generic(arr, null);
+    return new Generic(arr);
   }
 
   static Vector fromLongArray(long[] arr) {
@@ -176,9 +176,8 @@ abstract class Vector extends BuiltinObject {
   @ExportLibrary(WarningsLibrary.class)
   static final class Generic extends Vector {
     private final Object storage;
-    private Boolean withWarnings;
 
-    private Generic(Object storage, Boolean withWarnings) {
+    private Generic(Object storage) {
       if (CompilerDirectives.inInterpreter()) {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
           throw EnsoContext.get(null)
@@ -187,7 +186,6 @@ abstract class Vector extends BuiltinObject {
         }
       }
       this.storage = storage;
-      this.withWarnings = withWarnings;
     }
 
     final Object toArray() {
@@ -265,10 +263,7 @@ abstract class Vector extends BuiltinObject {
     @ExportMessage
     boolean hasWarnings(
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
-      if (withWarnings == null) {
-        withWarnings = warnings.hasWarnings(this.storage);
-      }
-      return withWarnings;
+      return warnings.hasWarnings(this.storage);
     }
 
     @ExportMessage
@@ -276,22 +271,14 @@ abstract class Vector extends BuiltinObject {
         boolean shouldWrap,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
-      if (withWarnings != null && !withWarnings) {
-        return EnsoHashMap.empty();
-      } else {
-        return warnings.getWarnings(this.storage, shouldWrap);
-      }
+      return warnings.getWarnings(this.storage, shouldWrap);
     }
 
     @ExportMessage
     Generic removeWarnings(
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
-      if (withWarnings != null && !withWarnings) {
-        return this;
-      } else {
-        return new Generic(storage, false);
-      }
+      return new Generic(warnings.removeWarnings(this.storage));
     }
 
     @ExportMessage
