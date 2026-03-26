@@ -13,13 +13,13 @@ if (GOOGLE_ANALYTICS_TAG) {
 window.dataLayer = window.dataLayer || []
 
 /** Google Analytics tag function. */
-export function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
+export function gtag(_action: 'config' | 'event' | 'js' | 'set', ..._args: unknown[]) {
   // Intentionally preserve the original Arguments object to match Google's
   // official gtag.js snippet:
   // https://developers.google.com/tag-platform/gtagjs
   // @ts-expect-error This is explicitly not given types as it is a mistake to access this
   // anywhere else.
-  window.dataLayer.push(arguments)
+  window.dataLayer.push(arguments) // eslint-disable-line prefer-rest-params
 }
 
 /** Send event to Google Analytics. */
