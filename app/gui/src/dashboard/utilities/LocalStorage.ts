@@ -296,7 +296,12 @@ export default class LocalStorage {
 /** React hook for viewing whole `LocalStorage` contents as a state variable. */
 export function useLocalStorageValues(storage: LocalStorage): Partial<LocalStorageData> {
   return useVueValue(
-    useCallback(() => storage['values'], [storage]),
-    true,
+    useCallback(() => {
+      // NOTE: `values` is shallowReactive. Create a shallow snapshot to:
+      // - avoid deep traversal (stack overflow risk),
+      // - provide a new reference so React re-renders.
+      const values = storage['values']
+      return { ...values }
+    }, [storage]),
   )
 }

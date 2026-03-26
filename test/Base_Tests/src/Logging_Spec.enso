@@ -149,7 +149,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log = pair.second
 
         log . not_contains_line "Finest:Ahoj"
-        log . contains_line "DEBUG.*Fine:Ahoj"
+        log . not_contains_line "DEBUG.*Fine:Ahoj"
         log . contains_line "INFO.*Info:Ahoj"
         log . contains_line "WARN.*Warning:Ahoj"
         log . contains_line "ERROR.*Severe:Ahoj"
@@ -166,7 +166,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log = pair.second
 
         file_log . not_contains_line "Finest:Ciao"
-        file_log . contains_line "DEBUG.*Fine:Ciao"
+        file_log . not_contains_line "DEBUG.*Fine:Ciao"
         file_log . contains_line "INFO.*Info:Ciao"
         file_log . contains_line "WARN.*Warning:Ciao"
         file_log . contains_line "ERROR.*Severe:Ciao"
@@ -217,7 +217,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log = pair.second
 
         log . not_contains_line "TRACE:.*Hola"
-        log . contains_line "DEBUG.*DEBUG:.*Hola"
+        log . not_contains_line "DEBUG.*DEBUG:.*Hola"
         log . contains_line "INFO.*INFO:.*Hola"
         log . contains_line "WARN.*WARNING:.*Hola"
         log . contains_line "ERROR.*ERROR:.*Hola"
@@ -251,7 +251,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log = pair.second
 
         log . not_contains_line "TRACE:.*Hej"
-        log . contains_line "DEBUG.*java.lang.IllegalStateException.*DEBUG:.*Hej"
+        log . not_contains_line "DEBUG:.*Hej"
         log . contains_line "INFO.*java.lang.IllegalStateException.*INFO:.*Hej"
         log . contains_line "WARN.*java.lang.IllegalStateException.*WARNING:.*Hej"
         log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR:.*Hej"
@@ -268,7 +268,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log = pair.second
 
         log . not_contains_line "TRACE.*:.*Tschuss"
-        log . contains_line "DEBUG.*DEBUG.*.*Tschuss"
+        log . not_contains_line "DEBUG.*:.*.*Tschuss"
         log . contains_line "INFO.*INFO.*:.*Tschuss"
         log . contains_line "WARN.*WARN.*:.*Tschuss"
         log . contains_line "ERROR.*ERROR.*:.*Tschuss"
@@ -285,7 +285,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log = pair.second
 
         log . not_contains_line "TRACE.*:.*Pozdrawiam"
-        log . contains_line "DEBUG.*java.lang.IllegalStateException.*DEBUG.*.*Pozdrawiam"
+        log . not_contains_line "DEBUG.*:.*Pozdrawiam"
         log . contains_line "INFO.*java.lang.IllegalStateException.*INFO.*:.*Pozdrawiam"
         log . contains_line "WARN.*java.lang.IllegalStateException.*WARN.*:.*Pozdrawiam"
         log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR.*:.*Pozdrawiam"

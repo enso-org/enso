@@ -167,9 +167,11 @@ export function createProjectStore(
           visId.value = undefined
           return
         }
-        // Regenerate the visualization ID when the preprocessor changes.
-        if (!visualizationConfigPreprocessorEqual(config, oldConfig))
+
+        if (!visualizationConfigPreprocessorEqual(config, oldConfig) || visId.value == null) {
           visId.value = crypto.randomUUID()
+        }
+
         const id = visId.value!
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))

@@ -26,6 +26,7 @@ import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Offset_Helper
 import project.Internal.Storage
+import project.Internal.Value_Type_Checks
 import project.Internal.Value_Type_Helpers
 import project.Refined_Types.Text_Column.Text_Column
 import project.Rows_To_Read.Rows_To_Read
@@ -97,10 +98,10 @@ type In_Memory_Column_Implementation
            See: https://github.com/enso-org/enso/issues/5250
         fallback x y =
             x.equals_ignore_case y locale=locale
-        Value_Type.expect_text this_column <|
-            Value_Type.expect_text other <|
-                new_name = naming_helper.function_name "equals_ignore_case" [this_column, other]
-                _apply_binary_map this_column fallback other new_name expected_result_type=Value_Type.Boolean
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text other
+        new_name = naming_helper.function_name "equals_ignore_case" [this_column, other]
+        _apply_binary_map this_column fallback other new_name expected_result_type=Value_Type.Boolean
 
     not_equals (this_column : Column & In_Memory_Column) (other : Column | Any) =
         new_name = naming_helper.binary_operation_name "!=" this_column other
@@ -110,35 +111,45 @@ type In_Memory_Column_Implementation
             a != b
         _call_comparator this_column other new_name (Comparators.notEq this_column.java_column (_java_other other)) fallback
 
-    greater_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    greater_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name ">=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.>= self=a that=b
-        _call_comparator this_column other new_name (Comparators.greaterThanEq this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.greaterThanEq this_column.java_column (_java_other other)) fallback
 
-    less_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    less_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name "<=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.<= self=a that=b
-        _call_comparator this_column other new_name (Comparators.lessThanEq this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.lessThanEq this_column.java_column (_java_other other)) fallback
 
-    greater_than (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    greater_than (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name ">" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.> self=a that=b
-        _call_comparator this_column other new_name (Comparators.greaterThan this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.greaterThan this_column.java_column (_java_other other)) fallback
 
-    less_than (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
+    less_than (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.are_comparable this_column other
         new_name = naming_helper.binary_operation_name "<" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             Comparable.< self=a that=b
-        _call_comparator this_column other new_name (Comparators.lessThan this_column.java_column (_java_other other)) fallback
+        Incomparable_Values.handle_errors <|
+            _call_comparator this_column other new_name (Comparators.lessThan this_column.java_column (_java_other other)) fallback
 
-    between (this_column : Column & In_Memory_Column) (lower : Column | Any) (upper : Column | Any) = Value_Type.expect_comparable this_column lower <| Value_Type.expect_comparable this_column upper <|
+    between (this_column : Column & In_Memory_Column) (lower : Column | Any) (upper : Column | Any) =
+        Value_Type_Checks.are_comparable this_column lower
+        Value_Type_Checks.are_comparable this_column upper
         new_name = naming_helper.concat <|
             [naming_helper.to_expression_text this_column, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
         lower_check = (this_column >= lower)
@@ -167,49 +178,57 @@ type In_Memory_Column_Implementation
                     _call_binary_operator this_column other new_name operation
 
     multiply (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.multiply (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported multiply operation.")
-            new_name = naming_helper.binary_operation_name "*" this_column other
-            _call_binary_operator this_column other new_name operation
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.multiply (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported multiply operation.")
+        new_name = naming_helper.binary_operation_name "*" this_column other
+        _call_binary_operator this_column other new_name operation
 
     divide (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.divide (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported divide operation.")
-            new_name = naming_helper.binary_operation_name "/" this_column other
-            _call_binary_operator this_column other new_name operation
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.divide (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported divide operation.")
+        new_name = naming_helper.binary_operation_name "/" this_column other
+        _call_binary_operator this_column other new_name operation
 
     modulus (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.modulus (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported modulo operation.")
-            new_name = naming_helper.binary_operation_name "%" this_column other
-            _call_binary_operator this_column other new_name operation
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.modulus (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported modulo operation.")
+        new_name = naming_helper.binary_operation_name "%" this_column other
+        _call_binary_operator this_column other new_name operation
 
-    power (this_column : Column & In_Memory_Column) (other : Column | Any) = Illegal_Argument.handle_java_exception <|
-        Value_Type_Helpers.check_binary_numeric_op this_column other <|
-            operation = BinaryOperator.power (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported power operation.")
-            new_name = naming_helper.binary_operation_name "^" this_column other
+    power (this_column : Column & In_Memory_Column) (other : Column | Any) =
+        Value_Type_Checks.is_numeric this_column
+        Value_Type_Checks.is_numeric other
+        operation = BinaryOperator.power (this_column:In_Memory_Column).java_column (_java_other other)
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported power operation.")
+        new_name = naming_helper.binary_operation_name "^" this_column other
+        Illegal_Argument.handle_java_exception <|
             _call_binary_operator this_column other new_name operation
 
     and (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            new_name = naming_helper.binary_operation_name "&&" this_column other
-            _call_binary_operator this_column other new_name LogicalOperations.AND
+        Value_Type_Checks.is_boolean this_column
+        Value_Type_Checks.is_boolean other
+        new_name = naming_helper.binary_operation_name "&&" this_column other
+        _call_binary_operator this_column other new_name LogicalOperations.AND
 
     or (this_column : Column & In_Memory_Column) (other : Column | Any) =
-        Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            new_name = naming_helper.binary_operation_name "||" this_column other
-            _call_binary_operator this_column other new_name LogicalOperations.OR
+        Value_Type_Checks.is_boolean this_column
+        Value_Type_Checks.is_boolean other
+        new_name = naming_helper.binary_operation_name "||" this_column other
+        _call_binary_operator this_column other new_name LogicalOperations.OR
 
     not (this_column : Column & In_Memory_Column) =
-        Value_Type.expect_boolean this_column <|
-            new_name = naming_helper.concat ["not", naming_helper.to_expression_text this_column]
-            apply_unary_operation this_column NotOperation.INSTANCE new_name
+        Value_Type_Checks.is_boolean this_column
+        new_name = naming_helper.concat ["not", naming_helper.to_expression_text this_column]
+        apply_unary_operation this_column NotOperation.INSTANCE new_name
 
-    iif this_column (when_true : Column | Any) (when_false : Column | Any) = Value_Type.expect_boolean this_column <|
+    iif this_column (when_true : Column | Any) (when_false : Column | Any) =
+        Value_Type_Checks.is_boolean this_column
         common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
         storage_type = Storage.from_value_type_strict common_type
         storage_type.if_not_error <|
@@ -227,7 +246,8 @@ type In_Memory_Column_Implementation
     const (this_column : Column & In_Memory_Column) value = this_column.to_table.make_constant_column value
 
     round (this_column : Column & In_Memory_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
-        Value_Type.expect_numeric this_column <| Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
+        Value_Type_Checks.is_numeric this_column
+        Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [this_column]
             round_operation = RoundOperation.create (this_column:In_Memory_Column).java_column decimal_places (rounding_mode == Rounding_Mode.Bankers)
             apply_unary_operation this_column round_operation new_name
@@ -247,7 +267,8 @@ type In_Memory_Column_Implementation
                     apply_unary_operation this_column DateTruncateOperation.TRUNCATE_INSTANCE
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" this_column.value_type this_column.name
 
-    ceil (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    ceil (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         case this_column.inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "ceil" [this_column]
@@ -255,7 +276,8 @@ type In_Memory_Column_Implementation
             False ->
                 apply_unary_operation this_column UnaryRoundOperation.CEIL_INSTANCE
 
-    floor (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    floor (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         case this_column.inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "floor" [this_column]
@@ -286,40 +308,29 @@ type In_Memory_Column_Implementation
         new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is Nothing"]
         apply_unary_operation this_column IsNothingOperation.INSTANCE new_name
 
-    is_nan (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
-        In_Memory_Column_Implementation.internal_is_nan this_column
+    is_nan (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
+        internal_is_nan this_column
 
-    internal_is_nan (this_column : Column & In_Memory_Column) =
-        new_name = naming_helper.function_name "is_nan" [this_column]
-        fallback x = case x of
-            _ : Float   -> x.is_nan
-            _           -> False
-        apply_unary_operation this_column DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
-
-    is_infinite (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    is_infinite (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         new_name = naming_helper.function_name "is_infinite" [this_column]
         fallback x = case x of
             _ : Float   -> x.is_infinite
             _           -> False
         apply_unary_operation this_column DoubleIsOperation.IS_INFINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
-    is_finite (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
+    is_finite (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_numeric this_column
         new_name = naming_helper.function_name "is_finite" [this_column]
         fallback x = case x of
             _ : Float   -> x.is_finite
             _           -> True
         apply_unary_operation this_column DoubleIsOperation.IS_FINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
-    is_empty (this_column : Column & In_Memory_Column) = Value_Type.expect_text this_column <|
-        In_Memory_Column_Implementation.internal_is_empty this_column
-
-    internal_is_empty (this_column : Column & In_Memory_Column) =
-        new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is empty"]
-        fallback x = case x of
-            _ : Text -> x == ""
-            Nothing  -> True
-            _        -> False
-        apply_unary_operation this_column IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean nothing_unchanged=False)
+    is_empty (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_text this_column
+        internal_is_empty this_column
 
     is_present (this_column : Column & In_Memory_Column) =
         new_name = naming_helper.function_name "is_present" [this_column]
@@ -330,9 +341,9 @@ type In_Memory_Column_Implementation
         result = case this_column.value_type of
             Value_Type.Char _ _ -> this_column.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then this_column.is_nothing.iif True (In_Memory_Column_Implementation.internal_is_nan this_column) else this_column.is_nothing
+                if treat_nans_as_blank then this_column.is_nothing.iif True (internal_is_nan this_column) else this_column.is_nothing
             Value_Type.Mixed ->
-                (In_Memory_Column_Implementation.internal_is_empty this_column) || (if treat_nans_as_blank then this_column.is_nothing.iif True (In_Memory_Column_Implementation.internal_is_nan this_column) else this_column.is_nothing)
+                (internal_is_empty this_column) || (if treat_nans_as_blank then this_column.is_nothing.iif True (internal_is_nan this_column) else this_column.is_nothing)
             _ -> this_column.is_nothing
         result.rename new_name
 
@@ -346,46 +357,53 @@ type In_Memory_Column_Implementation
                 operation = FillMissingOperation.create java_column storage_type
                 _call_binary_operator this_column default this_column.name operation
 
-    fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) = Value_Type.expect_text this_column <|
-        case default of
-            Previous_Value -> apply_unary_operation this_column FillFromPreviousOperation.FILL_EMPTY
-            _ ->
-                Value_Type.expect_text default <|
-                    result = this_column.is_empty.iif default this_column
-                    result.rename this_column.name
+    fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) =
+        Value_Type_Checks.is_text this_column
+        if Previous_Value == default then apply_unary_operation this_column FillFromPreviousOperation.FILL_EMPTY else
+            Value_Type_Checks.is_text default
+            result = this_column.is_empty.iif default this_column
+            result.rename this_column.name
 
-    starts_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
+    starts_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "starts_with" [this_column, other]
         apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
 
-    ends_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
+    ends_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "ends_with" [this_column, other]
         apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
 
     text_length (this_column : Column & In_Memory_Column) =
-        Value_Type.expect_text this_column <|
-            apply_unary_operation this_column TextLengthOperation.INSTANCE
+        Value_Type_Checks.is_text this_column
+        apply_unary_operation this_column TextLengthOperation.INSTANCE
 
     text_left this_column (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <|
-            new_name = naming_helper.function_name "text_left" [this_column, n]
-            (this_column : Text_Column) . left n . rename new_name
+        Value_Type_Checks.is_text this_column
+        new_name = naming_helper.function_name "text_left" [this_column, n]
+        (this_column : Text_Column) . left n . rename new_name
 
     text_right this_column (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <|
-            new_name = naming_helper.function_name "text_right" [this_column, n]
-            (this_column : Text_Column) . right n . rename new_name
+        Value_Type_Checks.is_text this_column
+        new_name = naming_helper.function_name "text_right" [this_column, n]
+        (this_column : Text_Column) . right n . rename new_name
 
     text_mid this_column (start : Column | Any) (length : Column | Any) =
-        Value_Type.expect_text this_column <|
-            new_name = naming_helper.function_name "text_mid" [this_column, start, length]
-            (this_column : Text_Column) . mid start length . rename new_name
+        Value_Type_Checks.is_text this_column
+        new_name = naming_helper.function_name "text_mid" [this_column, start, length]
+        (this_column : Text_Column) . mid start length . rename new_name
 
-    contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
+    contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "contains" [this_column, other]
         apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
 
-    like (this_column : Column & In_Memory_Column) (pattern : Column | Text | Any) = Value_Type.expect_text this_column <| Value_Type.expect_text pattern <|
+    like (this_column : Column & In_Memory_Column) (pattern : Column | Text | Any) =
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text pattern
         new_name = naming_helper.binary_operation_name "like" this_column pattern
         fallback x y =
             _ = [x, y]
@@ -396,14 +414,16 @@ type In_Memory_Column_Implementation
         string_pattern = case pattern of
             Regex.Value _ _ -> pattern.pattern
             _ -> pattern
-        Value_Type.expect_text this_column <| Value_Type.expect_text string_pattern <|
-            new_name = naming_helper.binary_operation_name "regex_match" this_column pattern
-            fallback x y =
-                _ = [x, y]
-                Error.throw (Illegal_Argument.Error "regex_match is not supported for the given types.")
-            apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text string_pattern
+        new_name = naming_helper.binary_operation_name "regex_match" this_column pattern
+        fallback x y =
+            _ = [x, y]
+            Error.throw (Illegal_Argument.Error "regex_match is not supported for the given types.")
+        apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
 
-    trim (this_column : Column & In_Memory_Column) where:Location (what : Text | Column) = Value_Type.expect_text this_column <|
+    trim (this_column : Column & In_Memory_Column) where:Location (what : Text | Column) =
+        Value_Type_Checks.is_text this_column
         parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
 
         new_name = naming_helper.function_name "trim" [this_column]
@@ -412,12 +432,14 @@ type In_Memory_Column_Implementation
                 trim_fn = if parsed_what.is_empty then t-> t.trim where else
                     t-> t.trim where parsed_what
                 apply_unary_map this_column new_name trim_fn expected_result_type=Value_Type.Char
-            _ : Column -> Value_Type.expect_text parsed_what <|
-                    fn = t-> w-> if t.is_nothing then Nothing else
-                        if w.is_nothing || w.is_empty then t.trim where else t.trim where w
-                    _apply_binary_map this_column fn parsed_what new_name skip_nulls=False expected_result_type=Value_Type.Char
+            _ : Column ->
+                Value_Type_Checks.is_text parsed_what
+                fn = t-> w-> if t.is_nothing then Nothing else
+                    if w.is_nothing || w.is_empty then t.trim where else t.trim where w
+                _apply_binary_map this_column fn parsed_what new_name skip_nulls=False expected_result_type=Value_Type.Char
 
-    text_replace (this_column : Column & In_Memory_Column) (term : Text | Regex | Column) (new_text : Text | Column) case_sensitivity:Case_Sensitivity only_first:Boolean = Value_Type.expect_text this_column <|
+    text_replace (this_column : Column & In_Memory_Column) (term : Text | Regex | Column) (new_text : Text | Column) case_sensitivity:Case_Sensitivity only_first:Boolean =
+        Value_Type_Checks.is_text this_column
         parsed_term = if term.is_a Column && term.value_type == Value_Type.Null then "" else term
         parsed_new = if new_text.is_a Column && new_text.value_type == Value_Type.Null then "" else new_text
 
@@ -426,64 +448,75 @@ type In_Memory_Column_Implementation
         ## Text and Regex have same implementation
         perform_scalar used_term =
             if parsed_new.is_a Text then apply_unary_map this_column new_name (t-> t.replace used_term parsed_new case_sensitivity only_first) expected_result_type=Value_Type.Char else
-                Value_Type.expect_text parsed_new <|
-                    fn = t-> r-> if t.is_nothing then Nothing else
-                        if r.is_nothing.not then t.replace used_term (r.if_nothing "") case_sensitivity only_first else
-                            if t.contains used_term then Nothing else t
-                    _apply_binary_map this_column fn parsed_new new_name skip_nulls=False expected_result_type=Value_Type.Char
+                Value_Type_Checks.is_text parsed_new
+                fn = t-> r-> if t.is_nothing then Nothing else
+                    if r.is_nothing.not then t.replace used_term (r.if_nothing "") case_sensitivity only_first else
+                        if t.contains used_term then Nothing else t
+                _apply_binary_map this_column fn parsed_new new_name skip_nulls=False expected_result_type=Value_Type.Char
 
         case parsed_term of
             _ : Text -> if parsed_term.is_empty then this_column.rename new_name else perform_scalar parsed_term
             _ : Regex -> perform_scalar parsed_term
-            _ : Column -> Value_Type.expect_text parsed_term <| case parsed_new of
-                _ : Text ->
-                    fn = t-> s-> if t.is_nothing then Nothing else
-                        if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
-                    _apply_binary_map this_column fn parsed_term new_name skip_nulls=False expected_result_type=Value_Type.Char
-                _ : Column -> Value_Type.expect_text parsed_new <|
-                    ## Three Columns To Deal With (all are text)
-                    fn = t-> s-> r-> if t.is_nothing then Nothing else
-                        if s.is_nothing || s.is_empty then t else
-                            if r.is_nothing.not then t.replace s r case_sensitivity only_first else
-                                if t.contains s then Nothing else t
+            _ : Column ->
+                Value_Type_Checks.is_text parsed_term
+                case parsed_new of
+                    _ : Text ->
+                        fn = t-> s-> if t.is_nothing then Nothing else
+                            if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
+                        _apply_binary_map this_column fn parsed_term new_name skip_nulls=False expected_result_type=Value_Type.Char
+                    _ : Column ->
+                        Value_Type_Checks.is_text parsed_new
+                        ## Three Columns To Deal With (all are text)
+                        fn = t-> s-> r-> if t.is_nothing then Nothing else
+                            if s.is_nothing || s.is_empty then t else
+                                if r.is_nothing.not then t.replace s r case_sensitivity only_first else
+                                    if t.contains s then Nothing else t
 
-                    row_count = this_column.row_count
-                    java_this = this_column.java_column
-                    java_term = (parsed_term:In_Memory_Column).java_column
-                    java_new = (parsed_new:In_Memory_Column).java_column
+                        row_count = this_column.row_count
+                        java_this = this_column.java_column
+                        java_term = (parsed_term:In_Memory_Column).java_column
+                        java_new = (parsed_new:In_Memory_Column).java_column
 
-                    builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
-                    0.up_to row_count . each i->
-                        replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
-                        builder.append replaced
+                        builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
+                        0.up_to row_count . each i->
+                            replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
+                            builder.append replaced
 
-                    In_Memory_Column.from_storage new_name builder.seal
+                        In_Memory_Column.from_storage new_name builder.seal
 
     text_cleanse (this_column : Column & In_Memory_Column) (remove : Vector Named_Pattern) =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
 
-    year (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    year (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.YEAR_INSTANCE
 
-    month (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    month (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.MONTH_INSTANCE
 
-    day (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    day (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.DAY_INSTANCE
 
-    day_of_year (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    day_of_year (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.DAY_OF_YEAR_INSTANCE
 
-    day_of_week (this_column : Column & In_Memory_Column) = Value_Type.expect_has_date this_column <|
+    day_of_week (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_date this_column
         apply_unary_operation this_column DatePartOperation.DAY_OF_WEEK_INSTANCE
 
-    hour (this_column : Column & In_Memory_Column) = Value_Type.expect_has_time this_column <|
+    hour (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_time this_column
         apply_unary_operation this_column DatePartOperation.HOUR_INSTANCE
 
-    minute (this_column : Column & In_Memory_Column) = Value_Type.expect_has_time this_column <|
+    minute (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_time this_column
         apply_unary_operation this_column DatePartOperation.MINUTE_INSTANCE
 
-    second (this_column : Column & In_Memory_Column) = Value_Type.expect_has_time this_column <|
+    second (this_column : Column & In_Memory_Column) =
+        Value_Type_Checks.has_time this_column
         apply_unary_operation this_column DatePartOperation.SECOND_INSTANCE
 
     date_part (this_column : Column & In_Memory_Column) (period : Date_Period | Time_Period) =
@@ -504,37 +537,42 @@ type In_Memory_Column_Implementation
         Date_Time_Helpers.make_date_part_function this_column period date_part_operation naming_helper
 
     date_diff (this_column : Column & In_Memory_Column) (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period) =
-        Value_Type.expect_type this_column .is_date_or_time "date/time" <|
-            my_type = this_column.inferred_precise_value_type
-            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_diff" [this_column, end, period]
-                    java_unit = aligned_period.to_java_unit
-                    fn = case my_type of
-                        Value_Type.Date_Time _ ->
-                            start-> end-> Time_Utils.unit_datetime_difference java_unit start end
-                        Value_Type.Date ->
-                            start-> end-> Time_Utils.unit_date_difference java_unit start end
-                        Value_Type.Time ->
-                            start-> end-> Time_Utils.unit_time_difference java_unit start end
-                    _apply_binary_map this_column fn end new_name
+        Value_Type_Checks.is_date_or_time this_column
+        my_type = this_column.inferred_precise_value_type
+
+        end_type = Value_Type_Helpers.find_argument_type end
+        if end_type!=Value_Type.Null && end_type!=my_type then Value_Type_Helpers.raise_unexpected_type my_type.to_display_text end
+
+        aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+        aligned_period.if_not_error <|
+            new_name = naming_helper.function_name "date_diff" [this_column, end, period]
+            java_unit = aligned_period.to_java_unit
+            fn = case my_type of
+                Value_Type.Date_Time _ ->
+                    start-> end-> Time_Utils.unit_datetime_difference java_unit start end
+                Value_Type.Date ->
+                    start-> end-> Time_Utils.unit_date_difference java_unit start end
+                Value_Type.Time ->
+                    start-> end-> Time_Utils.unit_time_difference java_unit start end
+            _apply_binary_map this_column fn end new_name
 
     date_add (this_column : Column & In_Memory_Column) (amount : Column | Integer) (period : Date_Period | Time_Period) =
-        Value_Type.expect_type this_column .is_date_or_time "date/time" <|
-            my_type = this_column.inferred_precise_value_type
-            Value_Type.expect_integer amount <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_add" [this_column, amount, period]
-                    java_unit = aligned_period.to_java_unit
-                    ## Here we do not need a Time_Utils helper like in scalar
-                       implementations of `date_add`, because the date coming
-                       from the column will always be already converted into a
-                       Java instance.
-                    fn date amount =
-                        java_unit.addTo date amount
-                    _apply_binary_map this_column fn amount new_name
+        Value_Type_Checks.is_date_or_time this_column
+        Value_Type_Checks.is_integer amount
+
+        my_type = this_column.inferred_precise_value_type
+        aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
+        Error.return_if_error aligned_period
+
+        new_name = naming_helper.function_name "date_add" [this_column, amount, period]
+        java_unit = aligned_period.to_java_unit
+        ## Here we do not need a Time_Utils helper like in scalar
+           implementations of `date_add`, because the date coming
+           from the column will always be already converted into a
+           Java instance.
+        fn date amount =
+            java_unit.addTo date amount
+        _apply_binary_map this_column fn amount new_name
 
     is_in (this_column : Column & In_Memory_Column) (vector : Vector | Column | Array) =
         as_vector = case vector of
@@ -556,19 +594,20 @@ type In_Memory_Column_Implementation
 
     parse (this_column : Column & In_Memory_Column) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter) on_problems:Problem_Behavior =
         if type != Auto && this_column.value_type.is_same_type type then this_column else
-            Value_Type.expect_text this_column <|
-                formatter = case format of
-                    _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
-                    _ : Data_Formatter -> format
-                parser = formatter.make_value_type_parser type
+            Value_Type_Checks.is_text this_column
+            formatter = case format of
+                _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
+                _ : Data_Formatter -> format
+            parser = formatter.make_value_type_parser type
 
-                new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                    parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator this_column.name type
-                    parser.parseColumn this_column.java_column parse_problem_aggregator
-                In_Memory_Column.from_storage this_column.name new_storage
+            new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator this_column.name type
+                parser.parseColumn this_column.java_column parse_problem_aggregator
+            In_Memory_Column.from_storage this_column.name new_storage
 
     format (this_column : Column & In_Memory_Column) (format : Text | Date_Time_Formatter | Column) locale:Locale = case format of
-        format_column : Column -> Value_Type.expect_text format_column <|
+        format_column : Column ->
+            Value_Type_Checks.is_text format_column
             if format_column.row_count != this_column.row_count then Error.throw (Illegal_Argument.Error ("Column lengths differ: " + this_column.row_count.to_text + " != " + format_column.row_count.to_text)) else
                 formatter = make_value_formatter_for_value_type this_column.value_type locale
                 formatter.if_not_error <|
@@ -895,6 +934,20 @@ private apply_case_sensitive_text_operation left:Column (other : Column | Text |
    to 'regain' that part.
 In_Memory_Column.from (that : Column) = get_underlying_from_column that
 
+private internal_is_nan (this_column : Column & In_Memory_Column) =
+    new_name = naming_helper.function_name "is_nan" [this_column]
+    fallback x = case x of
+        _ : Float   -> x.is_nan
+        _           -> False
+    apply_unary_operation this_column DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
+
+private internal_is_empty (this_column : Column & In_Memory_Column) =
+    new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is empty"]
+    fallback x = case x of
+        _ : Text -> x == ""
+        Nothing  -> True
+        _        -> False
+    apply_unary_operation this_column IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean nothing_unchanged=False)
 
 ## ---
    private: true

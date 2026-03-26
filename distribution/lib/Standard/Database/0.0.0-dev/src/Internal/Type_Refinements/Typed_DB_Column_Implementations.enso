@@ -3,94 +3,94 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
+import Standard.Table.Column.Column
 import Standard.Table.Column.Rest_Of_String
-from Standard.Table import Column, Value_Type
-
-from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Table.Internal.Value_Type_Checks
 
 import project.DB_Column.DB_Column
 import project.Internal.Helpers
+import project.Errors.Unsupported_Database_Operation
 from project.Internal.DB_Column_Implementation import make_binary_op, make_op, make_text_case_op, make_unary_op, naming_helper
 
 type DB_Numeric_Column_Implementation
     abs (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "abs" [column]
-            make_unary_op column "ABS" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "abs" [column]
+        make_unary_op column "ABS" new_name
 
     signum (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "signum" [column]
-            make_unary_op column "SIGNUM" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "signum" [column]
+        make_unary_op column "SIGNUM" new_name
 
     randbetween (column : Column & DB_Column) limit seed =
         _ = [column, limit, seed]
         Unimplemented.throw "randbetween is not implemented for database backends."
 
     sin (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "sin" [column]
-            make_unary_op column "SIN" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "sin" [column]
+        make_unary_op column "SIN" new_name
 
     asin (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "asin" [column]
-            make_unary_op column "ASIN" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "asin" [column]
+        make_unary_op column "ASIN" new_name
 
     cos (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "cos" [column]
-            make_unary_op column "COS" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "cos" [column]
+        make_unary_op column "COS" new_name
 
     acos (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "acos" [column]
-            make_unary_op column "ACOS" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "acos" [column]
+        make_unary_op column "ACOS" new_name
 
     tan (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "tan" [column]
-            make_unary_op column "TAN" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "tan" [column]
+        make_unary_op column "TAN" new_name
 
     atan (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "atan" [column]
-            make_unary_op column "ATAN" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "atan" [column]
+        make_unary_op column "ATAN" new_name
 
     sinh (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "sinh" [column]
-            make_unary_op column "SINH" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "sinh" [column]
+        make_unary_op column "SINH" new_name
 
     cosh (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "cosh" [column]
-            make_unary_op column "COSH" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "cosh" [column]
+        make_unary_op column "COSH" new_name
 
     tanh (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "tanh" [column]
-            make_unary_op column "TANH" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "tanh" [column]
+        make_unary_op column "TANH" new_name
 
     sqrt (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "sqrt" [column]
-            make_unary_op column "SQRT" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "sqrt" [column]
+        make_unary_op column "SQRT" new_name
 
     ln (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "ln" [column]
-            make_unary_op column "LN" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "ln" [column]
+        make_unary_op column "LN" new_name
 
     exp (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "exp" [column]
-            make_unary_op column "EXP" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "exp" [column]
+        make_unary_op column "EXP" new_name
 
     log10 (column : Column & DB_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = (naming_helper column).function_name "log10" [column]
-            make_unary_op column "LOG10" new_name
+        Value_Type_Checks.is_numeric column
+        new_name = (naming_helper column).function_name "log10" [column]
+        make_unary_op column "LOG10" new_name
 
 type DB_Text_Column_Implementation
     to_case column case_option:Case=..Lower locale:Locale=Locale.default =
@@ -105,57 +105,60 @@ type DB_Text_Column_Implementation
         cased_column . rename new_name
 
     length column =
-        Value_Type.expect_text column <|
-            new_name = (naming_helper column).function_name "length" [column]
-            make_unary_op column "LENGTH" new_name
+        Value_Type_Checks.is_text column
+        new_name = (naming_helper column).function_name "length" [column]
+        make_unary_op column "LENGTH" new_name
 
     char_length column =
-        Value_Type.expect_text column <|
-            new_name = (naming_helper column).function_name "char_length" [column]
-            make_unary_op column "LENGTH" new_name
+        Value_Type_Checks.is_text column
+        new_name = (naming_helper column).function_name "char_length" [column]
+        make_unary_op column "LENGTH" new_name
 
     upper column =
-        Value_Type.expect_text column <|
-            new_name = (naming_helper column).function_name "upper" [column]
-            make_unary_op column "UPPER" new_name
+        Value_Type_Checks.is_text column
+        new_name = (naming_helper column).function_name "upper" [column]
+        make_unary_op column "UPPER" new_name
 
     lower column =
-        Value_Type.expect_text column <|
-            new_name = (naming_helper column).function_name "lower" [column]
-            make_unary_op column "LOWER" new_name
+        Value_Type_Checks.is_text column
+        new_name = (naming_helper column).function_name "lower" [column]
+        make_unary_op column "LOWER" new_name
 
     proper column =
-        Value_Type.expect_text column <|
-            new_name = (naming_helper column).function_name "proper" [column]
-            make_unary_op column "PROPER" new_name
+        Value_Type_Checks.is_text column
+        new_name = (naming_helper column).function_name "proper" [column]
+        make_unary_op column "PROPER" new_name
 
     left (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
-            n2 = n.max 0
-            new_name = (naming_helper this_column).function_name "left" [this_column, n]
-            make_binary_op this_column "LEFT" n2 new_name
+        Value_Type_Checks.is_text this_column
+        Helpers.is_specific_integer_type this_column n
+        n2 = n.max 0
+        new_name = (naming_helper this_column).function_name "left" [this_column, n]
+        make_binary_op this_column "LEFT" n2 new_name
 
     right (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
-            n2 = n.max 0
-            new_name = (naming_helper this_column).function_name "right" [this_column, n]
-            make_binary_op this_column "RIGHT" n2 new_name
+        Value_Type_Checks.is_text this_column
+        Helpers.is_specific_integer_type this_column n
+        n2 = n.max 0
+        new_name = (naming_helper this_column).function_name "right" [this_column, n]
+        make_binary_op this_column "RIGHT" n2 new_name
 
     mid (this_column : Column & DB_Column) (start : Column | Any) (length : Column | Any) =
-        Helpers.expect_specific_integer_type this_column start <|
-            case length of
-                _ : Rest_Of_String ->
-                    new_name = (naming_helper this_column).function_name "mid" [this_column, start]
-                    make_op this_column "SUBSTR" [start + 1] new_name
-                _ ->
-                    Helpers.expect_specific_integer_type this_column length <|
-                        new_name = (naming_helper this_column).function_name "mid" [this_column, start, length]
-                        make_op this_column "SUBSTR" [start + 1, length] new_name
+        Helpers.is_specific_integer_type this_column start
+        case length of
+            _ : Rest_Of_String ->
+                new_name = (naming_helper this_column).function_name "mid" [this_column, start]
+                make_op this_column "SUBSTR" [start + 1] new_name
+            _ ->
+                Helpers.is_specific_integer_type this_column length
+                new_name = (naming_helper this_column).function_name "mid" [this_column, start, length]
+                make_op this_column "SUBSTR" [start + 1, length] new_name
 
     index_of column other case_sensitivity = 
-        Value_Type.expect_text column <| Value_Type.expect_text other <|
-            new_name = (naming_helper column).function_name "index_of" [column, other]
-            make_text_case_op column "INDEX_OF" other case_sensitivity new_name
+        Value_Type_Checks.is_text column
+        Value_Type_Checks.is_text other
+        new_name = (naming_helper column).function_name "index_of" [column, other]
+        make_text_case_op column "INDEX_OF" other case_sensitivity new_name
 
     parse_json column on_problems =
         _ = [column, on_problems]
@@ -163,19 +166,19 @@ type DB_Text_Column_Implementation
 
 type DB_Date_Column_Implementation
     first_of_month column =
-        Value_Type.expect_date column <|
-            new_name = (naming_helper column).function_name "first_of_month" [column]
-            make_unary_op column "first_of_month" new_name
+        Value_Type_Checks.is_date column
+        new_name = (naming_helper column).function_name "first_of_month" [column]
+        make_unary_op column "first_of_month" new_name
 
     end_of_month column =
-        Value_Type.expect_date column <|
-            new_name = (naming_helper column).function_name "end_of_month" [column]
-            make_unary_op column "end_of_month" new_name
+        Value_Type_Checks.is_date column
+        new_name = (naming_helper column).function_name "end_of_month" [column]
+        make_unary_op column "end_of_month" new_name
 
     first_of_week (column : Column & DB_Column) (first_day:Day_Of_Week) =
-        Value_Type.expect_date column <|
-            offset = first_day.to_integer start_at_zero=True
-            column.date_add (column.const offset - column.day_of_week) Date_Period.Day
+        Value_Type_Checks.is_date column
+        offset = first_day.to_integer start_at_zero=True
+        column.date_add (column.const offset - column.day_of_week) Date_Period.Day
 
 type DB_Date_Time_Column_Implementation
     at_time_zone column time_zone =

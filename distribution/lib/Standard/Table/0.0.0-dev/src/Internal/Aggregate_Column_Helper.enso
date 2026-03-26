@@ -10,6 +10,7 @@ import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
+import project.Internal.Value_Type_Checks
 import project.Table.Table
 import project.Value_Type.Value_Type
 from project.Errors import Invalid_Aggregation, No_Output_Columns
@@ -188,14 +189,14 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
     resolve_numeric c =
         internal_column = resolve c
         col = columns_helper.make_column internal_column
-        Value_Type.expect_numeric col <|
-            internal_column
+        Value_Type_Checks.is_numeric col
+        internal_column
 
     resolve_text c =
         internal_column = resolve c
         col = columns_helper.make_column internal_column
-        Value_Type.expect_text col <|
-            internal_column
+        Value_Type_Checks.is_text col
+        internal_column
 
     result = case aggregate_column:Aggregate_Column of
         Aggregate_Column.Group_By c as -> Aggregate_Column.Group_By (resolve c) as

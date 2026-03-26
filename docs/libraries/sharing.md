@@ -63,7 +63,9 @@ See:
 
 ## Publishing to library server
 
-> [!WARNING] Works only on local host.
+<!-- prettier-ignore -->
+> [!WARNING]
+> Works only on local host.
 
 To publish a library, first you must obtain the upload URL of the repository, if
 you are hosting the repository locally it will be `http://localhost:8080/upload`

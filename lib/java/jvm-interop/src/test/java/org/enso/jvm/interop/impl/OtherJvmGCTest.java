@@ -34,6 +34,7 @@ public class OtherJvmGCTest {
     CHANNEL
         .getConfig()
         .onEnterLeave(
+            CHANNEL,
             null,
             null,
             (__) -> {

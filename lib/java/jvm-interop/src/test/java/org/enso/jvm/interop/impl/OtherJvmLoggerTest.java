@@ -33,6 +33,7 @@ public class OtherJvmLoggerTest {
     CHANNEL
         .getConfig()
         .onEnterLeave(
+            CHANNEL,
             null,
             null,
             (__) -> {

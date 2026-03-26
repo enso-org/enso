@@ -8,7 +8,9 @@ order: 8
 
 # Monadic Contexts
 
-> [!WARNING] Reword for people without Haskell background who don't know what
+<!-- prettier-ignore -->
+> [!WARNING]
+> Reword for people without Haskell background who don't know what
 > _lifting_ is.
 >
 > Coming from a Haskell background, we have found that Monads provide a great
@@ -44,7 +46,9 @@ in the compiler, and hence can be automatically lifted to aid usability.
 
 ## Context Syntax
 
-> [!WARNING] There used to be three main notes about the syntax of contexts:
+<!-- prettier-ignore -->
+> [!WARNING]
+> There used to be three main notes about the syntax of contexts:
 >
 > 1. Monadic contexts are defined using the `in` keyword (e.g. `Int in IO`).
 > 2. We have a symbol `!`, which is short-hand for putting something into the
@@ -71,7 +75,9 @@ There is still the `!` symbol signaling [presence of errors](./errors.md)
 
 ## Monadic Bind
 
-> [!WARNING] Who knows what `<-` means in Haskell?
+> <!-- prettier-ignore -->
+> [!WARNING] 
+> Who knows what `<-` means in Haskell?
 >
 > It is also important to note that Enso has no equivalent to `<-` in Haskell.
 > Instead, pure computations are implicitly placed in the `Pure` monadic

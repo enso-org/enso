@@ -8,6 +8,7 @@ import project.Column.Rest_Of_String
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
+import project.Internal.Value_Type_Checks
 import project.Value_Type.Value_Type
 from project.Internal.In_Memory_Column_Implementation import _apply_binary_map, _call_binary_operator, _java_other, apply_case_sensitive_text_operation, apply_unary_map, apply_unary_operation, naming_helper
 
@@ -26,217 +27,222 @@ polyglot java import org.enso.table.data.column.storage.type.TextType
 
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "abs" [column]
-            apply_unary_operation column AbsOperation.INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "abs" [column]
+        apply_unary_operation column AbsOperation.INSTANCE new_name
 
     signum (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "signum" [column]
-            apply_unary_operation column SignumOperation.INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "signum" [column]
+        apply_unary_operation column SignumOperation.INSTANCE new_name
 
     randbetween (column : Column & In_Memory_Column) limit seed:Integer =
-        Value_Type.expect_numeric column <| Value_Type.expect_numeric limit <|
-            operation = RandBetweenOperation.create (column:In_Memory_Column).java_column (_java_other limit) seed
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported randbetween operation.")
-            new_name = naming_helper.function_name "randbetween" [column, limit]
-            _call_binary_operator column limit new_name operation
+        Value_Type_Checks.is_numeric column
+        Value_Type_Checks.is_numeric limit
+        operation = RandBetweenOperation.create (column:In_Memory_Column).java_column (_java_other limit) seed
+        if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported randbetween operation.")
+        new_name = naming_helper.function_name "randbetween" [column, limit]
+        _call_binary_operator column limit new_name operation
 
     sin (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "sin" [column]
-            apply_unary_operation column DoubleUnaryOperation.SIN_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "sin" [column]
+        apply_unary_operation column DoubleUnaryOperation.SIN_INSTANCE new_name
 
     asin (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "asin" [column]
-            apply_unary_operation column DoubleUnaryOperation.ASIN_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "asin" [column]
+        apply_unary_operation column DoubleUnaryOperation.ASIN_INSTANCE new_name
 
     cos (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "cos" [column]
-            apply_unary_operation column DoubleUnaryOperation.COS_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "cos" [column]
+        apply_unary_operation column DoubleUnaryOperation.COS_INSTANCE new_name
 
     acos (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "acos" [column]
-            apply_unary_operation column DoubleUnaryOperation.ACOS_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "acos" [column]
+        apply_unary_operation column DoubleUnaryOperation.ACOS_INSTANCE new_name
 
     tan (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "tan" [column]
-            apply_unary_operation column DoubleUnaryOperation.TAN_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "tan" [column]
+        apply_unary_operation column DoubleUnaryOperation.TAN_INSTANCE new_name
 
     atan (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "atan" [column]
-            apply_unary_operation column DoubleUnaryOperation.ATAN_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "atan" [column]
+        apply_unary_operation column DoubleUnaryOperation.ATAN_INSTANCE new_name
 
     sinh (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "sinh" [column]
-            apply_unary_operation column DoubleUnaryOperation.SINH_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "sinh" [column]
+        apply_unary_operation column DoubleUnaryOperation.SINH_INSTANCE new_name
 
     cosh (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "cosh" [column]
-            apply_unary_operation column DoubleUnaryOperation.COSH_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "cosh" [column]
+        apply_unary_operation column DoubleUnaryOperation.COSH_INSTANCE new_name
 
     tanh (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "tanh" [column]
-            apply_unary_operation column DoubleUnaryOperation.TANH_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "tanh" [column]
+        apply_unary_operation column DoubleUnaryOperation.TANH_INSTANCE new_name
 
     sqrt (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "sqrt" [column]
-            apply_unary_operation column DoubleUnaryOperation.SQRT_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "sqrt" [column]
+        apply_unary_operation column DoubleUnaryOperation.SQRT_INSTANCE new_name
 
     ln (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "ln" [column]
-            apply_unary_operation column DoubleUnaryOperation.LN_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "ln" [column]
+        apply_unary_operation column DoubleUnaryOperation.LN_INSTANCE new_name
 
     exp (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "exp" [column]
-            apply_unary_operation column DoubleUnaryOperation.EXP_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "exp" [column]
+        apply_unary_operation column DoubleUnaryOperation.EXP_INSTANCE new_name
 
     log10 (column : Column & In_Memory_Column) =
-        Value_Type.expect_numeric column <|
-            new_name = naming_helper.function_name "log10" [column]
-            apply_unary_operation column DoubleUnaryOperation.LOG10_INSTANCE new_name
+        Value_Type_Checks.is_numeric column
+        new_name = naming_helper.function_name "log10" [column]
+        apply_unary_operation column DoubleUnaryOperation.LOG10_INSTANCE new_name
 
 type In_Memory_Text_Column_Implementation
     to_case (column : Column & In_Memory_Column) case_option:Case locale:Locale =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "to_case" [column, case_option.to_text]
-            operation = CaseOperation.new case_option.to_java locale.java_locale
-            apply_unary_operation column operation new_name
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "to_case" [column, case_option.to_text]
+        operation = CaseOperation.new case_option.to_java locale.java_locale
+        apply_unary_operation column operation new_name
 
     length (column : Column & In_Memory_Column) =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "length" [column]
-            operation = TextLengthOperation.INSTANCE
-            apply_unary_operation column operation new_name
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "length" [column]
+        operation = TextLengthOperation.INSTANCE
+        apply_unary_operation column operation new_name
 
     char_length (column : Column & In_Memory_Column) =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "char_length" [column]
-            operation = TextCharLengthOperation.INSTANCE
-            apply_unary_operation column operation new_name
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "char_length" [column]
+        operation = TextCharLengthOperation.INSTANCE
+        apply_unary_operation column operation new_name
 
     upper (column : Column & In_Memory_Column) =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "upper" [column]
-            operation = CaseOperation.new Case.Upper.to_java Locale.default.java_locale
-            apply_unary_operation column operation new_name
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "upper" [column]
+        operation = CaseOperation.new Case.Upper.to_java Locale.default.java_locale
+        apply_unary_operation column operation new_name
 
     lower (column : Column & In_Memory_Column) =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "lower" [column]
-            operation = CaseOperation.new Case.Lower.to_java Locale.default.java_locale
-            apply_unary_operation column operation new_name
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "lower" [column]
+        operation = CaseOperation.new Case.Lower.to_java Locale.default.java_locale
+        apply_unary_operation column operation new_name
 
     proper (column : Column & In_Memory_Column) =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "proper" [column]
-            operation = CaseOperation.new Case.Proper.to_java Locale.default.java_locale
-            apply_unary_operation column operation new_name
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "proper" [column]
+        operation = CaseOperation.new Case.Proper.to_java Locale.default.java_locale
+        apply_unary_operation column operation new_name
 
     left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
-            new_name = naming_helper.function_name "left" [this_column, n]
-            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+        Value_Type_Checks.is_integer n
+        Value_Type_Checks.is_text this_column
+        new_name = naming_helper.function_name "left" [this_column, n]
+        apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
 
     right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
-            new_name = naming_helper.function_name "right" [this_column, n]
-            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+        Value_Type_Checks.is_integer n
+        Value_Type_Checks.is_text this_column
+        new_name = naming_helper.function_name "right" [this_column, n]
+        apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
 
     mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
-            new_name = naming_helper.function_name "mid" [this_column, start, length]
+        Value_Type_Checks.is_integer start
+        Value_Type_Checks.is_text this_column
+        new_name = naming_helper.function_name "mid" [this_column, start, length]
 
-            # Returns Nothing if any argument is Nothing, and returns "" for start out-of-bounds or if length is negative.
-            do_substring s start length =
-                if s.is_nothing || start.is_nothing || length.is_nothing then Nothing else
-                    nonneg_start = if start < 0 then 0 else start
-                    case length of
-                        _ : Rest_Of_String ->
-                            if nonneg_start >= s.length then "" else s.substring nonneg_start
-                        _ : Integer ->
-                            if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
+        # Returns Nothing if any argument is Nothing, and returns "" for start out-of-bounds or if length is negative.
+        do_substring s start length =
+            if s.is_nothing || start.is_nothing || length.is_nothing then Nothing else
+                nonneg_start = if start < 0 then 0 else start
+                case length of
+                    _ : Rest_Of_String ->
+                        if nonneg_start >= s.length then "" else s.substring nonneg_start
+                    _ : Integer ->
+                        if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
 
-            start_is_column = start.is_a Column
-            length_is_column = length.is_a Column
-            res = case start_is_column of
-                True ->
-                    case length_is_column of
-                        True ->
-                            Value_Type.expect_integer length <|
-                                row_count = this_column.row_count
-                                java_this = this_column.java_column
-                                java_start = (start:In_Memory_Column).java_column
-                                java_length = (length:In_Memory_Column).java_column
+        start_is_column = start.is_a Column
+        length_is_column = length.is_a Column
+        res = case start_is_column of
+            True ->
+                case length_is_column of
+                    True ->
+                        Value_Type_Checks.is_integer length
+                        row_count = this_column.row_count
+                        java_this = this_column.java_column
+                        java_start = (start:In_Memory_Column).java_column
+                        java_length = (length:In_Memory_Column).java_column
 
-                                builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
-                                0.up_to row_count . each i->
-                                    replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
-                                    builder.append replaced
+                        builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
+                        0.up_to row_count . each i->
+                            replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
+                            builder.append replaced
 
-                                In_Memory_Column.from_storage new_name builder.seal
-                        False ->
-                            _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char
-                False ->
-                    case length_is_column of
-                        True ->
-                            Value_Type.expect_integer length <|
-                                _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
-                        False ->
-                            apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                        In_Memory_Column.from_storage new_name builder.seal
+                    False ->
+                        _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char
+            False ->
+                case length_is_column of
+                    True ->
+                        Value_Type_Checks.is_integer length
+                        _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
+                    False ->
+                        apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
 
-            res . cast this_column.value_type
+        res . cast this_column.value_type
 
     index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
-        Value_Type.expect_text column <| Value_Type.expect_text other <|
-            new_name = naming_helper.function_name "index_of" [column, other]
-            apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
+        Value_Type_Checks.is_text column
+        Value_Type_Checks.is_text other
+        new_name = naming_helper.function_name "index_of" [column, other]
+        apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
 
     parse_json (column : Column & In_Memory_Column) (on_problems:Problem_Behavior) =
-        Value_Type.expect_text column <|
-            new_name = naming_helper.function_name "parse_json" [column]
-            operation = JsonParseOperation.new
-            apply_unary_operation column operation new_name on_problems=on_problems
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "parse_json" [column]
+        operation = JsonParseOperation.new
+        apply_unary_operation column operation new_name on_problems=on_problems
 
 type In_Memory_Date_Column_Implementation
     first_of_month (column : Column & In_Memory_Column) =
-        Value_Type.expect_date column <|
-            new_name = naming_helper.function_name "first_of_month" [column]
-            apply_unary_map column new_name .first_of_month Value_Type.Date
+        Value_Type_Checks.is_date column
+        new_name = naming_helper.function_name "first_of_month" [column]
+        apply_unary_map column new_name .first_of_month Value_Type.Date
 
     end_of_month (column : Column & In_Memory_Column) =
-        Value_Type.expect_date column <|
-            new_name = naming_helper.function_name "end_of_month" [column]
-            apply_unary_map column new_name .end_of_month Value_Type.Date
+        Value_Type_Checks.is_date column
+        new_name = naming_helper.function_name "end_of_month" [column]
+        apply_unary_map column new_name .end_of_month Value_Type.Date
 
     first_of_week (column : Column & In_Memory_Column) (first_day:Day_Of_Week) =
-        Value_Type.expect_date column <|
-            offset = first_day.to_integer start_at_zero=True
-            column.date_add (column.const offset - column.day_of_week) Date_Period.Day
+        Value_Type_Checks.is_date column
+        offset = first_day.to_integer start_at_zero=True
+        column.date_add (column.const offset - column.day_of_week) Date_Period.Day
 
 type In_Memory_Date_Time_Column_Implementation
     at_time_zone (column : Column & In_Memory_Column) (time_zone : Time_Zone|Text) =
         time_zone_resolved = _resolve_time_zone time_zone
-        Value_Type.expect_date_time column <|
-            new_name = naming_helper.function_name "at_time_zone" [column, time_zone_resolved.zone_id]
-            apply_unary_map column new_name (d -> d.at_time_zone time_zone_resolved) Value_Type.Date_Time
+        Value_Type_Checks.is_date_time column
+        new_name = naming_helper.function_name "at_time_zone" [column, time_zone_resolved.zone_id]
+        apply_unary_map column new_name (d -> d.at_time_zone time_zone_resolved) Value_Type.Date_Time
 
     set_time_zone (column : Column & In_Memory_Column) (time_zone : Time_Zone|Text) =
         time_zone_resolved = _resolve_time_zone time_zone
-        Value_Type.expect_date_time column <|
-            new_name = naming_helper.function_name "set_time_zone" [column, time_zone_resolved.zone_id]
-            apply_unary_map column new_name (d -> d.set_time_zone time_zone_resolved) Value_Type.Date_Time
+        Value_Type_Checks.is_date_time column
+        new_name = naming_helper.function_name "set_time_zone" [column, time_zone_resolved.zone_id]
+        apply_unary_map column new_name (d -> d.set_time_zone time_zone_resolved) Value_Type.Date_Time
 
 private _resolve_time_zone (time_zone : Time_Zone|Text) =
     case time_zone of
