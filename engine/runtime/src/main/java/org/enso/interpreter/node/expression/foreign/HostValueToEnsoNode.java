@@ -12,6 +12,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -28,6 +29,7 @@ public abstract class HostValueToEnsoNode extends Node {
     return HostValueToEnsoNodeGen.create();
   }
 
+  @NeverDefault
   public static HostValueToEnsoNode getUncached() {
     return HostValueToEnsoNodeGen.getUncached();
   }
@@ -41,8 +43,18 @@ public abstract class HostValueToEnsoNode extends Node {
   public abstract Object execute(Object o);
 
   @Specialization
+  double doDouble(double d) {
+    return d;
+  }
+
+  @Specialization
   double doFloat(float f) {
     return f;
+  }
+
+  @Specialization
+  long doLong(long l) {
+    return l;
   }
 
   @Specialization
@@ -66,12 +78,21 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization
+  boolean doBool(boolean b) {
+    return b;
+  }
+
+  @Specialization
   Text doString(String txt) {
     return Text.create(txt);
   }
 
-  @Specialization(guards = {"value != null", "iop.isNull(value)"})
-  Object doNull(
+  static boolean isEnsoObject(Object obj) {
+    return obj instanceof EnsoObject;
+  }
+
+  @Specialization(guards = {"value != null", "!isEnsoObject(value)", "iop.isNull(value)"})
+  Object doForeignNull(
       Object value,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
