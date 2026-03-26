@@ -31,9 +31,6 @@ gtag('js', new Date())
 // eslint-disable-next-line camelcase
 gtag('set', 'linker', { accept_incoming: true })
 gtag('config', GOOGLE_ANALYTICS_TAG)
-if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {
-  gtag('config', 'G-DH47F649JC')
-}
 
 /**
  * Send an event indicating that something has been opened, and return a cleanup function
