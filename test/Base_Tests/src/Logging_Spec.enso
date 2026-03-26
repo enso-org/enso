@@ -135,7 +135,49 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         if proc.exit_code != Exit_Code.Success then
             Test.fail proc.stdout+proc.stderr+proc.exit_code.to_text
 
-        arr = logs_dir.list 
+        arr = logs_dir.list
+        arr.length . should_equal 1
+
+        log = Data.read (arr.at 0) : Text
+        console_log = proc.stdout+proc.stderr
+
+        Pair.new log console_log
+
+    perform_ydoc_server_logging prj_dir:File (args:Vector Text) -> Pair Text Text =
+        logs_dir = prj_dir / "logs"
+        _ = logs_dir.delete recursive=True
+        logs_dir.create_directory
+
+        js_file = File.create_temporary_file "custom_ydoc" ".js"
+        js_code = """
+            console.log("YDOC_LOG");
+            console.error("YDOC_ERROR");
+            console.warn("YDOC_WARN");
+            console.info("YDOC_INFO");
+            console.debug("YDOC_DEBUG");
+            // console.trace("YDOC_TRACE");
+            throw "OK";
+        js_code.write js_file
+
+        all_args = jvm_args
+            + [ "--server", "--daemon", "--log-level=trace" ]
+            + [ "--root-id", "fbfd4950-2324-4108-99b7-019a614f94ab"]
+            + [ "--project-id", "2b27d943-7c6b-4481-8e69-67d0c57a02ed" ]
+            + [ "--path",  prj_dir.to_text, "--interface", "127.0.0.1", "--rpc-port", "37432", "--data-port", "37617" ]
+            + args
+
+        proc = Process.new_builder "enso"
+            . set_arguments all_args
+            . set_directory prj_dir.parent
+            . set_env "ENSO_LOG_DIRECTORY" logs_dir.to_text
+            . set_env "JAVA_TOOL_OPTIONS" "-ea"
+            . set_env "YDOC_SERVER_JS" js_file.to_text
+            . create
+
+        if proc.exit_code != Exit_Code.Failure 7 then
+            Test.fail "Unexpected exit code: "+proc.exit_code.to_text+'\n'+proc.stdout+proc.stderr
+
+        arr = logs_dir.list
         arr.length . should_equal 1
 
         log = Data.read (arr.at 0) : Text
@@ -295,6 +337,23 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         console_log . not_contains_line "INFO.*Pozdrawiam"
         console_log . contains_line "WARN.*java.lang.IllegalStateException.*WARN.*:.*Pozdrawiam"
         console_log . contains_line "ERROR.*java.lang.IllegalStateException.*ERROR.*:.*Pozdrawiam"
+
+    group_builder.specify "YDOC logger with default log level" <|
+        pair = perform_ydoc_server_logging enso_logging_prj []
+        log = pair.first
+        console_log = pair.second
+
+        log . not_contains_line "YDOC_TRACE"
+        log . not_contains_line "YDOC_DEBUG"
+        log . contains_line "YDOC_INFO"
+        log . contains_line "YDOC_WARN"
+        log . contains_line "YDOC_ERROR"
+
+        console_log . not_contains_line "YDOC_TRACE"
+        console_log . not_contains_line "YDOC_DEBUG"
+        console_log . not_contains_line "YDOC_INFO"
+        console_log . contains_line "YDOC_WARN"
+        console_log . contains_line "YDOC_ERROR"
 
 Text.contains_line self regex:Text =
     r = Regex.compile regex
