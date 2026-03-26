@@ -7,7 +7,7 @@ public final class ProgressHandle {
   private final String name;
   private final long count;
   private final long then;
-  private Long took;
+  private boolean closed;
 
   public ProgressHandle(Logger logger, String name, long count) {
     this.logger = logger;
@@ -17,10 +17,11 @@ public final class ProgressHandle {
   }
 
   public void close() {
-    if (took != null) {
+    if (closed) {
       return;
     }
-    took = System.currentTimeMillis() - then;
+    closed = true;
+    var took = System.currentTimeMillis() - then;
     logger.debug("ADVANCE {}+{}~{}ms", this, count, took);
   }
 
