@@ -12,6 +12,7 @@ import project.AWS_Region.AWS_Region
 import project.Errors.Invalid_AWS_URI
 
 polyglot java import org.enso.aws.ClientBuilder
+polyglot java import java.net.http.HttpClient
 
 ## Methods for interacting with AWS services.
 type AWS
@@ -151,4 +152,4 @@ type AWS_Region_Service
 
 private _make_client credentials region_service http hash =
     builder = ClientBuilder.new credentials.as_java (AWS_Region.Region region_service.region).as_java
-    builder.createSignedClient region_service.region region_service.service (internal_http_client http "") hash
+    builder.createSignedClient region_service.region region_service.service (internal_http_client http "" HttpClient) hash

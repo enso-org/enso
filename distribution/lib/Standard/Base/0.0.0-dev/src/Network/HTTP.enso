@@ -355,8 +355,8 @@ with_hash_and_client http hash_method make_client =
    private: true
    ---
    Build a Java HttpClient with the given settings.
-internal_http_client : HTTP -> Text -> HttpClient
-internal_http_client http hash =
+internal_http_client : HTTP -> Text -> Any -> HttpClient
+internal_http_client http hash http_client_type=HttpClient =
     _ = hash
     builder = HttpClient.newBuilder.connectTimeout http.timeout
 
