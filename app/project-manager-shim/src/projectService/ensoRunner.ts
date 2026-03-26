@@ -378,20 +378,16 @@ export class EnsoRunner implements Runner {
         }
 
         const cwd = path.dirname(projectPath)
-        const project = await OpenedProject.create(
-          projectPath,
-          jsonPort,
-          ydocPort,
-          () =>
-            this.runProcess(args, (cmd, cmdArgs) =>
-              childProcess.spawn(cmd, cmdArgs, {
-                env,
-                detached: false,
-                cwd,
-                stdio: ['pipe', 'inherit', 'inherit'],
-                windowsHide: true,
-              }),
-            ),
+        const project = await OpenedProject.create(projectPath, jsonPort, ydocPort, () =>
+          this.runProcess(args, (cmd, cmdArgs) =>
+            childProcess.spawn(cmd, cmdArgs, {
+              env,
+              detached: false,
+              cwd,
+              stdio: ['pipe', 'inherit', 'inherit'],
+              windowsHide: true,
+            }),
+          ),
         )
         project.shutdownHooks.set('remove-from-list', () => {
           this.runningProjects.delete(projectPath)
