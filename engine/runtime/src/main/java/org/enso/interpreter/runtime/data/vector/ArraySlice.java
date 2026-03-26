@@ -28,9 +28,8 @@ final class ArraySlice extends EnsoObject {
   private final Object storage;
   private final long start;
   private final long end;
-  private Boolean withWarnings;
 
-  private ArraySlice(Object base, long start, long end, Boolean withWarnings) {
+  private ArraySlice(Object base, long start, long end) {
     var s = findStorage(base);
     if (s instanceof ArraySlice slice) {
       this.storage = slice.storage;
@@ -47,7 +46,6 @@ final class ArraySlice extends EnsoObject {
       this.storage = s;
       this.start = start;
       this.end = end;
-      this.withWarnings = withWarnings;
     }
   }
 
@@ -68,7 +66,7 @@ final class ArraySlice extends EnsoObject {
     } else if ((slice_start == 0) && (slice_end == this_length)) {
       return null;
     } else {
-      slice = new ArraySlice(storage, slice_start, slice_end, null);
+      slice = new ArraySlice(storage, slice_start, slice_end);
     }
     return Vector.fromInteropArray(slice);
   }
@@ -163,27 +161,21 @@ final class ArraySlice extends EnsoObject {
 
   @ExportMessage
   boolean hasWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
-    if (withWarnings == null) {
-      withWarnings = warnings.hasWarnings(this.storage);
-    }
-    return withWarnings;
+    return warnings.hasWarnings(this.storage);
   }
 
   @ExportMessage
   EnsoHashMap getWarnings(
       boolean shouldWrap, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    if (withWarnings != null && !withWarnings) {
-      return EnsoHashMap.empty();
-    } else {
-      return warnings.getWarnings(this.storage, shouldWrap);
-    }
+    return warnings.getWarnings(this.storage, shouldWrap);
   }
 
   @ExportMessage
   Object removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    return new ArraySlice(this.storage, start, end, false);
+    Object newStorage = warnings.removeWarnings(this.storage);
+    return new ArraySlice(newStorage, start, end);
   }
 
   @ExportMessage

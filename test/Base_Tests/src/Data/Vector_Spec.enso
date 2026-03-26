@@ -1346,8 +1346,12 @@ add_specs suite_builder =
     type_spec suite_builder "Use Array_Proxy as vectors" v->
         Array_Proxy.new v.length (ix -> v.at ix)
     type_spec suite_builder "Use a slice of an array as vectors" v->
-        v2 = v+[Nothing]
-        sliced_vector = v2.slice 0 v.length
+        arr = CallbackHelper.createArrayList v.length*3 \i->
+            if i >= v.length && i < v.length*2 then
+                v.at i-v.length
+            else
+                Nothing
+        sliced_vector = arr.slice v.length 2*v.length
         sliced_array = sliced_vector.to_array
         sliced_array
 
