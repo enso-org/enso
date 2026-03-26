@@ -44,6 +44,7 @@ polyglot java import java.net.http.HttpRequest.Builder
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import javax.net.ssl.SSLContext
+polyglot java import org.enso.base.cache.ResponseTooLargeException
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
@@ -150,40 +151,42 @@ type HTTP
     request : Request -> Boolean -> Cache_Policy -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
     request self req error_on_failure_code:Boolean=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
-        check_output_context ~action =
-            if (if_fetch_method req.method True if_not=Context.Output.is_enabled) then action else
-                Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
+        if (if_fetch_method req.method True if_not=Context.Output.is_enabled).not then
+            Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
+
         # You can only explicitly mention the cache for GET requests.
-        check_cache_policy ~action =
-            cache_policy_value_ok = req.method == HTTP_Method.Get || cache_policy != Cache_Policy.Use_Cache
-            if cache_policy_value_ok then action else
-                Error.throw (Illegal_Argument.Error "Cannot specify cache policy for a "+req.method.to_text+" request")
+        if req.method != HTTP_Method.Get && cache_policy == Cache_Policy.Use_Cache then
+            Error.throw (Illegal_Argument.Error "Cannot specify cache policy for a "+req.method.to_text+" request")
 
         handle_request_error =
             handler caught_panic =
                 exception = caught_panic.payload
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
-            Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler
+            too_large_handler caught_panic =
+                Error.throw (Response_Too_Large.Error caught_panic.payload.getActualSize caught_panic.payload.getLimit)
+            Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler <| Panic.catch ResponseTooLargeException handler=too_large_handler
 
-        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <| check_cache_policy <| Response_Too_Large.handle_java_exception <|
+        handle_request_error <|
             headers = _resolve_headers req
-            headers.if_not_error <|
-                resolved_body = _resolve_body req.body self.hash_method
-                resolved_body.if_not_error <|
-                    # Create builder and set method and body
-                    builder = HttpRequest.newBuilder
-                    builder.method req.method.to_http_method_name resolved_body.publisher
+            Error.return_if_error headers
 
-                    # Create Unified Header list
-                    boundary_header_list = if resolved_body.boundary.is_nothing then [] else [Header.multipart_form_data resolved_body.boundary]
-                    all_headers = headers + boundary_header_list
-                    mapped_headers = all_headers.map on_problems=No_Wrap.Value .to_java_pair
+            resolved_body = _resolve_body req.body self.hash_method
+            Error.return_if_error resolved_body
 
-                    response = Response.new (EnsoSecretHelper.makeRequest (self.make_client self resolved_body.hash) builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
-                    if error_on_failure_code.not || response.code.is_success then response else
-                        body = response.body.decode_as_text.catch Any _->""
-                        message = if body.is_empty then Nothing else body
-                        Error.throw (HTTP_Error.Status_Error response.code message response.uri)
+            # Create builder and set method and body
+            builder = HttpRequest.newBuilder
+            builder.method req.method.to_http_method_name resolved_body.publisher
+
+            # Create Unified Header list
+            boundary_header_list = if resolved_body.boundary.is_nothing then [] else [Header.multipart_form_data resolved_body.boundary]
+            all_headers = headers + boundary_header_list
+            mapped_headers = all_headers.map on_problems=No_Wrap.Value .to_java_pair
+
+            response = Response.new (EnsoSecretHelper.makeRequest (self.make_client self resolved_body.hash) builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
+            if error_on_failure_code.not || response.code.is_success then response else
+                body = response.body.decode_as_text.catch Any _->""
+                message = if body.is_empty then Nothing else body
+                Error.throw (HTTP_Error.Status_Error response.code message response.uri)
 
     ## ---
        aliases: [flush]
@@ -355,8 +358,8 @@ with_hash_and_client http hash_method make_client =
    private: true
    ---
    Build a Java HttpClient with the given settings.
-internal_http_client : HTTP -> Text -> Any -> HttpClient
-internal_http_client http hash http_client_type=HttpClient =
+internal_http_client : HTTP -> Text -> HttpClient
+internal_http_client http hash =
     _ = hash
     builder = HttpClient.newBuilder.connectTimeout http.timeout
 
