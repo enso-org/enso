@@ -21,7 +21,7 @@ public final class ProgressHandle {
       return;
     }
     took = System.currentTimeMillis() - then;
-    logger.trace("ADVANCE {}+{}~{}ms", this, count, took);
+    logger.debug("ADVANCE {}+{}~{}ms", this, count, took);
   }
 
   @Override
