@@ -40,6 +40,13 @@ const props = defineProps<{
   typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
+// # Effective sizes:
+//
+// The visualization has two types of dimensions:
+// - The `width`/`height` props are the configured dimensions. They are only set by user action, and they are persisted.
+// - The `effectiveWidth`/`effectiveHeight` values report the dimensions at which the visualization is rendered. They
+//   may differ from the configured dimensions, e.g., if the node's widget-based size has become larger than the
+//   configured size.
 const emit = defineEmits<{
   'update:effectiveWidth': [width: number]
   'update:effectiveHeight': [height: number]

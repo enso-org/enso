@@ -1,4 +1,4 @@
-import { Quad, nodeDisplacements, pushStarts } from '@/components/GraphEditor/nodesDisplacing'
+import { Quad, useDisplacing } from '@/components/GraphEditor/nodesDisplacing'
 import { Vec2 } from '@/util/data/vec2'
 import { fc, test as fcTest } from '@fast-check/vitest'
 import { expect, test } from 'vitest'
@@ -49,9 +49,8 @@ test.each([
   { input: EXPANDING_RIGHT, expected: [Infinity, 2, Infinity, Infinity] },
   { input: EXPANDING_BOTTOM_RIGHT, expected: [Infinity, Infinity, Infinity, 2] },
 ])('pushStarts', ({ input: { rects, bounds0, bounds1, padding }, expected }) => {
-  expect(
-    pushStarts(bounds0, bounds1, rects.map(Quad.invert), padding ?? Quad.ZERO, undefined),
-  ).toEqual(expected)
+  const { pushStarts } = useDisplacing({ padding: padding ?? Quad.ZERO })
+  expect(pushStarts(bounds0, bounds1, rects.map(Quad.invert))).toEqual(expected)
 })
 
 test.each([
@@ -92,9 +91,9 @@ test.each([
       moves: [[0, new Vec2(0, 4)]],
     },
   },
-])('nodeDisplacements', ({ input: { rects, bounds0, bounds1, padding }, expected }) => {
-  const moves =
-    nodeDisplacements(rects, bounds0, bounds1, undefined, padding ?? Quad.ZERO)?.moves ?? []
+])('Displacing step', ({ input: { rects, bounds0, bounds1, padding }, expected }) => {
+  const { step } = useDisplacing({ padding: padding ?? Quad.ZERO })
+  const moves = step(rects, bounds0, bounds1, undefined)?.moves ?? []
   expect(moves).toEqual(expected.moves)
 })
 
@@ -103,12 +102,12 @@ fcTest.prop({
   push: fc.float({ min: 0, minExcluded: true, max: 5, noNaN: true }),
 })('Node kept beyond reference, not pushed beyond padding', ({ pos, push }) => {
   const PADDING = 1
-  const displacements = nodeDisplacements(
+  const { step } = useDisplacing({ padding: Quad.splat(PADDING) })
+  const displacements = step(
     [Quad.fromRect({ ...UNIT, top: pos, bottom: pos + 1 })],
     Quad.fromRect(UNIT),
     Quad.fromRect({ ...UNIT, bottom: push + 1 }),
     undefined,
-    Quad.splat(PADDING),
   )
   const moves = displacements?.moves ?? []
   const pos1 = moves[0] ? moves[0][1].y : pos
