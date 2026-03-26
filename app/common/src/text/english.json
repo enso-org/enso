@@ -31,7 +31,6 @@
   "offlineUploadFilesError": "Cannot upload files when offline",
   "noIdeVersionError": "Could not get the IDE version of the project",
   "noJSONEndpointError": "Could not get the address of the project's JSON endpoint",
-  "noBinaryEndpointError": "Could not get the address of the project's binary endpoint",
   "listVersionsError": "Could not list versions",
   "loadFileError": "Could not load file",
   "noAppDownloadError": "Could not find a compatible download link",

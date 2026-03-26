@@ -42,7 +42,6 @@ import * as Y from 'yjs'
 
 export interface LsUrls {
   rpcUrl: string
-  dataUrl: string
   ydocUrl: string
 }
 

@@ -301,8 +301,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         interface             = "127.0.0.2",
         rpcPort               = 1234,
         secureRpcPort         = None,
-        dataPort              = 4321,
-        secureDataPort        = None,
         jvm                   = None
       )
       val runSettings = runner
@@ -321,7 +319,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val commandLine = runSettings.runnerArguments.mkString(" ")
       commandLine should include(s"--interface ${options.interface}")
       commandLine should include(s"--rpc-port ${options.rpcPort}")
-      commandLine should include(s"--data-port ${options.dataPort}")
       commandLine should include(s"--root-id ${options.rootId}")
       val normalizedPath = projectPath.toAbsolutePath.normalize.toString
       commandLine should include(s"--path $normalizedPath")
