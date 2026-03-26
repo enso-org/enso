@@ -141,10 +141,6 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         arr = logs_dir.list 
         if arr.length != 1 then
             IO.println "ARR:"+arr.to_text
-            0.up_to arr.length . each i->
-                IO.println "LOG >>"+(arr.at i . to_text)
-                IO.println (Data.read (arr.at i))
-                IO.println "LOG <<"+(arr.at i . to_text)
         arr.length . should_equal 1
 
         log = Data.read (arr.at 0) : Text
