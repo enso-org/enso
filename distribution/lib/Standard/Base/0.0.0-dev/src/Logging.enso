@@ -149,38 +149,6 @@ Log_Level.from (that:Text) =
         "warning" -> ..Warning
         _ -> ..Severe
 
-## Utility type for profiling
-
-   Should be controlled by an environment variable set to the log level:
-   - `ENSO_PROFILE_VIZZES` - for visualizations.
-   - `ENSO_PROFILE_SQL` - for SQL queries.
-   - `ENSO_PROFILE_TABLE` - for table function calls.
-type Profile
-    ## ---
-       advanced: true
-       icon: time
-       ---
-       Time the evaluation of a function, log the duration and return the result.
-
-       ## Arguments
-        - `level`: Log level to log the duration at. If `Nothing`, the duration is not logged.
-        - `label`: Label to log with the duration.
-        - `function`: Function to execute.
-        - `suffix_callback`: Optional callback to generate a suffix for the log message based
-           on the result of the function. The callback is only called if `level` is not `Nothing`.
-        - `module`: Module to log the message to. Defaults to `Profile`.
-    time_execution level:(Log_Level | Nothing) ~label:Text ~function suffix_callback=Nothing module=Profile =
-        if Nothing == level then @Tail_Call function else
-            pair = Duration.time_execution function
-
-            ## If the function threw an error, we just return the error
-            Error.return_if_error pair.second
-
-            duration = pair.first
-            suffix = if suffix_callback == Nothing then "" else suffix_callback pair.second
-            module.log_message ("Execution time for " + label + ": " + duration.to_text + suffix) level
-            pair.second
-
 private log_impl logger ~message level args =
     builder = case level of
         Log_Level.Finest -> logger.atTrace
