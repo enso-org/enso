@@ -14,9 +14,12 @@ window.dataLayer = window.dataLayer || []
 
 /** Google Analytics tag function. */
 export function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
-  // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
+  // Intentionally preserve the original Arguments object to match Google's
+  // official gtag.js snippet:
+  // https://developers.google.com/tag-platform/gtagjs
+  // @ts-expect-error This is explicitly not given types as it is a mistake to access this
   // anywhere else.
-  window.dataLayer.push([action, ...args])
+  window.dataLayer.push(arguments)
 }
 
 /** Send event to Google Analytics. */
