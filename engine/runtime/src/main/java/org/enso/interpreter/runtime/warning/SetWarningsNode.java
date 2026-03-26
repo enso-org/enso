@@ -16,6 +16,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 
 @BuiltinMethod(
     type = "Warning",
@@ -106,18 +107,19 @@ public abstract class SetWarningsNode extends Node {
       Object warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
+      @Cached HashMapSizeNode mapSizeNode,
       @Shared @Cached ConditionProfile isWithWarnsProfile) {
     assert !(warnings instanceof Warning[]);
     var warnMap = EnsoHashMap.empty();
     var ctx = EnsoContext.get(this);
     try {
       var size = interop.getArraySize(warnings);
-      for (long i = 0; i < interop.getArraySize(warnings); i++) {
+      for (long i = 0; i < size; i++) {
         var warn = (Warning) interop.readArrayElement(warnings, i);
         warnMap = mapInsertNode.execute(frame, warnMap, warn.getSequenceId(), warn);
       }
       var maxWarns = ctx.getWarningsLimit();
-      var isLimitReached = size >= maxWarns;
+      var isLimitReached = mapSizeNode.execute(warnMap) >= maxWarns;
       if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
         return new WithWarnings(((WithWarnings) object).value, maxWarns, isLimitReached, warnMap);
       } else {
