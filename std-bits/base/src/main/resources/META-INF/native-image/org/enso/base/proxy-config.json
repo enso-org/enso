@@ -1,7 +1,9 @@
 [
     {
         "interfaces": [
-            "org.enso.base.enso_cloud.AuthenticationProvider$AuthenticationService"
+            "org.enso.base.enso_cloud.AuthenticationProvider$AuthenticationService",
+            "org.enso.base.enso_cloud.EnsoSecretHelper$EnsoHeader",
+            "org.enso.base.enso_cloud.EnsoSecretHelper$EnsoRequestBody"
         ]
     }
 ]
