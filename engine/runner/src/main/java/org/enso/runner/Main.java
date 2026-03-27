@@ -315,6 +315,14 @@ public class Main {
             .longOpt(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)
             .desc("Cloud project session id (hybrid).")
             .build();
+    var localProjectSessionIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.LOCAL_PROJECT_SESSION_ID_OPTION)
+            .desc("Local project session id.")
+            .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -520,6 +528,7 @@ public class Main {
         .addOption(projectIdOption)
         .addOption(cloudProjectIdOption)
         .addOption(cloudProjectSessionIdOption)
+        .addOption(localProjectSessionIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -1681,6 +1690,14 @@ public class Main {
       MDC.put(
           "projectSessionId",
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
+    } else if (line.hasOption(LanguageServerApi.LOCAL_PROJECT_SESSION_ID_OPTION)) {
+      MDC.put(
+          "projectSessionId",
+          line.getOptionValue(LanguageServerApi.LOCAL_PROJECT_SESSION_ID_OPTION));
+    } else if (System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME) != null) {
+      MDC.put(
+          "projectSessionId",
+          System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME));
     }
     MDC.put("projectLocalId", projectId);
   }
