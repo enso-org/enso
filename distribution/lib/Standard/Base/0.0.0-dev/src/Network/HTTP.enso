@@ -38,6 +38,8 @@ polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import javax.net.ssl.SSLContext
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper.EnsoRequestBody
+polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper.EnsoHeader
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
 
