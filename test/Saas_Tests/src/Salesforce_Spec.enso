@@ -1,0 +1,11 @@
+from Standard.Base import all
+from Standard.Saas import Salesforce
+
+from Standard.Test import all
+
+placeholder_pending = "Placeholder Salesforce tests. Add credentials and assertions before enabling this group."
+
+add_specs suite_builder =
+    suite_builder.group "Salesforce" pending=placeholder_pending group_builder->
+        group_builder.specify "placeholder initializes the Salesforce module surface" <|
+            Salesforce.should_be_a Meta.Type
