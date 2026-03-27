@@ -3,7 +3,6 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 import akka.actor.{ActorRef, Props}
-import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
 import org.enso.runner.common.ProfilingConfig
@@ -76,7 +75,7 @@ abstract class BaseBinaryServerTest extends BinaryServerTestKit {
   }
 
   override def connectionControllerFactory: ConnectionControllerFactory = {
-    (clientIp: RemoteAddress.IP) =>
+    () =>
       {
         val testExecutor = ExecutionContext.fromExecutor(threadPool)
         val zioRuntime   = new ExecutionContextRuntime(testExecutor)
@@ -100,7 +99,7 @@ abstract class BaseBinaryServerTest extends BinaryServerTestKit {
 
         val controller =
           system.actorOf(
-            Props(new BinaryConnectionController(clientIp, fileManager))
+            Props(new BinaryConnectionController(fileManager))
           )
         lastConnectionController = controller
         controller

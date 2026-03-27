@@ -3,6 +3,7 @@ import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table, Value_Type, Aggregate_Column, Bits
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
@@ -25,7 +26,6 @@ import enso_dev.Table_Tests.Database.Helpers.Name_Generator
 import enso_dev.Table_Tests.Common_Table_Operations
 from enso_dev.Table_Tests.Common_Table_Operations.Util import all
 from enso_dev.Table_Tests.Util import all
-
 
 type SQLServer_Info_Data
     Value ~data
@@ -54,6 +54,31 @@ type SQLServer_Info_Data
     teardown self =
         self.connection.execute 'DROP TABLE "'+self.tinfo+'"'
         self.connection.close
+
+type JSON_Table_Data
+    Value ~connection
+
+    expected self =
+        _ = self
+        ['{"defaultMargin": 22}', '{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}', '[1, 2, 3, 4, 5]', '["string1", "string2", "string3"]', '[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]']
+
+    setup create_connection_fn =
+        make_connection =
+            connection = create_connection_fn Nothing
+
+            ## JSON support was only added in SQL Server 2025 (or SQL Azure - note a lower version there but as tests run on docker can check for version 17).
+            version_name = connection.execute_query "SELECT SERVERPROPERTY('productversion') AS Version" . get_value
+            version = version_name.split "." . at 0 . parse_integer
+
+            if version < 17 then Nothing else
+                connection.execute_update 'DROP TABLE IF EXISTS tbl_json_test; CREATE TABLE tbl_json_test(id INTEGER PRIMARY KEY, payload JSON); INSERT INTO tbl_json_test VALUES(0, \'{"defaultMargin": 22}\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\');'
+                connection
+        JSON_Table_Data.Value make_connection
+
+    teardown self =
+        if self.connection==Nothing then Nothing else
+            self.connection.execute_update 'DROP TABLE IF EXISTS tbl_json_test;'
+            self.connection.close
 
 get_configured_connection_details =
     host = Environment.get "ENSO_SQLSERVER_HOST" if_missing="localhost"
@@ -93,6 +118,32 @@ add_specs suite_builder =
             add_sqlserver_specs suite_builder connection_builder
             prefix = "[SQLServer] "
             data_link_file = Temporary_Data_Link_File.make connection_details
+
+            suite_builder.group "[SQLServer] JSON Support" group_builder->
+                json_connection = JSON_Table_Data.setup connection_builder
+
+                group_builder.teardown <|
+                    json_connection.teardown
+
+                group_builder.specify "query a table with JSON" pending=(if json_connection.connection == Nothing then "SQL Server 2025 or later needed." else Nothing) <|
+                    db_table = json_connection.connection.query "tbl_json_test"
+                    Problems.assume_no_problems db_table
+                    db_table.column_names.should_equal ["id", "payload"]
+                    db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+                    json_type = db_table.at "payload" . value_type
+                    json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+                    json_type.type_name.should_equal "json"
+                    db_table.row_count.should_equal 12
+
+                group_builder.specify "read a table with JSON as text with warning" pending=(if json_connection.connection == Nothing then "SQL Server 2025 or later needed." else Nothing) <|
+                    table = json_connection.connection.read "tbl_json_test"
+                    Problems.expect_only_warning Inexact_Type_Coercion table
+                    table.column_names.should_equal ["id", "payload"]
+                    table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+                    table.at "payload" . value_type . should_equal Value_Type.Char
+                    table.row_count . should_equal 12
+                    table.at "payload" . to_vector . should_equal json_connection.expected
+
             Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=Nothing
             Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending=Nothing
 

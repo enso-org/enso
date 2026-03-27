@@ -2,23 +2,25 @@ import project.Any.Any
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Dictionary.Dictionary
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Metadata.Widget import Vector_Editor
+from project.Widget_Helpers import make_all_selector
 
 ## An unordered collection of unique values.
 type Hashset
     ## ---
        private: true
        ---
-    Value (underlying_dictionary : Dictionary Any Nothing)
+    private Value (underlying_dictionary : Dictionary Any Nothing)
 
     ## ---
-       private: true
+       aliases: [set]
+       icon: array_new2
        advanced: true
        ---
        Constructs a new set from a vector.
@@ -30,9 +32,9 @@ type Hashset
           occurrence of each duplicated element is retained in the set. If set to
           `True` it will raise an `Illegal_Argument` if duplicate elements are
           encountered.
-    from_vector : Vector Any -> Boolean -> Hashset ! Illegal_Argument
-    from_vector (vector : Vector) (error_on_duplicates : Boolean = False) =
-        pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, Nothing])
+    @values (Vector_Editor item_editor=make_all_selector display=..Always item_default="Nothing")
+    from_vector (values : Vector) (error_on_duplicates : Boolean = False) -> Hashset ! Illegal_Argument =
+        pairs_array = Array_Proxy.new values.length (i-> [values.at i, Nothing])
         pairs = Vector.from_polyglot_array pairs_array
         dictionary = Dictionary.from_vector pairs error_on_duplicates=error_on_duplicates
         Hashset.Value dictionary
@@ -120,8 +122,8 @@ type Hashset
        icon: row_add
        ---
        Adds a value to this set.
-    insert : Any -> Hashset
-    insert self value =
+    @value (make_all_selector ..Always)
+    insert self value:Any -> Hashset =
         dictionary = self.underlying_dictionary.insert value Nothing
         Hashset.Value dictionary
 
@@ -165,22 +167,30 @@ type Hashset
        private: true
        ---
     to_text : Text
-    to_text self = self.to_vector.map .pretty . join ", " "Hashset{" "}"
-
-## ---
-   private: true
-   ---
-type Hashset_Comparator
-    ## ---
-       private: true
-       ---
-    compare x y =
-        if x.size != y.size then Nothing else
-            if (x.difference y).is_empty then Ordering.Equal else Nothing
+    to_text self =
+        inner = self.to_vector.to_text
+        "{" + (inner.drop (..First 1) . drop (..Last 1)) + "}"
 
     ## ---
        private: true
        ---
-    hash x =
-        vec = x.to_vector.sort . remove_warnings
-        Ordering.hash vec
+    to_display_text : Text
+    to_display_text self =
+        texts = self.underlying_dictionary.keys.take (..First 40) . map _.to_display_text
+        suffix = if self.length > 40 then " and " + (self.length - 40).to_text + " more elements}" else "}"
+        "{" + (texts.join ", ") + suffix
+
+    ## ---
+       private: true
+       ---
+    pretty : Text
+    pretty self =
+        "Hashset.from_vector " + self.to_vector.pretty
+
+## Convert from a Vector to a Hashset
+Hashset.from (that:Vector) (error_on_duplicates:Boolean=False) =
+    Hashset.from_vector that error_on_duplicates
+
+## Convert from a Hashset to a Vector
+Vector.from (that:Hashset) =
+    that.to_vector

@@ -52,7 +52,9 @@ Complex.from (that:Float) = Complex.Num that 0
 
 and uses them to create all the values the _intersection type_ represents.
 
-> [!NOTE] Note that if a `Float.from (that:Complex)` conversion were available
+<!-- prettier-ignore -->
+> [!NOTE]
+> Note that if a `Float.from (that:Complex)` conversion were available
 > in the scope, any `Complex` instance would be convertible to `Float`
 > regardless of how it was constructed. To ensure that such mix-ins are only
 > available on values that opt-in to being an intersection type (like in the
@@ -108,7 +110,9 @@ case c of
 Remember to use `f.sqrt` and not `c.sqrt`. `f` in the case branch _has been cast
 to_ `Float` while `c` in the case branch only _can be cast to_.
 
-> [!WARNING] Keep in mind that while both argument type check in method
+<!-- prettier-ignore -->
+> [!WARNING]
+> Keep in mind that while both argument type check in method
 > definitions and a 'type asserting' expression look similarly, they have
 > slightly different behaviour.
 >
@@ -124,7 +128,9 @@ to_ `Float` while `c` in the case branch only _can be cast to_.
 > function `g` will accept the same value and return it as a `Float` value,
 > based on the 'hidden' part of its type.
 
-> [!NOTE] In the **object oriented terminology** we can think of a type
+<!-- prettier-ignore -->
+> [!NOTE]
+> In the **object oriented terminology** we can think of a type
 > `Complex&Float` as being a subclass of `Complex` and subclass of `Float`
 > types. As such a value of type `Complex&Float` may be used wherever `Complex`
 > or `Float` types are used. Let there, for example, be a function:

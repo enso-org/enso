@@ -827,7 +827,6 @@ export class RemoteBackend extends backend.Backend {
       return {
         ...rest,
         jsonAddress: address != null ? backend.Address(`${address}json`) : null,
-        binaryAddress: address != null ? backend.Address(`${address}binary`) : null,
         ydocAddress: address != null ? backend.Address(`${address}project`) : null,
       }
     }
@@ -1181,6 +1180,20 @@ export class RemoteBackend extends backend.Backend {
       return await this.throw(response, 'listLabelsBackendError')
     } else {
       return (await response.json()).tags
+    }
+  }
+
+  /**
+   * Return all tags attached to asset versions in the organization.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listAssetVersionTags(): Promise<readonly string[]> {
+    const path = remoteBackendPaths.LIST_TAGS_PATH
+    const response = await this.get<backend.ListTagsResponseBody>(path)
+    if (!response.ok) {
+      return await this.throw(response, 'listLabelsBackendError')
+    } else {
+      return (await response.json()).assetVersionTags
     }
   }
 

@@ -498,6 +498,11 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     // TBD remove on the peer as well
   }
 
+  @Override
+  public String toString() {
+    return "Channel[id=" + id + ", master=" + isMaster() + ", direct=" + isDirect() + "]";
+  }
+
   /**
    * Set of methods necessary for construction of a {@link Channel}. Subclasses must have a public
    * default constructor accessible via reflection from the {@link Channel#create} method.

@@ -57,38 +57,17 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
           Future.successful(None)
       }
     }
-    val bindBinaryServer =
-      for {
-        binding <- module.binaryServer.bind(config.interface, config.dataPort)
-        _ <- Future {
-          logger.trace("Server for Binary WebSocket is initialized")
-        }
-      } yield binding
 
-    val bindSecureBinaryServer: Future[Option[Http.ServerBinding]] = {
-      config.secureDataPort match {
-        case Some(port) =>
-          module.binaryServer
-            .bind(config.interface, port, secure = true)
-            .map(Some(_))
-        case None =>
-          Future.successful(None)
-      }
-    }
     for {
-      jsonBinding         <- bindJsonServer
-      secureJsonBinding   <- bindSecureJsonServer
-      binaryBinding       <- bindBinaryServer
-      secureBinaryBinding <- bindSecureBinaryServer
+      jsonBinding       <- bindJsonServer
+      secureJsonBinding <- bindSecureJsonServer
       _ <- Future {
         maybeServerCtx = Some(
           ServerContext(
             sampler,
             module,
             jsonBinding,
-            secureJsonBinding,
-            binaryBinding,
-            secureBinaryBinding
+            secureJsonBinding
           )
         )
       }
@@ -96,10 +75,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, ${config.secureRpcPort
             .map(p => s"secure-json:${config.interface}$p")
-            .getOrElse("<secure-json-not-configured>")}, " +
-          s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
-            .map(p => s", secure-binary:${config.interface}$p")
-            .getOrElse(", <secure-binary-not-configured>")}"
+            .getOrElse("<secure-json-not-configured>")}"
         )
       }
     } yield ComponentStarted
@@ -149,10 +125,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     for {
       _ <- serverContext.jsonBinding.terminate(2.seconds).recover[Any](logError)
       _ <- Future { logger.info("Terminated JSON connections") }
-      _ <- serverContext.binaryBinding
-        .terminate(2.seconds)
-        .recover[Any](logError)
-      _ <- Future { logger.info("Terminated binary connections") }
       _ <-
         Await
           .ready(
@@ -195,18 +167,14 @@ object LanguageServerComponent {
     *
     * @param sampler a sampler gathering the application performance statistics
     * @param mainModule a main module containing all components of the server
-    * @param jsonBinding a http binding for rpc protocol
+    * @param jsonBinding an http binding for rpc protocol
     * @param secureJsonBinding an optional https binding for rpc protocol
-    * @param binaryBinding a http binding for data protocol
-    * @param secureBinaryBinding an optional https binding for data protocol
     */
   case class ServerContext(
     sampler: MethodsSampler,
     mainModule: MainModule,
     jsonBinding: Http.ServerBinding,
-    secureJsonBinding: Option[Http.ServerBinding],
-    binaryBinding: Http.ServerBinding,
-    secureBinaryBinding: Option[Http.ServerBinding]
+    secureJsonBinding: Option[Http.ServerBinding]
   )
 
 }

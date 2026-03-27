@@ -1,0 +1,107 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
+
+npm_link_all_packages(name = "node_modules")
+
+TEST_SOURCES = [
+    "src/**/__tests__/**",
+    "src/**/*.bench.ts",
+    "src/**/*.test.ts",
+]
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.build.json",
+    deps = ["//:tsconfig"],
+)
+
+ts_project(
+    name = "tsc",
+    srcs = glob(
+        ["src/**/*.ts"],
+        TEST_SOURCES,
+    ),
+    composite = True,
+    out_dir = "dist",
+    root_dir = "src",
+    tsconfig = ":tsconfig",
+    validate = select({
+        "@platforms//os:windows": False,
+        "//conditions:default": True,
+    }),
+    deps = npm_link_targets(),
+)
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        ":tsc",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_build_generated",
+    out = "tsconfig.build.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "noEmit": False,
+            "rootDir": "src",
+            "outDir": "dist",
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob(
+        ["src/**/*.ts"],
+        TEST_SOURCES,
+    ),
+)
+
+write_tsconfig(
+    name = "tsconfig_test_generated",
+    out = "tsconfig.test.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "rootDir": "..",
+            "types": [
+                "node",
+                "vitest/importMeta",
+            ],
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob(["src/**/*.ts"]) + [
+        "vitest.config.ts",
+        "//app:vitest.node.base.ts",
+    ],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "references": [
+            {"path": "./tsconfig.build.json"},
+            {"path": "./tsconfig.test.json"},
+        ],
+    },
+    extends = "//:tsconfig",
+    files = [],
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {
+        "tsconfig.build.json": ":tsconfig_build_generated",
+        "tsconfig.json": ":tsconfig_generated",
+        "tsconfig.test.json": ":tsconfig_test_generated",
+    },
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)

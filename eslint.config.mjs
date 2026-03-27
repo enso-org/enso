@@ -221,9 +221,7 @@ const config = [
             'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
             'app/electron-client/electron-builder-config.cjs',
-            'app/electron-client/esbuild.config.mjs',
             'app/gui/scripts/generateIconMetadata.mjs',
-            'app/electron-client/export-config.mjs',
           ],
         },
       },
@@ -564,6 +562,27 @@ const config = [
       '@typescript-eslint/no-var-requires': 'off',
       // Parameter types must be specified using JSDoc in JS files.
       'jsdoc/no-types': 'off',
+    },
+  },
+  {
+    files: [
+      'app/electron-client/esbuild.config.mjs',
+      'app/electron-client/export-config.mjs',
+      'app/electron-client/macos/*.cjs',
+      'app/electron-client/macos/*.mjs',
+      'app/electron-client/macos/lib/*.mjs',
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'jsdoc/require-jsdoc': 'off',
     },
   },
   {

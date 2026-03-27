@@ -2,6 +2,7 @@ import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.
 import { type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import type { NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
+import { visualizationConfigPreprocessorEqual } from '$/providers/openedProjects/project/executionContext'
 import type { ToValue } from '$/utils/reactivity'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
@@ -61,8 +62,10 @@ export function useVisualizationData({
   const graph = useGraphStore()
 
   // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
-  // prepared asynchronously.
-  const preprocessorLoading = ref(false)
+  // prepared asynchronously or while the first result for a newly attached node visualization is still pending.
+  const moduleLoading = ref(false)
+  const nodeDataLoading = ref(false)
+  const preprocessorLoading = computed(() => moduleLoading.value || nodeDataLoading.value)
 
   const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
     () => {
@@ -134,7 +137,7 @@ export function useVisualizationData({
     return false
   })
 
-  const nodeVisualizationData = projectStore.useVisualizationData(() => {
+  const nodeVisualizationConfig = computed<NodeVisualizationConfiguration | undefined>(() => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
     return {
@@ -142,6 +145,33 @@ export function useVisualizationData({
       expressionId: dataSourceValue.nodeId,
     }
   })
+  const nodeVisualizationData = projectStore.useVisualizationData(nodeVisualizationConfig)
+
+  // When a node visualization switches preprocessors, the old payload can remain visible until the
+  // new attachment starts producing updates. Keep the visualization in loading state during that gap.
+  watch(
+    nodeVisualizationConfig,
+    (config, oldConfig) => {
+      if (config == null) {
+        nodeDataLoading.value = false
+        return
+      }
+      if (oldConfig == null || !visualizationConfigPreprocessorEqual(config, oldConfig)) {
+        nodeDataLoading.value = true
+      }
+    },
+    { immediate: true },
+  )
+
+  watch(
+    nodeVisualizationData,
+    (data) => {
+      if (nodeDataLoading.value && data != null) {
+        nodeDataLoading.value = false
+      }
+    },
+    { immediate: true },
+  )
 
   const expressionVisualizationData = computedAsync(
     () => {
@@ -188,6 +218,7 @@ export function useVisualizationData({
     const name = currentVisualization.value?.name
     if (dataSourceValue?.type === 'raw') return dataSourceValue.data
     if (vueError.value) return { name, error: vueError.value }
+    if (dataSourceValue?.type === 'node' && preprocessorLoading.value) return
     const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
     if (!visualizationData) return
     if (visualizationData.ok) return visualizationData.value
@@ -212,10 +243,10 @@ export function useVisualizationData({
   )
 
   watchEffect(async () => {
-    preprocessorLoading.value = true
-    if (currentVisualization.value == null) return
-    visualization.value = undefined
+    moduleLoading.value = true
     try {
+      if (currentVisualization.value == null) return
+      visualization.value = undefined
       const module = await visualizationStore.get(currentVisualization.value).value
       if (module) {
         if (module.defaultPreprocessor != null) {
@@ -248,16 +279,18 @@ export function useVisualizationData({
       }
     } catch (caughtError) {
       vueError.value = toError(caughtError)
+    } finally {
+      moduleLoading.value = false
     }
-    preprocessorLoading.value = false
   })
 
   const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeinfo))))
 
   const effectiveVisualization = computed(() => {
+    const visualizationIsReady = toValue(dataSource)?.type !== 'node' || !preprocessorLoading.value
     if (
       vueError.value ||
-      (nodeVisualizationData.value && !nodeVisualizationData.value.ok) ||
+      (!visualizationIsReady && nodeVisualizationData.value && !nodeVisualizationData.value.ok) ||
       (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
     ) {
       return LoadingErrorVisualization

@@ -126,7 +126,7 @@ final class EventEmitter implements ProxyExecutable {
                       "Error emitting event of {} [{}] on {}",
                       type,
                       Arrays.toString(args),
-                      listener,
+                      listener.toString(),
                       e);
                 }
               });
