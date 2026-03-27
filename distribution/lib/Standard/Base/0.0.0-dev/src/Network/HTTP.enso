@@ -33,7 +33,6 @@ polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpClient.Builder
 polyglot java import java.net.http.HttpClient.Redirect
 polyglot java import java.net.http.HttpClient.Version
-polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import javax.net.ssl.SSLContext
