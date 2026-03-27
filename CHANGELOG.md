@@ -48,6 +48,7 @@
 - [Support for reading JSON data from database connections.][14872]
 - [Add Redshift bulk loading][14860]
 - [JSON functions on Table and Column. XML and Hashset fixes.][14884]
+- [Add last_index_of][14903]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -66,6 +67,7 @@
 [14872]: https://github.com/enso-org/enso/pull/14872
 [14860]: https://github.com/enso-org/enso/pull/14860
 [14884]: https://github.com/enso-org/enso/pull/14884
+[14903]: https://github.com/enso-org/enso/pull/14903
 
 #### Enso Language & Runtime
 
