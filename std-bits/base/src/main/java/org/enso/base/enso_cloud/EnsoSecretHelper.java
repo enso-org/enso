@@ -56,10 +56,10 @@ public final class EnsoSecretHelper extends SecretValueResolver {
                   e.getMessage());
           case ResponseTooLargeException tl ->
               EnsoMeta.makeInstance(
-                  "Standard.Base.Errors",
+                  "Standard.Base.Errors.Common",
                   "Response_Too_Large",
                   "Error",
-                  tl.getActualSize() == null ? EnsoMeta.getNothing() : tl.getActualSize(),
+                  tl.getActualSize(),
                   tl.getLimit());
           default -> null;
         };
