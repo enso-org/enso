@@ -14,7 +14,7 @@ type Salesforce
     ## ---
        private: true
        ---
-    Service (salesforce_service:SalesforceService)
+    private Service (salesforce_service:SalesforceService)
 
     ## ---
        icon: cloud
@@ -126,7 +126,6 @@ private _get_report_id salesforce name =
 private _make_report_name_widget salesforce -> Widget =
     options = (_get_raw_reports salesforce).map r->
         name = r.get 'name'
-        quoted_name = '"' + name + '"'
-        Option name quoted_name
+        Option name name.pretty
     Widget.Single_Choice values=options display=..Always
 
