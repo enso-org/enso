@@ -4,7 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.AbstractMap;
 import java.util.List;
-import org.enso.base.enso_cloud.EnsoSecretHelper;
+import org.enso.base.enso_cloud.EnsoHeader;
 
 /**
  * A structure representing a URI that contains parts which may need to be updated once data from
@@ -15,9 +15,9 @@ import org.enso.base.enso_cloud.EnsoSecretHelper;
  */
 public class URIWithSecrets {
   private final URI baseUri;
-  private final List<EnsoSecretHelper.EnsoHeader> queryParameters;
+  private final List<EnsoHeader> queryParameters;
 
-  public URIWithSecrets(String baseUri, List<EnsoSecretHelper.EnsoHeader> queryParameters) {
+  public URIWithSecrets(String baseUri, List<EnsoHeader> queryParameters) {
     this.baseUri = URI.create(baseUri);
     this.queryParameters = queryParameters;
   }
