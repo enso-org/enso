@@ -53,10 +53,13 @@ type Salesforce
             Unimplemented.throw "Column grouped reports are not supported yet."
 
         raw_columns = raw_result.get 'reportExtendedMetadata' . get 'detailColumnInfo'
-        parsed_columns_vector = raw_columns.to_vector
+        Salesforce.raw_table_data_to_table raw_columns (raw_result.get 'factMap' . get 'T!T')
+
+    raw_table_data_to_table raw_column_data raw_table_data -> Table =
+        parsed_columns_vector = raw_column_data.to_vector
         column_names = parsed_columns_vector.map c->((c.at 1).get 'label')
         column_types = parsed_columns_vector.map c->((c.at 1).get 'dataType')
-        raw_data = raw_result.get 'factMap' . get 'T!T' . get 'rows'
+        raw_data = raw_table_data.get 'rows'
         data = raw_data.map c-> c.get "dataCells" . map_with_index ix-> d-> 
             case column_types.at ix of 
                 'string' -> d.get 'label'
@@ -76,6 +79,7 @@ type Salesforce
                 _ -> d.get 'label'
             
         Table.from_rows column_names data
+
 
     ## ---
        icon: data_input
