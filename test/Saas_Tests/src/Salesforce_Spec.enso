@@ -15,28 +15,27 @@ raw_table_data_input_1 =
     """
 
 expected_table_input_1 =
-    Table.new [
-        ['Owner Role', ['-', '-', '-', '-']],
-        ['Opportunity Owner', ['Adam Riley', 'Adam Riley', 'Adam Riley', 'Adam Riley']],
-        ['Account Name', ['Test1', 'Test2', 'Test3', 'Test1']],
-        ['Opportunity Name', ['TestOpp1', 'TestOpp2', 'TestOpp3', 'TestOpp4']],
-        ['Stage', ['Closed Won', 'Prospecting', 'Qualification', 'Needs Analysis']],
-        ['Fiscal Period', ['Q1-2026', 'Q1-2026', 'Q1-2026', 'Q1-2026']],
-        ['Amount', [1000, 500, 5000, Nothing]],
-        ['Expected Revenue', [1000, 50, 500, Nothing]],
-        ['Probability (%)', [100, 10, 10, 20]],
-        ['Age', [3, 72, 72, 3]],
-        ['Close Date', [Date.new 2026 1 17, Date.new 2026 1 21, Date.new 2026 1 31, Date.new 2026 3 29]],
-        ['Created Date', [Date.new 2026 1 14, Date.new 2026 1 14, Date.new 2026 1 14, Date.new 2026 3 24]],
-        ['Next Step', ['-', '-', '-', '-']],
-        ['Lead Source', ['-', '-', '-', '-']],
-        ['Type', ['-', '-', '-', '-']],
-        ['Won', [True, False, False, False]],
-        ['Account: Last Activity', [Nothing, Nothing, Nothing, Nothing]],
-        ['Last Activity', [Nothing, Nothing, Nothing, Nothing]],
-        ['Last Modified Date', [Date.new 2026 3 24, Date.new 2026 1 14, Date.new 2026 1 14, Date.new 2026 3 24]],
-        ['Stage Duration', [3, 72, 72, 3]],
-    ]
+    c1 = ['Owner Role', ['-', '-', '-', '-']]
+    c2 = ['Opportunity Owner', ['Adam Riley', 'Adam Riley', 'Adam Riley', 'Adam Riley']]
+    c3 = ['Account Name', ['Test1', 'Test2', 'Test3', 'Test1']]
+    c4 = ['Opportunity Name', ['TestOpp1', 'TestOpp2', 'TestOpp3', 'TestOpp4']]
+    c5 = ['Stage', ['Closed Won', 'Prospecting', 'Qualification', 'Needs Analysis']]
+    c6 = ['Fiscal Period', ['Q1-2026', 'Q1-2026', 'Q1-2026', 'Q1-2026']]
+    c7 = ['Amount', [1000, 500, 5000, Nothing]]
+    c8 = ['Expected Revenue', [1000, 50, 500, Nothing]]
+    c9 = ['Probability (%)', [100, 10, 10, 20]]
+    c10 = ['Age', [3, 72, 72, 3]]
+    c11 = ['Close Date', [Date.new 2026 1 17, Date.new 2026 1 21, Date.new 2026 1 31, Date.new 2026 3 29]]
+    c12 = ['Created Date', [Date.new 2026 1 14, Date.new 2026 1 14, Date.new 2026 1 14, Date.new 2026 3 24]]
+    c13 = ['Next Step', ['-', '-', '-', '-']]
+    c14 = ['Lead Source', ['-', '-', '-', '-']]
+    c15 = ['Type', ['-', '-', '-', '-']]
+    c16 = ['Won', [True, False, False, False]]
+    c17 = ['Account: Last Activity', [Nothing, Nothing, Nothing, Nothing]]
+    c18 = ['Last Activity', [Nothing, Nothing, Nothing, Nothing]]
+    c19 = ['Last Modified Date', [Date.new 2026 3 24, Date.new 2026 1 14, Date.new 2026 1 14, Date.new 2026 3 24]]
+    c20 = ['Stage Duration', [3, 72, 72, 3]]
+    Table.new [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20]
 
 add_specs suite_builder =
     suite_builder.group "Salesforce" group_builder->
