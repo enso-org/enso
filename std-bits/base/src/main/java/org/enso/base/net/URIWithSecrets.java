@@ -27,7 +27,10 @@ public class URIWithSecrets {
   public URISchematic makeSchematicForRender() {
     var renderedParameters =
         queryParameters.stream()
-            .map(p -> new AbstractMap.SimpleEntry<>(p.name(), HideableValue.from(p.hideable_value()).render()))
+            .map(
+                p ->
+                    new AbstractMap.SimpleEntry<>(
+                        p.name(), HideableValue.from(p.hideable_value()).render()))
             .toList();
     return new URISchematic(baseUri, renderedParameters);
   }
@@ -53,13 +56,17 @@ public class URIWithSecrets {
   }
 
   public boolean containsSecrets() {
-    return queryParameters.stream().anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
+    return queryParameters.stream()
+        .anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
   }
 
   private URISchematic makeSchematicForSafeResolve() {
     var resolvedParameters =
         queryParameters.stream()
-            .map(p -> new AbstractMap.SimpleEntry<>(p.name(), HideableValue.from(p.hideable_value()).safeResolve()))
+            .map(
+                p ->
+                    new AbstractMap.SimpleEntry<>(
+                        p.name(), HideableValue.from(p.hideable_value()).safeResolve()))
             .toList();
     return new URISchematic(baseUri, resolvedParameters);
   }

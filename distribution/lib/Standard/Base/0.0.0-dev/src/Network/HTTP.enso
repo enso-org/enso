@@ -121,7 +121,8 @@ type HTTP
           recommended to use the default.
         - `hash_method`: The hash method to use for body hashing.
         - `make_client`: Creates the Java HTTPClient.
-    private Value timeout follow_redirects:Boolean proxy:Proxy version:HTTP_Version custom_ssl_context hash_method=Nothing make_client=internal_http_client
+        - `enso_secret_helper`: the Java helper for resolving secrets and making requests.
+    private Value timeout follow_redirects:Boolean proxy:Proxy version:HTTP_Version custom_ssl_context hash_method=Nothing make_client=internal_http_client enso_secret_helper=EnsoSecretHelper
 
     ## ---
        advanced: true
@@ -163,8 +164,8 @@ type HTTP
             Request_Body.Json x ->
                 json = x.to_json
                 Error.return_if_error json
-                EnsoSecretHelper.resolveBody (Request_Body.Text json) self.hash_method
-            _ -> EnsoSecretHelper.resolveBody req.body self.hash_method
+                self.enso_secret_helper.resolveBody (Request_Body.Text json) self.hash_method
+            _ -> self.enso_secret_helper.resolveBody req.body self.hash_method
         Error.return_if_error resolved_body
 
         # Create Unified Header list
@@ -174,7 +175,7 @@ type HTTP
         # Create HttpClient
         http_client = self.make_client self resolved_body.hash
 
-        java_response = EnsoSecretHelper.makeRequest http_client req.method.to_http_method_name resolved_body.publisher req.uri.to_uri_string req.uri.additional_query_parameters all_headers use_cache
+        java_response = self.enso_secret_helper.makeRequest http_client req.method.to_http_method_name resolved_body.publisher req.uri.to_uri_string req.uri.additional_query_parameters all_headers use_cache
         response = Response.new java_response
         if error_on_failure_code.not || response.code.is_success then response else
             body = response.body.decode_as_text.catch Any _->""
@@ -308,9 +309,9 @@ if_post_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument
    private: true
    ---
    Build a custom HTTP with hash function and make_client function.
-with_hash_and_client : HTTP -> Function -> Function -> HTTP
-with_hash_and_client http hash_method make_client =
-    HTTP.Value http.timeout http.follow_redirects http.proxy http.version http.custom_ssl_context hash_method make_client
+with_hash_and_client : HTTP -> Function -> Function -> Any -> HTTP
+with_hash_and_client http hash_method make_client enso_secret_helper=EnsoSecretHelper =
+    HTTP.Value http.timeout http.follow_redirects http.proxy http.version http.custom_ssl_context hash_method make_client enso_secret_helper
 
 ## ---
    private: true
