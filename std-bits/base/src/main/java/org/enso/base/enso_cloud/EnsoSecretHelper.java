@@ -59,7 +59,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
                   "Standard.Base.Errors",
                   "Response_Too_Large",
                   "Error",
-                  tl.getActualSize(),
+                  tl.getActualSize() == null ? EnsoMeta.getNothing() : tl.getActualSize(),
                   tl.getLimit());
           default -> null;
         };
