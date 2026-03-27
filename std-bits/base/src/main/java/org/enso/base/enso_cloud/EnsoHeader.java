@@ -5,8 +5,4 @@ public interface EnsoHeader {
   String name();
 
   EnsoHideableValue hideable_value();
-
-  default HideableValue getValue() {
-    return HideableValue.from(hideable_value());
-  }
 }
