@@ -2,8 +2,7 @@
 
 /** A function to format given bytes into human readable string. */
 export function formatBytes(bytes?: number, decimals = 2) {
-  if (!bytes) return ''
-  if (!+bytes) return '0 Bytes'
+  if (bytes === undefined || bytes < 0) return '0 Bytes'
 
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals

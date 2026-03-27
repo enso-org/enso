@@ -99,6 +99,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
+  const isTeam = category.type === 'team'
   const { getText } = useText()
   const featureFlags = useFeatureFlags()
   const datalinkQuery = useQuery(
@@ -259,7 +260,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   </td>
                 </tr>
               )}
-              <tr data-testid="asset-panel-created-by" className="h-row">
+              {isTeam && (<tr data-testid="asset-panel-created-by" className="h-row">
                 <td className="min-w-side-panel-label p-0">
                   <Text className="inline-block">{getText('createdByColumnName')}</Text>
                 </td>
@@ -268,7 +269,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                     <CreatedByColumn item={item} state={{ category }} />
                   </Text>
                 </td>
-              </tr>
+              </tr>)}
               {isEnterprise && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">
