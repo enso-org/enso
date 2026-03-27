@@ -55,6 +55,21 @@ type Salesforce
         raw_columns = raw_result.get 'reportExtendedMetadata' . get 'detailColumnInfo'
         Salesforce.raw_table_data_to_table raw_columns (raw_result.get 'factMap' . get 'T!T')
 
+    ## ---
+       icon: table
+       ---
+       Converts raw Salesforce report column metadata and table data into an Enso Table.
+
+       ## Arguments:
+       - `raw_column_data`: JSON object containing column metadata including labels and data types.
+       - `raw_table_data`: JSON object containing the raw row data from the Salesforce report.
+
+       Parses the column types and converts each cell value appropriately:
+       - String and picklist values use the display label
+       - Numeric values (double, percent) use the raw value
+       - Currency values extract the amount
+       - Date and datetime values are parsed into Date objects
+       - Boolean values use the raw value
     raw_table_data_to_table raw_column_data raw_table_data -> Table =
         parsed_columns_vector = raw_column_data.to_vector
         column_names = parsed_columns_vector.map c->((c.at 1).get 'label')
