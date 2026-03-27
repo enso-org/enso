@@ -4,7 +4,7 @@
     - Warning query_string:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Any.Any
 - type URI
-    - Value internal_uri:Standard.Base.Network.URI.Java_URI additional_query_parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
+    - Value internal_uri:Standard.Base.Network.URI.Java_URI additional_query_parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header)
     - / self segment:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - add_query_argument self key:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) -> Standard.Base.Any.Any
     - authority self -> Standard.Base.Any.Any
@@ -24,10 +24,10 @@
     - reset_query_arguments self -> Standard.Base.Any.Any
     - scheme self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-    - to_java_representation self -> Standard.Base.Any.Any
     - to_java_uri self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
+    - to_uri_string self -> Standard.Base.Data.Text.Text
     - user_info self -> Standard.Base.Any.Any
 - type URI_Comparator
     - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any

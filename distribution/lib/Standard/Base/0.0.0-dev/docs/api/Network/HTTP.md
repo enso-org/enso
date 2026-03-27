@@ -11,6 +11,7 @@
     - Error error_type:Standard.Base.Any.Any message:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Resolved_Body
+    - Value publisher:Standard.Base.Any.Any boundary:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) hash:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
 - _get_follow_redirects http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
 - _get_proxy http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
 - _get_timeout http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
@@ -18,5 +19,4 @@
 - _resolve_headers req:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - if_fetch_method method:Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method ~action:Standard.Base.Any.Any ~if_not:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - if_post_method method:Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method ~action:Standard.Base.Any.Any ~if_not:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- internal_http_client http:Standard.Base.Any.Any hash:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- with_hash_and_client http:Standard.Base.Any.Any hash_method:Standard.Base.Any.Any make_client:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_hash_and_client http:Standard.Base.Any.Any hash_method:Standard.Base.Any.Any make_client:Standard.Base.Any.Any enso_secret_helper:Standard.Base.Any.Any= -> Standard.Base.Any.Any
