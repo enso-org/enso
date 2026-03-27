@@ -245,7 +245,7 @@ add_text_columns_specs suite_builder setup =
                 res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
                 res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
 
-    suite_builder.group prefix+"Text_Column last_index_of" group_builder->
+    if setup.is_operation_supported "LAST_INDEX_OF" then suite_builder.group prefix+"Text_Column last_index_of" group_builder->
         group_builder.specify "last_index_of should return index of last match" <|
             column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café","It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] . at 0
 
