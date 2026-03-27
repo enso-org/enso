@@ -2,7 +2,6 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
-import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
@@ -101,7 +100,7 @@ type URI
        ```
     scheme : Text | Nothing
     scheme self = handle_resolve_errors <|
-        self.to_java_representation.getScheme
+        self.internal_uri.getScheme
 
     ## ---
        group: Metadata
@@ -119,7 +118,7 @@ type URI
        ```
     user_info : Text | Nothing ! Enso_Secret_Error
     user_info self = handle_resolve_errors <|
-        self.to_java_representation.getUserInfo
+        self.internal_uri.getUserInfo
 
     ## ---
        group: Metadata
@@ -137,7 +136,7 @@ type URI
        ```
     host : Text | Nothing
     host self = handle_resolve_errors <|
-        self.to_java_representation.getHost
+        self.internal_uri.getHost
 
     ## ---
        icon: metadata
@@ -154,7 +153,7 @@ type URI
        ```
     authority : Text | Nothing ! Enso_Secret_Error
     authority self = handle_resolve_errors <|
-        self.to_java_representation.getAuthority
+        self.internal_uri.getAuthority
 
     ## ---
        icon: metadata
@@ -171,7 +170,7 @@ type URI
        ```
     port : Integer | Nothing
     port self = handle_resolve_errors <|
-        port_number = self.to_java_representation.getPort
+        port_number = self.internal_uri.getPort
         if port_number == -1 then Nothing else port_number
 
     ## ---
@@ -190,7 +189,7 @@ type URI
        ```
     path : Text | Nothing
     path self = handle_resolve_errors <|
-        self.to_java_representation.getPath
+        self.internal_uri.getPath
 
     ## ---
        group: Operators
@@ -229,7 +228,8 @@ type URI
        ```
     query : Text | Nothing ! Enso_Secret_Error
     query self = handle_resolve_errors <|
-        self.to_java_representation.getQuery
+        java_rep = URIWithSecrets.new self.to_uri_string self.additional_query_parameters
+        java_rep.getQuery
 
     ## ---
        group: Calculations
@@ -269,7 +269,7 @@ type URI
        ```
     fragment : Text | Nothing
     fragment self = handle_resolve_errors <|
-        self.to_java_representation.getFragment
+        self.internal_uri.getFragment
 
     ## ---
        private: true
@@ -278,7 +278,7 @@ type URI
        Get the unescaped user info part of this URI.
     raw_user_info : Text | Nothing ! Enso_Secret_Error
     raw_user_info self = handle_resolve_errors <|
-        self.to_java_representation.getRawUserInfo
+        self.internal_uri.getRawUserInfo
 
     ## ---
        private: true
@@ -287,7 +287,7 @@ type URI
        Get the unescaped authority part of this URI.
     raw_authority : Text | Nothing ! Enso_Secret_Error
     raw_authority self = handle_resolve_errors <|
-        self.to_java_representation.getRawAuthority
+        self.internal_uri.getRawAuthority
 
     ## ---
        private: true
@@ -296,7 +296,7 @@ type URI
        Get the unescaped path part of this URI.
     raw_path : Text | Nothing
     raw_path self = handle_resolve_errors <|
-        self.to_java_representation.getRawPath
+        self.internal_uri.getRawPath
 
     ## ---
        private: true
@@ -305,7 +305,8 @@ type URI
        Get the unescaped query part of this URI.
     raw_query : Text | Nothing ! Enso_Secret_Error
     raw_query self = handle_resolve_errors <|
-        self.to_java_representation.getRawQuery
+        java_rep = URIWithSecrets.new self.to_uri_string self.additional_query_parameters
+        java_rep.getRawQuery
 
     ## ---
        private: true
@@ -314,7 +315,7 @@ type URI
        Get the unescaped fragment part of this URI.
     raw_fragment : Text | Nothing
     raw_fragment self = handle_resolve_errors <|
-        self.to_java_representation.getRawFragment
+        self.internal_uri.getRawFragment
 
     ## ---
        private: true
@@ -322,7 +323,8 @@ type URI
        Convert this URI to text.
     to_text : Text
     to_text self = handle_resolve_errors <|
-        self.to_java_representation.render.toString
+        java_rep = URIWithSecrets.new self.to_uri_string self.additional_query_parameters
+        java_rep.render.toString
 
     ## ---
        private: true
@@ -371,11 +373,9 @@ type URI
     ## ---
        private: true
        ---
-       Creates a Java representation that can be used to render this URL with
-       secrets hidden or processed by trusted operations.
-    to_java_representation : URIWithSecrets
-    to_java_representation self =
-        URIWithSecrets.new self.internal_uri self.additional_query_parameters
+       Gets the internal_uri as a String allowing it to be passed across JVMs.
+    to_uri_string self -> Text =
+        self.internal_uri.toString
 
     ## ---
        private: true
@@ -383,7 +383,8 @@ type URI
        Convert this to a raw Java URI.
     to_java_uri : Java_URI ! Enso_Secret_Error
     to_java_uri self = handle_resolve_errors <|
-        self.to_java_representation.safeResolve
+        java_rep = URIWithSecrets.new self.to_uri_string self.additional_query_parameters
+        java_rep.safeResolve
 
 ## ---
    private: true

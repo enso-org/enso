@@ -91,13 +91,15 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           var charsetToUse = body.charset();
           yield charsetToUse == null
               ? HttpRequest.BodyPublishers.ofString(body.text_value())
-              : HttpRequest.BodyPublishers.ofString(body.text_value(), Charset.forName(charsetToUse));
+              : HttpRequest.BodyPublishers.ofString(
+                  body.text_value(), Charset.forName(charsetToUse));
         }
         case "Json" -> HttpRequest.BodyPublishers.ofString(body.text_value());
         case "Binary" -> HttpRequest.BodyPublishers.ofFile(Path.of(body.text_value()));
         case "ByteArray" -> HttpRequest.BodyPublishers.ofByteArray(body.bytes_value());
         default ->
-            throw new UnsupportedOperationException("Cannot build request body for " + body.type_name());
+            throw new UnsupportedOperationException(
+                "Cannot build request body for " + body.type_name());
       };
     }
 
@@ -124,7 +126,12 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       var publisher = EnsoRequestBody.build(body);
       var hash = hashFunction == null ? "" : hashFunction.apply(EnsoRequestBody.hashInput(body));
       return EnsoMeta.makeInstance(
-          "Standard.Base.Network.HTTP", "Resolved_Body", "Value", publisher, EnsoMeta.getNothing(), hash);
+          "Standard.Base.Network.HTTP",
+          "Resolved_Body",
+          "Value",
+          publisher,
+          EnsoMeta.getNothing(),
+          hash);
     } catch (Exception e) {
       return handleRequestException(e);
     }
@@ -170,13 +177,13 @@ public final class EnsoSecretHelper extends SecretValueResolver {
    * Gets the actual URI with all secrets resolved, so that it can be used to create a request. This
    * value should never be returned to Enso.
    */
-  private static URI resolveURI(URIWithSecrets uri) {
+  private static URI resolveURI(String baseUri, List<EnsoHeader> queryParameters) {
     try {
       var resolvedQueryParameters =
-          uri.queryParameters().stream()
+          queryParameters.stream()
               .map(p -> new AbstractMap.SimpleEntry<>(p.name(), resolveValue(p.getValue())))
               .toList();
-      var resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
+      var resolvedSchematic = new URISchematic(URI.create(baseUri), resolvedQueryParameters);
       return resolvedSchematic.build();
     } catch (URISyntaxException e) {
       // Here we don't display the message of the exception to avoid risking it may leak any
@@ -184,7 +191,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       // This should never happen in practice.
       throw new IllegalStateException(
           "Unexpectedly unable to build a valid URI from the base URI: "
-              + uri
+              + baseUri
               + ": "
               + e.getClass().getCanonicalName());
     }
@@ -195,11 +202,13 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       HttpClient client,
       String method,
       HttpRequest.BodyPublisher body,
-      URIWithSecrets uri,
+      String baseUri,
+      List<EnsoHeader> queryParameters,
       List<EnsoHeader> headers,
       boolean useCache) {
     try {
-      var response = makeRequestInternal(client, method, body, uri, headers, useCache);
+      var response =
+          makeRequestInternal(client, method, body, baseUri, queryParameters, headers, useCache);
       return Value.asValue(response);
     } catch (Exception e) {
       return handleRequestException(e);
@@ -210,7 +219,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       HttpClient client,
       String method,
       HttpRequest.BodyPublisher body,
-      URIWithSecrets uri,
+      String baseUri,
+      List<EnsoHeader> queryParameters,
       List<EnsoHeader> headers,
       boolean useCache)
       throws IllegalArgumentException,
@@ -221,7 +231,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     var builder = HttpRequest.newBuilder().method(method, body);
 
     // Build a new URI with the query arguments.
-    URI resolvedURI = resolveURI(uri);
+    URI resolvedURI = resolveURI(baseUri, queryParameters);
 
     var resolvedHeaders =
         headers.stream()
@@ -233,7 +243,13 @@ public final class EnsoSecretHelper extends SecretValueResolver {
             .toList();
 
     var requestMaker =
-        new RequestMaker(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+        new RequestMaker(
+            client,
+            builder,
+            new URIWithSecrets(baseUri, queryParameters),
+            resolvedURI,
+            headers,
+            resolvedHeaders);
 
     if (!useCache) {
       return requestMaker.makeRequest();

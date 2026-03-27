@@ -4,7 +4,6 @@ import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
-import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Response_Too_Large
@@ -22,7 +21,6 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Response.Response
 import project.Network.Proxy.Proxy
 import project.Network.URI.URI
-import project.Panic.Panic
 import project.Runtime.Context
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
@@ -174,9 +172,7 @@ type HTTP
         # Create HttpClient
         http_client = self.make_client self resolved_body.hash
 
-        java_uri = req.uri.to_java_representation
-        java_response = EnsoSecretHelper.makeRequest http_client req.method.to_http_method_name resolved_body.publisher java_uri all_headers use_cache
-
+        java_response = EnsoSecretHelper.makeRequest http_client req.method.to_http_method_name resolved_body.publisher req.uri.to_uri_string req.uri.additional_query_parameters all_headers use_cache
         response = Response.new java_response
         if error_on_failure_code.not || response.code.is_success then response else
             body = response.body.decode_as_text.catch Any _->""
