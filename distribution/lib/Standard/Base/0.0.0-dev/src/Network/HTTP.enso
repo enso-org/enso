@@ -157,6 +157,10 @@ type HTTP
         Error.return_if_error headers
 
         ## Can throw a File Not Found
+        Error.return_if_error req.body
+        Error.return_if_error req.body.text_value
+        Error.return_if_error req.body.charset
+        Error.return_if_error req.body.bytes_value
         resolved_body = case req.body of
             Request_Body.Form_Data form_data url_encoded ->
                 _resolve_form_body form_data url_encoded self.hash_method
@@ -221,6 +225,9 @@ type HTTP
    Not explicitly private as allows direct testing.
 _resolve_headers : Request -> Vector Header
 _resolve_headers req =
+    header_err = req.headers.find if_missing=Nothing h-> h.is_error
+    if header_err != Nothing then Error.throw header_err
+
     is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
 
     # Check for content type and encoding in the Request_Body.
