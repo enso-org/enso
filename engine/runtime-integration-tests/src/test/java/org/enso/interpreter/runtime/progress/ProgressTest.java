@@ -65,7 +65,7 @@ public class ProgressTest {
     assertEquals("LOG {}:{}", oneTimeLog.get(2).getMessage());
     assertEquals(progressHandle, oneTimeLog.get(2).getArguments().get(0));
     assertEquals("We have the result 2.0", oneTimeLog.get(2).getArguments().get(1));
-    assertEquals("ADVANCE {}+{}~{}ms", oneTimeLog.get(3).getMessage());
+    assertEquals("ADVANCE {}+{}~{}ms:{}", oneTimeLog.get(3).getMessage());
     assertEquals(progressHandle, oneTimeLog.get(0).getArguments().get(0));
     assertEquals(1L, oneTimeLog.get(3).getArguments().get(1));
 
@@ -140,7 +140,7 @@ public class ProgressTest {
         ADVANCE Progress+1
         ADVANCE Progress+1
         ADVANCE Progress+1
-        ADVANCE Progress+5~*ms\
+        ADVANCE Progress+5~*ms:from 0 to 5\
         """,
         txt);
   }
@@ -273,6 +273,7 @@ public class ProgressTest {
       assertNotEquals(msg + "\nWhen looking for " + seg + " at " + at, -1, next);
       at = next + seg.length();
     }
-    assertEquals(msg + "\nIs fully processed", actual.length(), at);
+    assertEquals(
+        msg + "\nIs fully processed, but remains: " + actual.substring(at), at, actual.length());
   }
 }
