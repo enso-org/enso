@@ -1192,10 +1192,14 @@ export interface UpdateFileRequestBody {
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-  readonly parentDirectoryId: DirectoryId | null
-  readonly description: string | null
-  readonly title: string | null
-  readonly metadataId: MetadataId | null
+  readonly parentDirectoryId?: DirectoryId | null
+  readonly description?: string | null
+  readonly title?: string | null
+  readonly metadataId?: MetadataId | null
+
+  // Update version comments
+  readonly versionId?: S3ObjectVersionId
+  readonly comment?: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */

@@ -1148,6 +1148,8 @@
   "assetVersions.localAssetsDoNotHaveVersions": "Local assets do not have versions.",
   "assetVersions.invalidAssetType": "Versions are available for projects, files and datalinks only.",
   "assetVersions.notSelected": "Select a single asset to view its versions.",
+  "assetVersions.addComment": "Add comment",
+  "assetVersions.editComment": "Edit comment",
   "assetVersions.cloudOnly": "Versions (Exclusive to Cloud)",
   "assetProjectSessions.noSessions": "No sessions yet! Open the project to start a session.",
   "assetProjectSessions.localBackend": "Sessions are not available for local projects.",
