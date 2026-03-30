@@ -17,6 +17,7 @@ import type { DisplayableActionName } from '@/providers/action'
 import { startTransition } from 'react'
 import { computed, ref, toRef, toRefs, useTemplateRef } from 'vue'
 
+const LEFT_BAR_EXTENSION_TIME_MS = 1000
 const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
   'help.whatsNew',
   'help.community',
@@ -48,16 +49,32 @@ const resizeHandles = useResizeHandles({
 })
 resizeHandles.onResizeWidth((value) => (width.value = value))
 
-const leftBarHovered = ref(false)
+const leftBarExtended = ref(false)
+let leftBarExtensionTimeout: ReturnType<typeof setTimeout> | undefined
+
+function onEnter() {
+  if (!leftBarExtended.value) {
+    console.debug('Setting timeout')
+    leftBarExtensionTimeout = setTimeout(
+      () => (leftBarExtended.value = true),
+      LEFT_BAR_EXTENSION_TIME_MS,
+    )
+  }
+}
+
+function onLeave() {
+  leftBarExtended.value = false
+  clearTimeout(leftBarExtensionTimeout)
+}
 </script>
 
 <template>
   <div class="LeftPanel">
     <div
       class="leftBar"
-      :class="{ expanded: leftBarHovered }"
-      @mouseenter="leftBarHovered = true"
-      @mouseleave="leftBarHovered = false"
+      :class="{ expanded: leftBarExtended }"
+      @mouseenter="onEnter"
+      @mouseleave="onLeave"
     >
       <SvgButton
         v-model="toggledOn"
@@ -71,7 +88,7 @@ const leftBarHovered = ref(false)
         :key="categoryKey(category)"
         class="leftBarIcon"
         :name="categoryIcon(category.type)"
-        :label="categories.categoryLabel(category)"
+        :label="leftBarExtended ? categories.categoryLabel(category) : undefined"
         :modelValue="categoryEq(category, currentCategory)"
         @update:modelValue="
           startTransition(() => {
@@ -105,8 +122,10 @@ const leftBarHovered = ref(false)
 }
 
 .leftBar {
+  --button-height: 26px;
   position: absolute;
   width: 48px;
+  max-width: 48px;
   height: 100%;
   margin-top: var(--top-bar-height);
   padding: 16px;
@@ -118,8 +137,11 @@ const leftBarHovered = ref(false)
   gap: 16px;
   z-index: 2;
 
+  transition: max-width 200ms ease-in-out;
+
   &.expanded {
     width: fit-content;
+    max-width: 100vw;
   }
 }
 
@@ -132,7 +154,7 @@ const leftBarHovered = ref(false)
   min-width: 0;
   width: 100%;
   background-color: var(--panel-background);
-  margin-left: 48px;
+  padding-left: 48px;
 }
 
 .panel {
