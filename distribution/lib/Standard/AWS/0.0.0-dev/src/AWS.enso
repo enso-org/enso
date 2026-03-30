@@ -47,7 +47,7 @@ type AWS
     signed_fetch : URI -> HTTP_Method -> (Vector (Header | Pair Text Text)) -> File_Format -> AWS_Credential -> AWS_Region_Service -> Any
     signed_fetch (uri:URI=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) credentials:AWS_Credential=..Default (region_service:AWS_Region_Service=(AWS.resolve_region_and_service uri)) = if_fetch_method method <|
         request = Request.new method uri (Header.unify_vector headers) Request_Body.Empty
-        http = with_hash_and_client HTTP.new hash_method=AWS.hash_bytes make_client=(_make_client credentials region_service) enso_secret_helper=EnsoSecretHelper
+        http = with_hash_and_client HTTP.new hash_method=ClientBuilder.getSHA256Function make_client=(_make_client credentials region_service) enso_secret_helper=EnsoSecretHelper
         raw_response = http.request request
         raw_response.decode format=format if_unsupported=raw_response.with_materialized_body
 
@@ -117,16 +117,9 @@ type AWS
     signed_post : URI -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any -> AWS_Credential -> AWS_Region_Service -> Response ! Request_Error | HTTP_Error
     signed_post (uri:URI=(Missing_Argument.throw "uri")) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) credentials:AWS_Credential=..Default (region_service:AWS_Region_Service=(AWS.resolve_region_and_service uri)) = if_post_method method <|
         request = Request.new method uri (Header.unify_vector headers) body
-        http = with_hash_and_client HTTP.new hash_method=AWS.hash_bytes make_client=(_make_client credentials region_service) enso_secret_helper=EnsoSecretHelper
+        http = with_hash_and_client HTTP.new hash_method=ClientBuilder.getSHA256Function make_client=(_make_client credentials region_service) enso_secret_helper=EnsoSecretHelper
         raw_response = http.request request
         raw_response.decode format=response_format if_unsupported=raw_response.with_materialized_body
-
-    ## ---
-       private: true
-       ---
-       Hash a Vector of bytes using SHA256 (as used by AWS).
-    hash_bytes : Vector Integer -> Text
-    hash_bytes bytes:Vector = ClientBuilder.getSHA256 bytes
 
     ## Resolve the region and service from an AWS based URI. Splits a standard
        form AWS URI into the region and service.

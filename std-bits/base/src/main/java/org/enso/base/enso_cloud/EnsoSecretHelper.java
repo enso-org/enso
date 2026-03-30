@@ -72,7 +72,13 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   public static Value resolveBody(EnsoRequestBody body, Function<byte[], String> hashFunction) {
     try {
       var publisher = EnsoRequestBody.build(body);
-      var hash = hashFunction == null ? "" : hashFunction.apply(EnsoRequestBody.hashInput(body));
+
+      var hash = "";
+      if (hashFunction != null) {
+        byte[] bytes = EnsoRequestBody.hashInput(body);
+        hash = hashFunction.apply(bytes);
+      }
+
       return EnsoMeta.makeInstance(
           "Standard.Base.Network.HTTP",
           "Resolved_Body",
