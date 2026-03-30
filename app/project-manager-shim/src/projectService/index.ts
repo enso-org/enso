@@ -167,7 +167,7 @@ export class ProjectService {
   private projectEnvVars(cloud?: CloudParams): readonly (readonly [string, string])[] {
     if (!cloud) {
       const localSessionId = `localprojectsession-${KSUID.randomSync().string}`
-      return [['ENSO_LOCAL_PROJECT_SESSION_ID', localSessionId]]
+      return [['ENSO_CLOUD_PROJECT_SESSION_ID', localSessionId]]
     }
     return [
       ['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath],
