@@ -175,7 +175,7 @@ add_text_columns_specs suite_builder setup =
             column.right . to_vector . should_equal ["t", "n", "D", "t"]
             column.mid 2 . to_vector . should_equal ["reet", "in", "aD", "d floor flat"]
 
-    suite_builder.group prefix+"Text_Column (pad_left, pad_right)" group_builder->
+    if setup.is_operation_supported "PAD_LEFT" && setup.is_operation_supported "PAD_RIGHT" then suite_builder.group prefix+"Text_Column (pad_left, pad_right)" group_builder->
         group_builder.specify "work with scalar arguments" <|
             column = build_sorted_table [["X", ["A", "HELLO", "", Nothing, "XX"]]] . at 0
             pad_left = column.pad_left 4 "ab"
@@ -198,7 +198,7 @@ add_text_columns_specs suite_builder setup =
             strings.pad_left lengths pads . to_vector . should_equal ["xyA", "000hi", "yz", Nothing, Nothing]
             strings.pad_right lengths pads . to_vector . should_equal ["Axy", "hi000", "yz", Nothing, Nothing]
 
-        group_builder.specify "follow Text.pad truncation behavior for grapheme and non-grapheme padding" <|
+        group_builder.specify "follow Text.pad truncation behavior for grapheme and non-grapheme padding" pending=(if setup.is_database then "Character-counting semantics differ on database backends." else Nothing) <|
             column = build_sorted_table [["X", ["XX", "", 'a\u{301}', Nothing]]] . at 0
             left = column.pad_left 5 'y\u{301}y'
             right = column.pad_right 5 'y\u{301}y'

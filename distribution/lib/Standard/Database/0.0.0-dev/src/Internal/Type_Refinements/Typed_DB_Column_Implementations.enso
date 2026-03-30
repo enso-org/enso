@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Column.Column
@@ -166,6 +167,22 @@ type DB_Text_Column_Implementation
         new_name = (naming_helper column).function_name "last_index_of" [column, other]
         make_text_case_op column "LAST_INDEX_OF" other case_sensitivity new_name
 
+    pad_left (column : Column & DB_Column) (length : Column | Integer | Nothing) (with_pad : Column | Text | Any) =
+        Value_Type_Checks.is_text column
+        Value_Type_Checks.is_text with_pad
+        Helpers.is_specific_integer_type column length
+        _check_scalar_pad_text with_pad
+        new_name = (naming_helper column).function_name "pad_left" [column, length, with_pad]
+        make_op column "PAD_LEFT" [length, with_pad] new_name
+
+    pad_right (column : Column & DB_Column) (length : Column | Integer | Nothing) (with_pad : Column | Text | Any) =
+        Value_Type_Checks.is_text column
+        Value_Type_Checks.is_text with_pad
+        Helpers.is_specific_integer_type column length
+        _check_scalar_pad_text with_pad
+        new_name = (naming_helper column).function_name "pad_right" [column, length, with_pad]
+        make_op column "PAD_RIGHT" [length, with_pad] new_name
+
     parse_json column on_problems =
         _ = [column, on_problems]
         Unimplemented.throw "parse_json is not implemented for database backends."
@@ -194,3 +211,8 @@ type DB_Date_Time_Column_Implementation
     set_time_zone column time_zone =
         _ = [column, time_zone]
         Error.throw (Unsupported_Database_Operation.Error "set_time_zone is not supported by database backends.")
+
+private _check_scalar_pad_text with_pad =
+    case with_pad of
+        text : Text -> if text == "" then Error.throw (Illegal_Argument.Error "`with_pad` must not be an empty string.")
+        _ -> Nothing
