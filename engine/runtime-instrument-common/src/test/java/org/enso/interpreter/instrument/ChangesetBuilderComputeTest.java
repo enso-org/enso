@@ -500,6 +500,32 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
+  public void issue14863() {
+    var rawCode =
+        """
+        type Table
+            Impl data
+            filter self a b = Table.Impl self.data+a+b
+
+        main =
+            file1 = Table.Impl ""
+            any1 = file1.filter 'Column 1' "Not_Equal"
+            any2 = any1.filter
+            any2
+        """;
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    // Edit: any2 = any1.filter -> any2 = any1.filter 'Column 1'
+    var edit = new TextEdit(new Range(new Position(7, 22), new Position(7, 22)), " 'Column 1'");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertNotInvalidated(result, ir, "file1");
+    assertNotInvalidated(result, ir, "any1");
+    assertInvalidated(result, ir, "any2");
+  }
+
+  @Test
   public void multipleSimultaneousEdits() {
     var rawCode =
         """
