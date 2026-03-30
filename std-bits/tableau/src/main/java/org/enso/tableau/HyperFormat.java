@@ -666,6 +666,12 @@ public class HyperFormat {
                   case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
                   case HyperUnsupportedTypeError unsupportedType -> unsupportedType.asEnsoAtom();
                   case HyperUnmatchedColumns unmatchedColumns -> unmatchedColumns.asEnsoAtom();
+                  case HyperException hyperException ->
+                      EnsoMeta.makeInstance(
+                          "Standard.Tableau.Hyper_Errors",
+                          "Hyper_Error",
+                          "Error",
+                          hyperException.getMessage());
                   default -> null;
                 })
             .or(() -> EnsoExceptionWrapper.wrapFileExceptions(path, exception))

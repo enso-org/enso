@@ -96,6 +96,7 @@ public class ClientBuilder {
 
   /**
    * Gets a Function for hashing a byte[] to a String
+   *
    * @return Hashing Function
    */
   public static Function<byte[], String> getSHA256Function() {
