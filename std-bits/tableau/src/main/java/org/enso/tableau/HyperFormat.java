@@ -322,8 +322,8 @@ public class HyperFormat {
     try {
       List<String> warningUnmatchedColumns = new ArrayList<>();
       getProcess();
-      try (var connection =
-          new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
+
+      try (var connection = openOrReplaceFile(process, path)) {
         TableDefinition tableDef;
         if (append && tableExists(schemaName, tableName, connection)) {
           tableDef =
@@ -343,6 +343,23 @@ public class HyperFormat {
       return Value.asValue(warningUnmatchedColumns.toArray(String[]::new));
     } catch (Exception e) {
       return handleHyperErrors(path, e);
+    }
+  }
+
+  private static Connection openOrReplaceFile(HyperProcess process, String path)
+      throws IOException {
+    Connection output;
+    try {
+      output = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
+      return output;
+    } catch (HyperException hyperException) {
+      if (hyperException
+          .getMessage()
+          .contains("Database file already exists, but is not a Hyper database")) {
+        Files.deleteIfExists(Path.of(path));
+        return new Connection(process.getEndpoint(), path, CreateMode.CREATE);
+      }
+      throw hyperException;
     }
   }
 
