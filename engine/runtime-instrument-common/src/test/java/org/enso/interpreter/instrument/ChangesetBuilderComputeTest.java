@@ -499,7 +499,7 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
-  public void issue14863() {
+  public void addApplicationArgumentInvalidatesSingleCall() {
     var rawCode =
         """
         type Table
