@@ -837,7 +837,6 @@
     "./src/project-view/util/data/urlString.ts",
     "./src/project-view/util/data/vec2.ts",
     "./src/project-view/util/database/reactiveDb.ts",
-    "./src/project-view/util/dom.ts",
     "./src/project-view/util/drag.ts",
     "./src/project-view/util/ensoTypes.ts",
     "./src/project-view/util/equals.ts",

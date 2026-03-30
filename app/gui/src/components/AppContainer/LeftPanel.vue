@@ -2,6 +2,7 @@
 import HelpBar from '$/components/AppContainer/HelpBar.vue'
 import { Drive } from '$/components/AppContainer/reactTabs'
 import { useContainerData } from '$/providers/container'
+import { optPx } from '$/utils/dom'
 import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import { useResizeHandles } from '@/components/resizeHandles'
@@ -35,9 +36,7 @@ const cssClass = computed(() => ({
   focusedPanel: containerData.focusedPanel.type === 'drive',
   middlePanelShown: props.middlePanelShown,
 }))
-const widthStyle = computed(() =>
-  width.value != null && props.middlePanelShown ? { width: `${width.value}px` } : {},
-)
+const widthStyle = computed(() => (props.middlePanelShown ? { width: optPx(width.value) } : {}))
 
 const resizeHandles = useResizeHandles({
   size: useResizeObserver(root),

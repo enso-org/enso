@@ -546,12 +546,7 @@ interface ResolvedAction extends Action {
   action: () => void
 }
 
-interface DisplayableResolvedAction extends ResolvedAction {
-  icon?: ToValue<Icon> | undefined
-  description: ToValue<string>
-}
-
-export function resolveAction(actionName: DisplayableActionName): DisplayableResolvedAction
+export function resolveAction(actionName: DisplayableActionName): ResolvedAction & DisplayableAction
 export function resolveAction(actionName: ActionName): ResolvedAction
 /**
  * Potentially resolve an action by name from context. Raises an error if such action is not found.

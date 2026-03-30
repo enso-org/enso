@@ -8,6 +8,7 @@ import {
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { useContainerData } from '$/providers/container'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import { optPx } from '$/utils/dom'
 import type { ToValue } from '$/utils/reactivity'
 import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
@@ -68,7 +69,7 @@ const resizeHandles = useResizeHandles({
   size: useResizeObserver(contentElement),
 })
 resizeHandles.onResizeWidth((value) => (width.value = value))
-const widthStyle = computed(() => (width.value == null ? {} : { width: `${width.value}px` }))
+const widthStyle = computed(() => ({ width: optPx(width.value) }))
 </script>
 
 <template>

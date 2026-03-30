@@ -1,4 +1,5 @@
 import { LINE_BOUNDARIES } from '$/utils/data/string'
+import { elementHierarchy } from '$/utils/dom'
 import { useNavigateLink } from '$/utils/links'
 import type { ToValue } from '$/utils/reactivity'
 import { textEditorsBindings } from '@/bindings'
@@ -16,7 +17,6 @@ import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/r
 import { setVueHost, vueHostExt } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import type { Vec2 } from '@/util/data/vec2'
-import { elementHierarchy } from '@/util/dom'
 import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,
@@ -221,7 +221,7 @@ function useBindings() {
   const navigateLink = useNavigateLink()
 
   function openLink(event: CmEventExt<AnyHandlerEvent>) {
-    const parents = elementHierarchy(event.target)
+    const parents = event.target instanceof Element ? elementHierarchy(event.target) : []
     const inEditorHierarchy = takeUntil(parents, (el) => el === event.codemirrorView.contentDOM)
     const linkElement = find(inEditorHierarchy, (el) => el instanceof HTMLAnchorElement)
     if (!linkElement) return false
