@@ -525,6 +525,31 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
+  public void editAutoscopeConstructorToValue() {
+    var rawCode =
+        """
+        type Xyz
+
+        type T
+            A
+
+        main =
+            a = test ..A
+            a
+
+        test t:(Xyz | T) = t
+        """;
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    // Edit: ..A -> Xyz
+    var edit = new TextEdit(new Range(new Position(6, 13), new Position(6, 16)), "Xyz");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertInvalidated(result, ir, "a");
+  }
+
+  @Test
   public void multipleSimultaneousEdits() {
     var rawCode =
         """
