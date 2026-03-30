@@ -28,7 +28,6 @@ import org.enso.text.editing.model.Position;
 import org.enso.text.editing.model.Range;
 import org.enso.text.editing.model.TextEdit;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
 import scala.jdk.javaapi.CollectionConverters;
@@ -762,7 +761,6 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
-  @Ignore
   public void editMethodNameDoesNotAffectIndependentMethodCallWithSameName() {
     var rawCode =
         """
@@ -781,8 +779,6 @@ public class ChangesetBuilderComputeTest {
 
     assertInvalidated(result, ir, "y");
     assertNotInvalidated(result, ir, "x");
-    // The following assertion fails because the ChangesetBuilder looks for dynamic dependency
-    // "method1". Ignored for now because this edit pattern is not used when editing nodes in IDE.
     assertNotInvalidated(result, ir, "z");
   }
 

@@ -680,12 +680,7 @@ object ChangesetBuilder {
   private def toDataflowDependencyTypes(
     node: NodeId
   ): Seq[DependencyInfo.Type] = {
-    val static =
-      new DependencyInfo.Type.Static(node.internalId, node.externalId)
-    val dynamic = node.name.map { name =>
-      new DependencyInfo.Type.Dynamic(name, node.externalId)
-    }
-    static +: dynamic.toSeq
+    Seq(new DependencyInfo.Type.Static(node.internalId, node.externalId))
   }
 
   /** Get expression name by the given id.
