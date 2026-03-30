@@ -95,7 +95,6 @@ resizeHandles.onResizeWidth((value) => (width.value = value))
   height: 100%;
   width: 100%;
   min-width: 200px;
-  /* max-width: var(--left-panel-max-width); */
   display: flex;
   flex-direction: column;
   gap: 0;

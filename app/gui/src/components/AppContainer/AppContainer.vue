@@ -148,8 +148,13 @@ onUnmounted(() => {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-.LeftPanel.noMiddlePanel {
-  flex-grow: 1;
+.LeftPanel {
+  flex-shrink: 0;
+
+  &.noMiddlePanel {
+    flex-grow: 1;
+    flex-shrink: 1;
+  }
 }
 
 .tabPanel {
@@ -199,6 +204,7 @@ onUnmounted(() => {
 
 .RightPanel {
   min-width: 48px;
+  flex-shrink: 0;
 }
 
 .FullscreenRoot {
