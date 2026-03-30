@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.security.PrivateKey;
@@ -19,14 +20,71 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
+  private static Value handleRequestException(Exception e) {
+    var wrappedException =
+        switch (e) {
+          case UnsupportedOperationException unsupportedOperationException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.Unimplemented",
+                  "Unimplemented",
+                  "Error",
+                  unsupportedOperationException.getMessage());
+          case IllegalArgumentException argException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.Illegal_Argument",
+                  "Illegal_Argument",
+                  "Error",
+                  argException.getMessage(),
+                  argException);
+          case IOException _ ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Network.HTTP",
+                  "Request_Error",
+                  "Error",
+                  e.getClass().getCanonicalName(),
+                  e.getMessage());
+          case ResponseTooLargeException tl ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.Common",
+                  "Response_Too_Large",
+                  "Error",
+                  tl.getActualSize(),
+                  tl.getLimit());
+          default -> null;
+        };
+    if (wrappedException == null) {
+      throw new RuntimeException(e);
+    }
+    return EnsoMeta.asDataflowError(wrappedException);
+  }
+
+  public static Value resolveBody(EnsoRequestBody body, Function<byte[], String> hashFunction) {
+    try {
+      var publisher = EnsoRequestBody.build(body);
+      var hash = hashFunction == null ? "" : hashFunction.apply(EnsoRequestBody.hashInput(body));
+      return EnsoMeta.makeInstance(
+          "Standard.Base.Network.HTTP",
+          "Resolved_Body",
+          "Value",
+          publisher,
+          EnsoMeta.getNothing(),
+          hash);
+    } catch (Exception e) {
+      return handleRequestException(e);
+    }
+  }
+
   private static EnsoHTTPResponseCache cache;
 
   /**
@@ -56,13 +114,16 @@ public final class EnsoSecretHelper extends SecretValueResolver {
    * Gets the actual URI with all secrets resolved, so that it can be used to create a request. This
    * value should never be returned to Enso.
    */
-  private static URI resolveURI(URIWithSecrets uri) {
+  private static URI resolveURI(String baseUri, List<EnsoHeader> queryParameters) {
     try {
       var resolvedQueryParameters =
-          uri.queryParameters().stream()
-              .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), resolveValue(p.getValue())))
+          queryParameters.stream()
+              .map(
+                  p ->
+                      new AbstractMap.SimpleEntry<>(
+                          p.name(), resolveValue(HideableValue.from(p.hideable_value()))))
               .toList();
-      var resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
+      var resolvedSchematic = new URISchematic(URI.create(baseUri), resolvedQueryParameters);
       return resolvedSchematic.build();
     } catch (URISyntaxException e) {
       // Here we don't display the message of the exception to avoid risking it may leak any
@@ -70,40 +131,65 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       // This should never happen in practice.
       throw new IllegalStateException(
           "Unexpectedly unable to build a valid URI from the base URI: "
-              + uri
+              + baseUri
               + ": "
               + e.getClass().getCanonicalName());
     }
   }
 
   /** Makes a request with secrets in the query string or headers. * */
-  public static EnsoHttpResponse makeRequest(
+  public static Value makeRequest(
       HttpClient client,
-      Builder origBuilder,
-      URIWithSecrets uri,
-      List<Map.Entry<String, HideableValue>> headers,
+      String method,
+      HttpRequest.BodyPublisher body,
+      String baseUri,
+      List<EnsoHeader> queryParameters,
+      List<EnsoHeader> headers,
+      boolean useCache) {
+    try {
+      var response =
+          makeRequestInternal(client, method, body, baseUri, queryParameters, headers, useCache);
+      return Value.asValue(response);
+    } catch (Exception e) {
+      return handleRequestException(e);
+    }
+  }
+
+  private static EnsoHttpResponse makeRequestInternal(
+      HttpClient client,
+      String method,
+      HttpRequest.BodyPublisher body,
+      String baseUri,
+      List<EnsoHeader> queryParameters,
+      List<EnsoHeader> headers,
       boolean useCache)
       throws IllegalArgumentException,
           IOException,
           InterruptedException,
           ResponseTooLargeException {
     // Clone incoming builder so we can't leak secrets through it
-    var builder = origBuilder.copy();
+    var builder = HttpRequest.newBuilder().method(method, body);
 
     // Build a new URI with the query arguments.
-    URI resolvedURI = resolveURI(uri);
+    URI resolvedURI = resolveURI(baseUri, queryParameters);
 
     var resolvedHeaders =
         headers.stream()
             .map(
-                pair -> {
+                header -> {
                   return new AbstractMap.SimpleEntry<>(
-                      pair.getKey(), resolveValue(pair.getValue()));
+                      header.name(), resolveValue(HideableValue.from(header.hideable_value())));
                 })
             .toList();
 
     var requestMaker =
-        new RequestMaker(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+        new RequestMaker(
+            client,
+            builder,
+            new URIWithSecrets(baseUri, queryParameters),
+            resolvedURI,
+            headers,
+            resolvedHeaders);
 
     if (!useCache) {
       return requestMaker.makeRequest();
@@ -121,7 +207,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     private final Builder builder;
     private final URIWithSecrets uri;
     private final URI resolvedURI;
-    private final List<? extends Map.Entry<String, HideableValue>> headers;
+    private final List<EnsoHeader> headers;
     private final List<? extends Map.Entry<String, String>> resolvedHeaders;
 
     RequestMaker(
@@ -129,7 +215,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         Builder builder,
         URIWithSecrets uri,
         URI resolvedURI,
-        List<? extends Map.Entry<String, HideableValue>> headers,
+        List<EnsoHeader> headers,
         List<? extends Map.Entry<String, String>> resolvedHeaders) {
       this.client = client;
       this.builder = builder;
@@ -142,7 +228,9 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     @Override
     public EnsoHttpResponse makeRequest() throws IOException, InterruptedException {
       boolean hasSecrets =
-          uri.containsSecrets() || headers.stream().anyMatch(p -> p.getValue().containsSecrets());
+          uri.containsSecrets()
+              || headers.stream()
+                  .anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
       if (hasSecrets) {
         if (resolvedURI.getScheme() == null) {
           throw new IllegalArgumentException("The URI must have a scheme.");

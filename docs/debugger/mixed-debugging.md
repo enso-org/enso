@@ -1,3 +1,3 @@
 # Debugging Enso and Java Code at Once
 
-Desribed at [Runtime Debugging](runtime-debugging.md).
+- Described as part of [Runtime Debugging](runtime-debugging.md)

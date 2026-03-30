@@ -38,10 +38,7 @@ const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
-// These addresses are kept for backward compatibility in OpenProject response
-// but the actual communication now flows through YjsChannels
 const languageServerJsonAddress = { host: '127.0.0.1', port: 1235 }
-const languageServerBinaryAddress = { host: '127.0.0.1', port: 1234 }
 const languageServerYdocAddress = { host: '127.0.0.1', port: 1233 }
 
 const INITIAL_CALLS_OBJECT = {
@@ -311,7 +308,6 @@ export async function mockLocalApi(page: Page) {
       unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
       const result: OpenProject = {
         projectId: UUID(crypto.randomUUID()),
-        languageServerBinaryAddress,
         languageServerJsonAddress,
         languageServerYdocAddress,
         projectNamespace: 'local',

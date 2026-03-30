@@ -46,6 +46,7 @@
 - [New `Profile` API for timing code execution.][14827]
 - [Expanded S3 API with versions and signed uri][14831]
 - [Support for reading JSON data from database connections.][14872]
+- [Support for Salesforce reporting API][14901]
 - [Add Redshift bulk loading][14860]
 - [JSON functions on Table and Column. XML and Hashset fixes.][14884]
 
@@ -64,6 +65,7 @@
 [14827]: https://github.com/enso-org/enso/pull/14827
 [14831]: https://github.com/enso-org/enso/pull/14831
 [14872]: https://github.com/enso-org/enso/pull/14872
+[14901]: https://github.com/enso-org/enso/pull/14901
 [14860]: https://github.com/enso-org/enso/pull/14860
 [14884]: https://github.com/enso-org/enso/pull/14884
 

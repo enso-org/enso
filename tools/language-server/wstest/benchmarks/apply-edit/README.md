@@ -15,7 +15,6 @@ sbt runEngineDistribution \
   --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 \
   --path $(pwd)/tools/language-server/wstest/benchmarks/apply-edit/Unnamed/ \
   --rpc-port 30616 \
-  --data-port 30717 \
   2>&1| tee language-server.log
 ```
 

@@ -283,22 +283,6 @@ public class Main {
             .argName("rpc-port")
             .desc("A secure RPC port for processing all incoming connections")
             .build();
-    var dataPortOption =
-        cliOptionBuilder()
-            .longOpt(LanguageServerApi.DATA_PORT_OPTION)
-            .hasArg(true)
-            .numberOfArgs(1)
-            .argName("data-port")
-            .desc("Data port for visualization protocol")
-            .build();
-    var secureDataPortOption =
-        cliOptionBuilder()
-            .longOpt(LanguageServerApi.SECURE_DATA_PORT_OPTION)
-            .hasArg(true)
-            .numberOfArgs(1)
-            .argName("data-port")
-            .desc("A secure data port for visualization protocol")
-            .build();
     var uuidOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -531,9 +515,7 @@ public class Main {
         .addOption(deamonizeOption)
         .addOption(interfaceOption)
         .addOption(rpcPortOption)
-        .addOption(dataPortOption)
         .addOption(secureRpcPortOption)
-        .addOption(secureDataPortOption)
         .addOption(uuidOption)
         .addOption(projectIdOption)
         .addOption(cloudProjectIdOption)

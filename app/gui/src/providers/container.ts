@@ -1,4 +1,5 @@
 import LocalStorage from '#/utilities/LocalStorage'
+import * as analytics from '$/utils/analytics'
 import { proxyRefs } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
 import { createGlobalState } from '@vueuse/core'
@@ -154,6 +155,7 @@ function createContainerStore() {
     const project = openedProjects.openProject(info)
     if (!isTabOpened(tab)) {
       tabs.set(panelKey(tab), tab)
+      analytics.workflowOpened()
     }
     if (userAction) {
       openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
@@ -215,6 +217,7 @@ function createContainerStore() {
       currentTab.value = nextTab.value
     }
     if (tab.type === 'project') {
+      analytics.workflowClosed()
       openedProjects.closeProject(tab.id)
     }
   }

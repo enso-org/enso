@@ -103,6 +103,17 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
                 .allowHostAccess(HostAccess.ALL)
                 .allowExperimentalOptions(true)
                 .build();
+        Function<Node, Object> enter =
+            (_) -> {
+              ctx.enter();
+              return null;
+            };
+        BiConsumer<Node, Object> leave =
+            (_, _) -> {
+              ctx.leave();
+            };
+        var pool = channel.getConfig();
+        pool.onEnterLeave(channel, null, null, enter, leave);
       }
       return ctx.asValue(rawClass);
     } catch (ClassNotFoundException ex) {
@@ -137,7 +148,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     var pool = ch.getConfig();
     Function<Node, Object> enter = ctx != null ? ctx::enter : null;
     BiConsumer<Node, Object> leave = ctx != null ? ctx::leave : null;
-    pool.onEnterLeave(language, polyglotBindings, enter, leave);
+    pool.onEnterLeave(ch, language, polyglotBindings, enter, leave);
     return new OtherJvmClassLoader(ch);
   }
 
