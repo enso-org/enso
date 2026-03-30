@@ -205,12 +205,12 @@ type In_Memory_Text_Column_Implementation
 
         res . cast this_column.value_type
 
-    index_of (column : Text_Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
+    index_of (column : In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "index_of" [column, other]
         apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
 
-    last_index_of (column : Text_Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
+    last_index_of (column : In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         Value_Type_Checks.is_text other
         new_name = naming_helper.function_name "last_index_of" [column, other]
         fallback a b =
