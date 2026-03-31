@@ -215,7 +215,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const uploadFiles = useUploadFiles(backend, category.type)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
-  const paste = usePaste(category)
+  const paste = usePaste()
 
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))

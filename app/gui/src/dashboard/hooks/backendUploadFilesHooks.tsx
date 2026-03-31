@@ -412,7 +412,7 @@ export function useUploadFileToCloud() {
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToLocal(category: Category) {
-  const transferBetweenCategories = useTransferBetweenCategories(category)
+  const transferBetweenCategories = useTransferBetweenCategories()
 
   return useEventCallback(async (assets: readonly AnyAsset[]) => {
     await transferBetweenCategories(category, { type: 'local' }, assets)

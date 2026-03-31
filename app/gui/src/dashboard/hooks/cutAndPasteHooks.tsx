@@ -19,8 +19,8 @@ export interface PasteActionOptions {
  * A hook to copy or move assets as appropriate. Assets are moved, except when performing
  * a cut and paste between the Team Space and the User Space, in which case the asset is copied.
  */
-export function usePaste(category: Category) {
-  const transferBetweenCategories = useTransferBetweenCategories(category)
+export function usePaste() {
+  const transferBetweenCategories = useTransferBetweenCategories()
 
   return useEventCallback((options: PasteActionOptions) => {
     const { newParentId, pasteData, fromCategory, toCategory, method } = options

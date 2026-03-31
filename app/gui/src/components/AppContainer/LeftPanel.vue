@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import HelpBar from '$/components/AppContainer/HelpBar.vue'
 import { Drive } from '$/components/AppContainer/reactTabs'
-import { categoryEq, categoryIcon, categoryKey, useCategories } from '$/providers/categories'
+import { categoryKey, useCategories } from '$/providers/categories'
 import { useContainerData } from '$/providers/container'
 import { useDriveLocation } from '$/providers/drive'
 import { optPx } from '$/utils/dom'
@@ -14,8 +14,9 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
-import { startTransition } from 'react'
+import { Path } from 'enso-common/src/services/Backend'
 import { computed, ref, toRef, toRefs, useTemplateRef } from 'vue'
+import CategoryButton from './CategoryButton.vue'
 
 const LEFT_BAR_EXTENSION_TIME_MS = 550
 const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
@@ -43,6 +44,7 @@ const cssClass = computed(() => ({
   middlePanelShown: props.middlePanelShown,
 }))
 const widthStyle = computed(() => (props.middlePanelShown ? { width: optPx(width.value) } : {}))
+const canAddLocalDirectories = window.api != null
 
 const resizeHandles = useResizeHandles({
   size: useResizeObserver(root),
@@ -65,6 +67,16 @@ function onLeave() {
   leftBarExtended.value = false
   clearTimeout(leftBarExtensionTimeout)
 }
+
+async function onAddDirectoryClick() {
+  const [newDirectory] = (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
+
+  if (newDirectory != null) {
+    const path = Path(newDirectory)
+    categories.addLocalDirectory(path)
+    currentCategory.value = { type: 'localDirectory', path }
+  }
+}
 </script>
 
 <template>
@@ -83,20 +95,28 @@ function onLeave() {
         :disabled="!middlePanelShown"
       />
       <div class="categories">
-        <SvgButton
-          v-for="category of categories.categoriesList"
+        <CategoryButton
+          v-for="category of categories.cloudCategoriesList"
           :key="categoryKey(category)"
           class="leftBarIcon"
-          :name="categoryIcon(category.type)"
-          :label="leftBarExtended ? categories.categoryLabel(category) : undefined"
-          :modelValue="categoryEq(category, currentCategory)"
-          @update:modelValue="
-            startTransition(() => {
-              console.debug('START TRANSITION')
-              currentCategory = category
-              console.debug('END TRANSITION')
-            })
-          "
+          :category="category"
+          :extended="leftBarExtended"
+        />
+      </div>
+      <div class="categories">
+        <CategoryButton
+          v-for="category of categories.localCategoriesList"
+          :key="categoryKey(category)"
+          class="leftBarIcon"
+          :category="category"
+          :extended="leftBarExtended"
+        />
+        <SvgButton
+          v-if="canAddLocalDirectories"
+          class="leftBarIcon"
+          name="folder_add_small"
+          :label="leftBarExtended ? 'Add Directory' : undefined"
+          @click="onAddDirectoryClick"
         />
       </div>
       <div class="shadow" />
@@ -137,7 +157,7 @@ function onLeave() {
   display: flex;
   flex-direction: column;
   align-items: start;
-  gap: 16px;
+  gap: 8px;
   z-index: 2;
 
   transition: max-width 200ms ease-in-out;
@@ -149,11 +169,20 @@ function onLeave() {
 }
 
 .categories {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: start;
   gap: 8px;
   overflow: hidden;
+
+  &:before {
+    content: '';
+    width: calc(100% - 32px);
+    height: 1px;
+    margin: 0 16px;
+    background-color: rgba(0 0 0 / 0.1);
+  }
 }
 
 .leftBarIcon {

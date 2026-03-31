@@ -25,46 +25,53 @@ LocalStorage.registerKey('driveDisplay', { schema: DRIVE_DISPLAY_SCHEMA, isUserS
 export type DriveLocationStore = ReturnType<typeof useDriveLocation>
 
 /** */
-export const [provideDriveLocation, useDriveLocation] = createContextStore('drive', () => {
-  const backends = useBackends()
-  const localStorage = LocalStorage.getInstance()
-  const storedDriveDisplay = computed(() => localStorage.get('driveDisplay'))
+export const [provideDriveLocation, useDriveLocation] = createContextStore(
+  'drive',
+  (startReactTransition: (action: () => void) => void) => {
+    const backends = useBackends()
+    const localStorage = LocalStorage.getInstance()
+    const storedDriveDisplay = computed(() => localStorage.get('driveDisplay'))
 
-  const defaultCategory = computed<Category>(() =>
-    backends.localBackend != null ? { type: 'local' } : { type: 'cloud' },
-  )
+    const defaultCategory = computed<Category>(() =>
+      backends.localBackend != null ? { type: 'local' } : { type: 'cloud' },
+    )
 
-  const currentCategory = computed({
-    get: () => categoryFromKey(storedDriveDisplay.value?.currentCategory) ?? defaultCategory.value,
-    set: (category) =>
-      localStorage.set('driveDisplay', {
-        currentCategory: categoryKey(category),
-        currentDirectoryId: null,
-      }),
-  })
+    const currentCategory = computed({
+      get: () =>
+        categoryFromKey(storedDriveDisplay.value?.currentCategory) ?? defaultCategory.value,
+      set: (category) =>
+        startReactTransition(() =>
+          localStorage.set('driveDisplay', {
+            currentCategory: categoryKey(category),
+            currentDirectoryId: null,
+          }),
+        ),
+    })
 
-  const currentDirectory = computed({
-    get: () => storedDriveDisplay.value?.currentDirectoryId ?? null,
-    set: (dir) => {
-      localStorage.set('driveDisplay', {
-        currentCategory: categoryKey(currentCategory.value),
-        currentDirectoryId: dir,
-      })
-    },
-  })
+    const currentDirectory = computed({
+      get: () => storedDriveDisplay.value?.currentDirectoryId ?? null,
+      set: (dir) =>
+        startReactTransition(() =>
+          localStorage.set('driveDisplay', {
+            currentCategory: categoryKey(currentCategory.value),
+            currentDirectoryId: dir,
+          }),
+        ),
+    })
 
-  const associatedBackend = computed(() =>
-    backends.backendForType(CATEGORY_BACKEND[currentCategory.value.type]),
-  )
+    const associatedBackend = computed(() =>
+      backends.backendForType(CATEGORY_BACKEND[currentCategory.value.type]),
+    )
 
-  function setDefaultCategory() {
-    localStorage.delete('driveDisplay')
-  }
+    function setDefaultCategory() {
+      localStorage.delete('driveDisplay')
+    }
 
-  return proxyRefs({
-    currentCategory,
-    currentDirectory,
-    associatedBackend,
-    setDefaultCategory,
-  })
-})
+    return proxyRefs({
+      currentCategory,
+      currentDirectory,
+      associatedBackend,
+      setDefaultCategory,
+    })
+  },
+)

@@ -161,11 +161,13 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
     localDirectories.value.map((dir): LocalDirectory => ({ type: 'localDirectory', path: dir })),
   )
 
-  const categoriesList = computed((): Category[] => [
+  const cloudCategoriesList = computed((): Category[] => [
     { type: 'cloud' },
     ...teamCategories.value,
     { type: 'recent' },
     { type: 'trash' },
+  ])
+  const localCategoriesList = computed((): Category[] => [
     { type: 'local' },
     ...localDirectoryCategories.value,
   ])
@@ -207,7 +209,9 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
   }
 
   function getCategoryByDirectoryId(dirId: DirectoryId) {
-    return categoriesList.value.find((category) => categoryDirectoryId(category) === dirId)
+    return [...cloudCategoriesList.value, ...localCategoriesList.value].find(
+      (category) => categoryDirectoryId(category) === dirId,
+    )
   }
 
   function categoryRootPath(category: Category): Path | null {
@@ -225,12 +229,35 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
     }
   }
 
+  function addLocalDirectory(path: Path) {
+    const state = localDirectoryStore.getState()
+    if (!state.localDirectories.find((p) => p === path)) {
+      localDirectoryStore.setState({ localDirectories: [...state.localDirectories, path] })
+      return true
+    }
+    return false
+  }
+
+  function removeLocalDirectory(path: Path) {
+    const state = localDirectoryStore.getState()
+    const index = state.localDirectories.findIndex((p) => p === path)
+    if (index >= 0) {
+      const newList = [...state.localDirectories].splice(index, 1)
+      localDirectoryStore.setState({ localDirectories: newList })
+      return true
+    }
+    return false
+  }
+
   return proxyRefs({
-    categoriesList,
+    cloudCategoriesList,
+    localCategoriesList,
     categoryLabel,
     categoryDirectoryId,
     getCategoryByDirectoryId,
     categoryRootPath,
+    addLocalDirectory,
+    removeLocalDirectory,
   })
 }
 
