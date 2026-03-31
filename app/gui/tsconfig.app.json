@@ -34,7 +34,6 @@
     "./src/components/ProtectedLayout.vue",
     "./src/components/RegistrationPage.vue",
     "./src/components/WithCurrentProject.vue",
-    "./src/components/protectedLayoutRedirect.ts",
     "./src/composables/appTitle.ts",
     "./src/composables/userAgreements.ts",
     "./src/config.ts",

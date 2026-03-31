@@ -14,7 +14,6 @@ import {
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
-import { createProtectedLayoutRedirectController } from '$/components/protectedLayoutRedirect'
 import { useAppTitle } from '$/composables/appTitle'
 import { useUserAgreements } from '$/composables/userAgreements'
 import { useAuth, type AuthStore } from '$/providers/auth'
@@ -137,9 +136,6 @@ const debugHoverAreas = useFeatureFlag('debugHoverAreas')
 useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
 
 const allowed = computed(() => routeAllowed(route, auth))
-const { redirectTo } = createProtectedLayoutRedirectController(router, (error) => {
-  console.error('Failed to redirect from protected route: ', error)
-})
 
 watch(
   allowed,
@@ -147,7 +143,7 @@ watch(
     if (!allowed) {
       const redirectValue = redirect(auth, LocalStorage.getInstance())
       if (redirectValue) {
-        redirectTo(redirectValue)
+        router.replace(redirectValue)
       }
     }
   },
