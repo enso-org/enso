@@ -42,7 +42,7 @@ export function useVueValue<T>(selector: WatchSource<T>, deep = false): T {
  */
 export function useVueRef<T>(selector: () => Ref<T>): [T, (newVal: T) => void] {
   return [
-    useVueValue(() => toValue(selector())),
+    useVueValue(react.useCallback(() => toValue(selector()), [selector])),
     (newVal) => {
       selector().value = newVal
     },
