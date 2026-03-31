@@ -1611,7 +1611,7 @@ public class Main {
       System.setProperty("config.resource", "application-ls.conf");
     } else {
       if (hasJVMOption && HostEnsoUtils.isAot()) {
-          // avoid setting up logger in SVM
+        // avoid setting up logger in SVM
       } else {
         setupLogging(line, logLevel, logMasking);
       }

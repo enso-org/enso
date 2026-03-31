@@ -164,13 +164,6 @@ public final class LogbackSetup extends LoggerSetup {
 
   @Override
   public boolean setupFileAppender(Level logLevel, Path logRoot, String logPrefix) {
-    System.err.println(
-        "!!! LogbackSetup.setupFileAppender " + logLevel + ";" + logPrefix + ";" + logRoot);
-    try {
-      throw new IllegalArgumentException("LogbackSetup.setupFileAppender");
-    } catch (IllegalArgumentException ex) {
-      ex.printStackTrace();
-    }
     try {
       LoggerAndContext env = contextInit(logLevel, config, true);
       org.enso.logging.config.FileAppender appenderConfig = config.getFileAppender();

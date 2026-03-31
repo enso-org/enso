@@ -34,7 +34,6 @@ final class RunnerLogging {
     var loggerSetup = LoggerSetup.get();
     var executorService = Executors.newSingleThreadExecutor();
     try {
-      new IllegalStateException("Who initializes logging?").printStackTrace();
       setupImpl(connectionUri, logLevel, executorService, loggerSetup);
     } finally {
       executorService.shutdown();
