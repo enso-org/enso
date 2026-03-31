@@ -1688,6 +1688,7 @@ public class Main {
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
     }
     MDC.put("projectLocalId", projectId);
+    System.setProperty("enso.project.local.id", projectId);
   }
 
   private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {

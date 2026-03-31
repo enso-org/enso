@@ -185,33 +185,38 @@ public final class LogbackSetup extends LoggerSetup {
         if (logPrefix == null) {
           logPrefix = "enso";
         }
+        var projectId = resolveProjectId();
         var now = LocalDateTime.now();
         var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
 
+        String nameCore =
+            projectId != null
+                ? logPrefix + "-" + projectId + "-" + dateStr + "-" + timeStr
+                : logPrefix + "-" + dateStr + "-" + timeStr;
+
         String basePath;
         if (logRoot == null) {
-          basePath = logPrefix + "-" + dateStr + "-" + timeStr;
+          basePath = nameCore;
         } else {
-          basePath =
-              logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + dateStr + "-" + timeStr;
+          basePath = logRoot.toAbsolutePath() + File.separator + nameCore;
         }
 
         rollingFileAppender.setFile(basePath + ".log");
 
         // Archive pattern: %d{yyyy-MM-dd} resolves to same date on same day,
         // time literal ensures per-execution uniqueness, %i for size rollover index
+        String archiveNameCore =
+            projectId != null
+                ? logPrefix + "-" + projectId + "-%d{yyyy-MM-dd}-" + timeStr
+                : logPrefix + "-%d{yyyy-MM-dd}-" + timeStr;
+
         String archivePattern;
         if (logRoot == null) {
-          archivePattern = logPrefix + "-%d{yyyy-MM-dd}-" + timeStr + ".%i.log.gz";
+          archivePattern = archiveNameCore + ".%i.log.gz";
         } else {
           archivePattern =
-              logRoot.toAbsolutePath()
-                  + File.separator
-                  + logPrefix
-                  + "-%d{yyyy-MM-dd}-"
-                  + timeStr
-                  + ".%i.log.gz";
+              logRoot.toAbsolutePath() + File.separator + archiveNameCore + ".%i.log.gz";
         }
 
         var rollingPolicy = appenderConfig.getRollingPolicy();
@@ -228,11 +233,22 @@ public final class LogbackSetup extends LoggerSetup {
       } else {
         fileAppender = new FileAppender<>();
         fileAppender.setName("enso-file");
+        var projectId = resolveProjectId();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String currentDate = LocalDate.now().format(dtf);
         String fullFilePath;
         if (logRoot == null || logPrefix == null) {
           fullFilePath = "enso-" + currentDate + ".log";
+        } else if (projectId != null) {
+          fullFilePath =
+              logRoot.toAbsolutePath()
+                  + File.separator
+                  + logPrefix
+                  + "-"
+                  + projectId
+                  + "-"
+                  + currentDate
+                  + ".log";
         } else {
           fullFilePath =
               logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + currentDate + ".log";
@@ -447,4 +463,16 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   private static final String LANG_PREFIX = "enso";
+  private static final String NULL_UUID = "00000000-0000-0000-0000-000000000000";
+
+  private static String resolveProjectId() {
+    String id = System.getenv("ENSO_CLOUD_PROJECT_ID");
+    if (id == null || id.isEmpty()) {
+      id = System.getProperty("enso.project.local.id");
+    }
+    if (id == null || id.isEmpty() || id.equals(NULL_UUID)) {
+      return null;
+    }
+    return id;
+  }
 }
