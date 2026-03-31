@@ -955,14 +955,30 @@ export class LocalBackend extends backend.Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
-  override listProjectSessions() {
-    return this.invalidOperation()
+  /** List project sessions by scanning engine log files. */
+  override async listProjectSessions(
+    projectId: backend.ProjectId,
+  ): Promise<backend.ProjectSession[]> {
+    const { path } = backend.extractTypeAndPath(projectId)
+    const uuid = await this.projectManager.getProjectId(path)
+    if (uuid == null) return []
+    const { sessions } = await this.projectManager.listProjectSessions(uuid)
+    return sessions.map((s) => ({
+      projectId,
+      projectSessionId: backend.ProjectSessionId(s.projectSessionId),
+      createdAt: s.createdAt as backend.ProjectSession['createdAt'],
+    }))
   }
 
-  /** Invalid operation. */
-  override getProjectSessionLogs() {
-    return this.invalidOperation()
+  /** Get log content for a local project session. */
+  override async getProjectSessionLogs(
+    projectSessionId: backend.ProjectSessionId,
+    params: backend.GetProjectSessionLogsRequestParams,
+  ): Promise<backend.ProjectSessionLogs> {
+    return await this.projectManager.getProjectSessionLogs(
+      String(projectSessionId),
+      params.scrollId,
+    )
   }
 
   /** Invalid operation. */
