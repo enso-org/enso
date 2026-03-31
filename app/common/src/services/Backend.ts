@@ -1128,8 +1128,6 @@ export interface CreateUserRequestBody {
   readonly userName: string
   readonly userEmail: EmailAddress
   readonly organizationId: OrganizationId | null
-  readonly tosAccepted: string
-  readonly ppAccepted: string
 }
 
 /** HTTP request body for the "update user" endpoint. */

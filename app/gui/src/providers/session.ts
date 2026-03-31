@@ -110,10 +110,16 @@ export function createSessionStore(
     meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const signUp = async (username: string, password: string, organizationId: string | null) => {
+  const signUp = async (
+    username: string,
+    password: string,
+    organizationId: string | null,
+    tosHash: string,
+    ppHash: string,
+  ) => {
     const auth = assertAuthService()
     analytics.cloudSignUp.before()
-    const result = await auth.signUp(username, password, organizationId)
+    const result = await auth.signUp(username, password, organizationId, tosHash, ppHash)
 
     if (result.err) {
       throw new Error(result.val.message)

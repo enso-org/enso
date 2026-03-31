@@ -34,7 +34,6 @@
     "./src/components/CommandPalette.vue",
     "./src/components/LoadingScreen.vue",
     "./src/components/ProtectedLayout.vue",
-    "./src/components/RegistrationPage.vue",
     "./src/components/WithCurrentProject.vue",
     "./src/composables/appTitle.ts",
     "./src/composables/paywall/FeaturesConfiguration.ts",

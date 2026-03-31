@@ -15,9 +15,14 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { DASHBOARD_PATH, LOGIN_PATH } from '$/appUtils'
+import {
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '$/composables/userAgreements'
 import { useAuth } from '$/providers/auth'
 import { useBackends, useLocalStorage, useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
+import * as vueQuery from '@tanstack/vue-query'
 import { useEffect, useState } from 'react'
 
 const CONFIRM_SIGN_IN_INTERVAL = 5_000
@@ -38,6 +43,7 @@ export default function Registration() {
   const [organizationId] = useQueryParam('organization_id')
   const [redirectTo] = useQueryParam('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
+  const queryClient = vueQuery.useQueryClient()
 
   const signupForm = Form.useForm({
     defaultValues: { email: initialEmail ?? '', agreedToTos: [], agreedToPrivacyPolicy: [] },
@@ -65,7 +71,9 @@ export default function Registration() {
           }
         }),
     onSubmit: async ({ email, password }) => {
-      await signUp(email, password, organizationId ?? null)
+      const tosHash = (await queryClient.fetchQuery(latestTermsOfServiceQueryOptions)).hash
+      const ppHash = (await queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)).hash
+      await signUp(email, password, organizationId ?? null, tosHash, ppHash)
 
       stepperState.nextStep()
     },

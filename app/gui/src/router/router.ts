@@ -1,4 +1,5 @@
 import Login from '#/pages/authentication/Login'
+import Registration from '#/pages/authentication/Registration'
 import {
   CONFIRM_REGISTRATION_PATH,
   DASHBOARD_PATH,
@@ -43,7 +44,7 @@ const routes = [
       {
         path: REGISTRATION_PATH,
         meta: { access: 'guest' },
-        component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
+        component: reactComponent(Registration),
       },
       {
         path: UNAVAILABLE_PATH,

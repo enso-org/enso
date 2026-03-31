@@ -1,8 +1,4 @@
 import type * as cognitoModule from '$/authentication/cognito'
-import {
-  latestPrivacyPolicyQueryOptions,
-  latestTermsOfServiceQueryOptions,
-} from '$/composables/userAgreements'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
@@ -126,8 +122,6 @@ function createAuthStore(
       await updateUserMutation.mutateAsync({ username })
     } else {
       const orgId = await organizationId()
-      const tosHash = (await queryClient.fetchQuery(latestTermsOfServiceQueryOptions)).hash
-      const ppHash = (await queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)).hash
       const email = session.value?.email ?? ''
 
       invariant(orgId == null || backendModule.isOrganizationId(orgId), 'Invalid organization ID')
@@ -136,8 +130,6 @@ function createAuthStore(
         userName: username,
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
-        tosAccepted: tosHash,
-        ppAccepted: ppHash,
       })
     }
     // Wait until the backend returns a value from `users/me`,
