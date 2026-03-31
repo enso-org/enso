@@ -460,6 +460,15 @@ function collectArchiveIndices(logDir: string, baseName: string): number[] {
   return indices
 }
 
+/** Split text into lines, dropping a trailing empty line caused by a final newline. */
+function splitLines(text: string): string[] {
+  const lines = text.split('\n')
+  if (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop()
+  }
+  return lines
+}
+
 /** Read a single rolled archive and return the scrollId pointing to the next chunk. */
 function readArchive(
   logDir: string,
@@ -472,7 +481,7 @@ function readArchive(
   let lines: string[] = []
   try {
     const compressed = fsSync.readFileSync(filePath)
-    lines = zlib.gunzipSync(compressed).toString('utf-8').split('\n')
+    lines = splitLines(zlib.gunzipSync(compressed).toString('utf-8'))
   } catch {
     // skip unreadable archive
   }
@@ -490,7 +499,7 @@ function readActiveLog(
   const logPath = path.join(logDir, `${baseName}.log`)
   try {
     const content = fsSync.readFileSync(logPath, 'utf-8')
-    return { scrollId: 'done', hits: content.split('\n') }
+    return { scrollId: 'done', hits: splitLines(content) }
   } catch {
     return { scrollId: 'done', hits: [] }
   }
