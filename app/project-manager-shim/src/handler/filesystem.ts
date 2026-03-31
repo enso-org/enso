@@ -6,7 +6,7 @@ import * as path from 'node:path'
 import * as yaml from 'yaml'
 import * as projectManagement from '../projectManagement.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
-import { getEngineLogDirectory } from './logDirectory.js'
+import { getEngineLogDirectory } from '../distributionManager.js'
 
 // =======================
 // === ProjectMetadata ===

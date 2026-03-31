@@ -1,10 +1,11 @@
+/**
+ * @file Mirrors {@link org.enso.distribution.DistributionManager} from
+ * lib/scala/distribution-manager/src/main/scala/org/enso/distribution/DistributionManager.scala
+ */
 import { homedir } from 'node:os'
 import * as path from 'node:path'
 
-/**
- * Compute the engine's log directory, mirroring DistributionManager.scala logic.
- * See lib/scala/distribution-manager/src/main/scala/org/enso/distribution/DistributionManager.scala
- */
+/** Compute the engine's log directory. */
 export function getEngineLogDirectory(): string {
   const envLogDir = process.env.ENSO_LOG_DIRECTORY
   if (envLogDir) return envLogDir
