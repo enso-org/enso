@@ -733,7 +733,7 @@ function intoSignUpParams(
          */
         ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
         ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
-        /** Custom attreibutes that stores hashes of accepted terms of service and privacy policy. */
+        /** Custom attributes that stores hashes of accepted terms of service and privacy policy. */
         ...{ 'custom:initTosHash': tosHashAccepted },
         ...{ initPpHash: ppHashAccepted },
       },
