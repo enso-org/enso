@@ -53,7 +53,8 @@ type HTTP
        ### Response caching
        See `Data.fetch` for information about response caching.
     fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Cache_Policy -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (cache_policy:Cache_Policy = ..Default) = if_fetch_method method <|
+    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (cache_policy:Cache_Policy = ..Default) =
+        if is_fetch_method method . not then Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))
         request = Request.new method uri (Header.unify_vector headers) Request_Body.Empty
         HTTP.new.request request cache_policy=cache_policy
 
@@ -62,7 +63,8 @@ type HTTP
        ---
        Static helper for post-like methods
     post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) = if_post_method method <|
+    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
+        if is_post_method method . not then Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))
         request = Request.new method uri (Header.unify_vector headers) body
         HTTP.new.request request
 
@@ -144,8 +146,7 @@ type HTTP
     request : Request -> Boolean -> Cache_Policy -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
     request self req error_on_failure_code:Boolean=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
-        if (if_fetch_method req.method True if_not=Context.Output.is_enabled).not then
-            Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
+        if is_post_method req.method then Context.Output.check_enabled disabled_message="As writing is disabled, "+req.method.to_text+" request not sent. Press the Write button ▶ to send it."
 
         # You can only explicitly mention the cache for GET requests.
         if req.method != HTTP_Method.Get && cache_policy == Cache_Policy.Use_Cache then
@@ -298,18 +299,14 @@ private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_enco
 ## ---
    private: true
    ---
-if_fetch_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
-if_fetch_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
-    if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options, HTTP_Method.Trace].contains method then action else
-        if_not
+is_fetch_method method:HTTP_Method -> Boolean =
+    [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options, HTTP_Method.Trace].contains method
 
 ## ---
    private: true
    ---
-if_post_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
-if_post_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
-    if [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete].contains method then action else
-        if_not
+is_post_method method:HTTP_Method -> Boolean =
+    [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete].contains method
 
 ## ---
    private: true
