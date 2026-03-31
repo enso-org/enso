@@ -6,6 +6,7 @@ import * as path from 'node:path'
 import * as yaml from 'yaml'
 import * as projectManagement from '../projectManagement.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
+import { getEngineLogDirectory } from './logDirectory.js'
 
 // =======================
 // === ProjectMetadata ===
@@ -243,6 +244,19 @@ export async function handleFilesystemCommand(
         result = toJSONRPCResult(null)
         break
       }
+      case '--list-project-sessions': {
+        const projectId = cliArguments[1]
+        if (projectId == null) break
+        result = toJSONRPCResult(await listProjectSessions(projectId))
+        break
+      }
+      case '--get-project-session-logs': {
+        const sessionId = cliArguments[1]
+        const scrollId = cliArguments[2] ?? null
+        if (sessionId == null) break
+        result = toJSONRPCResult(getProjectSessionLogs(sessionId, scrollId))
+        break
+      }
       default: {
         const message = `Error in Project Manager shim: unknown command ${JSON.stringify(cliArguments)}`
         console.error(message)
@@ -321,5 +335,65 @@ export async function getFileSystemEntry(entryPath: string): Promise<FileSystemE
         attributes,
       }
     }
+  }
+}
+
+const SESSION_ID_PREFIX = 'localprojectsession-'
+
+/** Parse date-time from a log filename segment like `2026-03-31-14-23-45`. */
+function parseDateTimeFromFilename(filename: string, projectId: string): string | null {
+  const idx = filename.indexOf(projectId)
+  if (idx < 0) return null
+  const after = filename.slice(idx + projectId.length + 1)
+  const match = after.match(/^(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})/)
+  if (!match) return null
+  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`
+}
+
+/** List project sessions by scanning the engine log directory for matching log files. */
+async function listProjectSessions(
+  projectId: string,
+): Promise<{ sessions: readonly { projectSessionId: string; createdAt: string }[] }> {
+  const logDir = getEngineLogDirectory()
+  let entries: string[]
+  try {
+    entries = await fs.readdir(logDir)
+  } catch {
+    return { sessions: [] }
+  }
+  const sessions: { projectSessionId: string; createdAt: string }[] = []
+  for (const entry of entries) {
+    if (!entry.endsWith('.log')) continue
+    if (!entry.includes(`-${projectId}-`)) continue
+    const baseName = entry.replace(/\.log$/, '')
+    const createdAt = parseDateTimeFromFilename(baseName, projectId)
+    if (!createdAt) continue
+    sessions.push({
+      projectSessionId: `${SESSION_ID_PREFIX}${baseName}`,
+      createdAt,
+    })
+  }
+  sessions.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return { sessions }
+}
+
+/** Read log file content for a given local project session. */
+function getProjectSessionLogs(
+  sessionId: string,
+  scrollId: string | null,
+): { scrollId: string; hits: readonly string[] } {
+  if (scrollId === 'done') {
+    return { scrollId: 'done', hits: [] }
+  }
+  const baseName = sessionId.startsWith(SESSION_ID_PREFIX)
+    ? sessionId.slice(SESSION_ID_PREFIX.length)
+    : sessionId
+  const logDir = getEngineLogDirectory()
+  const logPath = path.join(logDir, `${baseName}.log`)
+  try {
+    const content = fsSync.readFileSync(logPath, 'utf-8')
+    return { scrollId: 'done', hits: content.split('\n') }
+  } catch {
+    return { scrollId: 'done', hits: [] }
   }
 }
