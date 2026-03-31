@@ -3,6 +3,7 @@ import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import type * as http from 'node:http'
 import * as path from 'node:path'
+import * as zlib from 'node:zlib'
 import * as yaml from 'yaml'
 import * as projectManagement from '../projectManagement.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
@@ -350,6 +351,18 @@ function parseDateTimeFromFilename(filename: string, projectId: string): string 
   return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`
 }
 
+/**
+ * Extract the session base name from a log filename.
+ * Matches active logs (`base.log`) and rolled archives (`base.N.log.gz`).
+ * Returns the base name (without `.log` / `.N.log.gz`) or null if not a log file.
+ */
+function extractSessionBaseName(filename: string): string | null {
+  const archiveMatch = filename.match(/^(.+)\.\d+\.log\.gz$/)
+  if (archiveMatch) return archiveMatch[1]!
+  if (filename.endsWith('.log')) return filename.slice(0, -4)
+  return null
+}
+
 /** List project sessions by scanning the engine log directory for matching log files. */
 async function listProjectSessions(
   projectId: string,
@@ -361,11 +374,14 @@ async function listProjectSessions(
   } catch {
     return { sessions: [] }
   }
+  const seen = new Set<string>()
   const sessions: { projectSessionId: string; createdAt: string }[] = []
   for (const entry of entries) {
-    if (!entry.endsWith('.log')) continue
-    if (!entry.includes(`-${projectId}-`)) continue
-    const baseName = entry.replace(/\.log$/, '')
+    const baseName = extractSessionBaseName(entry)
+    if (baseName == null) continue
+    if (!baseName.includes(`-${projectId}-`)) continue
+    if (seen.has(baseName)) continue
+    seen.add(baseName)
     const createdAt = parseDateTimeFromFilename(baseName, projectId)
     if (!createdAt) continue
     sessions.push({
@@ -377,7 +393,10 @@ async function listProjectSessions(
   return { sessions }
 }
 
-/** Read log file content for a given local project session. */
+/**
+ * Read log file content for a given local project session.
+ * Reads rolled archives (sorted by index ascending) followed by the active log.
+ */
 function getProjectSessionLogs(
   sessionId: string,
   scrollId: string | null,
@@ -389,11 +408,45 @@ function getProjectSessionLogs(
     ? sessionId.slice(SESSION_ID_PREFIX.length)
     : sessionId
   const logDir = getEngineLogDirectory()
-  const logPath = path.join(logDir, `${baseName}.log`)
+
+  const lines: string[] = []
+
+  // Collect rolled archive files: baseName.N.log.gz
+  const archives: { index: number; filePath: string }[] = []
   try {
-    const content = fsSync.readFileSync(logPath, 'utf-8')
-    return { scrollId: 'done', hits: content.split('\n') }
+    for (const entry of fsSync.readdirSync(logDir)) {
+      const match = entry.match(new RegExp(`^${escapeRegExp(baseName)}\\.(\\d+)\\.log\\.gz$`))
+      if (match) {
+        archives.push({ index: parseInt(match[1]!, 10), filePath: path.join(logDir, entry) })
+      }
+    }
   } catch {
-    return { scrollId: 'done', hits: [] }
+    // log directory may not exist
   }
+  archives.sort((a, b) => a.index - b.index)
+
+  for (const archive of archives) {
+    try {
+      const compressed = fsSync.readFileSync(archive.filePath)
+      const content = zlib.gunzipSync(compressed).toString('utf-8')
+      lines.push(...content.split('\n'))
+    } catch {
+      // skip unreadable archives
+    }
+  }
+
+  // Read the active log file
+  const activeLogPath = path.join(logDir, `${baseName}.log`)
+  try {
+    const content = fsSync.readFileSync(activeLogPath, 'utf-8')
+    lines.push(...content.split('\n'))
+  } catch {
+    // active log may not exist if fully rolled over
+  }
+
+  return { scrollId: 'done', hits: lines }
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
