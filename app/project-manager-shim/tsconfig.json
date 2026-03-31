@@ -16,6 +16,7 @@
     "./src/handler/http.ts",
     "./src/handler/index.ts",
     "./src/handler/jsonrpc.ts",
+    "./src/handler/logDirectory.ts",
     "./src/handler/projectService.ts",
     "./src/handler/watcher.ts",
     "./src/index.ts",
