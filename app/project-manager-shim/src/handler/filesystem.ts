@@ -348,7 +348,7 @@ function parseDateTimeFromFilename(filename: string, projectId: string): string 
   const after = filename.slice(idx + projectId.length + 1)
   const match = after.match(/^(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})/)
   if (!match) return null
-  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`
+  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`
 }
 
 /**
@@ -389,7 +389,7 @@ async function listProjectSessions(
       createdAt,
     })
   }
-  sessions.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  sessions.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
   return { sessions }
 }
 
