@@ -523,7 +523,7 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
 @headers Header.default_widget
 download : (URI | Text) -> Writable_File -> Download_Mode -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (replace_existing:Download_Mode=..If_Not_Exists) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
-    Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
+    Context.Output.check_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation."
     if replace_existing.should_download file . not then file.file else
         response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
         case Data_Link.is_data_link_from_metadata response.body.metadata of

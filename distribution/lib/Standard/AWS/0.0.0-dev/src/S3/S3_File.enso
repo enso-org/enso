@@ -157,7 +157,7 @@ type S3_File
                     # Only proceed if the write succeeded
                     Error.return_if_error result
 
-                    put_result = S3.put_object self.s3_path.bucket self.s3_path.key tmp_file self.credentials)
+                    put_result = S3.put_object self.s3_path.bucket self.s3_path.key tmp_file self.credentials
                     if put_result.is_error then Error.return_if_error (_translate_file_errors self put_result)
                     result
 
