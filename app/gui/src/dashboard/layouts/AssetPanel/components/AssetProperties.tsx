@@ -260,16 +260,18 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   </td>
                 </tr>
               )}
-              {isTeam && (<tr data-testid="asset-panel-created-by" className="h-row">
-                <td className="min-w-side-panel-label p-0">
-                  <Text className="inline-block">{getText('createdByColumnName')}</Text>
-                </td>
-                <td className="w-full p-0">
-                  <Text className="grow" truncate="1">
-                    <CreatedByColumn item={item} state={{ category }} />
-                  </Text>
-                </td>
-              </tr>)}
+              {isTeam && (
+                <tr data-testid="asset-panel-created-by" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('createdByColumnName')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <Text className="grow" truncate="1">
+                      <CreatedByColumn item={item} state={{ category }} />
+                    </Text>
+                  </td>
+                </tr>
+              )}
               {isEnterprise && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">
