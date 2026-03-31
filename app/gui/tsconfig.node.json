@@ -86,6 +86,7 @@
     "./integration-test/project-view/nodeComments.spec.ts",
     "./integration-test/project-view/removingNodes.spec.ts",
     "./integration-test/project-view/selectingNodes.spec.ts",
+    "./integration-test/project-view/spacingNodes.spec.ts",
     "./integration-test/project-view/tableVisualisation.spec.ts",
     "./integration-test/project-view/typesOnNodeHover.spec.ts",
     "./integration-test/project-view/undoRedo.spec.ts",

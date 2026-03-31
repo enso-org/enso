@@ -15,7 +15,10 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class InstrumentTestContext(packageName: String) {
+abstract class InstrumentTestContext(
+  packageName: String,
+  preferLocalLibraries: Boolean = false
+) {
   protected val messageQueue: LinkedBlockingQueue[Api.Response] =
     new LinkedBlockingQueue()
 
@@ -29,7 +32,12 @@ abstract class InstrumentTestContext(packageName: String) {
   )
 
   val pkg: Package[File] =
-    PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
+    PackageManager.Default.create(
+      tmpDir.toFile,
+      packageName,
+      "Enso_Test",
+      preferLocalLibraries = preferLocalLibraries
+    )
 
   protected def context(): Context
 

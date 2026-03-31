@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { src, title } = defineProps<{ src: string; title: string }>()
+const { src, title } = defineProps<{ src: string; title: string | undefined }>()
 </script>
 
 <template>
@@ -8,7 +8,7 @@ const { src, title } = defineProps<{ src: string; title: string }>()
       <iframe
         class="youtube-video"
         :src="src"
-        :title="title"
+        :title="title ?? 'Video'"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen

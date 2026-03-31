@@ -571,7 +571,7 @@ type DuckDB_Connection
             if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
             ## Check Execution Context
-            if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+            if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
                 Nothing
 
             Context.Output.with_enabled <|

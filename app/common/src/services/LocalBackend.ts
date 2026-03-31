@@ -365,7 +365,6 @@ export class LocalBackend extends backend.Backend {
         return {
           name: project.name,
           jsonAddress: null,
-          binaryAddress: null,
           ydocAddress: null,
           organizationId: backend.OrganizationId('organization-'),
           packageName: project.name,
@@ -380,7 +379,6 @@ export class LocalBackend extends backend.Backend {
       return {
         name: cachedProject.projectName,
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
-        binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         ydocAddress:
           cachedProject.languageServerYdocAddress ?
             ipWithSocketToAddress(cachedProject.languageServerYdocAddress)
@@ -1050,6 +1048,14 @@ export class LocalBackend extends backend.Backend {
    * called, but its result should never need to be used.
    */
   override listTags() {
+    return Promise.resolve([])
+  }
+
+  /**
+   * Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used.
+   */
+  override listAssetVersionTags(): Promise<readonly string[]> {
     return Promise.resolve([])
   }
 

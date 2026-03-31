@@ -7,8 +7,8 @@ packages:
   - app/project-manager-shim
   - app/rust-ffi
   - app/table-expression
+  - app/ydoc-channel
   - app/ydoc-server
-  - app/ydoc-server-nodejs
   - app/ydoc-server-polyglot
   - app/ydoc-shared
   - lib/js/runner

@@ -10,6 +10,7 @@ import project.Column_Ref.Column_Ref
 import project.Expression.Expression
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Value_Type_Checks
 import project.Internal.Widget_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Value_Type
@@ -247,9 +248,11 @@ type Math_Operation
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
-            Math_Operation.Absolute -> Value_Type.expect_numeric column <|
+            Math_Operation.Absolute ->
+                Value_Type_Checks.is_numeric column
                 (column:Numeric_Column).abs
-            Math_Operation.Signum -> Value_Type.expect_numeric column <|
+            Math_Operation.Signum ->
+                Value_Type_Checks.is_numeric column
                 (column:Numeric_Column).signum
 
 ## Defines a set of Date based operations.

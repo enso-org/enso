@@ -17,7 +17,7 @@ from project.Internal.Storage import enso_to_java
 
 polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
-polyglot java import org.enso.table.data.column.operation.JsonOperation
+polyglot java import org.enso.table.data.column.operation.TableVizOperation
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
@@ -82,9 +82,9 @@ type In_Memory_Column
     ## ---
        private: true
        ---
-       Specialised implementation of to_json for a Column.
+       Specialised implementation of to_json for a Column for use in visualization.
     to_json_data self start:Integer=0 (row_count:Integer=(self:Column).row_count) -> Text =
-        JsonOperation.apply self.java_column start row_count
+        TableVizOperation.makeJSONForColumn self.java_column start row_count
 
     ## ---
        private: true

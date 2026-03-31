@@ -189,6 +189,7 @@ export function canTransferBetweenCategories(
   parentId: DirectoryId | null = null,
 ) {
   const operation = dropOperationBetweenCategories(from, to, parentId)
+  console.log(operation)
 
   return operation !== 'cancel'
 }
@@ -205,7 +206,7 @@ export function dropOperationBetweenCategories(
   parentId: DirectoryId | null = null,
 ): 'cancel' | 'copy' | 'move' | undefined {
   // Moving into the same category without a parentId is not allowed.
-  if (from.type === to.type && parentId == null) {
+  if (from.id === to.id && parentId == null) {
     return 'cancel'
   }
 

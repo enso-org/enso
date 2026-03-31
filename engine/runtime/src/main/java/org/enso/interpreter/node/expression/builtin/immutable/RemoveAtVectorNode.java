@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
     name = "remove_builtin",
     description = "Removes a value for the vector at the specified index.",
     autoRegister = false)
-public abstract class RemoveAtVectorNode extends Node {
+abstract class RemoveAtVectorNode extends Node {
   static RemoveAtVectorNode build() {
     return RemoveAtVectorNodeGen.create();
   }

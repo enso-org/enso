@@ -31,6 +31,8 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   private static final Message IS_IDENTICAL = Message.resolve(InteropLibrary.class, "isIdentical");
   private static final Message IS_POINTER = Message.resolve(InteropLibrary.class, "isPointer");
   private static final Message AS_POINTER = Message.resolve(InteropLibrary.class, "asPointer");
+  private static final Message READ_BUFFER_BYTE =
+      Message.resolve(InteropLibrary.class, "readBufferByte");
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
@@ -54,6 +56,9 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         var buf = Value.asValue(receiver).as(ByteBuffer.class);
         var seg = MemorySegment.ofBuffer(buf);
         return new ReturnValue<>(seg.address());
+      }
+      if (message == READ_BUFFER_BYTE) {
+        System.err.println("read buffer byte with " + args);
       }
       var res = lib.send(receiver, message, args.toArray());
       return new ReturnValue<>(res);

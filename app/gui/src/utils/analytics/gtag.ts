@@ -13,10 +13,13 @@ if (GOOGLE_ANALYTICS_TAG) {
 window.dataLayer = window.dataLayer || []
 
 /** Google Analytics tag function. */
-export function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
-  // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
+export function gtag(_action: 'config' | 'event' | 'js' | 'set', ..._args: unknown[]) {
+  // Intentionally preserve the original Arguments object to match Google's
+  // official gtag.js snippet:
+  // https://developers.google.com/tag-platform/gtagjs
+  // @ts-expect-error This is explicitly not given types as it is a mistake to access this
   // anywhere else.
-  window.dataLayer.push([action, ...args])
+  window.dataLayer.push(arguments) // eslint-disable-line prefer-rest-params
 }
 
 /** Send event to Google Analytics. */
@@ -28,9 +31,6 @@ gtag('js', new Date())
 // eslint-disable-next-line camelcase
 gtag('set', 'linker', { accept_incoming: true })
 gtag('config', GOOGLE_ANALYTICS_TAG)
-if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {
-  gtag('config', 'G-DH47F649JC')
-}
 
 /**
  * Send an event indicating that something has been opened, and return a cleanup function

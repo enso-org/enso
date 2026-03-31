@@ -36,6 +36,7 @@ new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_bui
 
 length : (Array | Vector) -> Integer
 length array_like = @Builtin_Method "Array_Like_Helpers.length"
+raw_length array_like = @Builtin_Method "Array_Like_Helpers.raw_length"
 
 at : (Array | Vector) -> Integer -> Any
 at array_like index = @Builtin_Method "Array_Like_Helpers.at"
@@ -82,8 +83,8 @@ vector_from_function length constructor on_problems = @Builtin_Method "Array_Lik
    `self` and `that`.
    See `Vector.zip` for full documentation.
 zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-    left_len = this.length
-    right_len = that.length
+    left_len = this.raw_size
+    right_len = that.raw_size
 
     keep_unmatched_bool = case keep_unmatched of
         Report_Unmatched -> True
@@ -131,8 +132,8 @@ zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = F
    Assumes that the ranges have been already bounds-checked (for example by
    passing them through `resolve_ranges`).
 slice_ranges vector ranges =
-    if ranges.length == 0 then [] else
-        if ranges.length != 1 then slice_many_ranges vector ranges else
+    if ranges.raw_size == 0 then [] else
+        if ranges.raw_size != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 _ : Integer -> [vector.at ranges.first]
                 Range.Between start end step -> case step == 1 of
@@ -146,7 +147,7 @@ slice_ranges vector ranges =
 slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         _ : Integer -> acc+1
-        _ : Range -> acc+descriptor.length
+        _ : Range -> acc+descriptor.raw_size
     Vector.build initial_capacity=new_length builder->
         ranges.each descriptor-> case descriptor of
             _ : Integer ->
@@ -208,18 +209,18 @@ take vector range = case range of
         rng = Random.new_generator seed
         rng.items vector count
     _ ->
-        take_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
+        take_helper vector.raw_size (vector.at _) vector.slice (slice_ranges vector) range
 
 drop vector range =
-    drop_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
+    drop_helper vector.raw_size (vector.at _) vector.slice (slice_ranges vector) range
 
 get vector index ~if_missing =
-    len = vector.length
+    len = vector.raw_size
     if index < -len || index >= len then if_missing else
         vector.at index
 
 insert vector at item =
-    self_len = vector.length
+    self_len = vector.raw_size
     used_index = if at < 0 then self_len + at else at
     if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
         if used_index == self_len then vector + [item] else
@@ -227,19 +228,19 @@ insert vector at item =
                 insert_builtin vector used_index [item]
 
 remove vector at =
-    self_len = vector.length
+    self_len = vector.raw_size
     used_index = if at < 0 then self_len + at else at
     if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
         remove_builtin vector used_index
 
 index_of vector condition start =
-    self_len = vector.length
+    self_len = vector.raw_size
     check_start_valid start self_len used_start->
         predicate = unify_condition_predicate_or_element condition
-        used_start.up_to vector.length . find if_missing=Nothing (i-> predicate (vector.at i))
+        used_start.up_to vector.raw_size . find if_missing=Nothing (i-> predicate (vector.at i))
 
 last_index_of vector condition start =
-    self_len = vector.length
+    self_len = vector.raw_size
     if self_len == 0 && (start==0 || start==-1) then Nothing else
         check_start_valid start self_len used_start->
             predicate = unify_condition_predicate_or_element condition
@@ -247,51 +248,51 @@ last_index_of vector condition start =
 
 any vector condition =
     predicate = unify_condition_or_predicate condition
-    0.up_to vector.length . any (idx -> (predicate (vector.at idx)))
+    0.up_to vector.raw_size . any (idx -> (predicate (vector.at idx)))
 
 all vector condition =
     predicate = unify_condition_or_predicate condition
     vector.any (predicate >> .not) . not
 
 plus vector that:(Vector | Array) = case that of
-    _ : Vector -> insert_builtin vector vector.length that
+    _ : Vector -> insert_builtin vector vector.raw_size that
     _ : Array -> plus vector (Vector.from_polyglot_array that)
 
 find vector condition start ~if_missing =
     predicate = unify_condition_or_predicate condition
-    self_len = vector.length
+    self_len = vector.raw_size
     check_start_valid start self_len used_start->
         found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx))) if_missing=Nothing
         if found.is_nothing then if_missing else vector.at found
 
 transpose vec_of_vecs =
     if vec_of_vecs.is_empty then [] else
-        length = vec_of_vecs.length
-        first_subvector_length = vec_of_vecs.at 0 . length
+        length = vec_of_vecs.raw_size
+        first_subvector_length = vec_of_vecs.at 0 . raw_size
         check_same_length vec_of_vecs <|
             inner i = Vector.from_polyglot_array (Array_Proxy.new length j-> ((vec_of_vecs.at j).at i))
             proxy = Array_Proxy.new first_subvector_length inner
             Vector.from_polyglot_array proxy
 
 map vector function on_problems =
-    @Tail_Call vector_from_function vector.length (i-> function (vector.at i)) on_problems
+    @Tail_Call vector_from_function vector.raw_size (i-> function (vector.at i)) on_problems
 
 map_with_index vector function on_problems =
-    vector_from_function vector.length (i-> function i (vector.at i)) on_problems
+    @Tail_Call vector_from_function vector.raw_size (i-> function i (vector.at i)) on_problems
 
 flat_map vector function on_problems =
     vector.map function on_problems . flatten
 
 fold vector init function =
     f = acc -> ix -> function acc (vector.at ix)
-    0.up_to vector.length . fold init f
+    0.up_to vector.raw_size . fold init f
 
 fold_with_index vector init function =
     f = acc -> ix -> function acc ix (vector.at ix)
-    0.up_to vector.length . fold init f
+    0.up_to vector.raw_size . fold init f
 
 reduce vector function ~if_empty =
-    len = vector.length
+    len = vector.raw_size
     case len of
         0 -> if_empty
         1 -> vector.at 0
@@ -302,25 +303,27 @@ reduce vector function ~if_empty =
             fold_function (vector.at 0) 1
 
 running_fold vector init function =
-    Vector.build initial_capacity=vector.length builder->
+    Vector.build initial_capacity=vector.raw_size builder->
         wrapped value =
             current = if builder.length == 0 then init else builder.last
             builder.append (function current value)
         vector.map wrapped
 
 pad vector n elem =
-    if vector.length >= n then vector else
-        vector + (Vector.fill n-vector.length elem)
+    if vector.raw_size >= n then vector else
+        vector + (Vector.fill n-vector.raw_size elem)
 
 each vector f =
-    0.up_to vector.length . each ix->
-        f (vector.at ix)
+    0.up_to vector.raw_size . each ix->
+        elem = vector.at ix
+        f elem
 
 each_with_index vector f =
-    0.up_to vector.length . each ix->
-        f ix (vector.at ix)
+    0.up_to vector.raw_size . each ix->
+        elem = vector.at ix
+        f ix elem
 
-reverse vector = Vector.new vector.length (i -> vector.at (vector.length - (1 + i)))
+reverse vector = Vector.new vector.raw_size (i -> vector.at (vector.raw_size - (1 + i)))
 
 to_list vector =
     vector.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
@@ -328,20 +331,20 @@ to_list vector =
 short_display_text vector max_entries =
     if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
         prefix = vector.take (..First max_entries)
-        if prefix.length == vector.length then vector.to_text else
-            remaining_count = vector.length - prefix.length
+        if prefix.raw_size == vector.raw_size then vector.to_text else
+            remaining_count = vector.raw_size - prefix.raw_size
             remaining_text = if remaining_count == 1 then "and 1 more element" else
                 "and " + remaining_count.to_text + " more elements"
             prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
 join vector separator prefix suffix =
     if vector.is_empty then prefix+suffix else
-        if vector.length == 1 then prefix + vector.at 0 + suffix else
-            prefix + vector.at 0 + (1.up_to vector.length . fold "" acc-> i-> acc + separator + vector.at i) + suffix
+        if vector.raw_size == 1 then prefix + vector.at 0 + suffix else
+            prefix + vector.at 0 + (1.up_to vector.raw_size . fold "" acc-> i-> acc + separator + vector.at i) + suffix
 
 partition vector condition =
     predicate = unify_condition_or_predicate condition
-    vecs = Vector.build_multiple 2 initial_capacity=(vector.length.div 2) function=builders->
+    vecs = Vector.build_multiple 2 initial_capacity=(vector.raw_size.div 2) function=builders->
         vector.map elem->
             case predicate elem of
                 True -> builders.at 0 . append elem
@@ -376,9 +379,16 @@ filter_with_index vector predicate =
 check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
 check_same_length vecs ~action =
     if vecs.is_empty then action else
-        num_vecs = vecs.length
-        len = vecs.at 0 . length
+        num_vecs = vecs.raw_size
+        len = vecs.at 0 . raw_size
         go i = if i >= num_vecs then action else
-            if vecs.at i . length == len then @Tail_Call go (i+1) else
-                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length, but rows 0 and "+i.to_text+" had different lengths ("+len.to_text+" and "+(vecs.at i . length).to_text+")")
+            if vecs.at i . raw_size == len then @Tail_Call go (i+1) else
+                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length, but rows 0 and "+i.to_text+" had different lengths ("+len.to_text+" and "+(vecs.at i . raw_size).to_text+")")
         go 0
+
+Vector.raw_size self =
+    raw_length self
+Array.raw_size self =
+    raw_length self
+Any.raw_size self =
+    self.length

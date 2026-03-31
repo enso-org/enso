@@ -593,7 +593,7 @@ type Redshift_Dialect
    ---
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
-    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], ln, log10, sinh, cosh, tanh]
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], index_of, last_index_of, ln, log10, sinh, cosh, tanh]
     stats = [agg_median, agg_percentile]
     my_mappings = overrides + stats + first_last_aggregators + concat_ops
     postgres_ops.extend_with my_mappings
@@ -632,6 +632,18 @@ make_runtime_error_op arguments =
        Use an integer cast and compare to zero to produce a boolean expression,
        while preserving the runtime failure when this branch is executed.
     SQL_Builder.code "(CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS INTEGER) = 0)"
+
+## ---
+   private: true
+   ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "STRPOS(" ++ str ++ ", " ++ substr ++ ") - 1"
+
+## ---
+   private: true
+   ---
+last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
+    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN LEN(" ++ str ++ ") ELSE CASE WHEN STRPOS(" ++ str ++ ", " ++ substr ++ ") = 0 THEN -1 ELSE LEN(" ++ str ++ ") - STRPOS(REVERSE(" ++ str ++ "), REVERSE(" ++ substr ++ ")) - LEN(" ++ substr ++ ") + 1 END END"
 
 ## ---
    private: true

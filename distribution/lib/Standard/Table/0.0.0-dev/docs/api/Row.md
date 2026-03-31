@@ -8,7 +8,7 @@
     - length self -> Standard.Base.Any.Any
     - to_dictionary self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
-    - to_json_data self -> Standard.Base.Any.Any
+    - to_json_data self -> Standard.Base.Data.Text.Text
     - to_vector self -> Standard.Base.Any.Any
 - type Row_Comparator
     - compare obj1:Standard.Base.Any.Any obj2:Standard.Base.Any.Any -> Standard.Base.Any.Any

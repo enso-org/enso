@@ -8,10 +8,10 @@ module org.enso.runner.common {
   requires org.enso.polyglot.api;
   requires org.slf4j;
   requires org.enso.logging.utils;
+  requires org.enso.ydoc.api;
   requires scala.library;
 
   exports org.enso.runner.common;
 
   uses org.enso.runner.common.LanguageServerApi;
-  uses org.enso.runner.common.YdocServerApi;
 }

@@ -10,6 +10,10 @@ const globals = {
     varName: 'zlib',
     type: 'cjs',
   },
+  'node:crypto': {
+    varName: 'crypto',
+    type: 'cjs',
+  },
 }
 
 const ctx = await esbuild.context({

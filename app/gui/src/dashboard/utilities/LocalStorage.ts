@@ -30,6 +30,7 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
    * If this is not provided, the value will be parsed using the `tryParse` function.
    */
   readonly schema: z.ZodType<LocalStorageData[K]>
+  readonly default?: LocalStorageData[K]
 }
 
 /**
@@ -112,6 +113,7 @@ export default class LocalStorage {
     if (!(key in this.values)) {
       const value = this.readValueFromLocalStorage(key)
       if (value != null) this.values[key] = value
+      else return LocalStorage.keyMetadata[key]?.default
     }
 
     return this.values[key]
@@ -296,7 +298,12 @@ export default class LocalStorage {
 /** React hook for viewing whole `LocalStorage` contents as a state variable. */
 export function useLocalStorageValues(storage: LocalStorage): Partial<LocalStorageData> {
   return useVueValue(
-    useCallback(() => storage['values'], [storage]),
-    true,
+    useCallback(() => {
+      // NOTE: `values` is shallowReactive. Create a shallow snapshot to:
+      // - avoid deep traversal (stack overflow risk),
+      // - provide a new reference so React re-renders.
+      const values = storage['values']
+      return { ...values }
+    }, [storage]),
   )
 }

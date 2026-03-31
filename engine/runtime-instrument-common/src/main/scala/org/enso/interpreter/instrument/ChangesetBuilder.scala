@@ -703,8 +703,6 @@ object ChangesetBuilder {
       { ir =>
         if (ir.getId == id)
           ir match {
-            case name: Name =>
-              return Some(name.name)
             case method: definition.Method =>
               return Some(method.methodName.name)
             case _ =>

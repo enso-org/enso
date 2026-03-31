@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
+import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuPanel from '@/components/MenuPanel.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import type { DisplayableActionName } from '@/providers/action'
 import { resolveAction } from '@/providers/action'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { flip, offset, shift, useFloating } from '@floating-ui/vue'
@@ -23,6 +28,15 @@ watch(
     if (opened) nextTick(update)
   },
 )
+
+const alignmentMenuOpen = ref(false)
+const spacingMenuOpen = ref(false)
+const spacingActions: DisplayableActionName[] = [
+  'components.spaceVertical',
+  'components.spaceVerticalTight',
+  'components.spaceVerticalZero',
+  'components.spaceVerticalWide',
+]
 </script>
 
 <template>
@@ -39,11 +53,42 @@ watch(
         }"
       />
     </span>
-    <ActionButton action="components.alignLeft" />
-    <ActionButton action="components.alignCenter" />
-    <ActionButton action="components.alignRight" />
-    <ActionButton action="components.alignTop" />
-    <ActionButton action="components.alignBottom" />
+    <DropdownMenu
+      v-model:open="alignmentMenuOpen"
+      placement="bottom-start"
+      title="Align"
+      alwaysShowArrow
+    >
+      <template #button>
+        <SvgIcon name="align_left" />
+      </template>
+      <template #menu>
+        <MenuPanel class="alignmentMenu">
+          <div class="alignmentMenuRow horizontal">
+            <ActionButton action="components.alignLeft" @click="alignmentMenuOpen = false" />
+            <ActionButton action="components.alignCenter" @click="alignmentMenuOpen = false" />
+            <ActionButton action="components.alignRight" @click="alignmentMenuOpen = false" />
+          </div>
+          <div class="alignmentMenuRow vertical">
+            <ActionButton action="components.alignTop" @click="alignmentMenuOpen = false" />
+            <ActionButton action="components.alignBottom" @click="alignmentMenuOpen = false" />
+          </div>
+        </MenuPanel>
+      </template>
+    </DropdownMenu>
+    <DropdownMenu
+      v-model:open="spacingMenuOpen"
+      placement="bottom-start"
+      title="Spacing"
+      alwaysShowArrow
+    >
+      <template #button>
+        <SvgIcon name="space_default" />
+      </template>
+      <template #menu>
+        <ActionMenu :actions="spacingActions" @close="spacingMenuOpen = false" />
+      </template>
+    </DropdownMenu>
     <ActionButton action="components.copy" />
     <ActionButton action="components.deleteSelected" />
     <Teleport to="body">
@@ -74,6 +119,19 @@ watch(
   border-radius: var(--radius-default);
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
+}
+
+.alignmentMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+/* Rows for horizontal and vertical alignment buttons */
+.alignmentMenuRow {
+  display: flex;
+  gap: 10px;
 }
 
 .disableInput {

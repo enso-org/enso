@@ -2,7 +2,6 @@ package org.enso.languageserver.protocol.binary
 
 import java.nio.ByteBuffer
 
-import org.enso.languageserver.protocol.binary.{InboundMessage, InboundPayload}
 import org.enso.languageserver.util.binary.DecodingFailure.{
   DataCorrupted,
   EmptyPayload,
@@ -10,8 +9,7 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 }
 import org.enso.languageserver.util.binary.{BinaryDecoder, DecodingFailure}
 
-/** A decoder for an [[InboundMessage]].
-  */
+/** A decoder for an [[InboundMessage]]. */
 object InboundMessageDecoder extends BinaryDecoder[InboundMessage] {
 
   /** @inheritdoc */

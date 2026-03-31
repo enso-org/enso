@@ -183,8 +183,10 @@ export function createSessionStore(
   }
 
   function useSignIn(signIn: () => Promise<void>, provider: analytics.AuthProvider) {
-    analytics.signIn.before(provider)
-    return signIn
+    return async () => {
+      analytics.signIn.before(provider)
+      await signIn()
+    }
   }
 
   const signInWithApple = useSignIn(() => assertAuthService().signInWithApple(), 'Apple')

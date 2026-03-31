@@ -764,7 +764,7 @@ export async function mockCloudApi(page: Page) {
     })
     await get(paths.LIST_TAGS_PATH, () => {
       called('listTags', {})
-      return { tags: labels } satisfies backend.ListTagsResponseBody
+      return { tags: labels, assetVersionTags: [] } satisfies backend.ListTagsResponseBody
     })
     await get(paths.LIST_USERS_PATH, async (route) => {
       called('listUsers', {})
@@ -799,7 +799,7 @@ export async function mockCloudApi(page: Page) {
         throw new Error(`Cannot get details for a project that does not exist. Project ID: ${projectId} \n
         Please make sure that you've created the project before opening it.
         ------------------------------------------------------------------------------------------------
-        
+
         Existing projects: ${Array.from(assetMap.values())
           .filter((asset) => asset.type === backend.AssetType.project)
           .map((asset) => asset.id)

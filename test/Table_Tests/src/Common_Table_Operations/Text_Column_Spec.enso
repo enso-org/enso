@@ -209,6 +209,17 @@ add_text_columns_specs suite_builder setup =
                 False -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
                 True  -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
 
+        group_builder.specify "index_of should return primitive results for empty needle, Nothing for Nothing haystack, and -1 when not found" <|
+            haystacks = build_sorted_table [["haystacks", ["abc", "", Nothing, "café"]]] . at 0
+            empty_needle = haystacks.const ""
+            missing = haystacks.index_of "z"
+            empty_scalar = haystacks.index_of ""
+            empty_column = haystacks.index_of empty_needle
+
+            missing . to_vector . should_equal [-1, -1, Nothing, -1]
+            empty_scalar . to_vector . should_equal [0, 0, Nothing, 0]
+            empty_column . to_vector . should_equal [0, 0, Nothing, 0]
+
         group_builder.specify "index_of should handle case sensitivity for In-Memory only" <|
             column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
             res_little_a = column.index_of "a"
@@ -233,3 +244,61 @@ add_text_columns_specs suite_builder setup =
                 res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
                 res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
                 res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
+
+    if setup.is_operation_supported "LAST_INDEX_OF" then suite_builder.group prefix+"Text_Column last_index_of" group_builder->
+        group_builder.specify "last_index_of should return index of last match" <|
+            column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café","It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] . at 0
+
+            resA = column.last_index_of "a"
+            resO = column.last_index_of "o"
+            resTimes = column.last_index_of "times"
+
+            resA.name . should_equal "last_index_of([strings], 'a')"
+            resO.name . should_equal "last_index_of([strings], 'o')"
+            resTimes.name . should_equal "last_index_of([strings], 'times')"
+
+            resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,282]
+            resO . to_vector . should_equal [-1,2,-1,Nothing,-1,-1,275]
+            resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,46]
+
+        group_builder.specify "last_index_of should handle grapheme and non-grapheme strings and propagate Nothing" <|
+            column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café"]]] . at 0
+            resEmoji = column.last_index_of "👩‍🔬"
+            resE = column.last_index_of "é"
+
+            resEmoji.name . should_equal "last_index_of([strings], '👩‍🔬')"
+            resE.name . should_equal "last_index_of([strings], 'é')"
+
+            case setup.is_database of
+                False -> resEmoji . to_vector . should_equal [-1, -1, -1, Nothing, 4, -1]
+                True  -> resEmoji . to_vector . should_equal [-1, -1, -1, Nothing, 10, -1]
+
+            resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
+
+        group_builder.specify "last_index_of should return primitive results for empty needle, Nothing for Nothing haystack, and -1 when not found" <|
+            haystacks = build_sorted_table [["haystacks", ["abc", "", Nothing, "café"]]] . at 0
+            empty_needle = haystacks.const ""
+            missing = haystacks.last_index_of "z"
+            empty_scalar = haystacks.last_index_of ""
+            empty_column = haystacks.last_index_of empty_needle
+
+            missing . to_vector . should_equal [-1, -1, Nothing, -1]
+            empty_scalar . to_vector . should_equal [3, 0, Nothing, 4]
+            empty_column . to_vector . should_equal [3, 0, Nothing, 4]
+
+        group_builder.specify "last_index_of should handle case sensitivity for In-Memory only" <|
+            column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
+            res_little_a = column.last_index_of "a"
+            res_big_A = column.last_index_of "A"
+            res_little_a_cs = column.last_index_of "a" ..Sensitive
+            res_big_A_cs = column.last_index_of "A" ..Sensitive
+            res_little_a_cis = column.last_index_of "a" ..Insensitive
+            res_big_A_cis = column.last_index_of "A" ..Insensitive
+
+            res_little_a . to_vector . should_equal [0,0,-1,Nothing]
+            res_big_A . to_vector . should_equal [-1,1,0,Nothing]
+            res_little_a_cs . to_vector . should_equal [0,0,-1,Nothing]
+            res_big_A_cs . to_vector . should_equal [-1,1,0,Nothing]
+            res_little_a_cis . to_vector . should_equal [0,1,0,Nothing]
+            res_big_A_cis . to_vector . should_equal [0,1,0,Nothing]
+            res_big_A_cis . to_vector . should_equal [0,1,0,Nothing]

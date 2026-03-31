@@ -1,8 +1,10 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
 
-from Standard.Table import Value_Type
+import Standard.Table.Internal.Value_Type_Helpers
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -41,8 +43,7 @@ check_connection entity1 entity2 -> Boolean =
 ## ---
    private: true
    ---
-ensure_same_connection : Text -> Vector -> Any -> Any ! Illegal_Argument
-ensure_same_connection name entities ~continuation =
+ensure_same_connection name:Text entities:Vector ~continuation -> Any ! Illegal_Argument =
     assert entities.not_empty
     all_same = entities.all entity-> check_connection entity entities.first
     if all_same then continuation else
@@ -51,27 +52,9 @@ ensure_same_connection name entities ~continuation =
 ## ---
    private: true
    ---
-   A helper function simplifying argument handling.
-
-   It always returns a vector, if the argument was already a vector, it is kept
-   as-is, otherwise it is wrapped in a singleton vector.
-
-   ## Arguments
-    - `x`: A value that may or may not be a vector.
-unify_vector_singleton : (Any | Vector Any) -> Vector Any
-unify_vector_singleton x = case x of
-    _ : Vector -> x
-    _ -> [x]
-
-## ---
-   private: true
-   ---
-assume_default_locale : Locale -> Any -> Any ! Unsupported_Database_Operation
-assume_default_locale locale ~action =
-    case locale == Locale.default of
-        True -> action
-        False ->
-            Error.throw (Unsupported_Database_Operation.Error "Custom locales")
+check_default_locale locale:Locale -> Nothing ! Unsupported_Database_Operation =
+    if locale != Locale.default then Error.throw (Unsupported_Database_Operation.Error "Custom locales")
+    Nothing
 
 ## ---
    private: true
@@ -93,5 +76,7 @@ rename_internal_columns columns new_names =
    Checks if the `argument` has an integer type (as defined by the type_mapping
    associated with `related_column`).
    See `SQL_Type_Mapping.is_integer_type` for details.
-expect_specific_integer_type related_column argument ~action =
-    Value_Type.expect_type argument related_column.connection.type_mapping.is_integer_type "Integer" action
+is_specific_integer_type related_column argument =
+    arg_type = Value_Type_Helpers.find_argument_type argument
+    if related_column.connection.type_mapping.is_integer_type arg_type . not then Value_Type_Helpers.raise_unexpected_type "Integer" argument
+    Nothing
