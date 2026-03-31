@@ -185,7 +185,14 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                     name       = "MyType",
                     params = Seq(
                       Suggestion
-                        .Argument("a", "Standard.Base.Any.Any", false, false, None, None)
+                        .Argument(
+                          "a",
+                          "Standard.Base.Any.Any",
+                          false,
+                          false,
+                          None,
+                          None
+                        )
                     ),
                     returnType    = "local.Test.Main.MyType",
                     parentType    = Some("Standard.Base.Any.Any"),
@@ -223,9 +230,23 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                     name       = "MyCons",
                     arguments = Seq(
                       Suggestion
-                        .Argument("foo", "Standard.Base.Any.Any", false, false, None, None),
+                        .Argument(
+                          "foo",
+                          "Standard.Base.Any.Any",
+                          false,
+                          false,
+                          None,
+                          None
+                        ),
                       Suggestion
-                        .Argument("bar", "Standard.Base.Any.Any", false, false, None, None)
+                        .Argument(
+                          "bar",
+                          "Standard.Base.Any.Any",
+                          false,
+                          false,
+                          None,
+                          None
+                        )
                     ),
                     returnType    = "local.Test.Main.MyType",
                     documentation = Some(" A constructor"),
@@ -263,7 +284,14 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                     name       = "foo",
                     arguments = Seq(
                       Suggestion
-                        .Argument("self", "local.Test.Main.MyType", false, false, None, None)
+                        .Argument(
+                          "self",
+                          "local.Test.Main.MyType",
+                          false,
+                          false,
+                          None,
+                          None
+                        )
                     ),
                     selfType      = "local.Test.Main.MyType",
                     returnType    = "Standard.Base.Any.Any",
@@ -382,7 +410,14 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                     name       = "helper",
                     arguments = Seq(
                       Suggestion
-                        .Argument("x", "Standard.Base.Any.Any", false, false, None, None)
+                        .Argument(
+                          "x",
+                          "Standard.Base.Any.Any",
+                          false,
+                          false,
+                          None,
+                          None
+                        )
                     ),
                     returnType = "Standard.Base.Any.Any",
                     scope = Suggestion.Scope(
