@@ -371,7 +371,8 @@ async function listProjectSessions(
   let entries: string[]
   try {
     entries = await fs.readdir(logDir)
-  } catch {
+  } catch (e) {
+    console.error(`Failed to read log directory '${logDir}':`, e)
     return { sessions: [] }
   }
   const seen = new Set<string>()
@@ -453,8 +454,8 @@ function collectArchiveIndices(logDir: string, baseName: string): number[] {
         indices.push(parseInt(match[1]!, 10))
       }
     }
-  } catch {
-    // log directory may not exist
+  } catch (e) {
+    console.error(`Failed to scan log directory '${logDir}' for archives:`, e)
   }
   indices.sort((a, b) => a - b)
   return indices
@@ -482,8 +483,8 @@ function readArchive(
   try {
     const compressed = fsSync.readFileSync(filePath)
     lines = splitLines(zlib.gunzipSync(compressed).toString('utf-8'))
-  } catch {
-    // skip unreadable archive
+  } catch (e) {
+    console.error(`Failed to read archive '${filePath}':`, e)
   }
   const nextPos = pos + 1
   const nextScrollId =
@@ -500,7 +501,8 @@ function readActiveLog(
   try {
     const content = fsSync.readFileSync(logPath, 'utf-8')
     return { scrollId: 'done', hits: splitLines(content) }
-  } catch {
+  } catch (e) {
+    console.error(`Failed to read log file '${logPath}':`, e)
     return { scrollId: 'done', hits: [] }
   }
 }
