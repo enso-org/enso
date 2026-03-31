@@ -187,7 +187,10 @@ export class ProjectService {
   async runProject(projectId: UUID, projectsDirectory: Path, cloud?: CloudParams): Promise<number> {
     const project = await this.getProject(projectId, projectsDirectory, true)
     this.logger.debug(`Running project '${project.path}'`)
-    const exitCode = await this.runner.runProject(project.path, this.projectEnvVars(projectId, cloud))
+    const exitCode = await this.runner.runProject(
+      project.path,
+      this.projectEnvVars(projectId, cloud),
+    )
     this.logger.debug(`Project '${project.path}' finished running`)
     return exitCode
   }

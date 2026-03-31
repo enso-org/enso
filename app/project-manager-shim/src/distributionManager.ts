@@ -23,7 +23,8 @@ export function getEngineLogDirectory(): string {
       const xdgCache = process.env.XDG_CACHE_HOME
       if (xdgCache) return path.join(xdgCache, 'enso')
       const xdgData = process.env.XDG_DATA_HOME
-      const dataDir = xdgData ? path.join(xdgData, 'enso') : path.join(home, '.local', 'share', 'enso')
+      const dataDir =
+        xdgData ? path.join(xdgData, 'enso') : path.join(home, '.local', 'share', 'enso')
       return path.join(dataDir, 'log')
     }
   }

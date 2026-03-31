@@ -5,9 +5,9 @@ import type * as http from 'node:http'
 import * as path from 'node:path'
 import * as zlib from 'node:zlib'
 import * as yaml from 'yaml'
+import { getEngineLogDirectory } from '../distributionManager.js'
 import * as projectManagement from '../projectManagement.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
-import { getEngineLogDirectory } from '../distributionManager.js'
 
 // =======================
 // === ProjectMetadata ===
@@ -410,9 +410,8 @@ function getProjectSessionLogs(
   if (scrollId === 'done') {
     return { scrollId: 'done', hits: [] }
   }
-  const baseName = sessionId.startsWith(SESSION_ID_PREFIX)
-    ? sessionId.slice(SESSION_ID_PREFIX.length)
-    : sessionId
+  const baseName =
+    sessionId.startsWith(SESSION_ID_PREFIX) ? sessionId.slice(SESSION_ID_PREFIX.length) : sessionId
   const logDir = getEngineLogDirectory()
 
   const sortedArchiveIndices = collectArchiveIndices(logDir, baseName)
