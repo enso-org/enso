@@ -20,6 +20,9 @@ polyglot java import org.enso.base.file_system.File_Utils
     - `arguments`: The arguments to pass to `command`.
     - `stdin`: Any content to pass to the standard input for `command`.
     - `redirect_out_err`: Redirect stdout/stderr to `Process_Result`.
+    - `write_operation`: Whether this operation requires write permissions. If
+      `True`, the`Output` context must be enabled for the process to run.
+      Defaults to `False`.
 
    ## Examples
    ### Call the "echo" command.
