@@ -395,7 +395,12 @@ async function listProjectSessions(
 
 /**
  * Read log file content for a given local project session.
- * Reads rolled archives (sorted by index ascending) followed by the active log.
+ *
+ * Uses scrollId to load archives one-by-one:
+ * - `null`        → load archive 0 (or active log if no archives)
+ * - `"archive:N"` → load archive N
+ * - `"active"`    → load the active .log file
+ * - `"done"`      → return empty (signals end of pagination)
  */
 function getProjectSessionLogs(
   sessionId: string,
@@ -409,42 +414,86 @@ function getProjectSessionLogs(
     : sessionId
   const logDir = getEngineLogDirectory()
 
-  const lines: string[] = []
+  const sortedArchiveIndices = collectArchiveIndices(logDir, baseName)
+  const hasArchives = sortedArchiveIndices.length > 0
 
-  // Collect rolled archive files: baseName.N.log.gz
-  const archives: { index: number; filePath: string }[] = []
+  if (scrollId == null) {
+    // First request: if archives exist, start with the first one; otherwise load active log
+    if (hasArchives) {
+      return readArchive(logDir, baseName, sortedArchiveIndices, 0)
+    }
+    return readActiveLog(logDir, baseName)
+  }
+
+  const archiveMatch = scrollId.match(/^archive:(\d+)$/)
+  if (archiveMatch) {
+    const requestedIndex = parseInt(archiveMatch[1]!, 10)
+    const pos = sortedArchiveIndices.indexOf(requestedIndex)
+    if (pos >= 0) {
+      return readArchive(logDir, baseName, sortedArchiveIndices, pos)
+    }
+    // Requested archive not found, fall through to active log
+    return readActiveLog(logDir, baseName)
+  }
+
+  if (scrollId === 'active') {
+    return readActiveLog(logDir, baseName)
+  }
+
+  return { scrollId: 'done', hits: [] }
+}
+
+/** Collect sorted archive indices for a session base name. */
+function collectArchiveIndices(logDir: string, baseName: string): number[] {
+  const indices: number[] = []
   try {
     for (const entry of fsSync.readdirSync(logDir)) {
       const match = entry.match(new RegExp(`^${escapeRegExp(baseName)}\\.(\\d+)\\.log\\.gz$`))
       if (match) {
-        archives.push({ index: parseInt(match[1]!, 10), filePath: path.join(logDir, entry) })
+        indices.push(parseInt(match[1]!, 10))
       }
     }
   } catch {
     // log directory may not exist
   }
-  archives.sort((a, b) => a.index - b.index)
+  indices.sort((a, b) => a - b)
+  return indices
+}
 
-  for (const archive of archives) {
-    try {
-      const compressed = fsSync.readFileSync(archive.filePath)
-      const content = zlib.gunzipSync(compressed).toString('utf-8')
-      lines.push(...content.split('\n'))
-    } catch {
-      // skip unreadable archives
-    }
-  }
-
-  // Read the active log file
-  const activeLogPath = path.join(logDir, `${baseName}.log`)
+/** Read a single rolled archive and return the scrollId pointing to the next chunk. */
+function readArchive(
+  logDir: string,
+  baseName: string,
+  sortedIndices: number[],
+  pos: number,
+): { scrollId: string; hits: readonly string[] } {
+  const archiveIndex = sortedIndices[pos]!
+  const filePath = path.join(logDir, `${baseName}.${archiveIndex}.log.gz`)
+  let lines: string[] = []
   try {
-    const content = fsSync.readFileSync(activeLogPath, 'utf-8')
-    lines.push(...content.split('\n'))
+    const compressed = fsSync.readFileSync(filePath)
+    lines = zlib.gunzipSync(compressed).toString('utf-8').split('\n')
   } catch {
-    // active log may not exist if fully rolled over
+    // skip unreadable archive
   }
+  const nextPos = pos + 1
+  const nextScrollId =
+    nextPos < sortedIndices.length ? `archive:${sortedIndices[nextPos]}` : 'active'
+  return { scrollId: nextScrollId, hits: lines }
+}
 
-  return { scrollId: 'done', hits: lines }
+/** Read the active log file. */
+function readActiveLog(
+  logDir: string,
+  baseName: string,
+): { scrollId: string; hits: readonly string[] } {
+  const logPath = path.join(logDir, `${baseName}.log`)
+  try {
+    const content = fsSync.readFileSync(logPath, 'utf-8')
+    return { scrollId: 'done', hits: content.split('\n') }
+  } catch {
+    return { scrollId: 'done', hits: [] }
+  }
 }
 
 function escapeRegExp(s: string): string {
