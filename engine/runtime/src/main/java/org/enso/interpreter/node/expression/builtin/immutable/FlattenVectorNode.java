@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     name = "flatten",
     description = "Flattens a vector of vectors into a single vector.",
     autoRegister = false)
-public abstract class FlattenVectorNode extends Node {
+abstract class FlattenVectorNode extends Node {
   static FlattenVectorNode build() {
     return FlattenVectorNodeGen.create();
   }

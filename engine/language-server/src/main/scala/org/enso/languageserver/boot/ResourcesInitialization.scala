@@ -9,13 +9,11 @@ import org.enso.languageserver.boot.resource.{
   JsonRpcInitialization,
   RepoInitialization,
   SequentialResourcesInitialization,
-  TruffleContextInitialization,
   ZioRuntimeInitialization
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
 import org.enso.searcher.memory.InMemorySuggestionsRepo
-import org.enso.common.ContextFactory
 
 import scala.concurrent.ExecutionContextExecutor
 
@@ -30,8 +28,6 @@ object ResourcesInitialization {
     * @param directoriesConfig configuration of directories that should be created
     * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
-    * @param truffleContextBuilder the runtime context
-    * @param truffleContextSupervisor the runtime component supervisor
     * @param runtime the runtime to run effects
     * @return the initialization component
     */
@@ -40,8 +36,6 @@ object ResourcesInitialization {
     directoriesConfig: ProjectDirectoriesConfig,
     protocolFactory: ProtocolFactory,
     suggestionsRepo: InMemorySuggestionsRepo,
-    truffleContextBuilder: ContextFactory,
-    truffleContextSupervisor: ComponentSupervisor,
     runtime: effect.Runtime
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
     new SequentialResourcesInitialization(
@@ -55,12 +49,6 @@ object ResourcesInitialization {
           directoriesConfig,
           eventStream,
           suggestionsRepo
-        ),
-        new TruffleContextInitialization(
-          ec,
-          truffleContextBuilder,
-          truffleContextSupervisor,
-          eventStream
         )
       )
     )

@@ -7,7 +7,11 @@
     - Form_Data form_data:Standard.Base.Data.Dictionary.Dictionary= url_encoded:Standard.Base.Data.Boolean.Boolean=
     - Json x:Standard.Base.Any.Any=
     - Text text:Standard.Base.Data.Text.Text= encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.Nothing.Nothing)= content_type:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - bytes_value self -> ((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|Standard.Base.Nothing.Nothing)
+    - charset self -> Standard.Base.Any.Any
     - default_content_type_header self -> Standard.Base.Any.Any
+    - text_value self -> (Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
+    - type_name self -> Standard.Base.Data.Text.Text
 - dictionary_widget -> Standard.Base.Metadata.Widget
 - make_all_with_json -> Standard.Base.Any.Any
 - Standard.Base.Network.HTTP.Request_Body.Request_Body.from that:Standard.Base.Data.Text.Text -> Standard.Base.Network.HTTP.Request_Body.Request_Body

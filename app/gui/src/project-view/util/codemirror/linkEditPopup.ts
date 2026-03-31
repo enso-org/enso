@@ -1,3 +1,4 @@
+import { elementHierarchy } from '$/utils/dom'
 import LinkEditPopup from '@/components/LinkEditPopup.vue'
 import type { VueHost } from '@/components/VueHostRender.vue'
 import {
@@ -7,7 +8,6 @@ import {
 } from '@/util/codemirror/contentFocusedExt'
 import { pseudoRef } from '@/util/codemirror/nonReactive'
 import { getVueHost, vueHostChanged, vueHostExt } from '@/util/codemirror/vueHostExt'
-import { elementHierarchy } from '@/util/dom'
 import type { Extension } from '@codemirror/state'
 import { layer, type EditorView, type LayerMarker, type ViewUpdate } from '@codemirror/view'
 import { h, markRaw } from 'vue'

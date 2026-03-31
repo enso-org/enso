@@ -337,6 +337,7 @@ the current relatively simple 'propagation' algorithm.
 
 ## Design Goals
 
+<!-- prettier-ignore -->
 > [!WARNING]
 >
 > The actionables for this section are:
@@ -358,7 +359,9 @@ In order to make Enso's type inference as helpful and friendly as possible to
 our users, we want the ability to infer the _maximal subset_ of the types that
 Enso can express.
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING]
+> The actionables for this section are:
 >
 > - How do we do inference for higher-rank and impredicative instantiations.
 > - How do we infer contexts, and how do we make that inference granular (e.g.
@@ -373,18 +376,24 @@ Enso can express.
 
 ### Type Inference Algorithm
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING] 
+> The actionables for this section are:
 >
 > - Specify the inference algorithm.
 
 #### Inferring Dependency
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING]
+> The actionables for this section are:
 >
 > - Specify how (if at all) we can infer dependent quantifiers.
 
 ### Type Checking Algorithm
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING]
+> The actionables for this section are:
 >
 > - Specify the type checking algorithm.

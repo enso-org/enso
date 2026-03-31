@@ -4,17 +4,20 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
-import org.enso.runner.common.WrongOption;
-import org.enso.runner.common.YdocServerApi;
+import org.enso.ydoc.api.YdocServerApi;
+import org.enso.ydoc.api.YjsChannel;
 import org.graalvm.nativeimage.ImageInfo;
-import org.graalvm.polyglot.proxy.ProxyArray;
 
 public final class YdocServerImpl extends YdocServerApi {
   public YdocServerImpl() {}
 
   @Override
-  protected AutoCloseable runYdocServer(String hostname, int port)
-      throws WrongOption, IOException, URISyntaxException {
+  protected AutoCloseable runYdocServer(
+      String hostname,
+      int port,
+      YjsChannel.Server jsonChannelCallbacks,
+      YjsChannel.Server binaryChannelCallbacks)
+      throws IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);
     // but in the other JVM
@@ -40,8 +43,7 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    var arr = ProxyArray.fromArray(hostname, "" + port);
-    impl.invokeMember("main", arr);
+    impl.invokeMember("launch", hostname, port + "", jsonChannelCallbacks, binaryChannelCallbacks);
     return loader;
   }
 }

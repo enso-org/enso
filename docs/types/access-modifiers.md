@@ -8,7 +8,9 @@ order: 4
 
 # Access Modifiers
 
-> [!WARNING] Everybody who ever maintained a large system knows
+<!-- prettier-ignore -->
+> [!WARNING] 
+> Everybody who ever maintained a large system knows
 > [encapsulation is essential](../semantics/encapsulation.md).
 >
 > While we don't usually like making things private in a programming language,

@@ -19,7 +19,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class VectorTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
 
   @Test
   public void evaluation() throws Exception {
@@ -165,6 +166,13 @@ public class VectorTest {
   }
 
   @Test
+  public void insertSelfWithWarningCheck() throws Exception {
+    var ww = warningsInContainer(4, 0);
+    assertTrue("Array: " + ww, ww.hasArrayElements());
+    assertHasWarning("Has warnings", ww);
+  }
+
+  @Test
   public void insertSelfWithWarningViaForEach() throws Exception {
     warningsInContainer(4, 1);
   }
@@ -190,7 +198,18 @@ public class VectorTest {
     warningsInContainer(3, 2);
   }
 
-  private void warningsInContainer(int type, int callType) throws Exception {
+  @Test
+  public void insertSelfWithWarningViaMap() throws Exception {
+    warningsInContainer(4, 2);
+  }
+
+  @Test
+  @Ignore // calling vector.slice drops warnings from element values
+  public void insertArgWithWarningViaMap() throws Exception {
+    warningsInContainer(5, 2);
+  }
+
+  private Value warningsInContainer(int type, int callType) throws Exception {
     final URI srcUri = new URI("memory://warning.enso");
     final Source src =
         Source.newBuilder(
@@ -208,6 +227,7 @@ public class VectorTest {
                     5 -> ([42]+v).slice 1 2
 
                   case call_type of
+                    0 -> container
                     1 -> container.each f
                     2 -> container.map f
                 """,
@@ -221,16 +241,23 @@ public class VectorTest {
     var cnt = new int[1];
     ProxyExecutable callback =
         (arg) -> {
-          if (ctxRule.unwrapValue(arg[0]) instanceof WithWarnings) {
+          if (arg[0].isNull()) {
+            fail("Expecting non-null value: " + arg[0]);
+          }
+          var raw = ctxRule.unwrapValue(arg[0]);
+          if (raw instanceof WithWarnings) {
             cnt[0]++;
             return null;
           }
-          fail("Unexpected value " + arg[0]);
+          fail("Unexpected value without warning " + raw + " type: " + raw.getClass().getName());
           return null;
         };
 
-    cb.execute(callback, type, callType);
-    assertEquals("One callback", 1, cnt[0]);
+    var res = cb.execute(callback, type, callType);
+    if (callType != 0) {
+      assertEquals("One callback", 1, cnt[0]);
+    }
+    return res;
   }
 
   private static final BitSet QUERIED = new BitSet();
@@ -338,6 +365,20 @@ public class VectorTest {
 
       assertEquals("at7", lazy.getArrayElement(7).asString());
       assertEquals("Two queries", 2, QUERIED.cardinality());
+    }
+  }
+
+  private static void assertHasWarning(String msg, Value v) {
+    var hasWarnings =
+        ctxRule.evalModule(
+            """
+            from Standard.Base import Warning
+            main = Warning.has_warnings
+            """);
+
+    var ok = hasWarnings.execute(v).asBoolean();
+    if (!ok) {
+      fail("Value should have warnings: " + v);
     }
   }
 }

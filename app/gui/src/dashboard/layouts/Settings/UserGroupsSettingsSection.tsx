@@ -13,19 +13,25 @@ import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { normalizeName } from '#/utilities/string'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useFullUserSession, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { EmailAddress, User, UserGroupInfo } from 'enso-common/src/services/Backend'
 import { useState } from 'react'
 
 /** The maximum number of user icons per row. */
 const MAXIMUM_USER_ICONS = 6
+/** The maximum number of user groups for team license. */
+const MAXIMUM_USER_GROUPS_NUMBER = 10
 
 const USER_GROUP_SETTINGS_SECTION_STYLES = tv({
   base: '',
@@ -77,10 +83,10 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
   const { data: userGroups } = useSuspenseQuery(backendQueryOptions(backend, 'listUserGroups', []))
   const isAdmin = user.isOrganizationAdmin
 
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
 
   const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
-  const userGroupsLeft = isUnderPaywall ? 1 - userGroups.length : Infinity
+  const userGroupsLeft = isUnderPaywall ? MAXIMUM_USER_GROUPS_NUMBER - userGroups.length : Infinity
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
   const styles = USER_GROUP_SETTINGS_SECTION_STYLES()
@@ -113,7 +119,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
             <span className="text-xs">
               {userGroupsLeft <= 0 ?
                 getText('userGroupsPaywallMessage')
-              : getText('userGroupsLimitMessage', userGroupsLeft)}
+              : getText('userGroupsLimitMessage', MAXIMUM_USER_GROUPS_NUMBER, userGroupsLeft)}
             </span>
           )}
         </Button.Group>

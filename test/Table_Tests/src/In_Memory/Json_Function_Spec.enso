@@ -1,0 +1,101 @@
+from Standard.Base import all
+
+from Standard.Table import all
+
+from Standard.Test import all
+
+from project.Util import all
+
+type Data
+    Value ~table raw_data
+
+    setup =
+        raw_data = [1,3.14,True, False, "Hello World", 'This is "Some" Fun Text With \'Quotes\' and \t and \n', Json.parse '[1,2,3,4]', Json.parse '{"A":true,"B":null}', Date.today, Time_Of_Day.now, Date_Time.now, Date_Time.now.to_utc, 2^53-2, 2^58-5]
+        with_row_number =
+            column0 = Column.from_vector "mixed" raw_data
+            table = Table.new [column0]
+            table.add_row_number
+        Data.Value with_row_number raw_data
+
+type Serialize_Data
+    Value ~table
+
+    setup =
+        make_table =
+            node1 = 0.up_to 10 True
+            table1 = node1.to_table "Ints"
+            table3 = table1.set (expr 'if [Ints]%10=8 then nothing else 2^65+[Ints]') "BigInt"
+            table4 = table3.set (expr 'if [Ints]%10=9 then nothing else cast(round([Ints]*1.234,3),..Decimal)') "BigDec"
+            table5 = table4.set (expr 'if [Ints]%10=3 then nothing else date_add(today(),[Ints]-2)') "Date"
+            table6 = table5.set (expr 'if [Ints]%10=4 then nothing else date_add(now(),[Ints]-2)') "DateTime"
+            table7 = table6.set (expr 'if [Ints]%10=7 then Nothing else parse("12:"+format(20+[Ints])+":00")') "Time"
+            table8 = table7.set (expr 'if [Ints]%10=2 then Nothing else [Ints]%2==1') "Bool"
+            table9 = table8.set (expr 'if [Ints]%10=5 then Nothing else 1/[Ints]') "Float"
+            table10 = table9.set (expr 'if [Ints]%10=6 then Nothing else format([Ints])') as="Text"
+            table10.add_row_number
+        Serialize_Data.Value make_table
+
+add_specs suite_builder =
+    data = Data.setup
+    to_json = Serialize_Data.setup
+
+    suite_builder.group "Column.json_stringify" group_builder->
+        group_builder.specify "should be able to stringify a column of mixed data" <|
+            json_column = data.table.at "mixed" . json_stringify
+            json_column.name.should_equal "json_stringify([mixed])"
+            json_column.row_count.should_equal data.raw_data.length
+            expected = data.raw_data.map .to_json
+            json_column.to_vector.should_equal expected
+
+        group_builder.specify "should be able to stringify a column of row numbers" <|
+            json_column = data.table.at "Row" . json_stringify
+            json_column.name.should_equal "json_stringify([Row])"
+            json_column.row_count.should_equal data.raw_data.length
+            expected = 0.up_to data.table.row_count . map .to_json
+            json_column.to_vector.should_equal expected
+
+        group_builder.specify "should be able to stringify a filtered column" <|
+            json_column = data.table.filter (expr "[Row]%2==0") . at "mixed" . json_stringify
+            json_column.name.should_equal "json_stringify([mixed])"
+            json_column.row_count.should_equal (data.raw_data.length / 2).floor
+            expected = 0.up_to data.table.row_count step=2 . map i-> data.raw_data.at i . to_json
+            json_column.to_vector.should_equal expected
+
+    suite_builder.group "Table.json_stringify" group_builder->
+        group_builder.specify "should be able to stringify a column of mixed data" <|
+            json_table = data.table.json_stringify ["mixed", "Row"]
+            json_table.row_count.should_equal data.raw_data.length
+            json_table.column_names.should_equal ["mixed", "Row"]
+            json_column = json_table.at "mixed"
+            expected = data.raw_data.map .to_json
+            json_column.to_vector.should_equal expected
+
+    suite_builder.group "Column.parse_json" group_builder->
+        group_builder.specify "should be able to parse a column" <|
+            to_json.table.column_names.each column_name-> Test.with_clue column_name <|
+                json_column = to_json.table.at column_name . json_stringify . rename column_name
+                parsed_column = json_column.parse_json
+                parsed_column.name.should_equal "parse_json(["+column_name+"])"
+                parsed_column.value_type.should_equal (to_json.table.at column_name . value_type)
+                parsed_column.row_count.should_equal to_json.table.row_count
+                expected = to_json.table.at column_name . to_vector
+                parsed_column.to_vector.should_equal expected
+
+    suite_builder.group "Table.parse_json" group_builder->
+        group_builder.specify "should be able to parse a table" <|
+            json_table = to_json.table.json_stringify to_json.table.column_names
+            json_table.column_names.should_equal to_json.table.column_names
+
+            parsed_table = json_table.parse_json to_json.table.column_names
+            parsed_table.column_names.should_equal to_json.table.column_names
+            parsed_table.row_count.should_equal to_json.table.row_count
+            to_json.table.column_names.each column_name-> Test.with_clue column_name <|
+                parsed_column = parsed_table.at column_name
+                expected = to_json.table.at column_name . to_vector
+                parsed_column.to_vector.should_equal expected
+                parsed_column.value_type.should_equal (to_json.table.at column_name . value_type)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

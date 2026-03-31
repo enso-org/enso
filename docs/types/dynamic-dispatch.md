@@ -34,7 +34,9 @@ one to select, the compiler needs to have a notion of _specificity_, which is
 effectively an algorithm for determining which candidate is more specific than
 another.
 
-> [!WARNING] Static compiler selects nothing. The right method to invoke is
+<!-- prettier-ignore -->
+> [!WARNING]
+> Static compiler selects nothing. The right method to invoke is
 > _selected in the runtime_.
 >
 > - Always prefer a member function for both `x.f y` and `f y x` notations.
@@ -72,7 +74,9 @@ Multiple dispatch is currently used for
 Multiple dispatch is also used on `from` conversions, because in expression
 `T.from x` the function to use is based on both `T` and `x`.
 
-> [!WARNING] Supporting general _multiple dispatch is unlikely_
+<!-- prettier-ignore -->
+> [!WARNING]
+> Supporting general _multiple dispatch is unlikely_
 >
 > Supporting it for general functions remains an open question as to whether we
 > want to support proper multiple dispatch in Enso. Multiple dispatch refers to

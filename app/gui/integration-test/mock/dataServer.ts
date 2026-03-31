@@ -106,7 +106,16 @@ export function mockDataWSHandler(
           response = createError(builder, LanguageServerErrorCode.NotFile, 'Invalid Path')
           break
         }
-        const file = await readFile(pathSegments(path))
+        let segments: (string | null)[]
+        try {
+          segments = pathSegments(path)
+        } catch {
+          // If path parsing fails, return file not found
+          // This can happen with malformed messages (e.g., visualization data being misinterpreted)
+          response = createError(builder, LanguageServerErrorCode.FileNotFound, 'File not found')
+          break
+        }
+        const file = await readFile(segments)
         if (!file) {
           response = createError(builder, LanguageServerErrorCode.FileNotFound, 'File not found')
           break

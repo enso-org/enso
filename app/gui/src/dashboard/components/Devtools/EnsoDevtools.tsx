@@ -1,6 +1,6 @@
 /** @file UI for editing application state. */
+import { useShowEnsoDevtools } from '$/providers/react/devTools'
 import * as React from 'react'
-import { useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 
 const EnsoDevtoolsImpl =
   process.env.NODE_ENV === 'development' ?
@@ -13,7 +13,7 @@ const EnsoDevStatus =
 
 /** UI for editing application state */
 export function EnsoDevtools() {
-  const showEnsoDevtools = useShowEnsoDevtools()
+  const [showEnsoDevtools] = useShowEnsoDevtools()
 
   return (
     <>

@@ -25,3 +25,16 @@ type Hyper_Unsupported_Type
        ---
     to_display_text : Text
     to_display_text self = "Tableau Hyper files do not support columns of type " + self.type_name
+
+## Error when an issue in Hyper engine occurs.
+type Hyper_Error
+    ## ---
+       private: true
+       ---
+    Error message:Text
+
+    ## ---
+       private: true
+       ---
+    to_display_text : Text
+    to_display_text self = "Hyper Error: " + self.message

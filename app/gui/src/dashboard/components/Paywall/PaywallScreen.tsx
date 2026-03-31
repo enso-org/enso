@@ -1,7 +1,7 @@
 /** @file A screen that shows a paywall. */
 import { Text } from '#/components/Text'
-import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { getFeatureConfiguration, type PaywallFeatureName } from '$/composables/paywall'
 import { useText } from '$/providers/react'
 import { PaywallBulletPoints, PaywallLock } from './components'
 import { UpgradeButton } from './UpgradeButton'
@@ -17,9 +17,7 @@ export function PaywallScreen(props: PaywallScreenProps) {
   const { feature, className } = props
   const { getText } = useText()
 
-  const { getFeature } = usePaywallFeatures()
-
-  const { bulletPointsTextId, descriptionTextId } = getFeature(feature)
+  const { bulletPointsTextId, descriptionTextId } = getFeatureConfiguration(feature)
 
   return (
     <div className={twMerge('flex flex-col items-start', className)}>

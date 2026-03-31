@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 import project.Column.Column
-import project.Value_Type.Value_Type
+import project.Internal.Value_Type_Checks
 from project.Errors import Nothing_Value_In_Filter_Condition
 
 ## ---
@@ -33,8 +33,12 @@ make_filter_column source_column:Column filter_condition on_problems:Problem_Beh
         Is_Nothing -> source_column.is_nothing
         Not_Nothing -> source_column.is_nothing.not
         # Boolean
-        Is_True -> Value_Type.expect_boolean source_column <| source_column
-        Is_False -> Value_Type.expect_boolean source_column <| source_column.not
+        Is_True ->
+            Value_Type_Checks.is_boolean source_column
+            source_column
+        Is_False ->
+            Value_Type_Checks.is_boolean source_column
+            source_column.not
         # Comparisons
         Less value ->
             warn_on_nothing_in_comparison filter_condition value <|
