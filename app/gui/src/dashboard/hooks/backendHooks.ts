@@ -565,23 +565,37 @@ export function useRenameAsset(backend: Backend) {
   )
 }
 
-/** Return a function to add tag to an asset version. */
-export function addAssetVersionTag(backend: Backend) {
+/** Return a function to remove tag from an asset version. */
+export function useRemoveAssetVersionTag(backend: Backend) {
   const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
 
   return useEventCallback(
-    (
-      assetId: AssetId,
-      versionId: backendModule.S3ObjectVersionId,
-      tag: string,
-      remove: boolean,
-    ) => {
+    (assetId: AssetId, versionId: backendModule.S3ObjectVersionId, tag: string) => {
       return updateAsset([
         assetId,
         {
           versionId,
           tag,
-          remove,
+          remove: true,
+        },
+        assetId,
+      ])
+    },
+  )
+}
+
+/** Return a function to add tag to an asset version. */
+export function useAddAssetVersionTag(backend: Backend) {
+  const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
+
+  return useEventCallback(
+    (assetId: AssetId, versionId: backendModule.S3ObjectVersionId, tag: string) => {
+      return updateAsset([
+        assetId,
+        {
+          versionId,
+          tag,
+          remove: false,
         },
         assetId,
       ])

@@ -1192,21 +1192,28 @@ export interface UpdateFileRequestBody {
 }
 
 /** HTTP request body for the "update asset" endpoint. */
-export interface UpdateAssetRequestBody {
+export interface UpdateAsset {
   // Normal update asset body.
   readonly parentDirectoryId?: DirectoryId | null
   readonly description?: string | null
   readonly title?: string | null
   readonly metadataId?: MetadataId | null
+}
 
-  // Upsert asset version tag.
+/** HTTP request body for the "update asset version tag" action. */
+export interface UpdateAssetVersionTag {
   readonly versionId?: S3ObjectVersionId
   readonly tag?: string
   readonly remove?: boolean
+}
 
-  // Upsert asset version comment.
+/** HTTP request body for the "update asset version comment" action. */
+export interface UpdateAssetVersionComment {
+  readonly versionId?: S3ObjectVersionId
   readonly comment?: string | null
 }
+
+export type UpdateAssetRequestBody = UpdateAsset & UpdateAssetVersionTag & UpdateAssetVersionComment
 
 /** HTTP request body for the "delete asset" endpoint. */
 export interface DeleteAssetRequestBody {
