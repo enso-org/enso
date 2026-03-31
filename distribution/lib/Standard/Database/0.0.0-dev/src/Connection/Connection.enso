@@ -421,8 +421,6 @@ type Connection
     execute_update : Text | SQL_Statement -> Boolean -> Integer
     execute_update self query write_operation:Boolean=True =
         if write_operation then Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation."
-        Error.return_if_error enabled
-
         self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
             _check_statement_is_allowed self stmt
             result = stmt.executeUpdate
