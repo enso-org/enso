@@ -86,8 +86,10 @@ progress handle of interest and turn its profiling info on:
 
 ```bash
 enso$ enso --vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug --run test/Table_Tests
-[Standard.Base.Logging.Progress.Table] ADVANCE Table+1~14ms:Table.rename_columns
-[Standard.Base.Logging.Progress.Table] ADVANCE Table+1~7ms:Table.select_columns
+[Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~21ms
+[Standard.Base.Logging.Progress.Table.select_columns] ADVANCE Table.select_columns+1~8ms
+[Standard.Base.Logging.Progress.Table.set] ADVANCE Table.set+1~19ms
+[Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~16ms
 ```
 
 Use `ENSO_ENGINE_ARGS` to enable the profiling for the IDE:

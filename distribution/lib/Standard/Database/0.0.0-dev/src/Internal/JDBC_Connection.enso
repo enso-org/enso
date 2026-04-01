@@ -289,5 +289,5 @@ private _synchronized (jdbc_connection : JDBC_Connection) ~action =
     jdbc_connection.operation_synchronizer.runSynchronizedAction _->action
 
 private _profile_time_execution ~label:Text ~function =
-    Progress.run handle_name="JDBC_Connection" label=label up_to=1 action=_->
+    Progress.run handle_name="JDBC_Connection."+label label=label up_to=1 action=_->
         function

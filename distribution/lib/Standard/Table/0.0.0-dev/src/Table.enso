@@ -4164,5 +4164,5 @@ Many_Files_List.from (that : Table) = case that of
     _ -> Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")
 
 private _profile_time_execution ~label:Text ~function =
-    Progress.run handle_name="Table" label=label up_to=1 action=_->
+    Progress.run handle_name=label label=label up_to=1 action=_->
         function
