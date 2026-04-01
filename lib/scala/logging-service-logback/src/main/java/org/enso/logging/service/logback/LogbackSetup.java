@@ -190,33 +190,33 @@ public final class LogbackSetup extends LoggerSetup {
         var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
 
-        String nameCore =
-            projectId != null
-                ? logPrefix + "-" + projectId + "-" + dateStr + "-" + timeStr
-                : logPrefix + "-" + dateStr + "-" + timeStr;
+        String nameCore = logPrefix + "-" + dateStr + "-" + timeStr;
+
+        Path effectiveLogRoot = logRoot;
+        if (projectId != null && effectiveLogRoot != null) {
+          effectiveLogRoot = effectiveLogRoot.resolve(projectId);
+          effectiveLogRoot.toFile().mkdirs();
+        }
 
         String basePath;
-        if (logRoot == null) {
+        if (effectiveLogRoot == null) {
           basePath = nameCore;
         } else {
-          basePath = logRoot.toAbsolutePath() + File.separator + nameCore;
+          basePath = effectiveLogRoot.toAbsolutePath() + File.separator + nameCore;
         }
 
         rollingFileAppender.setFile(basePath + ".log");
 
         // Archive pattern: %d{yyyy-MM-dd} resolves to same date on same day,
         // time literal ensures per-execution uniqueness, %i for size rollover index
-        String archiveNameCore =
-            projectId != null
-                ? logPrefix + "-" + projectId + "-%d{yyyy-MM-dd}-" + timeStr
-                : logPrefix + "-%d{yyyy-MM-dd}-" + timeStr;
+        String archiveNameCore = logPrefix + "-%d{yyyy-MM-dd}-" + timeStr;
 
         String archivePattern;
-        if (logRoot == null) {
+        if (effectiveLogRoot == null) {
           archivePattern = archiveNameCore + ".%i.log.gz";
         } else {
           archivePattern =
-              logRoot.toAbsolutePath() + File.separator + archiveNameCore + ".%i.log.gz";
+              effectiveLogRoot.toAbsolutePath() + File.separator + archiveNameCore + ".%i.log.gz";
         }
 
         var rollingPolicy = appenderConfig.getRollingPolicy();
@@ -240,12 +240,12 @@ public final class LogbackSetup extends LoggerSetup {
         if (logRoot == null || logPrefix == null) {
           fullFilePath = "enso-" + currentDate + ".log";
         } else if (projectId != null) {
+          var projectLogDir = logRoot.resolve(projectId);
+          projectLogDir.toFile().mkdirs();
           fullFilePath =
-              logRoot.toAbsolutePath()
+              projectLogDir.toAbsolutePath()
                   + File.separator
                   + logPrefix
-                  + "-"
-                  + projectId
                   + "-"
                   + currentDate
                   + ".log";

@@ -341,12 +341,12 @@ export async function getFileSystemEntry(entryPath: string): Promise<FileSystemE
 
 const SESSION_ID_PREFIX = 'localprojectsession-'
 
-/** Parse date-time from a log filename segment like `2026-03-31-14-23-45`. */
-function parseDateTimeFromFilename(filename: string, projectId: string): string | null {
-  const idx = filename.indexOf(projectId)
-  if (idx < 0) return null
-  const after = filename.slice(idx + projectId.length + 1)
-  const match = after.match(/^(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})/)
+/**
+ * Parse date-time from a log filename like `enso-language-server-2026-03-31-14-23-45`.
+ * Expects the date-time at the end of the base name.
+ */
+function parseDateTimeFromFilename(baseName: string): string | null {
+  const match = baseName.match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})$/)
   if (!match) return null
   return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`
 }
@@ -363,16 +363,44 @@ function extractSessionBaseName(filename: string): string | null {
   return null
 }
 
-/** List project sessions by scanning the engine log directory for matching log files. */
+/**
+ * Encode a session ID from projectId and file base name.
+ * Format: `localprojectsession-{projectId}/{baseName}`
+ */
+function encodeSessionId(projectId: string, baseName: string): string {
+  return `${SESSION_ID_PREFIX}${projectId}/${baseName}`
+}
+
+/**
+ * Decode a session ID into projectId and file base name.
+ * Returns the project log directory and the file base name.
+ */
+function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: string } {
+  const raw =
+    sessionId.startsWith(SESSION_ID_PREFIX) ? sessionId.slice(SESSION_ID_PREFIX.length) : sessionId
+  const slashIdx = raw.indexOf('/')
+  const logDir = getEngineLogDirectory()
+  if (slashIdx < 0) {
+    return { projectLogDir: logDir, baseName: raw }
+  }
+  const projectId = raw.slice(0, slashIdx)
+  const baseName = raw.slice(slashIdx + 1)
+  return { projectLogDir: path.join(logDir, projectId), baseName }
+}
+
+/**
+ * List project sessions by scanning `{logDir}/{projectId}/` for log files.
+ * Each unique base name (active log + its rolled archives) is one session.
+ */
 async function listProjectSessions(
   projectId: string,
 ): Promise<{ sessions: readonly { projectSessionId: string; createdAt: string }[] }> {
-  const logDir = getEngineLogDirectory()
+  const projectLogDir = path.join(getEngineLogDirectory(), projectId)
   let entries: string[]
   try {
-    entries = await fs.readdir(logDir)
+    entries = await fs.readdir(projectLogDir)
   } catch (e) {
-    console.error(`Failed to read log directory '${logDir}':`, e)
+    console.error(`Failed to read log directory '${projectLogDir}':`, e)
     return { sessions: [] }
   }
   const seen = new Set<string>()
@@ -380,13 +408,12 @@ async function listProjectSessions(
   for (const entry of entries) {
     const baseName = extractSessionBaseName(entry)
     if (baseName == null) continue
-    if (!baseName.includes(`-${projectId}-`)) continue
     if (seen.has(baseName)) continue
     seen.add(baseName)
-    const createdAt = parseDateTimeFromFilename(baseName, projectId)
+    const createdAt = parseDateTimeFromFilename(baseName)
     if (!createdAt) continue
     sessions.push({
-      projectSessionId: `${SESSION_ID_PREFIX}${baseName}`,
+      projectSessionId: encodeSessionId(projectId, baseName),
       createdAt,
     })
   }
@@ -398,10 +425,10 @@ async function listProjectSessions(
  * Read log file content for a given local project session.
  *
  * Uses scrollId to load archives one-by-one:
- * - `null`        → load archive 0 (or active log if no archives)
- * - `"archive:N"` → load archive N
- * - `"active"`    → load the active .log file
- * - `"done"`      → return empty (signals end of pagination)
+ * - `null`        load archive 0 (or active log if no archives)
+ * - `"archive:N"` load archive N of (N.log.gz rolled archives)
+ * - `"active"`    load the active .log file
+ * - `"done"`      return empty (signals end of pagination)
  */
 function getProjectSessionLogs(
   sessionId: string,
@@ -410,19 +437,16 @@ function getProjectSessionLogs(
   if (scrollId === 'done') {
     return { scrollId: 'done', hits: [] }
   }
-  const baseName =
-    sessionId.startsWith(SESSION_ID_PREFIX) ? sessionId.slice(SESSION_ID_PREFIX.length) : sessionId
-  const logDir = getEngineLogDirectory()
+  const { projectLogDir, baseName } = decodeSessionId(sessionId)
 
-  const sortedArchiveIndices = collectArchiveIndices(logDir, baseName)
+  const sortedArchiveIndices = collectArchiveIndices(projectLogDir, baseName)
   const hasArchives = sortedArchiveIndices.length > 0
 
   if (scrollId == null) {
-    // First request: if archives exist, start with the first one; otherwise load active log
     if (hasArchives) {
-      return readArchive(logDir, baseName, sortedArchiveIndices, 0)
+      return readArchive(projectLogDir, baseName, sortedArchiveIndices, 0)
     }
-    return readActiveLog(logDir, baseName)
+    return readActiveLog(projectLogDir, baseName)
   }
 
   const archiveMatch = scrollId.match(/^archive:(\d+)$/)
@@ -430,31 +454,30 @@ function getProjectSessionLogs(
     const requestedIndex = parseInt(archiveMatch[1]!, 10)
     const pos = sortedArchiveIndices.indexOf(requestedIndex)
     if (pos >= 0) {
-      return readArchive(logDir, baseName, sortedArchiveIndices, pos)
+      return readArchive(projectLogDir, baseName, sortedArchiveIndices, pos)
     }
-    // Requested archive not found, fall through to active log
-    return readActiveLog(logDir, baseName)
+    return readActiveLog(projectLogDir, baseName)
   }
 
   if (scrollId === 'active') {
-    return readActiveLog(logDir, baseName)
+    return readActiveLog(projectLogDir, baseName)
   }
 
   return { scrollId: 'done', hits: [] }
 }
 
 /** Collect sorted archive indices for a session base name. */
-function collectArchiveIndices(logDir: string, baseName: string): number[] {
+function collectArchiveIndices(dir: string, baseName: string): number[] {
   const indices: number[] = []
   try {
-    for (const entry of fsSync.readdirSync(logDir)) {
+    for (const entry of fsSync.readdirSync(dir)) {
       const match = entry.match(new RegExp(`^${escapeRegExp(baseName)}\\.(\\d+)\\.log\\.gz$`))
       if (match) {
         indices.push(parseInt(match[1]!, 10))
       }
     }
   } catch (e) {
-    console.error(`Failed to scan log directory '${logDir}' for archives:`, e)
+    console.error(`Failed to scan log directory '${dir}' for archives:`, e)
   }
   indices.sort((a, b) => a - b)
   return indices
@@ -471,13 +494,13 @@ function splitLines(text: string): string[] {
 
 /** Read a single rolled archive and return the scrollId pointing to the next chunk. */
 function readArchive(
-  logDir: string,
+  dir: string,
   baseName: string,
   sortedIndices: number[],
   pos: number,
 ): { scrollId: string; hits: readonly string[] } {
   const archiveIndex = sortedIndices[pos]!
-  const filePath = path.join(logDir, `${baseName}.${archiveIndex}.log.gz`)
+  const filePath = path.join(dir, `${baseName}.${archiveIndex}.log.gz`)
   let lines: string[] = []
   try {
     const compressed = fsSync.readFileSync(filePath)
@@ -493,10 +516,10 @@ function readArchive(
 
 /** Read the active log file. */
 function readActiveLog(
-  logDir: string,
+  dir: string,
   baseName: string,
 ): { scrollId: string; hits: readonly string[] } {
-  const logPath = path.join(logDir, `${baseName}.log`)
+  const logPath = path.join(dir, `${baseName}.log`)
   try {
     const content = fsSync.readFileSync(logPath, 'utf-8')
     return { scrollId: 'done', hits: splitLines(content) }
