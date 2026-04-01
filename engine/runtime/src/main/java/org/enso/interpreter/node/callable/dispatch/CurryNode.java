@@ -157,8 +157,10 @@ final class CurryNode extends BaseNode {
       State state,
       Object[] arguments) {
     return switch (getTailStatus()) {
-      case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, state, arguments);
-      case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);
+      case TAIL_DIRECT, // -> directCall.executeCall(frame, function, callerInfo, state, arguments);
+          // case
+          TAIL_LOOP ->
+          throw new TailCallException(function, callerInfo, arguments);
       default -> loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
     };
   }
