@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 from Standard.Table import all
@@ -173,6 +174,42 @@ add_text_columns_specs suite_builder setup =
             column.left . to_vector . should_equal ["s", "M", "r", "3"]
             column.right . to_vector . should_equal ["t", "n", "D", "t"]
             column.mid 2 . to_vector . should_equal ["reet", "in", "aD", "d floor flat"]
+
+    if setup.is_operation_supported "PAD_LEFT" && setup.is_operation_supported "PAD_RIGHT" then suite_builder.group prefix+"Text_Column (pad_left, pad_right)" group_builder->
+        group_builder.specify "work with scalar arguments" <|
+            column = build_sorted_table [["X", ["A", "HELLO", "", Nothing, "XX"]]] . at 0
+            pad_left = column.pad_left 4 "ab"
+            pad_right = column.pad_right 4 "ab"
+
+            pad_left.name . should_equal "pad_left([X], 4, 'ab')"
+            pad_right.name . should_equal "pad_right([X], 4, 'ab')"
+
+            pad_left . to_vector . should_equal ["babA", "HELLO", "abab", Nothing, "abXX"]
+            pad_right . to_vector . should_equal ["Aaba", "HELLO", "abab", Nothing, "XXab"]
+
+        group_builder.specify "work with column arguments and default pad" <|
+            t = build_sorted_table [["lengths", [3, 5, 2, 4, Nothing]], ["pads", ["xy", "0", "yz", Nothing, "*"]], ["strings", ["A", "hi", "", "z", "ok"]]]
+            strings = t.at "strings"
+            lengths = t.at "lengths"
+            pads = t.at "pads"
+
+            strings.pad_left lengths . to_vector . should_equal ["  A", "   hi", "  ", "   z", Nothing]
+            strings.pad_right lengths . to_vector . should_equal ["A  ", "hi   ", "  ", "z   ", Nothing]
+            strings.pad_left lengths pads . to_vector . should_equal ["xyA", "000hi", "yz", Nothing, Nothing]
+            strings.pad_right lengths pads . to_vector . should_equal ["Axy", "hi000", "yz", Nothing, Nothing]
+
+        group_builder.specify "follow Text.pad truncation behavior for grapheme and non-grapheme padding" pending=(if setup.is_database then "Character-counting semantics differ on database backends." else Nothing) <|
+            column = build_sorted_table [["X", ["XX", "", 'a\u{301}', Nothing]]] . at 0
+            left = column.pad_left 5 'y\u{301}y'
+            right = column.pad_right 5 'y\u{301}y'
+
+            left . to_vector . should_equal ['yy\u{301}yXX', 'yy\u{301}yy\u{301}y', 'y\u{301}yy\u{301}ya\u{301}', Nothing]
+            right . to_vector . should_equal ['XXy\u{301}yy\u{301}', 'y\u{301}yy\u{301}yy\u{301}', 'a\u{301}y\u{301}yy\u{301}y', Nothing]
+
+        group_builder.specify "fail when pad string is empty" <|
+            column = build_sorted_table [["X", ["A", "BC"]]] . at 0
+            (column.pad_left 3 "") . should_fail_with Illegal_Argument
+            (column.pad_right 3 "") . should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Text_Column index_of" group_builder->
         group_builder.specify "index_of should return index of first match" <|

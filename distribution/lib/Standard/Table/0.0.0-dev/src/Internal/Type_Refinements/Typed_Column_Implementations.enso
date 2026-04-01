@@ -216,6 +216,20 @@ type In_Memory_Text_Column_Implementation
             if b == "" then a.length else a.last_index_of b case_sensitivity=case_sensitivity
         apply_case_sensitive_text_operation column other case_sensitivity TextLastIndexOf.INSTANCE fallback new_name Value_Type.Integer
 
+    pad_left (this_column : Column & In_Memory_Column) (length : Column | Integer | Nothing) (with_pad : Column | Text | Any) =
+        Value_Type_Checks.is_integer length
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text with_pad
+        new_name = naming_helper.function_name "pad_left" [this_column, length, with_pad]
+        _apply_pad this_column length with_pad Location.Left new_name
+
+    pad_right (this_column : Column & In_Memory_Column) (length : Column | Integer | Nothing) (with_pad : Column | Text | Any) =
+        Value_Type_Checks.is_integer length
+        Value_Type_Checks.is_text this_column
+        Value_Type_Checks.is_text with_pad
+        new_name = naming_helper.function_name "pad_right" [this_column, length, with_pad]
+        _apply_pad this_column length with_pad Location.Right new_name
+
     parse_json (column : Column & In_Memory_Column) (on_problems:Problem_Behavior) =
         Value_Type_Checks.is_text column
         new_name = naming_helper.function_name "parse_json" [column]
@@ -255,3 +269,28 @@ private _resolve_time_zone (time_zone : Time_Zone|Text) =
     case time_zone of
         _ : Time_Zone -> time_zone
         tz_name : Text -> Time_Zone.parse tz_name
+
+private _apply_pad (this_column : Column & In_Memory_Column) (length : Column | Integer | Nothing) (with_pad : Column | Text | Any) location:Location new_name:Text =
+    do_pad text target_length pad =
+        if text.is_nothing || target_length.is_nothing || pad.is_nothing then Nothing else
+            text.pad target_length pad location
+
+    if length.is_a Column then
+        if with_pad.is_a Column then
+            row_count = this_column.row_count
+            java_this = this_column.java_column
+            java_length = (length:In_Memory_Column).java_column
+            java_with_pad = (with_pad:In_Memory_Column).java_column
+            builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
+            0.up_to row_count . each i->
+                replaced = do_pad (java_this.getItem i) (java_length.getItem i) (java_with_pad.getItem i)
+                builder.append replaced
+            In_Memory_Column.from_storage new_name builder.seal
+        else
+            _apply_binary_map this_column (text -> target_length-> do_pad text target_length with_pad) length new_name skip_nulls=False expected_result_type=Value_Type.Char
+    else
+        if with_pad.is_a Column then
+            _apply_binary_map this_column (text -> pad-> do_pad text length pad) with_pad new_name skip_nulls=False expected_result_type=Value_Type.Char
+        else
+            apply_unary_map this_column new_name (text -> do_pad text length with_pad) expected_result_type=Value_Type.Char nothing_unchanged=False
+    

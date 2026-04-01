@@ -453,7 +453,7 @@ type Snowflake_Dialect
 make_dialect_operations =
     arith = [sqrt, ln, log10, power, round_bankers]
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match, index_of, last_index_of]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match, index_of, last_index_of, _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT"]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST_IGNORE_NULLS"], ["ROW_MAX", Base_Generator.make_function "GREATEST_IGNORE_NULLS"]]
     bool = [bool_or]
@@ -704,6 +704,30 @@ last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
    ---
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ") COLLATE 'ucs_basic')"
+
+private _make_pad name =
+    generator arguments =
+        if arguments.length != 3 then Error.throw (Illegal_Argument.Error (name + " requires 3 arguments.")) else
+            str = arguments.at 0
+            target = arguments.at 1
+            fill = arguments.at 2
+
+            str_len = SQL_Builder.code "LENGTH(" ++ str ++ ")"
+            fill_len = SQL_Builder.code "LENGTH(" ++ fill ++ ")"
+            target_int = SQL_Builder.code "CAST(" ++ target ++ " AS INT)"
+            pad_size = SQL_Builder.code "(" ++ target_int ++ " - " ++ str_len ++ ")"
+            repetitions = SQL_Builder.code "FLOOR((" ++ pad_size ++ " * 1.0) / " ++ fill_len ++ ")"
+            remainder = SQL_Builder.code "(" ++ pad_size ++ " % " ++ fill_len ++ ")"
+            repeated_fill = SQL_Builder.code "REPEAT(" ++ fill ++ ", " ++ repetitions ++ ")"
+            truncated_fill = case name of
+                "PAD_LEFT" -> SQL_Builder.code "RIGHT(" ++ fill ++ ", " ++ remainder ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "LEFT(" ++ fill ++ ", " ++ remainder ++ ")"
+            padded = case name of
+                "PAD_LEFT" -> SQL_Builder.code "(" ++ truncated_fill ++ " || " ++ repeated_fill ++ " || " ++ str ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "(" ++ str ++ " || " ++ repeated_fill ++ " || " ++ truncated_fill ++ ")"
+
+            SQL_Builder.code "CASE WHEN " ++ str ++ " IS NULL OR " ++ target ++ " IS NULL OR " ++ fill ++ " IS NULL THEN NULL WHEN " ++ target_int ++ " <= " ++ str_len ++ " THEN " ++ str ++ " ELSE " ++ padded ++ " END"
+    [name, generator]
 
 ## ---
    private: true

@@ -187,7 +187,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       }
 
     val nodeIds = invalidated(edits)
-    val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    val direct = nodeIds.flatMap(node =>
+      ChangesetBuilder.toDataflowDependencyTypes(node, metadata)
+    )
     val transitive =
       go(
         mutable.Queue().addAll(direct),
@@ -678,14 +680,22 @@ object ChangesetBuilder {
     * @return the dataflow dependency type
     */
   private def toDataflowDependencyTypes(
-    node: NodeId
+    node: NodeId,
+    metadata: DependencyInfo
   ): Seq[DependencyInfo.Type] = {
     val static =
       new DependencyInfo.Type.Static(node.internalId, node.externalId)
-    val dynamic = node.name.map { name =>
-      new DependencyInfo.Type.Dynamic(name, node.externalId)
+    // Autoscope constructors have no entries in the DataflowAnalysis dependents map for their
+    // Static ID. For these nodes, the Dynamic dependency is the only way to find dependents.
+    val hasDependents = metadata.dependents.getDirect(static).exists(_.nonEmpty)
+    if (hasDependents) {
+      Seq(static)
+    } else {
+      val dynamic = node.name.map { name =>
+        new DependencyInfo.Type.Dynamic(name, node.externalId)
+      }
+      static +: dynamic.toSeq
     }
-    static +: dynamic.toSeq
   }
 
   /** Get expression name by the given id.

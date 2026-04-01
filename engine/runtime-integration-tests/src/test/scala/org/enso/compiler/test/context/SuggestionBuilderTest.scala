@@ -2417,6 +2417,136 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build type with two constructors with multiple fields" in {
+
+      val code =
+        """type Either
+          |    Left error details
+          |    Right value info""".stripMargin
+      val module = code.preprocessModule()
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Test",
+              name          = "Either",
+              params        = Seq(),
+              returnType    = "Test.Either",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId = None,
+              module     = "Test",
+              name       = "Left",
+              arguments = Seq(
+                Suggestion
+                  .Argument("error", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument(
+                  "details",
+                  SuggestionBuilder.Any,
+                  false,
+                  false,
+                  None
+                )
+              ),
+              returnType    = "Test.Either",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId = None,
+              module     = "Test",
+              name       = "Right",
+              arguments = Seq(
+                Suggestion
+                  .Argument("value", SuggestionBuilder.Any, false, false, None),
+                Suggestion
+                  .Argument("info", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Test.Either",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Test",
+              name       = "error",
+              arguments = List(
+                Suggestion
+                  .Argument("self", "Test.Either", false, false, None)
+              ),
+              selfType      = "Test.Either",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Test",
+              name       = "details",
+              arguments = List(
+                Suggestion
+                  .Argument("self", "Test.Either", false, false, None)
+              ),
+              selfType      = "Test.Either",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Test",
+              name       = "value",
+              arguments = List(
+                Suggestion
+                  .Argument("self", "Test.Either", false, false, None)
+              ),
+              selfType      = "Test.Either",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Test",
+              name       = "info",
+              arguments = List(
+                Suggestion
+                  .Argument("self", "Test.Either", false, false, None)
+              ),
+              selfType      = "Test.Either",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build type with documentation and two constructors" in {
 
       val code =

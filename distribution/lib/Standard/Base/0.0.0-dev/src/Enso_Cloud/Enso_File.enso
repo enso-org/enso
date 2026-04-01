@@ -218,8 +218,8 @@ type Enso_File
        - The file on which it was called.
     set_description : Text -> Enso_File
     set_description self (description : Text) -> Enso_File =
-        Context.Output.if_enabled disabled_message="Cannot set a description when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-            update_asset_description self description . if_not_error self
+        Context.Output.check_enabled disabled_message="Cannot set a description when writing is disabled. Press the Write button ▶ to perform the operation."
+        update_asset_description self description . if_not_error self
 
     ## ---
        group: Metadata
@@ -255,10 +255,14 @@ type Enso_File
     add_label self (label : Text) -> Enso_File =
         labels = self.labels
         if labels.contains label then self else
-            Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-                create_tags_if_not_exist [label] . if_not_error <|
-                    new_labels = labels+[label]
-                    update_asset_labels self new_labels . if_not_error self
+            Context.Output.check_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation."
+
+            create_result = create_tags_if_not_exist [label]
+            Error.return_if_error create_result
+
+            new_labels = labels+[label]
+            update_result = update_asset_labels self new_labels
+            update_result.if_not_error self
 
     ## ---
        group: Metadata
@@ -282,9 +286,10 @@ type Enso_File
     remove_label self (label : Text) -> Boolean =
         labels = self.labels
         if labels.contains label . not then False else
-            Context.Output.if_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-                new_labels = labels.filter l-> l != label
-                update_asset_labels self new_labels . if_not_error True
+            Context.Output.check_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation."
+            new_labels = labels.filter l-> l != label
+            update_result = update_asset_labels self new_labels
+            update_result.if_not_error True
 
     ## ---
        group: Metadata
@@ -303,9 +308,13 @@ type Enso_File
        - The file on which it was called.
     set_labels : Vector Text -> Enso_File
     set_labels self (labels : Vector Text) -> Enso_File =
-        Context.Output.if_enabled disabled_message="Cannot update labels when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-            create_tags_if_not_exist labels . if_not_error <|
-                update_asset_labels self labels . if_not_error self
+        Context.Output.check_enabled disabled_message="Cannot update labels when writing is disabled. Press the Write button ▶ to perform the operation."
+
+        create_result = create_tags_if_not_exist labels
+        Error.return_if_error create_result
+
+        update_result = update_asset_labels self labels
+        update_result.if_not_error self
 
     ## ---
        icon: data_output
@@ -319,9 +328,9 @@ type Enso_File
     create_label (name : Text) (color : Color) -> Nothing =
         # TODO once cloud also checks for tag existence, if the Write context is enabled we could avoid this check as cloud will do it anyway - then we'll have only one request instead of 2 each time
         # Cloud ticket: https://github.com/enso-org/cloud-v2/issues/1544
-        if does_tag_exist name then Error.throw (Illegal_Argument.Error "A label with name "+name+" already exists.") else
-            Context.Output.if_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-                create_tag name color . if_not_error Nothing
+        if does_tag_exist name then Error.throw (Illegal_Argument.Error "A label with name "+name+" already exists.")
+        Context.Output.check_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation."
+        create_tag name color . if_not_error Nothing
 
     ## ---
        group: Metadata
@@ -415,21 +424,22 @@ type Enso_File
           some value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
-            is_data_link = self.is_data_link
-            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && is_data_link
-            if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
-                if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
-                    File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
-                        allow_existing = open_options.contains File_Access.Create_New . not
-                        case is_data_link of
-                            False ->
-                                tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
-                                Panic.with_finalizer tmp_file.delete <|
-                                    perform_upload self allow_existing <|
-                                        result = tmp_file.with_output_stream [File_Access.Write] action
-                                        result.if_not_error [tmp_file, result]
-                            True -> create_datalink_from_stream_action self allow_existing action
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation."
+
+        is_data_link = self.is_data_link
+        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && is_data_link
+        if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
+            if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents."
+            File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
+                allow_existing = open_options.contains File_Access.Create_New . not
+                case is_data_link of
+                    False ->
+                        tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
+                        Panic.with_finalizer tmp_file.delete <|
+                            perform_upload self allow_existing <|
+                                result = tmp_file.with_output_stream [File_Access.Write] action
+                                result.if_not_error [tmp_file, result]
+                    True -> create_datalink_from_stream_action self allow_existing action
 
     ## ---
        private: true
