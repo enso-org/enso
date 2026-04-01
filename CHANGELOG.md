@@ -15,6 +15,7 @@
 - [Add right click menu for multiple components][14640].
 - [Execution can be scheduled for the specific version tag][14883]
 - [Add component spacing options][14888]
+- [A comment can be attached to the asset version][14923]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -28,6 +29,7 @@
 [14640]: https://github.com/enso-org/enso/pull/14640
 [14883]: https://github.com/enso-org/enso/pull/14883
 [14888]: https://github.com/enso-org/enso/pull/14888
+[14823]: https://github.com/enso-org/enso/pull/14823
 
 #### Enso Standard Library
 
