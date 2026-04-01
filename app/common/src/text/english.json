@@ -1156,6 +1156,8 @@
   "assetVersions.invalidAssetType": "Versions are available for projects, files and datalinks only.",
   "assetVersions.notSelected": "Select a single asset to view its versions.",
   "assetVersions.cloudOnly": "Versions (Exclusive to Cloud)",
+  "assetVersions.addTag": "Add tag",
+  "assetVersions.removeTag": "Remove tag",
   "assetProjectSessions.noSessions": "No sessions yet! Open the project to start a session.",
   "assetProjectSessions.localBackend": "Sessions are not available for local projects.",
   "assetProjectSessions.notSelected": "Select a single project to view its sessions.",

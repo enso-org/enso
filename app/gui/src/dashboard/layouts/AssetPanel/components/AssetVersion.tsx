@@ -6,13 +6,14 @@ import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
 import { Menu } from '#/components/Menu'
 import { TEXT_WITH_ICON } from '#/components/patterns'
-import { Text } from '#/components/Text'
+import { Text, TEXT_STYLE } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { useAddAssetVersionTag, useRemoveAssetVersionTag } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { setModal } from '#/providers/ModalProvider'
+import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import type { Backend } from 'enso-common/src/services/Backend'
 import * as backendService from 'enso-common/src/services/Backend'
@@ -167,47 +168,47 @@ export function AssetVersion(props: AssetVersionProps) {
           {version.tags.length > 0 &&
             (shouldCollapseTags ?
               <CollapsedTagsPlaceholder />
-            : <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+            : <div className="flex min-w-0 items-center gap-1">
                 {version.tags.map((tag, index) => (
-                  <VisualTooltip
+                  <div
                     key={`${version.versionId}-${tag}-${index}`}
-                    tooltip={tag}
-                    className={`min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink overflow-hidden`}
+                    className={`min-w-0 min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink`}
                   >
-                    <Badge variant="outline" className="w-full">
-                      <Button
-                        icon="tab_close"
-                        variant="icon"
-                        size="xxsmall"
-                        onPress={() => onDelete(version.versionId, tag)}
-                        className="m-0 p-0"
-                      >
-                        {tag}
-                      </Button>
-                    </Badge>
-                  </VisualTooltip>
+                    <Tag
+                      tooltip={tag}
+                      onDelete={
+                        tag !== getText('latestIndicator') ?
+                          () => onDelete(version.versionId, tag)
+                        : undefined
+                      }
+                    >
+                      {tag}
+                    </Tag>
+                  </div>
                 ))}
               </div>)}
-          <Dialog.Trigger>
-            <Button
-              showIconOnHover
-              variant="icon"
-              size="xxsmall"
-              fullWidth
-              icon="add"
-              tooltip={'add tag'}
-              onPress={() => {
-                setEditedVersion(version.versionId)
-              }}
-            />
-            <AddTag
-              item={item}
-              version={version}
-              backend={backend}
-              setEditedVersion={setEditedVersion}
-              editedVersion={editedVersion}
-            />
-          </Dialog.Trigger>
+          {false && (
+            <Dialog.Trigger>
+              <Button
+                showIconOnHover
+                variant="icon"
+                size="xxsmall"
+                fullWidth
+                icon="add"
+                tooltip={'add tag'}
+                onPress={() => {
+                  setEditedVersion(version.versionId)
+                }}
+              />
+              <AddTag
+                item={item}
+                version={version}
+                backend={backend}
+                setEditedVersion={setEditedVersion}
+                editedVersion={editedVersion}
+              />
+            </Dialog.Trigger>
+          )}
         </div>
 
         {/* Tags list copies to measure sizes for conditional collapse behavior. */}
@@ -378,5 +379,57 @@ function VersionDialog(props: VersionDialogProps) {
         />
       </div>
     </Dialog>
+  )
+}
+
+/** Tag props. */
+interface TagProps {
+  readonly children: React.ReactNode
+  readonly className?: string
+  readonly tooltip: string
+  readonly onDelete?: (() => void) | undefined
+}
+
+const TAG_STYLES = tv({
+  base: 'flex items-center min-w-0 w-full rounded-full border-[0.5px] text-primary overflow-visible',
+  variants: {
+    variant: {
+      deleteButton: 'pl-2 pr-1',
+      noDeleteButton: 'px-2',
+    },
+  },
+  slots: {
+    deleteButton: 'ml-1 flex-none opacity-40 hover:opacity-100',
+    textWrapper: 'min-w-0 flex-1',
+    text: TEXT_STYLE({ variant: 'body-sm', color: 'current', truncate: true }),
+  },
+})
+
+/** Version tag component. */
+function Tag(props: TagProps) {
+  const { children, onDelete, tooltip, className } = props
+  const styles = TAG_STYLES({
+    className: className,
+    variant: onDelete ? 'deleteButton' : 'noDeleteButton',
+  })
+  const { getText } = useText()
+  return (
+    <div className={styles.base()}>
+      <div className={styles.textWrapper()}>
+        <VisualTooltip tooltip={tooltip} className="block min-w-0">
+          <span className={styles.text()}>{children}</span>
+        </VisualTooltip>
+      </div>
+      {onDelete && (
+        <Button
+          icon="close"
+          tooltip={getText('assetVersions.removeTag')}
+          variant="icon"
+          size="xxsmall"
+          onPress={onDelete}
+          className={styles.deleteButton()}
+        />
+      )}
+    </div>
   )
 }
