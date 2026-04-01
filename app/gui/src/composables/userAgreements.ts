@@ -2,6 +2,7 @@ import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { proxyRefs } from '$/utils/reactivity'
 import * as vueQuery from '@tanstack/vue-query'
+import { BackendType } from 'enso-common/src/services/Backend'
 import { computed, effectScope } from 'vue'
 import * as z from 'zod'
 
@@ -75,8 +76,14 @@ export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
     const agreedToPrivacyPolicy = computed(
       () => privacyPolicyHash.value === cachedPrivacyPolicyHash.value?.versionHash,
     )
-    const userAgreed = () => {
-      remoteBackend.updateUser({ tosAccepted: tosHash.value, ppAccepted: privacyPolicyHash.value })
+    const userAgreed = async () => {
+      await remoteBackend
+        .updateUser({ tosAccepted: tosHash.value, ppAccepted: privacyPolicyHash.value })
+        .then(async () => {
+          await queryClient.invalidateQueries({
+            queryKey: [BackendType.remote, 'usersMe'],
+          })
+        })
     }
 
     return proxyRefs({

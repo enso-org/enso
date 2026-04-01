@@ -112,11 +112,6 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('textbox', { name: 'password' }).fill('mellon')
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
-  await expect(
-    page
-      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
-      .getByText(TEXT.licenseAgreementCheckbox),
-  ).toBeVisible({ timeout: 60000 })
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
     .getByText(TEXT.licenseAgreementCheckbox)

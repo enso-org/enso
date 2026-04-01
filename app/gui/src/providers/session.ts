@@ -4,6 +4,10 @@ import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent, type ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
+import {
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '$/composables/userAgreements'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
@@ -316,6 +320,11 @@ export function createSessionStore(
     }
   }
 
+  const latestTermsOfServiceHash = async () =>
+    (await queryClient.fetchQuery(latestTermsOfServiceQueryOptions)).hash
+  const latestPrivacyPolicyHash = async () =>
+    (await queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)).hash
+
   watchEffect(() => {
     if (session.data.value) {
       // Save access token so can it be reused by backend services
@@ -361,6 +370,8 @@ export function createSessionStore(
     updateMFAPreference,
     verifyTotpToken,
     setupTOTP,
+    latestTermsOfServiceHash,
+    latestPrivacyPolicyHash,
   })
 }
 

@@ -735,7 +735,7 @@ function intoSignUpParams(
         ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
         /** Custom attributes that stores hashes of accepted terms of service and privacy policy. */
         ...{ 'custom:initTosHash': tosHashAccepted },
-        ...{ initPpHash: ppHashAccepted },
+        ...{ 'custom:initPpHash': ppHashAccepted },
       },
     },
   }
