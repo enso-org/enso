@@ -19,9 +19,6 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
 
     jvm_args = if Enso_Bin_Utils.runs_in_aot then [] else [ "--jvm" ]
 
-    group_builder.teardown <|
-        tmp_root.delete recursive=True
-
     group_builder.specify "should do nothing on logging" <|
         value.log_message "Hidden message" Log_Level.Finest
         value.log_message "Less hidden message" Log_Level.Fine
@@ -163,7 +160,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         js_code.write js_file
 
         all_args = jvm_args
-            + [ "--server", "--daemon", "--log-level=trace" ]
+            + [ "--server", "--daemon" ]
             + [ "--root-id", "fbfd4950-2324-4108-99b7-019a614f94ab"]
             + [ "--project-id", "2b27d943-7c6b-4481-8e69-67d0c57a02ed" ]
             + [ "--path",  prj_dir.to_text, "--interface", "127.0.0.1", "--rpc-port", "37432" ]
