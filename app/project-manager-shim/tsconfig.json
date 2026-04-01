@@ -13,6 +13,7 @@
     "./src/desktopEnvironment.ts",
     "./src/distributionManager.ts",
     "./src/fs.ts",
+    "./src/handler/__tests__/filesystem.test.ts",
     "./src/handler/filesystem.ts",
     "./src/handler/http.ts",
     "./src/handler/index.ts",

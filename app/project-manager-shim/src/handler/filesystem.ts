@@ -367,7 +367,7 @@ function extractSessionBaseName(filename: string): string | null {
  * Encode a session ID from projectId and file base name.
  * Format: `localprojectsession-{projectId}/{baseName}`
  */
-function encodeSessionId(projectId: string, baseName: string): string {
+export function encodeSessionId(projectId: string, baseName: string): string {
   return `${SESSION_ID_PREFIX}${projectId}/${baseName}`
 }
 
@@ -392,7 +392,7 @@ function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: 
  * List project sessions by scanning `{logDir}/{projectId}/` for log files.
  * Each unique base name (active log + its rolled archives) is one session.
  */
-async function listProjectSessions(
+export async function listProjectSessions(
   projectId: string,
 ): Promise<{ sessions: readonly { projectSessionId: string; createdAt: string }[] }> {
   const projectLogDir = path.join(getEngineLogDirectory(), projectId)
@@ -430,7 +430,7 @@ async function listProjectSessions(
  * - `"active"`    load the active .log file
  * - `"done"`      return empty (signals end of pagination)
  */
-function getProjectSessionLogs(
+export function getProjectSessionLogs(
   sessionId: string,
   scrollId: string | null,
 ): { scrollId: string; hits: readonly string[] } {
