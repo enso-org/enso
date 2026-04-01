@@ -309,7 +309,7 @@ Text.contains_line self regex:Text =
 
 Text.not_contains_line self regex:Text =
     r = Regex.compile regex
-    found = self.split "\n" . find \line->
+    found = self.lines . find \line->
         subline = r.find line
         subline.is_nothing.not
     if found.is_error.not then

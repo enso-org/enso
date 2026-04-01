@@ -1612,6 +1612,7 @@ public class Main {
     } else {
       if (hasJVMOption && HostEnsoUtils.isAot()) {
         // avoid setting up logger in SVM
+        // as we are about to fully run in HotSpot
       } else {
         setupLogging(line, logLevel, logMasking);
       }
