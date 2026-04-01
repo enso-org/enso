@@ -166,7 +166,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
             + [ "--server", "--daemon", "--log-level=trace" ]
             + [ "--root-id", "fbfd4950-2324-4108-99b7-019a614f94ab"]
             + [ "--project-id", "2b27d943-7c6b-4481-8e69-67d0c57a02ed" ]
-            + [ "--path",  prj_dir.to_text, "--interface", "127.0.0.1", "--rpc-port", "37432", "--data-port", "37617" ]
+            + [ "--path",  prj_dir.to_text, "--interface", "127.0.0.1", "--rpc-port", "37432" ]
             + args
 
         proc = Process.new_builder "enso"
