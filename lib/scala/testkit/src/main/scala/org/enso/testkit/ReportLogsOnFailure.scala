@@ -1,51 +1,50 @@
 package org.enso.testkit
 
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.Appender
-import org.enso.logging.service.logback.MemoryAppender
 import org.scalatest.{Args, Failed, Outcome, Status, TestSuite}
-import org.slf4j.{Logger, LoggerFactory}
+import org.enso.logger.ObservedMessage
 
 trait ReportLogsOnFailure extends TestSuite {
-
-  private lazy val appender: Appender[ILoggingEvent] = {
-    val ctx = LoggerFactory.getILoggerFactory;
-    val rootLogger = ctx
-      .getLogger(Logger.ROOT_LOGGER_NAME)
-      .asInstanceOf[ch.qos.logback.classic.Logger]
-    rootLogger.getAppender(MemoryAppender.NAME)
-  }
 
   abstract override protected def runTest(
     testName: String,
     args: Args
   ): Status = {
-    appender match {
-      case memoryAppender: MemoryAppender =>
-        memoryAppender.stopForwarding()
-        super.runTest(testName, args)
-      case _ =>
-        super.runTest(testName, args)
+    val log    = org.slf4j.LoggerFactory.getLogger("org")
+    val ps     = System.out
+    val arr    = new java.util.ArrayList[ObservedMessage]()
+    val handle = ObservedMessage.observe(log, arr.add(_))
+    try {
+      super.runTest(testName, args)
+    } catch {
+      case e: Throwable =>
+        arr.forEach {
+          ps.println(_)
+        }
+        throw e
+    } finally {
+      arr.clear()
+      handle.close()
     }
-
   }
 
   abstract override def withFixture(test: NoArgTest): Outcome = {
-    appender match {
-      case memoryAppender: MemoryAppender =>
-        try {
-          super.withFixture(test) match {
-            case outcome @ Failed(_) =>
-              memoryAppender.flush()
-              outcome
-            case outcome =>
-              outcome
+    val log    = org.slf4j.LoggerFactory.getLogger("org")
+    val ps     = System.out
+    val arr    = new java.util.ArrayList[ObservedMessage]()
+    val handle = ObservedMessage.observe(log, arr.add(_))
+    try {
+      super.withFixture(test) match {
+        case outcome @ Failed(_) =>
+          arr.forEach {
+            ps.println(_)
           }
-        } finally {
-          memoryAppender.reset()
-        }
-      case _ =>
-        super.withFixture(test)
+          outcome
+        case outcome =>
+          outcome
+      }
+    } finally {
+      arr.clear()
+      handle.close()
     }
   }
 

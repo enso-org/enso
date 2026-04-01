@@ -115,6 +115,11 @@ public final class ObservedMessage {
     return formattedMsg.get();
   }
 
+  @Override
+  public String toString() {
+    return "[" + level + "] [" + instant + "] " + getFormattedMessage();
+  }
+
   /**
    * Provides <em>observing capabilities</em> to used logging infrastructure. Different
    * implementations of {@link Logger} have different ways of being <em>observed</em>. If one is
