@@ -59,23 +59,10 @@ public final class LanguageServerRunner extends LanguageServerApi {
     } catch (NumberFormatException e) {
       throw new WrongOption("Port must be integer");
     }
-    int dataPort;
-    try {
-      dataPort = Integer.parseInt(line.getOptionValue(LanguageServerApi.DATA_PORT_OPTION, "8081"));
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
     Integer secureRpcPort;
     try {
       var port = line.getOptionValue(LanguageServerApi.SECURE_RPC_PORT_OPTION);
       secureRpcPort = port == null ? null : Integer.valueOf(port);
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    Integer secureDataPort;
-    try {
-      var port = line.getOptionValue(LanguageServerApi.SECURE_DATA_PORT_OPTION);
-      secureDataPort = port == null ? null : Integer.valueOf(port);
     } catch (NumberFormatException e) {
       throw new WrongOption("Port must be integer");
     }
@@ -87,8 +74,6 @@ public final class LanguageServerRunner extends LanguageServerApi {
             interfac,
             rpcPort,
             scala.Option.apply(secureRpcPort),
-            dataPort,
-            scala.Option.apply(secureDataPort),
             rootId,
             rootPath,
             projectId,

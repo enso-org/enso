@@ -41,8 +41,6 @@ export interface Runner {
 export interface LanguageServerSockets {
   readonly jsonSocket: Socket
   readonly secureJsonSocket?: Socket
-  readonly binarySocket: Socket
-  readonly secureBinarySocket?: Socket
   readonly ydocSocket: Socket
 }
 
@@ -92,13 +90,11 @@ class OpenedProject {
   static async create(
     path: Path,
     jsonPort: number,
-    binaryPort: number,
     ydocPort: number,
     spawner: () => Promise<childProcess.ChildProcess>,
   ) {
     const sockets = {
       jsonSocket: { host: '127.0.0.1', port: jsonPort },
-      binarySocket: { host: '127.0.0.1', port: binaryPort },
       ydocSocket: { host: '127.0.0.1', port: ydocPort },
     }
     const process = await spawner()
@@ -358,7 +354,7 @@ export class EnsoRunner implements Runner {
       await this.loadingProjects.values().next().value
     }
     const openedProject = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(
-      async ([jsonPort, binaryPort, ydocPort]) => {
+      async ([jsonPort, ydocPort]) => {
         const rootId = crypto.randomUUID()
         const args: readonly string[] = [
           '--server',
@@ -372,8 +368,6 @@ export class EnsoRunner implements Runner {
           '127.0.0.1',
           '--rpc-port',
           jsonPort.toString(),
-          '--data-port',
-          binaryPort.toString(),
           ...(extraArgs ?? []),
         ]
 
@@ -384,21 +378,16 @@ export class EnsoRunner implements Runner {
         }
 
         const cwd = path.dirname(projectPath)
-        const project = await OpenedProject.create(
-          projectPath,
-          jsonPort,
-          binaryPort,
-          ydocPort,
-          () =>
-            this.runProcess(args, (cmd, cmdArgs) =>
-              childProcess.spawn(cmd, cmdArgs, {
-                env,
-                detached: false,
-                cwd,
-                stdio: ['pipe', 'inherit', 'inherit'],
-                windowsHide: true,
-              }),
-            ),
+        const project = await OpenedProject.create(projectPath, jsonPort, ydocPort, () =>
+          this.runProcess(args, (cmd, cmdArgs) =>
+            childProcess.spawn(cmd, cmdArgs, {
+              env,
+              detached: false,
+              cwd,
+              stdio: ['pipe', 'inherit', 'inherit'],
+              windowsHide: true,
+            }),
+          ),
         )
         project.shutdownHooks.set('remove-from-list', () => {
           this.runningProjects.delete(projectPath)
@@ -548,16 +537,16 @@ export class EnsoRunner implements Runner {
   }
 
   /** Finds an available port starting from the given port number. */
-  private async findServerPorts(startPort: number): Promise<[number, number, number]> {
+  private async findServerPorts(startPort: number): Promise<[number, number]> {
     return new Promise((resolve, reject) => {
-      portfinder.getPorts(3, { port: startPort }, (err, ports) => {
+      portfinder.getPorts(2, { port: startPort }, (err, ports) => {
         if (err) {
           reject(new Error(`Failed to find ports: ${err}`))
         }
-        if (ports.length < 3) {
+        if (ports.length < 2) {
           reject(new Error(`Failed to find all ports: ${ports}`))
         }
-        resolve(ports as [number, number, number])
+        resolve(ports as [number, number])
       })
     })
   }

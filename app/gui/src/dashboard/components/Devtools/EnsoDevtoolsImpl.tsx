@@ -1,13 +1,6 @@
 /** @file A list of toggles for paywall features. */
 import CrossIcon from '#/assets/cross.svg'
 import { Button, CopyButton, type ButtonProps } from '#/components/Button'
-import {
-  useEnableVersionChecker,
-  usePaywallDevtools,
-  useSetEnableVersionChecker,
-  useShowEnsoDevtools,
-  useToggleEnsoDevtools,
-} from '#/components/Devtools/EnsoDevtoolsProvider'
 import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Icon } from '#/components/Icon'
@@ -19,9 +12,9 @@ import { Text } from '#/components/Text'
 import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
-import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
 import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import { getFeatureConfiguration } from '$/composables/paywall/FeaturesConfiguration'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
@@ -29,8 +22,13 @@ import {
   DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
-import { useLocalStorage, useText } from '$/providers/react'
+import { useIsFeatureUnderPaywall, useLocalStorage, useText } from '$/providers/react'
 import { useUserSession } from '$/providers/react/auth'
+import {
+  usePaywallDevtools,
+  useShowEnsoDevtools,
+  useShowVersionChecker,
+} from '$/providers/react/devTools'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import * as backend from 'enso-common/src/services/Backend'
@@ -69,9 +67,8 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
   const { getText } = useText()
-  const showEnsoDevtools = useShowEnsoDevtools()
-  const versionCheckerEnabled = useEnableVersionChecker() ?? false
-  const setVersionCheckerEnabled = useSetEnableVersionChecker()
+  const [showEnsoDevtools] = useShowEnsoDevtools()
+  const [versionCheckerEnabled, setVersionCheckerEnabled] = useShowVersionChecker()
   const {
     developerPlanOverride,
     showDeveloperIds,
@@ -251,16 +248,13 @@ export function EnsoDevtools() {
   const queryClient = useQueryClient()
   const session = useUserSession()
 
-  const { getFeature } = usePaywallFeatures()
-  const toggleEnsoDevtools = useToggleEnsoDevtools()
+  const [showEnsoDevtools, setShowEnsoDevtools] = useShowEnsoDevtools()
 
   const { features, setFeature } = usePaywallDevtools()
 
-  const currentlyViewedPlan = session?.user.plan ?? backend.Plan.free
-  const { isFeatureUnderPaywall } = usePaywall({ plan: currentlyViewedPlan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
 
-  const enableVersionChecker = useEnableVersionChecker()
-  const setEnableVersionChecker = useSetEnableVersionChecker()
+  const [enableVersionChecker, setEnableVersionChecker] = useShowVersionChecker()
 
   const localStorage = useLocalStorage()
   const localStorageState = useLocalStorageValues(localStorage)
@@ -290,7 +284,7 @@ export function EnsoDevtools() {
           <Button
             variant="icon"
             onPress={() => {
-              toggleEnsoDevtools()
+              setShowEnsoDevtools(!showEnsoDevtools)
             }}
           >
             {getText('hideDevtools')}
@@ -528,7 +522,7 @@ export function EnsoDevtools() {
           )}
         >
           {unsafeKeys(features).map((featureName) => {
-            const { label, descriptionTextId } = getFeature(featureName)
+            const { label, descriptionTextId } = getFeatureConfiguration(featureName)
             return (
               <Switch
                 key={featureName}

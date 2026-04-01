@@ -39,6 +39,11 @@ const action = computed(() => resolveAction(actionName))
 .rowIcon {
   display: inline-block;
   margin-right: 8px;
+
+  &.rowIconPlaceholder {
+    width: var(--icon-width, var(--icon-size, 16px));
+    height: var(--icon-height, var(--icon-size, 16px));
+  }
 }
 
 .shortcutHint {

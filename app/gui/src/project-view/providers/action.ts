@@ -41,7 +41,7 @@ export interface Action {
   toggled?: Ref<boolean> | (() => boolean) | undefined
 }
 export interface DisplayableAction extends Action {
-  icon: ToValue<Icon>
+  icon?: ToValue<Icon>
   description: ToValue<string>
 }
 export type ActionHandler = Partial<Action> & { action: (ctx: ActionContext | undefined) => void }
@@ -350,6 +350,17 @@ const displayableActions = {
     description: 'Open Command Palette',
     shortcut: commandPaletteBindings.bindings['commandPalette.open'],
   },
+
+  // === Help ===
+
+  'help.whatsNew': { description: "What's new" },
+  'help.community': { description: 'Community' },
+  'help.gettingStarted': { description: 'Getting Started with Enso Analytics' },
+  'help.askAQuestion': { description: 'Ask a question' },
+  'help.componentExamples': { description: 'Component examples' },
+  'help.exampleWorkflows': { description: 'Example workflows' },
+  'help.docs': { description: 'Documentation' },
+  'help.contactUs': { description: 'Contact Us' },
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
@@ -535,12 +546,7 @@ interface ResolvedAction extends Action {
   action: () => void
 }
 
-interface DisplayableResolvedAction extends ResolvedAction {
-  icon: ToValue<Icon>
-  description: ToValue<string>
-}
-
-export function resolveAction(actionName: DisplayableActionName): DisplayableResolvedAction
+export function resolveAction(actionName: DisplayableActionName): ResolvedAction & DisplayableAction
 export function resolveAction(actionName: ActionName): ResolvedAction
 /**
  * Potentially resolve an action by name from context. Raises an error if such action is not found.

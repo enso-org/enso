@@ -79,8 +79,7 @@ type OneDrive
         upload_target = if is_folder then parsed_destination else parsed_destination.parent
 
         ## Check Execution Context
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation."
 
         Data_Link_Helpers.as_file resolved_file file->
             if file.size > 4000000 then Error.throw (Unimplemented.Error "Writing files larger than 4 MB to OneDrive is not currently implemented.")
@@ -265,9 +264,9 @@ type OneDrive_File
     copy_to : File_Like -> Boolean -> Any ! Illegal_Argument | File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         if self.is_directory then Error.throw (Illegal_Argument.Error "Copying OneDrive folders is currently not implemented." self.uri)
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation." panic=False <|
-            destination_writable = Writable_File.from destination
-            generic_copy self destination_writable replace_existing
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation."
+        destination_writable = Writable_File.from destination
+        generic_copy self destination_writable replace_existing
 
     ## ---
        private: true

@@ -58,7 +58,7 @@ export function findScrollContainers(element: HTMLOrSVGElement | null): HTMLOrSV
  * @returns An array of containers that possibly have overflow
  */
 export function findOverflowContainers(element: HTMLOrSVGElement | null): HTMLOrSVGElement[] {
-  return elementHierarchy(element).filter((el) => el !== document.body && isOverflowing(el))
+  return [...elementHierarchy(element)].filter((el) => el !== document.body && isOverflowing(el))
 }
 
 /**

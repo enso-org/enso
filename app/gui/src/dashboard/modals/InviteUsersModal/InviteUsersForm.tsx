@@ -3,11 +3,9 @@ import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import * as paywallComponents from '#/components/Paywall'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 import * as parserUserEmails from '#/utilities/parseUserEmails'
-import * as authProvider from '$/providers/react'
-import { useBackends, useText } from '$/providers/react'
+import { useBackends, useIsFeatureUnderPaywall, useText } from '$/providers/react'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import type * as backendModule from 'enso-common/src/services/Backend'
 import * as React from 'react'
@@ -25,8 +23,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const { remoteBackend: backend } = useBackends()
   const inputRef = React.useRef<HTMLDivElement>(null)
 
-  const { user } = authProvider.useFullUserSession()
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
 
   const inviteUserMutation = useMutation(
     backendMutationOptions(backend, 'inviteUser', {

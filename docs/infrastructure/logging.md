@@ -31,6 +31,7 @@ problems, but don't overload by too much logging. The system allows to
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [User config](#user-config)
+  - [IDE Config](#ide-config)
   - [Progress and Profiling](#progress-and-profiling)
 - [Configuration in Code](#configuration-in-code)
   - [Custom Log Levels](#custom-log-levels)
@@ -71,6 +72,17 @@ name. The `debug` value (or other) shall represent a valid level name. System
 properties always take priority over any default values defined in embedded
 `application.conf` file (see [custom Log Levels](#custom-log-levels) section).
 
+### IDE Config
+
+When running the IDE one can configure the logging using the same arguments, but
+providing them via `ENSO_ENGINE_ARGS` environment variable:
+
+```bash
+enso$ ENSO_ENGINE_ARGS="--log-level debug" corepack pnpm run dev:gui
+```
+
+Turns the `DEBUG` verbosity on.
+
 ### Progress and Profiling
 
 Enso API accompanies `Logging` with additional `Progress` API. Such an API is
@@ -92,7 +104,7 @@ enso$ enso --vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug --run 
 [Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~16ms
 ```
 
-Use `ENSO_ENGINE_ARGS` to enable the profiling for the IDE:
+Use `ENSO_ENGINE_ARGS` to enable the [profiling for the IDE](#ide-config):
 
 ```bash
 enso$ ENSO_ENGINE_ARGS=--vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug corepack pnpm dev:gui

@@ -83,7 +83,11 @@ public final class WithWarnings extends EnsoObject {
     var mapSizeNode = HashMapSizeNode.getUncached();
     assert mapSizeNode.execute(warningsMap) <= maxWarnings;
     if (limitReached) {
-      assert mapSizeNode.execute(warningsMap) == maxWarnings;
+      assert mapSizeNode.execute(warningsMap) >= maxWarnings
+          : "Limit reached (maxWarnings = "
+              + maxWarnings
+              + "): "
+              + mapSizeNode.execute(warningsMap);
     }
     this.value = value;
     this.maxWarnings = maxWarnings;
