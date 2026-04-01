@@ -827,7 +827,6 @@ export class RemoteBackend extends backend.Backend {
       return {
         ...rest,
         jsonAddress: address != null ? backend.Address(`${address}json`) : null,
-        binaryAddress: address != null ? backend.Address(`${address}binary`) : null,
         ydocAddress: address != null ? backend.Address(`${address}project`) : null,
       }
     }

@@ -95,6 +95,22 @@ export function useTransferBetweenCategories(currentCategory: Category) {
         case 'team':
         case 'cloud':
         case 'user': {
+          if (from.type === 'team' && to.type === 'team' && from.id !== to.id) {
+            let resolution: Resolution = 'confirm'
+
+            if (method === 'move') {
+              resolution = await askToCopyInstead(
+                getText,
+                getText('copyInsteadOfMoving', from.label),
+              )
+            }
+
+            if (resolution === 'confirm') {
+              await copyAssets([keysArray, targetDirectoryId])
+              return
+            }
+          }
+
           if (to.type === 'trash') {
             await deleteAssets([keysArray, false])
             return

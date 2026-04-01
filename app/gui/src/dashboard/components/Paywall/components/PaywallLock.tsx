@@ -2,13 +2,13 @@
 import LockIcon from '#/assets/lock.svg'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
-import * as billingHooks from '#/hooks/billing'
+import { getFeatureConfiguration, type PaywallFeatureName } from '$/composables/paywall'
 import { useText } from '$/providers/react'
 import * as tw from 'tailwind-merge'
 
 /** Props for a {@link PaywallLock}. */
 export interface PaywallLockProps {
-  readonly feature: billingHooks.PaywallFeatureName
+  readonly feature: PaywallFeatureName
   readonly className?: string
 }
 
@@ -17,9 +17,7 @@ export function PaywallLock(props: PaywallLockProps) {
   const { feature, className } = props
   const { getText } = useText()
 
-  const { getFeature } = billingHooks.usePaywallFeatures()
-
-  const { level } = getFeature(feature)
+  const { level } = getFeatureConfiguration(feature)
   const levelLabel = getText(level.label)
 
   return (

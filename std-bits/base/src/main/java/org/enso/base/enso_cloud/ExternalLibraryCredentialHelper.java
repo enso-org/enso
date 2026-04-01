@@ -166,7 +166,9 @@ public class ExternalLibraryCredentialHelper {
   private static final List<RestrictedAccess.AccessLocation> allowParseCredential =
       List.of(
           new RestrictedAccess.AccessLocation(
-              "org.enso.snowflake.SnowflakeCloudCredentials", "unsafeReadCredential"));
+              "org.enso.snowflake.SnowflakeCloudCredentials", "unsafeReadCredential"),
+          new RestrictedAccess.AccessLocation(
+              "org.enso.saas.salesforce.SalesforceCloudCredentials", "unsafeReadCredential"));
 
   private static final List<RestrictedAccess.AccessLocation> allowRefreshCredential =
       List.of(

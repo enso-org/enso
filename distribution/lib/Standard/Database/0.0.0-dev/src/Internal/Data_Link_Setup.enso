@@ -35,7 +35,8 @@ type Data_Link_Setup
        private: true
        ---
     save_as_data_link self destination on_existing_file:Existing_File_Behavior link_type:DB_Data_Link_Type=..Database = case self of
-        Data_Link_Setup.Available create_fn -> Context.Output.if_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation." panic=False <|
+        Data_Link_Setup.Available create_fn ->
+            Context.Output.check_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation."
             case destination of
                 _ : Enso_File ->
                     replace_existing = case on_existing_file of
@@ -43,12 +44,11 @@ type Data_Link_Setup
                         Existing_File_Behavior.Error -> False
                         _ -> Error.throw (Illegal_Argument.Error "Invalid value for `on_existing_file` parameter, only `Overwrite` and `Error` are supported here.")
                     exists_checked = if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination)
-                    exists_checked.if_not_error <|
-                        connection_description = create_fn destination
-                        json = link_type.add_to_data_link_description connection_description
-                        Data_Link.write_config destination json replace_existing
+                    Error.return_if_error exists_checked
+                    connection_description = create_fn destination
+                    json = link_type.add_to_data_link_description connection_description
+                    Data_Link.write_config destination json replace_existing
                 _ -> Error.throw (Illegal_Argument.Error "Currently a connection can only be saved as a Data Link into the Enso Cloud. Please provide an `Enso_File` as destination.")
-
         Data_Link_Setup.Unavailable cause ->
             word = case link_type of
                 DB_Data_Link_Type.Database -> "connection"

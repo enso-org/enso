@@ -205,6 +205,24 @@ type Context
        function and returns the result. If not, panics.
 
        ## Arguments
+        - `environment`: Name of the execution environment.
+        - `disabled_message`: Message to be used in the error if the context is
+          disabled.
+        - `panic`: If set to `True`, the error is raised as a Panic. Otherwise,
+          it is a dataflow error.
+    check_enabled self (environment : Text = Runtime.current_execution_environment) (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = False) -> Nothing ! Forbidden_Operation =
+        if self.is_enabled environment then Nothing else
+            error = Forbidden_Operation.Error disabled_message
+            if panic then Panic.throw error else Error.throw error
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks whether the context is enabled. If it is, evaluates the provided
+       function and returns the result. If not, panics.
+
+       ## Arguments
         - `action`: Action to be performed with the context enabled.
         - `environment`: Name of the execution environment.
         - `disabled_message`: Message to be used in the error if the context is
@@ -215,9 +233,9 @@ type Context
           know that the result is not discarded, the dataflow error is preferred.
     if_enabled : Any -> Text -> Text -> Boolean -> Any ! Forbidden_Operation
     if_enabled self ~action (environment : Text = Runtime.current_execution_environment) (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = True) =
-        if self.is_enabled environment then action else
-            error = Forbidden_Operation.Error disabled_message
-            if panic then Panic.throw error else Error.throw error
+        check = self.check_enabled environment disabled_message panic
+        Error.return_if_error check
+        action
 
     ## ---
        private: true

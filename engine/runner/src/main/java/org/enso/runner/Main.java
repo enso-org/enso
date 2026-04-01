@@ -283,22 +283,6 @@ public class Main {
             .argName("rpc-port")
             .desc("A secure RPC port for processing all incoming connections")
             .build();
-    var dataPortOption =
-        cliOptionBuilder()
-            .longOpt(LanguageServerApi.DATA_PORT_OPTION)
-            .hasArg(true)
-            .numberOfArgs(1)
-            .argName("data-port")
-            .desc("Data port for visualization protocol")
-            .build();
-    var secureDataPortOption =
-        cliOptionBuilder()
-            .longOpt(LanguageServerApi.SECURE_DATA_PORT_OPTION)
-            .hasArg(true)
-            .numberOfArgs(1)
-            .argName("data-port")
-            .desc("A secure data port for visualization protocol")
-            .build();
     var uuidOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -531,9 +515,7 @@ public class Main {
         .addOption(deamonizeOption)
         .addOption(interfaceOption)
         .addOption(rpcPortOption)
-        .addOption(dataPortOption)
         .addOption(secureRpcPortOption)
-        .addOption(secureDataPortOption)
         .addOption(uuidOption)
         .addOption(projectIdOption)
         .addOption(cloudProjectIdOption)
@@ -1602,6 +1584,7 @@ public class Main {
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
+    var hasJVMOption = line.hasOption(JVM_OPTION);
     setupLoggingContext(line);
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       // Setup application-ls.conf as the default config file
@@ -1609,7 +1592,12 @@ public class Main {
       // Language Server will also set up logging on its own.
       System.setProperty("config.resource", "application-ls.conf");
     } else {
-      setupLogging(line, logLevel, logMasking);
+      if (hasJVMOption && HostEnsoUtils.isAot()) {
+        // avoid setting up logger in SVM
+        // as we are about to fully run in HotSpot
+      } else {
+        setupLogging(line, logLevel, logMasking);
+      }
     }
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
@@ -1618,7 +1606,6 @@ public class Main {
       component = new File(component, "component");
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
-    var hasJVMOption = line.hasOption(JVM_OPTION);
     var jvmInProjectEnforced = isJvmModeEnabled(originalCwdOrNull, line);
     if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);

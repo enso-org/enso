@@ -31,6 +31,7 @@ problems, but don't overload by too much logging. The system allows to
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [User config](#user-config)
+  - [IDE Config](#ide-config)
 - [Configuration in Code](#configuration-in-code)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
@@ -69,6 +70,17 @@ refer to the _FQN_ of the logger - e.g. usually the package elements and class
 name. The `debug` value (or other) shall represent a valid level name. System
 properties always take priority over any default values defined in embedded
 `application.conf` file (see [custom Log Levels](#custom-log-levels) section).
+
+### IDE Config
+
+When running the IDE one can configure the logging using the same arguments, but
+providing them via `ENSO_ENGINE_ARGS` environment variable:
+
+```bash
+enso$ ENSO_ENGINE_ARGS="--log-level debug" corepack pnpm run dev:gui
+```
+
+Turns the `DEBUG` verbosity on.
 
 ## Configuration in Code
 

@@ -152,7 +152,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             enso_args = [ "--server", "--daemon" ]
                 + [ "--root-id", "fbfd4950-2324-4108-99b7-019a614f94ab"]
                 + [ "--project-id", "2b27d943-7c6b-4481-8e69-67d0c57a02ed" ]
-                + [ "--path",  proj_dir.path, "--interface", "127.0.0.1", "--rpc-port", "37432", "--data-port", "37617" ]
+                + [ "--path",  proj_dir.path, "--interface", "127.0.0.1", "--rpc-port", "37432" ]
                 + if runs_in_aot then [] else [ "--jvm" ]
 
             js_file = File.create_temporary_file "custom_ydoc" ".js"

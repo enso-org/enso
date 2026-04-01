@@ -11,8 +11,6 @@ import java.util.UUID
   * @param interface a interface that the server listen to
   * @param rpcPort an RPC port that the server listen to
   * @param secureRpcPort an option secure RPC port that the server listen to
-  * @param dataPort a data port that the server listen to
-  * @param secureDataPort an optional secure data port that the server listen to
   * @param jvm use JVM - default or provided
   */
 case class LanguageServerOptions(
@@ -23,7 +21,5 @@ case class LanguageServerOptions(
   interface: String,
   rpcPort: Int,
   secureRpcPort: Option[Int],
-  dataPort: Int,
-  secureDataPort: Option[Int],
   jvm: Option[Option[java.nio.file.Path]]
 )

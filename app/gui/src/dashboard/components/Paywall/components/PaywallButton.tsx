@@ -1,13 +1,13 @@
 /** @file A styled button that shows that a feature is behind a paywall. */
 import PaywallBlocked from '#/assets/lock.svg'
 import { Button, type ButtonProps } from '#/components/Button'
-import * as billingHooks from '#/hooks/billing'
+import { getFeatureConfiguration, type PaywallFeatureName } from '$/composables/paywall'
 import { useText } from '$/providers/react'
 import * as React from 'react'
 
 /** Props for {@link PaywallButton}. */
 export type PaywallButtonProps<IconType extends string> = ButtonProps<IconType> & {
-  readonly feature: billingHooks.PaywallFeatureName
+  readonly feature: PaywallFeatureName
   readonly iconOnly?: boolean
   readonly showIcon?: boolean
 }
@@ -20,9 +20,7 @@ export function PaywallButton<IconType extends string>(
 
   const { getText } = useText()
 
-  const { getFeature } = billingHooks.usePaywallFeatures()
-
-  const { level } = getFeature(feature)
+  const { level } = getFeatureConfiguration(feature)
   const levelLabel = getText(level.label)
 
   const showChildren = !iconOnly

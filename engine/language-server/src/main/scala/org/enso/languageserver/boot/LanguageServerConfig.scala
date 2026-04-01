@@ -10,8 +10,6 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
   * @param interface a interface that the server listen to
   * @param rpcPort a rpc port that the server listen to
   * @param secureRpcPort an optional secure rpc port that the server listen to
-  * @param dataPort a data port that the server listen to
-  * @param secureDataPort an optional secure data port that the server listen to
   * @param contentRootUuid an id of content root
   * @param contentRootPath a path to the content root
   * @param projectId an id of project
@@ -23,8 +21,6 @@ case class LanguageServerConfig(
   interface: String,
   rpcPort: Int,
   secureRpcPort: Option[Int],
-  dataPort: Int,
-  secureDataPort: Option[Int],
   contentRootUuid: UUID,
   contentRootPath: String,
   projectId: UUID,

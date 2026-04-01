@@ -226,12 +226,12 @@ type File
                 _ -> stream
             Output_Stream.new wrapped (File_Error.handle_java_exceptions self)
 
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
-            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && self.is_data_link
-            if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
-                # We ignore the Data_Link_Access options at this stage:
-                just_file_options = open_options.filter opt-> opt.is_a File_Access
-                Managed_Resource.bracket (new_output_stream self just_file_options) (_.close) action
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation."
+        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && self.is_data_link
+        if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
+            # We ignore the Data_Link_Access options at this stage:
+            just_file_options = open_options.filter opt-> opt.is_a File_Access
+            Managed_Resource.bracket (new_output_stream self just_file_options) (_.close) action
 
     ## ---
        private: true
@@ -650,12 +650,12 @@ type File
        ```
     create_directory : File ! File_Error
     create_directory self =
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self <|
-                Panic.catch FileSystemException handler=_replace_create_directories_generic_exception <|
-                    Panic.catch NoSuchFileException handler=_replace_create_directories_no_such_file_exception <|
-                        Java_Files.createDirectories self.java_path
-                        self
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation."
+        File_Error.handle_java_exceptions self <|
+            Panic.catch FileSystemException handler=_replace_create_directories_generic_exception <|
+                Panic.catch NoSuchFileException handler=_replace_create_directories_no_such_file_exception <|
+                    Java_Files.createDirectories self.java_path
+                    self
 
     ## ---
        group: Metadata
@@ -886,8 +886,8 @@ type File
        affecting its target.
     delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) -> Nothing ! File_Error =
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (File_Utils.delete self.java_path recursive)
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation."
+        File_Error.handle_java_exceptions self (File_Utils.delete self.java_path recursive)
 
     ## ---
        icon: data_output
@@ -900,14 +900,14 @@ type File
           destination file already exists. Defaults to `False`.
     copy_to : File_Like -> Boolean -> Any ! File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy file. Press the Write button ▶ to perform the operation." panic=False <|
-            ## We defer the `Writable_File` conversion after the 'disallow links' check,
-               because the conversion would already start resolving the data link too soon.
-            destination_writable = Writable_File.from destination
-            r = case destination_writable.file of
-                _ : File -> _local_file_copy self destination_writable.file replace_existing
-                _ -> destination_writable.copy_from_local self replace_existing
-            r.if_not_error destination_writable.file_for_return
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot copy file. Press the Write button ▶ to perform the operation."
+        ## We defer the `Writable_File` conversion after the 'disallow links' check,
+           because the conversion would already start resolving the data link too soon.
+        destination_writable = Writable_File.from destination
+        r = case destination_writable.file of
+            _ : File -> _local_file_copy self destination_writable.file replace_existing
+            _ -> destination_writable.copy_from_local self replace_existing
+        r.if_not_error destination_writable.file_for_return
 
     ## ---
        icon: data_output
@@ -920,17 +920,17 @@ type File
           destination file already exists. Defaults to `False`.
     move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot move file. Press the Write button ▶ to perform the operation." panic=False <|
-            ## We defer the `Writable_File` conversion after the 'disallow links' check,
-               because the conversion would already start resolving the data link too soon.
-            destination_writable = Writable_File.from destination
-            r = case destination_writable.file of
-                _ : File -> _local_file_move self destination_writable.file replace_existing
-                _ ->
-                    r = destination_writable.copy_from_local self replace_existing
-                    r.if_not_error <|
-                        self.delete . if_not_error r
-            r.if_not_error destination_writable.file_for_return
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot move file. Press the Write button ▶ to perform the operation."
+        ## We defer the `Writable_File` conversion after the 'disallow links' check,
+           because the conversion would already start resolving the data link too soon.
+        destination_writable = Writable_File.from destination
+        r = case destination_writable.file of
+            _ : File -> _local_file_move self destination_writable.file replace_existing
+            _ ->
+                r = destination_writable.copy_from_local self replace_existing
+                r.if_not_error <|
+                    self.delete . if_not_error r
+        r.if_not_error destination_writable.file_for_return
 
     ## ---
        icon: data_output
