@@ -593,7 +593,7 @@ type Redshift_Dialect
    ---
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
-    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", index_of, last_index_of, ln, log10, sinh, cosh, tanh]
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], ["REVERSE", Base_Generator.make_function "reverse"], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", index_of, last_index_of, ln, log10, sinh, cosh, tanh]
     stats = [agg_median, agg_percentile]
     my_mappings = overrides + stats + first_last_aggregators + concat_ops
     postgres_ops.extend_with my_mappings
