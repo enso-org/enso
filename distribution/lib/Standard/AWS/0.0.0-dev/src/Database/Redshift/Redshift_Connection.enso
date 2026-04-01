@@ -423,8 +423,7 @@ type Redshift_Connection
             if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
             ## Check Execution Context
-            Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
-                Nothing
+            Context.Output.check_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation."
 
             normalized_staging_bucket = if staging_bucket.starts_with "s3://" then staging_bucket else "s3://" + staging_bucket + "/"
             normalized_staging_bucket2 = if normalized_staging_bucket.ends_with "/" then normalized_staging_bucket else normalized_staging_bucket + "/"

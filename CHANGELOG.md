@@ -51,6 +51,7 @@
 - [JSON functions on Table and Column. XML and Hashset fixes.][14884]
 - [Add last_index_of][14903]
 - [Add pad_left and pad_right][14922]
+- [More control over when in write operation for post and process.][14930]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -72,6 +73,7 @@
 [14884]: https://github.com/enso-org/enso/pull/14884
 [14903]: https://github.com/enso-org/enso/pull/14903
 [14922]: https://github.com/enso-org/enso/pull/14922
+[14930]: https://github.com/enso-org/enso/pull/14930
 
 #### Enso Language & Runtime
 
