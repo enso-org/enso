@@ -565,6 +565,7 @@ export function useRenameAsset(backend: Backend) {
   )
 }
 
+/** Helper for updating cached asset version tags during optimistic update. */
 function updateCachedAssetVersionTags(
   versions: backendModule.AssetVersions,
   versionId: backendModule.S3ObjectVersionId,
