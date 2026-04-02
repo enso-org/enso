@@ -62,10 +62,13 @@ function formatStringDiagnostics(value: string): string {
 
 function pathDiagnostics(label: string, details: Record<string, string | readonly string[]>): void {
   const formattedDetails = Object.fromEntries(
-    Object.entries(details).map(([key, value]) => [
-      key,
-      Array.isArray(value) ? value.map((item) => JSON.parse(formatStringDiagnostics(item))) : JSON.parse(formatStringDiagnostics(value)),
-    ]),
+    Object.entries(details).map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return [key, value.map((item) => JSON.parse(formatStringDiagnostics(item)))]
+      } else {
+        return [key, JSON.parse(formatStringDiagnostics(value))]
+      }
+    }),
   )
   console.warn(`[PATH_DIAGNOSTICS] ${label}: ${JSON.stringify(formattedDetails)}`)
 }
