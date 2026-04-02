@@ -877,6 +877,7 @@
     "./src/providers/httpClient.ts",
     "./src/providers/localDirectories.ts",
     "./src/providers/mapboxToken.ts",
+    "./src/providers/online.ts",
     "./src/providers/openedProjects.ts",
     "./src/providers/openedProjects/graph/graph.ts",
     "./src/providers/openedProjects/graph/graphDatabase.ts",

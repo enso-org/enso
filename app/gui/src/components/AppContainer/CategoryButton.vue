@@ -16,12 +16,18 @@ import { useReactApi } from '$/providers/reactApi'
 import { useText } from '$/providers/text'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
+import TooltipTrigger from '@/components/TooltipTrigger.vue'
 import { computed, ref, toRefs } from 'vue'
 import { useRouter } from 'vue-router'
 
-const { category, extended = false } = defineProps<{
+const {
+  category,
+  extended = false,
+  disabled = false,
+} = defineProps<{
   category: Category
   extended: boolean
+  disabled?: string | false
 }>()
 
 const { categoryLabel, removeLocalDirectory } = useCategories()
@@ -33,6 +39,7 @@ const router = useRouter()
 const label = computed(() => categoryLabel(category))
 const selected = computed(() => categoryEq(category, currentCategory.value))
 const isLoading = computed(() => selected.value && reactApi.isTransitioning)
+
 const isDropTarget = computed(
   () =>
     !categoryEq(currentCategory.value, category) &&
@@ -104,19 +111,27 @@ function onRemoveLocalDirClick(directory: LocalDirectory) {
 
 <template>
   <div class="CategoryButton">
-    <SvgButton
-      :class="{ dropHover }"
-      :name="!isLoading ? categoryIcon(category.type) : undefined"
-      :label="extended ? label : undefined"
-      :title="label"
-      :modelValue="selected"
-      @update:modelValue="currentCategory = category"
-      @dragover="onDragover"
-      @dragleave="dropHover = false"
-      @drop="onDrop"
-    >
-      <LoadingSpinner v-if="isLoading" phase="loading-medium" :size="16" />
-    </SvgButton>
+    <TooltipTrigger placement="right" :enabled="disabled !== false">
+      <template #default="triggerProps">
+        <SvgButton
+          :class="{ dropHover }"
+          :name="!isLoading ? categoryIcon(category.type) : undefined"
+          :label="extended ? label : undefined"
+          :modelValue="selected"
+          :disabled="disabled !== false"
+          v-bind="triggerProps"
+          @update:modelValue="currentCategory = category"
+          @dragover="onDragover"
+          @dragleave="dropHover = false"
+          @drop="onDrop"
+        >
+          <LoadingSpinner v-if="isLoading" phase="loading-medium" :size="16" />
+        </SvgButton>
+      </template>
+      <template #tooltip>
+        {{ disabled }}
+      </template>
+    </TooltipTrigger>
 
     <SvgButton
       v-if="extended && category.type === 'local'"

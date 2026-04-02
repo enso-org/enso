@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import HelpBar from '$/components/AppContainer/HelpBar.vue'
 import { Drive } from '$/components/AppContainer/reactTabs'
+import { useAuth } from '$/providers/auth'
+import { useBackends } from '$/providers/backends'
 import { categoryKey, useCategories } from '$/providers/category'
 import { useContainerData } from '$/providers/container'
 import { useDriveLocation } from '$/providers/drive'
+import { useIsOnline } from '$/providers/online'
+import { useText } from '$/providers/text'
 import { optPx } from '$/utils/dom'
 import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
@@ -34,9 +38,31 @@ const props = defineProps<{ middlePanelShown: boolean }>()
 
 const categories = useCategories()
 const containerData = useContainerData()
+const auth = useAuth()
+const { getText } = useText()
+const isOnline = useIsOnline()
+const { localBackend } = useBackends()
 const { leftPanelWidth: width, leftPanelToggledOn: toggledOn } = toRefs(containerData)
 const visible = computed(() => toggledOn.value || !props.middlePanelShown)
 const currentCategory = toRef(useDriveLocation(), 'currentCategory')
+
+const cloudDisabledReason = computed(() => {
+  if (!isOnline.value) {
+    return getText('unavailableOffline')
+  } else if (!auth.session?.user.isEnabled) {
+    return getText('notEnabledSubtitle')
+  } else {
+    return false
+  }
+})
+
+const localDisabledReason = computed(() => {
+  if (localBackend == null) {
+    return getText('localBackendNotDetectedError')
+  } else {
+    return false
+  }
+})
 
 const root = useTemplateRef('content')
 const cssClass = computed(() => ({
@@ -100,6 +126,7 @@ async function onAddDirectoryClick() {
           :key="categoryKey(category)"
           :category="category"
           :extended="leftBarExtended"
+          :disabled="cloudDisabledReason"
         />
       </div>
       <div class="categories">
@@ -108,6 +135,7 @@ async function onAddDirectoryClick() {
           :key="categoryKey(category)"
           :category="category"
           :extended="leftBarExtended"
+          :disabled="localDisabledReason"
         />
         <SvgButton
           v-if="canAddLocalDirectories"
