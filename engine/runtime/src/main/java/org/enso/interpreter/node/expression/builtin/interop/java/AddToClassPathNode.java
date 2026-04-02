@@ -30,7 +30,7 @@ public abstract class AddToClassPathNode extends Node {
     var file = ctx.getTruffleFile(new File(expectStringNode.execute(path)));
     if (getRootNode() instanceof ClosureRootNode crn) {
       var pkg = crn.getModuleScope().getModule().getPackage();
-      ctx.addToClassPath(pkg, file);
+      ctx.addToClassPath(pkg, file, true);
     } else {
       throw ctx.raiseAssertionPanic(this, "Cannot find package", null);
     }

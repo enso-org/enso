@@ -100,6 +100,9 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
+  /**
+   * @GuardedBy("REFERENCE") - need some private lock
+   */
   @CompilationFinal(dimensions = 1)
   private Object[] extraValues = new Object[0];
 
@@ -513,16 +516,17 @@ public final class EnsoContext {
    *
    * @param who who requests the addition
    * @param file the file to register
+   * @param polyglotContextEntered true if a polyglot context has been entered, false otherwise
    */
   @TruffleBoundary
-  public void addToClassPath(Package<?> who, TruffleFile file) {
+  public void addToClassPath(Package<?> who, TruffleFile file, boolean polyglotContextEntered) {
     assert who != null;
     var path = new File(file.toUri()).getAbsoluteFile();
     if (!path.exists()) {
       throw new IllegalStateException("File not found " + path);
     }
     try {
-      EnsoPolyglotJava.addToClassPath(this, who, path);
+      EnsoPolyglotJava.addToClassPath(this, who, path, polyglotContextEntered);
     } catch (InteropException ex) {
       throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
     }
