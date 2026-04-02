@@ -241,6 +241,22 @@ describe('getProjectSessionLogs', () => {
     expect(result.scrollId).toBe('done')
     expect(result.hits).toEqual([])
   })
+
+  test('rejects session ID with .. in project ID', () => {
+    expect(() => getProjectSessionLogs('localprojectsession-../../etc/base', null)).toThrow(
+      /unsafe/i,
+    )
+  })
+
+  test('rejects session ID with .. in base name', () => {
+    expect(() => getProjectSessionLogs('localprojectsession-proj/../../../etc/base', null)).toThrow(
+      /unsafe/i,
+    )
+  })
+
+  test('rejects session ID with path separators', () => {
+    expect(() => getProjectSessionLogs('localprojectsession-proj/sub/dir', null)).toThrow(/unsafe/i)
+  })
 })
 
 describe('downloadProjectSessionLogs', () => {
@@ -260,16 +276,16 @@ describe('downloadProjectSessionLogs', () => {
     await fsPromises.rm(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 1000 })
   })
 
-  test('returns active log content when no archives exist', () => {
+  test('returns active log content when no archives exist', async () => {
     const baseName = 'enso-language-server-2026-03-31-14-23-45'
     const projectLogDir = path.join(tmpDir, projectId)
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.log`), 'line1\nline2\n')
 
     const sessionId = encodeSessionId(projectId, baseName)
-    expect(downloadProjectSessionLogs(sessionId)).toBe('line1\nline2\n')
+    await expect(downloadProjectSessionLogs(sessionId)).resolves.toBe('line1\nline2\n')
   })
 
-  test('concatenates archives and active log in order', () => {
+  test('concatenates archives and active log in order', async () => {
     const baseName = 'enso-language-server-2026-03-31-14-23-45'
     const projectLogDir = path.join(tmpDir, projectId)
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.0.log.gz`), zlib.gzipSync('archive0\n'))
@@ -277,10 +293,12 @@ describe('downloadProjectSessionLogs', () => {
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.log`), 'active\n')
 
     const sessionId = encodeSessionId(projectId, baseName)
-    expect(downloadProjectSessionLogs(sessionId)).toBe('archive0\narchive1\nactive\n')
+    await expect(downloadProjectSessionLogs(sessionId)).resolves.toBe(
+      'archive0\narchive1\nactive\n',
+    )
   })
 
-  test('handles non-sequential archive indices in sorted order', () => {
+  test('handles non-sequential archive indices in sorted order', async () => {
     const baseName = 'enso-language-server-2026-03-31-14-23-45'
     const projectLogDir = path.join(tmpDir, projectId)
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.5.log.gz`), zlib.gzipSync('five\n'))
@@ -288,30 +306,30 @@ describe('downloadProjectSessionLogs', () => {
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.log`), 'active\n')
 
     const sessionId = encodeSessionId(projectId, baseName)
-    expect(downloadProjectSessionLogs(sessionId)).toBe('two\nfive\nactive\n')
+    await expect(downloadProjectSessionLogs(sessionId)).resolves.toBe('two\nfive\nactive\n')
   })
 
-  test('returns empty string when no log files exist', () => {
+  test('returns empty string when no log files exist', async () => {
     const baseName = 'enso-language-server-2026-03-31-14-23-45'
     const sessionId = encodeSessionId(projectId, baseName)
-    expect(downloadProjectSessionLogs(sessionId)).toBe('')
+    await expect(downloadProjectSessionLogs(sessionId)).resolves.toBe('')
   })
 
-  test('returns only archives when active log does not exist', () => {
+  test('returns only archives when active log does not exist', async () => {
     const baseName = 'enso-language-server-2026-03-31-14-23-45'
     const projectLogDir = path.join(tmpDir, projectId)
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.0.log.gz`), zlib.gzipSync('archive0\n'))
 
     const sessionId = encodeSessionId(projectId, baseName)
-    expect(downloadProjectSessionLogs(sessionId)).toBe('archive0\n')
+    await expect(downloadProjectSessionLogs(sessionId)).resolves.toBe('archive0\n')
   })
 
-  test('returns only active log when archives do not exist', () => {
+  test('returns only active log when archives do not exist', async () => {
     const baseName = 'enso-language-server-2026-03-31-14-23-45'
     const projectLogDir = path.join(tmpDir, projectId)
     fs.writeFileSync(path.join(projectLogDir, `${baseName}.log`), 'only active\n')
 
     const sessionId = encodeSessionId(projectId, baseName)
-    expect(downloadProjectSessionLogs(sessionId)).toBe('only active\n')
+    await expect(downloadProjectSessionLogs(sessionId)).resolves.toBe('only active\n')
   })
 })

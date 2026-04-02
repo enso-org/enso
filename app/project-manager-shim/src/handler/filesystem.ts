@@ -261,7 +261,7 @@ export async function handleFilesystemCommand(
       case '--download-project-session-logs': {
         const sessionId = cliArguments[1]
         if (sessionId == null) break
-        result = toJSONRPCResult(downloadProjectSessionLogs(sessionId))
+        result = toJSONRPCResult(await downloadProjectSessionLogs(sessionId))
         break
       }
       default: {
@@ -347,6 +347,11 @@ export async function getFileSystemEntry(entryPath: string): Promise<FileSystemE
 
 const SESSION_ID_PREFIX = 'localprojectsession-'
 
+/** Validate that a path segment contains no directory traversal or separators. */
+function isSafePathSegment(segment: string): boolean {
+  return segment.length > 0 && segment !== '.' && segment !== '..' && !/[/\\]/.test(segment)
+}
+
 /**
  * Parse date-time from a log filename like `enso-language-server-2026-03-31-14-23-45`.
  * Expects the date-time at the end of the base name.
@@ -380,6 +385,7 @@ export function encodeSessionId(projectId: string, baseName: string): string {
 /**
  * Decode a session ID into projectId and file base name.
  * Returns the project log directory and the file base name.
+ * Throws if the session ID contains path traversal attempts.
  */
 function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: string } {
   const raw =
@@ -387,10 +393,16 @@ function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: 
   const slashIdx = raw.indexOf('/')
   const logDir = getEngineLogDirectory()
   if (slashIdx < 0) {
+    if (!isSafePathSegment(raw)) {
+      throw new Error(`Invalid session ID: unsafe segment '${raw}'`)
+    }
     return { projectLogDir: logDir, baseName: raw }
   }
   const projectId = raw.slice(0, slashIdx)
   const baseName = raw.slice(slashIdx + 1)
+  if (!isSafePathSegment(projectId) || !isSafePathSegment(baseName)) {
+    throw new Error(`Invalid session ID: unsafe path segments in '${sessionId}'`)
+  }
   return { projectLogDir: path.join(logDir, projectId), baseName }
 }
 
@@ -474,12 +486,15 @@ export function getProjectSessionLogs(
 
 /** Collect sorted archive indices for a session base name. */
 function collectArchiveIndices(dir: string, baseName: string): number[] {
+  const prefix = `${baseName}.`
+  const suffix = '.log.gz'
   const indices: number[] = []
   try {
     for (const entry of fsSync.readdirSync(dir)) {
-      const match = entry.match(new RegExp(`^${escapeRegExp(baseName)}\\.(\\d+)\\.log\\.gz$`))
-      if (match) {
-        indices.push(parseInt(match[1]!, 10))
+      if (!entry.startsWith(prefix) || !entry.endsWith(suffix)) continue
+      const middle = entry.slice(prefix.length, -suffix.length)
+      if (/^\d+$/.test(middle)) {
+        indices.push(parseInt(middle, 10))
       }
     }
   } catch (e) {
@@ -536,7 +551,7 @@ function readActiveLog(
 }
 
 /** Read all log files for a session and return them concatenated as a single string. */
-export function downloadProjectSessionLogs(sessionId: string): string {
+export async function downloadProjectSessionLogs(sessionId: string): Promise<string> {
   const { projectLogDir, baseName } = decodeSessionId(sessionId)
   const sortedArchiveIndices = collectArchiveIndices(projectLogDir, baseName)
   const parts: string[] = []
@@ -544,7 +559,7 @@ export function downloadProjectSessionLogs(sessionId: string): string {
   for (const archiveIndex of sortedArchiveIndices) {
     const filePath = path.join(projectLogDir, `${baseName}.${archiveIndex}.log.gz`)
     try {
-      const compressed = fsSync.readFileSync(filePath)
+      const compressed = await fs.readFile(filePath)
       parts.push(zlib.gunzipSync(compressed).toString('utf-8'))
     } catch (e) {
       console.error(`Failed to read archive '${filePath}':`, e)
@@ -553,14 +568,10 @@ export function downloadProjectSessionLogs(sessionId: string): string {
 
   const activeLogPath = path.join(projectLogDir, `${baseName}.log`)
   try {
-    parts.push(fsSync.readFileSync(activeLogPath, 'utf-8'))
+    parts.push(await fs.readFile(activeLogPath, 'utf-8'))
   } catch (e) {
     console.error(`Failed to read log file '${activeLogPath}':`, e)
   }
 
   return parts.join('')
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
