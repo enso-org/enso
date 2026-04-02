@@ -19,7 +19,7 @@ import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
-import { useLocalDirectories } from './localDirectories'
+import { useLocalPaths } from './localDirectories'
 import { useText } from './text'
 
 export interface PredefinedCategory {
@@ -146,8 +146,7 @@ export type CategoriesStore = ReturnType<typeof createCategoriesStore>
 function createCategoriesStore(userData: ToValue<Opt<User>>) {
   const { getText } = useText()
   const backends = useBackends()
-  // TODO[ao]: Name clash
-  const localDirs = useLocalDirectories()
+  const localPaths = useLocalPaths()
 
   const teamCategories = computed(
     () =>
@@ -161,7 +160,9 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
   const groupById = computed(
     () => new Map(toValue(userData)?.groups?.map((group) => [group.id, group])),
   )
-  const rootPath = computed(() => localDirs.localRootDirectory ?? backends.localBackend?.rootPath())
+  const rootPath = computed(
+    () => localPaths.localRootDirectory ?? backends.localBackend?.rootPath(),
+  )
 
   const localDirectories = useZustandStoreRef(
     localDirectoryStore,

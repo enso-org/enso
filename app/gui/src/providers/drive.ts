@@ -2,11 +2,12 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { proxyRefs } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
 import { isDirectoryId, type DirectoryId } from 'enso-common/src/services/Backend'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import * as z from 'zod'
 import { useBackends } from './backends'
 import {
   CATEGORY_BACKEND,
+  categoryEq,
   categoryFromKey,
   categoryKey,
   useCategories,
@@ -73,6 +74,15 @@ export const [provideDriveLocation, useDriveLocation] = createContextStore(
     function setDefaultCategory() {
       localStorage.delete('driveDisplay')
     }
+
+    watch(
+      () => [...categories.localCategoriesList, ...categories.cloudCategoriesList],
+      (newList) => {
+        if (!newList.find((category) => categoryEq(category, currentCategory.value))) {
+          setDefaultCategory()
+        }
+      },
+    )
 
     return proxyRefs({
       currentCategory,

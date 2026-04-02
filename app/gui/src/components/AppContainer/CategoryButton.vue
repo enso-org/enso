@@ -117,6 +117,7 @@ function onRemoveLocalDirClick(directory: LocalDirectory) {
           :class="{ dropHover }"
           :name="!isLoading ? categoryIcon(category.type) : undefined"
           :label="extended ? label : undefined"
+          :aria-label="label"
           :modelValue="selected"
           :disabled="disabled !== false"
           v-bind="triggerProps"

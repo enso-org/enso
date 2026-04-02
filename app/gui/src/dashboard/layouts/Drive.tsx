@@ -7,7 +7,7 @@ import SvgMask from '#/components/SvgMask'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import AssetsTable from '#/layouts/AssetsTable'
+import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 import DriveProvider from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -161,6 +161,8 @@ function DriveAssetsView() {
               </ErrorBoundary>
             </Suspense>
           )}
+
+          <AssetsTableAssetsUnselector />
         </div>
       </div>
     </div>

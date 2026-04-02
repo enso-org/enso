@@ -6,14 +6,14 @@ import { computed, inject } from 'vue'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-interface LocalRootDirectoryStoreState {
+interface LocalPathsStoreState {
   readonly localRootDirectory: Path | null
   readonly downloadDirectory: Path | null
 }
 
-const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
+const localPathsStore = createStore<LocalPathsStoreState>()(
   persist(
-    (): LocalRootDirectoryStoreState => ({
+    (): LocalPathsStoreState => ({
       localRootDirectory: null,
       downloadDirectory: null,
     }),
@@ -21,17 +21,17 @@ const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
   ),
 )
 
-export type LocalDirectoriesStore = ReturnType<typeof createLocalDirectoriesStore>
+export type LocalPathsStore = ReturnType<typeof createLocalPathsStore>
 
-function createLocalDirectoriesStore() {
+function createLocalPathsStore() {
   const defaultDownloadPath = inject<Path>('defaultDownloadPath')
 
   const localRootDirectory = useZustandStoreRef(
-    localRootDirectoryStore,
+    localPathsStore,
     (state) => state.localRootDirectory,
   )
   const storedDownloadDirectory = useZustandStoreRef(
-    localRootDirectoryStore,
+    localPathsStore,
     (state) => state.downloadDirectory,
   )
 
@@ -39,12 +39,12 @@ function createLocalDirectoriesStore() {
 
   /** Update the saved local root directory. */
   function setLocalRootDirectory(localRootDirectory: Path | null) {
-    localRootDirectoryStore.setState({ localRootDirectory })
+    localPathsStore.setState({ localRootDirectory })
   }
 
   /** Update the saved local root directory. */
   function setDownloadDirectory(downloadDirectory: Path | null) {
-    localRootDirectoryStore.setState({ downloadDirectory })
+    localPathsStore.setState({ downloadDirectory })
   }
 
   return proxyRefs({
@@ -55,4 +55,4 @@ function createLocalDirectoriesStore() {
   })
 }
 
-export const useLocalDirectories = createGlobalState(createLocalDirectoriesStore)
+export const useLocalPaths = createGlobalState(createLocalPathsStore)

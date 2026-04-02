@@ -104,9 +104,9 @@ export function useTransferBetweenCategories() {
       if (targetDirectoryId == null) return
 
       const baseMutation =
-        operation === 'copy' ?
+        method === 'copy' ?
           () => copyAssets[CATEGORY_BACKEND[from.type]]([keysArray, targetDirectoryId])
-        : operation === 'move' ?
+        : method === 'move' ?
           () => moveAssets[CATEGORY_BACKEND[from.type]]([keysArray, targetDirectoryId])
         : () => {}
 
