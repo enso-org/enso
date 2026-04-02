@@ -7,7 +7,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   <div class="Checkbox clickable" @click.stop="emit('update:modelValue', !props.modelValue)">
     <div class="track" :class="{ enabled: props.modelValue }">
       <div class="thumb">
-        <span class="thumbLabel">{{ props.modelValue ? 'True' : 'False' }}</span>
+        <span class="thumbLabel">{{ props.modelValue ? 'T' : 'F' }}</span>
       </div>
     </div>
   </div>
@@ -15,7 +15,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 
 <style scoped>
 .Checkbox {
-  --widget-toggle-width: calc(var(--node-port-height) * 3.6);
+  --widget-toggle-width: calc(var(--node-port-height) * 1.7);
   --widget-toggle-height: calc(var(--node-port-height) * 0.9);
   --widget-toggle-padding: 2px;
   width: var(--widget-toggle-width);
@@ -52,7 +52,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 }
 
 .thumb {
-  width: calc(var(--widget-toggle-width) / 2);
+  width: calc(var(--widget-toggle-height) - 2 * var(--widget-toggle-padding));
   height: calc(var(--widget-toggle-height) - 2 * var(--widget-toggle-padding));
   border-radius: var(--radius-full);
   background: white;
@@ -68,7 +68,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 }
 
 .thumbLabel {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -78,7 +78,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 
 .track.enabled .thumb {
   transform: translateX(
-    calc(var(--widget-toggle-width) - (var(--widget-toggle-width) / 2) - 4px)
+    calc(var(--widget-toggle-width) - var(--widget-toggle-height) - 2px)
   );
 }
 </style>
