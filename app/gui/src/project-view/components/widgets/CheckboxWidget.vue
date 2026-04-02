@@ -6,14 +6,16 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 <template>
   <div class="Checkbox clickable" @click.stop="emit('update:modelValue', !props.modelValue)">
     <div class="track" :class="{ enabled: props.modelValue }">
-      <div class="thumb"></div>
+      <div class="thumb">
+        <span class="thumbLabel">{{ props.modelValue ? 'True' : 'False' }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .Checkbox {
-  --widget-toggle-width: calc(var(--node-port-height) * 1.7);
+  --widget-toggle-width: calc(var(--node-port-height) * 3.6);
   --widget-toggle-height: calc(var(--node-port-height) * 0.9);
   --widget-toggle-padding: 2px;
   width: var(--widget-toggle-width);
@@ -23,6 +25,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 }
 
 .track {
+  position: relative;
   width: 100%;
   height: 100%;
   padding: var(--widget-toggle-padding);
@@ -49,19 +52,33 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 }
 
 .thumb {
-  width: calc(var(--widget-toggle-height) - 2 * var(--widget-toggle-padding));
+  width: calc(var(--widget-toggle-width) / 2);
   height: calc(var(--widget-toggle-height) - 2 * var(--widget-toggle-padding));
   border-radius: var(--radius-full);
   background: white;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition:
     transform 0.2s ease,
     background-color 0.2s ease;
 }
 
+.thumbLabel {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--color-node-primary) 30%, black 70%);
+  user-select: none;
+}
+
 .track.enabled .thumb {
   transform: translateX(
-    calc(var(--widget-toggle-width) - var(--widget-toggle-height) - 2px)
+    calc(var(--widget-toggle-width) - (var(--widget-toggle-width) / 2) - 4px)
   );
 }
 </style>
