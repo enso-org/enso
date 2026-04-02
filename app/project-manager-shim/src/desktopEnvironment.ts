@@ -50,22 +50,20 @@ function getMacOsDocumentsPath(): string {
 }
 
 /** Get the path to the `My Documents` Windows directory. */
-function getWindowsDocumentsPath(): string | undefined {
+function getWindowsDocumentsPath() {
   const out = childProcess.spawnSync(
-    'reg',
+    'powershell',
     [
-      'query',
-      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
-      '/v',
-      'personal',
+      '-NoProfile',
+      '-Command',
+      '$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); [Environment]::GetFolderPath("MyDocuments")',
     ],
-    { timeout: CHILD_PROCESS_TIMEOUT },
+    { timeout: CHILD_PROCESS_TIMEOUT }
   )
 
-  if (out.error !== undefined) {
-    return
-  } else {
-    const stdoutString = out.stdout.toString()
-    return stdoutString.split(/\s\s+/)[4]
+  if (out.error) {
+    return undefined
   }
+
+  return out.stdout.toString('utf8').trim() || undefined
 }
