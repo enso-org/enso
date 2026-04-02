@@ -437,8 +437,13 @@ object ChangesetBuilder {
     * @return the tree representation of the IR
     */
   private def buildTree(ir: IR): Tree = {
+    // `Name.MethodReference` is the IR representation of autoscope construtors
+    // and its children has no DataflowAnalysis dependents and threfore should
+    // not be analyzed. Otherwise the algorithm will fallback to dynamic search
+    // in `toDataflowDependencyTypes` invalidating all expressions with this symbol
+    def isAtomicName(ir: IR): Boolean = ir.isInstanceOf[Name.MethodReference]
     def depthFirstSearch(currentIr: IR, acc: Tree, isBinding: Boolean): Unit = {
-      if (currentIr.children.isEmpty) {
+      if (currentIr.children.isEmpty || isAtomicName(currentIr)) {
         Node.fromIr(currentIr, isBinding).foreach(acc.add)
       } else {
         val hasImportantId = currentIr.getExternalId.nonEmpty

@@ -529,6 +529,36 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
+  public void editAutoscopeConstructorDoesNotInvalidateOtherAutoscopeConstructors() {
+    var rawCode =
+        """
+        type T
+            A
+            B
+
+        type Table
+            Impl data
+            filter self a b = Table.Impl (self.data + a.to_text + b.to_text)
+
+        main =
+            file1 = Table.Impl ''
+            any1 = file1.filter 'Column 1' ..A
+            any2 = any1.filter 'Column 1' ..A
+            any2
+        """;
+
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    var edit = new TextEdit(new Range(new Position(11, 34), new Position(11, 37)), "..B");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertNotInvalidated(result, ir, "file1");
+    assertNotInvalidated(result, ir, "any1");
+    assertInvalidated(result, ir, "any2");
+  }
+
+  @Test
   public void addApplicationArgumentInvalidatesSingleCall() {
     var rawCode =
         """
