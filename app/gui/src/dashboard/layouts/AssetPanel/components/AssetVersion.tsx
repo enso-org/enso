@@ -37,6 +37,7 @@ interface AddTagProps {
   readonly availableTags: readonly string[]
   readonly backend: Backend
   readonly item: backendService.AnyAsset
+  readonly refetchAvailableTags: () => Promise<unknown>
   readonly version: Version
 }
 
@@ -54,7 +55,7 @@ const ADD_TAG_STYLES = tv({
 
 /** Add tag popover content. */
 function AddTag(props: AddTagProps) {
-  const { availableTags, item, version, backend } = props
+  const { availableTags, item, version, backend, refetchAvailableTags } = props
   const { getText } = useText()
   const styles = ADD_TAG_STYLES()
   const filter = useFilter({ sensitivity: 'base' })
@@ -78,13 +79,19 @@ function AddTag(props: AddTagProps) {
     if (normalizedTag === '' || version.tags.includes(normalizedTag)) {
       return
     }
-    await addAssetVersionTag(item.id, version.versionId, normalizedTag)
     setValue('')
     close()
+    await addAssetVersionTag(item.id, version.versionId, normalizedTag)
   })
 
   return (
-    <Popover.Trigger>
+    <Popover.Trigger
+      onOpenChange={(isOpen: boolean) => {
+        if (isOpen) {
+          void refetchAvailableTags()
+        }
+      }}
+    >
       <Button
         variant="icon"
         size="xxsmall"
@@ -185,7 +192,9 @@ export function AssetVersion(props: AssetVersionProps) {
   const comparableVersions = otherVersions
     .map((v, index) => ({ ...v, number: otherVersions.length - index }))
     .filter((v) => v.versionId !== version.versionId)
-  const { data: availableTags } = useQuery(backendQueryOptions(backend, 'listAssetVersionTags', []))
+  const { data: availableTags, refetch: refetchAvailableTags } = useQuery(
+    backendQueryOptions(backend, 'listAssetVersionTags', []),
+  )
 
   const canRestore = !version.isLatest
   const doRestore = useEventCallback(async () => {
@@ -273,6 +282,7 @@ export function AssetVersion(props: AssetVersionProps) {
             item={item}
             version={version}
             backend={backend}
+            refetchAvailableTags={refetchAvailableTags}
           />
         </div>
 
