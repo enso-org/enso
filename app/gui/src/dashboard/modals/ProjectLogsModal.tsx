@@ -96,16 +96,14 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
           onPress={() => logsPages.fetchNextPage()}
           isDisabled={!logsPages.hasNextPage}
         />
-        {!String(projectSessionId).startsWith('localprojectsession-') && (
-          <Button
-            variant="icon"
-            icon="data_download"
-            aria-label={getText('downloadAsFile')}
-            onPress={async () => {
-              await backend.downloadProjectSessionLogs(projectSessionId)
-            }}
-          />
-        )}
+        <Button
+          variant="icon"
+          icon="data_download"
+          aria-label={getText('downloadAsFile')}
+          onPress={async () => {
+            await backend.downloadProjectSessionLogs(projectSessionId)
+          }}
+        />
       </Button.Group>
       {isLoading ?
         <Loader />

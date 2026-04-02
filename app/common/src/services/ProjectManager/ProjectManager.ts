@@ -391,6 +391,11 @@ export class ProjectManager {
     )
   }
 
+  /** Download all log content for a local project session as a single string. */
+  async downloadProjectSessionLogs(sessionId: string) {
+    return this.runStandaloneCommandJson<string>(null, 'download-project-session-logs', sessionId)
+  }
+
   /** Run the Project Manager binary with the given command-line arguments. */
   private async runStandaloneCommand(
     body: BodyInit | null,

@@ -1147,9 +1147,19 @@ export class LocalBackend extends backend.Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
-  override downloadProjectSessionLogs() {
-    return this.invalidOperation()
+  /** Download all logs for a local project session as a file. */
+  override async downloadProjectSessionLogs(
+    projectSessionId: backend.ProjectSessionId,
+  ): Promise<void> {
+    const content = await this.projectManager.downloadProjectSessionLogs(projectSessionId)
+    const baseName = projectSessionId.split('/').pop() ?? 'logs'
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    try {
+      await this.downloader({ url, name: `${baseName}.log`, electronOptions: { path: null } })
+    } finally {
+      URL.revokeObjectURL(url)
+    }
   }
 
   /** Invalid operation. */

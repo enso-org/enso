@@ -258,6 +258,12 @@ export async function handleFilesystemCommand(
         result = toJSONRPCResult(getProjectSessionLogs(sessionId, scrollId))
         break
       }
+      case '--download-project-session-logs': {
+        const sessionId = cliArguments[1]
+        if (sessionId == null) break
+        result = toJSONRPCResult(downloadProjectSessionLogs(sessionId))
+        break
+      }
       default: {
         const message = `Error in Project Manager shim: unknown command ${JSON.stringify(cliArguments)}`
         console.error(message)
@@ -527,6 +533,32 @@ function readActiveLog(
     console.error(`Failed to read log file '${logPath}':`, e)
     return { scrollId: 'done', hits: [] }
   }
+}
+
+/** Read all log files for a session and return them concatenated as a single string. */
+export function downloadProjectSessionLogs(sessionId: string): string {
+  const { projectLogDir, baseName } = decodeSessionId(sessionId)
+  const sortedArchiveIndices = collectArchiveIndices(projectLogDir, baseName)
+  const parts: string[] = []
+
+  for (const archiveIndex of sortedArchiveIndices) {
+    const filePath = path.join(projectLogDir, `${baseName}.${archiveIndex}.log.gz`)
+    try {
+      const compressed = fsSync.readFileSync(filePath)
+      parts.push(zlib.gunzipSync(compressed).toString('utf-8'))
+    } catch (e) {
+      console.error(`Failed to read archive '${filePath}':`, e)
+    }
+  }
+
+  const activeLogPath = path.join(projectLogDir, `${baseName}.log`)
+  try {
+    parts.push(fsSync.readFileSync(activeLogPath, 'utf-8'))
+  } catch (e) {
+    console.error(`Failed to read log file '${activeLogPath}':`, e)
+  }
+
+  return parts.join('')
 }
 
 function escapeRegExp(s: string): string {
