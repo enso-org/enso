@@ -1,5 +1,4 @@
 /** @file Displays information describing a specific version of an asset. */
-import { Badge } from '#/components/Badge'
 import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
@@ -8,7 +7,7 @@ import { Menu } from '#/components/Menu'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { Text, TEXT_STYLE } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
-import { VisualTooltip } from '#/components/VisualTooltip'
+import { VisualTooltip, type TooltipElementType } from '#/components/VisualTooltip'
 import {
   backendQueryOptions,
   useAddAssetVersionTag,
@@ -237,9 +236,9 @@ export function AssetVersion(props: AssetVersionProps) {
       </div>
     )
     return (
-      <VisualTooltip tooltip={collapsedTagsTooltip} className="shrink-0">
-        <Badge variant="outline">{getText('xTags', version.tags.length)}</Badge>
-      </VisualTooltip>
+      <div className="min-w-0 shrink-0">
+        <Tag tooltip={collapsedTagsTooltip}>{getText('xTags', version.tags.length)}</Tag>
+      </div>
     )
   }
 
@@ -292,9 +291,7 @@ export function AssetVersion(props: AssetVersionProps) {
             {version.title}
           </Text>
           <span ref={minTagRef} className="inline-block" style={{ width: `${MIN_TAG_WIDTH_CH}ch` }}>
-            <Badge variant="outline" className="w-full">
-              {version.tags[0] ?? getText('latestIndicator')}
-            </Badge>
+            <Tag className="w-full">{version.tags[0] ?? getText('latestIndicator')}</Tag>
           </span>
         </div>
 
@@ -461,12 +458,12 @@ function VersionDialog(props: VersionDialogProps) {
 interface TagProps {
   readonly children: React.ReactNode
   readonly className?: string
-  readonly tooltip: string
+  readonly tooltip?: TooltipElementType
   readonly onDelete?: (() => void) | undefined
 }
 
 const TAG_STYLES = tv({
-  base: 'flex items-center min-w-0 w-full rounded-full border-[0.5px] text-primary overflow-visible',
+  base: 'flex items-center min-w-0 w-full rounded-full border-[0.5px] border-[var(--color-primary)] text-primary overflow-visible',
   variants: {
     variant: {
       deleteButton: 'pl-2 pr-1',
