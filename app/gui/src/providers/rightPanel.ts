@@ -1,6 +1,6 @@
 import { useIsFeatureUnderPaywall } from '$/composables/paywall'
 import { useBackends } from '$/providers/backends'
-import { CATEGORY_BACKEND, isCloudCategory, type Category } from '$/providers/categories'
+import { CATEGORY_BACKEND, isCloudCategory, type Category } from '$/providers/category'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'

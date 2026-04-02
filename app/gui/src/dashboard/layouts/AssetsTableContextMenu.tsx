@@ -20,7 +20,7 @@ import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/provid
 import { setModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
-import { canTransferBetweenCategories, isCloudCategory } from '$/providers/categories'
+import { canTransferBetweenCategories, isCloudCategory } from '$/providers/category'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { useDriveCurrentBackend, useDriveCurrentCategory } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'

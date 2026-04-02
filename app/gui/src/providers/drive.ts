@@ -5,7 +5,13 @@ import { isDirectoryId, type DirectoryId } from 'enso-common/src/services/Backen
 import { computed } from 'vue'
 import * as z from 'zod'
 import { useBackends } from './backends'
-import { CATEGORY_BACKEND, categoryFromKey, categoryKey, type Category } from './categories'
+import {
+  CATEGORY_BACKEND,
+  categoryFromKey,
+  categoryKey,
+  useCategories,
+  type Category,
+} from './category'
 
 const DRIVE_DISPLAY_SCHEMA = z.object({
   currentDirectoryId: z
@@ -29,6 +35,7 @@ export const [provideDriveLocation, useDriveLocation] = createContextStore(
   'drive',
   (startReactTransition: (action: () => void) => void) => {
     const backends = useBackends()
+    const categories = useCategories()
     const localStorage = LocalStorage.getInstance()
     const storedDriveDisplay = computed(() => localStorage.get('driveDisplay'))
 

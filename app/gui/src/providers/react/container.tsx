@@ -6,9 +6,10 @@ import {
   type RightPanelData,
 } from '$/providers/rightPanel'
 import { reactComponent } from '@/util/react'
+import type { Backend, DirectoryId } from 'enso-common/src/services/Backend'
 import * as react from 'react'
 import { toRef } from 'vue'
-import { useCategories } from '.'
+import type { Category } from '../category'
 
 const RightPanelDataContext = react.createContext<RightPanelData | null>(null)
 export const useRightPanelData = useInReactFunction(RightPanelDataContext)
@@ -16,7 +17,12 @@ export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 const ContainerDataContext = react.createContext<ContainerData | null>(null)
 export const useContainerData = useInReactFunction(ContainerDataContext)
 
-const DriveLocationStoreContext = react.createContext<DriveLocationStore | null>(null)
+const DriveLocationStoreContext = react.createContext<{
+  currentCategory: [Category, (newCategory: Category) => void]
+  currentDirectory: [DirectoryId | null, (newDir: DirectoryId | null) => void]
+  associatedBackend: Backend
+  setDefaultCategory: () => void
+} | null>(null)
 export const useDriveLocation = useInReactFunction(DriveLocationStoreContext)
 
 export const ContainerProviderForReact = reactComponent(
@@ -30,10 +36,22 @@ export const ContainerProviderForReact = reactComponent(
     rightPanel: RightPanelData
     driveStore: DriveLocationStore
   }>) => {
+    const reactDriveStore = {
+      currentCategory: useVueRef(
+        react.useCallback(() => toRef(driveStore, 'currentCategory'), [driveStore]),
+      ),
+      currentDirectory: useVueRef(
+        react.useCallback(() => toRef(driveStore, 'currentDirectory'), [driveStore]),
+      ),
+      associatedBackend: useVueValue(
+        react.useCallback(() => driveStore.associatedBackend, [driveStore]),
+      ),
+      setDefaultCategory: driveStore.setDefaultCategory,
+    }
     return (
       <ContainerDataContext.Provider value={container}>
         <RightPanelDataContext.Provider value={rightPanel}>
-          <DriveLocationStoreContext.Provider value={driveStore}>
+          <DriveLocationStoreContext.Provider value={reactDriveStore}>
             {children}
           </DriveLocationStoreContext.Provider>
         </RightPanelDataContext.Provider>
@@ -68,25 +86,20 @@ export function useRightPanelContextCategory() {
   return useVueValue(react.useCallback(() => rightPanel.context?.category, [rightPanel]))
 }
 
+/** A hook reading current category displayed in drive. */
 export function useDriveCurrentCategory() {
   const drive = useDriveLocation()
-  return useVueRef(react.useCallback(() => toRef(drive, 'currentCategory'), [drive]))
+  return drive.currentCategory
 }
 
+/** A hook reading backend associated with current category in drive. */
 export function useDriveCurrentBackend() {
   const drive = useDriveLocation()
-  return useVueValue(react.useCallback(() => drive.associatedBackend, [drive]))
+  return drive.associatedBackend
 }
 
+/** A hook reading current directory id displayed in drive. */
 export function useDriveCurrentDirectory() {
   const drive = useDriveLocation()
-  return useVueRef(react.useCallback(() => toRef(drive, 'currentDirectory'), [drive]))
-}
-
-export function useDriveCurrentRootPath() {
-  const drive = useDriveLocation()
-  const { categoryRootPath } = useCategories()
-  return useVueValue(
-    react.useCallback(() => categoryRootPath(drive.currentCategory), [drive, categoryRootPath]),
-  )
+  return drive.currentDirectory
 }

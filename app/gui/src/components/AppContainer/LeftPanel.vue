@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import HelpBar from '$/components/AppContainer/HelpBar.vue'
 import { Drive } from '$/components/AppContainer/reactTabs'
-import { categoryKey, useCategories } from '$/providers/categories'
+import { categoryKey, useCategories } from '$/providers/category'
 import { useContainerData } from '$/providers/container'
 import { useDriveLocation } from '$/providers/drive'
 import { optPx } from '$/utils/dom'
@@ -98,7 +98,6 @@ async function onAddDirectoryClick() {
         <CategoryButton
           v-for="category of categories.cloudCategoriesList"
           :key="categoryKey(category)"
-          class="leftBarIcon"
           :category="category"
           :extended="leftBarExtended"
         />
@@ -107,7 +106,6 @@ async function onAddDirectoryClick() {
         <CategoryButton
           v-for="category of categories.localCategoriesList"
           :key="categoryKey(category)"
-          class="leftBarIcon"
           :category="category"
           :extended="leftBarExtended"
         />
@@ -143,10 +141,16 @@ async function onAddDirectoryClick() {
   position: relative;
   min-width: 48px;
   z-index: 1;
+
+  & > .shadow {
+    top: var(--top-bar-height);
+  }
 }
 
 .leftBar {
   --button-height: 26px;
+  --color-menu-entry-selected-bg: rgb(255 255 255);
+  --color-menu-entry-hover-bg: rgba(255 255 255 / 0.8);
   position: absolute;
   width: 48px;
   max-width: 48px;
@@ -165,6 +169,10 @@ async function onAddDirectoryClick() {
   &.expanded {
     width: fit-content;
     max-width: 400px;
+  }
+
+  & > .shadow {
+    top: 0px;
   }
 }
 
@@ -187,6 +195,11 @@ async function onAddDirectoryClick() {
 
 .leftBarIcon {
   margin: 0 12px;
+}
+
+.CategoryButton {
+  margin: 4px 16px;
+  width: calc(100% - 32px);
 }
 
 /* This element's visible width will be overwritten by the size transition, but the inner content's
@@ -219,7 +232,6 @@ async function onAddDirectoryClick() {
 
 .shadow {
   position: absolute;
-  top: var(--top-bar-height);
   right: 0;
   width: 100%;
   height: 100%;

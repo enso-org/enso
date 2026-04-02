@@ -22,7 +22,6 @@ import {
   useDriveCurrentBackend,
   useDriveCurrentCategory,
   useDriveCurrentDirectory,
-  useDriveCurrentRootPath,
   useDriveLocation,
   useRightPanelData,
 } from '$/providers/react/container'
@@ -44,10 +43,11 @@ import { toast } from 'react-toastify'
  */
 export function DriveBarNavigation() {
   const { getText } = useText()
-  const { categoryLabel, categoryDirectoryId, getCategoryByDirectoryId } = useCategories()
+  const { categoryLabel, categoryDirectoryId, getCategoryByDirectoryId, categoryRootPath } =
+    useCategories()
   const [category] = useDriveCurrentCategory()
   const [, setDirectory] = useDriveCurrentDirectory()
-  const currentRootPath = useDriveCurrentRootPath()
+  const currentRootPath = categoryRootPath(category)
   const associatedBackend = useDriveCurrentBackend()
   const localRootDirectory = useLocalRootDirectory() ?? undefined
   const { rootDirectoryId, currentDirectoryId } = useDirectoryIds({ category })

@@ -24,7 +24,7 @@ import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { isCloudCategory } from '$/providers/categories'
+import { isCloudCategory } from '$/providers/category'
 import type { Tab } from '$/providers/container'
 import {
   useBackends,

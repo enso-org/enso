@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
-import { CATEGORY_BACKEND } from '$/providers/categories'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { backendMutationOptions } from '@/composables/backend'

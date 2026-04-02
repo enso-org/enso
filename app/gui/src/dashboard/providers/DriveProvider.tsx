@@ -2,7 +2,7 @@
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
-import type { Category } from '$/providers/categories'
+import type { Category } from '$/providers/category'
 import {
   type AnyAsset,
   type AssetId,

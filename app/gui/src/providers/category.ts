@@ -50,6 +50,7 @@ export const CATEGORY_BACKEND: Record<CategoryType, BackendType> = {
 const TEAM_CATEGORY_KEY_PREFIX = 'team-'
 const LOCAL_DIRECTORY_KEY_PREFIX = 'local-'
 
+/** A key string of panel. May be used as Set element or Map key. */
 export function categoryKey(category: Category) {
   switch (category.type) {
     case 'cloud':
@@ -64,6 +65,7 @@ export function categoryKey(category: Category) {
   }
 }
 
+/** Parse key string created by {@link categoryKey}. */
 export function categoryFromKey(key: Opt<string>): Category | null {
   switch (key) {
     case 'cloud':
@@ -89,18 +91,22 @@ export function categoryFromKey(key: Opt<string>): Category | null {
   }
 }
 
+/** Check categories equality. */
 export function categoryEq(a: Opt<Category>, b: Opt<Category>) {
   return (a ? categoryKey(a) : '') === (b ? categoryKey(b) : '')
 }
 
+/** Check if category uses remote backend. */
 export function isCloudCategory(category: Category) {
   return CATEGORY_BACKEND[category.type] === BackendType.remote
 }
 
+/** Check if category uses local backend. */
 export function isLocalCategory(category: Category) {
   return CATEGORY_BACKEND[category.type] === BackendType.local
 }
 
+/** Get icon representing given category type. */
 export function categoryIcon(category: CategoryType): Icon {
   switch (category) {
     case 'cloud':
@@ -130,6 +136,11 @@ const localDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
   ),
 )
 
+/**
+ * Store containing information of drive panel categories.
+ *
+ * Also allows adding and removing local directories.
+ */
 export type CategoriesStore = ReturnType<typeof createCategoriesStore>
 
 function createCategoriesStore(userData: ToValue<Opt<User>>) {
@@ -242,7 +253,8 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
     const state = localDirectoryStore.getState()
     const index = state.localDirectories.findIndex((p) => p === path)
     if (index >= 0) {
-      const newList = [...state.localDirectories].splice(index, 1)
+      const newList = [...state.localDirectories]
+      newList.splice(index, 1)
       localDirectoryStore.setState({ localDirectories: newList })
       return true
     }

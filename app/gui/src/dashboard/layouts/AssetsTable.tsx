@@ -65,7 +65,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { categoryKey, type Category } from '$/providers/categories'
+import { categoryKey, type Category } from '$/providers/category'
 import { useCategories, useFullUserSession, useLocalStorage, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import {

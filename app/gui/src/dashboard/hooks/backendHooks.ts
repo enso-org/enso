@@ -2,7 +2,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import type { Category, CategoryType } from '$/providers/categories'
+import type { Category, CategoryType } from '$/providers/category'
 import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
 import { useFullUserSession } from '$/providers/react'
 import { useContainerData } from '$/providers/react/container'

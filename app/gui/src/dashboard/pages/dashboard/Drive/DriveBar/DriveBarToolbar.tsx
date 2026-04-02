@@ -33,7 +33,7 @@ import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DrivePr
 import { unsetModal } from '#/providers/ModalProvider'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { canTransferBetweenCategories } from '$/providers/categories'
+import { canTransferBetweenCategories } from '$/providers/category'
 import { useCategories, useText } from '$/providers/react'
 import { useDriveCurrentBackend, useDriveCurrentCategory } from '$/providers/react/container'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'

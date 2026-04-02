@@ -19,7 +19,7 @@ import {
   isCloudCategory,
   isLocalCategory,
   type Category,
-} from '$/providers/categories'
+} from '$/providers/category'
 import { useBackends, useCategories, useText, useUser } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'

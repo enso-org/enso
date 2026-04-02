@@ -14,7 +14,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as appUtils from '$/appUtils'
-import { isCloudCategory } from '$/providers/categories'
+import { isCloudCategory } from '$/providers/category'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import {

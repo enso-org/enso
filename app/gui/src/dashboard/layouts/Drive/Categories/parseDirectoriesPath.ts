@@ -1,5 +1,5 @@
 /** @file {@link parseDirectoriesPath} utility function. */
-import { categoryIcon, type Category } from '$/providers/categories'
+import { categoryIcon, type Category } from '$/providers/category'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
 

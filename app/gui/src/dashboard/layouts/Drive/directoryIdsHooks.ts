@@ -1,5 +1,5 @@
 /** @file A hook returning the root directory id and expanded directory ids. */
-import type { Category } from '$/providers/categories'
+import type { Category } from '$/providers/category'
 import { useCategories, useUser } from '$/providers/react'
 import { useDriveCurrentDirectory } from '$/providers/react/container'
 

@@ -1,6 +1,6 @@
 /** @file Types and constants related to `Column`s. */
 import type { SvgUseIcon } from '#/components/types'
-import type { CategoryType } from '$/providers/categories'
+import type { CategoryType } from '$/providers/category'
 import * as backend from 'enso-common/src/services/Backend'
 
 /** Column type. */

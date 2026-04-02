@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
-import { CATEGORY_BACKEND } from '$/providers/categories'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import StandaloneButton from '@/components/StandaloneButton.vue'

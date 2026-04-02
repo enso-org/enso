@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { ASSETS_DATA_TRANSFER_PAYLOAD } from '#/layouts/Drive/Categories'
+import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
 import {
   canTransferBetweenCategories,
   categoryEq,
@@ -8,23 +9,30 @@ import {
   categoryIcon,
   useCategories,
   type Category,
-} from '$/providers/categories'
+  type LocalDirectory,
+} from '$/providers/category'
 import { useDriveLocation } from '$/providers/drive'
 import { useReactApi } from '$/providers/reactApi'
 import { useText } from '$/providers/text'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
-import { computed, toRefs } from 'vue'
+import { computed, ref, toRefs } from 'vue'
+import { useRouter } from 'vue-router'
 
 const { category, extended = false } = defineProps<{
   category: Category
   extended: boolean
 }>()
 
-const { categoryLabel } = useCategories()
+const { categoryLabel, removeLocalDirectory } = useCategories()
 const { currentCategory } = toRefs(useDriveLocation())
-const { transferBetweenCategories, confirmDelete } = useReactApi()
+const reactApi = useReactApi()
 const { getText } = useText()
+const router = useRouter()
 
+const label = computed(() => categoryLabel(category))
+const selected = computed(() => categoryEq(category, currentCategory.value))
+const isLoading = computed(() => selected.value && reactApi.isTransitioning)
 const isDropTarget = computed(
   () =>
     !categoryEq(currentCategory.value, category) &&
@@ -32,10 +40,12 @@ const isDropTarget = computed(
 )
 
 const acceptedDragTypes = computed(() => (isDropTarget.value ? [ASSETS_MIME_TYPE] : []))
+const dropHover = ref(false)
 
 function onDragover(event: DragEvent) {
   for (const item of event.dataTransfer?.items ?? []) {
     if (acceptedDragTypes.value.find((type) => type === item.type)) {
+      dropHover.value = true
       event.preventDefault()
       return
     }
@@ -43,13 +53,6 @@ function onDragover(event: DragEvent) {
 }
 
 async function onDrop(event: DragEvent) {
-  // unsetModal()
-  // if (event.dropOperation === 'cancel') return
-  console.debug(event.dataTransfer?.items.length)
-  console.debug(event.dataTransfer?.items[0]?.kind, event.dataTransfer?.items[0]?.type)
-  console.debug(event.dataTransfer?.items[1]?.kind, event.dataTransfer?.items[1]?.type)
-  event.dataTransfer?.items[0]?.getAsString(console.debug)
-
   const payloads = await Promise.all(
     Array.from(event.dataTransfer?.items ?? [])
       .filter((item) => item.kind === 'string' && item.type === ASSETS_MIME_TYPE)
@@ -67,13 +70,15 @@ async function onDrop(event: DragEvent) {
     await Promise.all(
       payloads.map((payload) => {
         const fromCategory = categoryFromKey(payload.category)
-        return fromCategory && transferBetweenCategories(fromCategory, category, payload.items)
+        return (
+          fromCategory && reactApi.transferBetweenCategories(fromCategory, category, payload.items)
+        )
       }),
     )
   }
 
   if (category.type === 'trash') {
-    confirmDelete({
+    reactApi.confirmDelete({
       defaultOpen: true,
       actionText:
         payloads[0]?.items.length === 1 && firstItem != null ?
@@ -85,16 +90,61 @@ async function onDrop(event: DragEvent) {
     await transfer()
   }
 }
+
+function onRemoveLocalDirClick(directory: LocalDirectory) {
+  reactApi.confirmDelete({
+    actionText: getText('removeTheLocalDirectoryXFromFavorites', categoryLabel(directory)),
+    actionButtonLabel: getText('remove'),
+    onConfirm: () => {
+      removeLocalDirectory(directory.path)
+    },
+  })
+}
 </script>
 
 <template>
-  <SvgButton
-    class="leftBarIcon"
-    :name="categoryIcon(category.type)"
-    :label="extended ? categoryLabel(category) : undefined"
-    :modelValue="categoryEq(category, currentCategory)"
-    @update:modelValue="currentCategory = category"
-    @dragover="onDragover"
-    @drop="onDrop"
-  />
+  <div class="CategoryButton">
+    <SvgButton
+      :class="{ dropHover }"
+      :name="!isLoading ? categoryIcon(category.type) : undefined"
+      :label="extended ? label : undefined"
+      :title="label"
+      :modelValue="selected"
+      @update:modelValue="currentCategory = category"
+      @dragover="onDragover"
+      @dragleave="dropHover = false"
+      @drop="onDrop"
+    >
+      <LoadingSpinner v-if="isLoading" phase="loading-medium" :size="16" />
+    </SvgButton>
+
+    <SvgButton
+      v-if="extended && category.type === 'local'"
+      name="settings"
+      @activate="
+        () =>
+          router.push({
+            path: '/settings',
+            query: { [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local') },
+          })
+      "
+    />
+    <SvgButton
+      v-else-if="extended && category.type === 'localDirectory'"
+      name="minus"
+      @activate="onRemoveLocalDirClick(category)"
+    />
+  </div>
 </template>
+
+<style scoped>
+.CategoryButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.dropHover {
+  background-color: rgba(255 255 255);
+}
+</style>

@@ -2,7 +2,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useTransferBetweenCategories } from '#/layouts/Drive/Categories/transferBetweenCategoriesHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
-import { dropOperationBetweenCategories, type Category } from '$/providers/categories'
+import { dropOperationBetweenCategories, type Category } from '$/providers/category'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
 /**
  * Options for the paste action.

@@ -25,7 +25,7 @@ import * as eventModule from '#/utilities/event'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { isLocalCategory } from '$/providers/categories'
+import { isLocalCategory } from '$/providers/category'
 import { useFullUserSession } from '$/providers/react'
 import {
   useDriveCurrentBackend,
