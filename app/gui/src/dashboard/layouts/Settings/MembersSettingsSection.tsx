@@ -5,12 +5,16 @@ import * as paywall from '#/components/Paywall'
 import { Scroller } from '#/components/Scroller'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import * as billingHooks from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { setModal } from '#/providers/ModalProvider'
-import * as authProvider from '$/providers/react'
-import { useBackends, useText } from '$/providers/react'
+import { getFeatureConfiguration } from '$/composables/paywall/FeaturesConfiguration'
+import {
+  useBackends,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import type * as backendModule from 'enso-common/src/services/Backend'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
@@ -21,9 +25,9 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 export default function MembersSettingsSection() {
   const { getText } = useText()
   const { remoteBackend: backend } = useBackends()
-  const { user } = authProvider.useFullUserSession()
+  const { user } = useFullUserSession()
 
-  const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
 
   const [{ data: members }, { data: invitations }] = useSuspenseQueries({
     queries: [
@@ -33,7 +37,7 @@ export default function MembersSettingsSection() {
   })
 
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
-  const feature = getFeature('inviteUser')
+  const feature = getFeatureConfiguration('inviteUser')
 
   const seatsLeft = isUnderPaywall ? invitations.availableLicenses : null
   const seatsTotal = isUnderPaywall ? invitations.maxLicenses : feature.meta.maxSeats

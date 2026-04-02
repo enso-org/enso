@@ -2,7 +2,6 @@
 import NewTabIcon from '#/assets/new_tab.svg'
 import SnoozeIcon from '#/assets/snooze.svg'
 import { Button } from '#/components/Button'
-import { useEnableVersionChecker, useSetEnableVersionChecker } from '#/components/Devtools'
 import { Dialog } from '#/components/Dialog'
 import { Stepper } from '#/components/Stepper'
 import { Text } from '#/components/Text'
@@ -11,6 +10,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
 import { useBackends, useText } from '$/providers/react'
+import { useShowVersionChecker } from '$/providers/react/devTools'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { startTransition, useState } from 'react'
@@ -34,8 +34,7 @@ export default function VersionChecker() {
   const { localBackend } = useBackends()
 
   const supportsLocalBackend = localBackend != null
-  const overrideValue = useEnableVersionChecker()
-  const setOverrideValue = useSetEnableVersionChecker()
+  const [overrideValue, setOverrideValue] = useShowVersionChecker()
   const shouldOverride = overrideValue ?? false
 
   const enableVersionChecker = IS_DEV_MODE ? shouldOverride : supportsLocalBackend

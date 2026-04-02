@@ -545,7 +545,6 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
         @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
         @pointermove="updateNodeHover"
       >
-        <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
         <ComponentWidgetTree
           ref="widgetTreeNode"
           :ast="props.node.innerExpr"
@@ -568,6 +567,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       v-bind="visibleMessage"
       class="afterNode shiftWhenMenuVisible"
     />
+    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
 </template>
 

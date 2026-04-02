@@ -31,6 +31,8 @@ problems, but don't overload by too much logging. The system allows to
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [User config](#user-config)
+  - [IDE Config](#ide-config)
+  - [Progress and Profiling](#progress-and-profiling)
 - [Configuration in Code](#configuration-in-code)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
@@ -69,6 +71,48 @@ refer to the _FQN_ of the logger - e.g. usually the package elements and class
 name. The `debug` value (or other) shall represent a valid level name. System
 properties always take priority over any default values defined in embedded
 `application.conf` file (see [custom Log Levels](#custom-log-levels) section).
+
+### IDE Config
+
+When running the IDE one can configure the logging using the same arguments, but
+providing them via `ENSO_ENGINE_ARGS` environment variable:
+
+```bash
+enso$ ENSO_ENGINE_ARGS="--log-level debug" corepack pnpm run dev:gui
+```
+
+Turns the `DEBUG` verbosity on.
+
+### Progress and Profiling
+
+Enso API accompanies `Logging` with additional `Progress` API. Such an API is
+used in the interactive GUI mode to track and report progress of longer running
+tasks. The GUI can then show the progress of component computation:
+
+[FastVisualizationsIntegrated.webm](https://github.com/user-attachments/assets/5bfe60af-d3ba-4ca0-b20b-79a602c61cc9)
+
+Such a reporting isn't only useful in _visual mode_. It can provide valuable
+information in the CLI mode as well. In particular it can be used for profiling!
+Use the [logger configuration properties](#user-config) to pick appropriate
+progress handle of interest and turn its profiling info on:
+
+```bash
+enso$ enso --vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug --run test/Table_Tests
+[Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~21ms
+[Standard.Base.Logging.Progress.Table.select_columns] ADVANCE Table.select_columns+1~8ms
+[Standard.Base.Logging.Progress.Table.set] ADVANCE Table.set+1~19ms
+[Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~16ms
+```
+
+Use `ENSO_ENGINE_ARGS` to enable the [profiling for the IDE](#ide-config):
+
+```bash
+enso$ ENSO_ENGINE_ARGS=--vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug corepack pnpm dev:gui
+```
+
+Find timings of individual
+[`Progress.run` operations](https://github.com/enso-org/enso/pull/12163) logged
+in appropriate log file and/or see them in the console.
 
 ## Configuration in Code
 

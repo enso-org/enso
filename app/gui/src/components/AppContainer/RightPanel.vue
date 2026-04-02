@@ -8,6 +8,7 @@ import {
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { useContainerData } from '$/providers/container'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import { optPx } from '$/utils/dom'
 import type { ToValue } from '$/utils/reactivity'
 import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
@@ -68,14 +69,14 @@ const resizeHandles = useResizeHandles({
   size: useResizeObserver(contentElement),
 })
 resizeHandles.onResizeWidth((value) => (width.value = value))
-const style = computed(() => (width.value == null ? {} : { '--panel-width': `${width.value}px` }))
+const widthStyle = computed(() => ({ width: optPx(width.value) }))
 </script>
 
 <template>
-  <div class="RightPanel withBackgroundColor bg-dashboard" data-testid="right-panel" :style="style">
+  <div class="RightPanel withBackgroundColor bg-dashboard" data-testid="right-panel">
     <SizeTransition width :duration="250">
       <div v-if="component != null" class="sizeWrapper">
-        <div ref="contentElement" class="content">
+        <div ref="contentElement" class="content" :style="widthStyle">
           <WithFullscreenMode v-model="data.fullscreen">
             <div class="contentInner withBackgroundColor">
               <component :is="component" />
@@ -110,25 +111,20 @@ const style = computed(() => (width.value == null ? {} : { '--panel-width': `${w
 
 .RightPanel {
   --tab-highlight: white;
-  --min-panel-width: 312px;
-  /* 64px is the width of the SelectableTab component + 16px padding to avoid filling the whole screen. */
-  --max-panel-width: calc(100vw - 64px);
-  --default-panel-width: 400px;
   display: flex;
   position: relative;
   flex-direction: row;
   height: 100%;
-  flex-shrink: 1;
   z-index: 2;
 }
 
 .content {
   display: flex;
   justify-content: stretch;
-  min-width: var(--min-panel-width);
-  /*noinspection CssUnresolvedCustomProperty*/
-  width: var(--panel-width, var(--default-panel-width));
-  max-width: var(--max-panel-width);
+  /* Default width, overriden by style tag */
+  width: 400px;
+  min-width: 312px;
+  max-width: calc(40vw - 48px);
   height: 100%;
 }
 
@@ -138,7 +134,8 @@ const style = computed(() => (width.value == null ? {} : { '--panel-width': `${w
  */
 .sizeWrapper {
   height: 100%;
-  width: 100%;
+  min-width: 0;
+  flex-grow: 1;
   background-color: var(--panel-background);
 }
 

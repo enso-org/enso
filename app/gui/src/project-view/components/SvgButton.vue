@@ -3,7 +3,7 @@ import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { AnyIcon } from '@/util/icons'
 
-const toggledOn = defineModel<boolean | undefined>()
+const toggledOn = defineModel<boolean | undefined>({ default: undefined })
 defineProps<{
   name?: AnyIcon | undefined
   label?: string | undefined
@@ -20,7 +20,7 @@ const emit = defineEmits<{ activate: [] }>()
     v-model="toggledOn"
     :disabled="disabled"
     class="SvgButton"
-    :class="[variant && `variant-${variant}`, label !== undefined ? 'with-label' : undefined]"
+    :class="[variant && `variant-${variant}`]"
     :title="title"
     :extraClickZone="extraClickZone"
     @activate="emit('activate')"
@@ -38,10 +38,6 @@ const emit = defineEmits<{ activate: [] }>()
   &.disabled {
     opacity: 0.2;
   }
-}
-
-.with-label {
-  padding: var(--button-padding, 4px) 1em;
 }
 
 .variant-submit {

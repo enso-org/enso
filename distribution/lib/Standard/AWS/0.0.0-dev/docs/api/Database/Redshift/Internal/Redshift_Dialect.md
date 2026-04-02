@@ -39,6 +39,8 @@
 - concat_ops -> Standard.Base.Any.Any
 - cosh -> Standard.Base.Any.Any
 - first_last_aggregators -> Standard.Base.Any.Any
+- index_of -> Standard.Base.Any.Any
+- last_index_of -> Standard.Base.Any.Any
 - ln -> Standard.Base.Any.Any
 - log10 -> Standard.Base.Any.Any
 - make_contains_expr expr:Standard.Base.Any.Any substring:Standard.Base.Any.Any -> Standard.Base.Any.Any

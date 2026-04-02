@@ -1,12 +1,12 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
 import { type NodeId } from '$/providers/openedProjects/graph'
+import { dataAttribute, selectorHierarchy } from '$/utils/dom'
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import { Vec2 } from '@/util/data/vec2'
-import { dataAttribute, selectorHierarchy } from '@/util/dom'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'

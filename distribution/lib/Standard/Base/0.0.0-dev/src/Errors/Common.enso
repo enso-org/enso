@@ -18,7 +18,6 @@ from project.Nothing import all
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.OutOfMemoryError
-polyglot java import org.enso.base.cache.ResponseTooLargeException
 polyglot java import org.enso.base.CompareException
 
 ## An error indicating that no value was found.
@@ -748,13 +747,6 @@ type Response_Too_Large
     to_text : Text
     to_text self =
         "(Response_Too_Large (actual_size = "+self.actual_size.to_text+") (limit = "+self.limit.to_text+"))"
-
-    ## ---
-       private: true
-       ---
-       Convert the Java exception to an Enso dataflow error.
-    handle_java_exception ~action =
-        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getActualSize cause.payload.getLimit))
 
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.

@@ -4,13 +4,13 @@ import { Alert, type AlertProps } from '#/components/Alert'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
-import type * as billingHooks from '#/hooks/billing'
+import type { PaywallFeatureName } from '$/composables/paywall'
 import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
 
 /** Props for {@link PaywallAlert}. */
 export interface PaywallAlertProps<IconType extends string> extends Omit<AlertProps, 'children'> {
-  readonly feature: billingHooks.PaywallFeatureName
+  readonly feature: PaywallFeatureName
   readonly label: string
   readonly showUpgradeButton?: boolean
   readonly upgradeButtonProps?: Omit<paywall.UpgradeButtonProps<IconType>, 'feature'>
