@@ -3,7 +3,9 @@ import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import type * as http from 'node:http'
 import * as path from 'node:path'
+import { promisify } from 'node:util'
 import * as zlib from 'node:zlib'
+
 import * as yaml from 'yaml'
 import { getEngineLogDirectory } from '../distributionManager.js'
 import * as projectManagement from '../projectManagement.js'
@@ -345,7 +347,12 @@ export async function getFileSystemEntry(entryPath: string): Promise<FileSystemE
   }
 }
 
+// ============
+// === Logs ===
+// ============
+
 const SESSION_ID_PREFIX = 'localprojectsession-'
+const gunzipAsync = promisify(zlib.gunzip)
 
 /** Validate that a path segment contains no directory traversal or separators. */
 function isSafePathSegment(segment: string): boolean {
@@ -560,7 +567,7 @@ export async function downloadProjectSessionLogs(sessionId: string): Promise<str
     const filePath = path.join(projectLogDir, `${baseName}.${archiveIndex}.log.gz`)
     try {
       const compressed = await fs.readFile(filePath)
-      parts.push(zlib.gunzipSync(compressed).toString('utf-8'))
+      parts.push((await gunzipAsync(compressed)).toString('utf-8'))
     } catch (e) {
       console.error(`Failed to read archive '${filePath}':`, e)
     }
