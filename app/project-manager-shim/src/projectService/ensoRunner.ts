@@ -49,6 +49,27 @@ export interface Socket {
   readonly port: number
 }
 
+function formatStringDiagnostics(value: string): string {
+  const codePoints = Array.from(value, (char) =>
+    `U+${char.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}`,
+  )
+  return JSON.stringify({
+    value,
+    length: value.length,
+    codePoints,
+  })
+}
+
+function pathDiagnostics(label: string, details: Record<string, string | readonly string[]>): void {
+  const formattedDetails = Object.fromEntries(
+    Object.entries(details).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value.map((item) => JSON.parse(formatStringDiagnostics(item))) : JSON.parse(formatStringDiagnostics(value)),
+    ]),
+  )
+  console.warn(`[PATH_DIAGNOSTICS] ${label}: ${JSON.stringify(formattedDetails)}`)
+}
+
 /**
  * Use declaration merging to allow extension of ShutdownHookRegistry in other modules.
  * This enables adding new shutdown hook types without modifying the original interface.
@@ -258,6 +279,11 @@ export class EnsoRunner implements Runner {
       this.ensoPath.endsWith('.bat') ?
         ['cmd.exe', ['/c', this.ensoPath, ...args]]
       : [this.ensoPath, args]
+    pathDiagnostics('runProcess', {
+      ensoPath: this.ensoPath,
+      cmd,
+      cmdArgs,
+    })
     const isDevMode = process.env.NODE_ENV === 'development'
     if (isDevMode) {
       console.log('runProcess', cmd, cmdArgs.join(' '))
@@ -370,6 +396,12 @@ export class EnsoRunner implements Runner {
           jsonPort.toString(),
           ...(extraArgs ?? []),
         ]
+        pathDiagnostics('openProject', {
+          projectPath,
+          projectId,
+          rootId,
+          args,
+        })
 
         const env = {
           ...process.env,
@@ -558,6 +590,7 @@ function checkExecutable(filePath: string) {
   } catch {
     throw new Error(`Enso executable at ${filePath} is not executable`)
   }
+  pathDiagnostics('checkExecutable', { filePath })
   return Path(filePath)
 }
 
@@ -613,10 +646,12 @@ function checkExecutables(...segments: readonly string[]): Path | undefined {
 /** Find the path to the `enso` executable. */
 export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   workDir = path.resolve(workDir)
+  pathDiagnostics('findEnsoExecutable.start', { workDir })
 
   // Check ENSO_ENGINE_PATH environment variable first
   const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
+    pathDiagnostics('findEnsoExecutable.envPath', { envPath })
     try {
       fs.accessSync(envPath)
       return checkExecutable(envPath)
@@ -642,8 +677,10 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   ]
 
   for (const directory of directories) {
+    pathDiagnostics('findEnsoExecutable.searchDirectory', { directory })
     const result = checkExecutables(...directory)
     if (result) {
+      pathDiagnostics('findEnsoExecutable.found', { result })
       return result
     }
   }

@@ -10,6 +10,8 @@ import scala.concurrent.ExecutionContext;
 
 @org.openide.util.lookup.ServiceProvider(service = LanguageServerApi.class)
 public final class LanguageServerRunner extends LanguageServerApi {
+  private static final String PATH_DIAGNOSTICS_LABEL = "PATH_DIAGNOSTICS";
+
   public LanguageServerRunner() {}
 
   /**
@@ -21,6 +23,9 @@ public final class LanguageServerRunner extends LanguageServerApi {
    */
   protected final void runLanguageServer(CommandLine line, ProfilingConfig prof, Level logLevel)
       throws WrongOption {
+    pathDiagnostics(
+        "runLanguageServer",
+        "logLevel=" + quote(logLevel.name()) + ", daemonize=" + line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
     var config = parseServerOptions(line, prof);
     LanguageServerApp.run(config, logLevel, line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
   }
@@ -41,6 +46,16 @@ public final class LanguageServerRunner extends LanguageServerApi {
     if (rootPath == null) {
       throw new WrongOption("Root path must be provided");
     }
+    pathDiagnostics(
+        "parseServerOptions.rootPath",
+        "rootPath="
+            + stringDiagnostics(rootPath)
+            + ", file.encoding="
+            + quote(System.getProperty("file.encoding"))
+            + ", sun.jnu.encoding="
+            + quote(System.getProperty("sun.jnu.encoding"))
+            + ", native.encoding="
+            + quote(System.getProperty("native.encoding")));
     UUID projectId;
     try {
       var id = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
@@ -83,5 +98,37 @@ public final class LanguageServerRunner extends LanguageServerApi {
             "language-server",
             ExecutionContext.global());
     return config;
+  }
+
+  private static void pathDiagnostics(String stage, String message) {
+    System.err.println("[" + PATH_DIAGNOSTICS_LABEL + "] " + stage + ": " + message);
+  }
+
+  private static String stringDiagnostics(String value) {
+    var codePoints =
+        value.codePoints()
+            .mapToObj(codePoint -> String.format("\"U+%04X\"", codePoint))
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
+    return "{\"value\":"
+        + quote(value)
+        + ",\"length\":"
+        + value.length()
+        + ",\"codePoints\":["
+        + codePoints
+        + "]}";
+  }
+
+  private static String quote(String value) {
+    if (value == null) {
+      return "null";
+    }
+    return "\""
+        + value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "\\r")
+            .replace("\n", "\\n")
+        + "\"";
   }
 }
