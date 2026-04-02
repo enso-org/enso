@@ -5,7 +5,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 
 <template>
   <div class="Checkbox clickable" @click.stop="emit('update:modelValue', !props.modelValue)">
-    <div class="checkmark" :class="{ hidden: !props.modelValue }"></div>
+    <div class="mark" :class="props.modelValue ? 'checkmark' : 'cross'"></div>
   </div>
 </template>
 
@@ -37,6 +37,10 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   border-color: color-mix(in oklab, var(--color-widget-selected) 65%, transparent);
 }
 
+.mark {
+  position: relative;
+}
+
 .checkmark {
   width: var(--widget-checkbox-check-width);
   height: var(--widget-checkbox-check-height);
@@ -45,7 +49,26 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   transform: translateY(-1px) rotate(45deg);
 }
 
-.hidden {
-  opacity: 0;
+.cross {
+  width: 10px;
+  height: 10px;
+}
+
+.cross::before,
+.cross::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 10px;
+  border-top: 2px solid var(--color-widget-selected);
+}
+
+.cross::before {
+  transform: rotate(45deg);
+}
+
+.cross::after {
+  transform: rotate(-45deg);
 }
 </style>
