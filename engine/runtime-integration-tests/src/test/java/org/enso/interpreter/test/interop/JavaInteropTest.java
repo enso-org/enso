@@ -566,7 +566,6 @@ public abstract class JavaInteropTest {
           }
         };
     code1Thread.start();
-    awaitThread(code1Thread);
     code2Thread.start();
 
     awaitThread(code1Thread);
