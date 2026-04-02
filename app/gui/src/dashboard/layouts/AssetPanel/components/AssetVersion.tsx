@@ -1,25 +1,30 @@
 /** @file Displays information describing a specific version of an asset. */
 import { Badge } from '#/components/Badge'
 import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import EditableSpan from '#/components/EditableSpan'
+import { Dialog, Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import { BasicInput } from '#/components/Inputs/Input'
 import { Menu } from '#/components/Menu'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { Text, TEXT_STYLE } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { VisualTooltip } from '#/components/VisualTooltip'
-import { useAddAssetVersionTag, useRemoveAssetVersionTag } from '#/hooks/backendHooks'
+import {
+  backendQueryOptions,
+  useAddAssetVersionTag,
+  useRemoveAssetVersionTag,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { useQuery } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
 import * as backendService from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
-import { useState } from 'react'
+import { useFilter } from 'react-aria-components'
 import { AssetDiffView } from './AssetDiffView'
 
 const HEADER_GAP_PX = 8
@@ -29,35 +34,112 @@ const MAX_TAG_WIDTH_CH = 32
 
 /** Options for add tag compontent. */
 interface AddTagProps {
+  readonly availableTags: readonly string[]
   readonly backend: Backend
   readonly item: backendService.AnyAsset
   readonly version: Version
-  readonly editedVersion: backendService.S3ObjectVersionId | null
-  readonly setEditedVersion: (tag: backendService.S3ObjectVersionId | null) => void
 }
 
-/** Editable input compontent for adding asset version tag. */
+const ADD_TAG_STYLES = tv({
+  slots: {
+    form: 'flex w-80 max-w-[min(20rem,calc(100vw-2rem))] flex-col gap-2',
+    inputRow: 'flex items-center gap-2',
+    input:
+      'w-full rounded-full border-0.5 border-primary/20 bg-transparent px-3 py-1.5 text-xs text-primary outline-none transition-colors placeholder:text-primary/40 focus:border-primary',
+    suggestions: 'flex max-h-56 flex-col overflow-y-auto overflow-x-hidden',
+    suggestionButton:
+      'w-full justify-start rounded-full px-3 py-1.5 text-left text-xs font-medium text-primary hover:bg-primary/5',
+  },
+})
+
+/** Add tag popover content. */
 function AddTag(props: AddTagProps) {
-  const { item, version, backend, editedVersion, setEditedVersion } = props
+  const { availableTags, item, version, backend } = props
+  const { getText } = useText()
+  const styles = ADD_TAG_STYLES()
+  const filter = useFilter({ sensitivity: 'base' })
+  const [value, setValue] = React.useState('')
+  const deferredValue = React.useDeferredValue(value)
 
   const addAssetVersionTag = useAddAssetVersionTag(backend)
-  const onSubmit = async (tag: string) => {
-    await addAssetVersionTag(item.id, version.versionId, tag)
-    setEditedVersion(null)
-  }
+  const normalizedValue = value.trim()
+  const filteredTags = React.useMemo(() => {
+    const existingTags = new Set(version.tags)
+    return availableTags.filter(
+      (tag) =>
+        tag.trim() !== '' &&
+        !existingTags.has(tag) &&
+        (deferredValue.trim() === '' || filter.contains(tag, deferredValue)),
+    )
+  }, [availableTags, deferredValue, filter, version.tags])
+
+  const submit = useEventCallback(async (tag: string, close: () => void) => {
+    const normalizedTag = tag.trim()
+    if (normalizedTag === '' || version.tags.includes(normalizedTag)) {
+      return
+    }
+    await addAssetVersionTag(item.id, version.versionId, normalizedTag)
+    setValue('')
+    close()
+  })
 
   return (
-    <div className="group flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child">
-      <EditableSpan
-        data-testid="asset-version-tag"
-        editable={editedVersion === version.versionId}
-        onSubmit={onSubmit}
-        children=""
-        onCancel={() => {
-          setEditedVersion(null)
-        }}
+    <Popover.Trigger>
+      <Button
+        variant="icon"
+        size="xxsmall"
+        icon="add"
+        tooltip={getText('assetVersions.addTag')}
+        className="shrink-0 opacity-40 hover:opacity-100"
       />
-    </div>
+      {({ close }: { close: () => void }) => (
+        <Popover size="auto" placement="bottom start">
+          <form
+            className={styles.form()}
+            onSubmit={(event) => {
+              event.preventDefault()
+              void submit(normalizedValue, close)
+            }}
+          >
+            <div className={styles.inputRow()}>
+              <BasicInput
+                autoFocus
+                value={value}
+                onChange={(event) => {
+                  setValue(event.currentTarget.value)
+                }}
+                placeholder={getText('assetVersions.addTag')}
+                aria-label={getText('assetVersions.addTag')}
+                className={styles.input()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void submit(normalizedValue, close)
+                  } else if (event.key === 'Escape') {
+                    event.preventDefault()
+                    close()
+                  }
+                }}
+              />
+            </div>
+            {filteredTags.length > 0 && (
+              <div className={styles.suggestions()}>
+                {filteredTags.map((tag) => (
+                  <Button
+                    key={tag}
+                    variant="custom"
+                    className={styles.suggestionButton()}
+                    onPress={() => submit(tag, close)}
+                  >
+                    {tag}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </form>
+        </Popover>
+      )}
+    </Popover.Trigger>
   )
 }
 
@@ -99,12 +181,11 @@ export function AssetVersion(props: AssetVersionProps) {
 
   const { getText } = useText()
 
-  const [editedVersion, setEditedVersion] = useState<backendService.S3ObjectVersionId | null>(null)
-
   const isProject = item.type === backendService.AssetType.project
   const comparableVersions = otherVersions
     .map((v, index) => ({ ...v, number: otherVersions.length - index }))
     .filter((v) => v.versionId !== version.versionId)
+  const { data: availableTags } = useQuery(backendQueryOptions(backend, 'listAssetVersionTags', []))
 
   const canRestore = !version.isLatest
   const doRestore = useEventCallback(async () => {
@@ -187,28 +268,12 @@ export function AssetVersion(props: AssetVersionProps) {
                   </div>
                 ))}
               </div>)}
-          {false && (
-            <Dialog.Trigger>
-              <Button
-                showIconOnHover
-                variant="icon"
-                size="xxsmall"
-                fullWidth
-                icon="add"
-                tooltip={'add tag'}
-                onPress={() => {
-                  setEditedVersion(version.versionId)
-                }}
-              />
-              <AddTag
-                item={item}
-                version={version}
-                backend={backend}
-                setEditedVersion={setEditedVersion}
-                editedVersion={editedVersion}
-              />
-            </Dialog.Trigger>
-          )}
+          <AddTag
+            availableTags={availableTags ?? []}
+            item={item}
+            version={version}
+            backend={backend}
+          />
         </div>
 
         {/* Tags list copies to measure sizes for conditional collapse behavior. */}
