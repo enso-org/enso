@@ -10,8 +10,9 @@ const PATH_DIAGNOSTICS_LABEL = 'PATH_DIAGNOSTICS'
 export const DOCUMENTS = getDocumentsPath()
 
 function formatStringDiagnostics(value: string): string {
-  const codePoints = Array.from(value, (char) =>
-    `U+${char.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}`,
+  const codePoints = Array.from(
+    value,
+    (char) => `U+${char.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}`,
   )
   return JSON.stringify({
     value,
@@ -27,7 +28,10 @@ function formatBufferDiagnostics(value: Buffer): string {
   })
 }
 
-function pathDiagnostics(label: string, details: Record<string, string | Buffer | undefined>): void {
+function pathDiagnostics(
+  label: string,
+  details: Record<string, string | Buffer | undefined>,
+): void {
   const formattedDetails = Object.fromEntries(
     Object.entries(details).map(([key, value]) => {
       if (value == null) {
@@ -92,7 +96,7 @@ function getWindowsDocumentsPath() {
       '-Command',
       '$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); [Environment]::GetFolderPath("MyDocuments")',
     ],
-    { timeout: CHILD_PROCESS_TIMEOUT }
+    { timeout: CHILD_PROCESS_TIMEOUT },
   )
   pathDiagnostics('getWindowsDocumentsPath.spawnSync', {
     stdoutBuffer: out.stdout,

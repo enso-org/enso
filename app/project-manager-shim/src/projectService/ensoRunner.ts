@@ -50,8 +50,9 @@ export interface Socket {
 }
 
 function formatStringDiagnostics(value: string): string {
-  const codePoints = Array.from(value, (char) =>
-    `U+${char.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}`,
+  const codePoints = Array.from(
+    value,
+    (char) => `U+${char.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}`,
   )
   return JSON.stringify({
     value,
