@@ -3,7 +3,6 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import { useNodesDisplacing } from '@/components/GraphEditor/nodesDisplacing'
 import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import { useArrows, useEvent } from '@/composables/events'
@@ -25,7 +24,6 @@ const { graph, store } = useCurrentProject()
 const selection = useGraphSelection()
 const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
-const { displaceNodesForResize } = useNodesDisplacing()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
   const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))
@@ -73,7 +71,6 @@ const layerStyle = computed(() => ({
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
       @setNodeColor="graph.overrideNodeColor(id, $event)"
-      @resizeDisplace="(rect0, rect1) => displaceNodesForResize(id, rect0, rect1)"
       @update:edited="graph.setEditedNode(id, $event)"
       @update:rect="graph.updateNodeRect(id, $event)"
       @update:height="graph.setNodeHeight(id, $event)"

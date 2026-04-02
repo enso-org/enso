@@ -29,6 +29,7 @@ import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSubmenu from '@/components/GraphEditor/GraphNodeSubmenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useNodesDisplacing } from '@/components/GraphEditor/nodesDisplacing'
 import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -71,7 +72,6 @@ const emit = defineEmits<{
   createNodes: [options: NodeCreationOptions[]]
   setNodeColor: [color: string | undefined]
   toggleDocPanel: []
-  resizeDisplace: [rect0: Rect, rect1: Rect]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:height': [height: number | undefined]
@@ -200,6 +200,7 @@ function ensureSelected() {
 
 const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
+const { displaceNodesForResize } = useNodesDisplacing()
 const {
   visualizationWidth,
   isVisualizationEnabled,
@@ -217,6 +218,7 @@ const {
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
   hidden: toRef(props, 'edited'),
   emit,
+  onResize: (rect0, rect1) => displaceNodesForResize(nodeId.value, rect0, rect1),
 })
 
 watch(isVisualizationPreviewed, (newVal) => {

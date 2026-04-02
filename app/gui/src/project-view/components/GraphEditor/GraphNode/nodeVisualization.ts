@@ -17,7 +17,6 @@ interface Emit {
   (event: 'update:visualizationId', id: Opt<VisualizationIdentifier>): void
   (event: 'update:visualizationEnabled', enabled: boolean): void
   (event: 'update:visualizationHeight', height: number): void
-  (event: 'resizeDisplace', rect0: Rect, rect1: Rect): void
 }
 
 interface NodeVisualizationOptions {
@@ -31,6 +30,7 @@ interface NodeVisualizationOptions {
   dataSource: ToValue<Opt<VisualizationDataSource | RawDataSource>>
   hidden: ToValue<boolean>
   emit: Emit
+  onResize?: (rect0: Rect, rect1: Rect) => void
 }
 
 /** Composable managing the state of the visualization for a node. */
@@ -45,6 +45,7 @@ export function useNodeVisualization({
   dataSource,
   hidden,
   emit,
+  onResize,
 }: NodeVisualizationOptions) {
   const keyboard = injectBubblingKeyboard()
   const metadata = computed(() => toValue(vis))
@@ -115,7 +116,7 @@ export function useNodeVisualization({
     const pos = toValue(nodePos)
     const rect0 = new Rect(pos, size0.add(widgetsHeightVec))
     const rect1 = new Rect(pos, size1.add(widgetsHeightVec))
-    emit('resizeDisplace', rect0, rect1)
+    onResize?.(rect0, rect1)
   })
 
   const visualization = computed((): ComponentProps<typeof GraphVisualization> => {
