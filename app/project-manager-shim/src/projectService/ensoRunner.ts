@@ -74,6 +74,62 @@ function pathDiagnostics(label: string, details: Record<string, string | readonl
   console.warn(`[PATH_DIAGNOSTICS] ${label}: ${JSON.stringify(formattedDetails)}`)
 }
 
+function logChildProcessOutput(projectPath: Path, stream: 'stdout' | 'stderr', chunk: Buffer | string): void {
+  const text = chunk.toString()
+  console.warn(`[PATH_DIAGNOSTICS] child.${stream} ${projectPath}: ${text}`)
+}
+
+function attachChildProcessLogging(
+  child: childProcess.ChildProcess,
+  details: {
+    projectPath: Path
+    cwd: string
+    cmd: string
+    cmdArgs: readonly string[]
+    env: NodeJS.ProcessEnv
+  },
+): void {
+  pathDiagnostics('child.spawn', {
+    projectPath: details.projectPath,
+    cwd: details.cwd,
+    cmd: details.cmd,
+    cmdArgs: details.cmdArgs,
+  })
+  console.warn(
+    `[PATH_DIAGNOSTICS] child.pid ${details.projectPath}: ${child.pid ?? 'unknown'} envOverrides=${JSON.stringify({
+      LANGUAGE_SERVER_YDOC_PORT: details.env.LANGUAGE_SERVER_YDOC_PORT,
+      ENSO_CLOUD_PROJECT_SESSION_ID: details.env.ENSO_CLOUD_PROJECT_SESSION_ID,
+      ENSO_CLOUD_PROJECT_ID: details.env.ENSO_CLOUD_PROJECT_ID,
+      ENSO_CLOUD_PROJECT_DIRECTORY_PATH: details.env.ENSO_CLOUD_PROJECT_DIRECTORY_PATH,
+      ENSO_CLOUD_API_URL: details.env.ENSO_CLOUD_API_URL,
+      JAVA_TOOL_OPTIONS: details.env.JAVA_TOOL_OPTIONS,
+    })}`,
+  )
+
+  child.stdout?.on('data', (chunk) => {
+    logChildProcessOutput(details.projectPath, 'stdout', chunk)
+  })
+  child.stderr?.on('data', (chunk) => {
+    logChildProcessOutput(details.projectPath, 'stderr', chunk)
+  })
+  child.on('spawn', () => {
+    console.warn(`[PATH_DIAGNOSTICS] child.event spawn ${details.projectPath}: pid=${child.pid ?? 'unknown'}`)
+  })
+  child.on('error', (error) => {
+    console.error(`[PATH_DIAGNOSTICS] child.event error ${details.projectPath}:`, error)
+  })
+  child.on('exit', (code, signal) => {
+    console.warn(
+      `[PATH_DIAGNOSTICS] child.event exit ${details.projectPath}: code=${code ?? 'null'} signal=${signal ?? 'null'}`,
+    )
+  })
+  child.on('close', (code, signal) => {
+    console.warn(
+      `[PATH_DIAGNOSTICS] child.event close ${details.projectPath}: code=${code ?? 'null'} signal=${signal ?? 'null'}`,
+    )
+  })
+}
+
 /**
  * Use declaration merging to allow extension of ShutdownHookRegistry in other modules.
  * This enables adding new shutdown hook types without modifying the original interface.
@@ -415,15 +471,23 @@ export class EnsoRunner implements Runner {
 
         const cwd = path.dirname(projectPath)
         const project = await OpenedProject.create(projectPath, jsonPort, ydocPort, () =>
-          this.runProcess(args, (cmd, cmdArgs) =>
-            childProcess.spawn(cmd, cmdArgs, {
+          this.runProcess(args, (cmd, cmdArgs) => {
+            const child = childProcess.spawn(cmd, cmdArgs, {
               env,
               detached: false,
               cwd,
-              stdio: ['pipe', 'inherit', 'inherit'],
+              stdio: ['pipe', 'pipe', 'pipe'],
               windowsHide: true,
-            }),
-          ),
+            })
+            attachChildProcessLogging(child, {
+              projectPath,
+              cwd,
+              cmd,
+              cmdArgs,
+              env,
+            })
+            return child
+          }),
         )
         project.shutdownHooks.set('remove-from-list', () => {
           this.runningProjects.delete(projectPath)
