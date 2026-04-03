@@ -516,17 +516,16 @@ public final class EnsoContext {
    *
    * @param who who requests the addition
    * @param file the file to register
-   * @param polyglotContextEntered true if a polyglot context has been entered, false otherwise
    */
   @TruffleBoundary
-  public void addToClassPath(Package<?> who, TruffleFile file, boolean polyglotContextEntered) {
+  public void addToClassPath(Package<?> who, TruffleFile file) {
     assert who != null;
     var path = new File(file.toUri()).getAbsoluteFile();
     if (!path.exists()) {
       throw new IllegalStateException("File not found " + path);
     }
     try {
-      EnsoPolyglotJava.addToClassPath(this, who, path, polyglotContextEntered);
+      EnsoPolyglotJava.addToClassPath(this, who, path);
     } catch (InteropException ex) {
       throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
     }

@@ -242,8 +242,7 @@ final class EnsoPolyglotJava {
    * This method ensure that hosted as well as guest classpath is the same. This is necessary until
    * real isolation between libraries is implemented.
    */
-  static void addToClassPath(
-      EnsoContext ctx, Object whoIsIgnored, File path, boolean polyglotContextEntered)
+  static void addToClassPath(EnsoContext ctx, Object whoIsIgnored, File path)
       throws InteropException {
     var data = KEY.get(ctx);
     data.classPath.add(path);
