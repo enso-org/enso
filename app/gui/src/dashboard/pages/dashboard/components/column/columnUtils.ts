@@ -39,7 +39,7 @@ export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> 
   [Column.accessedByProjects]: 'accessed_by_projects',
   [Column.accessedData]: 'accessed_data',
   [Column.path]: 'folder',
-  [Column.size]: 'folder',
+  [Column.size]: 'metadata',
   [Column.createdBy]: 'people',
 }
 

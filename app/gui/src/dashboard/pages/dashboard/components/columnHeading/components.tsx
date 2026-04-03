@@ -281,7 +281,7 @@ export function SizeColumnHeading(props: AssetColumnHeadingProps) {
     >
       <Button
         variant="icon"
-        icon="folder"
+        icon="metadata"
         aria-label={getText('sizeColumnName')}
         tooltip={false}
         onPress={hideThisColumn}

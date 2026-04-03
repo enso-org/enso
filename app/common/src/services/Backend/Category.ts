@@ -189,7 +189,6 @@ export function canTransferBetweenCategories(
   parentId: DirectoryId | null = null,
 ) {
   const operation = dropOperationBetweenCategories(from, to, parentId)
-  console.log(operation)
 
   return operation !== 'cancel'
 }

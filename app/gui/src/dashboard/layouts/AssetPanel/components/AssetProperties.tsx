@@ -248,7 +248,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   </Text>
                 </td>
               </tr>
-              {item.size && (
+              {item.size != null && (
                 <tr data-testid="asset-panel-size" className="h-row">
                   <td className="min-w-side-panel-label p-0">
                     <Text className="inline-block">{getText('sizeColumnName')}</Text>

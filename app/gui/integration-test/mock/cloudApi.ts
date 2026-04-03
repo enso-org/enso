@@ -416,16 +416,21 @@ export async function mockCloudApi(page: Page) {
   function createAsset(
     rest: Pick<backend.AnyAsset, 'id' | 'type'> & Partial<backend.AnyAsset>,
   ): backend.AnyAsset {
+    const modifiedAt = rest.modifiedAt ?? newDate()
+    const createdAt = rest.createdAt ?? modifiedAt
+
     // @ts-expect-error This is UNSAFE if the generic parameter is explicitly specified.
     return {
       projectState: null,
       extension: null,
       title: rest.title ?? '',
-      modifiedAt: newDate(),
+      modifiedAt,
+      createdAt,
       description: rest.description ?? '',
       labels: [],
       parentId: defaultDirectoryId,
       permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+      createdBy: defaultUser,
       get parentsPath() {
         return getParentPath(this.parentId)
       },
