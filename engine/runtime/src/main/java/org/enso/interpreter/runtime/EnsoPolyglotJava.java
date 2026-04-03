@@ -5,7 +5,6 @@ import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -36,11 +35,18 @@ final class EnsoPolyglotJava {
 
   private final EnsoContext ctx;
   private final boolean isHostClassLoading;
+
+  /**
+   * Current classpath. This list can grow over time, but already added entries to the list shall
+   * not be modified. Processing of the elemetns works in orchestration with {@link #classPathSize}.
+   */
   private final List<File> classPath;
 
   /**
-   * the amount of elements from {@link #classPath} already added to {@link
-   * #polyglotJava}. @GuardedBy("classPath")
+   * The amount of elements from {@link #classPath} already processed and added to {@link
+   * #polyglotJava}. @GuardedBy("classPath").
+   *
+   * @see #ensureClassPathIsUpToDate
    */
   private int classPathSize;
 
@@ -63,7 +69,7 @@ final class EnsoPolyglotJava {
    * @param ctx associated conext
    * @param isHostClassLoading do host classloading
    * @param growingPath classpath that may receive new entries incrementally - just make sure the
-   *     list is find with multi threaded access
+   *     list is ready for multi threaded read access
    */
   private EnsoPolyglotJava(EnsoContext ctx, boolean isHostClassLoading, List<File> growingPath) {
     this.ctx = ctx;
@@ -180,7 +186,7 @@ final class EnsoPolyglotJava {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object findPolyglotJava() throws InteropException {
+  private TruffleObject findPolyglotJava() throws InteropException {
     while (true) {
       Object pj;
       synchronized (this) {
@@ -189,9 +195,9 @@ final class EnsoPolyglotJava {
       if (pj instanceof Throwable t) {
         throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
       }
-      if (pj != this) {
-        adjustClassPath(pj);
-        return pj;
+      if (pj instanceof TruffleObject polyJava) {
+        ensureClassPathIsUpToDate(polyJava);
+        return polyJava;
       }
       pj = createPolyglotJava(ctx);
       assert pj != null;
@@ -208,25 +214,29 @@ final class EnsoPolyglotJava {
     }
   }
 
-  private void adjustClassPath(Object pj)
-      throws UnknownIdentifierException,
-          ArityException,
-          UnsupportedMessageException,
-          UnsupportedTypeException {
+  /**
+   * Makes sure all the entries from {@link #classPath} are added to {@code polyJava} runtime. Call
+   * this method before trying to load a class from the runtime.
+   *
+   * @param polyJava the runtime for loading Java classes
+   * @throws InteropException
+   */
+  private void ensureClassPathIsUpToDate(TruffleObject polyJava) throws InteropException {
     var iop = InteropLibrary.getUncached();
     while (true) {
       int indexToAdd;
       synchronized (classPath) {
         indexToAdd = classPathSize;
         if (indexToAdd >= classPath.size()) {
-          break;
+          // all elements of classPath already added to associated runtime
+          return;
         }
       }
 
-      File elem = classPath.get(indexToAdd);
+      var elem = classPath.get(indexToAdd);
       // multiple concurrent threads can add the same classpath element
       // that's OK, classpath elements can be duplicated
-      iop.invokeMember(pj, "addPath", elem.toString());
+      iop.invokeMember(polyJava, "addPath", elem.toString());
 
       synchronized (classPath) {
         // only after an indexToAdd element is added
