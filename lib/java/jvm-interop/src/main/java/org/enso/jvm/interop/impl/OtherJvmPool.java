@@ -36,12 +36,30 @@ public final class OtherJvmPool extends Channel.Config {
   private BiConsumer<Node, Object> onLeave;
   private Class<? extends TruffleLanguage> language;
 
-  /** Master Channel can be associated with actions on enter and on leave. */
+  /**
+   * Master Channel can be associated with actions on enter and on leave. This method can be called
+   * only once - then all the provided values are considered constant and immutable.
+   *
+   * @param self the channel this pool is associated to
+   * @param lang language objects produced by this pool should be associated to - can be {@code
+   *     null}
+   * @param polyglotBindings function resolving polyglot bindings or {@code null}
+   * @param onEnter function to be called when entering the evaluation or {@code null}
+   * @param onLeave function to be called when leaving the evaluation or {@code null}
+   */
   public final void onEnterLeave(
+      Channel<OtherJvmPool> self,
       Class<? extends TruffleLanguage> lang,
       Function<String, Object> polyglotBindings,
       Function<Node, Object> onEnter,
       BiConsumer<Node, Object> onLeave) {
+    assert self.getConfig() == this;
+    assert self.isMaster();
+    assert this.language == null;
+    assert this.polyglotBindings == null;
+    assert this.onEnter == null;
+    assert this.onLeave == null;
+
     this.language = lang;
     this.polyglotBindings = polyglotBindings;
     this.onEnter = onEnter;

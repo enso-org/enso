@@ -131,8 +131,6 @@ class Runner(
         options.interface,
         "--rpc-port",
         options.rpcPort.toString,
-        "--data-port",
-        options.dataPort.toString,
         "--log-level",
         logLevel.name
       ) ++ options.projectCloudId
@@ -143,9 +141,6 @@ class Runner(
           .getOrElse(Seq.empty) ++
         options.secureRpcPort
           .map(port => Seq("--secure-rpc-port", port.toString))
-          .getOrElse(Seq.empty) ++
-        options.secureDataPort
-          .map(port => Seq("--secure-data-port", port.toString))
           .getOrElse(Seq.empty) ++
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
 

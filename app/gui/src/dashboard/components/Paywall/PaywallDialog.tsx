@@ -1,7 +1,7 @@
 /** @file A dialog that prompts the user to upgrade to a paid plan. */
 import { Dialog, type DialogProps } from '#/components/Dialog'
 import { Text } from '#/components/Text'
-import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
+import { getFeatureConfiguration, type PaywallFeatureName } from '$/composables/paywall'
 import { useText } from '$/providers/react'
 import { PaywallBulletPoints, PaywallLock } from './components'
 import { UpgradeButton } from './UpgradeButton'
@@ -16,9 +16,8 @@ export function PaywallDialog(props: PaywallDialogProps) {
   const { feature, type = 'modal', title, ...dialogProps } = props
 
   const { getText } = useText()
-  const { getFeature } = usePaywallFeatures()
 
-  const { bulletPointsTextId, label, descriptionTextId } = getFeature(feature)
+  const { bulletPointsTextId, label, descriptionTextId } = getFeatureConfiguration(feature)
 
   return (
     <Dialog type={type} title={title ?? getText(label)} {...dialogProps}>

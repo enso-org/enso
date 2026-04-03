@@ -31,7 +31,8 @@ class RuntimeAsyncCommandsTest
     with Matchers
     with BeforeAndAfterEach
     with DebugSpec
-    with FlakySpec {
+    with FlakySpec
+    with org.enso.testkit.ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 

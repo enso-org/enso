@@ -75,10 +75,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, ${config.secureRpcPort
             .map(p => s"secure-json:${config.interface}$p")
-            .getOrElse("<secure-json-not-configured>")}, " +
-          s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
-            .map(p => s", secure-binary:${config.interface}$p")
-            .getOrElse(", <secure-binary-not-configured>")}"
+            .getOrElse("<secure-json-not-configured>")}"
         )
       }
     } yield ComponentStarted

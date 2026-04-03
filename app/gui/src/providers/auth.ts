@@ -257,5 +257,5 @@ function createAuthStore(
   })
 }
 
-/** A React provider for the Cognito API. */
+/** A provider of currently logged in user. */
 export const useAuth = createGlobalState(createAuthStore)

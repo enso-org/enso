@@ -586,17 +586,19 @@ type Snowflake_Connection
     get_from_stage : Identifier -> Text -> File -> Text -> Any -> Table ! Stage_Not_Found
     get_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") directory=(Missing_Argument.throw "directory") pattern:Text="" ~if_not_found=(Error.throw Not_Found) =
         if directory.is_a File == False then Error.throw (Illegal_Argument.Error "Only local folders are supported for downloading from Snowflake stages.")
-        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot download from stage. Press the Write button ▶ to perform the operation." panic=False <|
-            identifier = stage.to_identifier
-            Stage_Not_Found.rethrow identifier <|
-                stage_and_path = identifier + if path == "" then "" else '/' + path
-                file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
-                query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
-                table = self.execute_query query Rows_To_Read.All_Rows write_operation=True
-                table.if_not_error <|
-                    if table.row_count == 0 then if_not_found else
-                        names = table.at "file" . to_vector
-                        names.map n-> directory / n
+        Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot download from stage. Press the Write button ▶ to perform the operation."
+
+        identifier = stage.to_identifier
+        Stage_Not_Found.rethrow identifier <|
+            stage_and_path = identifier + if path == "" then "" else '/' + path
+            file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
+            query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+            table = self.execute_query query Rows_To_Read.All_Rows write_operation=True
+            Error.return_if_error table
+
+            if table.row_count == 0 then if_not_found else
+                names = table.at "file" . to_vector
+                names.map n-> directory / n
 
     ## ---
        icon: data_upload
@@ -618,23 +620,25 @@ type Snowflake_Connection
     @stage make_stage_selector
     put_to_stage : Text | URI | File -> Identifier -> Text -> Boolean -> Text ! Stage_Not_Found | Snowflake_Error
     put_to_stage self file stage:Identifier=(Missing_Argument.throw "stage") path:Text="" overwrite:Boolean=False =
-        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot upload to stage. Press the Write button ▶ to perform the operation." panic=False <|
-            Data_Link_Helpers.as_file file used_file->
-                identifier = stage.to_identifier
-                Stage_Not_Found.rethrow identifier <|
-                    stage_and_path = identifier + if path == "" then "" else '/' + path
-                    file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
-                    query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'" + (if overwrite then " OVERWRITE=TRUE" else " OVERWRITE=FALSE")
-                    result = self.execute_query query write_operation=True
-                    result.if_not_error <|
-                        case result.row_count of
-                            0 -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage did not report any uploaded files.")
-                            1 ->
-                                status = result.get_value "status" . if_nothing "<UNKNOWN>"
-                                if status=="UPLOADED" then result.get_value "target" else
-                                    message = result.get_value "message" . if_nothing ""
-                                    Error.throw (Snowflake_Error.Unexpected_Result status+": "+message result)
-                            _ -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage reported multiple uploaded files." result)
+        Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot upload to stage. Press the Write button ▶ to perform the operation."
+        Data_Link_Helpers.as_file file used_file->
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
+                query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'" + (if overwrite then " OVERWRITE=TRUE" else " OVERWRITE=FALSE")
+
+                result = self.execute_query query write_operation=True
+                Error.return_if_error result
+
+                case result.row_count of
+                    0 -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage did not report any uploaded files.")
+                    1 ->
+                        status = result.get_value "status" . if_nothing "<UNKNOWN>"
+                        if status=="UPLOADED" then result.get_value "target" else
+                            message = result.get_value "message" . if_nothing ""
+                            Error.throw (Snowflake_Error.Unexpected_Result status+": "+message result)
+                    _ -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage reported multiple uploaded files." result)
 
     ## ---
        icon: trash
@@ -649,12 +653,12 @@ type Snowflake_Connection
     @stage make_stage_selector
     remove_from_stage : Identifier -> Text -> Text -> Table ! Stage_Not_Found
     remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") pattern:Text=""  =
-        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
-            identifier = stage.to_identifier
-            Stage_Not_Found.rethrow identifier <|
-                stage_and_path = identifier + if path == "" then "" else '/' + path
-                query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
-                self.execute_query query write_operation=True
+        Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation."
+        identifier = stage.to_identifier
+        Stage_Not_Found.rethrow identifier <|
+            stage_and_path = identifier + if path == "" then "" else '/' + path
+            query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+            self.execute_query query write_operation=True
 
     ## ---
        icon: parse
@@ -755,9 +759,9 @@ type Snowflake_Connection
                 + " MATCH_BY_COLUMN_NAME = " + (if match_names_insensitively then "CASE_INSENSITIVE" else "CASE_SENSITIVE")
 
             ## Table, Single File and the Stage exists.
-            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy data. Press the Write button ▶ to perform the operation." panic=False <|
-                if truncate_first then self.truncate_table table_name
-                self.execute_query query Rows_To_Read.All_Rows write_operation=True
+            Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot copy data. Press the Write button ▶ to perform the operation."
+            if truncate_first then self.truncate_table table_name
+            self.execute_query query Rows_To_Read.All_Rows write_operation=True
 
     ## ---
        private: true
@@ -805,8 +809,7 @@ type Snowflake_Connection
             if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
             ## Check Execution Context
-            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
-                Nothing
+            Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation."
 
             ## Create temporary file
             temp_file = File.create_temporary_file "snowflake_bulk_load" ".csv"

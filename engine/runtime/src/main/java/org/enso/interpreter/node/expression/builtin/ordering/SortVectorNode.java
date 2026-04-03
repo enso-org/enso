@@ -237,6 +237,7 @@ public abstract class SortVectorNode extends Node {
                   problemBehavior,
                   group.comparator,
                   callNode,
+                  warningsLib,
                   toTextNode,
                   EnsoContext.get(this).currentState(),
                   less,
@@ -809,6 +810,7 @@ public abstract class SortVectorNode extends Node {
     private final boolean hasCustomOnFunc;
     private final Type comparator;
     private final CallOptimiserNode callNode;
+    private final WarningsLibrary warnLib;
     private final State state;
     private final Atom less;
     private final Atom equal;
@@ -821,6 +823,7 @@ public abstract class SortVectorNode extends Node {
         ProblemBehavior problemBehavior,
         Type comparator,
         CallOptimiserNode callNode,
+        WarningsLibrary warnLib,
         AnyToTextNode toTextNode,
         State state,
         Atom less,
@@ -844,6 +847,7 @@ public abstract class SortVectorNode extends Node {
         this.onFunc = checkAndConvertOnFunc(onFunc, typesLibrary, methodResolverNode);
       }
       this.callNode = callNode;
+      this.warnLib = warnLib;
       this.less = less;
       this.equal = equal;
       this.greater = greater;
@@ -874,6 +878,14 @@ public abstract class SortVectorNode extends Node {
       }
       Object res =
           callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args, null);
+      if (warnLib.hasWarnings(res)) {
+        try {
+          res = warnLib.removeWarnings(res);
+        } catch (UnsupportedMessageException ex) {
+          // unlikely to happen. if it does, then
+          // leave the res unchanged
+        }
+      }
       if (res == less) {
         return ascending ? -1 : 1;
       } else if (res == equal) {

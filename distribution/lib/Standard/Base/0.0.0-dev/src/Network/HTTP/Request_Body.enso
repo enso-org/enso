@@ -1,8 +1,10 @@
 import project.Any.Any
 import project.Data.Dictionary.Dictionary
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
 import project.Meta
 import project.Metadata.Widget
@@ -11,6 +13,7 @@ import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False
 from project.Data.Json import key_value_widget
+from project.Data.Json.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
@@ -19,7 +22,6 @@ from project.Widget_Helpers import make_all_selector
 
 ## The HTTP POST request body.
 type Request_Body
-
     ## Request body with text.
 
        ## Arguments
@@ -78,6 +80,46 @@ type Request_Body
             Request_Body.Form_Data _ url_encoded ->
                 if url_encoded then Header.application_x_www_form_urlencoded else Nothing
             Request_Body.Empty -> Nothing
+
+    ## ---
+       private: true
+       ---
+       Returns the type of the request body as text.
+    type_name self -> Text = case self of
+        Request_Body.Text _ _ _ -> "Text"
+        Request_Body.Json _ -> "Json"
+        Request_Body.Binary _ -> "Binary"
+        Request_Body.Byte_Array _ -> "ByteArray"
+        Request_Body.Form_Data _ _ -> "FormData"
+        Request_Body.Empty -> "Empty"
+
+    ## ---
+       private: true
+       ---
+       Converts a Request_Body to a text argument.
+    text_value self -> Text | Nothing = case self of
+        Request_Body.Text text _ _ -> text
+        Request_Body.Json x -> x.to_json
+        Request_Body.Binary file -> file.path
+        _ -> Nothing
+
+    ## ---
+       private: true
+       ---
+       Returns the CharSet to use for the request body, if applicable.
+    charset self = case self of
+        Request_Body.Text _ Nothing _ ->  Nothing
+        Request_Body.Text _ encoding _ -> encoding.to_java_charset.name
+        _ -> Nothing
+
+    ## ---
+       private: true
+       ---
+       Gets the backing byte array.
+    bytes_value self -> Vector Integer | Nothing = case self of
+        Request_Body.Byte_Array bytes -> bytes
+        _ -> Nothing
+
 
 ## ---
    private: true

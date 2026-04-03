@@ -18,6 +18,7 @@ import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -181,23 +182,46 @@ public final class LogbackSetup extends LoggerSetup {
         fileAppender = rollingFileAppender;
         fileAppender.setContext(
             env.ctx); // Context needs to be set prior to rolling policy initialization
-        String filePattern;
-        if (logRoot == null || logPrefix == null) {
-          filePattern = "enso-%d{yyyy-MM-dd}";
+        if (logPrefix == null) {
+          logPrefix = "enso";
+        }
+        var now = LocalDateTime.now();
+        var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
+
+        String basePath;
+        if (logRoot == null) {
+          basePath = logPrefix + "-" + dateStr + "-" + timeStr;
         } else {
-          filePattern =
-              logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + "%d{yyyy-MM-dd}";
+          basePath =
+              logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + dateStr + "-" + timeStr;
         }
 
-        org.enso.logging.config.FileAppender.RollingPolicy rollingPolicy =
-            appenderConfig.getRollingPolicy();
-        SizeAndTimeBasedRollingPolicy logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy();
+        rollingFileAppender.setFile(basePath + ".log");
+
+        // Archive pattern: %d{yyyy-MM-dd} resolves to same date on same day,
+        // time literal ensures per-execution uniqueness, %i for size rollover index
+        String archivePattern;
+        if (logRoot == null) {
+          archivePattern = logPrefix + "-%d{yyyy-MM-dd}-" + timeStr + ".%i.log.gz";
+        } else {
+          archivePattern =
+              logRoot.toAbsolutePath()
+                  + File.separator
+                  + logPrefix
+                  + "-%d{yyyy-MM-dd}-"
+                  + timeStr
+                  + ".%i.log.gz";
+        }
+
+        var rollingPolicy = appenderConfig.getRollingPolicy();
+        var logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy<ILoggingEvent>();
         logbackRollingPolicy.setContext(env.ctx);
         logbackRollingPolicy.setParent(fileAppender);
         logbackRollingPolicy.setMaxFileSize(FileSize.valueOf(rollingPolicy.maxFileSize()));
         logbackRollingPolicy.setMaxHistory(rollingPolicy.maxHistory());
         logbackRollingPolicy.setTotalSizeCap(FileSize.valueOf(rollingPolicy.totalSizeCap()));
-        logbackRollingPolicy.setFileNamePattern(filePattern + ".%i.log.gz");
+        logbackRollingPolicy.setFileNamePattern(archivePattern);
         logbackRollingPolicy.start();
 
         rollingFileAppender.setRollingPolicy(logbackRollingPolicy);

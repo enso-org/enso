@@ -280,7 +280,6 @@ export interface ProjectRaw extends CreatedProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends CreatedProject {
-  readonly binaryAddress: Address | null
   readonly jsonAddress: Address | null
   readonly ydocAddress: Address | null
   readonly currentSessionId?: ProjectSessionId

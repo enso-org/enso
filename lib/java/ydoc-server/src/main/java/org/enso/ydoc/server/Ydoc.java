@@ -1,5 +1,6 @@
 package org.enso.ydoc.server;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,6 +17,7 @@ import org.graalvm.polyglot.io.IOAccess;
 public final class Ydoc implements AutoCloseable {
   private static final System.Logger LOG = System.getLogger(Ydoc.class.getName());
 
+  private static final String YDOC_PATH_ENV_NAME = "YDOC_SERVER_JS";
   private static final String YDOC_PATH = "ydoc.cjs";
 
   private final YdocScheduledExecutorService executor;
@@ -225,8 +227,52 @@ public final class Ydoc implements AutoCloseable {
     return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
   }
 
+  private static String findYdocServerSrc() {
+    var devYdocPath = System.getenv(YDOC_PATH_ENV_NAME);
+    var assertsOn = false;
+    assert assertsOn = true;
+    if (devYdocPath != null) {
+      if (assertsOn) {
+        // asserts can be turned on with JAVA_TOOL_OPTIONS=-ea
+        // or by compiling in native+test configuration via
+        // ENSO_LAUNCHER=native,test sbt buildEngineDistribution
+        return devYdocPath;
+      }
+      LOG.log(
+          System.Logger.Level.WARNING,
+          "Ignoring value {0} of {1} in non-testing environment",
+          devYdocPath,
+          YDOC_PATH_ENV_NAME);
+    }
+    return null;
+  }
+
   public void start() throws IOException {
     var ydoc = Main.class.getResource(YDOC_PATH);
+
+    var ydocDevJs = findYdocServerSrc();
+    if (ydocDevJs != null) {
+      var ydocFile = new File(ydocDevJs);
+      if (!ydocFile.canRead()) {
+        LOG.log(
+            System.Logger.Level.WARNING,
+            "Ignoring value {0} of {1} as the path cannot be read",
+            ydocDevJs,
+            YDOC_PATH_ENV_NAME);
+      } else {
+        ydoc = ydocFile.toURI().toURL();
+        LOG.log(
+            System.Logger.Level.INFO,
+            "Loading {0} specified by {1} as Ydoc server script",
+            ydoc,
+            YDOC_PATH_ENV_NAME);
+        // enabling Google Dev Tools debugging of YDOC_PATH_ENV_NAME
+        contextBuilder.option("inspect", "true");
+        contextBuilder.option("inspect.Suspend", "" + ydocDevJs.contains("suspend"));
+        contextBuilder.option("inspect.Path", "enso_ydoc");
+      }
+    }
+
     if (ydoc == null) {
       throw new AssertionError(
           YDOC_PATH
@@ -263,7 +309,14 @@ public final class Ydoc implements AutoCloseable {
     try {
       context = initFuture.get();
     } catch (Exception e) {
-      throw new RuntimeException("Failed to initialize Ydoc", e);
+      var msg = "Failed to initialize Ydoc";
+      LOG.log(System.Logger.Level.ERROR, msg, e);
+      if (ydocDevJs != null) {
+        final var failureInYdocDevJs = 7;
+        System.exit(failureInYdocDevJs);
+      } else {
+        throw new IllegalStateException(msg, e);
+      }
     }
 
     if (LOG.isLoggable(System.Logger.Level.TRACE)) {

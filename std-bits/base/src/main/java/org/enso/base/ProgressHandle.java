@@ -1,18 +1,19 @@
 package org.enso.base;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class ProgressHandle {
-  private static final Logger LOGGER = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
-
+public final class ProgressHandle {
+  private final Logger logger;
   private final String name;
   private final long count;
-  boolean closed = false;
+  private final long then;
+  private boolean closed;
 
-  public ProgressHandle(String name, long count) {
+  public ProgressHandle(Logger logger, String name, long count) {
+    this.logger = logger;
     this.name = name;
     this.count = count;
+    this.then = System.currentTimeMillis();
   }
 
   public void close() {
@@ -20,7 +21,8 @@ public class ProgressHandle {
       return;
     }
     closed = true;
-    LOGGER.trace("ADVANCE {}+{}", this, count);
+    var took = System.currentTimeMillis() - then;
+    logger.debug("ADVANCE {}+{}~{}ms", this, count, took);
   }
 
   @Override

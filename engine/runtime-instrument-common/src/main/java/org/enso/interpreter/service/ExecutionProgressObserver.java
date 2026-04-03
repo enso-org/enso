@@ -61,7 +61,7 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage>, Auto
             aggregate.log(key, msg);
           }
         }
-        case "ADVANCE {}+{}" -> {
+        case "ADVANCE {}+{}", "ADVANCE {}+{}~{}ms" -> {
           if (t.getArguments().size() >= 2 && t.getArguments().get(1) instanceof Number by) {
             var key = t.getArguments().get(0);
             aggregate.advanceBy(key, by.longValue());

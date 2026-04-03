@@ -5167,7 +5167,9 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Base_Tests/polyglot/java/base-test-java-helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value

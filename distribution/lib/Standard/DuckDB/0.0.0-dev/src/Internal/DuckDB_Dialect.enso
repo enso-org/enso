@@ -423,7 +423,7 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, ["PROPER", Nothing]]
+    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
@@ -446,6 +446,35 @@ make_add_text =
         right = arguments.at 1
         SQL_Builder.code "(" ++ left ++ " || " ++ right ++ ")::varchar"
     ["ADD_TEXT", func]
+
+## ---
+   private: true
+   ---
+private _make_pad name =
+    generator arguments =
+        if arguments.length != 3 then Error.throw (Illegal_Argument.Error (name + " requires 3 arguments.")) else
+            str = arguments.at 0
+            target = arguments.at 1
+            fill = arguments.at 2
+
+            str_len = SQL_Builder.code "length(" ++ str ++ ")"
+            fill_len = SQL_Builder.code "length(" ++ fill ++ ")"
+            target_int = SQL_Builder.code "CAST(" ++ target ++ " AS BIGINT)"
+            pad_size = SQL_Builder.code "(" ++ target_int ++ " - " ++ str_len ++ ")"
+            repetitions = SQL_Builder.code "CAST(FLOOR((" ++ pad_size ++ " * 1.0) / " ++ fill_len ++ ") AS BIGINT)"
+            remainder = SQL_Builder.code "CAST((" ++ pad_size ++ " % " ++ fill_len ++ ") AS BIGINT)"
+            repeated_fill = SQL_Builder.code "repeat(" ++ fill ++ ", " ++ repetitions ++ ")"
+            truncated_fill = case name of
+                "PAD_LEFT" -> SQL_Builder.code "right(" ++ fill ++ ", " ++ remainder ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "left(" ++ fill ++ ", " ++ remainder ++ ")"
+                _ -> Error.throw (Illegal_State.Error ("Unexpected pad operation " + name + "."))
+            padded = case name of
+                "PAD_LEFT" -> SQL_Builder.code "(" ++ truncated_fill ++ " || " ++ repeated_fill ++ " || " ++ str ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "(" ++ str ++ " || " ++ repeated_fill ++ " || " ++ truncated_fill ++ ")"
+                _ -> Error.throw (Illegal_State.Error ("Unexpected pad operation " + name + "."))
+
+            SQL_Builder.code "CASE WHEN " ++ str ++ " IS NULL OR " ++ target ++ " IS NULL OR " ++ fill ++ " IS NULL THEN NULL WHEN " ++ target_int ++ " <= " ++ str_len ++ " THEN " ++ str ++ " ELSE " ++ padded ++ " END"
+    [name, generator]
 
 ## ---
    private: true

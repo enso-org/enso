@@ -1,4 +1,5 @@
 import LocalStorage from '#/utilities/LocalStorage'
+import * as analytics from '$/utils/analytics'
 import { proxyRefs } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
 import { createGlobalState } from '@vueuse/core'
@@ -41,12 +42,14 @@ declare module '#/utilities/LocalStorage' {
     readonly openedTabs: (Tab & { runningProject?: RunningProjectInfo | undefined })[]
     readonly rightPanelWidth: number
     readonly leftPanelWidth: number
+    readonly leftPanelToggledOn: boolean
   }
 }
 
 LocalStorage.registerKey('openedTabs', { schema: z.array(OPENED_TAB_SCHEMA) })
 LocalStorage.registerKey('rightPanelWidth', { schema: z.number() })
 LocalStorage.registerKey('leftPanelWidth', { schema: z.number() })
+LocalStorage.registerKey('leftPanelToggledOn', { schema: z.boolean(), default: true })
 
 /** Get tab which should be displayed when navigated to this route. */
 export function tabFromRoute(route: RouteLocation) {
@@ -130,6 +133,7 @@ function createContainerStore() {
   })
 
   const leftPanelWidth = localStorage.ref('leftPanelWidth')
+  const leftPanelToggledOn = localStorage.ref('leftPanelToggledOn')
   const rightPanelWidth = localStorage.ref('rightPanelWidth')
 
   function isTabOpened(tab: Tab) {
@@ -151,6 +155,7 @@ function createContainerStore() {
     const project = openedProjects.openProject(info)
     if (!isTabOpened(tab)) {
       tabs.set(panelKey(tab), tab)
+      analytics.workflowOpened()
     }
     if (userAction) {
       openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
@@ -212,6 +217,7 @@ function createContainerStore() {
       currentTab.value = nextTab.value
     }
     if (tab.type === 'project') {
+      analytics.workflowClosed()
       openedProjects.closeProject(tab.id)
     }
   }
@@ -278,6 +284,7 @@ function createContainerStore() {
     focusedPanel: readonly(focusedPanel),
     setFocusedPanel,
     leftPanelWidth,
+    leftPanelToggledOn,
     rightPanelWidth,
     isTabOpened,
     isCurrentTab,

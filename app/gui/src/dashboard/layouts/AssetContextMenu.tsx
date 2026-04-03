@@ -13,7 +13,6 @@ import {
   useUploadFileToCloud,
   useUploadFileToLocal,
 } from '#/hooks/backendUploadFilesHooks'
-import { usePaywall } from '#/hooks/billing'
 import { useCopy } from '#/hooks/copyHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
@@ -28,7 +27,12 @@ import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { Tab } from '$/providers/container'
-import { useBackends, useFullUserSession, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { useContainerData, useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
@@ -73,7 +77,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
 
   const getAsset = useGetAsset()
   const { user } = useFullUserSession()
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
   const { localBackend } = useBackends()
   const { getText } = useText()
   const {

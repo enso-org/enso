@@ -23,6 +23,8 @@ abstract class Vector extends BuiltinObject {
   private static final Vector EMPTY_DOUBLE = new Double(new double[0]);
   private static final Vector EMPTY_VECTOR = new EnsoOnly(new Object[0]);
 
+  Vector() {}
+
   @Override
   protected String builtinName() {
     return "Vector";
