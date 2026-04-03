@@ -186,7 +186,7 @@ head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:A
 @key (Text_Input display=..Always)
 @credentials AWS_Credential.default_widget
 put_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") (body:(S3_File | File_Like | Text) = Missing_Argument.throw "body") credentials:AWS_Credential=..Default -> S3_File =
-    Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to S3. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
+    Context.Output.check_enabled disabled_message="As writing is disabled, cannot write to S3. Press the Write button ▶ to perform the operation."
     result = if body.is_a S3_File then S3.copy_object bucket key body.bucket body.key credentials else
         client = _make_client_for_bucket bucket credentials
         if body.is_a Text then client.putObjectFromText bucket key body else
@@ -200,7 +200,7 @@ put_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missi
    ---
    Deletes the object. It will not raise any errors if the object does not exist.
 delete_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Missing_Argument.throw "key") credentials:AWS_Credential=..Default =
-    Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete from S3. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
+    Context.Output.check_enabled disabled_message="As writing is disabled, cannot delete from S3. Press the Write button ▶ to perform the operation."
     client = _make_client_for_bucket bucket credentials
     client.deleteObject bucket key . if_not_error Nothing
 
@@ -208,7 +208,7 @@ delete_object (bucket : Text = Missing_Argument.throw "bucket") (key : Text = Mi
    private: true
    ---
 copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=..Default =
-    Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to S3. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
+    Context.Output.check_enabled disabled_message="As writing is disabled, cannot copy to S3. Press the Write button ▶ to perform the operation."
     client = _make_client_for_bucket source_bucket credentials
     client.copyObject target_bucket target_key source_bucket source_key . if_not_error Nothing
 

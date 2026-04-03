@@ -19,7 +19,10 @@ import java.util.UUID
 import java.util.logging.Level
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
+class RuntimeVisualizationsTest
+    extends AnyFlatSpec
+    with Matchers
+    with org.enso.testkit.ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 

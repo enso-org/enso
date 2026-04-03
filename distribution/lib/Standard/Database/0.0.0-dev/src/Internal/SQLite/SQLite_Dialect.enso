@@ -489,7 +489,7 @@ type SQLite_Dialect
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right, index_of]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right, index_of, _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT"]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp, ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation True], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation False]]
     arith_extensions = [is_inf, is_finite, floating_point_div, mod_op]
@@ -702,6 +702,29 @@ contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
    ---
 index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
     SQL_Builder.code "instr(" ++ str ++ ", " ++ substr ++ ") - 1"
+
+private _make_pad name =
+    generator arguments =
+        if arguments.length != 3 then Error.throw (Illegal_Argument.Error (name + " requires 3 arguments.")) else
+            str = arguments.at 0
+            target = arguments.at 1
+            fill = arguments.at 2
+
+            str_len = SQL_Builder.code "length(" ++ str ++ ")"
+            fill_len = SQL_Builder.code "length(" ++ fill ++ ")"
+            target_int = SQL_Builder.code "CAST(" ++ target ++ " AS INTEGER)"
+            pad_size = SQL_Builder.code "(" ++ target_int ++ " - " ++ str_len ++ ")"
+            repeat_count = SQL_Builder.code "((" ++ pad_size ++ " + " ++ fill_len ++ " - 1) / " ++ fill_len ++ ")"
+            repeated_fill = SQL_Builder.code "replace(substr(quote(zeroblob(" ++ repeat_count ++ ")), 3, " ++ repeat_count ++ "), '0', " ++ fill ++ ")"
+            padding = case name of
+                "PAD_LEFT" -> SQL_Builder.code "substr(" ++ repeated_fill ++ ", -" ++ pad_size ++ ", " ++ pad_size ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "substr(" ++ repeated_fill ++ ", 1, " ++ pad_size ++ ")"
+            padded = case name of
+                "PAD_LEFT" -> SQL_Builder.code "(" ++ padding ++ " || " ++ str ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "(" ++ str ++ " || " ++ padding ++ ")"
+
+            SQL_Builder.code "CASE WHEN " ++ str ++ " IS NULL OR " ++ target ++ " IS NULL OR " ++ fill ++ " IS NULL THEN NULL WHEN " ++ target_int ++ " <= " ++ str_len ++ " THEN " ++ str ++ " ELSE " ++ padded ++ " END"
+    [name, generator]
 
 ## ---
    private: true

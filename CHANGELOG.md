@@ -45,12 +45,14 @@
 - [Launching another Enso process via `Process_Builder`][14753]
 - [Redshift schema support.][14735]
 - [`Process_Builder.set_env`.][14799]
-- [New `Profile` API for timing code execution.][14827]
 - [Expanded S3 API with versions and signed uri][14831]
 - [Support for reading JSON data from database connections.][14872]
 - [Support for Salesforce reporting API][14901]
 - [Add Redshift bulk loading][14860]
 - [JSON functions on Table and Column. XML and Hashset fixes.][14884]
+- [Add last_index_of][14903]
+- [Add pad_left and pad_right][14922]
+- [More control over when in write operation for post and process.][14930]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -64,12 +66,14 @@
 [14753]: https://github.com/enso-org/enso/pull/14753
 [14735]: https://github.com/enso-org/enso/pull/14735
 [14799]: https://github.com/enso-org/enso/pull/14799
-[14827]: https://github.com/enso-org/enso/pull/14827
 [14831]: https://github.com/enso-org/enso/pull/14831
 [14872]: https://github.com/enso-org/enso/pull/14872
 [14901]: https://github.com/enso-org/enso/pull/14901
 [14860]: https://github.com/enso-org/enso/pull/14860
 [14884]: https://github.com/enso-org/enso/pull/14884
+[14903]: https://github.com/enso-org/enso/pull/14903
+[14922]: https://github.com/enso-org/enso/pull/14922
+[14930]: https://github.com/enso-org/enso/pull/14930
 
 #### Enso Language & Runtime
 
@@ -80,6 +84,7 @@
 - [Removing `catch_primitive` from the API][14676]
 - [`polyglot java import` loads classes from HotSpot JVM][14798]
 - [Require opt-in to prefer local libraries][14885]
+- [One log file per execution][14893]
 - [Opt-in to get more detailed logs][14895]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
@@ -89,6 +94,7 @@
 [14676]: https://github.com/enso-org/enso/pull/14676
 [14798]: https://github.com/enso-org/enso/pull/14798
 [14885]: https://github.com/enso-org/enso/pull/14885
+[14893]: https://github.com/enso-org/enso/pull/14893
 [14895]: https://github.com/enso-org/enso/pull/14895
 
 # Enso 2025.3

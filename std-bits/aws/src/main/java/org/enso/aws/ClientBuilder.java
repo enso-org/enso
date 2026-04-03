@@ -3,6 +3,7 @@ package org.enso.aws;
 import java.net.ProxySelector;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.aws.regions.AWSRegion;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
@@ -93,8 +94,13 @@ public class ClientBuilder {
         regionName, serviceName, unsafeBuildCredentialProvider(), baseClient, bodySHA256);
   }
 
-  public static String getSHA256(byte[] rawData) {
-    return SignedHttpClient.getSHA256(rawData);
+  /**
+   * Gets a Function for hashing a byte[] to a String
+   *
+   * @return Hashing Function
+   */
+  public static Function<byte[], String> getSHA256Function() {
+    return SignedHttpClient::getSHA256;
   }
 
   /**

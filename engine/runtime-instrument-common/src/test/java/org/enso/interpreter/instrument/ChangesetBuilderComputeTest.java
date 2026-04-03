@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.enso.compiler.Passes;
@@ -28,7 +29,6 @@ import org.enso.text.editing.model.Position;
 import org.enso.text.editing.model.Range;
 import org.enso.text.editing.model.TextEdit;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
 import scala.jdk.javaapi.CollectionConverters;
@@ -118,6 +118,71 @@ public class ChangesetBuilderComputeTest {
   private String rawCode(String code) {
     int idx = code.indexOf("\n\n\n#### METADATA ####\n");
     return idx >= 0 ? code.substring(0, idx) : code;
+  }
+
+  /**
+   * Finds the {@link Range} of all occurrences of {@code expression} in {@code code}. Fails the
+   * test if the expression is not found.
+   */
+  private List<Range> findPositions(String code, String expression) {
+    var positions = new ArrayList<Range>();
+    int idx = code.indexOf(expression);
+    while (idx != -1) {
+      int line = 0;
+      int col = 0;
+      for (int i = 0; i < idx; i++) {
+        if (code.charAt(i) == '\n') {
+          line++;
+          col = 0;
+        } else {
+          col++;
+        }
+      }
+      int endLine = line;
+      int endCol = col;
+      for (int i = 0; i < expression.length(); i++) {
+        if (expression.charAt(i) == '\n') {
+          endLine++;
+          endCol = 0;
+        } else {
+          endCol++;
+        }
+      }
+      positions.add(new Range(new Position(line, col), new Position(endLine, endCol)));
+      idx = code.indexOf(expression, idx + 1);
+    }
+    assertFalse("Expression '" + expression + "' not found in code", positions.isEmpty());
+    return positions;
+  }
+
+  /**
+   * Finds the {@link Range} of the first occurrence of {@code expression} in {@code code}. Fails
+   * the test if the expression is not found.
+   */
+  private Range findPosition(String code, String expression) {
+    int idx = code.indexOf(expression);
+    assertFalse("Expression '" + expression + "' not found in code", idx == -1);
+    int line = 0;
+    int col = 0;
+    for (int i = 0; i < idx; i++) {
+      if (code.charAt(i) == '\n') {
+        line++;
+        col = 0;
+      } else {
+        col++;
+      }
+    }
+    int endLine = line;
+    int endCol = col;
+    for (int i = 0; i < expression.length(); i++) {
+      if (expression.charAt(i) == '\n') {
+        endLine++;
+        endCol = 0;
+      } else {
+        endCol++;
+      }
+    }
+    return new Range(new Position(line, col), new Position(endLine, endCol));
   }
 
   /** Calls {@link ChangesetBuilder#compute} and returns the result as a Java set. */
@@ -212,7 +277,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 42 -> 99
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 10)), "99");
+    var edit = new TextEdit(findPosition(rawCode, "42"), "99");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -224,15 +289,15 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            x = 1
-            y = 2
+            x = 51
+            y = 52
             y
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 3
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 9)), "3");
+    // Edit: 51 -> 53
+    var edit = new TextEdit(findPosition(rawCode, "51"), "53");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -253,7 +318,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 100 -> 200
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 11)), "200");
+    var edit = new TextEdit(findPosition(rawCode, "100"), "200");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "a");
@@ -275,7 +340,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 10 -> 20
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 10)), "20");
+    var edit = new TextEdit(findPosition(rawCode, "10"), "20");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -288,7 +353,7 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            a = 1
+            a = 51
             b = a
             c = a
             d = b + c
@@ -297,8 +362,8 @@ public class ChangesetBuilderComputeTest {
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 2
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 9)), "2");
+    // Edit: 51 -> 52
+    var edit = new TextEdit(findPosition(rawCode, "51"), "52");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "a");
@@ -320,7 +385,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 42 -> 99
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 10)), "99");
+    var edit = new TextEdit(findPosition(rawCode, "42"), "99");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -340,7 +405,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: foo -> baz (rename the binding)
-    var edit = new TextEdit(new Range(new Position(1, 4), new Position(1, 7)), "baz");
+    var edit = new TextEdit(findPosition(rawCode, "foo"), "baz");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "foo");
@@ -352,15 +417,15 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            x = 1 + 2
+            x = 11 + 22
             y = x
             y
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 2 -> 5
-    var edit = new TextEdit(new Range(new Position(1, 12), new Position(1, 13)), "5");
+    // Edit: 22 -> 55
+    var edit = new TextEdit(findPosition(rawCode, "22"), "55");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -380,7 +445,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 10 -> 20 (change argument value)
-    var edit = new TextEdit(new Range(new Position(2, 17), new Position(2, 19)), "20");
+    var edit = new TextEdit(findPosition(rawCode, "10"), "20");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
@@ -400,7 +465,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 42 -> 99 (change self argument definition)
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 10)), "99");
+    var edit = new TextEdit(findPosition(rawCode, "42"), "99");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -420,7 +485,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: method1 -> method2
-    var edit = new TextEdit(new Range(new Position(2, 10), new Position(2, 17)), "method2");
+    var edit = new TextEdit(findPosition(rawCode, "method1"), "method2");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
@@ -431,7 +496,7 @@ public class ChangesetBuilderComputeTest {
   public void editMethodDefinitionBodyInvalidatesCall() {
     var rawCode =
         """
-        helper x = x + 1
+        helper x = x + 51
 
         main =
             y = helper 10
@@ -440,8 +505,8 @@ public class ChangesetBuilderComputeTest {
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 2 in helper body
-    var edit = new TextEdit(new Range(new Position(0, 16), new Position(0, 17)), "2");
+    // Edit: 51 -> 52 in helper body
+    var edit = new TextEdit(findPosition(rawCode, "51"), "52");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
@@ -451,7 +516,7 @@ public class ChangesetBuilderComputeTest {
   public void editMethodDefinitionBodyInvalidatesBothCalls() {
     var rawCode =
         """
-        helper x = x + 1
+        helper x = x + 51
 
         main =
             a = 10
@@ -463,8 +528,8 @@ public class ChangesetBuilderComputeTest {
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 2 in helper body
-    var edit = new TextEdit(new Range(new Position(0, 16), new Position(0, 17)), "2");
+    // Edit: 51 -> 52 in helper body
+    var edit = new TextEdit(findPosition(rawCode, "51"), "52");
     var result = computeInvalidated(ir, code, edit);
 
     assertNotInvalidated(result, ir, "a");
@@ -477,7 +542,7 @@ public class ChangesetBuilderComputeTest {
   public void editApplicationArgumentInvalidatesSingleCall() {
     var rawCode =
         """
-        helper x = x + 1
+        helper x = x + 51
 
         main =
             a = 10
@@ -489,8 +554,8 @@ public class ChangesetBuilderComputeTest {
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 4 in "a = 10"
-    var edit = new TextEdit(new Range(new Position(3, 8), new Position(3, 9)), "4");
+    // Edit: 10 -> 40 in "a = 10"
+    var edit = new TextEdit(findPosition(rawCode, "10"), "40");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "a");
@@ -500,21 +565,102 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
+  public void editAutoscopeConstructorDoesNotInvalidateOtherAutoscopeConstructors() {
+    var rawCode =
+        """
+        type T
+            A
+            B
+
+        type Table
+            Impl data
+            filter self a b = Table.Impl (self.data + a.to_text + b.to_text)
+
+        main =
+            file1 = Table.Impl ''
+            any1 = file1.filter 'Column 1' ..A
+            any2 = any1.filter 'Column 1' ..A
+            any2
+        """;
+
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    var edit = new TextEdit(findPositions(rawCode, "..A").get(1), "..B");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertNotInvalidated(result, ir, "file1");
+    assertNotInvalidated(result, ir, "any1");
+    assertInvalidated(result, ir, "any2");
+  }
+
+  @Test
+  public void addApplicationArgumentInvalidatesSingleCall() {
+    var rawCode =
+        """
+        type Table
+            Impl data
+            filter self a b = Table.Impl self.data+a+b
+
+        main =
+            file1 = Table.Impl ""
+            any1 = file1.filter 'Column 1' "Not_Equal"
+            any2 = any1.filter
+            any2
+        """;
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    // Edit: any2 = any1.filter -> any2 = any1.filter 'Column 1'
+    var edit = new TextEdit(new Range(new Position(7, 22), new Position(7, 22)), " 'Column 1'");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertNotInvalidated(result, ir, "file1");
+    assertNotInvalidated(result, ir, "any1");
+    assertInvalidated(result, ir, "any2");
+  }
+
+  @Test
+  public void editAutoscopeConstructorToValue() {
+    var rawCode =
+        """
+        type Xyz
+
+        type T
+            A
+
+        main =
+            a = test ..A
+            a
+
+        test t:(Xyz | T) = t
+        """;
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    // Edit: ..A -> Xyz
+    var edit = new TextEdit(findPosition(rawCode, "..A"), "Xyz");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertInvalidated(result, ir, "a");
+  }
+
+  @Test
   public void multipleSimultaneousEdits() {
     var rawCode =
         """
         main =
-            x = 1
-            y = 2
+            x = 51
+            y = 52
             z = x + y
             z
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 10 AND 2 -> 20
-    var edit1 = new TextEdit(new Range(new Position(1, 8), new Position(1, 9)), "10");
-    var edit2 = new TextEdit(new Range(new Position(2, 8), new Position(2, 9)), "20");
+    // Edit: 51 -> 10 AND 52 -> 20
+    var edit1 = new TextEdit(findPosition(rawCode, "51"), "10");
+    var edit2 = new TextEdit(findPosition(rawCode, "52"), "20");
     var result = computeInvalidated(ir, code, edit1, edit2);
 
     assertInvalidated(result, ir, "x");
@@ -529,16 +675,16 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            x = 1
-            y = 2
-            z = y + 1
+            x = 51
+            y = 52
+            z = y + 61
             z
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 2 -> 3 (y's literal)
-    var edit = new TextEdit(new Range(new Position(2, 8), new Position(2, 9)), "3");
+    // Edit: 52 -> 53 (y's literal)
+    var edit = new TextEdit(findPosition(rawCode, "52"), "53");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
@@ -551,17 +697,17 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            a = 1
-            b = a + 1
+            a = 51
+            b = a + 61
             c = 10
-            d = c + 1
+            d = c + 71
             d
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 2 (a's literal)
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 9)), "2");
+    // Edit: 51 -> 52 (a's literal)
+    var edit = new TextEdit(findPosition(rawCode, "51"), "52");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "a");
@@ -575,16 +721,16 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            a = 1
-            b = a + 1
-            c = b + 1
+            a = 51
+            b = a + 61
+            c = b + 71
             c
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: the literal 1 in "b = a + 1" (line 2, char 12)
-    var edit = new TextEdit(new Range(new Position(2, 12), new Position(2, 13)), "5");
+    // Edit: 61 -> 65 (literal in b's expression)
+    var edit = new TextEdit(findPosition(rawCode, "61"), "65");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "b");
@@ -597,7 +743,7 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            a = 1
+            a = 51
             b = a
             c = a
             d = b + c
@@ -607,8 +753,8 @@ public class ChangesetBuilderComputeTest {
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 2 (a's literal)
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 9)), "2");
+    // Edit: 51 -> 52 (a's literal)
+    var edit = new TextEdit(findPosition(rawCode, "51"), "52");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "a");
@@ -623,18 +769,18 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         foo =
-            x = 1
+            x = 51
             x
 
         bar =
-            y = 2
+            y = 52
             y
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: 1 -> 3 in foo
-    var edit = new TextEdit(new Range(new Position(1, 8), new Position(1, 9)), "3");
+    // Edit: 51 -> 53 in foo
+    var edit = new TextEdit(findPosition(rawCode, "51"), "53");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "x");
@@ -646,17 +792,17 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            a = 1
-            b = a + 1
+            a = 51
+            b = a + 61
             c = 10
-            d = c + 1
+            d = c + 71
             d
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
     // Edit: 10 -> 20 (c's literal)
-    var edit = new TextEdit(new Range(new Position(3, 8), new Position(3, 10)), "20");
+    var edit = new TextEdit(findPosition(rawCode, "10"), "20");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "c");
@@ -670,18 +816,18 @@ public class ChangesetBuilderComputeTest {
     var rawCode =
         """
         main =
-            a = 1
+            a = 51
             b = a
             c = a
-            d = b + 1
-            e = c + 1
+            d = b + 61
+            e = c + 71
             e
         """;
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: the literal 1 in "d = b + 1" (line 4, char 12)
-    var edit = new TextEdit(new Range(new Position(4, 12), new Position(4, 13)), "5");
+    // Edit: 61 -> 65 (literal in d's expression)
+    var edit = new TextEdit(findPosition(rawCode, "61"), "65");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "d");
@@ -705,7 +851,7 @@ public class ChangesetBuilderComputeTest {
     var ir = preprocessModule(code);
 
     // Edit: 10 -> 99 (argument of y's method call)
-    var edit = new TextEdit(new Range(new Position(2, 17), new Position(2, 19)), "99");
+    var edit = new TextEdit(findPosition(rawCode, "10"), "99");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
@@ -726,8 +872,8 @@ public class ChangesetBuilderComputeTest {
     var code = addMetadata(rawCode);
     var ir = preprocessModule(code);
 
-    // Edit: alpha -> gamma in y's call (line 2, chars 10-15)
-    var edit = new TextEdit(new Range(new Position(2, 10), new Position(2, 15)), "gamma");
+    // Edit: alpha -> gamma in y's call
+    var edit = new TextEdit(findPosition(rawCode, "alpha"), "gamma");
     var result = computeInvalidated(ir, code, edit);
 
     assertInvalidated(result, ir, "y");
@@ -736,7 +882,6 @@ public class ChangesetBuilderComputeTest {
   }
 
   @Test
-  @Ignore
   public void editMethodNameDoesNotAffectIndependentMethodCallWithSameName() {
     var rawCode =
         """
@@ -755,8 +900,6 @@ public class ChangesetBuilderComputeTest {
 
     assertInvalidated(result, ir, "y");
     assertNotInvalidated(result, ir, "x");
-    // The following assertion fails because the ChangesetBuilder looks for dynamic dependency
-    // "method1". Ignored for now because this edit pattern is not used when editing nodes in IDE.
     assertNotInvalidated(result, ir, "z");
   }
 
