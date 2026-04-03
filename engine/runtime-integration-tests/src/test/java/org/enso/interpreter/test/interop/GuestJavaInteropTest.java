@@ -8,7 +8,6 @@ public final class GuestJavaInteropTest extends JavaInteropTest {
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
           .withModifiedContext((b) -> b.option("enso.classLoading", "guest"))
-          .assertGC(false)
           .build();
 
   @Override
