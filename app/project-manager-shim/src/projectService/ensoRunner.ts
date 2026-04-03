@@ -454,7 +454,6 @@ export class EnsoRunner implements Runner {
           '127.0.0.1',
           '--rpc-port',
           jsonPort.toString(),
-          '--jvm',
           ...(extraArgs ?? []),
         ]
         pathDiagnostics('openProject', {
