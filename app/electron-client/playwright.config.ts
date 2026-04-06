@@ -12,7 +12,6 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html', { outputFolder: 'html-report', open: 'never' }],
-    ['junit', { outputFile: 'junit.xml' }],
     ['json', { outputFile: 'report.json' }],
   ],
   expect: {

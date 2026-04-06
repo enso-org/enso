@@ -43,6 +43,7 @@
     "partysocket": "^1.0.3",
     "rust-ffi": "workspace:*",
     "yjs": "^13.6.21",
+    "ydoc-channel": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

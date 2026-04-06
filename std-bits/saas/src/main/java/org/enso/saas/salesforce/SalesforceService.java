@@ -12,6 +12,7 @@ public final class SalesforceService {
 
   private final CredentialReference credentialReference;
   private AccessToken accessToken;
+  private String instanceUrl;
 
   public SalesforceService(CredentialReference credentialReference) {
     this.credentialReference = credentialReference;
@@ -31,6 +32,13 @@ public final class SalesforceService {
       refresh();
     }
     return accessToken;
+  }
+
+  public String getInstanceUrl() {
+    if (instanceUrl == null) {
+      instanceUrl = SalesforceCloudCredentials.getInstanceUrl(credentialReference);
+    }
+    return instanceUrl;
   }
 
   private static boolean closeToExpiring(AccessToken accessToken) {

@@ -241,7 +241,6 @@ playwright_bin.playwright_test(
         "playwright/.auth/user.json",
         ":dist",
         "playwright.config.ts",
-        "tests/package.json",
         "selective-symlink-loader.mjs",
         "selective-symlink-loader-hooks.mjs",
     ],

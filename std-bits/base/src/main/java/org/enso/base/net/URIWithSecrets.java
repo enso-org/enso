@@ -4,7 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map;
+import org.enso.base.enso_cloud.EnsoHeader;
 import org.enso.base.enso_cloud.HideableValue;
 
 /**
@@ -14,13 +14,23 @@ import org.enso.base.enso_cloud.HideableValue;
  * <p>The query parameters are stored separately, because they may contain secrets and will only be
  * resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
  */
-public record URIWithSecrets(URI baseUri, List<Map.Entry<String, HideableValue>> queryParameters) {
+public class URIWithSecrets {
+  private final URI baseUri;
+  private final List<EnsoHeader> queryParameters;
+
+  public URIWithSecrets(String baseUri, List<EnsoHeader> queryParameters) {
+    this.baseUri = URI.create(baseUri);
+    this.queryParameters = queryParameters;
+  }
 
   /** Creates a schematic that does not disclose secret values and can be returned to the user. */
   public URISchematic makeSchematicForRender() {
     var renderedParameters =
         queryParameters.stream()
-            .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), p.getValue().render()))
+            .map(
+                p ->
+                    new AbstractMap.SimpleEntry<>(
+                        p.name(), HideableValue.from(p.hideable_value()).render()))
             .toList();
     return new URISchematic(baseUri, renderedParameters);
   }
@@ -46,13 +56,17 @@ public record URIWithSecrets(URI baseUri, List<Map.Entry<String, HideableValue>>
   }
 
   public boolean containsSecrets() {
-    return queryParameters.stream().anyMatch(p -> p.getValue().containsSecrets());
+    return queryParameters.stream()
+        .anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
   }
 
   private URISchematic makeSchematicForSafeResolve() {
     var resolvedParameters =
         queryParameters.stream()
-            .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), p.getValue().safeResolve()))
+            .map(
+                p ->
+                    new AbstractMap.SimpleEntry<>(
+                        p.name(), HideableValue.from(p.hideable_value()).safeResolve()))
             .toList();
     return new URISchematic(baseUri, resolvedParameters);
   }
@@ -64,7 +78,7 @@ public record URIWithSecrets(URI baseUri, List<Map.Entry<String, HideableValue>>
   private URI forAuthorityPart() {
     // We can ignore secrets in the query part, because they are not used for resolving the
     // authority.
-    return new URIWithSecrets(baseUri, List.of()).safeResolve();
+    return new URIWithSecrets(baseUri.toString(), List.of()).safeResolve();
   }
 
   public String getUserInfo() {

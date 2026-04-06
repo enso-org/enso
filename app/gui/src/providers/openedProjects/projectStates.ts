@@ -407,18 +407,15 @@ export function useProjectStates() {
 
     const store = await scope.run(() => {
       const rpcUrl = runDetails.value.jsonAddress
-      const dataUrl = runDetails.value.binaryAddress
       const ydocUrl = runDetails.value.ydocAddress
       assert(rpcUrl != null, text.getText('noJSONEndpointError'))
-      assert(dataUrl != null, text.getText('noBinaryEndpointError'))
-      assert(ydocUrl != null, "Could not get the address of the project's binary endpoint")
+      assert(ydocUrl != null, "Could not get the address of the project's ydoc endpoint")
       return createProjectStore(
         {
           projectId: runningId,
           projectAssetId: project.info.id,
           engine: {
             rpcUrl,
-            dataUrl,
             ydocUrl,
           },
         },

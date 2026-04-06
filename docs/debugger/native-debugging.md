@@ -1,7 +1,7 @@
 # Native Debugging
 
 Since 2025.1.1 version Enso comes with first class support for
-[native image execution mode](../infrastructure/native-image.md#engine-runner-configuration).
+[native image execution mode](../infrastructure/native-image.md#engine-configuration).
 Such a mode is _fast to start_ and is thus really suitable for production. In
 majority of cases it behaves exactly the same as so called `--jvm` mode used
 during development. As such there shall not be so much need, to debug the
@@ -11,7 +11,7 @@ mode where possible. Should JVM debugging not be enough, continue reading.
 ## Building for Debugging
 
 By default the
-[native image execution mode](../infrastructure/native-image.md#engine-runner-configuration)
+[native image execution mode](../infrastructure/native-image.md#engine-configuration)
 doesn't contain enough information for debugging. The _native executable_ needs
 to be re-built with such debugging information. Since
 [#12993](https://github.com/enso-org/enso/pull/12993) rebuilding is as easy as:

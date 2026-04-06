@@ -3,6 +3,7 @@ import { nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { ModuleStore } from '$/providers/openedProjects/module/module'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import theme from '@/util/theme'
 import type { Ref } from 'vue'
 
 /**
@@ -78,6 +79,40 @@ export function createSelectionAlignmentHandlers(graphStore: GraphStore, module:
     )
   }
 
+  function spaceVerticalNodes(nodes: Node[]) {
+    spaceVerticalNodesWithGap(nodes, theme.node.vertical_gap)
+  }
+
+  function spaceVerticalNodesTight(nodes: Node[]) {
+    spaceVerticalNodesWithGap(nodes, theme.node.vertical_gap / 2)
+  }
+
+  function spaceVerticalNodesZero(nodes: Node[]) {
+    spaceVerticalNodesWithGap(nodes, 1)
+  }
+
+  function spaceVerticalNodesWide(nodes: Node[]) {
+    spaceVerticalNodesWithGap(nodes, theme.node.vertical_gap * 2)
+  }
+
+  function spaceVerticalNodesWithGap(nodes: Node[], gap: number) {
+    const rects = getNodesWithRects(nodes)
+    if (rects.length < 2) return
+    const sorted = [...rects].sort((a, b) => a.rect.top - b.rect.top)
+    const initialTop = sorted[0]?.rect.top ?? 0
+    if (!Number.isFinite(initialTop)) return
+    let top = initialTop
+    const updates = sorted.map(({ node, rect }) => {
+      const newPosY = top
+      top = top + rect.height + gap
+      return {
+        node,
+        position: new Vec2(node.position.x, newPosY),
+      }
+    })
+    batchUpdatePositions(updates)
+  }
+
   function getNodesWithRects(nodes: Node[]) {
     return nodes
       .map((node) => {
@@ -102,5 +137,9 @@ export function createSelectionAlignmentHandlers(graphStore: GraphStore, module:
     alignRightNodes,
     alignTopNodes,
     alignBottomNodes,
+    spaceVerticalNodes,
+    spaceVerticalNodesTight,
+    spaceVerticalNodesZero,
+    spaceVerticalNodesWide,
   }
 }

@@ -6,7 +6,7 @@ export interface Button {
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
-  icon: AnyIcon
+  icon: AnyIcon | undefined
 }
 
 export interface ActionButton extends Button {

@@ -117,17 +117,17 @@ type Image
     @path (Widget.Text_Input display=Display.Always)
     write : Writable_File  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self path:Writable_File flags=[] =
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
-            write_flags = case flags of
-                _ : Vector -> flags
-                _ -> [flags]
-            int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
-            write_to_local_file file:File =
-                Panic.catch JException (Java_Codecs.write file.path self.opencv_mat int_flags) _->
-                     Error.throw (File_Error.IO_Error path.file 'Failed to write to the file')
-            r = if path.is_local then write_to_local_file path.file else
-                path.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
-            r.if_not_error path.file_for_return
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation."
+        write_flags = case flags of
+            _ : Vector -> flags
+            _ -> [flags]
+        int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
+        write_to_local_file file:File =
+            Panic.catch JException (Java_Codecs.write file.path self.opencv_mat int_flags) _->
+                 Error.throw (File_Error.IO_Error path.file 'Failed to write to the file')
+        r = if path.is_local then write_to_local_file path.file else
+            path.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
+        r.if_not_error path.file_for_return
 
     ## ---
        private: true

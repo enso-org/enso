@@ -1,9 +1,9 @@
 /** @file Plan selector component. */
 import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { usePaywall } from '#/hooks/billing'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { mapPlanOnPaywall } from '$/composables/paywall/FeaturesConfiguration'
 import { useBackends } from '$/providers/backends'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import * as backend from 'enso-common/src/services/Backend'
@@ -43,7 +43,6 @@ export function PlanSelector(props: PlanSelectorProps) {
     variants = PLAN_SELECTOR_STYLES,
   } = props
 
-  const { getPaywallLevel } = usePaywall({ plan: userPlan })
   const { remoteBackend } = useBackends()
 
   const { data: config } = useSuspenseQuery(
@@ -65,8 +64,8 @@ export function PlanSelector(props: PlanSelectorProps) {
               userHasSubscription={userPlan !== backend.Plan.free}
               isOrganizationAdmin={isOrganizationAdmin}
               isCurrent={newPlan === userPlan}
-              paywallLevel={getPaywallLevel(newPlan)}
-              userPaywallLevel={getPaywallLevel(userPlan)}
+              paywallLevel={mapPlanOnPaywall(newPlan)}
+              userPaywallLevel={mapPlanOnPaywall(userPlan)}
               className={classes.card()}
             />
           )

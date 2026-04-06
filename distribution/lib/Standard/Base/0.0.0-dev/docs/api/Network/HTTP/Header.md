@@ -13,11 +13,11 @@
     - content_type value:Standard.Base.Data.Text.Text encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - content_type_header_name -> Standard.Base.Any.Any
     - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - hideable_value self -> Standard.Base.Any.Any
     - multipart_form_data boundary:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - new name:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
     - text_plain -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-    - to_java_pair self -> Standard.Base.Any.Any
     - unify_vector headers:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
 - type Header_Comparator
     - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
     type = "Array_Like_Helpers",
     name = "slice",
     description = "Returns a slice of this Vector.")
-public final class SliceArrayVectorNode extends Node {
+final class SliceArrayVectorNode extends Node {
   private @Child ArrayLikeLengthNode lengthNode = ArrayLikeLengthNode.create();
 
   private SliceArrayVectorNode() {}

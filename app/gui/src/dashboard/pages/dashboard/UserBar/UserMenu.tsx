@@ -1,5 +1,4 @@
 /** @file A dropdown menu of user actions and settings. */
-import { useToggleEnsoDevtools } from '#/components/Devtools'
 import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
 import { ProfilePicture } from '#/components/ProfilePicture'
@@ -15,6 +14,7 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
+import { useShowEnsoDevtools } from '$/providers/react/devTools'
 import { NetworkError, Plan } from 'enso-common/src/services/Backend'
 import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { toast } from 'react-toastify'
@@ -35,7 +35,7 @@ export function UserMenu(props: UserMenuProps) {
   const { user } = useFullUserSession()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
-  const toggleEnsoDevtools = useToggleEnsoDevtools()
+  const [showEnsoDevtools, setShowEnsoDevtools] = useShowEnsoDevtools()
   const updateUser = useMutationCallback(backendMutationOptions(remoteBackend, 'updateUser'))
 
   const userOrganizations = user.organizations ?? []
@@ -101,7 +101,7 @@ export function UserMenu(props: UserMenuProps) {
       IS_DEV_MODE && {
         action: 'toggleEnsoDevtools',
         doAction: () => {
-          toggleEnsoDevtools()
+          setShowEnsoDevtools(!showEnsoDevtools)
         },
       },
     (user.plan === Plan.free || user.plan === Plan.solo) && {

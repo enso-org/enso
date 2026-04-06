@@ -14,8 +14,6 @@ import {
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
-const LOG_DIAGNOSTICS =
-  process.env.ENSO_PW_LOG_CONSOLE === '1' || process.env.ENSO_PW_LOG_CONSOLE === 'true'
 const RUNFILES_WORKSPACE_ROOT =
   process.env.JS_BINARY__RUNFILES ? path.join(process.env.JS_BINARY__RUNFILES, '_main') : undefined
 
@@ -37,12 +35,6 @@ function workspacePathCandidates(relativeOrAbsolutePath: string): string[] {
   ])
 }
 
-function logCandidatePaths(label: string, candidates: readonly string[]) {
-  if (LOG_DIAGNOSTICS) {
-    console.log(`[pw:${label}] ${JSON.stringify(candidates)}`)
-  }
-}
-
 const TEST_USER_FILE_CANDIDATES = uniquePaths([
   path.join(import.meta.dirname, '../playwright/.auth/user.json'),
   path.join(process.cwd(), 'playwright/.auth/user.json'),
@@ -61,9 +53,6 @@ const POSSIBLE_ELECTRON_PATHS = POSSIBLE_ELECTRON_DIRS.flatMap((dir) => [
   path.join(dir, 'mac/Enso.app/Contents/MacOS/Enso'),
   path.join(dir, 'mac-arm64/Enso.app/Contents/MacOS/Enso'),
 ])
-
-logCandidatePaths('credentials', TEST_USER_FILE_CANDIDATES)
-logCandidatePaths('executables', POSSIBLE_ELECTRON_PATHS)
 
 type TestCredentials = { readonly user: string; readonly password: string }
 
@@ -111,9 +100,6 @@ export async function getElectronExecutablePath(): Promise<string | undefined> {
       fs.access(p, fs.constants.X_OK).then(() => p),
     )
     cachedElectronPath = await Promise.any(promises)
-    if (LOG_DIAGNOSTICS) {
-      console.log(`[pw:executable] Using '${cachedElectronPath}'.`)
-    }
     return cachedElectronPath
   } catch {
     return undefined
@@ -201,22 +187,6 @@ export const electronFixtures = {
     use: (value: Page) => Promise<void>,
   ) {
     const innerPage = await app.firstWindow()
-    if (LOG_DIAGNOSTICS) {
-      innerPage.on('console', (message) => {
-        const location = message.location()
-        const locationText =
-          location.url ? ` (${location.url}:${location.lineNumber}:${location.columnNumber})` : ''
-        console.log(`[pw:console:${message.type()}] ${message.text()}${locationText}`)
-      })
-      innerPage.on('pageerror', (error) => {
-        console.log(`[pw:pageerror] ${error.message}`)
-      })
-      innerPage.on('requestfailed', (request) => {
-        const failure = request.failure()
-        const message = failure?.errorText ? ` ${failure.errorText}` : ''
-        console.log(`[pw:requestfailed] ${request.method()} ${request.url()}${message}`)
-      })
-    }
     if (viewport) innerPage.setViewportSize(viewport)
     await use(innerPage)
   },

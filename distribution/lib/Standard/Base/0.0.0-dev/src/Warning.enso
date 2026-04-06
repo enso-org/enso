@@ -42,7 +42,8 @@ type Warning
        Are any warnings attached to the value?
     has_warnings : Any -> Any -> Boolean
     has_warnings value warning_type=Any =
-        Warning.get_all value . any (w-> w.value.is_a warning_type)
+        Warning.get_all value . any w->
+            w.value.is_a warning_type
 
     ## ---
        private: true

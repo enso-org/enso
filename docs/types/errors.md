@@ -13,7 +13,9 @@ around `Panic.throw` and related methods), while the other is a theory of
 _broken values_ that propagate through computations (represented by `Error` and
 created by `Error.throw` method).
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING]
+> The actionables for this section are:
 >
 > - Greatly expand on the reasoning and theory behind the two exception models.
 > - Explain why broken values serve the GUI well.
@@ -28,7 +30,9 @@ created by `Error.throw` method).
 
 ## Exceptions/Panics
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING] 
+> The actionables for this section are:
 >
 > - Formalise the model of `Panic.throw` as implemented.
 

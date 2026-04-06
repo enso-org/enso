@@ -3,6 +3,7 @@
   "compilerOptions": { "composite": true, "noEmit": false, "outDir": "dist", "rootDir": "src" },
   "extends": "../../tsconfig.json",
   "files": [
+    "./src/YjsBinaryChannel.ts",
     "./src/auth.ts",
     "./src/edits.ts",
     "./src/fileFormat.ts",

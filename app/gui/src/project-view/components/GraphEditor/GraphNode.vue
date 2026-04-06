@@ -438,6 +438,13 @@ const alignmentMenuActions: DisplayableActionName[] = [
   'components.alignBottom',
 ]
 
+const spacingMenuActions: DisplayableActionName[] = [
+  'components.spaceVertical',
+  'components.spaceVerticalTight',
+  'components.spaceVerticalZero',
+  'components.spaceVerticalWide',
+]
+
 const selectionSize = computed(() => nodeSelection?.selected.size ?? 0)
 const hasMultiSelection = computed(() => selectionSize.value > 1)
 
@@ -506,6 +513,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       <template #menuElements>
         <div v-if="hasMultiSelection">
           <GraphNodeSubmenu label="Align" icon="align_left" :actions="alignmentMenuActions" />
+          <GraphNodeSubmenu label="Spacing" icon="space_default" :actions="spacingMenuActions" />
         </div>
       </template>
       <div
@@ -517,7 +525,6 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
         @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
         @pointermove="updateNodeHover"
       >
-        <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
         <ComponentWidgetTree
           :ast="props.node.innerExpr"
           :nodeId="nodeId"
@@ -539,6 +546,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       v-bind="visibleMessage"
       class="afterNode shiftWhenMenuVisible"
     />
+    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
 </template>
 
