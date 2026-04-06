@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { YjsChannel, type ChannelCodec } from './YjsChannel.js'
+import { YjsChannel, type ChannelCodec, type TapDirection } from './YjsChannel.js'
 
 // Mock CloseEvent for Node.js environment
 if (typeof globalThis.CloseEvent === 'undefined') {
@@ -517,6 +517,92 @@ describe('YjsChannel', () => {
       // Both listeners should receive the message
       expect(received1).toEqual(['Broadcast message'])
       expect(received2).toEqual(['Broadcast message'])
+    })
+  })
+
+  describe('tap', () => {
+    it('should receive sent messages with direction send', () => {
+      const doc = new Y.Doc()
+      const channel = new YjsChannel<string>(doc, 'tap-test')
+
+      const tapped: { msg: string; dir: TapDirection }[] = []
+      channel.tap((msg, dir) => tapped.push({ msg, dir }))
+
+      channel.send('hello')
+
+      expect(tapped).toEqual([{ msg: 'hello', dir: 'send' }])
+    })
+
+    it('should receive incoming messages with direction receive', () => {
+      const doc = new Y.Doc()
+      const sender = new YjsChannel<string>(doc, 'tap-test')
+      const receiver = new YjsChannel<string>(doc, 'tap-test')
+
+      const tapped: { msg: string; dir: TapDirection }[] = []
+      receiver.tap((msg, dir) => tapped.push({ msg, dir }))
+
+      // Receiver needs a subscriber so the observer processes messages
+      receiver.subscribe(() => {})
+
+      sender.send('from sender')
+
+      expect(tapped).toEqual([{ msg: 'from sender', dir: 'receive' }])
+    })
+
+    it('should not consume messages (non-destructive)', () => {
+      const doc = new Y.Doc()
+      const sender = new YjsChannel<string>(doc, 'tap-test')
+      const receiver = new YjsChannel<string>(doc, 'tap-test')
+
+      const tapped: string[] = []
+      const received: string[] = []
+
+      receiver.tap((msg) => tapped.push(msg))
+      receiver.subscribe((msg) => received.push(msg))
+
+      sender.send('msg1')
+
+      // Both tap and subscribe should see the message
+      expect(tapped).toEqual(['msg1'])
+      expect(received).toEqual(['msg1'])
+    })
+
+    it('should support unsubscribing', () => {
+      const doc = new Y.Doc()
+      const channel = new YjsChannel<string>(doc, 'tap-test')
+
+      const tapped: string[] = []
+      const untap = channel.tap((msg) => tapped.push(msg))
+
+      channel.send('before')
+      untap()
+      channel.send('after')
+
+      expect(tapped).toEqual(['before'])
+    })
+
+    it('should be cleared on close', () => {
+      const doc = new Y.Doc()
+      const sender = new YjsChannel<string>(doc, 'tap-test')
+      const receiver = new YjsChannel<string>(doc, 'tap-test')
+
+      const tapped: string[] = []
+      receiver.tap((msg) => tapped.push(msg))
+      receiver.subscribe(() => {})
+
+      sender.send('before close')
+      receiver.close()
+      sender.send('after close')
+
+      expect(tapped).toEqual(['before close'])
+    })
+  })
+
+  describe('channelName', () => {
+    it('should expose the channel name', () => {
+      const doc = new Y.Doc()
+      const channel = new YjsChannel<string>(doc, 'my-channel')
+      expect(channel.channelName).toBe('my-channel')
     })
   })
 

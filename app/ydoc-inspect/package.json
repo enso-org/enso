@@ -1,0 +1,22 @@
+{
+  "name": "ydoc-inspect",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --inspect dist/main.js",
+    "compile": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -b tsconfig.json --noEmit",
+    "lint": "eslint . --cache --max-warnings=0"
+  },
+  "dependencies": {
+    "lib0": "^0.2.99",
+    "ws": "^8.18.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.21"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13",
+    "typescript": "catalog:"
+  }
+}
