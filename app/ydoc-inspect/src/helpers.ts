@@ -87,8 +87,13 @@ export function createHelpers(doc: Y.Doc) {
   }
 
   function send(channelId: string, message: string | Uint8Array): void {
-    const cmdArray = doc.getArray<string | Uint8Array>(`cmd:${channelId}`)
-    cmdArray.push([message])
+    const sndArray = doc.getArray<string | Uint8Array>(`snd:${channelId}`)
+    sndArray.push([message])
+  }
+
+  function receive(channelId: string, message: string | Uint8Array): void {
+    const rcvArray = doc.getArray<string | Uint8Array>(`rcv:${channelId}`)
+    rcvArray.push([message])
   }
 
   function watch(channelId?: string): () => void {
@@ -132,5 +137,5 @@ export function createHelpers(doc: Y.Doc) {
     }
   }
 
-  return { listChannels, messages, last, filter, send, watch }
+  return { listChannels, messages, last, filter, send, receive, watch }
 }

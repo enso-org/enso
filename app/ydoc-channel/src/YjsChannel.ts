@@ -304,7 +304,7 @@ export class YjsChannel<
   /**
    * Notifies all subscribed handlers with the received message.
    */
-  private notifyHandlers(message: TMessage): void {
+  notifyHandlers(message: TMessage): void {
     // Create a MessageEvent-like object for WebSocket compatibility
     const messageEvent = { data: message } as MessageEvent
 
@@ -325,7 +325,7 @@ export class YjsChannel<
   /**
    * Notifies all tap handlers with the message and direction.
    */
-  private notifyTaps(message: TMessage, direction: TapDirection): void {
+  notifyTaps(message: TMessage, direction: TapDirection): void {
     for (const handler of this.tapHandlers) {
       try {
         handler(message, direction)

@@ -101,6 +101,7 @@ export class InspectManager {
     })
 
     this.setupCommandForwarding(id, channel, fromCmd)
+    this.setupReceiveForwarding(id, channel, fromCmd)
     this.registeredChannels.set(id, { untap })
   }
 
@@ -116,8 +117,8 @@ export class InspectManager {
     realChannel: YjsChannel<TMessage, unknown>,
     fromCmd: FromCmd<TMessage, TStored>,
   ): void {
-    const cmdArray = this.inspectDoc.doc.getArray<TStored>(`cmd:${channelId}`)
-    const cmdSenderId = `inspect-cmd-${channelId}`
+    const cmdArray = this.inspectDoc.doc.getArray<TStored>(`snd:${channelId}`)
+    const cmdSenderId = `inspect-snd-${channelId}`
 
     cmdArray.observe((event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       if (transaction.origin === cmdSenderId) return
@@ -146,6 +147,48 @@ export class InspectManager {
           realChannel.send(fromCmd(value))
         } catch (e) {
           console.error(`Failed to forward inspect command to ${channelId}:`, e)
+        }
+      }
+    })
+  }
+
+  private setupReceiveForwarding<TMessage, TStored extends string | Uint8Array>(
+    channelId: string,
+    realChannel: YjsChannel<TMessage, unknown>,
+    fromCmd: FromCmd<TMessage, TStored>,
+  ): void {
+    const rcvArray = this.inspectDoc.doc.getArray<TStored>(`rcv:${channelId}`)
+    const rcvSenderId = `inspect-rcv-${channelId}`
+
+    rcvArray.observe((event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
+      if (transaction.origin === rcvSenderId) return
+
+      const inserted: { index: number; value: TStored }[] = []
+      let pos = 0
+      for (const delta of event.changes.delta) {
+        if (delta.retain) pos += delta.retain
+        if (delta.insert) {
+          const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
+          for (const item of items) {
+            inserted.push({ index: pos, value: item })
+            pos++
+          }
+        }
+      }
+
+      this.inspectDoc.doc.transact(() => {
+        for (let i = inserted.length - 1; i >= 0; i--) {
+          rcvArray.delete(inserted[i]!.index, 1)
+        }
+      }, rcvSenderId)
+
+      for (const { value } of inserted) {
+        try {
+          const message = fromCmd(value)
+          realChannel.notifyHandlers(message)
+          realChannel.notifyTaps(message, 'receive')
+        } catch (e) {
+          console.error(`Failed to forward inspect receive to ${channelId}:`, e)
         }
       }
     })

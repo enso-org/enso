@@ -623,6 +623,36 @@ describe('YjsChannel', () => {
     })
   })
 
+  describe('notifyHandlers', () => {
+    it('should deliver message to subscribers without touching the Y.Array', () => {
+      const doc = new Y.Doc()
+      const channel = new YjsChannel<string>(doc, 'notify-test')
+
+      const received: string[] = []
+      channel.subscribe((msg) => received.push(msg))
+
+      channel.notifyHandlers('injected message')
+
+      expect(received).toEqual(['injected message'])
+      // Message should NOT be in the array
+      expect(doc.getArray<string>('notify-test').length).toBe(0)
+    })
+
+    it('should deliver message to addEventListener listeners', () => {
+      const doc = new Y.Doc()
+      const channel = new YjsChannel<string>(doc, 'notify-test')
+
+      const received: string[] = []
+      channel.addEventListener('message', (event) => {
+        received.push(event.data)
+      })
+
+      channel.notifyHandlers('injected message')
+
+      expect(received).toEqual(['injected message'])
+    })
+  })
+
   describe('channelName', () => {
     it('should expose the channel name', () => {
       const doc = new Y.Doc()

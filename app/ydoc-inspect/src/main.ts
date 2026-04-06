@@ -42,6 +42,7 @@ g['messages'] = helpers.messages
 g['last'] = helpers.last
 g['filter'] = helpers.filter
 g['send'] = helpers.send
+g['receive'] = helpers.receive
 g['watch'] = helpers.watch
 g['unwatch'] = () => {
   if (unwatchFn) {
@@ -60,7 +61,8 @@ console.log('  listChannels()               - List all registered channels')
 console.log('  messages(channelId?, n?)     - Get messages (optionally for a channel, last n)')
 console.log('  last(channelId?, n=10)       - Get last n messages')
 console.log('  filter(channelId?, pattern?) - Filter messages by regex (string or RegExp)')
-console.log('  send(channelId, msg)         - Send message to Language Server via channel')
+console.log('  send(channelId, msg)         - Simulate message sent by Language Server')
+console.log('  receive(channelId, msg)      - Simulate message received by Language Server')
 console.log('  watch(channelId?)            - Watch live messages (returns stop function)')
 console.log('  unwatch()                    - Stop watching live messages')
 console.log('')
