@@ -101,9 +101,11 @@ export class YjsChannel<
     this.observeHandler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       // Only notify handlers if the message is from another sender
       if (transaction.origin !== this.senderId) {
-        // If no handlers are subscribed, leave items in the array for later processing.
+        const hasHandlers = this.handlers.size > 0 || this.hasActiveEventListeners()
+
+        // If no handlers or taps are subscribed, leave items in the array for later processing.
         // This handles the race condition where messages arrive before handlers are attached.
-        if (this.handlers.size === 0 && !this.hasActiveEventListeners()) {
+        if (!hasHandlers && this.tapHandlers.size === 0) {
           return
         }
 
@@ -127,17 +129,22 @@ export class YjsChannel<
           }
         }
 
-        doc.transact(() => {
-          // Delete the processed items in reverse index order to preserve correct positions
-          for (let i = inserted.length - 1; i >= 0; i--) {
-            this.array.delete(inserted[i]!.index, 1)
-          }
-        }, this.senderId)
+        // Only consume (delete) messages when regular handlers are present.
+        // When only taps exist, leave items for later handler subscription.
+        if (hasHandlers) {
+          doc.transact(() => {
+            // Delete the processed items in reverse index order to preserve correct positions
+            for (let i = inserted.length - 1; i >= 0; i--) {
+              this.array.delete(inserted[i]!.index, 1)
+            }
+          }, this.senderId)
+        }
 
-        // Notify handlers and taps after deletion
         for (const { value } of inserted) {
           const decoded = this.codec.decode(value)
-          this.notifyHandlers(decoded)
+          if (hasHandlers) {
+            this.notifyHandlers(decoded)
+          }
           this.notifyTaps(decoded, 'receive')
         }
       }

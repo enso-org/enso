@@ -581,6 +581,31 @@ describe('YjsChannel', () => {
       expect(tapped).toEqual(['before'])
     })
 
+    it('should receive incoming messages even when no handlers are subscribed', () => {
+      const doc = new Y.Doc()
+      const sender = new YjsChannel<string>(doc, 'tap-test')
+      const receiver = new YjsChannel<string>(doc, 'tap-test')
+
+      const tapped: { msg: string; dir: TapDirection }[] = []
+      receiver.tap((msg, dir) => tapped.push({ msg, dir }))
+
+      // No subscribe() or addEventListener — only a tap is registered.
+      // This mirrors the inspect scenario: the tap is set up before
+      // the Java side subscribes to the channel.
+      sender.send('early message')
+
+      // Tap should still be notified
+      expect(tapped).toEqual([{ msg: 'early message', dir: 'receive' }])
+
+      // Message must remain in the array for a future handler
+      expect(doc.getArray<string>('tap-test').toArray()).toContain('early message')
+
+      // A later subscriber should still receive the message
+      const received: string[] = []
+      receiver.subscribe((msg) => received.push(msg))
+      expect(received).toEqual(['early message'])
+    })
+
     it('should be cleared on close', () => {
       const doc = new Y.Doc()
       const sender = new YjsChannel<string>(doc, 'tap-test')
