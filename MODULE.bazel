@@ -115,8 +115,6 @@ crate.from_cargo(
         "//:lib/rust/reflect/Cargo.toml",
         "//:lib/rust/zst/Cargo.toml",
         "//:lib/rust/parser/debug/fuzz/Cargo.toml",
-        "//:tools/language-server/logstat/Cargo.toml",
-        "//:tools/language-server/wstest/Cargo.toml",
         "//app/rust-ffi:Cargo.toml",
     ],
     supported_platform_triples = [
