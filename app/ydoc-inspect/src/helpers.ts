@@ -16,7 +16,7 @@ export interface LogEntry {
   ts: number
   dir: 'send' | 'receive'
   channel: string
-  data: string | Uint8Array
+  data: unknown | Uint8Array
 }
 
 /**
@@ -31,13 +31,22 @@ export function createHelpers(doc: Y.Doc) {
     return result
   }
 
+  function parseData(raw: string | Uint8Array): unknown | Uint8Array {
+    if (typeof raw !== 'string') return raw
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return raw
+    }
+  }
+
   function getChannelEntries(channelId: string): LogEntry[] {
     const logArray = doc.getArray<string | Uint8Array>(`log:${channelId}`)
     const metaArray = doc.getArray<string>(`meta:${channelId}`)
     const entries: LogEntry[] = []
     const len = Math.min(logArray.length, metaArray.length)
     for (let i = 0; i < len; i++) {
-      const data = logArray.get(i)
+      const data = parseData(logArray.get(i))
       let meta: MetaEntry
       try {
         meta = JSON.parse(metaArray.get(i))
@@ -71,7 +80,10 @@ export function createHelpers(doc: Y.Doc) {
     const entries = messages(channelId)
     if (pattern == null) return entries
     const re = typeof pattern === 'string' ? new RegExp(pattern) : pattern
-    return entries.filter((e) => typeof e.data === 'string' && re.test(e.data))
+    return entries.filter((e) => {
+      const text = e.data instanceof Uint8Array ? null : JSON.stringify(e.data)
+      return text != null && re.test(text)
+    })
   }
 
   function send(channelId: string, message: string | Uint8Array): void {
@@ -97,10 +109,13 @@ export function createHelpers(doc: Y.Doc) {
             lastLen++
             continue
           }
-          const data = logArray.get(lastLen)
+          const raw = logArray.get(lastLen)
+          const data = parseData(raw)
           const arrow = meta.dir === 'send' ? '>>' : '<<'
           const displayData =
-            typeof data === 'string' ? data.slice(0, 200) : `<binary ${data.byteLength} bytes>`
+            data instanceof Uint8Array ?
+              `<binary ${data.byteLength} bytes>`
+            : JSON.stringify(data).slice(0, 200)
           console.log(`[${id}] ${arrow} ${displayData}`)
           lastLen++
         }

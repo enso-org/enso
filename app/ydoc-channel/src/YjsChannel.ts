@@ -188,9 +188,6 @@ export class YjsChannel<
   }
 
   /**
-   * Removes all message handlers and stops observing the Y.Array.
-   */
-  /**
    * Registers a non-consuming observer that receives copies of all messages
    * passing through the channel (both sent and received).
    * @param handler - The callback to invoke with each message and its direction
@@ -203,6 +200,9 @@ export class YjsChannel<
     }
   }
 
+  /**
+   * Removes all message handlers and stops observing the Y.Array.
+   */
   close(): void {
     this.array.unobserve(this.observeHandler)
     this.handlers.clear()

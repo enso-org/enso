@@ -1,20 +1,31 @@
 import { InspectClient } from './client.js'
-import { createHelpers } from './helpers.js'
+import { createHelpers, type LogEntry } from './helpers.js'
 
-function parseArgs(): { host: string; port: string } {
+function parseArgs(): { host: string; port: string; watch: boolean } {
   const args = process.argv.slice(2)
   let host = 'localhost'
   let port = '30617'
+  let watch = false
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--host' && args[i + 1]) host = args[++i]!
     else if (args[i] === '--port' && args[i + 1]) port = args[++i]!
+    else if (args[i] === '--watch' || args[i] === '-w') watch = true
   }
-  return { host, port }
+  return { host, port, watch }
+}
+
+function printEntry(entry: LogEntry): void {
+  const arrow = entry.dir === 'send' ? '>>' : '<<'
+  const data =
+    entry.data instanceof Uint8Array ?
+      `<binary ${entry.data.byteLength} bytes>`
+    : JSON.stringify(entry.data).slice(0, 200)
+  console.log(`[${entry.channel}] ${arrow} ${data}`)
 }
 
 const RETRY_INTERVAL_MS = 2000
 
-const { host, port } = parseArgs()
+const { host, port, watch: watchMode } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
 
 const client = new InspectClient()
@@ -31,7 +42,7 @@ g['filter'] = helpers.filter
 g['send'] = helpers.send
 g['watch'] = helpers.watch
 
-console.log(`ydoc-inspect: connecting to ${url}`)
+console.log(`ydoc-inspect: connecting to ${url} watch=${watchMode}`)
 console.log('Open chrome://inspect to attach DevTools')
 console.log('')
 console.log('Available commands:')
@@ -57,6 +68,17 @@ async function connectWithRetry(): Promise<void> {
         }
       } else {
         console.log('No channels registered yet. Connect an IDE client to see channels.')
+      }
+      if (watchMode) {
+        const existing = helpers.messages()
+        if (existing.length > 0) {
+          console.log(`\n--- ${existing.length} historical message(s) ---`)
+          for (const entry of existing) {
+            printEntry(entry)
+          }
+          console.log('--- live messages ---\n')
+        }
+        helpers.watch()
       }
       return
     } catch {

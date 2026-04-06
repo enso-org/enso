@@ -18,11 +18,11 @@ const ByteBuffer = Java.type('java.nio.ByteBuffer')
 const inspectManager = debug ? new InspectManager(ByteBuffer) : null
 const jsonCallbacks =
   inspectManager ?
-    inspectManager.wrapServer(YDOC_JSON_CHANNEL_CALLBACKS, 'json')
+    inspectManager.wrapJsonServer(YDOC_JSON_CHANNEL_CALLBACKS)
   : YDOC_JSON_CHANNEL_CALLBACKS
 const binaryCallbacks =
   inspectManager ?
-    inspectManager.wrapServer(YDOC_BINARY_CHANNEL_CALLBACKS, 'binary')
+    inspectManager.wrapBinaryServer(YDOC_BINARY_CHANNEL_CALLBACKS)
   : YDOC_BINARY_CHANNEL_CALLBACKS
 
 const wss = new WebSocketServer({ host, port })

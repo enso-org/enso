@@ -1,5 +1,6 @@
 import { YjsChannel, type TapDirection, type YjsChannelServer } from 'ydoc-channel'
 import * as Y from 'yjs'
+import type { JavaByteBuffer, JavaByteBufferClass } from './YjsBinaryChannel'
 import { WSSharedDoc, YjsConnection, type YjsSocket } from './ydoc'
 
 interface ChannelMeta {
@@ -9,10 +10,10 @@ interface ChannelMeta {
   createdAt: number
 }
 
-/** Interface for a Java ByteBuffer class providing factory methods. */
-interface ByteBufferClass {
-  allocateDirect(capacity: number): unknown
-}
+/** Converts a channel message to the log array storage type. */
+type ToLog<TMessage, TStored> = (message: TMessage) => TStored
+/** Converts a command array value back to the channel message type. */
+type FromCmd<TMessage, TStored> = (value: TStored) => TMessage
 
 /**
  * Manages channel inspection for debugging.
@@ -24,28 +25,42 @@ interface ByteBufferClass {
 export class InspectManager {
   private readonly inspectDoc: WSSharedDoc
   private readonly channelsMap: Y.Map<ChannelMeta>
-  private readonly registeredChannels = new Map<
-    string,
-    { channel: YjsChannel<any, any>; untap: () => void }
-  >()
-  private readonly byteBufferClass: ByteBufferClass
+  private readonly registeredChannels = new Map<string, { untap: () => void }>()
+  private readonly byteBufferClass: JavaByteBufferClass
   private channelCounter = 0
 
-  constructor(byteBufferClass: ByteBufferClass) {
+  /** Create an {@link InspectManager}. */
+  constructor(byteBufferClass: JavaByteBufferClass) {
     this.inspectDoc = new WSSharedDoc(false)
     this.channelsMap = this.inspectDoc.doc.getMap('channels')
     this.byteBufferClass = byteBufferClass
   }
 
-  /**
-   * Wraps a {@link YjsChannelServer} to intercept channel creation.
-   * The returned server registers each channel for inspection before
-   * delegating to the original.
-   */
-  wrapServer<T>(delegate: YjsChannelServer<T>, type: 'json' | 'binary'): YjsChannelServer<T> {
+  /** Wraps a JSON {@link YjsChannelServer} to intercept channel creation. */
+  wrapJsonServer(delegate: YjsChannelServer<string>): YjsChannelServer<string> {
     return {
-      onConnect: (channel: YjsChannel<T, unknown>) => {
-        this.registerChannel(channel, type)
+      onConnect: (channel: YjsChannel<string, unknown>) => {
+        this.registerChannel(
+          channel,
+          'json',
+          (m) => m,
+          (v) => v,
+        )
+        delegate.onConnect(channel)
+      },
+    }
+  }
+
+  /** Wraps a binary {@link YjsChannelServer} to intercept channel creation. */
+  wrapBinaryServer(delegate: YjsChannelServer<JavaByteBuffer>): YjsChannelServer<JavaByteBuffer> {
+    return {
+      onConnect: (channel: YjsChannel<JavaByteBuffer, unknown>) => {
+        this.registerChannel(
+          channel,
+          'binary',
+          (m) => toBinary(m),
+          (v) => this.fromBinary(v),
+        )
         delegate.onConnect(channel)
       },
     }
@@ -59,7 +74,12 @@ export class InspectManager {
     new YjsConnection(ws, this.inspectDoc)
   }
 
-  private registerChannel(channel: YjsChannel<any, any>, type: 'json' | 'binary'): void {
+  private registerChannel<TMessage, TStored extends string | Uint8Array>(
+    channel: YjsChannel<TMessage, unknown>,
+    type: 'json' | 'binary',
+    toLog: ToLog<TMessage, TStored>,
+    fromCmd: FromCmd<TMessage, TStored>,
+  ): void {
     const id = `${type}-${this.channelCounter++}`
 
     this.channelsMap.set(id, {
@@ -69,40 +89,40 @@ export class InspectManager {
       createdAt: Date.now(),
     })
 
-    const logArray = this.inspectDoc.doc.getArray<string | Uint8Array>(`log:${id}`)
+    const logArray = this.inspectDoc.doc.getArray<TStored>(`log:${id}`)
     const metaArray = this.inspectDoc.doc.getArray<string>(`meta:${id}`)
 
-    const untap = channel.tap((message: any, direction: TapDirection) => {
-      const data = type === 'binary' ? toBinary(message) : message
+    const untap = channel.tap((message: TMessage, direction: TapDirection) => {
+      const data = toLog(message)
       this.inspectDoc.doc.transact(() => {
         logArray.push([data])
         metaArray.push([JSON.stringify({ ts: Date.now(), dir: direction })])
       })
     })
 
-    this.setupCommandForwarding(id, channel, type)
-    this.registeredChannels.set(id, { channel, untap })
+    this.setupCommandForwarding(id, channel, fromCmd)
+    this.registeredChannels.set(id, { untap })
   }
 
-  private fromBinary(data: Uint8Array): unknown {
+  private fromBinary(data: Uint8Array): JavaByteBuffer {
     const bb = this.byteBufferClass.allocateDirect(data.byteLength)
-    const arr = new Uint8Array(new ArrayBuffer(bb as never))
+    const arr = new Uint8Array(new ArrayBuffer(bb))
     arr.set(data)
     return bb
   }
 
-  private setupCommandForwarding(
+  private setupCommandForwarding<TMessage, TStored extends string | Uint8Array>(
     channelId: string,
-    realChannel: YjsChannel<any, any>,
-    type: 'json' | 'binary',
+    realChannel: YjsChannel<TMessage, unknown>,
+    fromCmd: FromCmd<TMessage, TStored>,
   ): void {
-    const cmdArray = this.inspectDoc.doc.getArray<string | Uint8Array>(`cmd:${channelId}`)
+    const cmdArray = this.inspectDoc.doc.getArray<TStored>(`cmd:${channelId}`)
     const cmdSenderId = `inspect-cmd-${channelId}`
 
-    cmdArray.observe((event: Y.YArrayEvent<string | Uint8Array>, transaction: Y.Transaction) => {
+    cmdArray.observe((event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       if (transaction.origin === cmdSenderId) return
 
-      const inserted: { index: number; value: string | Uint8Array }[] = []
+      const inserted: { index: number; value: TStored }[] = []
       let pos = 0
       for (const delta of event.changes.delta) {
         if (delta.retain) pos += delta.retain
@@ -123,11 +143,7 @@ export class InspectManager {
 
       for (const { value } of inserted) {
         try {
-          if (type === 'binary') {
-            realChannel.send(this.fromBinary(value as Uint8Array))
-          } else {
-            realChannel.send(value)
-          }
+          realChannel.send(fromCmd(value))
         } catch (e) {
           console.error(`Failed to forward inspect command to ${channelId}:`, e)
         }
@@ -136,9 +152,6 @@ export class InspectManager {
   }
 }
 
-function toBinary(message: any): Uint8Array {
-  if (message instanceof Uint8Array) return message
-  // JavaByteBuffer from GraalVM polyglot branded number wrapping ArrayBuffer
-  if (typeof message === 'number') return new Uint8Array(new ArrayBuffer(message))
-  return new Uint8Array(0)
+function toBinary(message: JavaByteBuffer): Uint8Array {
+  return new Uint8Array(new ArrayBuffer(message))
 }
