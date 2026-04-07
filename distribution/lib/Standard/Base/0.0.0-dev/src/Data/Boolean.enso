@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Ordering.Comparable
 import project.Nothing.Nothing
+import project.Internal.Boolean_Helpers
 
 export project.Data.Boolean.Boolean.False
 export project.Data.Boolean.Boolean.True
@@ -38,8 +39,7 @@ type Boolean
        ### Short Circuiting
        This method is implemented in a short-circuiting manner. This means that
        if this is False, it will no longer evaluate that.
-    && : Boolean -> Boolean
-    && self ~that = @Builtin_Method "Boolean.&&"
+    && self ~that:Boolean -> Boolean = Boolean_Helpers.and self that
 
     ## ---
        aliases: [or]
@@ -63,8 +63,7 @@ type Boolean
        ### Short Circuiting
        This method is implemented in a short-circuiting manner. This means that
        if this is True, it will no longer evaluate that.
-    || : Boolean -> Boolean
-    || self ~that = @Builtin_Method "Boolean.||"
+    || self ~that:Boolean -> Boolean = Boolean_Helpers.or self that
 
     ## ---
        group: Logical
@@ -78,8 +77,7 @@ type Boolean
        ```
              True.not
        ```
-    not : Boolean
-    not self = @Builtin_Method "Boolean.not"
+    not self -> Boolean = Boolean_Helpers.not self
 
     ## ---
        group: Logical
@@ -102,7 +100,8 @@ type Boolean
              if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
        ```
     if_then_else : Any -> Any -> Any
-    if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+    if_then_else self ~on_true ~on_false =
+        @Tail_Call Boolean_Helpers.if_then_else self on_true on_false
 
     ## ---
        group: Logical
@@ -124,7 +123,8 @@ type Boolean
              if (27 % 3) == 0 then IO.println "Fizz"
        ```
     if_then : Any -> Any | Nothing
-    if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+    if_then self ~on_true =
+        @Tail_Call Boolean_Helpers.if_then self on_true
 
     ## ---
        aliases: [greater than]

@@ -26,8 +26,8 @@ public abstract class IfThenNode extends Node {
   abstract Object execute(VirtualFrame frame, boolean self, @Suspend Object if_true);
 
   @Specialization
-  Object doExecute(VirtualFrame frame, boolean self, Object if_true) {
-    if (condProfile.profile(self)) {
+  Object doExecute(VirtualFrame frame, boolean thiz, Object if_true) {
+    if (condProfile.profile(thiz)) {
       return leftThunkExecutorNode.executeThunk(
           frame, if_true, EnsoContext.get(this).currentState(), BaseNode.TailStatus.TAIL_DIRECT);
     } else {

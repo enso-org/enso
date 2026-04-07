@@ -24,7 +24,7 @@ public abstract class AndNode extends Node {
     return AndNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, boolean self, @Suspend Object that);
+  abstract Object execute(VirtualFrame frame, boolean thiz, @Suspend Object that);
 
   @Specialization
   Object doIt(
