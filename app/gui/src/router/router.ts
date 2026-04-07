@@ -20,6 +20,7 @@ import {
   redirectFromPath,
 } from '$/router/dashboardGuards'
 import { withDataLoader } from '$/router/dataLoader'
+import { shouldWaitForResolvedSession } from '$/router/sessionResolution'
 import { reactComponent, suspendedReactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
@@ -147,8 +148,10 @@ router.beforeEach(async () => {
   await config.waitForRemoteConfig()
 })
 router.beforeEach(async (to, from) => {
-  if (to.meta.access !== from.meta.access) {
-    await useAuth().waitForSession()
+  const auth = useAuth()
+
+  if (shouldWaitForResolvedSession(to.meta.access, from.meta.access, auth.session)) {
+    await auth.waitForSession()
   }
 })
 router.beforeEach(openTab)

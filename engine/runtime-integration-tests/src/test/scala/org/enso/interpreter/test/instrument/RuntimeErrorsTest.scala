@@ -23,7 +23,8 @@ import java.util.logging.ConsoleHandler
 class RuntimeErrorsTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with org.enso.testkit.ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 

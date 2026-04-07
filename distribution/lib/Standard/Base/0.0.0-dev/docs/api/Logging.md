@@ -6,8 +6,6 @@
     - Info
     - Severe
     - Warning
-- type Profile
-    - time_execution level:(Standard.Base.Logging.Log_Level|Standard.Base.Nothing.Nothing) ~label:Standard.Base.Data.Text.Text ~function:Standard.Base.Any.Any suffix_callback:Standard.Base.Any.Any= module:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - type Progress
     - advance self amount:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Logging.Progress
     - close self -> Standard.Base.Any.Any

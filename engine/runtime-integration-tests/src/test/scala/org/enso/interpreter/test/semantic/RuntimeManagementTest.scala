@@ -209,7 +209,7 @@ class RuntimeManagementTest extends InterpreterTest {
       totalOut should contain theSameElementsAs all
     }
 
-    "Allow for multithreaded polyglot class loading" ignore {
+    "Allow for multithreaded polyglot class loading" in {
       val langCtx = interpreterContext
         .ctx()
         .getBindings(LanguageInfo.ID)

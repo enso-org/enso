@@ -2,8 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Logging.Log_Level
-import Standard.Base.Logging.Profile
+import Standard.Base.Logging.Progress
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.State
@@ -263,7 +262,7 @@ private _profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text
         db_id = jdbc_connection.with_metadata .getDatabaseProductName
         "[" + db_id + "] " + query_text.to_display_text
 
-    result = Profile.time_execution _profile_level label=make_label module=JDBC_Connection <|
+    result = _profile_time_execution label=make_label <|
         action
 
     ## If the action returns a dataflow error, `time_execution` returns the error, no duration.
@@ -289,10 +288,6 @@ private _profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text
 private _synchronized (jdbc_connection : JDBC_Connection) ~action =
     jdbc_connection.operation_synchronizer.runSynchronizedAction _->action
 
-private _profile_level = State.get Table if_missing=_profile_level_from_env
-
-private _profile_level_from_env =
-    env_val = Environment.get "ENSO_PROFILE_SQL"
-    if env_val == Nothing then Nothing else
-        level = Log_Level.from env_val
-        if level.is_error then Nothing else level
+private _profile_time_execution ~label:Text ~function =
+    Progress.run handle_name="JDBC_Connection."+label label=label up_to=1 action=_->
+        function
