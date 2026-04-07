@@ -43,7 +43,11 @@ g['last'] = helpers.last
 g['filter'] = helpers.filter
 g['send'] = helpers.send
 g['receive'] = helpers.receive
-g['watch'] = helpers.watch
+g['watch'] = (channelId?: string) => {
+  if (unwatchFn) unwatchFn()
+  unwatchFn = helpers.watch(channelId)
+  return unwatchFn
+}
 g['unwatch'] = () => {
   if (unwatchFn) {
     unwatchFn()
