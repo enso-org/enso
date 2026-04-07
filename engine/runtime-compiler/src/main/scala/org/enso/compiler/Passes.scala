@@ -14,6 +14,7 @@ import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
   NoDuplicateSelfInMethodCalls,
   NoSelfInStatic,
+  PrivateBuiltinMethodsCheck,
   ShadowedPatternFields,
   UnusedBindings
 }
@@ -106,6 +107,7 @@ class Passes(config: CompilerConfig) {
           } else {
             List(
               UnusedBindings,
+              PrivateBuiltinMethodsCheck.INSTANCE,
               NoSelfInStatic,
               NoDuplicateSelfInMethodCalls.INSTANCE
             )

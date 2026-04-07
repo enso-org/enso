@@ -150,11 +150,6 @@ case object UnusedBindings extends IRPass {
           if (isBuiltin) args
           else args.map(lintFunctionArgument(_, context))
         val body1 = runExpression(body, context)
-        if (isBuiltin && !lam.isPrivate && !context.getModule().isPrivate) {
-          body1.addDiagnostic(
-            new Warning.NonPrivateBuiltinMethod(body.identifiedLocation())
-          )
-        }
         val lintedBody =
           if (isBuiltin)
             body match {
@@ -331,7 +326,7 @@ case object UnusedBindings extends IRPass {
     * @param expression the expression to check
     * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
     */
-  private def isBuiltinMethod(expression: Expression): Boolean = {
+  private[lint] def isBuiltinMethod(expression: Expression): Boolean = {
     expression
       .getMetadata(
         ExpressionAnnotations,
