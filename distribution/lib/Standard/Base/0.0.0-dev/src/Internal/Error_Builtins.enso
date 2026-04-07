@@ -8,3 +8,6 @@ Error.catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
 Any.catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
 
 panic_rethrow err = @Builtin_Method "Panic.rethrow"
+error_throw err = @Builtin_Method "Error.throw"
+error_stack_trace_text err = @Builtin_Method "Error.get_stack_trace_text"
+error_to_text err = @Builtin_Method "Error.to_text"

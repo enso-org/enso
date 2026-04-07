@@ -40,16 +40,14 @@ type Error
        ```
              Error.throw "Oops"
        ```
-    throw : Any -> Error
-    throw payload = @Builtin_Method "Error.throw"
+    throw payload -> Error = error_throw payload
 
     ## ---
-       private: true
+       private: true@Builtin_Method "Error.get_stack_trace_text"
        unstable: true
        ---
        Returns a textual representation of the stack trace attached to an error.
-    get_stack_trace_text : Text
-    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
+    get_stack_trace_text self -> Text = error_stack_trace_text self
 
     ## ---
        private: true
@@ -62,8 +60,7 @@ type Error
        ```
              Error.throw "foo" . to_text
        ```
-    to_text : Text
-    to_text self = @Builtin_Method "Error.to_text"
+    to_text self -> Text = error_to_text self
 
     ## ---
        private: true

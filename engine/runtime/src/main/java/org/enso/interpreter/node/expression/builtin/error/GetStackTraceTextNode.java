@@ -17,8 +17,8 @@ import org.enso.interpreter.runtime.error.DataflowError;
     description = "Returns a textual representation of the stack trace attached to an error.")
 public class GetStackTraceTextNode extends Node {
 
-  Text execute(DataflowError self) {
-    String repr = printStackTrace(self);
+  Text execute(DataflowError err) {
+    String repr = printStackTrace(err);
     return Text.create(repr);
   }
 
