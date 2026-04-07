@@ -6,12 +6,14 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
+import project.Data.Time.Time_Zone.Time_Zone
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
+import project.Warning.Warning
 
-from project.Data.Boolean import Boolean, True
+from project.Data.Boolean import Boolean, True, False
 
 ## ---
    private: true
@@ -115,3 +117,50 @@ tz_parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
 tz_system = @Builtin_Method "Time_Zone.system"
 tz_zone_id z = @Builtin_Method "Time_Zone.zone_id"
 tz_offset z a = @Builtin_Method "Time_Zone.offset"
+
+## ---
+   private: true
+   ---
+   Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
+   second, nanosecond and timezone.
+
+   Recommended to use `Date_Time.new` instead which handles potential exceptions.
+
+   ## Arguments
+    - `year`: The year to represent, any Integer is valid.
+    - `month`: the month-of-year to represent, from 1 (January) to 12 (December)
+    - `day`: the day-of-month to represent, from 1 to 31 and must be valid for
+      the year and month
+    - `hour`: the hour-of-day to represent, from 0 to 23
+    - `minute`: the minute-of-hour to represent, from 0 to 59
+    - `second`: the second-of-minute to represent, from 0 to 59
+    - `nanosecond`: the nano-of-second to represent, from 0 to 999,999,999
+    - `zone`: the timezone
+date_time_new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
+date_time_new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
+
+unix_epoch_start = Date_Time.new 1970 zone=Time_Zone.utc
+ensure_in_epoch date ~action =
+    datetime = case date of
+        x : Date_Time -> x
+        x : Date -> x.to_date_time
+    ret_value = action
+    case Date_Time.enso_epoch_start <= datetime of
+        True -> ret_value
+        False ->
+            Warning.attach (Time_Error.Error ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
+
+date_time_enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
+date_time_now = @Builtin_Method "Date_Time.now"
+date_time_year dt = @Builtin_Method "Date_Time.year"
+date_time_month dt = @Builtin_Method "Date_Time.month"
+date_time_day dt = @Builtin_Method "Date_Time.day"
+date_time_hour dt = @Builtin_Method "Date_Time.hour"
+date_time_minute dt = @Builtin_Method "Date_Time.minute"
+date_time_second dt = @Builtin_Method "Date_Time.second"
+date_time_millisecond dt = @Builtin_Method "Date_Time.millisecond"
+date_time_microsecond dt = @Builtin_Method "Date_Time.microsecond"
+date_time_nanoseconds dt include = @Builtin_Method "Date_Time.nanoseconds_builtin"
+date_time_zone dt = @Builtin_Method "Date_Time.zone"
+date_time_date dt = @Builtin_Method "Date_Time.date"
+date_time_of_day dt = @Builtin_Method "Date_Time.time_of_day"

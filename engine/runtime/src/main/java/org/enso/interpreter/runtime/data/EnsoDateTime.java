@@ -74,54 +74,90 @@ public final class EnsoDateTime extends BuiltinObject {
   }
 
   @Builtin.Method(description = "Gets the year")
+  public static long year(EnsoDateTime dt) {
+    return dt.year();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long year() {
     return dateTime.getYear();
   }
 
   @Builtin.Method(description = "Gets the month")
+  public static long month(EnsoDateTime dt) {
+    return dt.month();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long month() {
     return dateTime.getMonthValue();
   }
 
   @Builtin.Method(description = "Gets the day")
+  public static long day(EnsoDateTime dt) {
+    return dt.day();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long day() {
     return dateTime.getDayOfMonth();
   }
 
   @Builtin.Method(description = "Gets the hour")
+  public static long hour(EnsoDateTime dt) {
+    return dt.hour();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long hour() {
     return dateTime.getHour();
   }
 
   @Builtin.Method(description = "Gets the minute")
+  public static long minute(EnsoDateTime dt) {
+    return dt.minute();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long minute() {
     return dateTime.getMinute();
   }
 
   @Builtin.Method(description = "Gets the second")
+  public static long second(EnsoDateTime dt) {
+    return dt.second();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long second() {
     return dateTime.getSecond();
   }
 
   @Builtin.Method(description = "Gets the millisecond")
+  public static long millisecond(EnsoDateTime dt) {
+    return dt.microsecond();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long millisecond() {
     return dateTime.getNano() / 1000_000;
   }
 
   @Builtin.Method(description = "Gets the microsecond")
+  public static long microsecond(EnsoDateTime dt) {
+    return dt.microsecond();
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long microsecond() {
     return (dateTime.getNano() / 1000) % 1000;
   }
 
   @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
+  public static long nanosecond(EnsoDateTime dt, boolean includeMilliseconds) {
+    return dt.nanosecond(includeMilliseconds);
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long nanosecond(boolean includeMilliseconds) {
     long nanos = dateTime.getNano();
@@ -133,6 +169,10 @@ public final class EnsoDateTime extends BuiltinObject {
   }
 
   @Builtin.Method(name = "zone", description = "Gets the zone")
+  public static EnsoTimeZone zone(EnsoDateTime dt) {
+    return dt.zone();
+  }
+
   public EnsoTimeZone zone() {
     return new EnsoTimeZone(dateTime.getZone());
   }
@@ -141,38 +181,38 @@ public final class EnsoDateTime extends BuiltinObject {
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime plus(Object durationObject, InteropLibrary interop)
+  public static EnsoDateTime plus(EnsoDateTime dt, Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
-    return new EnsoDateTime(dateTime.plus(interop.asDuration(durationObject)));
+    return new EnsoDateTime(dt.dateTime.plus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts a duration from this date time")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime minus(Object durationObject, InteropLibrary interop)
+  public static EnsoDateTime minus(EnsoDateTime dt, Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
-    return new EnsoDateTime(dateTime.minus(interop.asDuration(durationObject)));
+    return new EnsoDateTime(dt.dateTime.minus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(
       name = "time_of_day",
       description = "Return the localtime of this date time value.")
   @CompilerDirectives.TruffleBoundary
-  public EnsoTimeOfDay toLocalTime() {
-    return new EnsoTimeOfDay(dateTime.toLocalTime());
+  public static EnsoTimeOfDay toLocalTime(EnsoDateTime dt) {
+    return new EnsoTimeOfDay(dt.dateTime.toLocalTime());
   }
 
   @Builtin.Method(name = "date", description = "Return the localdate of this date time value.")
   @CompilerDirectives.TruffleBoundary
-  public EnsoDate toLocalDate() {
-    return new EnsoDate(dateTime.toLocalDate());
+  public static EnsoDate toLocalDate(EnsoDateTime dt) {
+    return new EnsoDate(dt.dateTime.toLocalDate());
   }
 
   @Builtin.Method(description = "Return a text representation of this date-time.")
   @CompilerDirectives.TruffleBoundary
-  public Text toText() {
-    return Text.create(Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime));
+  public static Text toText(EnsoDateTime dt) {
+    return Text.create(Core_Date_Utils.defaultZonedDateTimeFormatter.format(dt.dateTime));
   }
 
   @ExportMessage

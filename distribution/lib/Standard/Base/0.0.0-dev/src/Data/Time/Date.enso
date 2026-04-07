@@ -21,7 +21,7 @@ import project.Meta
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Data.Time.Date_Time import ensure_in_epoch
+from project.Internal.Time.Date_Helpers import ensure_in_epoch
 from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
 from project.Nothing import all
