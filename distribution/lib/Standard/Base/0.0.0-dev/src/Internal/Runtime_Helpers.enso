@@ -73,3 +73,7 @@ warn_set_array value warnings = @Builtin_Method "Warning.set_array"
 
 with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
 
+breakpoint = @Builtin_Method "Debug.breakpoint"
+eval expression = @Builtin_Method "Debug.eval"
+
+enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"

@@ -34,7 +34,7 @@ type Function
        argument to a function. This means that you can compute more sophisticated
        values in-line, as shown in the example below.
     <| : Any -> Any
-    <| self ~argument = @Builtin_Method "Function.<|"
+    <| self ~argument = pipe self argument
 
     ## ---
        advanced: true
@@ -185,3 +185,5 @@ uncurry f = (pair -> f pair.first pair.second)
    In these contexts we recommend using `|>`.
 Any.|> : (Any -> Any) -> Any
 Any.|> self ~function = function self
+
+private pipe fn arg = @Builtin_Method "Function.<|"

@@ -26,8 +26,8 @@ public class ApplicationOperator extends Node {
     invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Object execute(VirtualFrame frame, Object self, @Suspend Object argument) {
+  Object execute(VirtualFrame frame, Object fn, @Suspend Object argument) {
     return invokeCallableNode.execute(
-        self, frame, EnsoContext.get(this).currentState(), new Object[] {argument});
+        fn, frame, EnsoContext.get(this).currentState(), new Object[] {argument});
   }
 }
