@@ -593,7 +593,7 @@ type Redshift_Dialect
    ---
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
-    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], index_of, last_index_of, ln, log10, sinh, cosh, tanh]
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", index_of, last_index_of, ln, log10, sinh, cosh, tanh]
     stats = [agg_median, agg_percentile]
     my_mappings = overrides + stats + first_last_aggregators + concat_ops
     postgres_ops.extend_with my_mappings
@@ -644,6 +644,30 @@ index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
    ---
 last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
     SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN LEN(" ++ str ++ ") ELSE CASE WHEN STRPOS(" ++ str ++ ", " ++ substr ++ ") = 0 THEN -1 ELSE LEN(" ++ str ++ ") - STRPOS(REVERSE(" ++ str ++ "), REVERSE(" ++ substr ++ ")) - LEN(" ++ substr ++ ") + 1 END END"
+
+private _make_pad name =
+    generator arguments =
+        if arguments.length != 3 then Error.throw (Illegal_Argument.Error (name + " requires 3 arguments.")) else
+            str = arguments.at 0
+            target = arguments.at 1
+            fill = arguments.at 2
+
+            str_len = SQL_Builder.code "length(" ++ str ++ ")"
+            fill_len = SQL_Builder.code "length(" ++ fill ++ ")"
+            target_int = SQL_Builder.code "(" ++ target ++ ")::integer"
+            pad_size = SQL_Builder.code "(" ++ target_int ++ " - " ++ str_len ++ ")"
+            repetitions = SQL_Builder.code "(" ++ pad_size ++ " / " ++ fill_len ++ ")"
+            remainder = SQL_Builder.code "(" ++ pad_size ++ " % " ++ fill_len ++ ")"
+            repeated_fill = SQL_Builder.code "repeat(" ++ fill ++ ", " ++ repetitions ++ ")"
+            truncated_fill = case name of
+                "PAD_LEFT" -> SQL_Builder.code "right(" ++ fill ++ ", " ++ remainder ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "left(" ++ fill ++ ", " ++ remainder ++ ")"
+            padded = case name of
+                "PAD_LEFT" -> SQL_Builder.code "(" ++ truncated_fill ++ " || " ++ repeated_fill ++ " || " ++ str ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "(" ++ str ++ " || " ++ repeated_fill ++ " || " ++ truncated_fill ++ ")"
+
+            SQL_Builder.code "CASE WHEN " ++ str ++ " IS NULL OR " ++ target ++ " IS NULL OR " ++ fill ++ " IS NULL THEN NULL WHEN " ++ target_int ++ " <= " ++ str_len ++ " THEN " ++ str ++ " ELSE " ++ padded ++ " END"
+    [name, generator]
 
 ## ---
    private: true

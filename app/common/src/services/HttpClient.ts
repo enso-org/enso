@@ -130,6 +130,11 @@ export class HttpClient {
     }
   }
 
+  /** Remove the session token from the Authorization header. */
+  clearSessionToken() {
+    delete this.defaultHeaders.Authorization
+  }
+
   /**
    * Execute an HTTP request to the specified URL, with the given HTTP method.
    * @throws {Error} if the HTTP request fails.

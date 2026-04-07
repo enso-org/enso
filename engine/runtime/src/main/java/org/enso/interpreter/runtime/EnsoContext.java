@@ -100,6 +100,9 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
+  /**
+   * @GuardedBy("REFERENCE") - need some private lock
+   */
   @CompilationFinal(dimensions = 1)
   private Object[] extraValues = new Object[0];
 

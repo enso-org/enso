@@ -23,8 +23,6 @@ members = [
 	"lib/rust/prelude/macros",
 	"lib/rust/reflect",
 	"lib/rust/zst",
-	"tools/language-server/logstat",
-	"tools/language-server/wstest",
 ]
 
 [workspace.dependencies]

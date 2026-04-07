@@ -4,6 +4,7 @@
     - Dataflow_Stack_Trace
     - Input
     - Output
+    - check_enabled self environment:Standard.Base.Data.Text.Text= disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Nothing.Nothing!Standard.Base.Errors.Common.Forbidden_Operation
     - if_enabled self ~action:Standard.Base.Any.Any environment:Standard.Base.Data.Text.Text= disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - is_enabled self environment:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any

@@ -21,16 +21,28 @@ export interface UserSession extends cognitoModule.UserSession {
   readonly user: backendModule.User
 }
 
+const UsersMe = 'usersMe'
 /** Query to fetch the user's session data from the backend. */
+export type UsersMeQueryKey = ReturnType<typeof createUsersMeQueryKey>
+
+/** Create users/me query key */
 export function createUsersMeQueryKey(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
 ) {
-  return [
-    remoteBackend.type,
-    'usersMe',
-    computed(() => toValue(session)?.clientId ?? null),
-  ] as const
+  return [remoteBackend.type, UsersMe, computed(() => toValue(session)?.clientId ?? null)] as const
+}
+
+/** Check if the query key belongs to usersMe query. */
+export function isUsersMeQueryKey(queryKey: vueQuery.QueryKey): queryKey is UsersMeQueryKey {
+  return (
+    queryKey.length === 3 &&
+    typeof queryKey[0] === 'string' &&
+    queryKey[1] === UsersMe &&
+    (queryKey[2] === null ||
+      toValue(queryKey[2]) === null ||
+      typeof toValue(queryKey[2]) === 'string')
+  )
 }
 
 const ACCOUNT_FRESHNESS_THRESHOLD_MS = 1000 * 60 * 30 // 30 minutes

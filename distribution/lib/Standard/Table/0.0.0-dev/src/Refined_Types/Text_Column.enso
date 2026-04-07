@@ -225,6 +225,50 @@ type Text_Column
         self.operations_implementation.last_index_of self.column other case_sensitivity
 
     ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Pads each element of the column on the left up to the specified `length`
+       using `with_pad`.
+
+       The behavior matches `Text.pad ..Left`. If `with_pad` is longer than the
+       remaining padding width, its end is used. If `with_pad` is empty, an
+       `Illegal_Argument` error is raised.
+
+        ## Examples
+        ### Pad values in a column on the left.
+
+        ```
+            import Standard.Examples
+
+            example_pad_left = Examples.text_column_1.pad_left 8 "0"
+        ```
+    pad_left self (length : Column | Integer | Nothing) (with_pad : Column | Text | Any = " ") -> Column & Text_Column =
+        self.operations_implementation.pad_left self.column length with_pad
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Pads each element of the column on the right up to the specified `length`
+       using `with_pad`.
+
+       The behavior matches `Text.pad ..Right`. If `with_pad` is longer than the
+       remaining padding width, its beginning is used. If `with_pad` is empty, an
+       `Illegal_Argument` error is raised.
+
+        ## Examples
+        ### Pad values in a column on the right.
+
+        ```
+            import Standard.Examples
+
+            example_pad_right = Examples.text_column_1.pad_right 8 "0"
+        ```
+    pad_right self (length : Column | Integer | Nothing) (with_pad : Column | Text | Any = " ") -> Column & Text_Column =
+        self.operations_implementation.pad_right self.column length with_pad
+
+    ## ---
        group: Standard.Base.Conversions
        icon: convert
        ---

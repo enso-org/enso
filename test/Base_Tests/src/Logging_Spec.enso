@@ -19,6 +19,9 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
 
     jvm_args = if Enso_Bin_Utils.runs_in_aot then [] else [ "--jvm" ]
 
+    group_builder.teardown <|
+        tmp_root.delete recursive=True
+
     group_builder.specify "should do nothing on logging" <|
         value.log_message "Hidden message" Log_Level.Finest
         value.log_message "Less hidden message" Log_Level.Fine
@@ -121,8 +124,8 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         slf4j_logging_prj_lazy.get
 
     perform_logging prj_dir:File (args:Vector Text)-> Pair Text Text =
-        logs_dir = prj_dir / "logs"
-        _ = logs_dir.delete recursive=True
+        logs_random = "logs-" + Random.uuid
+        logs_dir = prj_dir / logs_random
         logs_dir.create_directory
 
         proc = Process.new_builder "enso"
@@ -306,7 +309,7 @@ Text.contains_line self regex:Text =
 
 Text.not_contains_line self regex:Text =
     r = Regex.compile regex
-    found = self.split "\n" . find \line->
+    found = self.lines . find \line->
         subline = r.find line
         subline.is_nothing.not
     if found.is_error.not then
