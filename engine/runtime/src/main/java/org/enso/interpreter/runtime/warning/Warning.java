@@ -37,12 +37,20 @@ public final class Warning extends BuiltinObject {
 
   @Builtin.Method(name = "value", description = "Gets the payload of the warning.")
   @SuppressWarnings("generic-enso-builtin-type")
+  public static Object value(Warning w) {
+    return w.getValue();
+  }
+
   public Object getValue() {
     return value;
   }
 
   @Builtin.Method(name = "origin", description = "Gets the origin of the warning.")
   @SuppressWarnings("generic-enso-builtin-type")
+  public static Object origin(Warning w) {
+    return w.getOrigin();
+  }
+
   public Object getOrigin() {
     return origin;
   }
