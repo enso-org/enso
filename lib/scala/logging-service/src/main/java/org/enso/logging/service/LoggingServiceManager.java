@@ -3,6 +3,7 @@ package org.enso.logging.service;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.enso.logging.config.LoggingServer;
+import org.slf4j.MDC;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -37,12 +38,20 @@ public class LoggingServiceManager {
         } else {
           currentLevel = logLevel;
         }
+        var mdcContext = MDC.getCopyOfContextMap();
         return Future.apply(
             () -> {
-              var server = LoggingServiceFactory.get().localServerFor(port);
-              loggingService = server;
-              return new LoggingServerConfig(
-                  currentLevel, server.start(logLevel, logPath, logFileSuffix, config));
+              if (mdcContext != null) {
+                MDC.setContextMap(mdcContext);
+              }
+              try {
+                var server = LoggingServiceFactory.get().localServerFor(port);
+                loggingService = server;
+                return new LoggingServerConfig(
+                    currentLevel, server.start(logLevel, logPath, logFileSuffix, config));
+              } finally {
+                MDC.clear();
+              }
             },
             ec);
       } else {

@@ -13,7 +13,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
 // Contributors: Moses Hohman <mmhohman@rainbow.uchicago.edu>
 
@@ -51,7 +50,7 @@ public class SocketLoggingNode implements Runnable {
 
   volatile State state = State.NOT_STARTED;
   SocketServer socketServer;
-  UUID projectId;
+  String projectId;
   Map<String, String> localMdc;
 
   public SocketLoggingNode(SocketServer socketServer, Socket socket, LoggerContext context) {
@@ -82,14 +81,10 @@ public class SocketLoggingNode implements Runnable {
         try {
           event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
           if (projectId == null) {
-            try {
-              var property = event.getMDCPropertyMap().get("projectLocalId");
-              if (property != null) {
-                projectId = UUID.fromString(property);
-                localMdc = event.getMDCPropertyMap();
-              }
-            } catch (IllegalArgumentException e) {
-              // ignore
+            var property = event.getMDCPropertyMap().get("projectId");
+            if (property != null) {
+              projectId = property;
+              localMdc = event.getMDCPropertyMap();
             }
           }
           // get a logger from the hierarchy. The name of the logger is taken to
