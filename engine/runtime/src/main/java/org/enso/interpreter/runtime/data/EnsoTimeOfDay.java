@@ -54,36 +54,36 @@ public final class EnsoTimeOfDay extends BuiltinObject {
   }
 
   @Builtin.Method(description = "Gets a value of hour")
-  public long hour() {
-    return localTime.getHour();
+  public static long hour(EnsoTimeOfDay t) {
+    return t.localTime.getHour();
   }
 
   @Builtin.Method(description = "Gets a value minute")
-  public long minute() {
-    return localTime.getMinute();
+  public static long minute(EnsoTimeOfDay t) {
+    return t.localTime.getMinute();
   }
 
   @Builtin.Method(description = "Gets a value second")
-  public long second() {
-    return localTime.getSecond();
+  public static long second(EnsoTimeOfDay t) {
+    return t.localTime.getSecond();
   }
 
   @Builtin.Method(description = "Gets the millisecond")
   @CompilerDirectives.TruffleBoundary
-  public long millisecond() {
-    return localTime.getNano() / 1000_000;
+  public static long millisecond(EnsoTimeOfDay t) {
+    return t.localTime.getNano() / 1000_000;
   }
 
   @Builtin.Method(description = "Gets the microsecond")
   @CompilerDirectives.TruffleBoundary
-  public long microsecond() {
-    return (localTime.getNano() / 1000) % 1000;
+  public static long microsecond(EnsoTimeOfDay t) {
+    return (t.localTime.getNano() / 1000) % 1000;
   }
 
   @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
   @CompilerDirectives.TruffleBoundary
-  public long nanosecond(boolean includeMilliseconds) {
-    long nanos = localTime.getNano();
+  public static long nanosecond(EnsoTimeOfDay t, boolean includeMilliseconds) {
+    long nanos = t.localTime.getNano();
     if (includeMilliseconds) {
       return nanos;
     } else {
@@ -115,8 +115,8 @@ public final class EnsoTimeOfDay extends BuiltinObject {
 
   @Builtin.Method(description = "Gets a value second")
   @CompilerDirectives.TruffleBoundary
-  public long toSeconds() {
-    return localTime.toSecondOfDay();
+  public static long toSeconds(EnsoTimeOfDay t) {
+    return t.localTime.toSecondOfDay();
   }
 
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
