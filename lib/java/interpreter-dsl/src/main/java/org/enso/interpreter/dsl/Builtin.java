@@ -172,7 +172,7 @@ public @interface Builtin {
      * registered with the underlying type. By default every builtin method is registered with a
      * type. Auto-registered methods do not have to be declared explicitly.
      */
-    boolean autoRegister() default true;
+    boolean autoRegister() default false;
 
     /**
      * Allow aggressive inlining or not. This argument doesn't need to be specified. If it is
