@@ -6,6 +6,7 @@ import * as path from 'node:path'
 import { promisify } from 'node:util'
 import * as zlib from 'node:zlib'
 
+import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import * as yaml from 'yaml'
 import { getEngineLogDirectory } from '../distributionManager.js'
 import * as projectManagement from '../projectManagement.js'
@@ -363,10 +364,10 @@ function isSafePathSegment(segment: string): boolean {
  * Parse date-time from a log filename like `enso-language-server-2026-03-31-14-23-45`.
  * Expects the date-time at the end of the base name.
  */
-function parseDateTimeFromFilename(baseName: string): string | null {
+function parseDateTimeFromFilename(baseName: string): Rfc3339DateTime | null {
   const match = baseName.match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})$/)
   if (!match) return null
-  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`
+  return Rfc3339DateTime(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`)
 }
 
 /**
@@ -419,7 +420,7 @@ function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: 
  */
 export async function listProjectSessions(
   projectId: string,
-): Promise<{ sessions: readonly { projectSessionId: string; createdAt: string }[] }> {
+): Promise<{ sessions: readonly { projectSessionId: string; createdAt: Rfc3339DateTime }[] }> {
   if (!isSafePathSegment(projectId)) {
     throw new Error(`Invalid project ID: unsafe segment '${projectId}'`)
   }
@@ -432,7 +433,7 @@ export async function listProjectSessions(
     return { sessions: [] }
   }
   const seen = new Set<string>()
-  const sessions: { projectSessionId: string; createdAt: string }[] = []
+  const sessions: { projectSessionId: string; createdAt: Rfc3339DateTime }[] = []
   for (const entry of entries) {
     const baseName = extractSessionBaseName(entry)
     if (baseName == null) continue
