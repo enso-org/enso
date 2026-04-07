@@ -1,5 +1,13 @@
 package org.enso.interpreter.runtime.data;
 
+import java.lang.ref.PhantomReference;
+
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.PanicException;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
@@ -8,12 +16,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import java.lang.ref.PhantomReference;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.BuiltinObject;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.PanicException;
 
 /**
  * An Enso runtime representation of a managed resource.
@@ -111,6 +113,10 @@ public final class ManagedResource extends BuiltinObject {
       name = "finalize",
       description = "Finalizes a managed resource, even if it is still reachable.")
   @Builtin.Specialize
+  public static void finalizer(ManagedResource r, EnsoContext ctx) {
+    r.close(ctx);
+  }
+
   public void close(EnsoContext context) {
     context.getResourceManager().close(this);
   }

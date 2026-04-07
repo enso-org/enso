@@ -8,6 +8,7 @@ import project.Panic.Panic
 import project.Logging.Progress
 import project.Nothing.Nothing
 
+from project.Data.Boolean import Boolean
 from project.Errors.Common import Uninitialized_State
 polyglot java import java.lang.Thread
 
@@ -54,3 +55,9 @@ create_process command arguments input redirect_in redirect_out redirect_err cwd
 exit code = @Builtin_Method "System.exit"
 nano_time = @Builtin_Method "System.nano_time"
 os = @Builtin_Method "System.os"
+
+resource_bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
+resource_finalize res = @Builtin_Method "Managed_Resource.finalize"
+resource_take res = @Builtin_Method "Managed_Resource.take"
+resource_register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
+resource_with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
