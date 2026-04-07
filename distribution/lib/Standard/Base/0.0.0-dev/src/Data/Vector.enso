@@ -124,8 +124,7 @@ type Vector a
 
        ## Arguments
         - `array`: The array with content to copy into the new vector.
-    from_array : Array -> Vector
-    from_array array = @Builtin_Method "Vector.from_array"
+    from_array array:Array -> Vector = Array_Like_Helpers.from_array array
 
     ## ---
        private: true
@@ -279,8 +278,7 @@ type Vector a
 
        ## Arguments
         - `arr`: The polyglot array value to wrap into a vector.
-    from_polyglot_array : Any -> Vector Any
-    from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
+    from_polyglot_array array -> Vector Any = Array_Like_Helpers.from_polyglot_array array
 
     ## ---
        private: true

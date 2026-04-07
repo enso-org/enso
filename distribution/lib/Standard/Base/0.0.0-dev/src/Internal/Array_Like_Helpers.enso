@@ -392,3 +392,6 @@ Array.raw_size self =
     raw_length self
 Any.raw_size self =
     self.length
+
+from_array array = @Builtin_Method "Vector.from_array"
+from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
