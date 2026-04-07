@@ -1,7 +1,17 @@
 private
 
+import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Time.Date.Date
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Period.Period
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Time_Error.Time_Error
+import project.Meta
+
+from project.Data.Boolean import Boolean, True
 
 ## ---
    private: true
@@ -23,3 +33,53 @@ year d = @Builtin_Method "Date.year"
 month d = @Builtin_Method "Date.month"
 day d = @Builtin_Method "Date.day"
 
+## ---
+   private: true
+   ---
+   Create an interval representing the duration between two points in time.
+
+   Recommended to use `Duration.between` instead which provides defaults.
+
+   ## Arguments
+    - `start_inclusive`: The start datetime of the duration, included.
+    - `end_exclusive`: The end datetime of the duration, excluded.
+    - `timezone_aware`: Whether the duration between two given times should be
+      aware of the timezone, that can be set for start or end times.
+between_builtin : Date_Time -> Date_Time -> Boolean -> Duration
+between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "Duration.between_builtin"
+
+## ---
+   private: true
+   ---
+   Create a duration from time units.
+
+   Recommended to use `Duration.new` instead which provides defaults.
+
+   ## Arguments
+    - `hours`: hours
+    - `minutes`: minutes
+    - `seconds`: seconds
+    - `milliseconds`: milliseconds
+    - `nanoseconds`: nanoseconds
+new_duration_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
+
+## ---
+   private: true
+   ---
+ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument)
+ensure_duration object ~action =
+    case object of
+        _ : Duration -> action
+        _ : Period -> Error.throw (Time_Error.Error "Cannot use Period as a parameter")
+        x ->
+            Error.throw Illegal_Argument.Error <|
+                "Expected Duration type, got: " + (x.to Meta.Type . qualified_name)
+
+duration_nanoseconds d = @Builtin_Method "Duration.nanoseconds"
+duration_milliseconds d = @Builtin_Method "Duration.milliseconds"
+duration_seconds d = @Builtin_Method "Duration.seconds"
+duration_minutes d = @Builtin_Method "Duration.minutes"
+duration_hours d = @Builtin_Method "Duration.hours"
+total_milliseconds_builtin d = @Builtin_Method "Duration.total_milliseconds_builtin"
+duration_plus d o = @Builtin_Method "Duration.plus_builtin"
+duration_minus d o = @Builtin_Method "Duration.minus_builtin"
