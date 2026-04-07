@@ -83,3 +83,35 @@ duration_hours d = @Builtin_Method "Duration.hours"
 total_milliseconds_builtin d = @Builtin_Method "Duration.total_milliseconds_builtin"
 duration_plus d o = @Builtin_Method "Duration.plus_builtin"
 duration_minus d o = @Builtin_Method "Duration.minus_builtin"
+
+
+## ---
+   private: true
+   ---
+   Obtains an instance of `Time_Zone` using an offset in hours, minutes and
+   seconds from the UTC zone.
+
+   Recommended to use `Time_Zone.new` instead which provides defaults.
+
+   ## Arguments
+    - `hours`: The timezone offset in hours from UTC, from -18 to +18.
+    - `minutes`: The timezone offset in minutes from the nearest hour, from 0 to
+      ±59. The sign must match that of the hours argument.
+    - `seconds`: The timezone offset in seconds from the nearest minute, from 0
+      to ±59. The sign must match that of the minutes argument.
+tz_new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"
+
+## ---
+   private: true
+   ---
+   This method parses the ID producing a `Time_Zone`.
+
+   Recommended to use `Time_Zone.parse` instead which handles potential
+   exceptions.
+
+   ## Arguments
+    - `text`: The text representing a zone identifier.
+tz_parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
+tz_system = @Builtin_Method "Time_Zone.system"
+tz_zone_id z = @Builtin_Method "Time_Zone.zone_id"
+tz_offset z a = @Builtin_Method "Time_Zone.offset"

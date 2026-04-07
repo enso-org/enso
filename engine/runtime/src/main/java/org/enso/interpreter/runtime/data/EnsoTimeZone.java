@@ -35,11 +35,19 @@ public final class EnsoTimeZone extends BuiltinObject {
 
   @Builtin.Method(description = "Get the unique identifier for your system's current timezone.")
   @CompilerDirectives.TruffleBoundary
+  public static Text zone_id(EnsoTimeZone tz) {
+    return tz.zoneId();
+  }
+
   public Text zoneId() {
     return Text.create(this.zone.getId());
   }
 
   @Builtin.Method(description = "Get offset in seconds of this zone at given time")
+  public static long offset(EnsoTimeZone tz, Object at) {
+    return tz.offset(at);
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long offset(Object at) {
     try {
