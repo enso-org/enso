@@ -37,7 +37,7 @@ public abstract class HashMapToVectorNode extends Node {
     return HashMapToVectorNodeGen.getUncached();
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object dict);
 
   @Specialization
   Object ensoMapToVector(EnsoHashMap hashMap, @Cached ConditionProfile vectorReprNotCachedProfile) {

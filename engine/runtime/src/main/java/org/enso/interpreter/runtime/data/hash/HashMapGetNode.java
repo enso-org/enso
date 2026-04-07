@@ -38,7 +38,7 @@ public abstract class HashMapGetNode extends Node {
   }
 
   public abstract Object execute(
-      VirtualFrame frame, Object self, Object key, @Suspend Object defaultValue);
+      VirtualFrame frame, Object dict, Object key, @Suspend Object defaultValue);
 
   @Specialization(guards = "interop.hasHashEntries(self)", limit = "3")
   Object hashMapGet(

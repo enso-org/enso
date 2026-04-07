@@ -27,7 +27,7 @@ public abstract class HashMapToTextNode extends Node {
     return HashMapToTextNodeGen.create();
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object dict);
 
   @TruffleBoundary
   @Specialization(guards = "interop.hasHashEntries(hashMap)")

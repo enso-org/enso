@@ -395,3 +395,10 @@ Any.raw_size self =
 
 from_array array = @Builtin_Method "Vector.from_array"
 from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
+
+dict_empty = @Builtin_Method "Dictionary.empty"
+dict_size d = @Builtin_Method "Dictionary.size"
+dict_contains_key d k = @Builtin_Method "Dictionary.contains_key"
+dict_to_vector d = @Builtin_Method "Dictionary.to_vector"
+dict_to_text d = @Builtin_Method "Dictionary.to_text"
+dict_get_builtin dict key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
