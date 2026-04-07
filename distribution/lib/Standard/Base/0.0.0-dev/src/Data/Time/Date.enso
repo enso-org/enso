@@ -40,7 +40,7 @@ polyglot java import org.enso.base.Time_Utils.AdjustOp
    This class does not store or represent a time or timezone. Instead, it is a
    description of the date, as used for birthdays. It cannot represent an instant
    on the time-line without additional information such as an offset or timezone.
-    @Builtin_Type
+@Builtin_Type
 type Date
     ## ---
        aliases: [current date, now]
