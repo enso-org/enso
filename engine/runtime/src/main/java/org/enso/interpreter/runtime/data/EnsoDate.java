@@ -44,18 +44,18 @@ public final class EnsoDate extends BuiltinObject {
   }
 
   @Builtin.Method(name = "year", description = "Gets a value of year")
-  public long year() {
-    return date.getYear();
+  public static long year(EnsoDate d) {
+    return d.date.getYear();
   }
 
   @Builtin.Method(name = "month", description = "Gets a value month")
-  public long month() {
-    return date.getMonthValue();
+  public static long month(EnsoDate d) {
+    return d.date.getMonthValue();
   }
 
   @Builtin.Method(name = "day", description = "Gets a value day")
-  public long day() {
-    return date.getDayOfMonth();
+  public static long day(EnsoDate d) {
+    return d.date.getDayOfMonth();
   }
 
   @ExportMessage
