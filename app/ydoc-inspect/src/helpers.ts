@@ -25,7 +25,7 @@ export interface LogEntry {
 export function createHelpers(doc: Y.Doc) {
   const channelsMap = () => doc.getMap<ChannelMeta>('channels')
 
-  function listChannels(): ChannelMeta[] {
+  function channels(): ChannelMeta[] {
     const result: ChannelMeta[] = []
     channelsMap().forEach((value) => result.push(value))
     return result
@@ -64,16 +64,12 @@ export function createHelpers(doc: Y.Doc) {
       entries = getChannelEntries(channelId)
     } else {
       entries = []
-      for (const meta of listChannels()) {
+      for (const meta of channels()) {
         entries.push(...getChannelEntries(meta.id))
       }
       entries.sort((a, b) => a.ts - b.ts)
     }
     return n != null ? entries.slice(-n) : entries
-  }
-
-  function last(channelId?: string, n = 10): LogEntry[] {
-    return messages(channelId).slice(-n)
   }
 
   function filter(channelId?: string, pattern?: string | RegExp): LogEntry[] {
@@ -97,7 +93,7 @@ export function createHelpers(doc: Y.Doc) {
   }
 
   function watch(channelId?: string): () => void {
-    const ids = channelId ? [channelId] : listChannels().map((c) => c.id)
+    const ids = channelId ? [channelId] : channels().map((c) => c.id)
     const cleanups: (() => void)[] = []
 
     for (const id of ids) {
@@ -137,5 +133,5 @@ export function createHelpers(doc: Y.Doc) {
     }
   }
 
-  return { listChannels, messages, last, filter, send, receive, watch }
+  return { channels, messages, filter, send, receive, watch }
 }

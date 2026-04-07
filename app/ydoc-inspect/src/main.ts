@@ -24,6 +24,7 @@ function printEntry(entry: LogEntry): void {
 }
 
 const RETRY_INTERVAL_MS = 2000
+const SYNC_TIMEOUT_MS = 5000
 
 const { host, port, watch } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
@@ -37,9 +38,8 @@ let unwatchFn: (() => void) | undefined
 const g = globalThis as Record<string, unknown>
 g['client'] = client
 g['doc'] = client.doc
-g['listChannels'] = helpers.listChannels
+g['channels'] = helpers.channels
 g['messages'] = helpers.messages
-g['last'] = helpers.last
 g['filter'] = helpers.filter
 g['send'] = helpers.send
 g['receive'] = helpers.receive
@@ -61,12 +61,11 @@ console.log(`ydoc-inspect: connecting to ${url}`)
 console.log('Open chrome://inspect to attach DevTools')
 console.log('')
 console.log('Available commands:')
-console.log('  listChannels()               - List all registered channels')
+console.log('  channels()                   - List all registered channels')
 console.log('  messages(channelId?, n?)     - Get messages (optionally for a channel, last n)')
-console.log('  last(channelId?, n=10)       - Get last n messages')
 console.log('  filter(channelId?, pattern?) - Filter messages by regex (string or RegExp)')
-console.log('  send(channelId, msg)         - Simulate message sent by Language Server')
-console.log('  receive(channelId, msg)      - Simulate message received by Language Server')
+console.log('  send(channelId, msg)         - Send a message to the client as Language Server')
+console.log('  receive(channelId, msg)      - Send a message to Language Server as client')
 console.log('  watch(channelId?)            - Watch live messages (returns stop function)')
 console.log('  unwatch()                    - Stop watching live messages')
 console.log('')
@@ -76,8 +75,23 @@ async function connectWithRetry(): Promise<void> {
     try {
       await client.connect(url)
       console.log('Connected. Syncing inspect data...')
-      await new Promise<void>((resolve) => setTimeout(resolve, 1000))
-      const channels = helpers.listChannels()
+      await new Promise<void>((resolve) => {
+        const channelsMap = client.doc.getMap('channels')
+        if (channelsMap.size >= 3) {
+          resolve()
+          return
+        }
+        const timeout = setTimeout(resolve, SYNC_TIMEOUT_MS)
+        const handler = () => {
+          if (channelsMap.size >= 3) {
+            clearTimeout(timeout)
+            channelsMap.unobserve(handler)
+            resolve()
+          }
+        }
+        channelsMap.observe(handler)
+      })
+      const channels = helpers.channels()
       if (channels.length > 0) {
         console.log(`Found ${channels.length} channel(s):`)
         for (const ch of channels) {
