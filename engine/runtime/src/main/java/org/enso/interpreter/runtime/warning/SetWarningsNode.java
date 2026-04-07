@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.warning;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -16,20 +16,54 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 
 @BuiltinMethod(
     type = "Warning",
     name = "set_array",
     description = "Sets all the warnings associated with the value.",
     autoRegister = false)
-@GenerateUncached
 public abstract class SetWarningsNode extends Node {
+  private static SetWarningsNode uncached;
 
-  public static SetWarningsNode build() {
-    return SetWarningsNodeGen.create();
+  @Child private WarningsLibrary warningsLib;
+
+  SetWarningsNode(WarningsLibrary lib) {
+    this.warningsLib = lib;
   }
 
-  public abstract Object execute(VirtualFrame frame, @AcceptsWarning Object value, Object warnings);
+  @NeverDefault
+  public static SetWarningsNode build() {
+    return SetWarningsNodeGen.create(WarningsLibrary.getFactory().createDispatched(3));
+  }
+
+  @NeverDefault
+  public static SetWarningsNode getUncached() {
+    if (uncached == null) {
+      uncached = SetWarningsNodeGen.create(WarningsLibrary.getUncached());
+    }
+    return uncached;
+  }
+
+  /**
+   * Cleans all warnings from the provided value and attaches new ones.
+   *
+   * @param frame frame with local variables
+   * @param value value (potentially with some warnings) to get {@code warnings} attached
+   * @param warnings warnings to attach to {@code value}
+   * @return value with <strong>only</strong> those provided warnings attached
+   */
+  public final Object execute(VirtualFrame frame, @AcceptsWarning Object value, Object warnings) {
+    Object pure;
+    try {
+      pure = warningsLib.removeWarnings(value);
+    } catch (UnsupportedMessageException ex) {
+      pure = value;
+    }
+    return executeAttach(frame, pure, warnings);
+  }
+
+  abstract Object executeAttach(VirtualFrame frame, Object value, Object warnings);
 
   @Specialization(guards = "isEmpty(warnings, interop)")
   Object doEmpty(
@@ -73,18 +107,19 @@ public abstract class SetWarningsNode extends Node {
       Object warnings,
       @Shared @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared @Cached HashMapInsertNode mapInsertNode,
+      @Cached HashMapSizeNode mapSizeNode,
       @Shared @Cached ConditionProfile isWithWarnsProfile) {
     assert !(warnings instanceof Warning[]);
     var warnMap = EnsoHashMap.empty();
     var ctx = EnsoContext.get(this);
     try {
       var size = interop.getArraySize(warnings);
-      for (long i = 0; i < interop.getArraySize(warnings); i++) {
+      for (long i = 0; i < size; i++) {
         var warn = (Warning) interop.readArrayElement(warnings, i);
         warnMap = mapInsertNode.execute(frame, warnMap, warn.getSequenceId(), warn);
       }
       var maxWarns = ctx.getWarningsLimit();
-      var isLimitReached = size >= maxWarns;
+      var isLimitReached = mapSizeNode.execute(warnMap) >= maxWarns;
       if (isWithWarnsProfile.profile(object instanceof WithWarnings)) {
         return new WithWarnings(((WithWarnings) object).value, maxWarns, isLimitReached, warnMap);
       } else {

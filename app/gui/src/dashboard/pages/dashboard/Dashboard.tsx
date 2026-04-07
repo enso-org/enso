@@ -6,7 +6,6 @@ import { Dialog } from '#/components/Dialog'
 import Page from '#/components/Page'
 import { Text } from '#/components/Text'
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { usePaywall } from '#/hooks/billing'
 import { useBindGlobalActions } from '#/hooks/menuHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import SettingsTabType from '#/layouts/Settings/TabType'
@@ -47,7 +46,6 @@ export function Dashboard() {
     backendQueryOptions(remoteBackend, 'getOrganization', []),
   )
   const { user } = useFullUserSession()
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const openedProjects = useOpenedProjects()
   const closingOnAppExit = useVueValue(
     React.useCallback(() => openedProjects.closingOnAppExit.value, [openedProjects]),
@@ -133,7 +131,7 @@ export function Dashboard() {
             modalProvider.unsetModal()
           }}
         >
-          <AppContainerInner isFeatureUnderPaywall={isFeatureUnderPaywall} />
+          <AppContainerInner />
         </div>
       </Page>
     </CategoriesProvider>

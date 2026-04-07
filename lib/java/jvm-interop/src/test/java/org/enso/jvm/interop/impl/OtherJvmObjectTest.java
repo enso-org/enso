@@ -53,6 +53,7 @@ public class OtherJvmObjectTest {
     CHANNEL
         .getConfig()
         .onEnterLeave(
+            CHANNEL,
             FakeLanguage.class,
             null,
             (__) -> {

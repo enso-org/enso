@@ -280,7 +280,6 @@ export interface ProjectRaw extends CreatedProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends CreatedProject {
-  readonly binaryAddress: Address | null
   readonly jsonAddress: Address | null
   readonly ydocAddress: Address | null
   readonly currentSessionId?: ProjectSessionId
@@ -1193,7 +1192,6 @@ export interface UpdateFileRequestBody {
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAsset {
-  // Normal update asset body.
   readonly parentDirectoryId?: DirectoryId | null
   readonly description?: string | null
   readonly title?: string | null
@@ -1714,6 +1712,18 @@ export class NetworkError extends Error {
 
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
+
+/** Check whether an error represents HTTP 401 (Not Authorized). */
+export function isUnauthorizedError(error: Error): boolean {
+  return (
+    error instanceof NotAuthorizedError ||
+    (typeof error === 'object' &&
+      error != null &&
+      'status' in error &&
+      typeof error.status === 'number' &&
+      error.status === STATUS_NOT_AUTHORIZED)
+  )
+}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {

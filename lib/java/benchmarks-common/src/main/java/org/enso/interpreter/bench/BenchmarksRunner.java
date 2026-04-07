@@ -31,7 +31,10 @@ public class BenchmarksRunner {
       args = new String[] {"--jvmArgsPrepend=-Dbench.all=true"};
     }
     var old = Stream.of(args);
-    var add = Stream.of("--foe=true");
+    var add =
+        Stream.of(
+            "--foe=true",
+            "-jvmArgsAppend=--add-opens=org.graalvm.polyglot/org.graalvm.polyglot=ALL-UNNAMED");
     args = Stream.concat(old, add).toArray(String[]::new);
     CommandLineOptions cmdOpts = null;
     try {

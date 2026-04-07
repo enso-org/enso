@@ -20,7 +20,7 @@ from Standard.Base.Panic import Wrapped_Dataflow_Error
 from Standard.Test import all
 
 
-polyglot java import java.util.ArrayList
+polyglot java import org.enso.base_test_helpers.CallbackHelper
 
 type T
     Value a b
@@ -164,6 +164,16 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         empty_vec = alter []
         empty_vec . reduce (+) . should_fail_with (Empty_Error.Error (Meta.type_of empty_vec))
         empty_vec . reduce (+) 0 . should_equal 0
+
+    group_builder.specify "remove warnings from arraylike object" <|
+        err = My_Error.Error "err"
+        ww = Warning.attach err 21
+        vec = alter [20, ww, 22]
+
+        Warning.get_all vec . length . should_equal 1
+
+        clean_vec = Warning.remove_warnings vec
+        Warning.get_all clean_vec . should_equal []
 
     group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]
@@ -1012,19 +1022,41 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
         Warning.get_all result wrap_errors=True . map .value . should_equal expected_warnings
 
+    group_builder.specify "Warnings and length" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        len = result.length
+        len . should_equal 1
+
+        has_warning = Warning.has_warnings len
+        has_warning . should_be_true
+
+    group_builder.specify "Warnings and length if check" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        empty = if result.length == 0 then "empty" else "some"
+        empty . should_equal "some"
+
+        has_warning = Warning.has_warnings empty
+        has_warning . should_be_true
+
+    group_builder.specify "Warnings and is_empty check" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        empty = if result.is_empty then "empty" else "some"
+        empty . should_equal "some"
+
+        has_warning = Warning.has_warnings empty
+        has_warning . should_be_true
+
     group_builder.specify "Warnings and each" <|
         result = alter [Warning.attach "OKeyish" 20]
-        has_at = Warning.has_warnings (result.at 0)
+        elem = result.at 0
+        has_at = Warning.has_warnings elem
 
-        # when calling ArrayList.new we strip all the warnings (currently)
-        # as such the result object backed by ArrayList has no warnings
-        if Java.is_instance result ArrayList then has_at . should_be_false else
-            has_at . should_be_true
-            result.each \e ->
-                e . should_equal 20
-                has = Warning.has_warnings e
-                has . should_be_true
-                Warning.get_all e . map .value . should_equal ["OKeyish"]
+        has_at . should_be_true
+        result.each \e ->
+            e . should_equal 20
+            has = Warning.has_warnings e
+            has . should_be_true
+            Warning.get_all e . map .value . should_equal ["OKeyish"]
 
     group_builder.specify "map on_problems=No_Wrap does not do error wrapping" <|
         alter [10, 20, 30, 40] . map on_problems=No_Wrap.Value map_fun . catch . should_equal (My_Error.Error 30)
@@ -1308,14 +1340,18 @@ add_specs suite_builder =
     type_spec suite_builder "Use Vector as vectors" identity
     type_spec suite_builder "Use Array as vectors" (v -> v.to_array)
     type_spec suite_builder "Use Java ArrayList as vectors" v->
-        arr = ArrayList.new
-        v.each (x -> arr.add x)
+        arr = CallbackHelper.createArrayList v.length \i->
+            v.at i
         arr
     type_spec suite_builder "Use Array_Proxy as vectors" v->
         Array_Proxy.new v.length (ix -> v.at ix)
     type_spec suite_builder "Use a slice of an array as vectors" v->
-        v2 = v+[Nothing]
-        sliced_vector = v2.slice 0 v.length
+        arr = CallbackHelper.createArrayList v.length*3 \i->
+            if i >= v.length && i < v.length*2 then
+                v.at i-v.length
+            else
+                Nothing
+        sliced_vector = arr.slice v.length 2*v.length
         sliced_array = sliced_vector.to_array
         sliced_array
 

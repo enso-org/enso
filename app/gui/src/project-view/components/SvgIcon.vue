@@ -10,12 +10,12 @@ export default {}
 </script>
 
 <script setup lang="ts">
-const { name } = defineProps<{ name: AnyIcon }>()
+const { name } = defineProps<{ name: AnyIcon | undefined }>()
 </script>
 
 <template>
   <svg class="SvgIcon" viewBox="0 0 16 16" preserveAspectRatio="xMidYMid slice">
-    <use :href="svgUseHref(name)"></use>
+    <use v-if="name" :href="svgUseHref(name)"></use>
   </svg>
 </template>
 

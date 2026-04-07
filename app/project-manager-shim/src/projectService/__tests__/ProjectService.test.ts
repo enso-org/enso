@@ -235,7 +235,6 @@ describe('ProjectService', () => {
         // Verify the result structure
         expect(openResult).toBeDefined()
         expect(openResult.languageServerJsonAddress).toBeDefined()
-        expect(openResult.languageServerBinaryAddress).toBeDefined()
         expect(openResult.projectName).toBe('ProjectToOpen')
         expect(openResult.projectNormalizedName).toBe('ProjectToOpen')
         expect(openResult.projectNamespace).toBe('local')
@@ -243,8 +242,6 @@ describe('ProjectService', () => {
         // Verify sockets have valid structure
         expect(openResult.languageServerJsonAddress.host).toBe('127.0.0.1')
         expect(openResult.languageServerJsonAddress.port).toBeGreaterThan(0)
-        expect(openResult.languageServerBinaryAddress.host).toBe('127.0.0.1')
-        expect(openResult.languageServerBinaryAddress.port).toBeGreaterThan(0)
 
         // Close the project to clean up
         await projectService.closeProject(createResult.projectId, projectsDirectory)
@@ -319,16 +316,11 @@ describe('ProjectService', () => {
 
         // Verify both have valid language server addresses
         expect(openResult1.languageServerJsonAddress).toBeDefined()
-        expect(openResult1.languageServerBinaryAddress).toBeDefined()
         expect(openResult2.languageServerJsonAddress).toBeDefined()
-        expect(openResult2.languageServerBinaryAddress).toBeDefined()
 
         // Verify they have different ports
         expect(openResult1.languageServerJsonAddress.port).not.toBe(
           openResult2.languageServerJsonAddress.port,
-        )
-        expect(openResult1.languageServerBinaryAddress.port).not.toBe(
-          openResult2.languageServerBinaryAddress.port,
         )
 
         // Verify both projects have correct names

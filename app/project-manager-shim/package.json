@@ -42,6 +42,7 @@
   "dependencies": {
     "chokidar": "^4.0.3",
     "enso-common": "workspace:*",
+    "ksuid": "^3.0.0",
     "portfinder": "^1.0.32",
     "tar": "^6.2.1",
     "trash": "^9.0.0",

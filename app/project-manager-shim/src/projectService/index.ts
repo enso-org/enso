@@ -5,6 +5,7 @@
  */
 import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import KSUID from 'ksuid'
 import * as crypto from 'node:crypto'
 import {
   EnsoRunner,
@@ -56,7 +57,6 @@ export interface CreateProject {
 export interface OpenProject {
   readonly projectId: UUID
   readonly languageServerJsonAddress: Socket
-  readonly languageServerBinaryAddress: Socket
   readonly languageServerYdocAddress: Socket
   readonly projectName: string
   readonly projectNormalizedName: string
@@ -164,9 +164,10 @@ export class ProjectService {
     return project
   }
 
-  private projectEnvVars(cloud?: CloudParams): readonly (readonly [string, string])[] | undefined {
+  private projectEnvVars(cloud?: CloudParams): readonly (readonly [string, string])[] {
     if (!cloud) {
-      return
+      const localSessionId = `localprojectsession-${KSUID.randomSync().string}`
+      return [['ENSO_CLOUD_PROJECT_SESSION_ID', localSessionId]]
     }
     return [
       ['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath],
@@ -212,7 +213,6 @@ export class ProjectService {
     return {
       projectId,
       languageServerJsonAddress: sockets.jsonSocket,
-      languageServerBinaryAddress: sockets.binarySocket,
       languageServerYdocAddress: sockets.ydocSocket,
       projectName: project.name,
       projectNormalizedName: nameValidation.normalizedName(project.name),

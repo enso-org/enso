@@ -268,8 +268,8 @@ type DuckDB_Connection
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
     read_file : Text | URI | File -> Text -> DuckDB_Format -> Vector Text -> Boolean -> DB_Table
     read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" (format:DuckDB_Format=..Auto) key_columns:Vector=[] replace_if_present:Boolean=False =
-        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        if self.is_in_memory.not then Context.Output.check_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation."
+
         escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
             read_function = format.as_sql_function file
@@ -306,8 +306,7 @@ type DuckDB_Connection
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
     read_spatial_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
     read_spatial_file self path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] replace_if_present:Boolean=False =
-        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        if self.is_in_memory.not then Context.Output.check_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation."
 
         resolved_file = Data_Link_Helpers.resolve_path path
         Error.return_if_error resolved_file
@@ -353,8 +352,7 @@ type DuckDB_Connection
     @as Text_Input display=..Always
     create_index : Text -> Vector Text -> Text -> Boolean -> DB_Table
     create_index self (table=Missing_Argument.throw "table") (key_columns:Vector=Missing_Argument.throw "key_columns") as:Text="" replace_if_present:Boolean=False =
-        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        if self.is_in_memory.not then Context.Output.check_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation."
 
         table_name = _resolve_table self table
         if table_name.is_error then table_name
@@ -393,8 +391,7 @@ type DuckDB_Connection
     @as Text_Input display=..Always
     create_spatial_index : Text -> Text -> Text -> Boolean -> DB_Table
     create_spatial_index self (table=Missing_Argument.throw "table") (column:Text=Missing_Argument.throw "column") as:Text="" replace_if_present:Boolean=False =
-        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        if self.is_in_memory.not then Context.Output.check_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation."
 
         table_name = _resolve_table self table
         if table_name.is_error then table_name
@@ -571,8 +568,7 @@ type DuckDB_Connection
             if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
             ## Check Execution Context
-            if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
-                Nothing
+            if self.is_in_memory.not then Context.Output.check_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation."
 
             Context.Output.with_enabled <|
                 ## Drop existing table if needed and then create new table
@@ -585,18 +581,18 @@ type DuckDB_Connection
                         self.query (..Table_Name table_name)
                     Bulk_Load_Exists.Append_To_Table ->
                         self.query (..Table_Name table_name)
+                Error.return_if_error created_table
 
                 ## Assuming we managed to create the table, proceed with upload
-                created_table.if_not_error <|
-                    java_column_types = created_table.columns.map c-> case c.value_type of
-                        Value_Type.Decimal _ s ->
-                            if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
-                        _ -> from_value_type c.value_type ..Ignore
-                    column_storages = In_Memory_Helpers.get_java_column_storages in_memory
-                    self.jdbc_connection.with_connection connection->
-                        Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
-                            DuckDBUtils.append connection column_storages table_name java_column_types
-                            created_table
+                java_column_types = created_table.columns.map c-> case c.value_type of
+                    Value_Type.Decimal _ s ->
+                        if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
+                    _ -> from_value_type c.value_type ..Ignore
+                column_storages = In_Memory_Helpers.get_java_column_storages in_memory
+                self.jdbc_connection.with_connection connection->
+                    Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
+                        DuckDBUtils.append connection column_storages table_name java_column_types
+                        created_table
 
     ## ---
        private: true
@@ -698,8 +694,7 @@ type DuckDB_Connection
         Error.return_if_error write_action
 
         ## Check Execution Context
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the database. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write the database. Press the Write button ▶ to perform the operation."
 
         ## Copy the database
         write_action file->
@@ -743,8 +738,7 @@ type DuckDB_Connection
         Error.return_if_error write_action
 
         ## Check Execution Context
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation."
 
         ## Rationalise the query to a DB_Table
         table = case query of
@@ -791,8 +785,7 @@ type DuckDB_Connection
         Error.return_if_error write_action
 
         ## Check Execution Context
-        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
-            Nothing
+        Context.Output.check_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation."
 
         ## Rationalise the query to a DB_Table
         table = case query of

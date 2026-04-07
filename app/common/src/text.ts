@@ -111,7 +111,7 @@ interface PlaceholderOverrides {
 
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]
-  readonly userGroupsLimitMessage: [limit: number]
+  readonly userGroupsLimitMessage: [threshold: number, limit: number]
   readonly inviteFormSeatsLeftError: [exceedBy: number]
   readonly inviteFormSeatsLeft: [seatsLeft: number]
   readonly seatsLeft: [seatsLeft: number, seatsTotal: number]

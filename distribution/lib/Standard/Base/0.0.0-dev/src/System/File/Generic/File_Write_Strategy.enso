@@ -107,32 +107,32 @@ default_raise_error file action =
    private: true
    ---
 generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
-    Context.Output.if_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode." panic=False <|
-        temp_file = File.create_temporary_file prefix="remote-write-" suffix=file.name
-        Panic.with_finalizer temp_file.delete <|
-            tmp_synchronized = case file.exists of
-                ## Copy the file to a local temporary file.
-                   The copy is needed because we may be appending new sheets, so existing data must also be taken into account.
-                True -> file.copy_to temp_file replace_existing=True
-                # The temporarily created empty file should not exist to reflect that the original destination did not exist.
-                False -> temp_file.delete_if_exists
+    Context.Output.check_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode."
+    temp_file = File.create_temporary_file prefix="remote-write-" suffix=file.name
+    Panic.with_finalizer temp_file.delete <|
+        tmp_synchronized = case file.exists of
+            ## Copy the file to a local temporary file.
+               The copy is needed because we may be appending new sheets, so existing data must also be taken into account.
+            True -> file.copy_to temp_file replace_existing=True
+            # The temporarily created empty file should not exist to reflect that the original destination did not exist.
+            False -> temp_file.delete_if_exists
+        Error.return_if_error tmp_synchronized
 
-            ## The behavior to apply when uploading the written temporary file back to the remote backend.
-               In case the strategy was `Append`, we need to change it to `Overwrite` for upload,
-               as the `Append` logic should have been handled by the `action` itself, and now we are replacing the _full_ file.
-            effective_file_behavior = case existing_file_behavior of
-                Existing_File_Behavior.Append -> Existing_File_Behavior.Overwrite
-                _ -> existing_file_behavior
+        ## The behavior to apply when uploading the written temporary file back to the remote backend.
+           In case the strategy was `Append`, we need to change it to `Overwrite` for upload,
+           as the `Append` logic should have been handled by the `action` itself, and now we are replacing the _full_ file.
+        effective_file_behavior = case existing_file_behavior of
+            Existing_File_Behavior.Append -> Existing_File_Behavior.Overwrite
+            _ -> existing_file_behavior
 
-            tmp_synchronized.if_not_error <|
-                result = action temp_file
-                result.if_not_error <|
-                    ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
-                    copy_success = file.write effective_file_behavior output_stream->
-                        temp_file.with_input_stream [File_Access.Read] input_stream->
-                            output_stream.write_stream input_stream
-                    copy_success.if_not_error <|
-                        result
+        result = action temp_file
+        Error.return_if_error result
+
+        ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
+        copy_success = file.write effective_file_behavior output_stream->
+            temp_file.with_input_stream [File_Access.Read] input_stream->
+                output_stream.write_stream input_stream
+        copy_success.if_not_error result
 
 ## ---
    private: true

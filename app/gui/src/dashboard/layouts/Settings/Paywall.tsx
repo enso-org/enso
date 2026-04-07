@@ -6,8 +6,8 @@
  * The feature is determined by the `isFeatureUnderPaywall` hook.
  */
 import { PaywallScreen } from '#/components/Paywall'
-import type { PaywallFeatureName } from '#/hooks/billing'
 import { tv } from '#/utilities/tailwindVariants'
+import type { PaywallFeatureName } from '$/composables/paywall'
 
 /** Props for a {@link SettingsPaywall}. */
 export interface SettingsPaywallProps {

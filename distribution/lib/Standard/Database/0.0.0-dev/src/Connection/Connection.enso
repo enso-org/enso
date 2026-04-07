@@ -395,10 +395,7 @@ type Connection
           run regardless of the output context. Defaults to `True`.
     execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
     execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
-        enabled = if write_operation.not then Nothing else
-            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
-        Error.return_if_error enabled
-
+        if write_operation then Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation."
         self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
             _check_statement_is_allowed self stmt
             rs = stmt.executeQuery
@@ -423,10 +420,7 @@ type Connection
           run regardless of the output context. Defaults to `True`.
     execute_update : Text | SQL_Statement -> Boolean -> Integer
     execute_update self query write_operation:Boolean=True =
-        enabled = if write_operation.not then Nothing else
-            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False (_->Nothing)
-        Error.return_if_error enabled
-
+        if write_operation then Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation."
         self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
             _check_statement_is_allowed self stmt
             result = stmt.executeUpdate
@@ -446,12 +440,12 @@ type Connection
           representing the query to execute.
     execute : Text | SQL_Statement -> Integer
     execute self query =
-        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
-            self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
-                _check_statement_is_allowed self stmt
-                result = stmt.execute
-                Error.return_if_error result
-                stmt.getUpdateCount
+        Execution_Context.Output.check_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation."
+        self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
+            _check_statement_is_allowed self stmt
+            result = stmt.execute
+            Error.return_if_error result
+            stmt.getUpdateCount
 
     ## ---
        private: true

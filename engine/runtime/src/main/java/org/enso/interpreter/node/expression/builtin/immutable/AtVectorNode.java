@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     type = "Array_Like_Helpers",
     name = "at",
     description = "Returns an element of Vector at the specified index.")
-public class AtVectorNode extends Node {
+final class AtVectorNode extends Node {
   private @Child ArrayLikeAtNode at = ArrayLikeAtNode.create();
   private @Child ArrayLikeLengthNode length;
 

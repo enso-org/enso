@@ -26,7 +26,8 @@ import java.util.UUID
 class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with org.enso.testkit.ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 

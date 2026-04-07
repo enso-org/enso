@@ -8,10 +8,10 @@ import project.Internal.Add_Row_Number
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
+import project.Internal.Value_Type_Checks
 import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
 import project.Table.Table
-import project.Value_Type.Value_Type
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.table.data.column.storage.LongRangeStorage
@@ -43,8 +43,8 @@ add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:
             Statistic.Count -> 
                 Add_Row_Number.create_column table new_name from=1 step=1 grouping_columns ordering on_problems
             _ ->
-                Value_Type.expect_numeric of_col <|
-                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                        AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
-                    In_Memory_Column.from_storage new_name new_storage
+                Value_Type_Checks.is_numeric of_col
+                new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
+                In_Memory_Column.from_storage new_name new_storage
         table.set new_column new_name set_mode

@@ -210,7 +210,9 @@ type Vector a
     build (function : Builder -> Any) (initial_capacity : Integer = 10) (propagate_warnings : Boolean = True) -> Vector =
         # Delegate to .build_multiple
         results_multiple = Vector.build_multiple 1 (builders-> function (builders.at 0)) initial_capacity propagate_warnings
-        results_multiple.if_not_error (results_multiple.at 0)
+        res = results_multiple.if_not_error (results_multiple.at 0)
+        if propagate_warnings then res else
+            Warning.remove_warnings res
 
     ## ---
        private: true
@@ -1643,8 +1645,11 @@ type Builder
        `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not added
        to the builder.
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Nothing ! Error
-    append_vector_range self vector (start : Integer = 0) end=vector.length -> Nothing ! Error =
-        subrange = vector.slice start end
+    append_vector_range self vector (start : Integer = 0) end=vector.raw_size -> Nothing ! Error =
+        slice = vector.slice start end
+        subrange = if self.propagate_warnings then slice else
+            Warning.remove_warnings slice
+
         first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
         Panic.rethrow_wrapped_if_error <|
             first_dataflow_error.if_not_error <|

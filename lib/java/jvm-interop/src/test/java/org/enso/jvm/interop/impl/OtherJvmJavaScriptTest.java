@@ -26,6 +26,7 @@ public class OtherJvmJavaScriptTest {
     CHANNEL
         .getConfig()
         .onEnterLeave(
+            CHANNEL,
             FakeLanguage.class,
             null,
             (__) -> {
