@@ -420,6 +420,9 @@ function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: 
 export async function listProjectSessions(
   projectId: string,
 ): Promise<{ sessions: readonly { projectSessionId: string; createdAt: string }[] }> {
+  if (!isSafePathSegment(projectId)) {
+    throw new Error(`Invalid project ID: unsafe segment '${projectId}'`)
+  }
   const projectLogDir = path.join(getEngineLogDirectory(), projectId)
   let entries: string[]
   try {
