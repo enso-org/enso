@@ -428,8 +428,11 @@ export async function listProjectSessions(
   let entries: string[]
   try {
     entries = await fs.readdir(projectLogDir)
-  } catch (e) {
-    console.error(`Failed to read log directory '${projectLogDir}':`, e)
+  } catch (e: any) {
+    // Suppress errors if the directory does not exist.
+    if (e?.code !== 'ENOENT') {
+      console.error(`Failed to read log directory '${projectLogDir}':`, e)
+    }
     return { sessions: [] }
   }
   const seen = new Set<string>()
