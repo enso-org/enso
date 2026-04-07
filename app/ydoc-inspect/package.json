@@ -10,9 +10,8 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "dependencies": {
-    "lib0": "^0.2.99",
     "ws": "^8.18.0",
-    "y-protocols": "^1.0.6",
+    "y-websocket": "^1.5.4",
     "yjs": "^13.6.21"
   },
   "devDependencies": {

@@ -1,12 +1,6 @@
-import * as decoding from 'lib0/decoding'
-import * as encoding from 'lib0/encoding'
 import WebSocket from 'ws'
-import { applyAwarenessUpdate, Awareness } from 'y-protocols/awareness'
-import { readSyncMessage, writeSyncStep1, writeUpdate } from 'y-protocols/sync'
+import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-
-const messageSync = 0
-const messageAwareness = 1
 
 /**
  * Client that connects to the ydoc-server's inspect endpoint and
@@ -14,95 +8,65 @@ const messageAwareness = 1
  */
 export class InspectClient {
   readonly doc: Y.Doc
-  readonly awareness: Awareness
-  private ws: WebSocket | null = null
-  private _connected = false
+  private provider: WebsocketProvider | null = null
   onDisconnect: (() => void) | null = null
 
-  /** Create an {@link InspectClient}. */
   constructor() {
     this.doc = new Y.Doc()
-    this.awareness = new Awareness(this.doc)
-    this.awareness.setLocalState(null)
-
-    this.doc.on('update', (update: Uint8Array, origin: unknown) => {
-      if (origin !== 'remote' && this.ws?.readyState === WebSocket.OPEN) {
-        const encoder = encoding.createEncoder()
-        encoding.writeVarUint(encoder, messageSync)
-        writeUpdate(encoder, update)
-        this.ws.send(encoding.toUint8Array(encoder))
-      }
-    })
   }
 
-  /** Whether the client is currently connected. */
   get connected(): boolean {
-    return this._connected
+    return this.provider?.wsconnected ?? false
   }
 
   /** Connect to the inspect endpoint and start syncing the Y.Doc. */
   connect(url: string): Promise<void> {
+    const lastSlash = url.lastIndexOf('/')
+    const serverUrl = url.slice(0, lastSlash)
+    const roomname = url.slice(lastSlash + 1)
+
     return new Promise((resolve, reject) => {
       let settled = false
-      const ws = new WebSocket(url)
-      ws.binaryType = 'arraybuffer'
-      this.ws = ws
-
-      ws.on('open', () => {
-        settled = true
-        this._connected = true
-        const encoder = encoding.createEncoder()
-        encoding.writeVarUint(encoder, messageSync)
-        writeSyncStep1(encoder, this.doc)
-        ws.send(encoding.toUint8Array(encoder))
-        resolve()
+      const provider = new WebsocketProvider(serverUrl, roomname, this.doc, {
+        WebSocketPolyfill: WebSocket as never,
+        disableBc: true,
       })
+      this.provider = provider
 
-      ws.on('message', (data: ArrayBuffer) => {
-        const message = new Uint8Array(data)
-        const decoder = decoding.createDecoder(message)
-        const messageType = decoding.readVarUint(decoder)
+      // Disable auto-reconnect. main.ts handles retry logic.
+      provider.shouldConnect = false
+      provider.maxBackoffTime = 0
 
-        switch (messageType) {
-          case messageSync: {
-            const encoder = encoding.createEncoder()
-            encoding.writeVarUint(encoder, messageSync)
-            readSyncMessage(decoder, encoder, this.doc, 'remote')
-            if (encoding.length(encoder) > 1) {
-              ws.send(encoding.toUint8Array(encoder))
-            }
-            break
-          }
-          case messageAwareness: {
-            const update = decoding.readVarUint8Array(decoder)
-            applyAwarenessUpdate(this.awareness, update, 'remote')
-            break
-          }
+      const onStatus = ({ status }: { status: string }) => {
+        if (status === 'connected' && !settled) {
+          settled = true
+          resolve()
         }
-      })
+      }
 
-      ws.on('close', () => {
-        const wasConnected = this._connected
-        this._connected = false
+      const onClose = () => {
+        provider.off('status', onStatus)
+        provider.off('connection-close', onClose)
         if (!settled) {
           settled = true
+          provider.destroy()
           reject(new Error('Connection closed before open'))
-        } else if (wasConnected) {
+        } else {
           console.log('Disconnected from inspect server')
+          provider.destroy()
+          this.provider = null
           this.onDisconnect?.()
         }
-      })
+      }
 
-      ws.on('error', () => {
-        // Connection errors are handled via the 'close' event which always
-        // follows 'error'. Suppress here to avoid unhandled rejection.
-      })
+      provider.on('status', onStatus)
+      provider.on('connection-close', onClose)
     })
   }
 
   /** Close the WebSocket connection. */
   close(): void {
-    this.ws?.close()
-    this.ws = null
+    this.provider?.destroy()
+    this.provider = null
   }
 }

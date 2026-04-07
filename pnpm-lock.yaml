@@ -898,15 +898,12 @@ importers:
 
   app/ydoc-inspect:
     dependencies:
-      lib0:
-        specifier: ^0.2.99
-        version: 0.2.99
       ws:
         specifier: ^8.18.0
         version: 8.19.0
-      y-protocols:
-        specifier: ^1.0.6
-        version: 1.0.6(yjs@13.6.21)
+      y-websocket:
+        specifier: ^1.5.4
+        version: 1.5.4(yjs@13.6.21)
       yjs:
         specifier: ^13.6.21
         version: 13.6.21
