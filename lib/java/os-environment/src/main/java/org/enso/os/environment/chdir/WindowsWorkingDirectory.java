@@ -2,10 +2,10 @@ package org.enso.os.environment.chdir;
 
 import java.util.List;
 import org.enso.common.Platform;
+import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
-import org.graalvm.nativeimage.c.type.CCharPointer;
-import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.graalvm.nativeimage.c.type.CShortPointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,35 +16,48 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public String currentWorkingDir() {
-    byte[] buf = new byte[4096];
-    String path;
-    try (var ptrHolder = CTypeConversion.toCBytes(buf)) {
-      var ptr = ptrHolder.get();
-      var ret = GetCurrentDirectoryA(4096, ptr);
-      if (ret == 0) {
-        LOGGER.error("GetCurrentDirectory failed with {}", ret);
-        return null;
-      } else {
-        path = new String(buf);
-      }
+    var bufferLength = 4096;
+    CShortPointer ptr = UnmanagedMemory.calloc(bufferLength * Character.BYTES);
+    if (ptr == null) {
+      LOGGER.error("Unable to allocate memory for current working directory.");
+      return null;
     }
-    return path.trim();
+    try {
+      var ret = GetCurrentDirectoryW(bufferLength, ptr);
+      if (ret == 0) {
+        LOGGER.error("GetCurrentDirectoryW failed with {}", ret);
+        return null;
+      }
+      if (ret >= bufferLength) {
+        LOGGER.error("Current working directory exceeds buffer size: {}", ret);
+        return null;
+      }
+      return fromWideCString(ptr, ret);
+    } finally {
+      UnmanagedMemory.free(ptr);
+    }
   }
 
   @Override
   public boolean changeWorkingDir(String path) {
     path = normalizeSlashes(path);
-
-    try (var cPath = CTypeConversion.toCString(path)) {
-      var res = SetCurrentDirectoryA(cPath.get());
+    var cPath = toWideCString(path);
+    if (cPath == null) {
+      LOGGER.error("Unable to allocate memory for {}", path);
+      return false;
+    }
+    try {
+      var res = SetCurrentDirectoryW(cPath);
       if (res == 0) {
-        LOGGER.error("SetCurrrentDirectory to {} failed with {}", path, res);
+        LOGGER.error("SetCurrentDirectoryW to {} failed with {}", path, res);
         return false;
       }
       return true;
     } catch (Throwable t) {
       LOGGER.error("Cannot change working directory to " + path + " on Windows", t);
       throw t;
+    } finally {
+      UnmanagedMemory.free(cPath);
     }
   }
 
@@ -53,13 +66,41 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     dir = normalizeSlashes(dir);
     file = normalizeSlashes(file);
     var full = dir + Platform.separatorChar() + file;
-    try (var cPath = CTypeConversion.toCString(full)) {
-      var res = PathFileExistsA(cPath.get());
+    var cPath = toWideCString(full);
+    if (cPath == null) {
+      LOGGER.error("Unable to allocate memory for {}", full);
+      return false;
+    }
+    try {
+      var res = PathFileExistsW(cPath);
       return res != 0;
     } catch (Throwable t) {
       LOGGER.error("Cannot check if {} exists on Windows", full, t);
       return false;
+    } finally {
+      UnmanagedMemory.free(cPath);
     }
+  }
+
+  private static CShortPointer toWideCString(String path) {
+    var withTerminator = path.length() + 1;
+    CShortPointer ptr = UnmanagedMemory.malloc(withTerminator * Character.BYTES);
+    if (ptr == null) {
+      return null;
+    }
+    for (int i = 0; i < path.length(); i++) {
+      ptr.write(i, (short) path.charAt(i));
+    }
+    ptr.write(path.length(), (short) 0);
+    return ptr;
+  }
+
+  private static String fromWideCString(CShortPointer ptr, int len) {
+    var chars = new char[len];
+    for (int i = 0; i < len; i++) {
+      chars[i] = (char) ptr.read(i);
+    }
+    return new String(chars);
   }
 
   private static String normalizeSlashes(String path) {
@@ -73,27 +114,27 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   /**
    * <a
-   * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectory">Official
+   * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectoryw">Official
    * docs</a>
    */
   @CFunction
-  static native int GetCurrentDirectoryA(int nBufferLength, CCharPointer lpBuffer);
+  static native int GetCurrentDirectoryW(int nBufferLength, CShortPointer lpBuffer);
 
   /**
    * <a
-   * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setcurrentdirectory">Official
+   * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setcurrentdirectoryw">Official
    * docs</a>
    */
   @CFunction
-  static native int SetCurrentDirectoryA(CCharPointer lpPathName);
+  static native int SetCurrentDirectoryW(CShortPointer lpPathName);
 
   /**
    * <a
-   * href="https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfileexistsa">Official
+   * href="https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfileexistsw">Official
    * docs</a>
    */
   @CFunction
-  static native int PathFileExistsA(CCharPointer pszPath);
+  static native int PathFileExistsW(CShortPointer pszPath);
 
   static final class Directives implements CContext.Directives {
     @Override
