@@ -92,7 +92,7 @@ function getWindowsDocumentsPath() {
   const out = childProcess.spawnSync(
     'powershell',
     [
-      '[Environment]::GetFolderPath("MyDocuments")',
+      '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Environment]::GetFolderPath("MyDocuments")',
     ],
     { timeout: CHILD_PROCESS_TIMEOUT },
   )
