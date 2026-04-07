@@ -50,3 +50,7 @@ ref_get ref = @Builtin_Method "Ref.get"
 ref_put ref new_value = @Builtin_Method "Ref.put"
 
 create_process command arguments input redirect_in redirect_out redirect_err cwd env = @Builtin_Method "System.create_process"
+
+exit code = @Builtin_Method "System.exit"
+nano_time = @Builtin_Method "System.nano_time"
+os = @Builtin_Method "System.os"
