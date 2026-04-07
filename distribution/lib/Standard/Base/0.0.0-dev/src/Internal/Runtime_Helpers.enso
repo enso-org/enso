@@ -55,6 +55,7 @@ create_process command arguments input redirect_in redirect_out redirect_err cwd
 exit code = @Builtin_Method "System.exit"
 nano_time = @Builtin_Method "System.nano_time"
 os = @Builtin_Method "System.os"
+is_unix = @Builtin_Method "System.is_unix"
 
 resource_bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 resource_finalize res = @Builtin_Method "Managed_Resource.finalize"
@@ -69,3 +70,6 @@ warn_create payload origin = @Builtin_Method "Warning.create"
 warn_attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
 warn_get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
 warn_set_array value warnings = @Builtin_Method "Warning.set_array"
+
+with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
+
