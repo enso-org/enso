@@ -26,12 +26,12 @@ public abstract class AnyToDisplayTextNode extends Node {
     return AnyToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object self);
+  abstract Text execute(Object obj);
 
-  @Specialization(guards = {"iop.isException(self)", "iop.hasExceptionMessage(self)"})
-  Text showExceptions(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop) {
+  @Specialization(guards = {"iop.isException(obj)", "iop.hasExceptionMessage(obj)"})
+  Text showExceptions(Object obj, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
-      return Text.create(iop.asString(iop.getExceptionMessage(self)));
+      return Text.create(iop.asString(iop.getExceptionMessage(obj)));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(iop).raiseAssertionPanic(iop, null, e);
     }
@@ -39,14 +39,14 @@ public abstract class AnyToDisplayTextNode extends Node {
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Text convertInteger(long self) {
-    return Text.create(Long.toString(self));
+  Text convertInteger(long obj) {
+    return Text.create(Long.toString(obj));
   }
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Text convertDouble(double self) {
-    return Text.create(Double.toString(self));
+  Text convertDouble(double obj) {
+    return Text.create(Double.toString(obj));
   }
 
   @Specialization
@@ -55,53 +55,53 @@ public abstract class AnyToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text convertText(Text self) {
+  Text convertText(Text obj) {
     final var limit = 80;
-    if (self.length() < limit) {
-      return self;
+    if (Text.length(obj) < limit) {
+      return obj;
     } else {
-      return takePrefix(self, limit);
+      return takePrefix(obj, limit);
     }
   }
 
   @Specialization
-  Text convertBoolean(boolean self) {
-    return Text.create(self ? "True" : "False");
+  Text convertBoolean(boolean obj) {
+    return Text.create(obj ? "True" : "False");
   }
 
   @Specialization
-  Text convertAtomConstructor(AtomConstructor self) {
-    return Text.create(self.getDisplayName());
+  Text convertAtomConstructor(AtomConstructor obj) {
+    return Text.create(obj.getDisplayName());
   }
 
   @Specialization
-  Text convertAtom(Atom self) {
-    return convertAtomConstructor(self.getConstructor());
+  Text convertAtom(Atom obj) {
+    return convertAtomConstructor(obj.getConstructor());
   }
 
   @Specialization
-  Text convertType(Type self) {
-    return Text.create(self.getName());
+  Text convertType(Type obj) {
+    return Text.create(obj.getName());
   }
 
   @Specialization(
-      guards = {"iop.isMetaObject(self)"},
+      guards = {"iop.isMetaObject(obj)"},
       rewriteOn = UnsupportedMessageException.class)
-  Text convertMetaObject(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
+  Text convertMetaObject(Object obj, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
       throws UnsupportedMessageException {
-    var maybeName = iop.getMetaQualifiedName(self);
+    var maybeName = iop.getMetaQualifiedName(obj);
     var name = iop.asString(maybeName);
     return Text.create(name);
   }
 
   @CompilerDirectives.TruffleBoundary
-  private static Text takePrefix(Text self, final int limit) {
-    var prefix = Core_Text_Utils.take_prefix(self.toString(), limit - 2);
+  private static Text takePrefix(Text obj, final int limit) {
+    var prefix = Core_Text_Utils.take_prefix(obj.toString(), limit - 2);
     return Text.create(prefix + " …");
   }
 
   @Fallback
-  Text doShowType(Object self, @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
-    return Text.create(typeToDisplayTextNode.execute(self));
+  Text doShowType(Object obj, @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
+    return Text.create(typeToDisplayTextNode.execute(obj));
   }
 }

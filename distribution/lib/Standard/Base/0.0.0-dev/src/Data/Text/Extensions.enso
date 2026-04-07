@@ -31,6 +31,7 @@ import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
+import project.Internal.Text_Helpers
 import project.Meta
 import project.Panic.Panic
 import project.System.Internal.Reporting_Stream_Decoder_Helper
@@ -69,7 +70,7 @@ polyglot java import org.enso.base.WithProblems
    ```
            7.to_text
    ```
-Any.to_text self -> Text = @Builtin_Method "Any.to_text"
+Any.to_text self -> Text = Text_Helpers.any_to_text self
 
 ## ---
    group: convert
@@ -97,7 +98,7 @@ Any.to_text self -> Text = @Builtin_Method "Any.to_text"
    Returns a Text
 
            'Hello World!'
-Any.pretty self -> Text = @Builtin_Method "Any.pretty"
+Any.pretty self -> Text = Text_Helpers.any_pretty self
 
 ## ---
    private: true
@@ -111,7 +112,7 @@ Any.pretty self -> Text = @Builtin_Method "Any.pretty"
    ```
            7.to_display_text
    ```
-Any.to_display_text self -> Text = @Builtin_Method "Any.to_display_text"
+Any.to_display_text self -> Text = Text_Helpers.any_to_display_text self
 
 ## ---
    group: Text

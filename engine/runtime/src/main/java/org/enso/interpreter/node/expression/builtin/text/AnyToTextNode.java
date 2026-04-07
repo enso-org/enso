@@ -32,7 +32,7 @@ public abstract class AnyToTextNode extends Node {
     return AnyToTextNodeGen.getUncached();
   }
 
-  public abstract Text execute(Object self);
+  public abstract Text execute(Object obj);
 
   @Specialization
   Text doAtom(Atom at) {

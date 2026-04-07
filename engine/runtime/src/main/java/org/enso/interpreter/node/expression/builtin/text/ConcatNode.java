@@ -17,9 +17,9 @@ public abstract class ConcatNode extends Node {
 
   @Specialization
   Text doExecute(
-      Object self, Object that, @Cached ExpectTextNode leftCast, @Cached ExpectTextNode rightCast) {
-    Text l = leftCast.execute(self);
-    Text r = rightCast.execute(that);
+      Object fst, Object snd, @Cached ExpectTextNode leftCast, @Cached ExpectTextNode rightCast) {
+    Text l = leftCast.execute(fst);
+    Text r = rightCast.execute(snd);
     return Text.create(l, r);
   }
 }
