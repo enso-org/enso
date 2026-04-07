@@ -150,6 +150,11 @@ case object UnusedBindings extends IRPass {
           if (isBuiltin) args
           else args.map(lintFunctionArgument(_, context))
         val body1 = runExpression(body, context)
+        if (isBuiltin && !lam.isPrivate && !context.getModule().isPrivate) {
+          body1.addDiagnostic(
+            new Warning.NonPrivateBuiltinMethod(body.identifiedLocation())
+          )
+        }
         val lintedBody =
           if (isBuiltin)
             body match {
