@@ -63,25 +63,23 @@ public abstract class LoggingSetupHelper {
    * @param logLevel maximal level of log events to be forwarded
    * @param logMasking true if masking of sensitive data should be applied to all log messages
    */
-  public void setup(Level logLevel, boolean logMasking, String projectId)
-      throws MissingConfigurationField {
+  public void setup(Level logLevel, boolean logMasking) throws MissingConfigurationField {
     initLogger();
     var loggerSetup = LoggerSetup.get();
     var config = loggerSetup.getConfig();
     if (config.loggingServerNeedsBoot()) {
       int actualPort = config.getServer().port();
       LoggingServiceManager.setupServer(
-              logLevel, actualPort, logPath(), logFileSuffix(), config.getServer(), ec, projectId)
+              logLevel, actualPort, logPath(), logFileSuffix(), config.getServer(), ec)
           .onComplete(
               (result) -> {
                 try {
                   if (result.isFailure()) {
-                    setup(
-                        Option.apply(logLevel), Option.empty(), logMasking, loggerSetup, projectId);
+                    setup(Option.apply(logLevel), Option.empty(), logMasking, loggerSetup);
                   } else {
                     Masking.setup(logMasking);
                     var socketLogConfig = result.get();
-                    if (!loggerSetup.setup(socketLogConfig.minLogLevel(), projectId)) {
+                    if (!loggerSetup.setup(socketLogConfig.minLogLevel())) {
                       LoggingServiceManager.teardown();
                       loggingServiceEndpointPromise.failure(new LoggerInitializationFailed());
                     } else {
@@ -96,8 +94,7 @@ public abstract class LoggingSetupHelper {
               ec);
     } else {
       // Setup logger according to config
-      if (loggerSetup.setup(
-          logLevel, logPath(), logFileSuffix(), loggerSetup.getConfig(), projectId)) {
+      if (loggerSetup.setup(logLevel, logPath(), logFileSuffix(), loggerSetup.getConfig())) {
         loggingServiceEndpointPromise.success(Option.empty());
       }
     }
@@ -114,22 +111,17 @@ public abstract class LoggingSetupHelper {
    * @param logMasking true if sensitive data should be masked in log events, false otherwise
    * @throws MissingConfigurationField if the config file has been mis-configured
    */
-  public void setup(
-      Option<Level> logLevel,
-      Option<URI> connectToExternalLogger,
-      boolean logMasking,
-      String projectId)
+  public void setup(Option<Level> logLevel, Option<URI> connectToExternalLogger, boolean logMasking)
       throws MissingConfigurationField {
     initLogger();
-    setup(logLevel, connectToExternalLogger, logMasking, LoggerSetup.get(), projectId);
+    setup(logLevel, connectToExternalLogger, logMasking, LoggerSetup.get());
   }
 
   private void setup(
       Option<Level> logLevel,
       Option<URI> connectToExternalLogger,
       boolean logMasking,
-      LoggerSetup loggerSetup,
-      String projectId)
+      LoggerSetup loggerSetup)
       throws MissingConfigurationField {
     var actualLogLevel = logLevel.getOrElse(() -> defaultLogLevel());
     if (connectToExternalLogger.isDefined()) {
@@ -139,8 +131,7 @@ public abstract class LoggingSetupHelper {
       if (!initialized) {
         // Fallback
         initialized =
-            loggerSetup.setup(
-                actualLogLevel, logPath(), logFileSuffix(), loggerSetup.getConfig(), projectId);
+            loggerSetup.setup(actualLogLevel, logPath(), logFileSuffix(), loggerSetup.getConfig());
         if (!initialized) {
           // Fallback to console
           initialized = loggerSetup.setupConsoleAppender(actualLogLevel);
@@ -153,8 +144,7 @@ public abstract class LoggingSetupHelper {
         loggingServiceEndpointPromise.failure(new LoggerInitializationFailed());
       }
     } else {
-      if (loggerSetup.setup(
-          actualLogLevel, logPath(), logFileSuffix(), loggerSetup.getConfig(), projectId)) {
+      if (loggerSetup.setup(actualLogLevel, logPath(), logFileSuffix(), loggerSetup.getConfig())) {
         Masking.setup(logMasking);
         loggingServiceEndpointPromise.success(Option.empty());
       } else {

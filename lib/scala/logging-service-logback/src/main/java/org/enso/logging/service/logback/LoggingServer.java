@@ -19,17 +19,16 @@ class LoggingServer extends LoggingService<URI> {
     this.logServer = null;
   }
 
-  public URI start(Level level, Path path, String prefix, BaseConfig config, String projectId) {
+  public URI start(Level level, Path path, String prefix, BaseConfig config) {
     var lc = new LoggerContext();
 
     try {
       var setup = LogbackSetup.forContext(lc, config);
       logServer = new SocketServer(lc, port);
       logServer.start();
-      setup.setup(level, path, prefix, setup.getConfig(), projectId);
-      config.getAppenders().get("telemetry").setup(level, setup, projectId);
-      var openSearchEnabled =
-          config.getAppenders().get("opensearch").setup(level, setup, projectId);
+      setup.setup(level, path, prefix, setup.getConfig());
+      config.getAppenders().get("telemetry").setup(level, setup);
+      var openSearchEnabled = config.getAppenders().get("opensearch").setup(level, setup);
       if (!openSearchEnabled) System.err.println("Remote Logs: Disabled");
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {

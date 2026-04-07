@@ -29,23 +29,19 @@ final class RunnerLogging {
    * @param logLevel log level to use for the runner and runtime
    * @param logMasking switches log masking on and off
    */
-  static void setup(URI connectionUri, Level logLevel, boolean logMasking, String projectId) {
+  static void setup(URI connectionUri, Level logLevel, boolean logMasking) {
     Masking.setup(logMasking);
     var loggerSetup = LoggerSetup.get();
     var executorService = Executors.newSingleThreadExecutor();
     try {
-      setupImpl(connectionUri, logLevel, executorService, loggerSetup, projectId);
+      setupImpl(connectionUri, logLevel, executorService, loggerSetup);
     } finally {
       executorService.shutdown();
     }
   }
 
   private static void setupImpl(
-      URI connectionUri,
-      Level logLevel,
-      ExecutorService executorService,
-      LoggerSetup loggerSetup,
-      String projectId) {
+      URI connectionUri, Level logLevel, ExecutorService executorService, LoggerSetup loggerSetup) {
     if (connectionUri != null) {
       var future =
           executorService.submit(
@@ -73,8 +69,7 @@ final class RunnerLogging {
                         logLevel,
                         distributionManager.paths().logs(),
                         "enso-cli",
-                        loggerSetup.getConfig(),
-                        projectId);
+                        loggerSetup.getConfig());
                 distributionManager.logPaths();
                 return status;
               });

@@ -74,29 +74,29 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   @Override
-  public boolean setup(String projectId) throws MissingConfigurationField {
+  public boolean setup() throws MissingConfigurationField {
     LoggingServiceConfig config = LoggingServiceConfig.parseConfig();
-    return setup(config, projectId);
+    return setup(config);
   }
 
-  private boolean setup(LoggingServiceConfig config, String projectId) {
+  private boolean setup(LoggingServiceConfig config) {
     Level defaultLogLevel =
         config
             .getLogLevel()
             .map(name -> Level.valueOf(name.toUpperCase()))
             .orElseGet(() -> Level.ERROR);
-    return setup(defaultLogLevel, config, projectId);
+    return setup(defaultLogLevel, config);
   }
 
   @Override
-  public boolean setup(Level logLevel, String projectId) throws MissingConfigurationField {
-    return setup(logLevel, LoggingServiceConfig.parseConfig(), projectId);
+  public boolean setup(Level logLevel) throws MissingConfigurationField {
+    return setup(logLevel, LoggingServiceConfig.parseConfig());
   }
 
-  public boolean setup(Level logLevel, LoggingServiceConfig config, String projectId) {
+  public boolean setup(Level logLevel, LoggingServiceConfig config) {
     Appender defaultAppender = config.getAppender();
     if (defaultAppender != null) {
-      return defaultAppender.setup(logLevel, this, projectId);
+      return defaultAppender.setup(logLevel, this);
     } else {
       return setupConsoleAppender(logLevel);
     }
@@ -107,12 +107,10 @@ public final class LogbackSetup extends LoggerSetup {
       Level logLevel,
       Path componentLogPath,
       String componentLogPrefix,
-      LoggingServiceConfig config,
-      String projectId) {
+      LoggingServiceConfig config) {
     Appender defaultAppender = config.getAppender();
     if (defaultAppender != null) {
-      return defaultAppender.setupForPath(
-          logLevel, componentLogPath, componentLogPrefix, this, projectId);
+      return defaultAppender.setupForPath(logLevel, componentLogPath, componentLogPrefix, this);
     } else {
       return setupConsoleAppender(logLevel);
     }
@@ -165,8 +163,7 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   @Override
-  public boolean setupFileAppender(
-      Level logLevel, Path logRoot, String logPrefix, String projectId) {
+  public boolean setupFileAppender(Level logLevel, Path logRoot, String logPrefix) {
     try {
       LoggerAndContext env = contextInit(logLevel, config, true);
       org.enso.logging.config.FileAppender appenderConfig = config.getFileAppender();
@@ -188,6 +185,7 @@ public final class LogbackSetup extends LoggerSetup {
         if (logPrefix == null) {
           logPrefix = "enso";
         }
+        var projectId = resolveProjectId();
         var now = LocalDateTime.now();
         var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
@@ -235,6 +233,7 @@ public final class LogbackSetup extends LoggerSetup {
       } else {
         fileAppender = new FileAppender<>();
         fileAppender.setName("enso-file");
+        var projectId = resolveProjectId();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String currentDate = LocalDate.now().format(dtf);
         String fullFilePath;
@@ -465,4 +464,15 @@ public final class LogbackSetup extends LoggerSetup {
 
   private static final String LANG_PREFIX = "enso";
   private static final String NULL_UUID = "00000000-0000-0000-0000-000000000000";
+
+  private static String resolveProjectId() {
+    String id = System.getenv("ENSO_CLOUD_PROJECT_ID");
+    if (id == null || id.isEmpty()) {
+      id = System.getProperty("enso.project.local.id");
+    }
+    if (id == null || id.isEmpty() || id.equals(NULL_UUID)) {
+      return null;
+    }
+    return id;
+  }
 }

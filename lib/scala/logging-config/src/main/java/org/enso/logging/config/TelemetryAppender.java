@@ -28,7 +28,7 @@ public final class TelemetryAppender extends Appender {
   }
 
   @Override
-  public boolean setup(Level logLevel, LoggerSetup loggerSetup, String projectId) {
+  public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
     return loggerSetup.setupTelemetryAppender(URI.create(logsUri), logConnectionFailures);
   }
 }

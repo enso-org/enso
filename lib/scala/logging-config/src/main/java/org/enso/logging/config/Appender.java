@@ -50,10 +50,9 @@ public abstract sealed class Appender
    *
    * @param logLevel maximal level of logs that will be handled by logger
    * @param loggerSetup logger's setup to be used to be invoked with this appender
-   * @param projectId id of project or {@code null}
    * @return true if logger has been setup correctly using this configuration, false otherwise
    */
-  public boolean setup(Level logLevel, LoggerSetup loggerSetup, String projectId) {
+  public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
     return false;
   }
 
@@ -62,12 +61,11 @@ public abstract sealed class Appender
    *
    * @param logLevel maximal level of logs that will be handled by logger
    * @param loggerSetup logger's setup to be used to be invoked with this appender
-   * @param projectId id of project or {@code null}
    * @return true if logger has been setup correctly using this configuration, false otherwise
    */
   public boolean setupForPath(
-      Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup, String projectId) {
-    return setup(logLevel, loggerSetup, projectId);
+      Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup) {
+    return setup(logLevel, loggerSetup);
   }
 
   public static final String defaultPattern =

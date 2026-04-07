@@ -52,7 +52,7 @@ public final class SocketAppender extends Appender {
   }
 
   @Override
-  public boolean setup(Level logLevel, LoggerSetup loggerSetup, String projectId) {
+  public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
     return loggerSetup.setupSocketAppender(logLevel, host, port);
   }
 
