@@ -1,6 +1,5 @@
 ## Internal text utilities for inspecting text primitives.
 
-import project.Any.Any
 import project.Data.Text.Text
 import project.Internal.Text_Helpers
 
