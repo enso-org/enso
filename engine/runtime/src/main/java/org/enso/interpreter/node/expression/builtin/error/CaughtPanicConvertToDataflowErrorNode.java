@@ -21,7 +21,7 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
     return CaughtPanicConvertToDataflowErrorNodeGen.create();
   }
 
-  abstract Object execute(Atom self);
+  abstract Object execute(Atom obj);
 
   @Specialization
   Object doExecute(

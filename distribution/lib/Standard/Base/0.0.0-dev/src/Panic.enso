@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Internal.Error_Builtins
 import project.Meta
 import project.Runtime
 from project.Data.Boolean import False, True
@@ -53,7 +54,8 @@ type Panic
                  other_panic -> Panic.throw other_panic
        ```
     throw : Any -> Panic
-    throw payload = @Builtin_Method "Panic.throw"
+    throw payload =
+        @Tail_Call Error_Builtins.panic_throw payload
 
     ## ---
        private: true
@@ -62,7 +64,7 @@ type Panic
        throwable. It can be a dataflow error, a panic or a native Java exception.
        You probably want `Panic.get_attached_stack_trace` instead.
     primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+    primitive_get_attached_stack_trace throwable = Error_Builtins.primitive_get_attached_stack_trace throwable
 
     ## ---
        private: true
@@ -147,7 +149,7 @@ type Panic
                      Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
        ```
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
-    catch panic_type ~action handler = @Builtin_Method "Panic.catch"
+    catch panic_type ~action handler = Error_Builtins.panic_catch panic_type action handler
 
     ## ---
        private: true
@@ -314,8 +316,7 @@ type Caught_Panic
        ---
        Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
-    convert_to_dataflow_error : Error
-    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+    convert_to_dataflow_error self -> Error = Error_Builtins.convert_to_dataflow_error self
 
     ## ---
        icon: metadata
