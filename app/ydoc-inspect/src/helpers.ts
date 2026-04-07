@@ -3,7 +3,7 @@ import * as Y from 'yjs'
 interface ChannelMeta {
   id: string
   channelName: string
-  type: 'json' | 'binary'
+  type: 'json' | 'data'
   createdAt: number
 }
 
@@ -12,11 +12,32 @@ interface MetaEntry {
   dir: 'send' | 'receive'
 }
 
-export interface LogEntry {
+interface LogEntry {
   ts: number
   dir: 'send' | 'receive'
   channel: string
   data: unknown | Uint8Array
+}
+
+function formatTime(ts: number): string {
+  const date = new Date(ts)
+  // 'en-GB' ensures 24-hour HH:MM:SS format for fixed-length output across locales.
+  const hms = date.toLocaleTimeString('en-GB', { hour12: false })
+  const ms = String(date.getMilliseconds()).padStart(3, '0')
+  return `${hms}.${ms}`
+}
+
+function formatData(data: unknown): string {
+  return data instanceof Uint8Array ?
+      `<${data.byteLength} bytes>`
+    : JSON.stringify(data).slice(0, 200)
+}
+
+export function formatEntry(entry: LogEntry): string {
+  const time = formatTime(entry.ts)
+  const arrow = entry.dir === 'send' ? '>>' : '<<'
+  const channel = entry.channel
+  return `${time}|${channel} ${arrow} ${formatData(entry.data)}`
 }
 
 /**
@@ -112,12 +133,7 @@ export function createHelpers(doc: Y.Doc) {
           }
           const raw = logArray.get(lastLen)
           const data = parseData(raw)
-          const arrow = meta.dir === 'send' ? '>>' : '<<'
-          const displayData =
-            data instanceof Uint8Array ?
-              `<binary ${data.byteLength} bytes>`
-            : JSON.stringify(data).slice(0, 200)
-          console.log(`[${id}] ${arrow} ${displayData}`)
+          console.log(formatEntry({ ts: meta.ts, dir: meta.dir, channel: id, data }))
           lastLen++
         }
       }
@@ -126,7 +142,7 @@ export function createHelpers(doc: Y.Doc) {
       cleanups.push(() => metaArray.unobserve(handler))
     }
 
-    console.log(`Watching ${ids.length} channel(s). Call the returned function to stop.`)
+    console.log(`Watching ${ids.length} channel(s). Call unwatch() to stop.`)
     return () => {
       for (const cleanup of cleanups) cleanup()
       console.log('Stopped watching.')

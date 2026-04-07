@@ -1,5 +1,5 @@
 import { InspectClient } from './client.js'
-import { createHelpers, type LogEntry } from './helpers.js'
+import { createHelpers, formatEntry } from './helpers.js'
 
 function parseArgs(): { host: string; port: string; watch: boolean } {
   const args = process.argv.slice(2)
@@ -14,17 +14,10 @@ function parseArgs(): { host: string; port: string; watch: boolean } {
   return { host, port, watch }
 }
 
-function printEntry(entry: LogEntry): void {
-  const arrow = entry.dir === 'send' ? '>>' : '<<'
-  const data =
-    entry.data instanceof Uint8Array ?
-      `<binary ${entry.data.byteLength} bytes>`
-    : JSON.stringify(entry.data).slice(0, 200)
-  console.log(`[${entry.channel}] ${arrow} ${data}`)
-}
-
 const RETRY_INTERVAL_MS = 2000
 const SYNC_TIMEOUT_MS = 5000
+/* The number of yjs channels created when gui connects to the Language Server. */
+const INITIAL_CHANNELS_NUMBER = 3
 
 const { host, port, watch } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
@@ -57,18 +50,19 @@ g['unwatch'] = () => {
   }
 }
 
-console.log(`ydoc-inspect: connecting to ${url}`)
-console.log('Open chrome://inspect to attach DevTools')
-console.log('')
-console.log('Available commands:')
-console.log('  channels()                   - List all registered channels')
-console.log('  messages(channelId?, n?)     - Get messages (optionally for a channel, last n)')
-console.log('  filter(channelId?, pattern?) - Filter messages by regex (string or RegExp)')
-console.log('  send(channelId, msg)         - Send a message to the client as Language Server')
-console.log('  receive(channelId, msg)      - Send a message to Language Server as client')
-console.log('  watch(channelId?)            - Watch live messages (returns stop function)')
-console.log('  unwatch()                    - Stop watching live messages')
-console.log('')
+console.log(`
+ydoc-inspect: connecting to ${url}
+Open chrome://inspect to attach DevTools
+
+Available commands:
+  channels()                   - List all registered channels
+  messages(channelId?, n?)     - Get messages (optionally for a channel, last n)
+  filter(channelId?, pattern?) - Filter messages by regex (string or RegExp)
+  send(channelId, msg)         - Send a message to the client as Language Server
+  receive(channelId, msg)      - Send a message to Language Server as client
+  watch(channelId?)            - Watch live messages (returns stop function)
+  unwatch()                    - Stop watching live messages
+`)
 
 async function connectWithRetry(): Promise<void> {
   while (true) {
@@ -77,13 +71,13 @@ async function connectWithRetry(): Promise<void> {
       console.log('Connected. Syncing inspect data...')
       await new Promise<void>((resolve) => {
         const channelsMap = client.doc.getMap('channels')
-        if (channelsMap.size >= 3) {
+        if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
           resolve()
           return
         }
         const timeout = setTimeout(resolve, SYNC_TIMEOUT_MS)
         const handler = () => {
-          if (channelsMap.size >= 3) {
+          if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
             clearTimeout(timeout)
             channelsMap.unobserve(handler)
             resolve()
@@ -105,7 +99,7 @@ async function connectWithRetry(): Promise<void> {
         if (existing.length > 0) {
           console.log(`\n--- ${existing.length} historical message(s) ---`)
           for (const entry of existing) {
-            printEntry(entry)
+            console.log(formatEntry(entry))
           }
           console.log('--- live messages ---\n')
         }
@@ -114,7 +108,7 @@ async function connectWithRetry(): Promise<void> {
       return
     } catch {
       console.log(
-        `Waiting for ydoc-server at ${url} ... (retrying every ${RETRY_INTERVAL_MS / 1000}s)`,
+        `Waiting for ydoc-server at ${url} ... (retrying in ${RETRY_INTERVAL_MS / 1000}s)`,
       )
       await new Promise<void>((resolve) => setTimeout(resolve, RETRY_INTERVAL_MS))
     }

@@ -6,7 +6,7 @@ import { WSSharedDoc, YjsConnection, type YjsSocket } from './ydoc'
 interface ChannelMeta {
   id: string
   channelName: string
-  type: 'json' | 'binary'
+  type: 'json' | 'data'
   createdAt: number
 }
 
@@ -57,7 +57,7 @@ export class InspectManager {
       onConnect: (channel: YjsChannel<JavaByteBuffer, unknown>) => {
         this.registerChannel(
           channel,
-          'binary',
+          'data',
           (m) => toBinary(m),
           (v) => this.fromBinary(v),
         )
@@ -76,7 +76,7 @@ export class InspectManager {
 
   private registerChannel<TMessage, TStored extends string | Uint8Array>(
     channel: YjsChannel<TMessage, unknown>,
-    type: 'json' | 'binary',
+    type: 'json' | 'data',
     toLog: ToLog<TMessage, TStored>,
     fromCmd: FromCmd<TMessage, TStored>,
   ): void {
