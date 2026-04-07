@@ -21,7 +21,8 @@ public class LoggingServiceManager {
       Path logPath,
       String logFileSuffix,
       LoggingServer config,
-      ExecutionContext ec) {
+      ExecutionContext ec,
+      String projectId) {
     if (loggingService != null) {
       throw new LoggingServiceAlreadySetup();
     } else {
@@ -42,7 +43,7 @@ public class LoggingServiceManager {
               var server = LoggingServiceFactory.get().localServerFor(port);
               loggingService = server;
               return new LoggingServerConfig(
-                  currentLevel, server.start(logLevel, logPath, logFileSuffix, config));
+                  currentLevel, server.start(logLevel, logPath, logFileSuffix, config, projectId));
             },
             ec);
       } else {

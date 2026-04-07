@@ -25,7 +25,7 @@ object LanguageServerApp {
     logLevel: Level,
     daemonize: Boolean
   ): Unit = {
-    setupLogging(logLevel, config.logMasking)
+    setupLogging(logLevel, config.logMasking, config.projectId)
     val server = new LanguageServerComponent(config, logLevel)
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       stop(server, "shutdown hook")(config.computeExecutionContext)
@@ -69,8 +69,12 @@ object LanguageServerApp {
   }
 
   /** Setup the logging server. */
-  private def setupLogging(logLevel: Level, logMasking: Boolean): Unit = {
-    Logging.setup(logLevel, logMasking)
+  private def setupLogging(
+    logLevel: Level,
+    logMasking: Boolean,
+    projectId: java.util.UUID
+  ): Unit = {
+    Logging.setup(logLevel, logMasking, projectId.toString())
     Logging.waitForSetup()
   }
 }

@@ -46,9 +46,11 @@ public abstract class LoggerSetup {
    * @param logLevel the maximal level of logs that will be written
    * @param logRoot the root directory where logs are located
    * @param logPrefix the prefix used in the name of the log file
+   * @param projectId id of project or {@code null}
    * @return true if logger was setup correctly, false otherwise
    */
-  public abstract boolean setupFileAppender(Level logLevel, Path logRoot, String logPrefix);
+  public abstract boolean setupFileAppender(
+      Level logLevel, Path logRoot, String logPrefix, String projectId);
 
   /**
    * Setup writing logger's log event to a plain console.
@@ -92,7 +94,7 @@ public abstract class LoggerSetup {
    * @return true if logger was setup correctly, false otherwise
    * @throws MissingConfigurationField if application's config has been mis-configured
    */
-  public abstract boolean setup() throws MissingConfigurationField;
+  public abstract boolean setup(String projectId) throws MissingConfigurationField;
 
   /**
    * Sets up logging according to the application's config file while taking into account the
@@ -102,7 +104,7 @@ public abstract class LoggerSetup {
    * @return true if logger was setup correctly, false otherwise
    * @throws MissingConfigurationField if application's config has been mis-configured
    */
-  public abstract boolean setup(Level logLevel) throws MissingConfigurationField;
+  public abstract boolean setup(Level logLevel, String projectId) throws MissingConfigurationField;
 
   /**
    * Sets up logging according to the provided application's config file and log level. If the
@@ -118,7 +120,11 @@ public abstract class LoggerSetup {
    * @throws MissingConfigurationField if application's config has been mis-configured
    */
   public abstract boolean setup(
-      Level logLevel, Path logRoot, String logPrefix, LoggingServiceConfig config);
+      Level logLevel,
+      Path logRoot,
+      String logPrefix,
+      LoggingServiceConfig config,
+      String projectId);
 
   /** Shuts down all loggers. */
   public abstract void teardown();

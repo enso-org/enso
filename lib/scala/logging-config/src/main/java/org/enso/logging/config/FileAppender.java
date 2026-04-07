@@ -64,15 +64,19 @@ public final class FileAppender extends Appender {
   }
 
   @Override
-  public boolean setup(Level logLevel, LoggerSetup appenderSetup) {
+  public boolean setup(Level logLevel, LoggerSetup appenderSetup, String projectId) {
     return appenderSetup.setupFileAppender(
-        logLevel, logLocation.logRoot(), logLocation.logPrefix());
+        logLevel, logLocation.logRoot(), logLocation.logPrefix(), projectId);
   }
 
   @Override
   public boolean setupForPath(
-      Level logLevel, Path componentLogPath, String componentLogPrefix, LoggerSetup loggerSetup) {
-    return loggerSetup.setupFileAppender(logLevel, componentLogPath, componentLogPrefix);
+      Level logLevel,
+      Path componentLogPath,
+      String componentLogPrefix,
+      LoggerSetup loggerSetup,
+      String projectId) {
+    return loggerSetup.setupFileAppender(logLevel, componentLogPath, componentLogPrefix, projectId);
   }
 
   @Override

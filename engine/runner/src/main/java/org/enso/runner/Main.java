@@ -1585,7 +1585,8 @@ public class Main {
             .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
     var hasJVMOption = line.hasOption(JVM_OPTION);
-    setupLoggingContext(line);
+    var projectId = findProjectId(line);
+    setupLoggingContext(line, projectId);
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       // Setup application-ls.conf as the default config file
       // https://github.com/lightbend/config?tab=readme-ov-file#standard-behavior
@@ -1596,7 +1597,7 @@ public class Main {
         // avoid setting up logger in SVM
         // as we are about to fully run in HotSpot
       } else {
-        setupLogging(line, logLevel, logMasking);
+        setupLogging(line, logLevel, logMasking, projectId);
       }
     }
 
@@ -1661,18 +1662,7 @@ public class Main {
     }
   }
 
-  private void setupLoggingContext(CommandLine line) {
-    String projectId;
-    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
-    try {
-      // sanity check
-      projectId =
-          projectIdOptional != null
-              ? UUID.fromString(projectIdOptional).toString()
-              : "00000000-0000-0000-0000-000000000000";
-    } catch (IllegalArgumentException e) {
-      projectId = "00000000-0000-0000-0000-000000000000";
-    }
+  private void setupLoggingContext(CommandLine line, String projectId) {
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
       MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
     } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
@@ -1688,10 +1678,25 @@ public class Main {
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
     }
     MDC.put("projectLocalId", projectId);
-    System.setProperty("enso.project.local.id", projectId);
   }
 
-  private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {
+  private static String findProjectId(CommandLine line) {
+    String projectId;
+    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+    try {
+      // sanity check
+      projectId =
+          projectIdOptional != null
+              ? UUID.fromString(projectIdOptional).toString()
+              : "00000000-0000-0000-0000-000000000000";
+    } catch (IllegalArgumentException e) {
+      projectId = "00000000-0000-0000-0000-000000000000";
+    }
+    return projectId;
+  }
+
+  private Level setupLogging(
+      CommandLine line, Level logLevel, boolean[] logMasking, String projectId) {
     URI connectionUri;
     if (line.getOptionValue(LOGGER_CONNECT) != null) {
       connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
@@ -1699,7 +1704,7 @@ public class Main {
       connectionUri = null;
     }
     logMasking[0] = !line.hasOption(NO_LOG_MASKING);
-    RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
+    RunnerLogging.setup(connectionUri, logLevel, logMasking[0], projectId);
     return logLevel;
   }
 

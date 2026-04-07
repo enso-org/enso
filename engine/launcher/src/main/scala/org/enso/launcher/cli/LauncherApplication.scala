@@ -708,7 +708,8 @@ object LauncherApplication {
         LauncherLogging.setup(
           logLevel,
           connectLogger,
-          !disableLogMasking
+          !disableLogMasking,
+          null
         )
         initializeApp()
 

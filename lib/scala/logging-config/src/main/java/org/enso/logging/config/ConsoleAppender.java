@@ -20,18 +20,18 @@ public final class ConsoleAppender extends Appender {
   }
 
   @Override
-  public boolean setup(Level logLevel, LoggerSetup appenderSetup) {
+  public boolean setup(Level logLevel, LoggerSetup appenderSetup, String projectId) {
     return appenderSetup.setupConsoleAppender(logLevel);
   }
 
   @Override
   public boolean setupForPath(
-      Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup) {
+      Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup, String projectId) {
     LogToFile logToFileOpt = loggerSetup.getConfig().logToFile();
     if (logToFileOpt.enabled()) {
       Level minLevel =
           Level.intToLevel(Math.min(logToFileOpt.logLevel().toInt(), logLevel.toInt()));
-      loggerSetup.setupFileAppender(minLevel, logRoot, logPrefix);
+      loggerSetup.setupFileAppender(minLevel, logRoot, logPrefix, projectId);
     }
     return loggerSetup.setupConsoleAppender(logLevel);
   }

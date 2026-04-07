@@ -22,7 +22,8 @@ public abstract class LoggingService<T> {
    * @param config config for the server log target
    * @return
    */
-  public abstract T start(Level level, Path logRoot, String logPrefix, BaseConfig config);
+  public abstract T start(
+      Level level, Path logRoot, String logPrefix, BaseConfig config, String projectId);
 
   /** Set logger for a specific project in shutdown mode */
   public abstract void teardown(UUID projectId);
