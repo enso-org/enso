@@ -92,9 +92,7 @@ function getWindowsDocumentsPath() {
   const out = childProcess.spawnSync(
     'powershell',
     [
-      '-NoProfile',
-      '-Command',
-      '$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); [Environment]::GetFolderPath("MyDocuments")',
+      '[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes([Environment]::GetFolderPath("MyDocuments")))',
     ],
     { timeout: CHILD_PROCESS_TIMEOUT },
   )
@@ -109,7 +107,8 @@ function getWindowsDocumentsPath() {
     return undefined
   }
 
-  const result = out.stdout.toString('utf8').trim() || undefined
+  const resultBase64 = out.stdout.toString().trim() || undefined
+  const result = resultBase64 ? Buffer.from(resultBase64, 'base64').toString('utf8') : undefined
   pathDiagnostics('getWindowsDocumentsPath.result', {
     result,
   })
