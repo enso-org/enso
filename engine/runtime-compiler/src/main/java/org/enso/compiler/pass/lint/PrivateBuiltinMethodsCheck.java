@@ -115,6 +115,8 @@ public final class PrivateBuiltinMethodsCheck implements MiniPassFactory {
           case "Panic.throw" -> true; // it needs proper stack trace
           case "Debug.eval" -> true; // it needs surrounding context
           case "Debug.breakpoint" -> true; // it needs surrounding context
+          case "Warning.value" -> true; // doesn't pass self type check
+          case "Warning.origin" -> true; // doesn't pass self type check
           default -> false;
         };
   }

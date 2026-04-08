@@ -287,7 +287,7 @@ type Warning
        ---
        Returns the warning value – usually its explanation or other contents.
     value : Any
-    value self = Runtime_Helpers.warn_value self
+    value self = @Builtin_Method "Warning.value"
 
     ## ---
        advanced: true
@@ -296,7 +296,7 @@ type Warning
        ---
        A stack trace for the original warning creation.
     origin : Vector Stack_Trace_Element
-    origin self = Runtime_Helpers.warn_origin self
+    origin self = @Builtin_Method "Warning.origin"
 
     to_text self = self.value.to_text
 
