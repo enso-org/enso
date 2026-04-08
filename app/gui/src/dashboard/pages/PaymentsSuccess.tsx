@@ -3,12 +3,16 @@ import { Button } from '#/components/Button'
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
+import {
+  clearPendingCheckoutTargetPlan,
+  getPendingCheckoutTargetPlan,
+} from '#/modules/payments/pendingCheckout'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
-import { useRouter, useText, useUserSession } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 import * as analytics from '$/utils/analytics'
 import { useQueryClient } from '@tanstack/react-query'
-import { BackendType, Plan } from 'enso-common/src/services/Backend'
+import { BackendType } from 'enso-common/src/services/Backend'
 import { useEffect, useRef } from 'react'
 import { toast } from 'react-toastify'
 
@@ -21,7 +25,6 @@ export function PaymentsSuccess() {
   const queryClient = useQueryClient()
   const { getText } = useText()
   const { refetchSession } = useAuth()
-  const oldSession = useUserSession()
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -34,6 +37,12 @@ export function PaymentsSuccess() {
 
   useMount(() => {
     const promise = (async () => {
+      const targetPlan = getPendingCheckoutTargetPlan()
+      if (targetPlan == null) {
+        await router.push(DASHBOARD_PATH)
+        return
+      }
+
       const startEpochMs = Number(new Date())
       // Extracted into a function to disable flow typing, because `isMounted.current` may be mutated.
       const getIsMounted = () => isMounted.current
@@ -46,12 +55,8 @@ export function PaymentsSuccess() {
         if (!getIsMounted()) {
           throw new Error('Operation cancelled.')
         }
-        if (
-          session &&
-          'user' in session &&
-          session.user.plan !==
-            (oldSession && 'user' in oldSession ? oldSession.user.plan : Plan.free)
-        ) {
+        if (session && 'user' in session && session.user.plan === targetPlan) {
+          clearPendingCheckoutTargetPlan()
           // Invalidate "users me" query as the user has changed the plan.
           await queryClient.invalidateQueries({
             queryKey: [BackendType.remote, 'usersMe'],
@@ -90,6 +95,7 @@ export function PaymentsSuccess() {
         <Button
           variant="delete"
           onPress={async () => {
+            clearPendingCheckoutTargetPlan()
             await router.push(DASHBOARD_PATH)
           }}
         >
