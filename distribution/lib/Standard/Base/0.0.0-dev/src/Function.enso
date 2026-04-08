@@ -186,4 +186,4 @@ uncurry f = (pair -> f pair.first pair.second)
 Any.|> : (Any -> Any) -> Any
 Any.|> self ~function = function self
 
-private pipe fn arg = @Builtin_Method "Function.<|"
+private pipe fn ~arg = @Builtin_Method "Function.<|"
