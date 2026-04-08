@@ -131,7 +131,7 @@ public final class EnsoDateTime extends BuiltinObject {
 
   @Builtin.Method(description = "Gets the millisecond")
   public static long millisecond(EnsoDateTime dt) {
-    return dt.microsecond();
+    return dt.millisecond();
   }
 
   @CompilerDirectives.TruffleBoundary
