@@ -25,7 +25,10 @@ public final class LanguageServerRunner extends LanguageServerApi {
       throws WrongOption {
     pathDiagnostics(
         "runLanguageServer",
-        "logLevel=" + quote(logLevel.name()) + ", daemonize=" + line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
+        "logLevel="
+            + quote(logLevel.name())
+            + ", daemonize="
+            + line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
     var config = parseServerOptions(line, prof);
     LanguageServerApp.run(config, logLevel, line.hasOption(LanguageServerApi.DAEMONIZE_OPTION));
   }
@@ -106,7 +109,8 @@ public final class LanguageServerRunner extends LanguageServerApi {
 
   private static String stringDiagnostics(String value) {
     var codePoints =
-        value.codePoints()
+        value
+            .codePoints()
             .mapToObj(codePoint -> String.format("\"U+%04X\"", codePoint))
             .reduce((left, right) -> left + "," + right)
             .orElse("");

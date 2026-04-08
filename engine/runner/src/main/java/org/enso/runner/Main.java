@@ -1117,6 +1117,7 @@ public class Main {
 
   /** Default log level to use if the LOG_LEVEL option is not provided. */
   private static final Level defaultLogLevel = Level.WARN;
+
   private static final String PATH_DIAGNOSTICS_LABEL = "PATH_DIAGNOSTICS";
 
   /**
@@ -1131,9 +1132,7 @@ public class Main {
 
   private static void pathDiagnostics(String[] args) {
     var joinedArgs =
-        Arrays.stream(args)
-            .map(Main::stringDiagnostics)
-            .collect(Collectors.joining(","));
+        Arrays.stream(args).map(Main::stringDiagnostics).collect(Collectors.joining(","));
     System.err.println(
         "["
             + PATH_DIAGNOSTICS_LABEL
@@ -1149,7 +1148,8 @@ public class Main {
 
   private static String stringDiagnostics(String value) {
     var codePoints =
-        value.codePoints()
+        value
+            .codePoints()
             .mapToObj(codePoint -> String.format("\"U+%04X\"", codePoint))
             .collect(Collectors.joining(","));
     return "{\"value\":"

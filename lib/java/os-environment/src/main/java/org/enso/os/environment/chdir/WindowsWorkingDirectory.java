@@ -2,7 +2,6 @@ package org.enso.os.environment.chdir;
 
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.StackValue;
@@ -10,7 +9,6 @@ import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.struct.CPointerTo;
 import org.graalvm.nativeimage.c.struct.SizeOf;
-import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
 import org.slf4j.Logger;
@@ -21,7 +19,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
   static final WindowsWorkingDirectory INSTANCE = new WindowsWorkingDirectory();
   private static final Logger LOGGER = LoggerFactory.getLogger(WindowsWorkingDirectory.class);
 
-  // Windows MAX_PATH is 260, but GetCurrentDirectoryW can return up to 32767 characters if the path is prefixed with \\?\.
+  // Windows MAX_PATH is 260, but GetCurrentDirectoryW can return up to 32767 characters if the path
+  // is prefixed with \\?\.
   private static final int MAX_LENGTH = 32767;
 
   @Override
@@ -81,8 +80,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
   }
 
   @CPointerTo(nameOfCType = "wchar_t")
-  interface WCharPointer extends PointerBase {
-  }
+  interface WCharPointer extends PointerBase {}
 
   private static CharBuffer asCharBuffer(WCharPointer wcString, int length) {
     /*
@@ -90,7 +88,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
      * format on Windows, so we can simply wrap wide strings without any conversion.
      */
     return CTypeConversion.asByteBuffer(wcString, length * SizeOf.get(WCharPointer.class))
-        .order(ByteOrder.LITTLE_ENDIAN).asCharBuffer();
+        .order(ByteOrder.LITTLE_ENDIAN)
+        .asCharBuffer();
   }
 
   /**
