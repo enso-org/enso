@@ -249,8 +249,7 @@ type Duration
 
              example_seconds = Examples.duration.seconds
        ```
-    seconds : Integer
-    seconds self = Date_Helpers.duration_seconds self
+    seconds self -> Integer = Date_Helpers.duration_seconds self
 
     ## ---
        group: Metadata
@@ -266,8 +265,7 @@ type Duration
 
              example_minutes = Examples.duration.minutes
        ```
-    minutes : Integer
-    minutes self = Date_Helpers.duration_minutes
+    minutes self -> Integer = Date_Helpers.duration_minutes self
 
     ## ---
        group: Metadata
@@ -283,8 +281,7 @@ type Duration
 
              example_hours = Examples.duration.milliseconds
        ```
-    hours : Integer
-    hours self = Date_Helpers.duration_hours
+    hours self -> Integer = Date_Helpers.duration_hours self
 
     ## ---
        group: DateTime
