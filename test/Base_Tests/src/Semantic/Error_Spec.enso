@@ -95,7 +95,7 @@ add_specs suite_builder =
 
         group_builder.specify "should implement to_text" <|
             Error.throw Nothing . to_text . should_equal "(Error: Nothing)"
-            Error.to_text self=Error . should_equal "Error"
+            Any.to_text self=Error . should_equal "Error"
             case (Error.to_text self=_) of
                 _ : Function -> Nothing
                 _ -> Test.fail "Expected the expression to be of Function type"
