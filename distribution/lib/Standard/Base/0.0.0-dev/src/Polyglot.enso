@@ -130,7 +130,7 @@ type Polyglot
        also other objects to specify their allocation sites.
        This method will throw a polyglot exception if
        `Polyglot.has_source_location value` returns `False`.
-    get_source_location value -> Source_Location = Polyglot_Helpers.get_source_location value
+    get_source_location value -> Source_Location = Source_Location.Value (Polyglot_Helpers.get_source_location value)
 
     ## ---
        private: true
