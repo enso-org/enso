@@ -17,9 +17,9 @@ public class GetMembersNode extends Node {
 
   Object execute(Object object) {
     try {
-      return library.getMembers(object);
+      return ArrayLikeHelpers.asVectorFromArray(library.getMembers(object));
     } catch (UnsupportedMessageException e) {
-      return ArrayLikeHelpers.empty();
+      return ArrayLikeHelpers.asVectorEmpty();
     }
   }
 }
