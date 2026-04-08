@@ -92,10 +92,10 @@ public final class EnsoTimeOfDay extends BuiltinObject {
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
-  public EnsoTimeOfDay plus(Object durationObject, InteropLibrary interop)
+  public static EnsoTimeOfDay plus(EnsoTimeOfDay tod, Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     assert interop.isDuration(durationObject);
-    return new EnsoTimeOfDay(localTime.plus(interop.asDuration(durationObject)));
+    return new EnsoTimeOfDay(tod.localTime.plus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(
@@ -104,10 +104,11 @@ public final class EnsoTimeOfDay extends BuiltinObject {
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
-  public EnsoTimeOfDay minus(Object durationObject, InteropLibrary interop)
+  public static EnsoTimeOfDay minus(
+      EnsoTimeOfDay tod, Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     assert interop.isDuration(durationObject);
-    return new EnsoTimeOfDay(localTime.minus(interop.asDuration(durationObject)));
+    return new EnsoTimeOfDay(tod.localTime.minus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(description = "Gets a value second")

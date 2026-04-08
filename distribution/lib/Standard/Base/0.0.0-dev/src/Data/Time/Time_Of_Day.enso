@@ -413,7 +413,7 @@ type Time_Of_Day
     + : Duration | Time_Period -> Time_Of_Day ! Time_Error
     + self (amount : Duration | Time_Period) =
         case amount of
-            duration : Duration -> self.plus_builtin duration
+            duration : Duration -> Date_Helpers.tod_plus self duration
             time_period : Time_Period ->
                 self + time_period.to_duration
 
@@ -448,7 +448,7 @@ type Time_Of_Day
     - : Duration | Time_Period -> Time_Of_Day ! Time_Error
     - self amount:(Duration | Time_Period) =
         case amount of
-            duration : Duration -> self.minus_builtin duration
+            duration : Duration -> Date_Helpers.tod_minus self duration
             time_period : Time_Period ->
                 self - time_period.to_duration
 
