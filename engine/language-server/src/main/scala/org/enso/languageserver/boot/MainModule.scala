@@ -575,6 +575,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     ydoc.shutdownNow()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
+    MDC.remove("projectLocalId")
     MDC.remove("projectId")
     MDC.remove("projectSessionId")
   }

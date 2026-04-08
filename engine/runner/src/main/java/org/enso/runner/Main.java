@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -1661,10 +1662,21 @@ public class Main {
   }
 
   private void setupLoggingContext(CommandLine line) {
-    if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
+    String projectId;
+    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+    try {
+      // sanity check
+      projectId =
+          projectIdOptional != null
+              ? UUID.fromString(projectIdOptional).toString()
+              : "00000000-0000-0000-0000-000000000000";
+    } catch (IllegalArgumentException e) {
+      projectId = "00000000-0000-0000-0000-000000000000";
+    }
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
+      MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
+    } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
       MDC.put("projectId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
-    } else if (line.hasOption(LanguageServerApi.PROJECT_ID_OPTION)) {
-      MDC.put("projectId", line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION));
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
       MDC.put(
@@ -1675,6 +1687,8 @@ public class Main {
           "projectSessionId",
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
     }
+    MDC.put("projectLocalId", projectId);
+    System.setProperty("enso.project.local.id", projectId);
   }
 
   private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {

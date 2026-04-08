@@ -25,7 +25,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.enso.logging.config.*;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.slf4j.event.Level;
 
 public final class LogbackSetup extends LoggerSetup {
@@ -186,7 +185,7 @@ public final class LogbackSetup extends LoggerSetup {
         if (logPrefix == null) {
           logPrefix = "enso";
         }
-        var projectId = MDC.get("projectId");
+        var projectId = resolveProjectId();
         var now = LocalDateTime.now();
         var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
@@ -234,7 +233,7 @@ public final class LogbackSetup extends LoggerSetup {
       } else {
         fileAppender = new FileAppender<>();
         fileAppender.setName("enso-file");
-        var projectId = MDC.get("projectId");
+        var projectId = resolveProjectId();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String currentDate = LocalDate.now().format(dtf);
         String fullFilePath;
@@ -464,4 +463,16 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   private static final String LANG_PREFIX = "enso";
+  private static final String NULL_UUID = "00000000-0000-0000-0000-000000000000";
+
+  private static String resolveProjectId() {
+    String id = System.getenv("ENSO_CLOUD_PROJECT_ID");
+    if (id == null || id.isEmpty()) {
+      id = System.getProperty("enso.project.local.id");
+    }
+    if (id == null || id.isEmpty() || id.equals(NULL_UUID)) {
+      return null;
+    }
+    return id;
+  }
 }
