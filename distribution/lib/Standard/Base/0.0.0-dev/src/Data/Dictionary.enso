@@ -266,7 +266,7 @@ type Dictionary key value
        ```
     @key key_widget
     get : Any -> Any -> Any
-    get self key ~if_missing=Nothing = self.get_builtin key if_missing
+    get self key ~if_missing=Nothing = Array_Like_Helpers.dict_get_builtin self key if_missing
 
     ## ---
        group: Logical
