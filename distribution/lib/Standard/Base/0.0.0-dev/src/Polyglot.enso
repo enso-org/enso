@@ -3,6 +3,7 @@
    running on the same JVM.
 
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
@@ -47,7 +48,7 @@ type Polyglot
        ## Arguments
         - `callable`: The polyglot function object to execute.
         - `arguments`: A vector of arguments to callable.
-    execute callable arguments:Vector = Polyglot_Helpers.execute callable arguments
+    execute callable (arguments:Vector|Array) = Polyglot_Helpers.execute callable arguments
 
     ## ---
        private: true
@@ -98,7 +99,7 @@ type Polyglot
        ```
             Polyglot.new Integer [1]
        ```
-    new constructor arguments:Vector = Polyglot_Helpers.new constructor arguments
+    new constructor (arguments:Vector|Array) = Polyglot_Helpers.new constructor arguments
 
     ## ---
        private: true
@@ -110,7 +111,7 @@ type Polyglot
         - `target`: The polyglot object on which to call the method.
         - `name`: The name of the method.
         - `arguments`: The arguments to pass to the method given by name.
-    invoke target name:Text arguments:Vector = Polyglot_Helpers.invoke target name arguments
+    invoke target name:Text (arguments:Vector|Array) = Polyglot_Helpers.invoke target name arguments
 
     ## ---
        private: true
