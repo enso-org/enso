@@ -10,8 +10,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Prim_Text_Helper",
     name = "optimize",
-    description = "Forces flattening of a text value, for testing purposes.",
-    autoRegister = false)
+    description = "Forces flattening of a text value, for testing purposes.")
 public abstract class OptimizeNode extends Node {
   private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 

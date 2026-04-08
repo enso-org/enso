@@ -25,8 +25,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(
     type = "IO",
     name = "print_err",
-    description = "Prints its argument to standard error.",
-    autoRegister = false)
+    description = "Prints its argument to standard error.")
 public abstract class PrintErrNode extends Node {
   static PrintErrNode build() {
     return PrintErrNodeGen.create();

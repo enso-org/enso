@@ -271,7 +271,7 @@ public class MethodDefinition {
   }
 
   public boolean isAutoRegister() {
-    return annotation.autoRegister();
+    return false;
   }
 
   public interface ArgumentDefinition {

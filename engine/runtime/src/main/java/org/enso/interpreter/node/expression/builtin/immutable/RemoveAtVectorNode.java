@@ -12,8 +12,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 @BuiltinMethod(
     type = "Array_Like_Helpers",
     name = "remove_builtin",
-    description = "Removes a value for the vector at the specified index.",
-    autoRegister = false)
+    description = "Removes a value for the vector at the specified index.")
 abstract class RemoveAtVectorNode extends Node {
   static RemoveAtVectorNode build() {
     return RemoveAtVectorNodeGen.create();

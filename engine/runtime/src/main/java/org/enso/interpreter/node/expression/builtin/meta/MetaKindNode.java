@@ -12,11 +12,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 
-@BuiltinMethod(
-    type = "Meta",
-    name = "get_kind_builtin",
-    description = "Finds kind of a value",
-    autoRegister = false)
+@BuiltinMethod(type = "Meta", name = "get_kind_builtin", description = "Finds kind of a value")
 final class MetaKindNode extends Node {
   final Object execute(@AcceptsError Object value) {
     if (value instanceof Atom) {

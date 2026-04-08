@@ -12,8 +12,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 @BuiltinMethod(
     type = "Meta",
     name = "get_short_type_name",
-    description = "Gets the short name of a Type.",
-    autoRegister = false)
+    description = "Gets the short name of a Type.")
 public class GetShortTypeNameNode extends Node {
   Object execute(Object metaObject) {
     if (metaObject instanceof Type type) {

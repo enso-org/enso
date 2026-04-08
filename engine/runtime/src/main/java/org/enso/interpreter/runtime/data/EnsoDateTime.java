@@ -32,15 +32,12 @@ public final class EnsoDateTime extends BuiltinObject {
     return "Date_Time";
   }
 
-  @Builtin.Method(
-      name = "epoch_start",
-      description = "Return the Enso start of the Epoch",
-      autoRegister = false)
+  @Builtin.Method(name = "epoch_start", description = "Return the Enso start of the Epoch")
   public static EnsoDateTime epochStart() {
     return epochStart;
   }
 
-  @Builtin.Method(description = "Return current DateTime", autoRegister = false)
+  @Builtin.Method(description = "Return current DateTime")
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
     return new EnsoDateTime(ZonedDateTime.now());
@@ -48,8 +45,7 @@ public final class EnsoDateTime extends BuiltinObject {
 
   @Builtin.Method(
       name = "new_builtin",
-      description = "Constructs a new Date from a year, month, and day",
-      autoRegister = false)
+      description = "Constructs a new Date from a year, month, and day")
   @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime create(

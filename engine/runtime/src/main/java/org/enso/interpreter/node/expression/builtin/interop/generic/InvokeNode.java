@@ -18,8 +18,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 @BuiltinMethod(
     type = "Polyglot",
     name = "invoke",
-    description = "Invokes a polyglot method by name, dispatching by the target argument.",
-    autoRegister = false)
+    description = "Invokes a polyglot method by name, dispatching by the target argument.")
 public abstract class InvokeNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

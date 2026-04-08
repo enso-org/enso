@@ -52,9 +52,11 @@ public abstract class MethodNodeClassGenerator {
       out.println("import " + ownerClazz.fullyQualifiedName() + ";");
       out.println();
       String moduleOwnerInfo = "";
+      /*
       if (!isAutoRegister) {
         moduleOwnerInfo = ", autoRegister = " + isAutoRegister;
       }
+      */
       if (needsFrame != null) {
         moduleOwnerInfo = moduleOwnerInfo + ", inlineable = " + !needsFrame;
       }

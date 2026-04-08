@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 @BuiltinMethod(
     type = "Polyglot",
     name = "new",
-    description = "Instantiates a polyglot constructor.",
-    autoRegister = false)
+    description = "Instantiates a polyglot constructor.")
 public abstract class InstantiateNode extends Node {
   @Child private HostValueToEnsoNode fromHost = HostValueToEnsoNode.build();
   private @Child InteropLibrary library =

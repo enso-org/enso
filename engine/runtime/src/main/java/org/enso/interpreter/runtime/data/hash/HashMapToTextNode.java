@@ -19,8 +19,7 @@ import org.enso.interpreter.runtime.EnsoContext;
     description =
         """
         Returns text representation of this hash map
-        """,
-    autoRegister = false)
+        """)
 public abstract class HashMapToTextNode extends Node {
 
   public static HashMapToTextNode build() {

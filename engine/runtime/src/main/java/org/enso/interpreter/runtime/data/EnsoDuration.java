@@ -34,8 +34,7 @@ public final class EnsoDuration extends BuiltinObject {
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds",
-      autoRegister = false)
+          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds")
   @TruffleBoundary
   public static EnsoDuration create(
       long hours, long minutes, long seconds, long milliseconds, long nanoseconds) {
@@ -52,8 +51,7 @@ public final class EnsoDuration extends BuiltinObject {
       name = "between_builtin",
       description =
           "Construct a new Duration that is between the given start date inclusive, and end date"
-              + " exclusive",
-      autoRegister = false)
+              + " exclusive")
   @Builtin.Specialize
   @TruffleBoundary
   public static EnsoDuration between(

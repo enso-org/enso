@@ -32,10 +32,7 @@ public final class EnsoTimeOfDay extends BuiltinObject {
     return "Time_Of_Day";
   }
 
-  @Builtin.Method(
-      name = "new_builtin",
-      description = "Constructs a new Time_OF_Day from an hour",
-      autoRegister = false)
+  @Builtin.Method(name = "new_builtin", description = "Constructs a new Time_OF_Day from an hour")
   @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay create(long hour, long minute, long second, long nanosecond) {
@@ -47,7 +44,7 @@ public final class EnsoTimeOfDay extends BuiltinObject {
             Math.toIntExact(nanosecond)));
   }
 
-  @Builtin.Method(description = "Gets a value of hour", autoRegister = false)
+  @Builtin.Method(description = "Gets a value of hour")
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay now() {
     return new EnsoTimeOfDay(LocalTime.now());

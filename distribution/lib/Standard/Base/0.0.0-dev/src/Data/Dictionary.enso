@@ -189,7 +189,7 @@ type Dictionary key value
     @value (make_all_selector ..Always)
     insert : Any -> Any -> Boolean -> Dictionary
     insert self key=(Missing_Argument.throw "key") value=(Missing_Argument.throw "value") no_warning:Boolean=False =
-        new_dict = self.insert_builtin key value
+        new_dict = Array_Like_Helpers.dict_insert self key value
         case key of
             key_as_float : Float ->
                 if no_warning then new_dict else

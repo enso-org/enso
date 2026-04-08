@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.EnsoContext;
         """
         Gets a value from the dictionary on the specified key, or the given default.
         """,
-    autoRegister = false,
     inlineable = true)
 @GenerateUncached
 public abstract class HashMapGetNode extends Node {

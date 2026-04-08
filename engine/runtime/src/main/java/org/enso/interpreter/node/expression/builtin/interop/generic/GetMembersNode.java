@@ -10,8 +10,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_members",
-    description = "Returns a polyglot array of the object's member names.",
-    autoRegister = false)
+    description = "Returns a polyglot array of the object's member names.")
 public class GetMembersNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

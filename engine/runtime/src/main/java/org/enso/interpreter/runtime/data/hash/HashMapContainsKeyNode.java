@@ -14,8 +14,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     description =
         """
         Returns True if the hash map contains mapping with the given key, False otherwise.
-        """,
-    autoRegister = false)
+        """)
 @GenerateUncached
 public abstract class HashMapContainsKeyNode extends Node {
 

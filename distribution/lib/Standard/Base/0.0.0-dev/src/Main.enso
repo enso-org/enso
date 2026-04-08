@@ -98,6 +98,8 @@ export project.Data.Text.Extensions.substring
 export project.Data.Text.Extensions.take
 export project.Data.Text.Extensions.to_case
 export project.Data.Text.Extensions.to_regex
+export project.Data.Text.Extensions.to_text
+export project.Data.Text.Extensions.to_display_text
 export project.Data.Text.Extensions.tokenize
 export project.Data.Text.Extensions.trim
 export project.Data.Text.Extensions.utf_8

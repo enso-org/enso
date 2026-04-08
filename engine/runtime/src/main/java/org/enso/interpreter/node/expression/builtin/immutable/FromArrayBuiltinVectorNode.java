@@ -12,8 +12,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 @BuiltinMethod(
     type = "Vector",
     name = "from_array",
-    description = "Creates a Vector by copying Array content.",
-    autoRegister = false)
+    description = "Creates a Vector by copying Array content.")
 abstract class FromArrayBuiltinVectorNode extends Node {
   static FromArrayBuiltinVectorNode build() {
     return FromArrayBuiltinVectorNodeGen.create();
