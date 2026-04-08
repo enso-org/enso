@@ -218,7 +218,7 @@ type Dictionary key value
     @key key_widget
     remove : Any -> Dictionary ! No_Such_Key
     remove self key=(Missing_Argument.throw "key") =
-        Panic.catch Any (self.remove_builtin key) _->
+        Panic.catch Any (Array_Like_Helpers.dict_remove self key) _->
             Error.throw (No_Such_Key.Error self key)
 
     ## ---

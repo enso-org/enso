@@ -32,7 +32,7 @@ public abstract class HashMapRemoveNode extends Node {
     return HashMapRemoveNodeGen.create();
   }
 
-  public abstract EnsoHashMap execute(VirtualFrame frame, Object self, Object key);
+  public abstract EnsoHashMap execute(VirtualFrame frame, Object dict, Object key);
 
   @Specialization
   EnsoHashMap removeFromEnsoMap(
