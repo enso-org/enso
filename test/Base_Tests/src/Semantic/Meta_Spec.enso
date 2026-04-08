@@ -436,7 +436,10 @@ add_specs suite_builder =
             expected_methods . should_only_contain_elements_in <| Meta.meta (Meta.type_of Integer) . methods
 
         group_builder.specify "methods of Any" <|
-            Meta.meta Any . methods . should_contain "to_text"
+            Meta.meta Any . methods . should_contain "=="
+            Meta.meta Any . methods . should_contain "!="
+            Meta.meta Any . methods . should_contain "to"
+            Meta.meta Any . methods . length . should_equal 3
 
         group_builder.specify "name of Panic" <|
             Meta.meta Panic . name . should_equal "Panic"
