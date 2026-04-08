@@ -35,12 +35,16 @@ add_specs suite_builder =
             test = 1 == 2
             test.method . should_equal test
 
+        lazy x = x
+
         group_builder.specify "should short-circuit ||" <|
             ((1 == 1) || (crash)) . should_equal True
             ((1 == 0) || (1 == 1)) . should_equal True
             ((1 == 0) || (crash)) . should_fail_with My_Error
-            ((1 == 1) || "foo") . should_equal True
+            Test.expect_panic_with ((1 == 1) || "foo") Type_Error
             Test.expect_panic_with ((1 == 0) || "foo") Type_Error
+            ((1 == 1) || lazy "foo") . should_be_true
+            Test.expect_panic_with ((1 == 0) || lazy "foo") Type_Error
 
         group_builder.specify "should short-circuit &&" <|
             ((1 == 0) && (crash)) . should_equal False
@@ -49,6 +53,8 @@ add_specs suite_builder =
             ((1 == 1) && (crash)) . should_fail_with My_Error
             Test.expect_panic_with ((1 == 0) && "foo") Type_Error
             Test.expect_panic_with ((1 == 1) && "foo") Type_Error
+            ((1 == 0) && lazy "foo") . should_be_false
+            Test.expect_panic_with ((1 == 1) && lazy "foo") Type_Error
 
 main filter=Nothing =
     suite = Test.build suite_builder->
