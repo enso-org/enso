@@ -14,7 +14,6 @@ import project.Internal.Runtime_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
-import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output

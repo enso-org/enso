@@ -55,8 +55,7 @@ type Panic
                  other_panic -> Panic.throw other_panic
        ```
     throw : Any -> Panic
-    throw payload =
-        @Tail_Call Error_Builtins.panic_throw payload
+    throw payload = @Builtin_Method "Panic.throw"
 
     ## ---
        private: true

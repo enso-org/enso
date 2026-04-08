@@ -19,8 +19,7 @@ import project.Nothing.Nothing
    ```
         Standard.Base.Runtime.Debug.breakpoint
    ```
-breakpoint -> Nothing = 
-    @Tail_Call Runtime_Helpers.breakpoint
+breakpoint -> Nothing = @Builtin_Method "Debug.breakpoint"
 
 ## ---
    private: true
@@ -43,5 +42,4 @@ breakpoint -> Nothing =
    ### Scoping
    The fact that expression is evaluated in the caller frame means that it has
    access to variables in the scope enclosing the call to Debug.eval.
-eval expression:Text =
-    @Tail_Call Runtime_Helpers.eval expression
+eval expression:Text = @Builtin_Method "Debug.eval"

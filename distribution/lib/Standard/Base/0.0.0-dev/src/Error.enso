@@ -41,7 +41,7 @@ type Error
        ```
              Error.throw "Oops"
        ```
-    throw payload -> Error = error_throw payload
+    throw payload -> Error = @Builtin_Method "Error.throw"
 
     ## ---
        private: true@Builtin_Method "Error.get_stack_trace_text"

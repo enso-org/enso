@@ -6,6 +6,7 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
+import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -87,7 +88,7 @@ public final class PrivateBuiltinMethodsCheck implements MiniPassFactory {
                   case Expression expr -> expr;
                 };
             if (UnusedBindings$.MODULE$.isBuiltinMethod(body)) {
-              if (!methodDef.isPrivate()) {
+              if (!methodDef.isPrivate() && !isAllowed(body)) {
                 body.getDiagnostics()
                     .add(new Warning.NonPrivateBuiltinMethod(body.identifiedLocation()));
               }
@@ -98,5 +99,23 @@ public final class PrivateBuiltinMethodsCheck implements MiniPassFactory {
       }
       return moduleIr;
     }
+  }
+
+  /**
+   * Some (hopefully as small as possible) set of {@code Builtin_Method}s has to be allowed. This
+   * function contains the crafted list of such allowed method names.
+   *
+   * @param body the element to check - should be {@link Literal}
+   * @return {@code true} if the builtin method is allowed in public API
+   */
+  private static boolean isAllowed(Expression body) {
+    return (body instanceof Literal.Text txt)
+        && switch (txt.text()) {
+          case "Error.throw" -> true; // it needs property location
+          case "Panic.throw" -> true; // it needs proper stack trace
+          case "Debug.eval" -> true; // it needs surrounding context
+          case "Debug.breakpoint" -> true; // it needs surrounding context
+          default -> false;
+        };
   }
 }

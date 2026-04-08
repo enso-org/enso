@@ -88,6 +88,7 @@ export project.Data.Text.Extensions.parse_integer
 export project.Data.Text.Extensions.parse_json
 export project.Data.Text.Extensions.parse_time_of_day
 export project.Data.Text.Extensions.parse_time_zone
+export project.Data.Text.Extensions.pretty
 export project.Data.Text.Extensions.repeat
 export project.Data.Text.Extensions.replace
 export project.Data.Text.Extensions.reverse
