@@ -866,7 +866,7 @@ type Date_Time
     + self (amount : Duration | Period | Time_Period | Date_Period) =
         case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
+                Panic.catch ArithmeticException (Date_Helpers.date_time_plus self duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
             time_period : Time_Period ->
@@ -951,7 +951,7 @@ type Date_Time
     - self amount:(Duration | Period | Time_Period | Date_Period) =
         result = case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
+                Panic.catch ArithmeticException (Date_Helpers.date_time_minus self duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
             time_period : Time_Period ->

@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Text.Text
+import project.Data.Text.Extensions
 import project.Data.Vector.Vector
 import project.Internal.Error_Builtins
 import project.Meta

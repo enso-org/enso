@@ -164,7 +164,8 @@ date_time_nanosecond dt include = @Builtin_Method "Date_Time.nanoseconds_builtin
 date_time_zone dt = @Builtin_Method "Date_Time.zone"
 date_time_date dt = @Builtin_Method "Date_Time.date"
 date_time_of_day dt = @Builtin_Method "Date_Time.time_of_day"
-
+date_time_plus dt d = @Builtin_Method "Date_Time.plus_builtin"
+date_time_minus dt d = @Builtin_Method "Date_Time.minus_builtin"
 
 ## ---
    private: true
