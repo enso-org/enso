@@ -1,4 +1,5 @@
 from project.Semantic.Type_Refinement.Hidden_Conversions import all
+from Standard.Base.Data.Text.Extensions import all
 
 type A
     A_Ctor x
