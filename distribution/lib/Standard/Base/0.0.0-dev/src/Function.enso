@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Vector.Vector
+import project.Internal.Boolean_Helpers
 import project.Nothing.Nothing
 
 ## A function is any type that represents a not-yet evaluated computation.
@@ -34,7 +35,7 @@ type Function
        argument to a function. This means that you can compute more sophisticated
        values in-line, as shown in the example below.
     <| : Any -> Any
-    <| self ~argument = pipe self argument
+    <| self ~argument = Boolean_Helpers.fn_apply self argument
 
     ## ---
        advanced: true
@@ -185,5 +186,3 @@ uncurry f = (pair -> f pair.first pair.second)
    In these contexts we recommend using `|>`.
 Any.|> : (Any -> Any) -> Any
 Any.|> self ~function = function self
-
-private pipe fn ~arg = @Builtin_Method "Function.<|"
