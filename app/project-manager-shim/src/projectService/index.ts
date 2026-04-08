@@ -171,8 +171,8 @@ export class ProjectService {
     if (!cloud) {
       const localSessionId = `localprojectsession-${KSUID.randomSync().string}`
       return [
-        ['ENSO_CLOUD_PROJECT_ID', projectId],
-        ['ENSO_CLOUD_PROJECT_SESSION_ID', localSessionId],
+        ['ENSO_LOCAL_PROJECT_ID', projectId],
+        ['ENSO_LOCAL_PROJECT_SESSION_ID', localSessionId],
       ]
     }
     return [

@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -1662,21 +1661,20 @@ public class Main {
   }
 
   private void setupLoggingContext(CommandLine line) {
-    String projectId;
-    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
-    try {
-      // sanity check
-      projectId =
-          projectIdOptional != null
-              ? UUID.fromString(projectIdOptional).toString()
-              : "00000000-0000-0000-0000-000000000000";
-    } catch (IllegalArgumentException e) {
-      projectId = "00000000-0000-0000-0000-000000000000";
-    }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
       MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
     } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
       MDC.put("projectId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
+    }
+    if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
+      // In hybrid projects, the cloud project ID has precedence over the local project ID
+      // because Cloud does not store the local project ID, and it is generated every time the
+      // project is started.
+      MDC.put("projectLocalId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
+    } else if (System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_ID_ENV_NAME) != null) {
+      MDC.put("projectLocalId", System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_ID_ENV_NAME));
+    } else if (line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION) != null) {
+      MDC.put("projectLocalId", line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION));
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
       MDC.put(
@@ -1686,9 +1684,11 @@ public class Main {
       MDC.put(
           "projectSessionId",
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
+    } else if (System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME) != null) {
+      MDC.put(
+          "projectSessionId",
+          System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME));
     }
-    MDC.put("projectLocalId", projectId);
-    System.setProperty("enso.project.local.id", projectId);
   }
 
   private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {
