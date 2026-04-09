@@ -375,6 +375,45 @@ public class ExportedSymbolsTest {
     }
   }
 
+  @Test
+  public void exportExtensionHidingTheRightMethod() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            Raw_Type.wrong_method = 33
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      try {
+
+        var mainValue =
+            ctx.evalModule(
+                """
+                import local.Enhancing.Raw_Module.Raw_Type
+                from local.Enhancing.Ext_Module import all hiding enhanced_method
+
+                main = Raw_Type.enhanced_method
+                """);
+        fail("Expecting exception, not a value: " + mainValue);
+      } catch (PolyglotException ex) {
+        assertEquals(
+            "Method `enhanced_method` of type Raw_Type could not be found.", ex.getMessage());
+      }
+    }
+  }
+
   private static ContextUtils createCtx(Path projDir) {
     return ContextUtils.newBuilder().withProjectRoot(projDir).build();
   }

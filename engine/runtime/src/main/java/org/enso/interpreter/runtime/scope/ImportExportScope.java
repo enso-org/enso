@@ -12,29 +12,36 @@ import org.enso.interpreter.runtime.data.Type;
  * A proxy scope delegating to the underlying module's scope. Additionally, `ImportExportScope` may
  * limit the number of types that are imported/exported.
  */
-public class ImportExportScope extends EnsoObject {
+public final class ImportExportScope extends EnsoObject {
 
   private final Module module;
   private final List<String> onlyNames;
+  private final List<String> hiddenNames;
 
-  public ImportExportScope(CompilerContext.Module module, List<String> typesOnlyNames) {
+  public ImportExportScope(
+      CompilerContext.Module module, List<String> onlyNames, List<String> hiddenNames) {
     this.module = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    this.onlyNames = typesOnlyNames != null && !typesOnlyNames.isEmpty() ? typesOnlyNames : null;
-  }
-
-  public ImportExportScope(CompilerContext.Module module) {
-    this.module = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    this.onlyNames = null;
+    this.onlyNames = onlyNames != null && !onlyNames.isEmpty() ? onlyNames : null;
+    this.hiddenNames = hiddenNames != null && !hiddenNames.isEmpty() ? hiddenNames : null;
   }
 
   private boolean isValidTypeOrSymbol(Type type, String symbol) {
     if (onlyNames == null) {
+      if (hiddenNames != null) {
+        if (symbol != null && hiddenNames.contains(symbol)) {
+          return false;
+        }
+        if (hiddenNames.contains(type.getName())) {
+          return false;
+        }
+      }
       return true;
+    } else {
+      if (onlyNames.contains(type.getName()) && module.getScope().hasType(type)) {
+        return true;
+      }
+      return symbol != null && onlyNames.contains(symbol);
     }
-    if (onlyNames.contains(type.getName()) && module.getScope().hasType(type)) {
-      return true;
-    }
-    return symbol != null && onlyNames.contains(symbol);
   }
 
   private boolean isValidType(Type type) {
