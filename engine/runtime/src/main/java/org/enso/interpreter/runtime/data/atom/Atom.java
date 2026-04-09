@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -388,6 +389,7 @@ public abstract class Atom extends EnsoObject {
         InteropLibrary.getUncached(),
         WarningsLibrary.getUncached(),
         InteropLibrary.getUncached(),
+        AnyToTextNode.getUncached(),
         BranchProfile.getUncached());
   }
 
@@ -397,11 +399,16 @@ public abstract class Atom extends EnsoObject {
       @CachedLibrary("this") InteropLibrary atoms,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached AnyToTextNode toAnyText,
       @Cached BranchProfile handleError) {
     Object result = null;
     String msg;
     try {
-      result = atoms.invokeMember(this, Constants.Names.TO_TEXT);
+      try {
+        result = atoms.invokeMember(this, Constants.Names.TO_TEXT);
+      } catch (UnknownIdentifierException ex) {
+        result = toAnyText.execute(this);
+      }
       if (warnings.hasWarnings(result)) {
         result = warnings.removeWarnings(result);
       }
@@ -419,7 +426,6 @@ public abstract class Atom extends EnsoObject {
     } catch (AbstractTruffleException
         | UnsupportedMessageException
         | ArityException
-        | UnknownIdentifierException
         | UnsupportedTypeException panic) {
       handleError.enter();
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);

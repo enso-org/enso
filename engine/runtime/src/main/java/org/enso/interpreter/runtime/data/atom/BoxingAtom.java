@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.List;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -99,6 +100,7 @@ final class BoxingAtom extends Atom {
         InteropLibrary.getUncached(),
         WarningsLibrary.getUncached(),
         InteropLibrary.getUncached(),
+        AnyToTextNode.getUncached(),
         BranchProfile.getUncached());
   }
 
