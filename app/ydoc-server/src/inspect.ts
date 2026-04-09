@@ -121,92 +121,79 @@ export class InspectManager {
     return bb
   }
 
+  /**
+   * Observes a Y.Array for new items, consumes them (deletes after reading),
+   * and forwards each value to the provided callback.
+   * @returns A cleanup function that removes the observer.
+   */
+  private observeAndConsume<TStored>(
+    arrayName: string,
+    onItem: (value: TStored) => void,
+  ): () => void {
+    const array = this.inspectDoc.doc.getArray<TStored>(arrayName)
+    const senderId = `inspect-${arrayName}`
+
+    const handler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
+      if (transaction.origin === senderId) return
+
+      const inserted: { index: number; value: TStored }[] = []
+      let pos = 0
+      for (const delta of event.changes.delta) {
+        if (delta.retain) pos += delta.retain
+        if (delta.insert) {
+          const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
+          for (const item of items) {
+            inserted.push({ index: pos, value: item })
+            pos++
+          }
+        }
+      }
+
+      this.inspectDoc.doc.transact(() => {
+        for (let i = inserted.length - 1; i >= 0; i--) {
+          array.delete(inserted[i]!.index, 1)
+        }
+      }, senderId)
+
+      for (const { value } of inserted) {
+        onItem(value)
+      }
+    }
+
+    array.observe(handler)
+    return () => array.unobserve(handler)
+  }
+
+  /** Forwards commands from the inspect client to the real channel as outgoing messages. */
   private setupCommandForwarding<TMessage, TStored extends string | Uint8Array>(
     channelId: string,
     realChannel: YjsChannel<TMessage, unknown>,
     fromCmd: FromCmd<TMessage, TStored>,
   ): () => void {
-    const cmdArray = this.inspectDoc.doc.getArray<TStored>(`snd:${channelId}`)
-    const cmdSenderId = `inspect-snd-${channelId}`
-
-    const handler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
-      if (transaction.origin === cmdSenderId) return
-
-      const inserted: { index: number; value: TStored }[] = []
-      let pos = 0
-      for (const delta of event.changes.delta) {
-        if (delta.retain) pos += delta.retain
-        if (delta.insert) {
-          const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
-          for (const item of items) {
-            inserted.push({ index: pos, value: item })
-            pos++
-          }
-        }
+    return this.observeAndConsume<TStored>(`snd:${channelId}`, (value) => {
+      try {
+        realChannel.send(fromCmd(value))
+      } catch (e) {
+        console.error(`Failed to forward inspect command to ${channelId}:`, e)
       }
-
-      this.inspectDoc.doc.transact(() => {
-        for (let i = inserted.length - 1; i >= 0; i--) {
-          cmdArray.delete(inserted[i]!.index, 1)
-        }
-      }, cmdSenderId)
-
-      for (const { value } of inserted) {
-        try {
-          realChannel.send(fromCmd(value))
-        } catch (e) {
-          console.error(`Failed to forward inspect command to ${channelId}:`, e)
-        }
-      }
-    }
-
-    cmdArray.observe(handler)
-    return () => cmdArray.unobserve(handler)
+    })
   }
 
+  /** Forwards commands from the inspect client to the real channel as incoming messages. */
   private setupReceiveForwarding<TMessage, TStored extends string | Uint8Array>(
     channelId: string,
     realChannel: YjsChannel<TMessage, unknown>,
     fromCmd: FromCmd<TMessage, TStored>,
   ): () => void {
-    const rcvArray = this.inspectDoc.doc.getArray<TStored>(`rcv:${channelId}`)
-    const rcvSenderId = `inspect-rcv-${channelId}`
-
-    const handler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
-      if (transaction.origin === rcvSenderId) return
-
-      const inserted: { index: number; value: TStored }[] = []
-      let pos = 0
-      for (const delta of event.changes.delta) {
-        if (delta.retain) pos += delta.retain
-        if (delta.insert) {
-          const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
-          for (const item of items) {
-            inserted.push({ index: pos, value: item })
-            pos++
-          }
-        }
+    return this.observeAndConsume<TStored>(`rcv:${channelId}`, (value) => {
+      try {
+        const message = fromCmd(value)
+        realChannel.notifyHandlers(message)
+        realChannel.notifyTaps(message, 'receive')
+      } catch (e) {
+        console.error(`Failed to forward inspect receive to ${channelId}:`, e)
       }
-
-      this.inspectDoc.doc.transact(() => {
-        for (let i = inserted.length - 1; i >= 0; i--) {
-          rcvArray.delete(inserted[i]!.index, 1)
-        }
-      }, rcvSenderId)
-
-      for (const { value } of inserted) {
-        try {
-          const message = fromCmd(value)
-          realChannel.notifyHandlers(message)
-          realChannel.notifyTaps(message, 'receive')
-        } catch (e) {
-          console.error(`Failed to forward inspect receive to ${channelId}:`, e)
-        }
-      }
-    }
-
-    rcvArray.observe(handler)
-    return () => rcvArray.unobserve(handler)
+    })
   }
 }
 
