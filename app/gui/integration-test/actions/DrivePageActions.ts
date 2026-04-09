@@ -1,5 +1,6 @@
 /** @file Actions for the "drive" page. */
 import { expect, type Locator, type Page } from 'integration-test/base'
+import { assert } from 'ydoc-shared/util/assert'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
@@ -183,7 +184,9 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
       /** Click the background to deselect all rows. */
       clickAway() {
         return self.step('Click drive table background', async (page) => {
-          await page.getByTestId('assets-table-assets-unselector').first().click()
+          const lastRowBbox = await page.getByTestId('asset-row').last().boundingBox()
+          assert(lastRowBbox != null)
+          await page.mouse.click(lastRowBbox.x + 40, lastRowBbox.y + lastRowBbox.height + 40)
         })
       },
       /**
