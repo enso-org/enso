@@ -1,5 +1,5 @@
 import { InspectClient } from './client.js'
-import { createHelpers, formatEntry } from './helpers.js'
+import { createHelpers, exposeGlobals, formatEntry } from './helpers.js'
 
 function parseArgs(): { host: string; port: string; watch: boolean; truncate: number } {
   const args = process.argv.slice(2)
@@ -24,34 +24,12 @@ const INITIAL_CHANNELS_NUMBER = 3
 const { host, port, watch, truncate } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
 
-const client = new InspectClient()
-const helpers = createHelpers(client.doc, truncate)
+let client: InspectClient
+let helpers: ReturnType<typeof createHelpers>
+let globals: ReturnType<typeof exposeGlobals>
+let connecting = false
 
-let unwatchFn: (() => void) | undefined
-
-// Expose as globals for Chrome DevTools console
-const g = globalThis as Record<string, unknown>
-g['client'] = client
-g['doc'] = client.doc
-g['channels'] = helpers.channels
-g['messages'] = helpers.messages
-g['filter'] = helpers.filter
-g['send'] = helpers.send
-g['receive'] = helpers.receive
-g['watch'] = (channelId?: string) => {
-  if (unwatchFn) unwatchFn()
-  unwatchFn = helpers.watch(channelId)
-  return unwatchFn
-}
-g['unwatch'] = () => {
-  if (unwatchFn) {
-    unwatchFn()
-    unwatchFn = undefined
-  } else {
-    console.log('Not currently watching.')
-  }
-}
-
+// Motd
 console.log(`
 ydoc-inspect: connecting to ${url}
 Open chrome://inspect to attach DevTools
@@ -66,12 +44,15 @@ Available commands:
   unwatch()                    - Stop watching live messages
 `)
 
-let connecting = false
-
 async function connectWithRetry(): Promise<void> {
   if (connecting) return
   connecting = true
   try {
+    if (globals) globals.unwatch()
+    client = new InspectClient()
+    client.onDisconnect = () => connectWithRetry()
+    helpers = createHelpers(client.doc, truncate)
+    globals = exposeGlobals(client, helpers)
     while (true) {
       try {
         await client.connect(url)
@@ -100,6 +81,7 @@ async function connectWithRetry(): Promise<void> {
           }
         } else {
           console.log('No channels registered. Make sure ydoc-server is running in debug mode.')
+          return
         }
         if (watch) {
           const existing = helpers.messages()
@@ -110,7 +92,7 @@ async function connectWithRetry(): Promise<void> {
             }
             console.log('--- live messages ---\n')
           }
-          unwatchFn = helpers.watch()
+          globals.watch()
         }
         return
       } catch {
@@ -123,10 +105,6 @@ async function connectWithRetry(): Promise<void> {
   } finally {
     connecting = false
   }
-}
-
-client.onDisconnect = () => {
-  connectWithRetry()
 }
 
 connectWithRetry()

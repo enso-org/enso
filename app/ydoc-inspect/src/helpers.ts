@@ -1,4 +1,5 @@
 import * as Y from 'yjs'
+import type { InspectClient } from './client.js'
 
 interface ChannelMeta {
   id: string
@@ -151,4 +152,38 @@ export function createHelpers(doc: Y.Doc, truncate: number) {
   }
 
   return { channels, messages, filter, send, receive, watch }
+}
+
+/**
+ * Expose inspect client and helpers as globals for Chrome DevTools console.
+ * Returns `watch` / `unwatch` closures that track the current watcher.
+ */
+export function exposeGlobals(client: InspectClient, helpers: ReturnType<typeof createHelpers>) {
+  const g = globalThis as Record<string, unknown>
+  let unwatchFn: (() => void) | undefined
+
+  g['client'] = client
+  g['channels'] = helpers.channels
+  g['messages'] = helpers.messages
+  g['filter'] = helpers.filter
+  g['send'] = helpers.send
+  g['receive'] = helpers.receive
+  g['watch'] = (channelId?: string) => {
+    if (unwatchFn) unwatchFn()
+    unwatchFn = helpers.watch(channelId)
+    return unwatchFn
+  }
+  g['unwatch'] = () => {
+    if (unwatchFn) {
+      unwatchFn()
+      unwatchFn = undefined
+    } else {
+      console.log('Not currently watching.')
+    }
+  }
+
+  return {
+    watch: g['watch'] as (channelId?: string) => () => void,
+    unwatch: g['unwatch'] as () => void,
+  }
 }
