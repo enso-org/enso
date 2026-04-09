@@ -99,7 +99,7 @@ async function connectWithRetry(): Promise<void> {
             console.log(`  ${ch.id} (${ch.type}) - ${ch.channelName}`)
           }
         } else {
-          console.log('No channels registered yet. Connect an IDE client to see channels.')
+          console.log('No channels registered. Make sure ydoc-server is running in debug mode.')
         }
         if (watch) {
           const existing = helpers.messages()
