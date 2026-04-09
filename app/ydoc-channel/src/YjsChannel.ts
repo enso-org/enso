@@ -303,7 +303,8 @@ export class YjsChannel<
 
   /**
    * Notifies all subscribed handlers with the received message.
-   * @internal Used by {@link InspectManager} to inject messages. Not part of the public API.
+   * Used by {@link InspectManager} to inject messages. Not part of the public API.
+   * @internal
    */
   notifyHandlers(message: TMessage): void {
     // Create a MessageEvent-like object for WebSocket compatibility
@@ -325,7 +326,8 @@ export class YjsChannel<
 
   /**
    * Notifies all tap handlers with the message and direction.
-   * @internal Used by {@link InspectManager} to inject messages. Not part of the public API.
+   * Used by {@link InspectManager} to inject messages. Not part of the public API.
+   * @internal
    */
   notifyTaps(message: TMessage, direction: TapDirection): void {
     for (const handler of this.tapHandlers) {

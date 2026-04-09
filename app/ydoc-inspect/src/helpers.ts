@@ -33,6 +33,7 @@ function formatData(data: unknown, maxLen: number): string {
   return maxLen > 0 && json.length > maxLen ? json.slice(0, maxLen) + '...' : json
 }
 
+/** Format a log entry as a single line: `HH:MM:SS.mmm|channel >> data`. */
 export function formatEntry(entry: LogEntry, maxLen: number): string {
   const time = formatTime(entry.ts)
   const arrow = entry.dir === 'send' ? '>>' : '<<'

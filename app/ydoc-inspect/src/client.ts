@@ -11,10 +11,12 @@ export class InspectClient {
   private provider: WebsocketProvider | null = null
   onDisconnect: (() => void) | null = null
 
+  /** Create a new InspectClient with a fresh Y.Doc. */
   constructor() {
     this.doc = new Y.Doc()
   }
 
+  /** Whether the WebSocket connection is currently active. */
   get connected(): boolean {
     return this.provider?.wsconnected ?? false
   }
