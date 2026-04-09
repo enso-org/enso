@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,6 +22,7 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -298,6 +300,45 @@ public class ExportedSymbolsTest {
               main = Raw_Type.enhanced_method
               """);
       assertEquals(42, mainValue.asInt());
+    }
+  }
+
+  @Test
+  public void exportExtensionWrongMethod() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            Raw_Type.wrong_method = 33
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      try {
+
+        var mainValue =
+            ctx.evalModule(
+                """
+                import local.Enhancing.Raw_Module.Raw_Type
+                from local.Enhancing.Ext_Module import wrong_method
+
+                main = Raw_Type.enhanced_method
+                """);
+        fail("Expecting exception, not a value: " + mainValue);
+      } catch (PolyglotException ex) {
+        assertEquals(
+            "Method `enhanced_method` of type Raw_Type could not be found.", ex.getMessage());
+      }
     }
   }
 
