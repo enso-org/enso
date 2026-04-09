@@ -420,9 +420,11 @@ private[runtime] class IrToTruffle(
       resolvedModule: ResolvedModule
     ): ImportExportScope = {
       val mod = resolvedModule.module.unsafeAsModule()
-      val d = resolvedImport.importDef
-      val onlyNamesOrNull = d.onlyNames.map(only => only.map(_.name).asJava).getOrElse(null)
-      val hiddenNamesOrNull = d.hiddenNames.map(hide => hide.map(_.name).asJava).getOrElse(null)
+      val d   = resolvedImport.importDef
+      val onlyNamesOrNull =
+        d.onlyNames.map(only => only.map(_.name).asJava).getOrElse(null)
+      val hiddenNamesOrNull =
+        d.hiddenNames.map(hide => hide.map(_.name).asJava).getOrElse(null)
       new ImportExportScope(mod, onlyNamesOrNull, hiddenNamesOrNull)
     }
   }
