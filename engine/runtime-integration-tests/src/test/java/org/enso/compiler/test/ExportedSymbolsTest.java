@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -233,6 +234,70 @@ public class ExportedSymbolsTest {
       assertThat(
           mainExportedSymbols.get("Synthetic_Module").get(0),
           is(instanceOf(BindingsMap.ResolvedModule.class)));
+    }
+  }
+
+  @Test
+  public void exportExtensionMethodViaAll() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import all
+
+              main = Raw_Type.enhanced_method
+              """);
+      assertEquals(42, mainValue.asInt());
+    }
+  }
+
+  @Test
+  public void exportExtensionMethodByName() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import enhanced_method
+
+              main = Raw_Type.enhanced_method
+              """);
+      assertEquals(42, mainValue.asInt());
     }
   }
 
