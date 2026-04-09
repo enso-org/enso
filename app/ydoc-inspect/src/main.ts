@@ -64,54 +64,62 @@ Available commands:
   unwatch()                    - Stop watching live messages
 `)
 
+let connecting = false
+
 async function connectWithRetry(): Promise<void> {
-  while (true) {
-    try {
-      await client.connect(url)
-      console.log('Connected. Syncing inspect data...')
-      await new Promise<void>((resolve) => {
-        const channelsMap = client.doc.getMap('channels')
-        if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
-          resolve()
-          return
-        }
-        const timeout = setTimeout(resolve, SYNC_TIMEOUT_MS)
-        const handler = () => {
+  if (connecting) return
+  connecting = true
+  try {
+    while (true) {
+      try {
+        await client.connect(url)
+        console.log('Connected. Syncing inspect data...')
+        await new Promise<void>((resolve) => {
+          const channelsMap = client.doc.getMap('channels')
           if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
-            clearTimeout(timeout)
-            channelsMap.unobserve(handler)
             resolve()
+            return
           }
-        }
-        channelsMap.observe(handler)
-      })
-      const channels = helpers.channels()
-      if (channels.length > 0) {
-        console.log(`Found ${channels.length} channel(s):`)
-        for (const ch of channels) {
-          console.log(`  ${ch.id} (${ch.type}) - ${ch.channelName}`)
-        }
-      } else {
-        console.log('No channels registered yet. Connect an IDE client to see channels.')
-      }
-      if (watch) {
-        const existing = helpers.messages()
-        if (existing.length > 0) {
-          console.log(`\n--- ${existing.length} historical message(s) ---`)
-          for (const entry of existing) {
-            console.log(formatEntry(entry))
+          const timeout = setTimeout(resolve, SYNC_TIMEOUT_MS)
+          const handler = () => {
+            if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
+              clearTimeout(timeout)
+              channelsMap.unobserve(handler)
+              resolve()
+            }
           }
-          console.log('--- live messages ---\n')
+          channelsMap.observe(handler)
+        })
+        const channels = helpers.channels()
+        if (channels.length > 0) {
+          console.log(`Found ${channels.length} channel(s):`)
+          for (const ch of channels) {
+            console.log(`  ${ch.id} (${ch.type}) - ${ch.channelName}`)
+          }
+        } else {
+          console.log('No channels registered yet. Connect an IDE client to see channels.')
         }
-        unwatchFn = helpers.watch()
+        if (watch) {
+          const existing = helpers.messages()
+          if (existing.length > 0) {
+            console.log(`\n--- ${existing.length} historical message(s) ---`)
+            for (const entry of existing) {
+              console.log(formatEntry(entry))
+            }
+            console.log('--- live messages ---\n')
+          }
+          unwatchFn = helpers.watch()
+        }
+        return
+      } catch {
+        console.log(
+          `Waiting for ydoc-server at ${url} ... (retrying in ${RETRY_INTERVAL_MS / 1000}s)`,
+        )
+        await new Promise<void>((resolve) => setTimeout(resolve, RETRY_INTERVAL_MS))
       }
-      return
-    } catch {
-      console.log(
-        `Waiting for ydoc-server at ${url} ... (retrying in ${RETRY_INTERVAL_MS / 1000}s)`,
-      )
-      await new Promise<void>((resolve) => setTimeout(resolve, RETRY_INTERVAL_MS))
     }
+  } finally {
+    connecting = false
   }
 }
 
