@@ -414,6 +414,43 @@ public class ExportedSymbolsTest {
     }
   }
 
+  @Test
+  public void exportConversionWhileHidingSomething() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            from Standard.Base import Integer
+            import project.Raw_Module.Raw_Type
+
+            something = 33
+            Integer.from (_:Raw_Type) = 42
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              from Standard.Base import Integer
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import all hiding something
+
+              main =
+                  fourtyTwo = Raw_Type:Integer
+                  fourtyTwo
+              """);
+      assertEquals("Conversion from Raw_Type to Integer found", 42, mainValue.asInt());
+    }
+  }
+
   private static ContextUtils createCtx(Path projDir) {
     return ContextUtils.newBuilder().withProjectRoot(projDir).build();
   }
