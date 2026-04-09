@@ -25,7 +25,7 @@ type FromCmd<TMessage, TStored> = (value: TStored) => TMessage
 export class InspectManager {
   private readonly inspectDoc: WSSharedDoc
   private readonly channelsMap: Y.Map<ChannelMeta>
-  private readonly registeredChannels = new Map<string, { untap: () => void }>()
+  private readonly registeredChannels = new Map<string, { cleanup: () => void }>()
   private readonly byteBufferClass: JavaByteBufferClass
   private channelCounter = 0
 
@@ -100,9 +100,18 @@ export class InspectManager {
       })
     })
 
-    this.setupCommandForwarding(id, channel, fromCmd)
-    this.setupReceiveForwarding(id, channel, fromCmd)
-    this.registeredChannels.set(id, { untap })
+    const unobserveSnd = this.setupCommandForwarding(id, channel, fromCmd)
+    const unobserveRcv = this.setupReceiveForwarding(id, channel, fromCmd)
+
+    const cleanup = () => {
+      untap()
+      unobserveSnd()
+      unobserveRcv()
+      this.registeredChannels.delete(id)
+    }
+
+    channel.on('close', () => cleanup())
+    this.registeredChannels.set(id, { cleanup })
   }
 
   private fromBinary(data: Uint8Array): JavaByteBuffer {
@@ -116,11 +125,11 @@ export class InspectManager {
     channelId: string,
     realChannel: YjsChannel<TMessage, unknown>,
     fromCmd: FromCmd<TMessage, TStored>,
-  ): void {
+  ): () => void {
     const cmdArray = this.inspectDoc.doc.getArray<TStored>(`snd:${channelId}`)
     const cmdSenderId = `inspect-snd-${channelId}`
 
-    cmdArray.observe((event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
+    const handler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       if (transaction.origin === cmdSenderId) return
 
       const inserted: { index: number; value: TStored }[] = []
@@ -149,18 +158,21 @@ export class InspectManager {
           console.error(`Failed to forward inspect command to ${channelId}:`, e)
         }
       }
-    })
+    }
+
+    cmdArray.observe(handler)
+    return () => cmdArray.unobserve(handler)
   }
 
   private setupReceiveForwarding<TMessage, TStored extends string | Uint8Array>(
     channelId: string,
     realChannel: YjsChannel<TMessage, unknown>,
     fromCmd: FromCmd<TMessage, TStored>,
-  ): void {
+  ): () => void {
     const rcvArray = this.inspectDoc.doc.getArray<TStored>(`rcv:${channelId}`)
     const rcvSenderId = `inspect-rcv-${channelId}`
 
-    rcvArray.observe((event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
+    const handler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       if (transaction.origin === rcvSenderId) return
 
       const inserted: { index: number; value: TStored }[] = []
@@ -191,7 +203,10 @@ export class InspectManager {
           console.error(`Failed to forward inspect receive to ${channelId}:`, e)
         }
       }
-    })
+    }
+
+    rcvArray.observe(handler)
+    return () => rcvArray.unobserve(handler)
   }
 }
 
