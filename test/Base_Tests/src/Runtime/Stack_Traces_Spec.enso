@@ -85,7 +85,9 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
         out . should_contain "f4"
         out . should_contain "f5"
 
-        top_lines.take (..While l-> l.starts_with "2nd:") . length . should_equal 11
+        count = top_lines.take (..While l-> l.starts_with "2nd:") . length
+        if count != 11 then
+            Test.fail "Expecting 11 lines:\n"+out
 
     group_builder.specify "stacktrace requested multiple times" <|
         lines = Vector.build b->
@@ -154,7 +156,7 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
         where = el.source_location
         where . should_be_a Standard.Base.Runtime.Source_Location.Source_Location
 
-        exp = "Base_Tests/src/Runtime/Stack_Traces_Spec.enso:149:17-39".replace '/' JFile.separator
+        exp = "Base_Tests/src/Runtime/Stack_Traces_Spec.enso:151:17-39".replace '/' JFile.separator
         where.to_display_text . should_contain exp
 
 main =

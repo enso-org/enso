@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Array.Array
 import project.Data.Text.Text
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
@@ -59,15 +58,6 @@ type Panic
 
     ## ---
        private: true
-       ---
-       Returns a raw representation of the stack trace attached to the provided
-       throwable. It can be a dataflow error, a panic or a native Java exception.
-       You probably want `Panic.get_attached_stack_trace` instead.
-    primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace throwable = Error_Builtins.primitive_get_attached_stack_trace throwable
-
-    ## ---
-       private: true
        advanced: true
        ---
        Returns the attached stack trace of the given throwable. Can be used to
@@ -79,7 +69,7 @@ type Panic
         throwable = case error of
             Caught_Panic.Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
-        prim_stack = Panic.primitive_get_attached_stack_trace throwable
+        prim_stack = Error_Builtins.primitive_get_attached_stack_trace throwable
         stack_with_prims = Vector.from_polyglot_array prim_stack
         stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
@@ -149,7 +139,7 @@ type Panic
                      Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
        ```
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
-    catch panic_type ~action handler = Error_Builtins.panic_catch panic_type action handler
+    catch panic_type ~action handler = @Builtin_Method "Panic.catch"
 
     ## ---
        private: true

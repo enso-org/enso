@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
     name = "<|",
     description = "Takes a function and an argument and applies the function to the argument.",
     inlineable = true)
-public class ApplicationOperator extends Node {
+public final class ApplicationOperator extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
   ApplicationOperator() {
@@ -26,8 +26,8 @@ public class ApplicationOperator extends Node {
     invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Object execute(VirtualFrame frame, Object fn, @Suspend Object argument) {
+  Object execute(VirtualFrame frame, Object self, @Suspend Object argument) {
     return invokeCallableNode.execute(
-        fn, frame, EnsoContext.get(this).currentState(), new Object[] {argument});
+        self, frame, EnsoContext.get(this).currentState(), new Object[] {argument});
   }
 }

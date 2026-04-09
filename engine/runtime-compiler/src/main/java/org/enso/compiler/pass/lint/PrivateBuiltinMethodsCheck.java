@@ -112,6 +112,8 @@ public final class PrivateBuiltinMethodsCheck implements MiniPassFactory {
     return (body instanceof Literal.Text txt)
         && switch (txt.text()) {
           case "Error.throw" -> true; // it needs property location
+          case "Function.<|" -> true; // should be invisible in the stack
+          case "Panic.catch" -> true; // needs to be directly on the stack
           case "Panic.throw" -> true; // it needs proper stack trace
           case "Debug.eval" -> true; // it needs surrounding context
           case "Debug.breakpoint" -> true; // it needs surrounding context
