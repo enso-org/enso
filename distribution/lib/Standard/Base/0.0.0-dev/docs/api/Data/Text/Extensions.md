@@ -1,8 +1,8 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Text.Extensions
-- Standard.Base.Any.Any.pretty self -> Standard.Base.Any.Any
-- Standard.Base.Any.Any.to_display_text self -> Standard.Base.Any.Any
-- Standard.Base.Any.Any.to_text self -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.pretty self -> Standard.Base.Data.Text.Text
+- Standard.Base.Any.Any.to_display_text self -> Standard.Base.Data.Text.Text
+- Standard.Base.Any.Any.to_text self -> Standard.Base.Data.Text.Text
 - Standard.Base.Data.Text.Text.* self count:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.bytes self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any

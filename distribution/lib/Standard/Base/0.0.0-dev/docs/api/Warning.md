@@ -7,7 +7,7 @@
     - detach_selected_warnings value:Standard.Base.Any.Any predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_all value:Standard.Base.Any.Any wrap_errors:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - has_warnings value:Standard.Base.Any.Any warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - limit_reached value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - limit_reached value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
     - map_attached_warnings mapper:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - map_warnings_and_errors mapper:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - merge_matched_warnings value:Standard.Base.Any.Any matcher:Standard.Base.Any.Any merger:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -21,7 +21,7 @@
     - with_suspended arg:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - attach_with_stacktrace value:Standard.Base.Any.Any warning:Standard.Base.Any.Any origin:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - create payload:Standard.Base.Any.Any origin:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- get_all_vector value:Standard.Base.Any.Any should_wrap:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_all_vector value:Standard.Base.Any.Any should_wrap:Standard.Base.Data.Boolean.Boolean -> (Standard.Base.Data.Vector.Vector Standard.Base.Warning.Warning)
 - map_attached_warnings_helper mapper:Standard.Base.Any.Any value:Standard.Base.Any.Any frames_to_drop:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - set_array value:Standard.Base.Any.Any warnings:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.has_warnings self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
