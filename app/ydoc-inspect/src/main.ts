@@ -1,17 +1,19 @@
 import { InspectClient } from './client.js'
 import { createHelpers, formatEntry } from './helpers.js'
 
-function parseArgs(): { host: string; port: string; watch: boolean } {
+function parseArgs(): { host: string; port: string; watch: boolean; truncate: number } {
   const args = process.argv.slice(2)
   let host = 'localhost'
   let port = '30617'
   let watch = true
+  let truncate = 240
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--host' && args[i + 1]) host = args[++i]!
     else if (args[i] === '--port' && args[i + 1]) port = args[++i]!
+    else if (args[i] === '--truncate' && args[i + 1]) truncate = Number(args[++i])
     else if (args[i] === '--no-watch') watch = false
   }
-  return { host, port, watch }
+  return { host, port, watch, truncate }
 }
 
 const RETRY_INTERVAL_MS = 2000
@@ -19,11 +21,11 @@ const SYNC_TIMEOUT_MS = 5000
 /* The number of yjs channels created when gui connects to the Language Server. */
 const INITIAL_CHANNELS_NUMBER = 3
 
-const { host, port, watch } = parseArgs()
+const { host, port, watch, truncate } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
 
 const client = new InspectClient()
-const helpers = createHelpers(client.doc)
+const helpers = createHelpers(client.doc, truncate)
 
 let unwatchFn: (() => void) | undefined
 
@@ -104,7 +106,7 @@ async function connectWithRetry(): Promise<void> {
           if (existing.length > 0) {
             console.log(`\n--- ${existing.length} historical message(s) ---`)
             for (const entry of existing) {
-              console.log(formatEntry(entry))
+              console.log(formatEntry(entry, truncate))
             }
             console.log('--- live messages ---\n')
           }

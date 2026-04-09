@@ -27,23 +27,23 @@ function formatTime(ts: number): string {
   return `${hms}.${ms}`
 }
 
-function formatData(data: unknown): string {
-  return data instanceof Uint8Array ?
-      `<${data.byteLength} bytes>`
-    : JSON.stringify(data).slice(0, 200)
+function formatData(data: unknown, maxLen: number): string {
+  if (data instanceof Uint8Array) return `<${data.byteLength} bytes>`
+  const json = JSON.stringify(data)
+  return maxLen > 0 && json.length > maxLen ? json.slice(0, maxLen) + '...' : json
 }
 
-export function formatEntry(entry: LogEntry): string {
+export function formatEntry(entry: LogEntry, maxLen: number): string {
   const time = formatTime(entry.ts)
   const arrow = entry.dir === 'send' ? '>>' : '<<'
   const channel = entry.channel
-  return `${time}|${channel} ${arrow} ${formatData(entry.data)}`
+  return `${time}|${channel} ${arrow} ${formatData(entry.data, maxLen)}`
 }
 
 /**
  * Creates helper functions for inspecting ydoc channels from Chrome DevTools.
  */
-export function createHelpers(doc: Y.Doc) {
+export function createHelpers(doc: Y.Doc, truncate: number) {
   const channelsMap = () => doc.getMap<ChannelMeta>('channels')
 
   function channels(): ChannelMeta[] {
@@ -133,7 +133,7 @@ export function createHelpers(doc: Y.Doc) {
           }
           const raw = logArray.get(lastLen)
           const data = parseData(raw)
-          console.log(formatEntry({ ts: meta.ts, dir: meta.dir, channel: id, data }))
+          console.log(formatEntry({ ts: meta.ts, dir: meta.dir, channel: id, data }, truncate))
           lastLen++
         }
       }
