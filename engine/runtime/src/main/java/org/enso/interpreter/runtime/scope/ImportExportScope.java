@@ -15,26 +15,34 @@ import org.enso.interpreter.runtime.data.Type;
 public class ImportExportScope extends EnsoObject {
 
   private final Module module;
-  private final List<String> typesOnlyNames;
+  private final List<String> onlyNames;
 
   public ImportExportScope(CompilerContext.Module module, List<String> typesOnlyNames) {
     this.module = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    this.typesOnlyNames =
-        typesOnlyNames != null && !typesOnlyNames.isEmpty() ? typesOnlyNames : null;
+    this.onlyNames = typesOnlyNames != null && !typesOnlyNames.isEmpty() ? typesOnlyNames : null;
   }
 
   public ImportExportScope(CompilerContext.Module module) {
     this.module = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    this.typesOnlyNames = null;
+    this.onlyNames = null;
+  }
+
+  private boolean isValidTypeOrSymbol(Type type, String symbol) {
+    if (onlyNames == null) {
+      return true;
+    }
+    if (onlyNames.contains(type.getName()) && module.getScope().hasType(type)) {
+      return true;
+    }
+    return symbol != null && onlyNames.contains(symbol);
   }
 
   private boolean isValidType(Type type) {
-    if (typesOnlyNames == null) return true;
-    return typesOnlyNames.contains(type.getName()) && module.getScope().hasType(type);
+    return isValidTypeOrSymbol(type, null);
   }
 
   public Function getExportedMethod(Type type, String name) {
-    if (isValidType(type)) {
+    if (isValidTypeOrSymbol(type, name)) {
       return module.getScope().getExportedMethod(type, name);
     } else {
       return null;
@@ -50,7 +58,7 @@ public class ImportExportScope extends EnsoObject {
   }
 
   public Function getMethodForType(Type type, String methodName) {
-    if (isValidType(type)) {
+    if (isValidTypeOrSymbol(type, methodName)) {
       return module.getScope().getMethodForType(type, methodName);
     } else {
       return null;
