@@ -19,7 +19,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.util.UUID
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -67,14 +67,6 @@ class RuntimeServerTest
           )
           .option(RuntimeServerInfo.ENABLE_OPTION, "true")
           .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-          .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths
-              .get("../../test/micro-distribution/component")
-              .toFile
-              .getAbsolutePath
-          )
-          .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
           .logHandler(new TeeOutputStream(logOut, System.err))
           .out(new TeeOutputStream(out, System.err))
           .serverTransport(runtimeServerEmulator.makeServerTransport)
@@ -290,7 +282,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         identityCallId,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, moduleName, "identity"),
@@ -1428,7 +1420,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_0,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
         ),
@@ -1444,7 +1436,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1534,7 +1526,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_0,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1632,7 +1624,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, moduleName, "func1")
@@ -1719,7 +1711,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -1738,7 +1730,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, s"$moduleName.T", "func1")
@@ -1771,12 +1763,15 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
-    val id_x1_1  = metadata.addItem(18, 7, "aa")
-    val id_x1_2  = metadata.addItem(37, 6, "ab")
-    val id_x1    = metadata.addItem(53, 6, "ac")
+    val importOffset = 31
+    val id_x1_1  = metadata.addItem(importOffset + 18, 7, "aa")
+    val id_x1_2  = metadata.addItem(importOffset + 37, 6, "ab")
+    val id_x1    = metadata.addItem(importOffset + 53, 6, "ac")
 
     val code =
-      """main =
+      """from Standard.Base import all
+        |
+        |main =
         |    x1_1 = T.func1
         |    x1_2 = x1_1 1
         |    x1 = x1_2 2
@@ -1789,6 +1784,9 @@ class RuntimeServerTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(id_x1_1, code, "T.func1")
+    metadata.assertInCode(id_x1, code, "x1_2 2")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1823,7 +1821,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -1846,7 +1844,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -1941,7 +1939,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1954,7 +1952,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         // the method call is missing
         Api.MethodCall(
           Api.MethodPointer(
@@ -2039,7 +2037,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2062,7 +2060,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2157,7 +2155,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2180,7 +2178,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2275,7 +2273,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2298,7 +2296,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2396,7 +2394,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2419,7 +2417,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
@@ -2510,7 +2508,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -2529,7 +2527,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -2610,7 +2608,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_1,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -2629,7 +2627,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1_2,
-        ConstantsGen.FUNCTION_BUILTIN,
+        ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -6881,12 +6879,12 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(37, 79)
+    val idMain   = metadata.addItem(37, 29)
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    [Warning.attach_with_stacktrace "x" "y" Runtime.primitive_get_stack_trace]
+        |    [Warning.attach "y" "x"]
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
