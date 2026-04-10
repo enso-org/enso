@@ -236,7 +236,9 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata         = new Metadata
+    val metadata         = new Metadata("""from Standard.Base import all
+        |
+        |""".stripMargin.linesIterator.mkString("\n"))
     val identityResultId = metadata.addItem(13, 1, "aa")
     val identityCallId   = metadata.addItem(27, 8, "ab")
 
@@ -277,7 +279,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -298,7 +300,6 @@ class RuntimeServerTest
           )
         )
       ),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
