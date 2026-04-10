@@ -2772,7 +2772,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_y,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Standard.Base.Data.Time.Date",
