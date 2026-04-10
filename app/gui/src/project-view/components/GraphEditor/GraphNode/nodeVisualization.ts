@@ -110,8 +110,9 @@ export function useNodeVisualization({
     const size = new Vec2(visibleVisWidth.value, visibleVisHeight.value)
     return prev?.equals(size) ? prev : size
   })
+  let resizing = false
   watch(visibleSize, (size1, size0) => {
-    if (!size1 || !size0 || size1.equals(size0)) return
+    if (!resizing || !size1 || !size0 || size1.equals(size0) || !size1.x || !size1.y) return
     const widgetsHeightVec = new Vec2(0, toValue(nodeWidgetsSize).y)
     const pos = toValue(nodePos)
     const rect0 = new Rect(pos, size0.add(widgetsHeightVec))
@@ -141,6 +142,7 @@ export function useNodeVisualization({
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),
       'onUpdate:width': (event) => (visualizationWidth.value = event),
+      'onUpdate:resizing': (event) => (resizing = event),
     }
   })
 

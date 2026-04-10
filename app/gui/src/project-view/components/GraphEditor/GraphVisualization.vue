@@ -13,7 +13,7 @@ import { registerHandlers } from '@/providers/action'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, nextTick, ref, toRef, watch } from 'vue'
+import { computed, nextTick, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**
@@ -56,6 +56,7 @@ const emit = defineEmits<{
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
   'update:hovered': [hovered: boolean]
+  'update:resizing': [resizing: boolean]
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
@@ -164,6 +165,34 @@ const resizeHandles = useResizeHandles({
 resizeHandles.onResizeWidth((value) => emit('update:width', value))
 resizeHandles.onResizeHeight((value) => emit('update:height', value))
 resizeHandles.onMove((position) => emit('update:nodePosition', position))
+
+const handlesResizing = ref(false)
+resizeHandles.onResizingChange(
+  (resizing) =>
+    (handlesResizing.value =
+      !!resizing.top || !!resizing.bottom || !!resizing.left || !!resizing.right),
+)
+
+const isClosedOrOpening = ref(false)
+watch(
+  toRef(props, 'show'),
+  (show) => {
+    if (!show) isClosedOrOpening.value = true
+  },
+  { immediate: true },
+)
+watchEffect(
+  () => {
+    if (isClosedOrOpening.value && props.show) {
+      if (vizWidth.value > 0 && vizHeight.value > 0) isClosedOrOpening.value = false
+    }
+  },
+  // Stop sending resize events *after* reporting the resize completion
+  { flush: 'post' },
+)
+
+const isResizing = computed(() => handlesResizing.value || isClosedOrOpening.value)
+watch(isResizing, (resizing) => emit('update:resizing', resizing), { immediate: true })
 
 const style = computed(() => {
   return {
