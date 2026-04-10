@@ -237,8 +237,8 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata         = new Metadata("""from Standard.Base import all
-        |
-        |""".stripMargin.linesIterator.mkString("\n"))
+                                  |
+                                  |""".stripMargin.linesIterator.mkString("\n"))
     val identityResultId = metadata.addItem(13, 1, "aa")
     val identityCallId   = metadata.addItem(27, 8, "ab")
 
@@ -1763,11 +1763,11 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
+    val metadata     = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val importOffset = 31
-    val id_x1_1  = metadata.addItem(importOffset + 18, 7, "aa")
-    val id_x1_2  = metadata.addItem(importOffset + 37, 6, "ab")
-    val id_x1    = metadata.addItem(importOffset + 53, 6, "ac")
+    val id_x1_1      = metadata.addItem(importOffset + 18, 7, "aa")
+    val id_x1_2      = metadata.addItem(importOffset + 37, 6, "ab")
+    val id_x1        = metadata.addItem(importOffset + 53, 6, "ac")
 
     val code =
       """from Standard.Base import all
@@ -5757,15 +5757,19 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: Expected `that` to be Integer, but got Function.",
+            "Type error: expected `that` to be Integer, but got Function.",
             None,
-            Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
+            Some(
+              model.Range(model.Position(1057, 4), model.Position(1076, 59))
+            ),
             None,
             Vector(
               Api.StackTraceElement(
                 "Integer.+",
                 None,
-                Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
+                Some(
+                  model.Range(model.Position(1057, 4), model.Position(1076, 59))
+                ),
                 None
               ),
               Api.StackTraceElement(
@@ -6682,7 +6686,7 @@ class RuntimeServerTest
         |    Value reason
         |
         |attach value warning =
-        |    Warning.attach_with_stacktrace value warning Runtime.primitive_get_stack_trace
+        |    Warning.attach warning value warning
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -6774,19 +6778,21 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idX      = metadata.addItem(46, 71)
-    val idY      = metadata.addItem(126, 5)
-    val idRes    = metadata.addItem(136, 12)
+    val idX      = metadata.addItem(46, 21)
+    val idY      = metadata.addItem(76, 5)
+    val idRes    = metadata.addItem(86, 12)
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    x = Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace
+        |    x = Warning.attach "y" 42
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idRes, code, "IO.println y")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -6826,6 +6832,15 @@ class RuntimeServerTest
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+            )
+          ),
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Warning",
+                ConstantsGen.WARNING,
+                "attach"
+              )
             )
           )
         ),
