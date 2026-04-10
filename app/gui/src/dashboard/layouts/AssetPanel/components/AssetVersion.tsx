@@ -22,6 +22,11 @@ const HEADER_GAP_PX = 8
 const TAG_GAP_PX = 4
 const MIN_TAG_WIDTH_CH = 8
 const MAX_TAG_WIDTH_CH = 32
+const COMMENT_ACTION_BUTTON_WIDTH_BUDGET_PX = 24
+const COMMENT_ACTION_BUTTON_CLASS_NAME =
+  'opacity-30 transition-opacity hover:opacity-100 focus-visible:opacity-100'
+const COMMENT_TEXT_AREA_CLASS_NAME =
+  'min-h-7 w-full resize-none rounded-md border border-primary/20 bg-transparent px-2 py-1 text-[10.5px] leading-4 text-primary focus:border-primary disabled:cursor-default disabled:opacity-50'
 
 /** A version of an asset. */
 export interface Version extends backendService.S3ObjectVersion {
@@ -45,6 +50,8 @@ export interface AssetVersionProps {
   readonly backend: Backend
   readonly doRestore: (version: Version) => Promise<void> | void
   readonly doDuplicate: (options?: DuplicateOptions) => Promise<void> | void
+  readonly doUpdateComment: (version: Version, comment: string | null) => Promise<void> | void
+  readonly isUpdatingComment?: boolean
 }
 
 /** Displays information describing a specific version of an asset. */
@@ -57,9 +64,12 @@ export function AssetVersion(props: AssetVersionProps) {
     otherVersions,
     previousVersion,
     doDuplicate,
+    doUpdateComment,
+    isUpdatingComment = false,
   } = props
 
   const { getText } = useText()
+  const versionComment = normalizeVersionComment(version.comment)
 
   const isProject = item.type === backendService.AssetType.project
   const comparableVersions = otherVersions
@@ -87,10 +97,12 @@ export function AssetVersion(props: AssetVersionProps) {
 
     const minimumTagsWidth =
       version.tags.length * minTagBounds.width + Math.max(version.tags.length - 1, 0) * TAG_GAP_PX
-    const requiredWidth = fullTitleBounds.width + HEADER_GAP_PX + minimumTagsWidth
+    const addCommentButtonWidth = versionComment == null ? COMMENT_ACTION_BUTTON_WIDTH_BUDGET_PX : 0
+    const requiredWidth =
+      fullTitleBounds.width + HEADER_GAP_PX + addCommentButtonWidth + minimumTagsWidth
 
     return requiredWidth > headerBounds.width
-  }, [fullTitleBounds, headerBounds, minTagBounds, version.tags.length])
+  }, [fullTitleBounds, headerBounds, minTagBounds, version.tags.length, versionComment])
 
   const CollapsedTagsPlaceholder = () => {
     const collapsedTagsTooltip = (
@@ -112,44 +124,66 @@ export function AssetVersion(props: AssetVersionProps) {
   return (
     <div className="grid w-full select-none grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
       <div className="relative flex flex-1 flex-col">
-        <div ref={headerRef} className="flex min-w-0 items-center gap-2">
-          <Text
-            variant="body"
-            truncate={shouldCollapseTags}
-            nowrap={!shouldCollapseTags}
-            className="min-width-0 shrink-0"
-          >
-            {version.title}
-          </Text>
-          {version.tags.length > 0 &&
-            (shouldCollapseTags ?
-              <CollapsedTagsPlaceholder />
-            : <div className="flex min-w-0 items-center gap-1 overflow-hidden">
-                {version.tags.map((tag, index) => (
-                  <VisualTooltip
-                    key={`${version.versionId}-${tag}-${index}`}
-                    tooltip={tag}
-                    className={`min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink overflow-hidden`}
-                  >
-                    <Badge variant="outline" className="w-full">
-                      {tag}
-                    </Badge>
-                  </VisualTooltip>
-                ))}
-              </div>)}
-        </div>
+        <VersionComment
+          comment={versionComment}
+          isUpdating={isUpdatingComment}
+          onUpdateComment={(comment) => doUpdateComment(version, comment)}
+        >
+          {({ isEditing, startEditing }) => (
+            <>
+              <div ref={headerRef} className="flex min-w-0 items-center gap-2">
+                <Text
+                  variant="body"
+                  truncate={shouldCollapseTags}
+                  nowrap={!shouldCollapseTags}
+                  className="min-width-0 shrink-0"
+                >
+                  {version.title}
+                </Text>
+                {!isEditing && versionComment == null && (
+                  <CommentActionButton
+                    icon="comment"
+                    label={getText('assetVersions.addComment')}
+                    isUpdating={isUpdatingComment}
+                    onPress={startEditing}
+                  />
+                )}
+                {version.tags.length > 0 &&
+                  (shouldCollapseTags ?
+                    <CollapsedTagsPlaceholder />
+                  : <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+                      {version.tags.map((tag, index) => (
+                        <VisualTooltip
+                          key={`${version.versionId}-${tag}-${index}`}
+                          tooltip={tag}
+                          className={`min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink overflow-hidden`}
+                        >
+                          <Badge variant="outline" className="w-full">
+                            {tag}
+                          </Badge>
+                        </VisualTooltip>
+                      ))}
+                    </div>)}
+              </div>
 
-        {/* Tags list copies to measure sizes for conditional collapse behavior. */}
-        <div className="pointer-events-none absolute h-0 overflow-hidden opacity-0">
-          <Text ref={fullTitleRef} variant="body" nowrap>
-            {version.title}
-          </Text>
-          <span ref={minTagRef} className="inline-block" style={{ width: `${MIN_TAG_WIDTH_CH}ch` }}>
-            <Badge variant="outline" className="w-full">
-              {version.tags[0] ?? getText('latestIndicator')}
-            </Badge>
-          </span>
-        </div>
+              {/* Tags list copies to measure sizes for conditional collapse behavior. */}
+              <div className="pointer-events-none absolute h-0 overflow-hidden opacity-0">
+                <Text ref={fullTitleRef} variant="body" nowrap>
+                  {version.title}
+                </Text>
+                <span
+                  ref={minTagRef}
+                  className="inline-block"
+                  style={{ width: `${MIN_TAG_WIDTH_CH}ch` }}
+                >
+                  <Badge variant="outline" className="w-full">
+                    {version.tags[0] ?? getText('latestIndicator')}
+                  </Badge>
+                </span>
+              </div>
+            </>
+          )}
+        </VersionComment>
 
         <div className="flex items-center gap-2">
           <div className={TEXT_WITH_ICON().base({ gap: 'medium', className: 'flex-none' })}>
@@ -164,7 +198,7 @@ export function AssetVersion(props: AssetVersionProps) {
       </div>
 
       <Button.GroupJoin
-        className="shrink-0 grow-0"
+        className="mt-1 shrink-0 grow-0 self-start"
         buttonVariants={{ size: 'small', variant: 'outline' }}
       >
         {isProject && (
@@ -241,6 +275,152 @@ export function AssetVersion(props: AssetVersionProps) {
       </Button.GroupJoin>
     </div>
   )
+}
+
+/** Props for a {@link CommentActionButton}. */
+interface CommentActionButtonProps {
+  readonly icon: 'comment' | 'edit'
+  readonly label: string
+  readonly isUpdating?: boolean
+  readonly onPress: () => void
+}
+
+/** Small faded action button used for version comment controls. */
+function CommentActionButton(props: CommentActionButtonProps) {
+  const { icon, label, isUpdating = false, onPress } = props
+
+  return (
+    <Button
+      size="xsmall"
+      variant="icon"
+      icon={icon}
+      className={COMMENT_ACTION_BUTTON_CLASS_NAME}
+      aria-label={label}
+      isLoading={isUpdating}
+      isDisabled={isUpdating}
+      onPress={onPress}
+    >
+      {null}
+    </Button>
+  )
+}
+
+/** Props for a {@link VersionComment}. */
+interface VersionCommentProps {
+  readonly comment?: string | null | undefined
+  readonly isUpdating?: boolean
+  readonly onUpdateComment: (comment: string | null) => Promise<void> | void
+  readonly children: (props: VersionCommentRenderProps) => React.ReactNode
+}
+
+/** Props exposed by {@link VersionComment} to its render prop. */
+interface VersionCommentRenderProps {
+  readonly isEditing: boolean
+  readonly startEditing: () => void
+}
+
+/** Inline version comment control that owns add/edit state and the comment editor. */
+function VersionComment(props: VersionCommentProps) {
+  const { comment, isUpdating = false, onUpdateComment, children } = props
+  const { getText } = useText()
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState(comment ?? '')
+  const commentInputRef = React.useRef<HTMLTextAreaElement | null>(null)
+  const shouldIgnoreBlurRef = React.useRef(false)
+
+  const startEditing = useEventCallback(() => {
+    setDraft(comment ?? '')
+    setIsEditing(true)
+  })
+  const cancelEditing = useEventCallback(() => {
+    shouldIgnoreBlurRef.current = true
+    setDraft(comment ?? '')
+    setIsEditing(false)
+  })
+  const submitComment = useEventCallback(() => {
+    const nextComment = normalizeVersionComment(draft.trim())
+    setIsEditing(false)
+    if (nextComment === comment) {
+      return
+    }
+    void Promise.resolve().then(() => onUpdateComment(nextComment))
+  })
+
+  React.useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    const commentInput = commentInputRef.current
+    if (commentInput == null) {
+      return
+    }
+
+    commentInput.focus({ preventScroll: true })
+    const selectionEnd = commentInput.value.length
+    commentInput.setSelectionRange(0, selectionEnd)
+  }, [isEditing])
+
+  return (
+    <>
+      {children({ isEditing, startEditing })}
+
+      {(isEditing || comment) && (
+        <div className="flex min-w-0 items-center gap-1.5">
+          {isEditing ?
+            <textarea
+              ref={commentInputRef}
+              value={draft}
+              maxLength={256}
+              rows={1}
+              disabled={isUpdating}
+              aria-label={getText('assetVersions.editComment')}
+              className={COMMENT_TEXT_AREA_CLASS_NAME}
+              onBlur={() => {
+                if (shouldIgnoreBlurRef.current) {
+                  shouldIgnoreBlurRef.current = false
+                  return
+                }
+                submitComment()
+              }}
+              onChange={(event) => {
+                setDraft(event.currentTarget.value.replace(/[\r\n]+/g, ' '))
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  submitComment()
+                }
+
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  cancelEditing()
+                }
+              }}
+            />
+          : comment && (
+              <>
+                <CommentActionButton
+                  icon="edit"
+                  label={getText('assetVersions.editComment')}
+                  isUpdating={isUpdating}
+                  onPress={startEditing}
+                />
+                <Text variant="body-sm" color="primary" nowrap="normal" className="min-w-0">
+                  {comment}
+                </Text>
+              </>
+            )
+          }
+        </div>
+      )}
+    </>
+  )
+}
+
+/** Normalize empty version comments to an absent value. */
+function normalizeVersionComment(comment: string | null | undefined): string | null {
+  return !comment ? null : comment
 }
 
 /** Props for a {@link VersionDialog}. */

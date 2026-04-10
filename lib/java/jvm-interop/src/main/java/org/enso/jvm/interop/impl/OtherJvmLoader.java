@@ -13,11 +13,9 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
 /** Handles classloading in the "slave" JVM. */
-@ExportLibrary(value = InteropLibrary.class)
-final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
+final class OtherJvmLoader extends URLClassLoader {
   final Context ctx;
   private TruffleObject findLibraries;
-  private Object value;
 
   OtherJvmLoader() {
     super(new URL[0]);
@@ -42,10 +40,11 @@ final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
 
   @Override
   protected String findLibrary(String libName) {
-    if (this.findLibraries != null) {
+    var find = this.findLibraries;
+    if (find != null) {
       try {
         var iop = InteropLibrary.getUncached();
-        var mayBePath = iop.execute(this.findLibraries, libName);
+        var mayBePath = iop.execute(find, libName);
         if (iop.isString(mayBePath)) {
           return iop.asString(mayBePath);
         }
@@ -61,18 +60,24 @@ final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
     var clazz = loadClass(className);
     var clazzValue1 = ctx.asValue(clazz);
     var clazzValue2 = clazzValue1.getMember("static");
-    ctx.asValue(this).execute(clazzValue2);
-    return (TruffleObject) value;
+    var unwrap = new Unwrap();
+    ctx.asValue(unwrap).execute(clazzValue2);
+    return (TruffleObject) unwrap.value;
   }
 
-  @ExportMessage
-  final Object execute(Object[] values) {
-    this.value = values[0];
-    return this;
-  }
+  @ExportLibrary(value = InteropLibrary.class)
+  static final class Unwrap implements TruffleObject {
+    TruffleObject value;
 
-  @ExportMessage
-  final boolean isExecutable() {
-    return true;
+    @ExportMessage
+    final Object execute(Object[] values) {
+      this.value = (TruffleObject) values[0];
+      return this;
+    }
+
+    @ExportMessage
+    final boolean isExecutable() {
+      return true;
+    }
   }
 }

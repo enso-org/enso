@@ -16,6 +16,7 @@
 - [Execution can be scheduled for the specific version tag][14883]
 - [Add component spacing options][14888]
 - [When resizing component, other components are moved to make room][14904]
+- [A comment can be attached to the asset version][14923]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -30,6 +31,7 @@
 [14883]: https://github.com/enso-org/enso/pull/14883
 [14888]: https://github.com/enso-org/enso/pull/14888
 [14904]: https://github.com/enso-org/enso/pull/14904
+[14823]: https://github.com/enso-org/enso/pull/14823
 
 #### Enso Standard Library
 
@@ -86,6 +88,7 @@
 - [Require opt-in to prefer local libraries][14885]
 - [One log file per execution][14893]
 - [Opt-in to get more detailed logs][14895]
+- [`from Xyz import to_text` can import extension methods][14949]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
@@ -96,6 +99,7 @@
 [14885]: https://github.com/enso-org/enso/pull/14885
 [14893]: https://github.com/enso-org/enso/pull/14893
 [14895]: https://github.com/enso-org/enso/pull/14895
+[14949]: https://github.com/enso-org/enso/pull/14949
 
 # Enso 2025.3
 

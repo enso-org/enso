@@ -20,6 +20,9 @@ public abstract class LanguageServerApi {
   public static final String ENSO_CLOUD_PROJECT_ID_ENV_NAME = "ENSO_CLOUD_PROJECT_ID";
   public static final String ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME =
       "ENSO_CLOUD_PROJECT_SESSION_ID";
+  public static final String ENSO_LOCAL_PROJECT_ID_ENV_NAME = "ENSO_LOCAL_PROJECT_ID";
+  public static final String ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME =
+      "ENSO_LOCAL_PROJECT_SESSION_ID";
 
   public static void launchLanguageServer(CommandLine line, ProfilingConfig config, Level logLevel)
       throws WrongOption {

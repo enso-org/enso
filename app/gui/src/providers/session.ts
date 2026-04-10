@@ -13,18 +13,19 @@ import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import type { SignInOutput } from 'aws-amplify/auth'
-import { NotAuthorizedError } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
-import { Err } from 'enso-common/src/utilities/data/result'
 import { unreachable } from 'enso-common/src/utilities/errors'
 import { computed, onScopeDispose, ref, toRaw, toValue, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
+import { useUnauthorizedRecovery } from './session/useUnauthorizedRecovery'
 import { useText } from './text'
+
+export const USER_SESSION_QUERY_KEY = ['userSession'] as const
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: ToValue<cognito.ISessionProvider | undefined>) {
   return vueQuery.queryOptions({
-    queryKey: ['userSession'],
+    queryKey: USER_SESSION_QUERY_KEY,
     queryFn: async () =>
       toValue(authService)
         ?.userSession()
@@ -40,6 +41,7 @@ function getMainPageUrl() {
 }
 
 export type SessionStore = ReturnType<typeof createSessionStore>
+
 /** Create a store maintaining session information. */
 export function createSessionStore(
   authService: ToValue<cognito.ISessionProvider | undefined>,
@@ -66,17 +68,11 @@ export function createSessionStore(
 
   const refreshUserSessionMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['refreshUserSession', { expireAt: session.data.value?.expireAt }]),
-    mutationFn: async () => toValue(authService)?.refreshUserSession(),
+    mutationFn: async () => assertAuthService().refreshUserSession(),
     onSuccess: (data) => {
       if (data) {
         httpClient.setSessionToken(data.accessToken)
       }
-    },
-    onError: (error) => {
-      // Something went wrong with the refresh token, so we need to sign the user out.
-      errorToast.reportError(Err(error).error, getText('sessionExpiredError'))
-      queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      return logoutMutation.mutate()
     },
     meta: {
       invalidates: [sessionQueryOptions.queryKey],
@@ -90,13 +86,17 @@ export function createSessionStore(
       const auth = assertAuthService()
       isLoggingOut.value = true
       document.dispatchEvent(new Event(LOGOUT_EVENT))
-      await auth.signOut()
+      try {
+        await auth.signOut()
 
-      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+        const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+        document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
 
-      auth.saveAccessToken(null)
-      isLoggingOut.value = false
+        auth.saveAccessToken(null)
+        httpClient.clearSessionToken()
+      } finally {
+        isLoggingOut.value = false
+      }
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
@@ -104,10 +104,25 @@ export function createSessionStore(
       analytics.cloudSignOut.after()
       localStorage.clearUserSpecificEntries()
       sentry.setUser(null)
+      resetUnauthorizedRecoveryState()
       successToast.show(getText('signOutSuccess'))
     },
     onError: () => errorToast.show(getText('signOutError')),
     meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
+  })
+
+  const { isReconnectingSession, resetUnauthorizedRecoveryState } = useUnauthorizedRecovery({
+    queryClient,
+    isLoggingOut,
+    refreshUserSession: () => refreshUserSessionMutation.mutateAsync(),
+    logout: () => logoutMutation.mutateAsync(),
+    clearSessionToken: () => httpClient.clearSessionToken(),
+    cancelSessionQuery: () =>
+      queryClient.cancelQueries({ queryKey: USER_SESSION_QUERY_KEY, exact: true }),
+    clearSessionQuery: () => queryClient.setQueryData(sessionQueryOptions.queryKey, null),
+    reportSessionExpiredError: (error) =>
+      errorToast.reportError(error, getText('sessionExpiredError')),
+    reportRepeatedUnauthorizedError: (error) => errorToast.reportError(error),
   })
 
   const signUp = async (username: string, password: string, organizationId: string | null) => {
@@ -250,9 +265,11 @@ export function createSessionStore(
     switch (event) {
       case AuthEvent.signedIn: {
         analytics.signIn.after()
+        resetUnauthorizedRecoveryState()
         break
       }
       case AuthEvent.signedOut: {
+        resetUnauthorizedRecoveryState()
         break
       }
       case AuthEvent.customOAuthState:
@@ -320,24 +337,12 @@ export function createSessionStore(
     }
   })
 
-  queryClient.getQueryCache().config.onError = (error, query) => {
-    if (error instanceof NotAuthorizedError) {
-      void refreshUserSessionMutation
-        .mutateAsync()
-        .then(() => queryClient.refetchQueries({ queryKey: query.queryKey }))
-    }
-  }
-  queryClient.getMutationCache().config.onError = (error, variables, _context, mutation) => {
-    if (error instanceof NotAuthorizedError) {
-      void refreshUserSessionMutation.mutateAsync().then(() => mutation.execute(variables))
-    }
-  }
-
   return proxyRefs({
     signUp,
     session: session.data,
     waitForSession: () => waitForData(session),
     isLoggingOut,
+    isReconnectingSession,
     confirmSignUp,
     resendSignUp,
     signInWithPassword,

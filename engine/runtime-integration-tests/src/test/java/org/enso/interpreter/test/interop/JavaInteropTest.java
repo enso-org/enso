@@ -5,13 +5,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
+import com.oracle.truffle.api.TruffleSafepoint;
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ForkJoinPool;
 import org.enso.example.TestClass;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Test;
@@ -508,28 +508,81 @@ public abstract class JavaInteropTest {
 
   @Test
   public void multiThreadedAccess() throws Exception {
+    var boot =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+                plus =
+                    6 + 7
+                """,
+                "boot.enso")
+            .build();
+    var bootResult = ctx().evalModule(boot, "plus").asInt();
+    assertEquals(13, bootResult);
+
     var code1 =
-        """
-        from Standard.Base import all
-        polyglot java import org.enso.example.deps.one.DepAClass
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+                polyglot java import org.enso.example.deps.one.DepAClass
 
-        main =
-          DepAClass.expToNeg 2
-        """;
+                one =
+                  DepAClass.expToNeg 2
+                """,
+                "Code1.enso")
+            .build();
     var code2 =
-        """
-        from Standard.Base import all
-        polyglot java import org.enso.example.deps.two.DepBClass
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+                polyglot java import org.enso.example.deps.two.DepBClass
 
-        main =
-          DepBClass.sigmoid 2
-        """;
-    List<Callable<Double>> cases = new ArrayList<>();
-    cases.add(() -> ctx().evalModule(code1).asDouble());
-    cases.add(() -> ctx().evalModule(code2).asDouble());
-    var results = ForkJoinPool.commonPool().invokeAll(cases);
-    assertEquals(results.get(0).get().doubleValue(), 0.1353352832366127, 0);
-    assertEquals(results.get(1).get().doubleValue(), 0.8807970779778823, 0);
+                two =
+                  DepBClass.sigmoid 2
+                """,
+                "Code2.enso")
+            .build();
+
+    var code1Thread =
+        new Thread("Code1") {
+          double result;
+
+          @Override
+          public void run() {
+            result = ctx().evalModule(code1, "one").asDouble();
+          }
+        };
+
+    var code2Thread =
+        new Thread("Code2") {
+          double result;
+
+          @Override
+          public void run() {
+            result = ctx().evalModule(code2, "two").asDouble();
+          }
+        };
+    code1Thread.start();
+    code2Thread.start();
+
+    awaitThread(code1Thread);
+    awaitThread(code2Thread);
+
+    assertEquals(0.1353352832366127, code1Thread.result, 0.01);
+    assertEquals(0.8807970779778823, code2Thread.result, 0.01);
+  }
+
+  private void awaitThread(Thread thread) throws Exception {
+    TruffleSafepoint.setBlockedThreadInterruptible(
+        null,
+        (t) -> {
+          var terminated = t.join(Duration.ofSeconds(10));
+          assertTrue("Thread " + t.getName() + " should have terminated", terminated);
+        },
+        thread);
   }
 
   private Value checkedException(int t) {

@@ -302,7 +302,7 @@ export interface ProjectSession {
   readonly projectSessionId: ProjectSessionId
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
-  readonly userEmail: EmailAddress
+  readonly userEmail?: EmailAddress
 }
 
 export interface ProjectSessionLogs {
@@ -1192,10 +1192,14 @@ export interface UpdateFileRequestBody {
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-  readonly parentDirectoryId: DirectoryId | null
-  readonly description: string | null
-  readonly title: string | null
-  readonly metadataId: MetadataId | null
+  readonly parentDirectoryId?: DirectoryId | null
+  readonly description?: string | null
+  readonly title?: string | null
+  readonly metadataId?: MetadataId | null
+
+  // Update version comments
+  readonly versionId?: S3ObjectVersionId
+  readonly comment?: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1697,6 +1701,18 @@ export class NetworkError extends Error {
 
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
+
+/** Check whether an error represents HTTP 401 (Not Authorized). */
+export function isUnauthorizedError(error: Error): boolean {
+  return (
+    error instanceof NotAuthorizedError ||
+    (typeof error === 'object' &&
+      error != null &&
+      'status' in error &&
+      typeof error.status === 'number' &&
+      error.status === STATUS_NOT_AUTHORIZED)
+  )
+}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {
