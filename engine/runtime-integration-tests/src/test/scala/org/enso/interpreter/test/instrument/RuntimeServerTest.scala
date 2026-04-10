@@ -5308,7 +5308,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Method `+` of type Function could not be found.",
+            "Method `+` of UnresolvedSymbol<x> could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
             None,
@@ -5384,7 +5384,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Method `+` of type Function could not be found.",
+            "Method `+` of UnresolvedSymbol<x> could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
             None,
