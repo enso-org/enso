@@ -2,7 +2,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { proxyRefs } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
 import { isDirectoryId, type DirectoryId } from 'enso-common/src/services/Backend'
-import { computed, watch, watchEffect } from 'vue'
+import { computed, watch } from 'vue'
 import * as z from 'zod'
 import { useBackends } from './backends'
 import {
@@ -80,14 +80,11 @@ export const [provideDriveLocation, useDriveLocation] = createContextStore(
     watch(
       () => [...categories.localCategoriesList, ...categories.cloudCategoriesList],
       (newList) => {
-        console.debug('NEW LIST', newList, currentCategory.value)
         if (!newList.find((category) => categoryEq(category, currentCategory.value))) {
           setDefaultCategory()
         }
       },
     )
-
-    watchEffect(() => console.debug('Current Category', currentCategory.value))
 
     return proxyRefs({
       currentCategory,
