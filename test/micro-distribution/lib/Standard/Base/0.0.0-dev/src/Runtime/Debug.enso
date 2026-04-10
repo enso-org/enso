@@ -1,2 +1,0 @@
-eval expression = @Builtin_Method "Debug.eval"
-breakpoint = @Builtin_Method "Debug.breakpoint"

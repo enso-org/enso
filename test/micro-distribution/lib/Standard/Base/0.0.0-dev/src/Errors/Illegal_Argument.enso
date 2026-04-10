@@ -1,7 +1,0 @@
-import project.Nothing.Nothing
-import project.Data.Text.Text
-
-type Illegal_Argument
-    Error message cause=Nothing
-
-    to_display_text self = "Illegal Argument: "+self.message
