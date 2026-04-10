@@ -9,7 +9,7 @@ trait ReportLogsOnFailure extends TestSuite {
 
   abstract override def withFixture(test: NoArgTest): Outcome = {
     val log    = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
-    val arr    = new java.util.ArrayList[ObservedMessage]()
+    val arr    = new java.util.concurrent.CopyOnWriteArrayList[ObservedMessage]()
     val handle = ObservedMessage.observe(log, arr.add(_))
     try {
       super.withFixture(test) match {
