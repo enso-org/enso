@@ -312,6 +312,7 @@
     "./src/dashboard/layouts/Settings/CustomEntry.tsx",
     "./src/dashboard/layouts/Settings/DeleteUserAccountSettingsSection.tsx",
     "./src/dashboard/layouts/Settings/Entry.tsx",
+    "./src/dashboard/layouts/Settings/FinancesSettingsSection.tsx",
     "./src/dashboard/layouts/Settings/FormEntry.tsx",
     "./src/dashboard/layouts/Settings/Input.tsx",
     "./src/dashboard/layouts/Settings/KeyboardShortcutsSettingsSection.tsx",

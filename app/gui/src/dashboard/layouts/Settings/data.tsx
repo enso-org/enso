@@ -45,6 +45,7 @@ import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
 import MembersSettingsSection from './MembersSettingsSection'
+import FinancesSettingsSection from './FinancesSettingsSection'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
@@ -571,6 +572,24 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.finances]: {
+    nameId: 'financesSettingsTab',
+    settingsTab: SettingsTabType.finances,
+    icon: 'credit_card',
+    sections: [
+      {
+        nameId: 'financesSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'financesSettingsCustomEntryAliases',
+            render: (context) => <FinancesSettingsSection backend={context.backend} />,
+          },
+        ],
+      },
+    ],
+  }
 }
 
 export const SETTINGS_DATA: SettingsData = [
@@ -599,6 +618,12 @@ export const SETTINGS_DATA: SettingsData = [
     tabs: [
       SETTINGS_TAB_DATA[SettingsTabType.activityLog],
       SETTINGS_TAB_DATA[SettingsTabType.apiKeys],
+    ],
+  },
+  {
+    nameId: 'financesSettingsTabSection',
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.finances],
     ],
   },
 ]

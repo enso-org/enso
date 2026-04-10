@@ -303,6 +303,8 @@ export interface ProjectSession {
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
   readonly userEmail?: EmailAddress
+  readonly uptime?: number | null
+  readonly project?: Asset
 }
 
 export interface ProjectSessionLogs {
@@ -1321,6 +1323,11 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
+/** URL query string parameters for the "list all executions" endpoint. */
+export interface ListExecutionsRequestParams {
+  readonly lastExecutionId?: ProjectExecutionId | null
+}
+
 export type AssetSortExpression = 'asset_id_discriminator_and_modified_at' | 'modified_at' | 'title'
 
 export type AssetSortDirection = 'ascending' | 'descending'
@@ -1885,6 +1892,8 @@ export abstract class Backend {
     year: number,
     month: number,
   ): Promise<readonly ProjectExecution[]>
+  /** Return a list of executions for an organization (if admin) or a user. */
+  abstract listExecutions(params: ListExecutionsRequestParams): Promise<readonly ProjectExecution[]>
   abstract syncProjectExecution(
     executionId: ProjectExecutionId,
     projectTitle: string,

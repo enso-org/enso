@@ -18,6 +18,7 @@ enum SettingsTabType {
   // compliance = 'compliance',
   // usageStatistics = 'usage-statistics',
   apiKeys = 'api-keys',
+  finances = 'finances',
 }
 
 export default SettingsTabType
