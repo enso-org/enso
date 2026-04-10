@@ -1421,7 +1421,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_0,
-        ConstantsGen.FUNCTION,
+        ConstantsGen.FUNCTION_BUILTIN,
         methodCall = Some(
           Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
         ),
@@ -1437,7 +1437,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_1,
-        ConstantsGen.FUNCTION,
+        ConstantsGen.FUNCTION_BUILTIN,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1527,7 +1527,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_0,
-        ConstantsGen.FUNCTION,
+        ConstantsGen.FUNCTION_BUILTIN,
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1547,7 +1547,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: Expected `..A` to be T, but got Function.",
+            "Type error: Expected `..A` to be T, but got T.A[Enso_Test.Test.Main:2:5-9] x=_ y=_. Try to apply x, y arguments.",
             Some(mainFile),
             Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
             None,
