@@ -99,7 +99,7 @@ function useRightPanelTabs(
       'sessions',
       {
         icon: 'activity',
-        enabled: enabledInCloudOnly,
+        enabled: Ok(),
         title: textRef('projectSessions'),
       },
     ],

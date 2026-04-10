@@ -302,7 +302,7 @@ export interface ProjectSession {
   readonly projectSessionId: ProjectSessionId
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
-  readonly userEmail: EmailAddress
+  readonly userEmail?: EmailAddress
 }
 
 export interface ProjectSessionLogs {

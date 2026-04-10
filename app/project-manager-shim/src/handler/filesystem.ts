@@ -3,7 +3,12 @@ import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import type * as http from 'node:http'
 import * as path from 'node:path'
+import { promisify } from 'node:util'
+import * as zlib from 'node:zlib'
+
+import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import * as yaml from 'yaml'
+import { getEngineLogDirectory } from '../distributionManager.js'
 import * as projectManagement from '../projectManagement.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
 
@@ -243,6 +248,25 @@ export async function handleFilesystemCommand(
         result = toJSONRPCResult(null)
         break
       }
+      case '--list-project-sessions': {
+        const projectId = cliArguments[1]
+        if (projectId == null) break
+        result = toJSONRPCResult(await listProjectSessions(projectId))
+        break
+      }
+      case '--get-project-session-logs': {
+        const sessionId = cliArguments[1]
+        const scrollId = cliArguments[2] ?? null
+        if (sessionId == null) break
+        result = toJSONRPCResult(getProjectSessionLogs(sessionId, scrollId))
+        break
+      }
+      case '--download-project-session-logs': {
+        const sessionId = cliArguments[1]
+        if (sessionId == null) break
+        result = toJSONRPCResult(await downloadProjectSessionLogs(sessionId))
+        break
+      }
       default: {
         const message = `Error in Project Manager shim: unknown command ${JSON.stringify(cliArguments)}`
         console.error(message)
@@ -322,4 +346,246 @@ export async function getFileSystemEntry(entryPath: string): Promise<FileSystemE
       }
     }
   }
+}
+
+// ============
+// === Logs ===
+// ============
+
+const SESSION_ID_PREFIX = 'localprojectsession-'
+const gunzipAsync = promisify(zlib.gunzip)
+
+/** Validate that a path segment contains no directory traversal or separators. */
+function isSafePathSegment(segment: string): boolean {
+  return segment.length > 0 && segment !== '.' && segment !== '..' && !/[/\\]/.test(segment)
+}
+
+/**
+ * Parse date-time from a log filename like `enso-language-server-2026-03-31-14-23-45`.
+ * Expects the date-time at the end of the base name.
+ */
+function parseDateTimeFromFilename(baseName: string): Rfc3339DateTime | null {
+  const match = baseName.match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+  return Rfc3339DateTime(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`)
+}
+
+/**
+ * Extract the session base name from a log filename.
+ * Matches active logs (`base.log`) and rolled archives (`base.N.log.gz`).
+ * Returns the base name (without `.log` / `.N.log.gz`) or null if not a log file.
+ */
+function extractSessionBaseName(filename: string): string | null {
+  const archiveMatch = filename.match(/^(.+)\.\d+\.log\.gz$/)
+  if (archiveMatch) return archiveMatch[1]!
+  if (filename.endsWith('.log')) return filename.slice(0, -4)
+  return null
+}
+
+/**
+ * Encode a session ID from projectId and file base name.
+ * Format: `localprojectsession-{projectId}/{baseName}`
+ */
+export function encodeSessionId(projectId: string, baseName: string): string {
+  return `${SESSION_ID_PREFIX}${projectId}/${baseName}`
+}
+
+/**
+ * Decode a session ID into projectId and file base name.
+ * Returns the project log directory and the file base name.
+ * Throws if the session ID contains path traversal attempts.
+ */
+function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: string } {
+  const raw =
+    sessionId.startsWith(SESSION_ID_PREFIX) ? sessionId.slice(SESSION_ID_PREFIX.length) : sessionId
+  const slashIdx = raw.indexOf('/')
+  const logDir = getEngineLogDirectory()
+  if (slashIdx < 0) {
+    if (!isSafePathSegment(raw)) {
+      throw new Error(`Invalid session ID: unsafe segment '${raw}'`)
+    }
+    return { projectLogDir: logDir, baseName: raw }
+  }
+  const projectId = raw.slice(0, slashIdx)
+  const baseName = raw.slice(slashIdx + 1)
+  if (!isSafePathSegment(projectId) || !isSafePathSegment(baseName)) {
+    throw new Error(`Invalid session ID: unsafe path segments in '${sessionId}'`)
+  }
+  return { projectLogDir: path.join(logDir, projectId), baseName }
+}
+
+/**
+ * List project sessions by scanning `{logDir}/{projectId}/` for log files.
+ * Each unique base name (active log + its rolled archives) is one session.
+ */
+export async function listProjectSessions(
+  projectId: string,
+): Promise<{ sessions: readonly { projectSessionId: string; createdAt: Rfc3339DateTime }[] }> {
+  if (!isSafePathSegment(projectId)) {
+    throw new Error(`Invalid project ID: unsafe segment '${projectId}'`)
+  }
+  const projectLogDir = path.join(getEngineLogDirectory(), projectId)
+  let entries: string[]
+  try {
+    entries = await fs.readdir(projectLogDir)
+  } catch (e: any) {
+    // Suppress errors if the directory does not exist.
+    if (e?.code !== 'ENOENT') {
+      console.error(`Failed to read log directory '${projectLogDir}':`, e)
+    }
+    return { sessions: [] }
+  }
+  const seen = new Set<string>()
+  const sessions: { projectSessionId: string; createdAt: Rfc3339DateTime }[] = []
+  for (const entry of entries) {
+    const baseName = extractSessionBaseName(entry)
+    if (baseName == null) continue
+    if (seen.has(baseName)) continue
+    seen.add(baseName)
+    const createdAt = parseDateTimeFromFilename(baseName)
+    if (!createdAt) continue
+    sessions.push({
+      projectSessionId: encodeSessionId(projectId, baseName),
+      createdAt,
+    })
+  }
+  sessions.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  return { sessions }
+}
+
+/**
+ * Read log file content for a given local project session.
+ *
+ * Uses scrollId to load archives one-by-one:
+ * - `null`        load archive 0 (or active log if no archives)
+ * - `"archive:N"` load archive N of (N.log.gz rolled archives)
+ * - `"active"`    load the active .log file
+ * - `"done"`      return empty (signals end of pagination)
+ */
+export function getProjectSessionLogs(
+  sessionId: string,
+  scrollId: string | null,
+): { scrollId: string; hits: readonly string[] } {
+  if (scrollId === 'done') {
+    return { scrollId: 'done', hits: [] }
+  }
+  const { projectLogDir, baseName } = decodeSessionId(sessionId)
+
+  const sortedArchiveIndices = collectArchiveIndices(projectLogDir, baseName)
+  const hasArchives = sortedArchiveIndices.length > 0
+
+  if (scrollId == null) {
+    if (hasArchives) {
+      return readArchive(projectLogDir, baseName, sortedArchiveIndices, 0)
+    }
+    return readActiveLog(projectLogDir, baseName)
+  }
+
+  const archiveMatch = scrollId.match(/^archive:(\d+)$/)
+  if (archiveMatch) {
+    const requestedIndex = parseInt(archiveMatch[1]!, 10)
+    const pos = sortedArchiveIndices.indexOf(requestedIndex)
+    if (pos >= 0) {
+      return readArchive(projectLogDir, baseName, sortedArchiveIndices, pos)
+    }
+    return readActiveLog(projectLogDir, baseName)
+  }
+
+  if (scrollId === 'active') {
+    return readActiveLog(projectLogDir, baseName)
+  }
+
+  return { scrollId: 'done', hits: [] }
+}
+
+/** Collect sorted archive indices for a session base name. */
+function collectArchiveIndices(dir: string, baseName: string): number[] {
+  const prefix = `${baseName}.`
+  const suffix = '.log.gz'
+  const indices: number[] = []
+  try {
+    for (const entry of fsSync.readdirSync(dir)) {
+      if (!entry.startsWith(prefix) || !entry.endsWith(suffix)) continue
+      const middle = entry.slice(prefix.length, -suffix.length)
+      if (/^\d+$/.test(middle)) {
+        indices.push(parseInt(middle, 10))
+      }
+    }
+  } catch (e) {
+    console.error(`Failed to scan log directory '${dir}' for archives:`, e)
+  }
+  indices.sort((a, b) => a - b)
+  return indices
+}
+
+/** Split text into lines, dropping a trailing empty line caused by a final newline. */
+function splitLines(text: string): string[] {
+  const lines = text.split('\n')
+  if (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop()
+  }
+  return lines
+}
+
+/** Read a single rolled archive and return the scrollId pointing to the next chunk. */
+function readArchive(
+  dir: string,
+  baseName: string,
+  sortedIndices: number[],
+  pos: number,
+): { scrollId: string; hits: readonly string[] } {
+  const archiveIndex = sortedIndices[pos]!
+  const filePath = path.join(dir, `${baseName}.${archiveIndex}.log.gz`)
+  let lines: string[] = []
+  try {
+    const compressed = fsSync.readFileSync(filePath)
+    lines = splitLines(zlib.gunzipSync(compressed).toString('utf-8'))
+  } catch (e) {
+    console.error(`Failed to read archive '${filePath}':`, e)
+  }
+  const nextPos = pos + 1
+  const nextScrollId =
+    nextPos < sortedIndices.length ? `archive:${sortedIndices[nextPos]}` : 'active'
+  return { scrollId: nextScrollId, hits: lines }
+}
+
+/** Read the active log file. */
+function readActiveLog(
+  dir: string,
+  baseName: string,
+): { scrollId: string; hits: readonly string[] } {
+  const logPath = path.join(dir, `${baseName}.log`)
+  try {
+    const content = fsSync.readFileSync(logPath, 'utf-8')
+    return { scrollId: 'done', hits: splitLines(content) }
+  } catch (e) {
+    console.error(`Failed to read log file '${logPath}':`, e)
+    return { scrollId: 'done', hits: [] }
+  }
+}
+
+/** Read all log files for a session and return them concatenated as a single string. */
+export async function downloadProjectSessionLogs(sessionId: string): Promise<string> {
+  const { projectLogDir, baseName } = decodeSessionId(sessionId)
+  const sortedArchiveIndices = collectArchiveIndices(projectLogDir, baseName)
+  const parts: string[] = []
+
+  for (const archiveIndex of sortedArchiveIndices) {
+    const filePath = path.join(projectLogDir, `${baseName}.${archiveIndex}.log.gz`)
+    try {
+      const compressed = await fs.readFile(filePath)
+      parts.push((await gunzipAsync(compressed)).toString('utf-8'))
+    } catch (e) {
+      console.error(`Failed to read archive '${filePath}':`, e)
+    }
+  }
+
+  const activeLogPath = path.join(projectLogDir, `${baseName}.log`)
+  try {
+    parts.push(await fs.readFile(activeLogPath, 'utf-8'))
+  } catch (e) {
+    console.error(`Failed to read log file '${activeLogPath}':`, e)
+  }
+
+  return parts.join('')
 }

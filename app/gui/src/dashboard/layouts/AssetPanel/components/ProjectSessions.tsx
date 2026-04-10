@@ -18,10 +18,15 @@ export function ProjectSessions() {
   const { getText } = useText()
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
-  const { remoteBackend } = useBackends()
+  const { remoteBackend, localBackend } = useBackends()
 
-  if (category?.backend !== BackendType.remote) {
-    return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
+  const backend =
+    category?.backend === BackendType.remote ? remoteBackend
+    : category?.backend === BackendType.local ? localBackend
+    : null
+
+  if (backend == null) {
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
 
   if (focusedAsset == null) {
@@ -34,7 +39,7 @@ export function ProjectSessions() {
 
   return (
     <ErrorBoundary>
-      <AssetProjectSessionsInternal backend={remoteBackend} item={focusedAsset} />
+      <AssetProjectSessionsInternal backend={backend} item={focusedAsset} />
     </ErrorBoundary>
   )
 }

@@ -5,7 +5,7 @@ import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest'
 import { EnsoRunner, findEnsoExecutable } from '../ensoRunner.js'
 import { ProjectService } from '../index.js'
 
@@ -43,6 +43,7 @@ describe('ProjectService', () => {
     // Create a temporary directory for test projects
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'project-service-test-'))
     projectsDirectory = Path(tempDir)
+    vi.stubEnv('ENSO_LOG_DIRECTORY', path.join(tempDir, 'log'))
 
     if (!ensoPath) {
       // Fail the test if executable is not available
@@ -53,7 +54,7 @@ describe('ProjectService', () => {
   })
 
   afterEach(async () => {
-    // Clean up temporary directory
+    vi.unstubAllEnvs()
     try {
       await fs.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 1000 })
     } catch (error) {

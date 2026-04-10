@@ -164,10 +164,16 @@ export class ProjectService {
     return project
   }
 
-  private projectEnvVars(cloud?: CloudParams): readonly (readonly [string, string])[] {
+  private projectEnvVars(
+    projectId: UUID,
+    cloud?: CloudParams,
+  ): readonly (readonly [string, string])[] {
     if (!cloud) {
       const localSessionId = `localprojectsession-${KSUID.randomSync().string}`
-      return [['ENSO_CLOUD_PROJECT_SESSION_ID', localSessionId]]
+      return [
+        ['ENSO_LOCAL_PROJECT_ID', projectId],
+        ['ENSO_LOCAL_PROJECT_SESSION_ID', localSessionId],
+      ]
     }
     return [
       ['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath],
@@ -181,7 +187,10 @@ export class ProjectService {
   async runProject(projectId: UUID, projectsDirectory: Path, cloud?: CloudParams): Promise<number> {
     const project = await this.getProject(projectId, projectsDirectory, true)
     this.logger.debug(`Running project '${project.path}'`)
-    const exitCode = await this.runner.runProject(project.path, this.projectEnvVars(cloud))
+    const exitCode = await this.runner.runProject(
+      project.path,
+      this.projectEnvVars(projectId, cloud),
+    )
     this.logger.debug(`Project '${project.path}' finished running`)
     return exitCode
   }
@@ -206,7 +215,7 @@ export class ProjectService {
       project.path,
       projectId,
       this.extraArgs.length > 0 ? this.extraArgs : undefined,
-      this.projectEnvVars(cloud),
+      this.projectEnvVars(projectId, cloud),
     )
 
     // Return the OpenProject response
