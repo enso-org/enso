@@ -17,7 +17,7 @@ import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { newDirectoryId, newProjectId } from 'enso-common/src/services/LocalBackend'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { normalizeSlashes } from 'enso-common/src/utilities/file'
-import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
+import { onMounted, onUnmounted, shallowRef, toRef, toRefs } from 'vue'
 import MiddlePanel from './MiddlePanel.vue'
 
 import type { TransferBetweenCategoriesFunction } from '#/layouts/Drive/Categories'
@@ -50,9 +50,9 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 const openedProjects = useOpenedProjects()
 const containerData = useContainerData()
 const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
-const anyTabs = computed(() => containerData.tabList.length > 0)
+const { focusedPanel, middlePanelShown } = toRefs(containerData)
 provideAsyncResources(openedProjects)
-provideRightPanelData(toRef(containerData, 'focusedPanel'))
+provideRightPanelData(focusedPanel)
 provideFullscreenRoot(fullscreenRoot)
 provideDriveLocation(props.startReactTransition)
 provideReactApi(
@@ -134,14 +134,14 @@ onUnmounted(() => {
         <div class="topBarBackground" />
         <CommandPalette />
         <ModalWrapper />
-        <LeftPanel :middlePanelShown="anyTabs" :class="{ noMiddlePanel: !anyTabs }" />
-        <div class="tabPanel" :class="{ noMiddlePanel: !anyTabs }">
+        <LeftPanel :class="{ noMiddlePanel: !middlePanelShown }" />
+        <div class="tabPanel" :class="{ noMiddlePanel: !middlePanelShown }">
           <div class="bar">
             <TabBar />
             <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
           </div>
           <div class="belowBar">
-            <MiddlePanel v-if="anyTabs" />
+            <MiddlePanel v-if="middlePanelShown" />
             <RightPanel />
           </div>
         </div>

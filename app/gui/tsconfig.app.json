@@ -25,6 +25,7 @@
     "./src/components/AppContainer/HelpBar.vue",
     "./src/components/AppContainer/LeftPanel.vue",
     "./src/components/AppContainer/MiddlePanel.vue",
+    "./src/components/AppContainer/PanelContents.vue",
     "./src/components/AppContainer/RightPanel.vue",
     "./src/components/AppContainer/SelectableTab.vue",
     "./src/components/AppContainer/TabBar.vue",

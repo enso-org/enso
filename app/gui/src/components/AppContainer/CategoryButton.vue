@@ -11,6 +11,7 @@ import {
   type Category,
   type LocalDirectory,
 } from '$/providers/category'
+import { useContainerData } from '$/providers/container'
 import { useDriveLocation } from '$/providers/drive'
 import { useReactApi } from '$/providers/reactApi'
 import { useText } from '$/providers/text'
@@ -32,6 +33,7 @@ const {
 
 const { categoryLabel, removeLocalDirectory } = useCategories()
 const { currentCategory } = toRefs(useDriveLocation())
+const { leftPanelShown, leftPanelToggledOn } = toRefs(useContainerData())
 const reactApi = useReactApi()
 const { getText } = useText()
 const router = useRouter()
@@ -48,6 +50,13 @@ const isDropTarget = computed(
 
 const acceptedDragTypes = computed(() => (isDropTarget.value ? [ASSETS_MIME_TYPE] : []))
 const dropHover = ref(false)
+
+function onClick() {
+  if (!leftPanelShown.value) {
+    leftPanelToggledOn.value = true
+  }
+  currentCategory.value = category
+}
 
 function onDragover(event: DragEvent) {
   for (const item of event.dataTransfer?.items ?? []) {
@@ -119,10 +128,10 @@ function onRemoveLocalDirClick(directory: LocalDirectory) {
           :name="!isLoading ? categoryIcon(category.type) : undefined"
           :label="extended ? label : undefined"
           :aria-label="label"
-          :modelValue="selected"
+          :modelValue="leftPanelShown && selected"
           :disabled="disabled !== false"
           v-bind="triggerProps"
-          @update:modelValue="currentCategory = category"
+          @update:modelValue="onClick"
           @dragover="onDragover"
           @dragleave="dropHover = false"
           @drop="onDrop"

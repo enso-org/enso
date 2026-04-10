@@ -33,7 +33,11 @@ const {
   scrollerTestId,
   editorReadyCallback = () => {},
 } = defineProps<{
-  toolbar?: boolean | undefined
+  /**
+   * If a boolean value, specifies if toolbar is visible. If an HTMLElement or selector string,
+   * displays toolbar teleported to the specified element.
+   */
+  toolbar?: boolean | HTMLElement | string | undefined
   readonly?: boolean | undefined
   /**
    * Additional extensions. This prop is read only during setup, and extensions are not refreshed
@@ -154,6 +158,10 @@ const blockType = computed({
 })
 const blockTypeDropdown = useBlockTypeDropdown({ blockType, actions })
 
+const teleportToolbar = computed(() =>
+  toolbar instanceof HTMLElement || typeof toolbar === 'string' ? toolbar : undefined,
+)
+
 defineExpose({
   editorView,
 })
@@ -161,15 +169,16 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot" @dragover.prevent>
-    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
-      <ActionButton action="panel.fullscreen" />
-      <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
-      <ActionButton action="documentationEditor.italic" />
-      <ActionButton action="documentationEditor.bold" />
-      <ActionButton action="documentationEditor.link" />
-      <ActionButton action="documentationEditor.code" />
-      <ActionButton action="documentationEditor.image" />
-    </div>
+    <Teleport v-if="toolbar" :disabled="teleportToolbar == null" :to="teleportToolbar">
+      <div class="toolbar" @pointerdown.prevent>
+        <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
+        <ActionButton action="documentationEditor.italic" />
+        <ActionButton action="documentationEditor.bold" />
+        <ActionButton action="documentationEditor.link" />
+        <ActionButton action="documentationEditor.code" />
+        <ActionButton action="documentationEditor.image" />
+      </div>
+    </Teleport>
     <slot name="belowToolbar" />
     <CodeMirrorRoot
       ref="editorRoot"
@@ -194,7 +203,7 @@ defineExpose({
 }
 
 .toolbar {
-  height: 26px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;

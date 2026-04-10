@@ -17,10 +17,12 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useResizeObserver } from '@/composables/events'
-import type { DisplayableActionName } from '@/providers/action'
+import { registerHandlers, type DisplayableActionName } from '@/providers/action'
 import { Path } from 'enso-common/src/services/Backend'
+import React from 'react'
 import { computed, ref, toRef, toRefs, useTemplateRef } from 'vue'
 import CategoryButton from './CategoryButton.vue'
+import PanelContents from './PanelContents.vue'
 
 const LEFT_BAR_EXTENSION_TIME_MS = 550
 const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
@@ -34,17 +36,21 @@ const ENSO_ICON_MENU_ACTIONS: DisplayableActionName[] = [
   'help.contactUs',
 ]
 
-const props = defineProps<{ middlePanelShown: boolean }>()
-
 const categories = useCategories()
 const containerData = useContainerData()
 const auth = useAuth()
 const { getText } = useText()
 const isOnline = useIsOnline()
 const { localBackend } = useBackends()
-const { leftPanelWidth: width, leftPanelToggledOn: toggledOn } = toRefs(containerData)
-const visible = computed(() => toggledOn.value || !props.middlePanelShown)
+const {
+  leftPanelWidth: width,
+  leftPanelToggledOn: toggledOn,
+  middlePanelShown,
+  leftPanelShown: visible,
+} = toRefs(containerData)
 const currentCategory = toRef(useDriveLocation(), 'currentCategory')
+const fullscreen = ref(false)
+const driveToolbarReact: React.MutableRefObject<HTMLElement | null> = { current: null }
 
 const cloudDisabledReason = computed(() => {
   if (!isOnline.value) {
@@ -67,9 +73,9 @@ const localDisabledReason = computed(() => {
 const root = useTemplateRef('content')
 const cssClass = computed(() => ({
   focusedPanel: containerData.focusedPanel.type === 'drive',
-  middlePanelShown: props.middlePanelShown,
+  middlePanelShown: middlePanelShown.value,
 }))
-const widthStyle = computed(() => (props.middlePanelShown ? { width: optPx(width.value) } : {}))
+const widthStyle = computed(() => (middlePanelShown.value ? { width: optPx(width.value) } : {}))
 const canAddLocalDirectories = window.api != null
 
 const resizeHandles = useResizeHandles({
@@ -103,6 +109,13 @@ async function onAddDirectoryClick() {
     currentCategory.value = { type: 'localDirectory', path }
   }
 }
+
+registerHandlers({
+  'panel.close': {
+    action: () => (toggledOn.value = false),
+    available: middlePanelShown,
+  },
+})
 </script>
 
 <template>
@@ -113,13 +126,6 @@ async function onAddDirectoryClick() {
       @mouseenter="onEnter"
       @mouseleave="onLeave"
     >
-      <SvgButton
-        v-model="toggledOn"
-        class="leftBarIcon"
-        name="right_side_panel"
-        title="Toggle Drive Panel"
-        :disabled="!middlePanelShown"
-      />
       <div class="categories">
         <CategoryButton
           v-for="category of categories.cloudCategoriesList"
@@ -151,16 +157,21 @@ async function onAddDirectoryClick() {
       <div v-if="visible" class="sizeWrapper">
         <div ref="content" class="panel" :class="cssClass" :style="widthStyle">
           <HelpBar />
-          <Drive />
+          <PanelContents
+            v-model:fullscreen="fullscreen"
+            @update:toolbarElement="driveToolbarReact.current = $event"
+          >
+            <Drive :toolbar="driveToolbarReact" />
+          </PanelContents>
           <ResizeHandles v-if="middlePanelShown" right v-on="resizeHandles.events" />
         </div>
+        <div class="shadow" />
       </div>
     </SizeTransition>
     <DropdownMenu class="ensoIcon">
       <template #button><SvgIcon name="enso_logo" /></template>
       <template #menu><ActionMenu :actions="ENSO_ICON_MENU_ACTIONS" /></template>
     </DropdownMenu>
-    <div class="shadow" />
   </div>
 </template>
 
@@ -169,10 +180,6 @@ async function onAddDirectoryClick() {
   position: relative;
   min-width: 48px;
   z-index: 1;
-
-  & > .shadow {
-    top: var(--top-bar-height);
-  }
 }
 
 .leftBar {
@@ -182,7 +189,7 @@ async function onAddDirectoryClick() {
   position: absolute;
   width: 48px;
   max-width: 48px;
-  height: 100%;
+  height: calc(100% - var(--top-bar-height));
   margin-top: var(--top-bar-height);
   padding: 16px 0;
   background-color: var(--color-dashboard-background);
@@ -212,7 +219,7 @@ async function onAddDirectoryClick() {
   gap: 8px;
   overflow: hidden;
 
-  &:before {
+  &:not(:first-child):before {
     content: '';
     width: calc(100% - 32px);
     height: 1px;
@@ -235,11 +242,15 @@ async function onAddDirectoryClick() {
  * the framerate drastically.
  */
 .sizeWrapper {
+  position: relative;
   height: 100%;
   min-width: 0;
   width: 100%;
   background-color: var(--panel-background);
   padding-left: 48px;
+  & > .shadow {
+    top: var(--top-bar-height);
+  }
 }
 
 .panel {

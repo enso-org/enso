@@ -2,9 +2,13 @@
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import { useTemplateRef } from 'vue'
+import { useTemplateRef, watchEffect } from 'vue'
 import ClosedProjectDocumentationEditor from './ClosedProjectDocumentationEditor.vue'
 import OpenedProjectDocumentationEditor from './OpenedProjectDocumentationEditor.vue'
+
+const props = defineProps<{ toolbar: HTMLElement | string }>()
+
+watchEffect(() => console.debug('TOOLBAR', props.toolbar))
 
 const rightPanel = useRightPanelData()
 
@@ -15,9 +19,9 @@ providePopoverRoot(rootElement)
 <template>
   <div ref="rootElement" class="DocumentationEditor">
     <WithCurrentProject :id="rightPanel.focusedProject">
-      <OpenedProjectDocumentationEditor />
+      <OpenedProjectDocumentationEditor :toolbar="toolbar" />
       <template #fallback>
-        <ClosedProjectDocumentationEditor />
+        <ClosedProjectDocumentationEditor :toolbar="toolbar" />
       </template>
     </WithCurrentProject>
   </div>
