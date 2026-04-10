@@ -51,7 +51,7 @@ const dropHover = ref(false)
 
 function onDragover(event: DragEvent) {
   for (const item of event.dataTransfer?.items ?? []) {
-    if (acceptedDragTypes.value.find((type) => type === item.type)) {
+    if (acceptedDragTypes.value.includes(item.type)) {
       dropHover.value = true
       event.preventDefault()
       return
@@ -85,12 +85,13 @@ async function onDrop(event: DragEvent) {
   }
 
   if (category.type === 'trash') {
+    const itemsCount = payloads.flatMap(({ items }) => items).length
     reactApi.confirmDelete({
       defaultOpen: true,
       actionText:
-        payloads[0]?.items.length === 1 && firstItem != null ?
+        itemsCount === 1 ?
           getText('deleteSelectedAssetActionText', firstItem.title)
-        : getText('deleteSelectedAssetsActionText', payloads.flatMap(({ items }) => items).length),
+        : getText('deleteSelectedAssetsActionText', itemsCount),
       onConfirm: transfer,
     })
   } else {

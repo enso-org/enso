@@ -243,7 +243,7 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
 
   function addLocalDirectory(path: Path) {
     const state = localDirectoryStore.getState()
-    if (!state.localDirectories.find((p) => p === path)) {
+    if (!state.localDirectories.includes(path)) {
       localDirectoryStore.setState({ localDirectories: [...state.localDirectories, path] })
       return true
     }
@@ -254,8 +254,7 @@ function createCategoriesStore(userData: ToValue<Opt<User>>) {
     const state = localDirectoryStore.getState()
     const index = state.localDirectories.findIndex((p) => p === path)
     if (index >= 0) {
-      const newList = [...state.localDirectories]
-      newList.splice(index, 1)
+      const newList = state.localDirectories.filter((_, i) => i !== index)
       localDirectoryStore.setState({ localDirectories: newList })
       return true
     }
@@ -305,7 +304,7 @@ export function dropOperationBetweenCategories(
     }
   }
 
-  if (isCloudCategory(from) || isCloudCategory(to)) {
+  if (isCloudCategory(from) !== isCloudCategory(to)) {
     if (isLocalCategory(from) || isLocalCategory(to)) {
       return 'copy'
     }
@@ -320,7 +319,7 @@ export function dropOperationBetweenCategories(
       return 'move'
     case 'local':
     case 'localDirectory':
-      return isCloudCategory(to) ? 'copy' : 'move'
+      return 'move'
   }
 }
 

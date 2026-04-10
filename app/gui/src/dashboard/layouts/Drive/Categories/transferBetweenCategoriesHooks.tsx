@@ -29,7 +29,6 @@ import {
   type AssetId,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
-// import { parseDirectoriesPath } from 'enso-common/src/services/Backend/utilities'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'

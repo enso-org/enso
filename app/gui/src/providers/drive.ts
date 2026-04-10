@@ -2,7 +2,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { proxyRefs } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
 import { isDirectoryId, type DirectoryId } from 'enso-common/src/services/Backend'
-import { computed, watch } from 'vue'
+import { computed, watch, watchEffect } from 'vue'
 import * as z from 'zod'
 import { useBackends } from './backends'
 import {
@@ -14,14 +14,16 @@ import {
   type Category,
 } from './category'
 
-const DRIVE_DISPLAY_SCHEMA = z.object({
-  currentDirectoryId: z
-    .custom<DirectoryId>((value) =>
-      typeof value === 'string' && isDirectoryId(value) ? value : false,
-    )
-    .nullable(),
-  currentCategory: z.string(),
-})
+const DRIVE_DISPLAY_SCHEMA = z
+  .object({
+    currentDirectoryId: z
+      .custom<DirectoryId>((value) =>
+        typeof value === 'string' && isDirectoryId(value) ? value : false,
+      )
+      .nullable(),
+    currentCategory: z.string(),
+  })
+  .nullable()
 declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly driveDisplay: z.infer<typeof DRIVE_DISPLAY_SCHEMA>
@@ -72,17 +74,20 @@ export const [provideDriveLocation, useDriveLocation] = createContextStore(
     )
 
     function setDefaultCategory() {
-      localStorage.delete('driveDisplay')
+      localStorage.set('driveDisplay', null)
     }
 
     watch(
       () => [...categories.localCategoriesList, ...categories.cloudCategoriesList],
       (newList) => {
+        console.debug('NEW LIST', newList, currentCategory.value)
         if (!newList.find((category) => categoryEq(category, currentCategory.value))) {
           setDefaultCategory()
         }
       },
     )
+
+    watchEffect(() => console.debug('Current Category', currentCategory.value))
 
     return proxyRefs({
       currentCategory,

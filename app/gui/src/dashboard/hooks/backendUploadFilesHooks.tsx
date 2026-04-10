@@ -225,28 +225,30 @@ function useGetSiblings() {
   const queryClient = useQueryClient()
 
   return useEventCallback(async (backend: Backend, parentId: DirectoryId) => {
-    const nonDeletedAssets = await queryClient.fetchQuery(
-      listDirectoryQueryOptions({
-        backend,
-        parentId,
-        category: { type: 'cloud' },
-        labels: null,
-        sortExpression: null,
-        sortDirection: null,
-        refetchInterval: null,
-      }),
-    )
-    const deletedAssets = await queryClient.fetchQuery(
-      listDirectoryQueryOptions({
-        backend,
-        parentId,
-        category: { type: 'trash' },
-        labels: null,
-        sortExpression: null,
-        sortDirection: null,
-        refetchInterval: null,
-      }),
-    )
+    const [nonDeletedAssets, deletedAssets] = await Promise.all([
+      queryClient.fetchQuery(
+        listDirectoryQueryOptions({
+          backend,
+          parentId,
+          category: { type: 'cloud' },
+          labels: null,
+          sortExpression: null,
+          sortDirection: null,
+          refetchInterval: null,
+        }),
+      ),
+      queryClient.fetchQuery(
+        listDirectoryQueryOptions({
+          backend,
+          parentId,
+          category: { type: 'trash' },
+          labels: null,
+          sortExpression: null,
+          sortDirection: null,
+          refetchInterval: null,
+        }),
+      ),
+    ])
     return [...nonDeletedAssets.assets, ...deletedAssets.assets] as const
   })
 }

@@ -39,9 +39,7 @@ export function PathColumn(props: AssetColumnProps) {
     if (targetDirectoryIndex === -1 || !targetDirectoryInfo) {
       return
     }
-    const pathToDirectory = finalPath
-      .slice(0, targetDirectoryIndex + 1)
-      .map(({ id, category }) => ({ id, category }))
+    const pathToDirectory = finalPath.slice(0, targetDirectoryIndex + 1)
     const rootDirectoryInThePath = pathToDirectory[0]
     // This should never happen, as we always have the root directory in the path.
     invariant(rootDirectoryInThePath, 'Root directory id is null')
