@@ -6686,7 +6686,7 @@ class RuntimeServerTest
         |    Value reason
         |
         |attach value warning =
-        |    Warning.attach warning value warning
+        |    Warning.attach warning value
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
