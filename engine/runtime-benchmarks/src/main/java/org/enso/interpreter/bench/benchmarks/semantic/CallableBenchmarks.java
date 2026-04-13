@@ -24,6 +24,9 @@ import org.openjdk.jmh.infra.Blackhole;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class CallableBenchmarks {
+
+  private static final String TAIL_CALL_EXPLICIT = "@Tail_Call ";
+  private final String TAIL_CALL_SUFFIX = "WithTailCall";
   private static final long HUNDRED_MILLION = 100_000_000L;
   private static final String SUM_TCO_FROM_CALL_CODE =
 """
@@ -94,15 +97,12 @@ main = sumTo ->
   public void initializeBenchmarks(BenchmarkParams params) throws IOException {
     this.ctxRule = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
 
-    this.sumTCOfromCall = getMethodFromModule(SUM_TCO_FROM_CALL_CODE, "sumTCOfromCall");
-    this.sumTCOmethodCall = getMethodFromModule(SUM_TCO_METHOD_CALL_CODE, "sumTCOmethodCall");
+    this.sumTCOfromCall = getMethodFromModule(SUM_TCO_FROM_CALL_CODE, params);
+    this.sumTCOmethodCall = getMethodFromModule(SUM_TCO_METHOD_CALL_CODE, params);
     this.sumTCOmethodCallWithNamedArguments =
-        getMethodFromModule(
-            SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE, "sumTCOmethodCallWithNamedArguments");
+        getMethodFromModule(SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE, params);
     this.sumTCOmethodCallWithDefaultedArguments =
-        getMethodFromModule(
-            SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE,
-            "sumTCOmethodCallWithDefaultedArguments");
+        getMethodFromModule(SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE, params);
   }
 
   @Benchmark
@@ -115,12 +115,22 @@ main = sumTo ->
   }
 
   @Benchmark
+  public void benchSumTCOfromCallWithTailCall(Blackhole bh) {
+    benchSumTCOfromCall(bh);
+  }
+
+  @Benchmark
   public void benchSumTCOmethodCall(Blackhole bh) {
     var res = sumTCOmethodCall.execute(HUNDRED_MILLION);
     if (!res.fitsInLong()) {
       throw new AssertionError("Should return number");
     }
     bh.consume(res);
+  }
+
+  @Benchmark
+  public void benchSumTCOmethodCallWithTailCall(Blackhole bh) {
+    benchSumTCOmethodCall(bh);
   }
 
   @Benchmark
@@ -133,6 +143,11 @@ main = sumTo ->
   }
 
   @Benchmark
+  public void benchSumTCOmethodCallWithNamedArgumentsWithTailCall(Blackhole bh) {
+    benchSumTCOmethodCallWithNamedArguments(bh);
+  }
+
+  @Benchmark
   public void benchSumTCOmethodCallWithDefaultedArguments(Blackhole bh) {
     var res = sumTCOmethodCallWithDefaultedArguments.execute(HUNDRED_MILLION);
     if (!res.fitsInLong()) {
@@ -141,7 +156,27 @@ main = sumTo ->
     bh.consume(res);
   }
 
-  private Value getMethodFromModule(String code, String benchName) throws IOException {
+  @Benchmark
+  public void benchSumTCOmethodCallWithDefaultedArgumentsWithTailCall(Blackhole bh) {
+    benchSumTCOmethodCallWithDefaultedArguments(bh);
+  }
+
+  private Value getMethodFromModule(String code, BenchmarkParams params) throws IOException {
+    var benchName = params.getBenchmark();
+    var tailCall = code.indexOf(TAIL_CALL_EXPLICIT);
+    if (benchName.contains(TAIL_CALL_SUFFIX)) {
+      if (tailCall == -1) {
+        throw new AssertionError("There should be @Tail_Call in: " + code);
+      }
+    } else {
+      var before = code.substring(0, tailCall);
+      var after = code.substring(tailCall + TAIL_CALL_EXPLICIT.length(), code.length());
+      code = before + after;
+      var noTailCall = code.indexOf(TAIL_CALL_EXPLICIT);
+      if (noTailCall != -1) {
+        throw new AssertionError("No @Tail_Call anymore: " + code);
+      }
+    }
     return SrcUtil.getMainMethod(ctxRule, benchName, code);
   }
 }
