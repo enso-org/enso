@@ -148,8 +148,8 @@ function createContainerStore() {
   const focusedPanel = ref<Panel>(DEFAULT_FOCUS)
 
   const currentTab = computed<Tab | null>({
-    get: (): Tab | null => tabFromRoute(route),
-    set: (tab: Tab | null) => {
+    get: () => tabFromRoute(route),
+    set: (tab) => {
       if (panelEquals(tab, currentTab.value)) return
       const key = panelKey(tab)
       visitingOrder.delete(key)

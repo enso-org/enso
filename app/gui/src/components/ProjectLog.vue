@@ -80,7 +80,7 @@ const logEntries = computed(() => parseEntries(logData.value))
 
 const LOG_LEVELS = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']
 
-const entryRe = /\[(TRACE|DEBUG|INFO|WARN|ERROR)] \[([^\]]+)] \[([^\]]+)] (.*)/
+const entryRe = new RegExp(`\\[${LOG_LEVELS.join('|')}] \\[([^\\]]+)] \\[([^\\]]+)] (.*)`)
 function parseEntry(line: string): LogEntry | undefined {
   const matched = entryRe.exec(line)
   if (!matched) return undefined
@@ -127,7 +127,7 @@ function formatLogLevel({ value }: { value: unknown }): string {
 function formatTimestamp({ value }: { value: unknown }): string {
   const date = value as Date | null
   if (!date) return ''
-  return date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' })
+  return date.toISOString()
 }
 
 // === Table column configuration ===
