@@ -28,6 +28,7 @@
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --aggregate-output /^^^^dev:/",
+    "check:tsconfigs": "node internal/checkTsconfigs.mjs",
     "compile": "corepack pnpm run -r compile",
     "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
@@ -43,7 +44,7 @@
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "node git-clean.mjs",
     "bazel-clean": "bazel clean --expunge_async",
-    "postinstall": "bazel run //:write_all --verbose_failures"
+    "postinstall": "node internal/postinstall.mjs"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
   "pnpm": {
