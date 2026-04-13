@@ -53,7 +53,7 @@ class RuntimeSuggestionUpdatesTest extends AnyFlatSpec with Matchers {
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           Paths
-            .get("../../test/micro-distribution/component")
+            .get("../../distribution/component")
             .toFile
             .getAbsolutePath
         )
