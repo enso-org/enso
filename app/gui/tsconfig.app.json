@@ -360,6 +360,7 @@
     "./src/dashboard/modules/payments/components/PlanSelector/index.ts",
     "./src/dashboard/modules/payments/constants.ts",
     "./src/dashboard/modules/payments/index.ts",
+    "./src/dashboard/modules/payments/pendingCheckout.ts",
     "./src/dashboard/modules/payments/useSubscriptionPrice.ts",
     "./src/dashboard/pages/PaymentsSuccess.tsx",
     "./src/dashboard/pages/authentication/AuthenticationPage.tsx",
