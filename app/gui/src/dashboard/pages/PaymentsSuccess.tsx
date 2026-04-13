@@ -57,7 +57,7 @@ export function PaymentsSuccess() {
 
     const abortController = new AbortController()
     const waitForPlanPromise = async () => {
-      const loadingToast = toast.loading(getText('payments.Pending'))
+      const loadingToast = toast.loading(getText('payments.pending'))
       try {
         const result = await waitForPlan(plan, refetchSession, abortController.signal)
         switch (result) {
@@ -66,13 +66,13 @@ export function PaymentsSuccess() {
             await queryClient.invalidateQueries({
               queryKey: [BackendType.remote, 'getOrganization'],
             })
-            toast.success(getText('payments.Success'))
+            toast.success(getText('payments.success'))
             analytics.checkout.after()
             await router.push(DASHBOARD_PATH)
             break
           case 'timeout':
             clearPendingCheckoutTargetPlan()
-            toast.error(getText('payments.Timeout'))
+            toast.error(getText('payments.timeout'))
             await router.push(DASHBOARD_PATH)
             break
         }
@@ -80,7 +80,7 @@ export function PaymentsSuccess() {
         if (e instanceof AbortError) {
           return
         }
-        toast.error(getText('payments.Error'))
+        toast.error(getText('payments.error'))
         // eslint-disable-next-line no-restricted-properties
         console.error(e)
       } finally {
