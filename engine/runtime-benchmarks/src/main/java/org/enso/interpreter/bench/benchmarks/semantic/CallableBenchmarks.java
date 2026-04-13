@@ -1,5 +1,6 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
@@ -32,7 +33,12 @@ type Foo
     Value v
 
 Foo.from (that : Number) current=0 =
-    if current == 0 then (Foo.Value that) else @Tail_Call Foo.from (that + current) (current - 1)
+    if current == 0 then
+        (Foo.Value that)
+    else
+        s = that + current
+        c = current - 1
+        @Tail_Call Foo.from s c
 
 main = sumTo ->
     res = Foo.from 0 sumTo
@@ -42,7 +48,10 @@ main = sumTo ->
   private static final String SUM_TCO_METHOD_CALL_CODE =
 """
 summator = acc -> current ->
-    if current == 0 then acc else @Tail_Call summator (acc + current) (current - 1)
+    if current == 0 then acc else
+        s = acc + current
+        c = current - 1
+        @Tail_Call summator s c
 
 main = sumTo ->
     res = summator 0 sumTo
@@ -52,7 +61,10 @@ main = sumTo ->
   private static final String SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE =
 """
 summator = acc -> current ->
-    if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
+    if current == 0 then acc else
+        s = acc + current
+        c = current - 1
+        @Tail_Call summator (current = c) (acc = s)
 
 main = sumTo ->
     res = summator current=sumTo acc=0
@@ -62,7 +74,10 @@ main = sumTo ->
   private static final String SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE =
 """
 summator = (acc = 0) -> current ->
-    if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
+    if current == 0 then acc else
+        s = acc + current
+        c = current - 1
+        @Tail_Call summator (current = c) (acc = s)
 
 main = sumTo ->
     res = summator current=sumTo
@@ -76,15 +91,18 @@ main = sumTo ->
   private Value sumTCOmethodCallWithDefaultedArguments;
 
   @Setup
-  public void initializeBenchmarks(BenchmarkParams params) {
+  public void initializeBenchmarks(BenchmarkParams params) throws IOException {
     this.ctxRule = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
 
-    this.sumTCOfromCall = ctxRule.getMethodFromModule(SUM_TCO_FROM_CALL_CODE, "main");
-    this.sumTCOmethodCall = ctxRule.getMethodFromModule(SUM_TCO_METHOD_CALL_CODE, "main");
+    this.sumTCOfromCall = getMethodFromModule(SUM_TCO_FROM_CALL_CODE, "sumTCOfromCall");
+    this.sumTCOmethodCall = getMethodFromModule(SUM_TCO_METHOD_CALL_CODE, "sumTCOmethodCall");
     this.sumTCOmethodCallWithNamedArguments =
-        ctxRule.getMethodFromModule(SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE, "main");
+        getMethodFromModule(
+            SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE, "sumTCOmethodCallWithNamedArguments");
     this.sumTCOmethodCallWithDefaultedArguments =
-        ctxRule.getMethodFromModule(SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE, "main");
+        getMethodFromModule(
+            SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE,
+            "sumTCOmethodCallWithDefaultedArguments");
   }
 
   @Benchmark
@@ -121,5 +139,9 @@ main = sumTo ->
       throw new AssertionError("Should return number");
     }
     bh.consume(res);
+  }
+
+  private Value getMethodFromModule(String code, String benchName) throws IOException {
+    return SrcUtil.getMainMethod(ctxRule, benchName, code);
   }
 }
