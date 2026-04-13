@@ -77,13 +77,16 @@ class LambdaTest extends InterpreterTest {
 
     "be able to return atoms that are evaluated with oversaturated args" in {
       val code =
-        """import Standard.Base.Data.List.List
+        """
           |
           |main =
-          |    f = x -> List.Cons
+          |    f = x -> Mist.Cons
           |    myCons = f 1 2 3
           |    case myCons of
-          |        List.Cons h t -> h + t
+          |        Mist.Cons h t -> h + t
+          |
+          |type Mist
+          |    Cons h t
           |""".stripMargin
 
       eval(code) shouldEqual 5

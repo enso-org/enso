@@ -27,7 +27,7 @@ import java.io.{
   PipedOutputStream,
   PrintStream
 }
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import java.util.UUID
 import java.util.logging.Level
 
@@ -110,7 +110,6 @@ class InterpreterContext(
   var _inOut: PipedOutputStream                  = _
   var _inOutPrinter: PrintStream                 = _
   var _sessionManager: ReplaceableSessionManager = new ReplaceableSessionManager
-  var _languageHome: Path                        = _
   val edition                                    = "0.0.0-dev"
   def ctx(): Context = {
     if (_ctx == null) {
@@ -119,9 +118,6 @@ class InterpreterContext(
       _inOut        = new PipedOutputStream()
       _inOutPrinter = new PrintStream(_inOut, true)
       _in           = new PipedInputStream(_inOut)
-
-      _languageHome = Paths
-        .get("../../test/micro-distribution/component")
 
       _ctx = contextModifiers(
         Context
@@ -138,10 +134,6 @@ class InterpreterContext(
           .environment("NO_COLOR", "true")
           .logHandler(System.err)
           .in(_in)
-          .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            _languageHome.toFile.getAbsolutePath
-          )
           .option(RuntimeOptions.EDITION_OVERRIDE, edition)
           .option("engine.WarnInterpreterOnly", "false")
           .serverTransport { (uri, peer) =>
@@ -183,8 +175,7 @@ class InterpreterContext(
   }
 
   def languageHome(): Path = {
-    assert(_ctx != null)
-    _languageHome
+    throw new IllegalStateException("languageHome is no longer overriden")
   }
 
   def close(): Unit = {

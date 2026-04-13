@@ -13,7 +13,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File, FileFilter}
-import java.nio.file.{Files, Paths, StandardCopyOption}
+import java.nio.file.{Files, StandardCopyOption}
 import java.util.logging.Level
 
 trait ModifiedTest
@@ -53,13 +53,6 @@ trait ModifiedTest
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.PROJECT_ROOT, testPkgPath.getAbsolutePath)
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths
-          .get("../../test/micro-distribution/component")
-          .toFile
-          .getAbsolutePath
-      )
       .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "false")

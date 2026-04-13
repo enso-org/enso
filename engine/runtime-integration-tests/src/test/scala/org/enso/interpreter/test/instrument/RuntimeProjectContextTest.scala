@@ -38,13 +38,6 @@ class RuntimeProjectContextTest
             RuntimeOptions.PROJECT_ROOT,
             Paths.get("../../target/fakeproject_dir").toFile.getAbsolutePath
           )
-          .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths
-              .get("../../test/micro-distribution/component")
-              .toFile
-              .getAbsolutePath
-          )
           .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
           .option(RuntimeOptions.CHECK_CWD, "false")
