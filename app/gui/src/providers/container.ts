@@ -23,7 +23,6 @@ import {
 const PROJECT_TAB_SCHEMA = z.object({ type: z.literal('project'), id: PROJECT_ID_SCHEMA })
 const PROJECT_LOG_TAB_SCHEMA = z.object({
   type: z.literal('projectLog'),
-  backend: z.enum(['local', 'remote']),
   id: PROJECT_SESSION_ID_SCHEMA,
   title: z.string(),
 })
@@ -39,7 +38,6 @@ const OPENED_TAB_SCHEMA = z.intersection(
 )
 const DEFAULT_FOCUS: Panel = { type: 'drive' }
 const PROJECT_LOG_PARAMS_SCHEMA = z.object({
-  backend: z.enum(['local', 'remote']),
   id: PROJECT_SESSION_ID_SCHEMA,
   title: z.string(),
 })
@@ -80,8 +78,8 @@ export function tabFromRoute(route: RouteLocation): Tab | null {
     case 'projectLog': {
       const parsed = PROJECT_LOG_PARAMS_SCHEMA.safeParse(route.params)
       if (!parsed.success) return null
-      const { backend, id, title } = parsed.data
-      return { type: 'projectLog' as const, backend, id, title }
+      const { id, title } = parsed.data
+      return { type: 'projectLog' as const, id, title }
     }
     case 'settings':
       return { type: 'settings' as const }
@@ -96,10 +94,10 @@ export function routeFromTab(tab: Opt<Tab>, from: RouteLocation): RouteLocationR
     case 'project':
       return { name: 'project', params: { id: tab.id }, query: from.query }
     case 'projectLog': {
-      const { backend, id, title } = tab
+      const { id, title } = tab
       return {
         name: 'projectLog',
-        params: { backend, id, title },
+        params: { id, title },
         query: from.query,
       }
     }
@@ -198,8 +196,8 @@ function createContainerStore() {
   }
 
   /** Add project log tab to list. */
-  function openProjectLogTab(id: ProjectSessionId, backend: BackendType, title: string) {
-    const tab: Tab = { type: 'projectLog', backend, id, title }
+  function openProjectLogTab(id: ProjectSessionId, title: string) {
+    const tab: Tab = { type: 'projectLog', id, title }
     if (!isTabOpened(tab)) tabs.set(panelKey(tab), tab)
     currentTab.value = tab
   }

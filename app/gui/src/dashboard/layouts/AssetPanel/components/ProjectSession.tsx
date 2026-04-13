@@ -20,7 +20,7 @@ export interface ProjectSessionProps {
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectSession(props: ProjectSessionProps) {
-  const { backend, project, projectSession, index } = props
+  const { project, projectSession, index } = props
 
   const { getText } = useText()
   const container = useContainerData()
@@ -40,11 +40,7 @@ export function ProjectSession(props: ProjectSessionProps) {
           icon={LogsIcon}
           aria-label={getText('showLogs')}
           onPress={() => {
-            container.openProjectLogTab(
-              projectSession.projectSessionId,
-              backend.type,
-              project.title,
-            )
+            container.openProjectLogTab(projectSession.projectSessionId, project.title)
           }}
         />
       </div>

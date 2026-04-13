@@ -68,7 +68,7 @@ const routes = [
               },
               {
                 name: 'projectLog',
-                path: 'projectLog/:backend/:id/:title',
+                path: 'projectLog/:id/:title',
                 component: () => import('$/components/ProjectLog.vue'),
               },
               {

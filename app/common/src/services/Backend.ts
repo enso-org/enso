@@ -110,6 +110,11 @@ export enum BackendType {
   remote = 'remote',
 }
 
+/** Determine backend type from session ID. */
+export function projectSessionBackendType(id: ProjectSessionId): BackendType {
+  return id.startsWith('projectsession-') ? BackendType.remote : BackendType.local
+}
+
 /** Check if this path points to an asset in cloud drive. */
 export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
   return ensoPath.startsWith('enso://')

@@ -193,7 +193,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             <Button
               icon={LogsIcon}
               onPress={() => {
-                container.openProjectLogTab(session.projectSessionId, backend.type, item.title)
+                container.openProjectLogTab(session.projectSessionId, item.title)
               }}
             >
               {getText('showLogs')}

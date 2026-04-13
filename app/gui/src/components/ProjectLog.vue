@@ -6,7 +6,7 @@ import AgGridTableView from '@/components/AgGridTableView.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import { registerHandlers } from '@/providers/action'
 import * as vueQuery from '@tanstack/vue-query'
-import { BackendType } from 'enso-common/src/services/Backend'
+import { projectSessionBackendType } from 'enso-common/src/services/Backend'
 import { computed } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 
@@ -16,9 +16,7 @@ const props = defineProps<{ tab: ProjectLogTab }>()
 
 const sessionId = computed(() => props.tab.id)
 const projectTitle = computed(() => props.tab.title)
-const backendType = computed(() =>
-  props.tab.backend === 'remote' ? BackendType.remote : BackendType.local,
-)
+const backendType = computed(() => projectSessionBackendType(sessionId.value))
 
 // === Fetching log data ===
 
