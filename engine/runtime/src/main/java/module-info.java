@@ -53,6 +53,7 @@ open module org.enso.runtime {
   exports org.enso.interpreter.runtime.state;
   exports org.enso.interpreter.runtime.type;
   exports org.enso.interpreter.runtime.warning;
+  exports org.enso.interpreter.runtime.telemetry;
   exports org.enso.interpreter.node.callable;
   exports org.enso.interpreter.node.expression.builtin;
   exports org.enso.interpreter.node.expression.builtin.debug;

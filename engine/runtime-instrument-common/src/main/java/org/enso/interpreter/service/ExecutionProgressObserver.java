@@ -3,6 +3,7 @@ package org.enso.interpreter.service;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.enso.interpreter.runtime.telemetry.ProgressTimingCollector;
 import org.enso.logger.ObservedMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +66,10 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage>, Auto
           if (t.getArguments().size() >= 2 && t.getArguments().get(1) instanceof Number by) {
             var key = t.getArguments().get(0);
             aggregate.advanceBy(key, by.longValue());
+            if (t.getArguments().size() >= 3
+                && t.getArguments().get(2) instanceof Number elapsedMs) {
+              ProgressTimingCollector.record(key.toString(), by.longValue(), elapsedMs.longValue());
+            }
           }
         }
         case "LOG {}:{}" -> {
