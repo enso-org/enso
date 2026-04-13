@@ -8,7 +8,7 @@ import { Ast } from '@/util/ast'
 import { arrayEquals, findIndexOpt } from '@/util/data/array'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
-import type { ColDef } from 'ag-grid-enterprise'
+import type { ColDef, DefaultMenuItem } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import {
   Err,
@@ -50,8 +50,8 @@ export interface ColumnDef extends ColDef<RowData> {
   colId: string
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: string }) => boolean
-  mainMenuItems: (string | MenuItem<RowData>)[]
-  contextMenuItems: (string | MenuItem<RowData>)[]
+  mainMenuItems: (DefaultMenuItem | MenuItem<RowData>)[]
+  contextMenuItems: (DefaultMenuItem | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
   headerComponentParams: ColumnSpecificParams
 }

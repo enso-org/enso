@@ -1,4 +1,4 @@
-import type { ITooltipComp, ITooltipParams } from '@ag-grid-community/core'
+import type { ITooltipComp, ITooltipParams } from 'ag-grid-community'
 import type { DataQualityMetricValue } from '../TableVisualization.vue'
 
 /**

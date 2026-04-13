@@ -21,8 +21,6 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   ColDef,
   ColumnMovedEvent,

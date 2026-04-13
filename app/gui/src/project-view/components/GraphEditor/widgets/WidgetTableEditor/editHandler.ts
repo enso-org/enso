@@ -4,7 +4,7 @@ import {
 } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { type ToValue } from '$/utils/reactivity'
 import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import { type CellPosition, type StartEditingCellParams } from 'ag-grid-enterprise'
+import type { GridApi } from 'ag-grid-enterprise'
 import { computed, ref, type ShallowRef, toValue, watch } from 'vue'
 
 export interface EditedCell {
@@ -19,14 +19,7 @@ export interface EditedCell {
  * and react for user input received from them.
  */
 export function useTableEditHandler(
-  gridApi: ToValue<
-    | {
-        stopEditing(cancel: boolean): void
-        startEditingCell(editedCell: StartEditingCellParams): void
-        getEditingCells(): Array<CellPosition>
-      }
-    | undefined
-  >,
+  gridApi: ToValue<GridApi | undefined>,
   colDefs: ToValue<{ colId: string }[]>,
   widgetHandlerConstructor: (hooks: WidgetEditHooks) => ShallowRef<WidgetEditHandler>,
 ) {
@@ -43,10 +36,7 @@ export function useTableEditHandler(
     const editedInGrid = api.getEditingCells()[0]
     if (cell == null || cell.rowIndex === 'header') {
       api.stopEditing(false)
-    } else if (
-      editedInGrid?.rowIndex !== cell.rowIndex ||
-      editedInGrid?.column.getColId() !== cell.colKey
-    ) {
+    } else if (editedInGrid?.rowIndex !== cell.rowIndex || editedInGrid?.colId !== cell.colKey) {
       api.startEditingCell({ rowIndex: cell.rowIndex, colKey: cell.colKey })
     }
   }
