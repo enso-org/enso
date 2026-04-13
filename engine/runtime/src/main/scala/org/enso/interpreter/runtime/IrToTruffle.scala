@@ -903,9 +903,13 @@ private[runtime] class IrToTruffle(
   ): BaseNode.TailStatus = {
     val isTailPosition =
       expression.getMetadata(TailCall.INSTANCE).isDefined
-    // val isTailAnnotated = TailCall.isTailAnnotated(expression)
+    val isTailAnnotated = TailCall.isTailAnnotated(expression)
     if (isTailPosition) {
-      BaseNode.TailStatus.TAIL_LOOP
+      if (isTailAnnotated) {
+        BaseNode.TailStatus.TAIL_LOOP
+      } else {
+        BaseNode.TailStatus.TAIL_DIRECT
+      }
     } else {
       BaseNode.TailStatus.NOT_TAIL
     }

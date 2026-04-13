@@ -127,7 +127,7 @@ public abstract class IndirectCurryNode extends Node {
       CallOptimiserNode loopingCall) {
     switch (isTail) {
       case TAIL_DIRECT:
-      // return directCall.executeCall(frame, function, callerInfo, state, arguments);
+        return directCall.executeCall(frame, function, callerInfo, state, arguments);
       case TAIL_LOOP:
         throw new TailCallException(function, callerInfo, arguments);
       default:
