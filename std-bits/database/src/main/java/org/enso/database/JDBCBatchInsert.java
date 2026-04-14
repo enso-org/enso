@@ -38,10 +38,10 @@ public final class JDBCBatchInsert {
           }
 
           boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
-          int sqlTypeId = sqlTypeIds.getArrayElement(columnId).asInt();
+          int nullType = jdbcValueSetter.databaseName().equals("SQLServer") ? sqlTypeIds.getArrayElement(columnId).asInt() : Types.NULL;
           var value = javaColumn.getItem(rowId);
           setStatementValue(
-              stmt, columnId + 1, value, jdbcValueSetter, keepTimezone, sqlTypeId);
+              stmt, columnId + 1, value, jdbcValueSetter, keepTimezone, nullType);
         }
 
         stmt.addBatch();
@@ -83,15 +83,10 @@ public final class JDBCBatchInsert {
       Object value,
       JDBCValueSetter jdbcValueSetter,
       boolean dateTimeWithTimezone,
-      int sqlTypeId)
+      int nullType)
       throws SQLException {
-    if (value == null) {
-      int nullType = jdbcValueSetter.databaseName().equals("SQLServer") ? sqlTypeId : Types.NULL;
-      stmt.setNull(columnIndex, nullType);
-      return;
-    }
-
     switch (value) {
+      case null -> stmt.setNull(columnIndex, nullType);
       case Boolean boolValue -> stmt.setBoolean(columnIndex, boolValue);
       case Byte byteValue -> stmt.setLong(columnIndex, byteValue.longValue());
       case Short shortValue -> stmt.setLong(columnIndex, shortValue.longValue());
