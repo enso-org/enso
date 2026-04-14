@@ -18,7 +18,7 @@ import { useText } from '$/providers/text'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref, toRefs, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 const {
@@ -37,6 +37,8 @@ const { leftPanelShown, leftPanelToggledOn } = toRefs(useContainerData())
 const reactApi = useReactApi()
 const { getText } = useText()
 const router = useRouter()
+
+watchEffect(() => console.debug(category.type, ':', reactApi.isTransitioning))
 
 const label = computed(() => categoryLabel(category))
 const selected = computed(() => categoryEq(category, currentCategory.value))
