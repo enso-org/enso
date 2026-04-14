@@ -311,11 +311,11 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             db_table.row_count . should_equal 3
             db_table.is_trivial_query . should_be_true
 
-        group_builder.specify "should upload 10000 rows" <|
-            row_ids = (0.up_to 10000).to_vector
+        group_builder.specify "should upload 1000000 rows" <|
+            row_ids = (0.up_to 1000000).to_vector
             source = Table.new [["X", row_ids], ["Y", row_ids.map row_id-> "row-" + row_id.to_text]]
-            db_table = source.select_into_database_table data.connection (Name_Generator.random_name "upload-10000-rows") temporary=True
-            db_table.row_count . should_equal 10000
+            db_table = source.select_into_database_table data.connection (Name_Generator.random_name "upload-1000000-rows") temporary=True
+            db_table.row_count . should_equal 1000000
             db_table.at "X" . to_vector . take (..First 3) . should_equal [0, 1, 2]
             db_table.at "X" . to_vector . take (..Last 3) . should_equal [997, 998, 999]
             db_table.at "Y" . to_vector . take (..First 3) . should_equal ["row-0", "row-1", "row-2"]
