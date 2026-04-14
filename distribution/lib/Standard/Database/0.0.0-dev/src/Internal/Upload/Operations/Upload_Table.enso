@@ -103,6 +103,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
         _ -> False
     expected_sql_type_ids = expected_type_hints.map value_type->
         (connection.type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore).typeid
+    use_sql_type_hints_for_null_values = connection.dialect.flagged ..Use_SQL_Type_Hints_For_Null_Values
     java_columns = get_java_columns source_table
     source_row_count = source_table.row_count
     table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
@@ -114,7 +115,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
             limit : Integer -> Math.min source_row_count limit
         upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
             Panic.rethrow <|
-                connection.jdbc_connection.batch_insert insert_template jdbc_value_setter java_columns batch_size=default_batch_size date_time_with_timezone=expected_date_time_with_timezone sql_type_ids=expected_sql_type_ids num_rows=num_rows
+                connection.jdbc_connection.batch_insert insert_template jdbc_value_setter java_columns batch_size=default_batch_size date_time_with_timezone=expected_date_time_with_timezone sql_type_ids=expected_sql_type_ids use_sql_type_hints_for_null_values=use_sql_type_hints_for_null_values num_rows=num_rows
 
         upload_status.if_not_error <|
             connection.query (..Table_Name table_name)

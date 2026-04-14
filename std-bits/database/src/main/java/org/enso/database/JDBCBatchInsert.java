@@ -23,7 +23,8 @@ public final class JDBCBatchInsert {
       Value columns,
       int batchSize,
       Value dateTimeWithTimezone,
-      Value sqlTypeIds,
+      Value sqlTypeHintIds,
+      boolean useSqlTypeHintsForNullValues,
       int numRows)
       throws SQLException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
@@ -38,7 +39,10 @@ public final class JDBCBatchInsert {
           }
 
           boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
-          int nullType = jdbcValueSetter.databaseName().equals("SQLServer") ? sqlTypeIds.getArrayElement(columnId).asInt() : Types.NULL;
+          int nullType =
+              useSqlTypeHintsForNullValues
+                  ? sqlTypeHintIds.getArrayElement(columnId).asInt()
+                  : Types.NULL;
           var value = javaColumn.getItem(rowId);
           setStatementValue(
               stmt, columnId + 1, value, jdbcValueSetter, keepTimezone, nullType);

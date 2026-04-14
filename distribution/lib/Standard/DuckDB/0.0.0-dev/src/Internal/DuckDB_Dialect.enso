@@ -293,6 +293,7 @@ type DuckDB_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> False
             Dialect_Flag.Use_Builtin_Bankers -> True
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Use_SQL_Type_Hints_For_Null_Values -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
 
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
