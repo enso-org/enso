@@ -9,7 +9,6 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Value;
 
@@ -110,14 +109,6 @@ public final class JDBCBatchInsert {
               stmt, columnIndex, zonedDateTime, jdbcValueSetter, dateTimeWithTimezone);
       case LocalTime localTime -> jdbcValueSetter.setLocalTime(stmt, columnIndex, localTime);
       case LocalDate localDate -> jdbcValueSetter.setLocalDate(stmt, columnIndex, localDate);
-      case Value polyglotValue ->
-          setPolyglotValue(
-              stmt,
-              columnIndex,
-              polyglotValue,
-              jdbcValueSetter,
-              dateTimeWithTimezone,
-              sqlTypeId);
       default -> stmt.setObject(columnIndex, value);
     }
   }
@@ -144,45 +135,6 @@ public final class JDBCBatchInsert {
       jdbcValueSetter.setZonedDateTime(stmt, columnIndex, zonedDateTime);
     } else {
       jdbcValueSetter.setLocalDateTime(stmt, columnIndex, zonedDateTime);
-    }
-  }
-
-  private static void setPolyglotValue(
-      PreparedStatement stmt,
-      int columnIndex,
-      Value value,
-      JDBCValueSetter jdbcValueSetter,
-      boolean dateTimeWithTimezone,
-      int sqlTypeId)
-      throws SQLException {
-    if (value.isNull()) {
-      int nullType = jdbcValueSetter.databaseName().equals("SQLServer") ? sqlTypeId : Types.NULL;
-      stmt.setNull(columnIndex, nullType);
-    } else if (value.isBoolean()) {
-      stmt.setBoolean(columnIndex, value.asBoolean());
-    } else if (value.isString()) {
-      stmt.setString(columnIndex, value.asString());
-    } else if (NumericConverter.isBigInteger(value)) {
-      jdbcValueSetter.setInteger(stmt, columnIndex, value);
-    } else if (value.fitsInLong()) {
-      stmt.setLong(columnIndex, value.asLong());
-    } else if (value.fitsInDouble()) {
-      setFloatingPointValue(stmt, columnIndex, value.asDouble(), jdbcValueSetter);
-    } else if (value.isDate() && !value.isTime()) {
-      jdbcValueSetter.setLocalDate(stmt, columnIndex, value.asDate());
-    } else if (value.isTime() && !value.isDate()) {
-      jdbcValueSetter.setLocalTime(stmt, columnIndex, value.asTime());
-    } else if (value.isDate() && value.isTime() && !value.isTimeZone()) {
-      stmt.setObject(columnIndex, value.asDate().atTime(value.asTime()), Types.TIMESTAMP);
-    } else if (value.isDate() && value.isTime() && value.isTimeZone()) {
-      setDateTimeValue(
-          stmt,
-          columnIndex,
-          value.asDate().atTime(value.asTime()).atZone(value.asTimeZone()),
-          jdbcValueSetter,
-          dateTimeWithTimezone);
-    } else {
-      stmt.setObject(columnIndex, value);
     }
   }
 }
