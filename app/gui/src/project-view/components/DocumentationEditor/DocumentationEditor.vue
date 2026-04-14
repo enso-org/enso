@@ -6,7 +6,7 @@ import { useTemplateRef } from 'vue'
 import ClosedProjectDocumentationEditor from './ClosedProjectDocumentationEditor.vue'
 import OpenedProjectDocumentationEditor from './OpenedProjectDocumentationEditor.vue'
 
-const props = defineProps<{ toolbar: HTMLElement | string }>()
+defineProps<{ toolbar: HTMLElement | string }>()
 
 const rightPanel = useRightPanelData()
 
