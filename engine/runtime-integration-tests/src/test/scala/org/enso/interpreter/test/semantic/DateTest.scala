@@ -10,12 +10,10 @@ class DateTest extends InterpreterTest {
   ): Unit = {
     "evaluate a date expression" in {
       val code =
-        s"""import Standard.Base.IO
-           |
-           |import Standard.Base.Data.Time.Date
+        s"""from Standard.Base import IO, Date
            |
            |main =
-           |    IO.println (Date.new_builtin 2022 04 01)
+           |    IO.println (Date.new 2022 04 01)
            |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("2022-04-01")
@@ -35,9 +33,8 @@ class DateTest extends InterpreterTest {
 
     "check java date has enso methods" in {
       val code =
-        s"""import Standard.Base.IO
+        s"""from Standard.Base import IO, Date, to_text
            |polyglot java import java.time.LocalDate
-           |import Standard.Base.Data.Time.Date
            |
            |main =
            |    javadate = LocalDate.of 2022 4 1
@@ -56,11 +53,10 @@ class DateTest extends InterpreterTest {
 
     "check enso date has enso methods" in {
       val code =
-        s"""import Standard.Base.IO
-           |import Standard.Base.Data.Time.Date
+        s"""from Standard.Base import IO, Date, to_text
            |
            |main =
-           |    ensodate = Date.new_builtin 2022 4 1
+           |    ensodate = Date.new 2022 4 1
            |    ensoyear = ensodate.year
            |    ensomonth = ensodate.month
            |    ensoday = ensodate.day
