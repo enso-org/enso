@@ -97,8 +97,7 @@ public abstract class PrintlnNode extends Node {
 
   @NeverDefault
   static UnresolvedSymbol buildToTextSymbol(Node where) {
-    var mod = Builtins.get(where).getModule();
-    var scope = mod.getScope();
+    var scope = Builtins.get(where).textExtensions().getDefinitionScope();
     return UnresolvedSymbol.build(Constants.Names.TO_TEXT, scope);
   }
 

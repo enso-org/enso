@@ -72,6 +72,7 @@ public final class Builtins {
   private final RuntimeContext runtimeContext;
   private final Ordering ordering;
   private final Supplier<Type> comparable;
+  private final Supplier<Type> textExtensions;
   private final Supplier<Type> defaultComparator;
 
   /** Factory method to create the builtins. */
@@ -128,6 +129,7 @@ public final class Builtins {
     ordering = new Ordering(supplyType("Data", "Ordering", "Ordering"));
     comparable = supplyType("Data", "Ordering", "Comparable");
     defaultComparator = supplyType("Internal", "Ordering_Helpers", "Default_Comparator");
+    textExtensions = supplyType("Data", "Text", "Extensions", null);
   }
 
   /**
@@ -232,6 +234,11 @@ public final class Builtins {
    */
   public Type text() {
     return text.getType();
+  }
+
+  /** Extensions with Text methods. Especially {@code to_text} method. */
+  public Type textExtensions() {
+    return textExtensions.get();
   }
 
   /**
@@ -470,9 +477,13 @@ public final class Builtins {
     var moduleName = toFqn(1, shortFqn);
     var typeName = shortFqn[last];
     var scope = loadModule(context, moduleName);
-    var type = scope.getType(typeName, true);
-    assert type != null : typeName + " in " + moduleName;
-    return type;
+    if (typeName != null) {
+      var type = scope.getType(typeName, true);
+      assert type != null : typeName + " in " + moduleName;
+      return type;
+    } else {
+      return scope.getAssociatedType();
+    }
   }
 
   private static String toFqn(int skip, String... elems) {
