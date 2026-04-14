@@ -83,9 +83,7 @@ public final class JDBCBatchInsert {
     for (int affectedRows : updates) {
       if (affectedRows != 1) {
         throw new IllegalStateException(
-            "A single update within the batch unexpectedly affected "
-                + affectedRows
-                + " rows.");
+            "A single update within the batch unexpectedly affected " + affectedRows + " rows.");
       }
     }
   }
@@ -118,8 +116,7 @@ public final class JDBCBatchInsert {
       case BigDecimal bigDecimalValue -> stmt.setBigDecimal(columnIndex, bigDecimalValue);
       case String textValue -> stmt.setString(columnIndex, textValue);
       case ZonedDateTime zonedDateTime ->
-          setDateTimeValue(
-              stmt, columnIndex, zonedDateTime, jdbcValueSetter, dateTimeWithTimezone);
+          setDateTimeValue(stmt, columnIndex, zonedDateTime, jdbcValueSetter, dateTimeWithTimezone);
       case LocalTime localTime -> jdbcValueSetter.setLocalTime(stmt, columnIndex, localTime);
       case LocalDate localDate -> jdbcValueSetter.setLocalDate(stmt, columnIndex, localDate);
       default -> stmt.setObject(columnIndex, value);
