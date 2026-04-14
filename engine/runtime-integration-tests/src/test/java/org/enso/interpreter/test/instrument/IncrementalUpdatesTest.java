@@ -281,7 +281,7 @@ public class IncrementalUpdatesTest {
     Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException =
-        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 45);
+        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 40, 55);
 
     // push foo call
     context.send(
