@@ -1,7 +1,0 @@
-new_builtin year month day = @Builtin_Method "Date.new_builtin"
-
-@Builtin_Type
-type Date
-    year self = @Builtin_Method "Date.year"
-    month self = @Builtin_Method "Date.month"
-    day self = @Builtin_Method "Date.day"

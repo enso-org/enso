@@ -361,6 +361,21 @@ const displayableActions = {
   'help.exampleWorkflows': { description: 'Example workflows' },
   'help.docs': { description: 'Documentation' },
   'help.contactUs': { description: 'Contact Us' },
+
+  // === Session logs ===
+
+  'sessionLogs.reload': {
+    icon: 'refresh',
+    description: 'Reload',
+  },
+  'sessionLogs.loadMore': {
+    icon: 'row_add',
+    description: 'Load More',
+  },
+  'sessionLogs.download': {
+    icon: 'data_download',
+    description: 'Download as File',
+  },
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {

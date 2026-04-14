@@ -2,7 +2,6 @@
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
 import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
 import { IconDisplay } from '#/components/IconDisplay'
 import { Menu } from '#/components/Menu'
 import { Text } from '#/components/Text'
@@ -11,10 +10,10 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { setModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
   getLocalTimeZone,
@@ -70,6 +69,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
   const { compact = false, backend, item, projectExecution, session } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
+  const container = useContainerData()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
   const date = props.date == null ? null : toZoned(props.date, timeZone)
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
@@ -190,15 +190,14 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           buttonVariants={{ size: 'small', variant: 'outline' }}
         >
           {session && (
-            <Dialog.Trigger>
-              <Button icon={LogsIcon}>{getText('showLogs')}</Button>
-
-              <ProjectLogsModal
-                backend={backend}
-                projectSessionId={session.projectSessionId}
-                projectTitle={item.title}
-              />
-            </Dialog.Trigger>
+            <Button
+              icon={LogsIcon}
+              onPress={() => {
+                container.openProjectLogTab(session.projectSessionId, item.title)
+              }}
+            >
+              {getText('showLogs')}
+            </Button>
           )}
           <Menu.Trigger>
             <Button icon="folder_opened" iconPosition="end" variant="outline">

@@ -2,18 +2,44 @@
 import { Button } from '#/components/Button'
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
-import { useMount } from '#/hooks/mountHooks'
+import { AbortError } from '#/hooks/timeoutHooks'
+import {
+  clearPendingCheckoutTargetPlan,
+  getPendingCheckoutTargetPlan,
+} from '#/modules/payments/pendingCheckout'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
-import { useRouter, useText, useUserSession } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 import * as analytics from '$/utils/analytics'
 import { useQueryClient } from '@tanstack/react-query'
-import { BackendType, Plan } from 'enso-common/src/services/Backend'
-import { useEffect, useRef } from 'react'
+import type { Plan } from 'enso-common/src/services/Backend'
+import { BackendType } from 'enso-common/src/services/Backend'
+import { wait } from 'lib0/promise'
+import { useEffect } from 'react'
 import { toast } from 'react-toastify'
 
 const USER_REFETCH_DELAY_MS = 3_000
-const USER_REFETCH_TIMEOUT_MS = 60_000
+const TIMEOUT = 60_000
+
+/** Wait for user's subscription plan to update. */
+async function waitForPlan(
+  plan: Plan,
+  refetchSession: ReturnType<typeof useAuth>['refetchSession'],
+  abort: AbortSignal,
+) {
+  const timeout = Number(new Date()) + TIMEOUT
+  while (Number(new Date()) < timeout && !abort.aborted) {
+    const { data } = await refetchSession()
+    if (data != null && data.user.plan === plan) {
+      return 'success'
+    }
+    await wait(USER_REFETCH_DELAY_MS)
+  }
+  if (abort.aborted) {
+    throw new AbortError('abort')
+  }
+  return 'timeout'
+}
 
 /** A page for when a subscription payment succeeds. */
 export function PaymentsSuccess() {
@@ -21,68 +47,53 @@ export function PaymentsSuccess() {
   const queryClient = useQueryClient()
   const { getText } = useText()
   const { refetchSession } = useAuth()
-  const oldSession = useUserSession()
-  const isMounted = useRef(true)
 
   useEffect(() => {
-    isMounted.current = true
+    const plan = getPendingCheckoutTargetPlan()
+    if (plan == null) {
+      void router.push(DASHBOARD_PATH)
+      return
+    }
+
+    const abortController = new AbortController()
+    const waitForPlanPromise = async () => {
+      const loadingToast = toast.loading(getText('payments.pending'))
+      try {
+        const result = await waitForPlan(plan, refetchSession, abortController.signal)
+        switch (result) {
+          case 'success':
+            clearPendingCheckoutTargetPlan()
+            await queryClient.invalidateQueries({
+              queryKey: [BackendType.remote, 'getOrganization'],
+            })
+            toast.success(getText('payments.success'))
+            analytics.checkout.after()
+            await router.push(DASHBOARD_PATH)
+            break
+          case 'timeout':
+            clearPendingCheckoutTargetPlan()
+            toast.error(getText('payments.timeout'))
+            await router.push(DASHBOARD_PATH)
+            break
+        }
+      } catch (e) {
+        if (e instanceof AbortError) {
+          return
+        }
+        toast.error(getText('payments.error'))
+        // eslint-disable-next-line no-restricted-properties
+        console.error(e)
+      } finally {
+        toast.dismiss(loadingToast)
+      }
+    }
+
+    void waitForPlanPromise()
 
     return () => {
-      isMounted.current = false
+      abortController.abort()
     }
-  })
-
-  useMount(() => {
-    const promise = (async () => {
-      const startEpochMs = Number(new Date())
-      // Extracted into a function to disable flow typing, because `isMounted.current` may be mutated.
-      const getIsMounted = () => isMounted.current
-
-      while (true) {
-        if (!getIsMounted()) {
-          throw new Error('Operation cancelled.')
-        }
-        const { data: session } = await refetchSession()
-        if (!getIsMounted()) {
-          throw new Error('Operation cancelled.')
-        }
-        if (
-          session &&
-          'user' in session &&
-          session.user.plan !==
-            (oldSession && 'user' in oldSession ? oldSession.user.plan : Plan.free)
-        ) {
-          // Invalidate "users me" query as the user has changed the plan.
-          await queryClient.invalidateQueries({
-            queryKey: [BackendType.remote, 'usersMe'],
-          })
-
-          await router.push(DASHBOARD_PATH)
-          break
-        } else {
-          const timePassedMs = Number(new Date()) - startEpochMs
-          if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
-            await router.push(DASHBOARD_PATH)
-            throw new Error(
-              'Timed out waiting for subscription, please contact support to continue.',
-            )
-          } else {
-            await new Promise((resolve) => {
-              window.setTimeout(resolve, USER_REFETCH_DELAY_MS)
-            })
-          }
-        }
-      }
-
-      analytics.checkout.after()
-    })()
-
-    void toast.promise(promise, {
-      pending: getText('paymentsSuccessPending'),
-      success: getText('paymentsSuccessSuccess'),
-      error: getText('paymentsSuccessError'),
-    })
-  })
+  }, [getText, queryClient, refetchSession, router])
 
   return (
     <Page>
@@ -90,6 +101,7 @@ export function PaymentsSuccess() {
         <Button
           variant="delete"
           onPress={async () => {
+            clearPendingCheckoutTargetPlan()
             await router.push(DASHBOARD_PATH)
           }}
         >

@@ -16,7 +16,6 @@ class PolyglotTest extends InterpreterTest {
     "allow calling methods on static objects" in {
       val code =
         """from Standard.Base import all
-          |import Standard.Base.Data.Array.Array
           |
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"
@@ -94,7 +93,7 @@ class PolyglotTest extends InterpreterTest {
 
     "fail to match on Polyglot symbol when imported everything from stdlib" in {
       val code =
-        """from Standard.Base import all
+        """from Standard.Base import all hiding Random
           |import Standard.Base.Polyglot as Polyglot_Module
           |polyglot java import java.util.Random
           |
