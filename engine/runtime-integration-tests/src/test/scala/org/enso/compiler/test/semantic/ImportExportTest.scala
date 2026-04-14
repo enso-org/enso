@@ -689,52 +689,6 @@ class ImportExportTest
     }
   }
 
-  "Import resolution from another library from micro-distribution honor Main" should {
-    "resolve Api from Main" ignore {
-      val mainIr = """
-                     |from Test.Logical_Export import Element
-                     |
-                     |main =
-                     |    element = Element.Element.create
-                     |    element.describe
-                     |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Main"))
-        .getIr
-
-      mainIr.imports.size shouldEqual 1
-      val in = mainIr.imports.head
-        .asInstanceOf[Import.Module]
-
-      in.name.name should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name) shouldEqual List("Element")
-
-      val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
-      errors.size shouldEqual 0
-    }
-
-    "not expose Impl from Main" ignore {
-      val mainIr = """
-                     |from Test.Logical_Export import Impl
-                     |
-                     |main = Impl
-                     |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Main"))
-        .getIr
-
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe true
-      mainIr.imports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
-      mainIr.imports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Impl"
-    }
-  }
-
   "Ambiguous symbol resolution" should {
     "generate warning when importing same type twice with different import statements" in {
       s"""
