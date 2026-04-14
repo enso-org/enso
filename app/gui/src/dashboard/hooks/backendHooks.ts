@@ -566,7 +566,7 @@ export function useRenameAsset(backend: Backend) {
 }
 
 /** Helper for updating cached asset version tags during optimistic update. */
-function updateCachedAssetVersionTags(
+function mapAssetVersionTags(
   versions: backendModule.AssetVersions,
   versionId: backendModule.S3ObjectVersionId,
   updateTags: (tags: readonly string[]) => readonly string[],
@@ -583,8 +583,12 @@ function updateCachedAssetVersionTags(
   }
 }
 
-/** Return a function to remove tag from an asset version. */
-export function useRemoveAssetVersionTag(backend: Backend) {
+/** Adds or removes an asset version tag, with optimistic update. */
+function useUpdateAssetVersionTag(
+  backend: Backend,
+  remove: boolean,
+  optimisticUpdate: (tag: string, tags: readonly string[]) => readonly string[],
+) {
   const queryClient = useQueryClient()
   const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
 
@@ -597,9 +601,7 @@ export function useRemoveAssetVersionTag(backend: Backend) {
       if (previousVersions != null) {
         queryClient.setQueryData<backendModule.AssetVersions>(
           queryKey,
-          updateCachedAssetVersionTags(previousVersions, versionId, (tags) =>
-            tags.filter((existingTag) => existingTag !== tag),
-          ),
+          mapAssetVersionTags(previousVersions, versionId, (tags) => optimisticUpdate(tag, tags)),
         )
       }
 
@@ -609,7 +611,7 @@ export function useRemoveAssetVersionTag(backend: Backend) {
           {
             versionId,
             tag,
-            remove: true,
+            remove,
           },
           assetId,
         ])
@@ -625,44 +627,16 @@ export function useRemoveAssetVersionTag(backend: Backend) {
   )
 }
 
+/** Return a function to remove tag from an asset version. */
+export function useRemoveAssetVersionTag(backend: Backend) {
+  return useUpdateAssetVersionTag(backend, true, (tag, tags) =>
+    tags.filter((existingTag) => existingTag !== tag),
+  )
+}
+
 /** Return a function to add tag to an asset version. */
 export function useAddAssetVersionTag(backend: Backend) {
-  const queryClient = useQueryClient()
-  const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
-
-  return useEventCallback(
-    async (assetId: AssetId, versionId: backendModule.S3ObjectVersionId, tag: string) => {
-      const queryKey = backendQueryOptions(backend, 'listAssetVersions', [assetId]).queryKey
-      await queryClient.cancelQueries({ queryKey })
-      const previousVersions = queryClient.getQueryData<backendModule.AssetVersions>(queryKey)
-
-      if (previousVersions != null) {
-        queryClient.setQueryData<backendModule.AssetVersions>(
-          queryKey,
-          updateCachedAssetVersionTags(previousVersions, versionId, (tags) =>
-            tags.includes(tag) ? tags : [...tags, tag],
-          ),
-        )
-      }
-
-      try {
-        await updateAsset([
-          assetId,
-          {
-            versionId,
-            tag,
-            remove: false,
-          },
-          assetId,
-        ])
-      } catch (error) {
-        if (previousVersions != null) {
-          queryClient.setQueryData(queryKey, previousVersions)
-        }
-        throw error
-      } finally {
-        await queryClient.invalidateQueries({ queryKey })
-      }
-    },
+  return useUpdateAssetVersionTag(backend, false, (tag, tags) =>
+    tags.includes(tag) ? tags : [...tags, tag],
   )
 }
