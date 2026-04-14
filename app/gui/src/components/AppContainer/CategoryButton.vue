@@ -15,10 +15,11 @@ import { useContainerData } from '$/providers/container'
 import { useDriveLocation } from '$/providers/drive'
 import { useReactApi } from '$/providers/reactApi'
 import { useText } from '$/providers/text'
+import { debouncedGetter } from '$/utils/reactivity'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { computed, ref, toRefs, watchEffect } from 'vue'
+import { computed, ref, toRefs } from 'vue'
 import { useRouter } from 'vue-router'
 
 const {
@@ -31,6 +32,8 @@ const {
   disabled?: string | false
 }>()
 
+const LOADING_INDICATOR_DELAY_MS = 100
+
 const { categoryLabel, removeLocalDirectory } = useCategories()
 const { currentCategory } = toRefs(useDriveLocation())
 const { leftPanelShown, leftPanelToggledOn } = toRefs(useContainerData())
@@ -38,11 +41,11 @@ const reactApi = useReactApi()
 const { getText } = useText()
 const router = useRouter()
 
-watchEffect(() => console.debug(category.type, ':', reactApi.isTransitioning))
-
 const label = computed(() => categoryLabel(category))
 const selected = computed(() => categoryEq(category, currentCategory.value))
 const isLoading = computed(() => selected.value && reactApi.isTransitioning)
+const delayedIsLoading = debouncedGetter(() => isLoading.value, LOADING_INDICATOR_DELAY_MS)
+const showLoading = computed(() => isLoading.value && delayedIsLoading.value)
 
 const isDropTarget = computed(
   () =>
@@ -127,7 +130,7 @@ function onRemoveLocalDirClick(directory: LocalDirectory) {
       <template #default="triggerProps">
         <SvgButton
           :class="{ dropHover }"
-          :name="!isLoading ? categoryIcon(category.type) : undefined"
+          :name="!showLoading ? categoryIcon(category.type) : undefined"
           :label="extended ? label : undefined"
           :aria-label="label"
           :modelValue="leftPanelShown && selected"
@@ -138,7 +141,7 @@ function onRemoveLocalDirClick(directory: LocalDirectory) {
           @dragleave="dropHover = false"
           @drop="onDrop"
         >
-          <LoadingSpinner v-if="isLoading" phase="loading-medium" :size="16" />
+          <LoadingSpinner v-if="showLoading" phase="loading-medium" :size="16" />
         </SvgButton>
       </template>
       <template #tooltip>
