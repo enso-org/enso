@@ -82,6 +82,7 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
+            from Standard.Base import Any
             from project.A_Module import all
             main =
                 t = My_Type.Value 42
