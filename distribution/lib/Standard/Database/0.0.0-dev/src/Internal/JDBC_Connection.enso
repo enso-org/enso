@@ -166,10 +166,10 @@ type JDBC_Connection
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
     batch_insert : Text -> JDBCValueSetter -> Vector -> Integer -> Vector Boolean -> Vector Integer -> Boolean -> Boolean -> Boolean -> Integer -> Nothing
-    batch_insert self insert_template jdbc_value_setter java_columns batch_size date_time_with_timezone sql_type_ids use_sql_type_hints_for_null_values supports_separate_nan supports_infinity num_rows =
+    batch_insert self insert_template jdbc_value_setter java_columns batch_size date_time_with_timezone expected_type_hints use_sql_type_hints_for_null_values supports_separate_nan supports_infinity num_rows =
         In_Transaction.ensure_in_transaction
         _profile_sql_if_enabled self insert_template <| self.with_connection related_query=insert_template java_connection->
-            JDBCBatchInsert.batchInsert java_connection insert_template jdbc_value_setter java_columns batch_size date_time_with_timezone sql_type_ids use_sql_type_hints_for_null_values supports_separate_nan supports_infinity num_rows
+            JDBCBatchInsert.batchInsert java_connection insert_template jdbc_value_setter java_columns batch_size date_time_with_timezone expected_type_hints use_sql_type_hints_for_null_values supports_separate_nan supports_infinity num_rows
 
 ## ---
    private: true
