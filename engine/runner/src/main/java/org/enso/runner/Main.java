@@ -1126,6 +1126,7 @@ public class Main {
    * @param args the command line arguments
    */
   public static void main(String[] args) throws Exception {
+    args = Utils.getArgs(args);
     pathDiagnostics(args);
     new Main().launch(args);
   }

@@ -8,7 +8,6 @@ import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.struct.CPointerTo;
-import org.graalvm.nativeimage.c.struct.SizeOf;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
 import org.slf4j.Logger;
@@ -87,7 +86,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
      * Wide characters encoded using UTF-16LE (for little-endian) are the native character
      * format on Windows, so we can simply wrap wide strings without any conversion.
      */
-    return CTypeConversion.asByteBuffer(wcString, length * SizeOf.get(WCharPointer.class))
+    return CTypeConversion.asByteBuffer(wcString, length * 2)
         .order(ByteOrder.LITTLE_ENDIAN)
         .asCharBuffer();
   }
@@ -97,8 +96,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
    * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectoryw">Official
    * docs</a>
    */
-  @CFunction(transition = CFunction.Transition.NO_TRANSITION)
-  static native int GetCurrentDirectoryW(int nBufferLength, WCharPointer lpBuffer);
+  @CFunction
+  private static native int GetCurrentDirectoryW(int nBufferLength, WCharPointer lpBuffer);
 
   /**
    * <a
@@ -106,7 +105,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
    * docs</a>
    */
   @CFunction
-  static native int SetCurrentDirectoryW(WCharPointer lpPathName);
+  private static native int SetCurrentDirectoryW(WCharPointer lpPathName);
 
   /**
    * <a
@@ -114,7 +113,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
    * docs</a>
    */
   @CFunction
-  static native int PathFileExistsW(WCharPointer pszPath);
+  private static native int PathFileExistsW(WCharPointer pszPath);
 
   static final class Directives implements CContext.Directives {
     @Override
