@@ -165,6 +165,13 @@ type SQL_Type_Mapping
     ## ---
        private: true
        ---
+       Creates a JDBCValueSetter suitable for Java-side batch insert handling.
+    jdbc_value_setter =
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
        Creates an Error_Mapper.
     error_mapper self =
         Unimplemented.throw "This is an interface only."

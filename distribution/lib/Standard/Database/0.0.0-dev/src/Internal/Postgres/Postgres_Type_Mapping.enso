@@ -179,6 +179,12 @@ type Postgres_Type_Mapping
     ## ---
        private: true
        ---
+    jdbc_value_setter =
+        JDBCValueSetter.create "Postgres"
+
+    ## ---
+       private: true
+       ---
        Returns a helper for mapping database-specific SQL errors into our common
        error types.
     error_mapper : Postgres_Error_Mapper

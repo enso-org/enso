@@ -187,6 +187,12 @@ type Snowflake_Type_Mapping
     ## ---
        private: true
        ---
+    jdbc_value_setter =
+        SnowflakeJDBCValueSetter.new
+
+    ## ---
+       private: true
+       ---
     error_mapper : Snowflake_Error_Mapper
     error_mapper self = Snowflake_Error_Mapper
 
