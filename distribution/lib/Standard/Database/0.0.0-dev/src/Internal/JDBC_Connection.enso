@@ -8,7 +8,7 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.State
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-from Standard.Table import Table, Value_Type
+from Standard.Table import Value_Type
 
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.Statement_Setter.Statement_Setter
