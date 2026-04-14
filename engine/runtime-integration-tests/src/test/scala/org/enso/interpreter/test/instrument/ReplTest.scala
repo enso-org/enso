@@ -80,6 +80,7 @@ class ReplTest
           |polyglot java import java.util.regex.Pattern
           |import Standard.Base.Runtime.Debug
           |import Standard.Base.Data.Numbers
+          |from Standard.Base import to_text
           |
           |type A
           |    Foo a b
