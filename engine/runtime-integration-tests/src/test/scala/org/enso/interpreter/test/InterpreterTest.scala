@@ -30,6 +30,7 @@ import java.io.{
 import java.nio.file.Path
 import java.util.UUID
 import java.util.logging.Level
+import java.nio.file.Paths
 
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
@@ -175,7 +176,7 @@ class InterpreterContext(
   }
 
   def languageHome(): Path = {
-    throw new IllegalStateException("languageHome is no longer overriden")
+    Paths.get("../../distribution/component")
   }
 
   def close(): Unit = {
