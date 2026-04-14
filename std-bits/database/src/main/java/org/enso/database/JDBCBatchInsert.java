@@ -25,6 +25,8 @@ public final class JDBCBatchInsert {
       Value dateTimeWithTimezone,
       Value sqlTypeHintIds,
       boolean useSqlTypeHintsForNullValues,
+      boolean supportsSeparateNaN,
+      boolean supportsInfinity,
       int numRows)
       throws SQLException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
@@ -45,7 +47,14 @@ public final class JDBCBatchInsert {
                   : Types.NULL;
           var value = javaColumn.getItem(rowId);
           setStatementValue(
-              stmt, columnId + 1, value, jdbcValueSetter, keepTimezone, nullType);
+              stmt,
+              columnId + 1,
+              value,
+              jdbcValueSetter,
+              keepTimezone,
+              nullType,
+              supportsSeparateNaN,
+              supportsInfinity);
         }
 
         stmt.addBatch();
@@ -87,7 +96,9 @@ public final class JDBCBatchInsert {
       Object value,
       JDBCValueSetter jdbcValueSetter,
       boolean dateTimeWithTimezone,
-      int nullType)
+      int nullType,
+      boolean supportsSeparateNaN,
+      boolean supportsInfinity)
       throws SQLException {
     switch (value) {
       case null -> stmt.setNull(columnIndex, nullType);
@@ -98,9 +109,12 @@ public final class JDBCBatchInsert {
       case Long longValue -> stmt.setLong(columnIndex, longValue);
       case BigInteger bigIntegerValue ->
           jdbcValueSetter.setBigDecimal(stmt, columnIndex, bigIntegerValue, 0);
-      case Float floatValue -> setFloatingPointValue(stmt, columnIndex, floatValue, jdbcValueSetter);
+      case Float floatValue ->
+          setFloatingPointValue(
+              stmt, columnIndex, floatValue, supportsSeparateNaN, supportsInfinity);
       case Double doubleValue ->
-          setFloatingPointValue(stmt, columnIndex, doubleValue, jdbcValueSetter);
+          setFloatingPointValue(
+              stmt, columnIndex, doubleValue, supportsSeparateNaN, supportsInfinity);
       case BigDecimal bigDecimalValue -> stmt.setBigDecimal(columnIndex, bigDecimalValue);
       case String textValue -> stmt.setString(columnIndex, textValue);
       case ZonedDateTime zonedDateTime ->
@@ -113,10 +127,14 @@ public final class JDBCBatchInsert {
   }
 
   private static void setFloatingPointValue(
-      PreparedStatement stmt, int columnIndex, double value, JDBCValueSetter jdbcValueSetter)
+      PreparedStatement stmt,
+      int columnIndex,
+      double value,
+      boolean supportsSeparateNaN,
+      boolean supportsInfinity)
       throws SQLException {
-    if (jdbcValueSetter.databaseName().equals("SQLServer")
-        && (Double.isNaN(value) || Double.isInfinite(value))) {
+    if ((Double.isNaN(value) && !supportsSeparateNaN)
+        || (Double.isInfinite(value) && !supportsInfinity)) {
       stmt.setNull(columnIndex, Types.REAL);
     } else {
       stmt.setDouble(columnIndex, value);
