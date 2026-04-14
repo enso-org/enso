@@ -6,7 +6,8 @@ import { defineAsyncComponent } from 'vue'
 // Toolbar is singled out, because missing booleans coerce to false instead of undefined
 // and toolbar has default `true` in inner component
 const { toolbar = true, ...props } = defineProps<{
-  toolbar?: boolean | HTMLElement | string | undefined
+  toolbar?: boolean
+  teleportToolbarTo?: HTMLElement | string | undefined
   readonly?: boolean
   extensions?: Extension
   contentTestId?: string

@@ -47,7 +47,7 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
-    :toolbar="toolbar"
+    :teleportToolbarTo="toolbar"
   >
     <template #belowToolbar>
       <FunctionSignatureEditor

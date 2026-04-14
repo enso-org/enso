@@ -81,7 +81,7 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
-    :toolbar="toolbar"
+    :teleportToolbarTo="toolbar"
   >
   </MarkdownEditor>
   <!-- Specifying `<ResultComponent ... centered /> does not work with React components
