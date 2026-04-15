@@ -1118,33 +1118,15 @@ public class Main {
   /** Default log level to use if the LOG_LEVEL option is not provided. */
   private static final Level defaultLogLevel = Level.WARN;
 
-  private static final String PATH_DIAGNOSTICS_LABEL = "PATH_DIAGNOSTICS";
-
   /**
    * Main entry point for the CLI program.
    *
    * @param args the command line arguments
    */
   public static void main(String[] args) throws Exception {
+    // Handle an issue with Windows arguments containing UTF-16 characters
     args = Utils.getArgs(args);
-    pathDiagnostics(args);
     new Main().launch(args);
-  }
-
-  private static void pathDiagnostics(String[] args) {
-    var joinedArgs =
-        Arrays.stream(args).map(Main::stringDiagnostics).collect(Collectors.joining(","));
-    System.err.println(
-        "["
-            + PATH_DIAGNOSTICS_LABEL
-            + "] runner.main: args=["
-            + joinedArgs
-            + "], file.encoding="
-            + quote(System.getProperty("file.encoding"))
-            + ", sun.jnu.encoding="
-            + quote(System.getProperty("sun.jnu.encoding"))
-            + ", native.encoding="
-            + quote(System.getProperty("native.encoding")));
   }
 
   private static String stringDiagnostics(String value) {

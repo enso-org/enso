@@ -37,10 +37,9 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     CTypeConversion.asByteBuffer(buffer, MAX_LENGTH * WCHAR_SIZE)
         .order(ByteOrder.LITTLE_ENDIAN)
         .put(bytes)
-        .put(new byte[] { 0, 0 });
+        .put(new byte[] {0, 0});
     return buffer;
   }
-
 
   @Override
   public String currentWorkingDir() {
@@ -130,4 +129,5 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     public List<String> getLibraries() {
       return List.of("Kernel32", "Shlwapi");
     }
-  }}
+  }
+}

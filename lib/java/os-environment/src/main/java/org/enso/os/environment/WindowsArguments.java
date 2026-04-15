@@ -19,7 +19,7 @@ public class WindowsArguments {
   public static String readCommandLineArgs() {
     var buffer = GetCommandLineW();
     var len = wcslen(buffer);
-    return getStringFromPointer(buffer, (int)len.rawValue());
+    return getStringFromPointer(buffer, (int) len.rawValue());
   }
 
   public static String getStringFromPointer(WCharPointer buffer, int len) {
