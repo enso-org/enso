@@ -156,13 +156,14 @@ add_text_columns_specs suite_builder setup =
             column = build_sorted_table [["X", ["street", "", Nothing, "café", "👩‍🔬A"]]] . at 0
             result = column.reverse
 
-            result.name . should_equal "reverse([X])"
-
-            case setup.is_database of
+            result.name . should_equal "reverse([X])" 
+            
+            case (prefix.contains "Postgres") of
                 False -> result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A👩‍🔬"]
-                # DBs use the backend REVERSE function, which does not
-                # preserve grapheme clusters like Text.reverse does.
-                True -> result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A🔬‍👩"]
+                True ->
+                    # PostgreSQL uses the backend REVERSE function, which does not
+                    # preserve grapheme clusters like Text.reverse does.
+                    result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A🔬‍👩"]
 
     suite_builder.group prefix+"Text_Column (left, right, mid)" group_builder->
         group_builder.specify "work with scalar arguments" <|
