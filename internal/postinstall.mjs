@@ -1,11 +1,18 @@
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import process from 'node:process'
 
 const isCi = process.env.GITHUB_ACTIONS === 'true' || process.env.CI === 'true'
+const require = createRequire(import.meta.url)
+// Run repo-pinned Bazelisk via Node so Windows does not depend on `.cmd` shell dispatch.
+const bazelisk = require.resolve('@bazel/bazelisk/bazelisk.js')
 
 function run(args) {
-  const result = spawnSync('bazel', args, { stdio: 'inherit' })
-  if (result.status !== 0) {
+  const result = spawnSync(process.execPath, [bazelisk, ...args], { stdio: 'inherit' })
+  if (result.error) {
+    console.error(result.error)
+  }
+  if (result.error || result.status !== 0) {
     process.exit(result.status ?? 1)
   }
 }
