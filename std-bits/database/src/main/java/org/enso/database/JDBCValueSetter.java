@@ -33,8 +33,7 @@ public class JDBCValueSetter {
    * @param setterClassName optional fully-qualified class name for a specialized setter
    * @return a new JDBCValueSetter instance
    */
-  public static JDBCValueSetter create(
-      String databaseName, Object setterClassName) {
+  public static JDBCValueSetter create(String databaseName, Object setterClassName) {
     if (setterClassName == null) {
       return create(databaseName);
     }

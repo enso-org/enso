@@ -36,8 +36,7 @@ public final class JDBCBatchInsert {
         for (int columnId = 0; columnId < columnCount; columnId++) {
           if (!(columnStorages.getArrayElement(columnId).asHostObject()
               instanceof ColumnStorage<?> columnStorage)) {
-            throw new IllegalStateException(
-                "Expected Java column storages for JDBC batch insert.");
+            throw new IllegalStateException("Expected Java column storages for JDBC batch insert.");
           }
 
           boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
