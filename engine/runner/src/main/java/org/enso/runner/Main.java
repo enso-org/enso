@@ -1129,33 +1129,6 @@ public class Main {
     new Main().launch(args);
   }
 
-  private static String stringDiagnostics(String value) {
-    var codePoints =
-        value
-            .codePoints()
-            .mapToObj(codePoint -> String.format("\"U+%04X\"", codePoint))
-            .collect(Collectors.joining(","));
-    return "{\"value\":"
-        + quote(value)
-        + ",\"length\":"
-        + value.length()
-        + ",\"codePoints\":["
-        + codePoints
-        + "]}";
-  }
-
-  private static String quote(String value) {
-    if (value == null) {
-      return "null";
-    }
-    return "\""
-        + value
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\r", "\\r")
-            .replace("\n", "\\n")
-        + "\"";
-  }
 
   /**
    * Main entry point for the CLI program.

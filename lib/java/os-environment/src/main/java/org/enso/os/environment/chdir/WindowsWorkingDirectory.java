@@ -33,6 +33,10 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   private static PointerBase stringAsWCharPtr(String input) {
     var bytes = input.getBytes(StandardCharsets.UTF_16LE);
+    if (bytes.length + 2 > MAX_LENGTH * WCHAR_SIZE) {
+      throw new RuntimeException("Path is too long to be used with Windows API: " + input);
+    }
+
     var buffer = StackValue.get(MAX_LENGTH * WCHAR_SIZE);
     CTypeConversion.asByteBuffer(buffer, MAX_LENGTH * WCHAR_SIZE)
         .order(ByteOrder.LITTLE_ENDIAN)
