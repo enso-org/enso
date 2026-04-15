@@ -51,7 +51,7 @@ public final class InvokeToTextNode extends Node {
     if (frame == null || isUncached()) {
       return executeToTextNoFrame(obj);
     } else {
-      return executeWitFrame(frame, obj);
+      return executeWithFrame(frame, obj);
     }
   }
 
@@ -74,7 +74,7 @@ public final class InvokeToTextNode extends Node {
     return toText;
   }
 
-  private Object executeWitFrame(VirtualFrame frame, Object obj) {
+  private Object executeWithFrame(VirtualFrame frame, Object obj) {
     if (invokeCallableNode == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       invokeCallableNode = insert(buildInvokeCallableNode());
