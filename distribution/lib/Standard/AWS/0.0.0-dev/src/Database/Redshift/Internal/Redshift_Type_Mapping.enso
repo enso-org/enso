@@ -169,14 +169,8 @@ type Redshift_Type_Mapping
        ---
        Creates a Statement_Setter for Redshift.
     statement_setter =
-        fill_home = Statement_Setter.create_fill_hole Redshift_Type_Mapping.jdbc_value_setter
+        fill_home = Statement_Setter.create_fill_hole (JDBCValueSetter.create "Redshift")
         Statement_Setter.for_fill_hole fill_home
-
-    ## ---
-       private: true
-       ---
-    jdbc_value_setter =
-        JDBCValueSetter.create "Redshift"
 
     ## ---
        private: true

@@ -159,14 +159,8 @@ type SQLite_Type_Mapping
        ---
        Creates a Statement_Setter for SQLite.
     statement_setter =
-        fill_home = Statement_Setter.create_fill_hole SQLite_Type_Mapping.jdbc_value_setter
+        fill_home = Statement_Setter.create_fill_hole (JDBCValueSetter.create "SQLite")
         Statement_Setter.for_fill_hole fill_home
-
-    ## ---
-       private: true
-       ---
-    jdbc_value_setter =
-        JDBCValueSetter.create "SQLite"
 
     ## ---
        private: true

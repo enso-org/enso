@@ -189,7 +189,8 @@ type SQLServer_Type_Mapping
        ---
        Creates a Statement_Setter for SQL Server.
     statement_setter =
-        fallback = Statement_Setter.create_fill_hole SQLServer_Type_Mapping.jdbc_value_setter
+        jdbc_value_setter = JDBCValueSetter.create "SQLServer"
+        fallback = Statement_Setter.create_fill_hole jdbc_value_setter
 
         custom_fill_hole stmt i type_hint value = case value of
             Nothing ->
@@ -206,12 +207,6 @@ type SQLServer_Type_Mapping
             # Fallback to default logic for everything else
             _ -> fallback stmt i type_hint value
         Statement_Setter.for_fill_hole custom_fill_hole
-
-    ## ---
-       private: true
-       ---
-    jdbc_value_setter =
-        JDBCValueSetter.create "SQLServer"
 
     ## ---
        private: true

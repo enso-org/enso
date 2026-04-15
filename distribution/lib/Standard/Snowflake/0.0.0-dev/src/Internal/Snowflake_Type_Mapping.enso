@@ -180,14 +180,8 @@ type Snowflake_Type_Mapping
        ---
        Creates a Statement_Setter for Snowflake.
     statement_setter =
-        fill_hole = Statement_Setter.create_fill_hole Snowflake_Type_Mapping.jdbc_value_setter
+        fill_hole = Statement_Setter.create_fill_hole SnowflakeJDBCValueSetter.new
         Statement_Setter.for_fill_hole fill_hole
-
-    ## ---
-       private: true
-       ---
-    jdbc_value_setter =
-        SnowflakeJDBCValueSetter.new
 
     ## ---
        private: true
