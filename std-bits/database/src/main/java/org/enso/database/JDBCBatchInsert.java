@@ -31,14 +31,20 @@ public final class JDBCBatchInsert {
       throws SQLException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
       int columnCount = Math.toIntExact(columnStorages.getArraySize());
+      ColumnStorage<?>[] resolvedColumnStorages = new ColumnStorage<?>[columnCount];
+
+      for (int columnId = 0; columnId < columnCount; columnId++) {
+        if (!(columnStorages.getArrayElement(columnId).asHostObject()
+            instanceof ColumnStorage<?> columnStorage)) {
+          throw new IllegalStateException("Expected Java column storages for JDBC batch insert.");
+        }
+
+        resolvedColumnStorages[columnId] = columnStorage;
+      }
 
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
-          if (!(columnStorages.getArrayElement(columnId).asHostObject()
-              instanceof ColumnStorage<?> columnStorage)) {
-            throw new IllegalStateException("Expected Java column storages for JDBC batch insert.");
-          }
-
+          ColumnStorage<?> columnStorage = resolvedColumnStorages[columnId];
           boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
           int nullType =
               useSqlTypeHintsForNullValues
