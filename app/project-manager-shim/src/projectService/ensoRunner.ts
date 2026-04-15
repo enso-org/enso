@@ -49,15 +49,6 @@ export interface Socket {
   readonly port: number
 }
 
-function logChildProcessOutput(
-  projectPath: Path,
-  stream: 'stdout' | 'stderr',
-  chunk: Buffer | string,
-): void {
-  const text = chunk.toString()
-  console.warn(`[PATH_DIAGNOSTICS] child.${stream} ${projectPath}: ${text}`)
-}
-
 /**
  * Use declaration merging to allow extension of ShutdownHookRegistry in other modules.
  * This enables adding new shutdown hook types without modifying the original interface.
@@ -267,11 +258,7 @@ export class EnsoRunner implements Runner {
       this.ensoPath.endsWith('.bat') ?
         ['cmd.exe', ['/c', this.ensoPath, ...args]]
       : [this.ensoPath, args]
-    pathDiagnostics('runProcess', {
-      ensoPath: this.ensoPath,
-      cmd,
-      cmdArgs,
-    })
+    console.debug('runProcess', { ensoPath: this.ensoPath, cmd, cmdArgs })
     const isDevMode = process.env.NODE_ENV === 'development'
     if (isDevMode) {
       console.log('runProcess', cmd, cmdArgs.join(' '))
@@ -394,16 +381,15 @@ export class EnsoRunner implements Runner {
 
         const cwd = path.dirname(projectPath)
         const project = await OpenedProject.create(projectPath, jsonPort, ydocPort, () =>
-          this.runProcess(args, (cmd, cmdArgs) => {
-            const child = childProcess.spawn(cmd, cmdArgs, {
+          this.runProcess(args, (cmd, cmdArgs) =>
+            childProcess.spawn(cmd, cmdArgs, {
               env,
               detached: false,
               cwd,
-              stdio: ['pipe', 'pipe', 'pipe'],
+              stdio: ['pipe', 'inherit', 'inherit'],
               windowsHide: true,
-            })
-            return child
-          }),
+            }),
+          ),
         )
         project.shutdownHooks.set('remove-from-list', () => {
           this.runningProjects.delete(projectPath)
