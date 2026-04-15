@@ -171,6 +171,16 @@ type SQLite_Type_Mapping
     ## ---
        private: true
        ---
+    jdbc_value_setter_database_name = "SQLite"
+
+    ## ---
+       private: true
+       ---
+    jdbc_value_setter_class_name = Nothing
+
+    ## ---
+       private: true
+       ---
     error_mapper : SQLite_Error_Mapper
     error_mapper self = SQLite_Error_Mapper
 

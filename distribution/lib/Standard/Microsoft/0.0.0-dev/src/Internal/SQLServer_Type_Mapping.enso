@@ -216,6 +216,16 @@ type SQLServer_Type_Mapping
     ## ---
        private: true
        ---
+    jdbc_value_setter_database_name = "SQLServer"
+
+    ## ---
+       private: true
+       ---
+    jdbc_value_setter_class_name = Nothing
+
+    ## ---
+       private: true
+       ---
        Creates an Error_Mapper for SQLServer.
     error_mapper : SQLServer_Error_Mapper
     error_mapper self = SQLServer_Error_Mapper

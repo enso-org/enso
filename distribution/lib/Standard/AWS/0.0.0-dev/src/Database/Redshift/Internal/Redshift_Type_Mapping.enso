@@ -181,6 +181,16 @@ type Redshift_Type_Mapping
     ## ---
        private: true
        ---
+    jdbc_value_setter_database_name = "Redshift"
+
+    ## ---
+       private: true
+       ---
+    jdbc_value_setter_class_name = Nothing
+
+    ## ---
+       private: true
+       ---
        Returns a helper for mapping database-specific SQL errors into our common
        error types.
     error_mapper : Redshift_Error_Mapper

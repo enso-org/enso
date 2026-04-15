@@ -192,6 +192,16 @@ type Snowflake_Type_Mapping
     ## ---
        private: true
        ---
+    jdbc_value_setter_database_name = "Snowflake"
+
+    ## ---
+       private: true
+       ---
+    jdbc_value_setter_class_name = "org.enso.snowflake.SnowflakeJDBCValueSetter"
+
+    ## ---
+       private: true
+       ---
     error_mapper : Snowflake_Error_Mapper
     error_mapper self = Snowflake_Error_Mapper
 
