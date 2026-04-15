@@ -86,6 +86,6 @@ async function importConfigFromAsar(archivePath: string, innerPath: string): Pro
 
 /** Extract and load GUI config from ASAR archive in Electron distribution, or from .env files in Electron dev mode. */
 export async function loadGuiConfig(): Promise<$Config> {
-  cachedGuiConfigPromise ??= loadGuiConfigUncached()
+  cachedGuiConfigPromise ??= await loadGuiConfigUncached()
   return await cachedGuiConfigPromise
 }
