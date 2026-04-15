@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { modKey } from '@/composables/events'
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import {
   rewritePortValueUpdate,
@@ -185,13 +184,6 @@ const defaultEntries = [
   mkDefaultEntry('required', 'required argument'),
   mkDefaultEntry('explicit', 'default value'),
 ] as const satisfies DropdownEntry[]
-
-function handleDefaultValueClick(event: MouseEvent) {
-  // Allow mod+click to edit component code instead of opening dropdown
-  if (modKey(event)) return
-  event.stopPropagation()
-  defaultValueDropdownInteraction.value.start()
-}
 </script>
 
 <template>
@@ -204,7 +196,7 @@ function handleDefaultValueClick(event: MouseEvent) {
     <div
       ref="defaultValueRoot"
       class="defaultValueRoot clickable"
-      @click="handleDefaultValueClick"
+      @click.stop="defaultValueDropdownInteraction.start()"
     >
       <SvgIcon
         name="arrow_right_head_only"

@@ -17,7 +17,7 @@ import {
   useExpressionTags,
   useTagEntries,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { modKey, unrefElement } from '@/composables/events'
+import { unrefElement } from '@/composables/events'
 import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { useTopLevelArgument } from '@/providers/topLevelArgument'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -82,13 +82,6 @@ const selectionArrow = provideSelectionArrow({
   isHovered,
 })
 
-function toggleDropdownWidget(event: MouseEvent) {
-  // Allow mod+click to edit component code instead of opening dropdown
-  if (modKey(event)) return
-  if (!dropDownInteraction.value.isActive()) dropDownInteraction.value.start()
-  else dropDownInteraction.value.cancel()
-}
-
 const dropDownInteraction = WidgetEditHandler.New(props, {
   pointerdown: (e) => {
     if (
@@ -114,6 +107,11 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
     return true
   },
 })
+
+function toggleDropdownWidget() {
+  if (!dropDownInteraction.value.isActive()) dropDownInteraction.value.start()
+  else dropDownInteraction.value.cancel()
+}
 
 function* getValues(expression: Ast.Ast | string | undefined) {
   if (expression instanceof Ast.Vector) {
