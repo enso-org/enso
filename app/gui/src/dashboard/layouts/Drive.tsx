@@ -150,7 +150,11 @@ function DriveAssetsView(props: DriveProperties) {
   })
 
   return (
-    <div className="relative flex w-full grow flex-col overflow-hidden" onFocus={onFocus}>
+    <div
+      className="relative flex w-full grow flex-col overflow-hidden"
+      data-testid="drive-view"
+      onFocus={onFocus}
+    >
       <DriveBar query={query} setQuery={setQuery} toolbar={props.toolbar} />
 
       {isInaccessible && <OfflineMessage />}
