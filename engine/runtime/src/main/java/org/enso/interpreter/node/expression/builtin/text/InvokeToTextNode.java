@@ -17,11 +17,9 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
  * Converts provided object into Text. This is a generic node to be used to convert any object into
  * Text. It does so by calling {@code to_text} method or by special means for various builtin
  * objects.
- *
- * @author devel
  */
 public final class InvokeToTextNode extends Node {
-  private static InvokeToTextNode uncached;
+  private static final InvokeToTextNode UNCACHED = new InvokeToTextNode();
   @CompilerDirectives.CompilationFinal private UnresolvedSymbol toText;
   @Child private InteropMethodCallNode methodNode;
   @Child private InvokeCallableNode invokeCallableNode;
@@ -36,10 +34,7 @@ public final class InvokeToTextNode extends Node {
 
   @NeverDefault
   public static InvokeToTextNode getUncached() {
-    if (uncached == null) {
-      uncached = new InvokeToTextNode();
-    }
-    return uncached;
+    return UNCACHED;
   }
 
   /**
@@ -53,7 +48,7 @@ public final class InvokeToTextNode extends Node {
     if (obj instanceof EnsoMultiValue emv) {
       return executeMultiValue(emv);
     }
-    if (frame == null || this == uncached) {
+    if (frame == null || isUncached()) {
       return executeToTextNoFrame(obj);
     } else {
       return executeWitFrame(frame, obj);
@@ -65,9 +60,7 @@ public final class InvokeToTextNode extends Node {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       methodNode =
           insert(
-              this == uncached
-                  ? InteropMethodCallNode.getUncached()
-                  : InteropMethodCallNode.build());
+              isUncached() ? InteropMethodCallNode.getUncached() : InteropMethodCallNode.build());
     }
     return methodNode.executeOrPanic(ensureToTextSymbol(), obj);
   }
@@ -102,8 +95,12 @@ public final class InvokeToTextNode extends Node {
   private Object executeMultiValue(EnsoMultiValue emv) {
     if (anyToText == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      anyToText = insert(this == uncached ? AnyToTextNode.getUncached() : AnyToTextNode.build());
+      anyToText = insert(isUncached() ? AnyToTextNode.getUncached() : AnyToTextNode.build());
     }
     return anyToText.execute(emv);
+  }
+
+  private boolean isUncached() {
+    return this == UNCACHED;
   }
 }
