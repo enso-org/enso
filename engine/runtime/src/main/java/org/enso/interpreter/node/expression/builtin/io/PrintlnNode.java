@@ -51,7 +51,7 @@ public abstract class PrintlnNode extends Node {
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached InvokeToTextNode invokeToText) {
     var ctx = EnsoContext.get(this);
-    var probablyStr = invokeToText.executeToText(frame, new Object[] {message});
+    var probablyStr = invokeToText.executeToText(frame, message);
     if (warnings.hasWarnings(probablyStr)) {
       try {
         probablyStr = warnings.removeWarnings(probablyStr);
