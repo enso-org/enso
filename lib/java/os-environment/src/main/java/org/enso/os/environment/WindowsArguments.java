@@ -9,9 +9,13 @@ import org.graalvm.nativeimage.c.struct.CPointerTo;
 import org.graalvm.nativeimage.c.type.CIntPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @CContext(WindowsArguments.Directives.class)
 public class WindowsArguments {
+  private static final Logger LOGGER = LoggerFactory.getLogger(WindowsArguments.class);
+
   private static final int WCHAR_SIZE = 2;
 
   private WindowsArguments() {}
@@ -28,6 +32,7 @@ public class WindowsArguments {
     for (var i = 0; i < results.length; i++) {
       var arg = strs.read(i);
       results[i] = toJavaString(arg);
+      LOGGER.debug("Read command line argument {}: {}", i, results[i]);
     }
 
     LocalFree(strs);

@@ -55,7 +55,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     }
 
     var result = wcharPtrAsString(buffer, length);
-    LOGGER.info("Current working directory is {}", result);
+    LOGGER.debug("Current working directory is {}", result);
     return result;
   }
 
