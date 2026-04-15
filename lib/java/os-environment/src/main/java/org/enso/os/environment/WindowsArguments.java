@@ -12,14 +12,18 @@ import org.graalvm.word.UnsignedWord;
 
 @CContext(WindowsArguments.Directives.class)
 public class WindowsArguments {
-  private static final int WCHAR_SIZE = 2;
+  public static final int WCHAR_SIZE = 2;
 
   private WindowsArguments() {}
 
   public static String readCommandLineArgs() {
     var buffer = GetCommandLineW();
     var len = wcslen(buffer);
-    var byteBuffer = CTypeConversion.asByteBuffer(buffer, ((int) len.rawValue()) * WCHAR_SIZE);
+    return getStringFromPointer(buffer, (int)len.rawValue());
+  }
+
+  public static String getStringFromPointer(WCharPointer buffer, int len) {
+    var byteBuffer = CTypeConversion.asByteBuffer(buffer, len * WCHAR_SIZE);
     return StandardCharsets.UTF_16LE.decode(byteBuffer).toString();
   }
 
@@ -30,7 +34,7 @@ public class WindowsArguments {
   static native UnsignedWord wcslen(WCharPointer str);
 
   @CPointerTo(nameOfCType = "wchar_t")
-  interface WCharPointer extends PointerBase {}
+  public interface WCharPointer extends PointerBase {}
 
   static final class Directives implements CContext.Directives {
     @Override
