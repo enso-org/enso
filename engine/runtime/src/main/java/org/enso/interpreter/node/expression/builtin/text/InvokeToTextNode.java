@@ -101,7 +101,8 @@ public final class InvokeToTextNode extends Node {
 
   private Object executeMultiValue(EnsoMultiValue emv) {
     if (anyToText == null) {
-      anyToText = this == uncached ? AnyToTextNode.getUncached() : AnyToTextNode.build();
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      anyToText = insert(this == uncached ? AnyToTextNode.getUncached() : AnyToTextNode.build());
     }
     return anyToText.execute(emv);
   }
