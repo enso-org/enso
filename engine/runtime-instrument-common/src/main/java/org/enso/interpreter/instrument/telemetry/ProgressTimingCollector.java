@@ -57,7 +57,7 @@ public final class ProgressTimingCollector {
    * @param itemCount the {@code up_to} value (workload size) from {@code Progress.run}
    * @param elapsedMs total elapsed time in milliseconds
    */
-  public void record(String handleName, long itemCount, long elapsedMs) {
+  public void recordTiming(String handleName, long itemCount, long elapsedMs) {
     if (stats.size() >= MAX_DISTINCT_HANDLES && !stats.containsKey(handleName)) {
       evictLowest();
     }

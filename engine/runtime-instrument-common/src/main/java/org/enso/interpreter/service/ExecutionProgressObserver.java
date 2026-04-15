@@ -73,7 +73,8 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage>, Auto
             aggregate.advanceBy(key, by.longValue());
             if (t.getArguments().size() >= 3
                 && t.getArguments().get(2) instanceof Number elapsedMs) {
-              progressTimingCollector.record(key.toString(), by.longValue(), elapsedMs.longValue());
+              progressTimingCollector.recordTiming(
+                  key.toString(), by.longValue(), elapsedMs.longValue());
             }
           }
         }

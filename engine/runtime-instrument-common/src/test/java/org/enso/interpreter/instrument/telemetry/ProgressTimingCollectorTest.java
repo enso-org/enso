@@ -33,9 +33,9 @@ public class ProgressTimingCollectorTest {
   @Test
   public void perItemComputationIsCorrect() {
     // 100 items in 5000ms -> 50ms/item
-    collector.record("A", 100, 5000);
+    collector.recordTiming("A", 100, 5000);
     // 50 items in 1000ms -> 20ms/item
-    collector.record("A", 50, 1000);
+    collector.recordTiming("A", 50, 1000);
 
     var topN = collector.computeTopN();
     assertEquals(1, topN.size());
@@ -51,9 +51,9 @@ public class ProgressTimingCollectorTest {
   @Test
   public void stddevComputationIsCorrect() {
     // 1 item in 100ms -> 100ms/item
-    collector.record("B", 1, 100);
+    collector.recordTiming("B", 1, 100);
     // 1 item in 200ms -> 200ms/item
-    collector.record("B", 1, 200);
+    collector.recordTiming("B", 1, 200);
 
     var topN = collector.computeTopN();
     var stats = topN.get(0).getValue();
@@ -64,7 +64,7 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void singleInvocationHasZeroStddev() {
-    collector.record("C", 10, 500);
+    collector.recordTiming("C", 10, 500);
 
     var topN = collector.computeTopN();
     var stats = topN.get(0).getValue();
@@ -74,9 +74,9 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void topNOrdersByAvgPerItemDescending() {
-    collector.record("slow", 1, 1000); // 1000 ms/item
-    collector.record("medium", 1, 500); // 500 ms/item
-    collector.record("fast", 1, 100); // 100 ms/item
+    collector.recordTiming("slow", 1, 1000); // 1000 ms/item
+    collector.recordTiming("medium", 1, 500); // 500 ms/item
+    collector.recordTiming("fast", 1, 100); // 100 ms/item
 
     var topN = collector.computeTopN();
     assertEquals(3, topN.size());
@@ -88,7 +88,7 @@ public class ProgressTimingCollectorTest {
   @Test
   public void topNLimitsToTenEntries() {
     for (int i = 0; i < 15; i++) {
-      collector.record("handle_" + i, 1, (i + 1) * 100L);
+      collector.recordTiming("handle_" + i, 1, (i + 1) * 100L);
     }
 
     var topN = collector.computeTopN();
@@ -101,8 +101,8 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void flushDoesNotClearData() {
-    collector.record("X", 1, 100);
-    collector.record("X", 1, 200);
+    collector.recordTiming("X", 1, 100);
+    collector.recordTiming("X", 1, 200);
 
     collector.flushAsTelemetry();
 
@@ -114,10 +114,10 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void accumulatesAcrossMultipleFlushes() {
-    collector.record("Z", 1, 100);
+    collector.recordTiming("Z", 1, 100);
     collector.flushAsTelemetry();
 
-    collector.record("Z", 1, 200);
+    collector.recordTiming("Z", 1, 200);
     collector.flushAsTelemetry();
 
     // Both recordings should be accumulated
@@ -142,7 +142,7 @@ public class ProgressTimingCollectorTest {
           () -> {
             try {
               for (int i = 0; i < recordsPerThread; i++) {
-                collector.record("handle_" + (threadId % 4), 1, 10);
+                collector.recordTiming("handle_" + (threadId % 4), 1, 10);
               }
             } catch (Throwable e) {
               synchronized (errors) {
@@ -168,7 +168,7 @@ public class ProgressTimingCollectorTest {
   @Test
   public void zeroItemCountHandledGracefully() {
     // up_to is forced to max(1) in Progress.run, but guard against 0 defensively
-    collector.record("edge", 0, 100);
+    collector.recordTiming("edge", 0, 100);
 
     var topN = collector.computeTopN();
     assertEquals(1, topN.size());
@@ -180,16 +180,16 @@ public class ProgressTimingCollectorTest {
   public void evictsLowestAvgPerItemWhenMaxDistinctHandlesReached() {
     int max = ProgressTimingCollector.MAX_DISTINCT_HANDLES;
     // "fast" has the lowest avgPerItem (1ms/item), should be evicted
-    collector.record("fast", 1, 1);
+    collector.recordTiming("fast", 1, 1);
     // All others have 100ms/item
     for (int i = 1; i < max; i++) {
-      collector.record("handle_" + i, 1, 100);
+      collector.recordTiming("handle_" + i, 1, 100);
     }
 
     assertTrue(collector.containsHandle("fast"));
 
     // Recording a new handle should evict bottom 20% by avgPerItem, including "fast"
-    collector.record("newcomer", 1, 100);
+    collector.recordTiming("newcomer", 1, 100);
 
     assertTrue("newcomer should be present", collector.containsHandle("newcomer"));
     assertFalse("fast should have been evicted", collector.containsHandle("fast"));
