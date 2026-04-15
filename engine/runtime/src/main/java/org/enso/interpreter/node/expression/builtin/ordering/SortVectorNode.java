@@ -553,7 +553,7 @@ public abstract class SortVectorNode extends Node {
 
     @TruffleBoundary
     protected void attachIncomparableValuesWarning(Object x, Object y) {
-      var xStr = toTextNode.executeToText(null, y).toString();
+      var xStr = toTextNode.executeToText(null, x).toString();
       var yStr = toTextNode.executeToText(null, y).toString();
       String warnText = "Values " + xStr + " and " + yStr + " are incomparable";
       warnings.add(warnText);

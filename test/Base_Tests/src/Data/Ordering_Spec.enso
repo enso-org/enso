@@ -62,13 +62,19 @@ type No_Comp_Type
    does not matter. Iterates through all the warnings of result.
 expect_incomparable_warn : Any -> Any -> Any -> Nothing
 expect_incomparable_warn left_val right_val result =
-    # Incomparable values warning wraps Text values in simple quotes
-    left_val_text = left_val.pretty
-    right_val_text = right_val.pretty
+    left_val_text = left_val.to_text
+    right_val_text = right_val.to_text
     expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
     expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
     has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
-    has_expected_warning . should_be_true
+    if has_expected_warning.not then
+        Test.fail
+            "Expecting "
+                + expected_warn_msg_left
+                + " and "
+                + expected_warn_msg_right
+                + " but got: "
+                + (Warning.get_all result . to_text)
 
 expect_no_warns : Any -> Nothing
 expect_no_warns result =
