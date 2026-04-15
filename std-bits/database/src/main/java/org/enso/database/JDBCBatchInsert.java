@@ -9,7 +9,7 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import org.enso.table.data.table.Column;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.graalvm.polyglot.Value;
 
 /** Java-side implementation of JDBC batch inserts for in-memory table uploads. */
@@ -20,7 +20,7 @@ public final class JDBCBatchInsert {
       Connection connection,
       String insertTemplate,
       JDBCValueSetter jdbcValueSetter,
-      Value columns,
+      Value storages,
       int batchSize,
       Value dateTimeWithTimezone,
       Value sqlTypeHintIds,
@@ -30,14 +30,15 @@ public final class JDBCBatchInsert {
       int numRows)
       throws SQLException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
-      int columnCount = Math.toIntExact(columns.getArraySize());
+      int columnCount = Math.toIntExact(storages.getArraySize());
 
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
-          var columnValue = columns.getArrayElement(columnId);
-          var column = columnValue.asHostObject();
-          if (!(column instanceof Column javaColumn)) {
-            throw new IllegalStateException("Expected Java table columns for JDBC batch insert.");
+          var storageValue = storages.getArrayElement(columnId);
+          var storage = storageValue.asHostObject();
+          if (!(storage instanceof ColumnStorage<?> javaStorage)) {
+            throw new IllegalStateException(
+                "Expected Java column storages for JDBC batch insert.");
           }
 
           boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
@@ -45,7 +46,7 @@ public final class JDBCBatchInsert {
               useSqlTypeHintsForNullValues
                   ? sqlTypeHintIds.getArrayElement(columnId).asInt()
                   : Types.NULL;
-          var value = javaColumn.getItem(rowId);
+          var value = javaStorage.getItemBoxed(rowId);
           setStatementValue(
               stmt,
               columnId + 1,

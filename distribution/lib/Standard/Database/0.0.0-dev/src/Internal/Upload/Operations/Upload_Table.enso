@@ -5,8 +5,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Internal.In_Memory_Helpers
 from Standard.Table import Table, Value_Type
-from Standard.Table.Internal.Java_Exports import get_java_columns
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
@@ -107,7 +107,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
     use_sql_type_hints_for_null_values = connection.dialect.flagged ..Use_SQL_Type_Hints_For_Null_Values
     supports_separate_nan = connection.dialect.flagged ..Supports_Separate_NaN
     supports_infinity = connection.dialect.flagged ..Supports_Infinity
-    java_columns = get_java_columns source_table
+    java_column_storages = In_Memory_Helpers.get_java_column_storages (source_table:In_Memory_Table)
     source_row_count = source_table.row_count
     table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
 
@@ -118,7 +118,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
             limit : Integer -> Math.min source_row_count limit
         upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
             Panic.rethrow <|
-                connection.jdbc_connection.batch_insert insert_template jdbc_value_setter_database_name jdbc_value_setter_class_name java_columns batch_size=default_batch_size date_time_with_timezone=expected_date_time_with_timezone expected_type_hints=expected_sql_type_ids use_sql_type_hints_for_null_values=use_sql_type_hints_for_null_values supports_separate_nan=supports_separate_nan supports_infinity=supports_infinity num_rows=num_rows
+                connection.jdbc_connection.batch_insert insert_template jdbc_value_setter_database_name jdbc_value_setter_class_name java_column_storages batch_size=default_batch_size date_time_with_timezone=expected_date_time_with_timezone expected_type_hints=expected_sql_type_ids use_sql_type_hints_for_null_values=use_sql_type_hints_for_null_values supports_separate_nan=supports_separate_nan supports_infinity=supports_infinity num_rows=num_rows
 
         upload_status.if_not_error <|
             connection.query (..Table_Name table_name)

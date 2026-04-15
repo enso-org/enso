@@ -1,9 +1,7 @@
 from Standard.Base import all
 
 import project.In_Memory_Column.In_Memory_Column
-import project.In_Memory_Table.In_Memory_Table
 import project.Table.Table
-from project.Internal.Table_Type_Helpers import get_underlying_from_table
 
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.problems.ProblemAggregator
@@ -26,13 +24,6 @@ with_inferred_builder initial_size func =
    private: true
    ---
 make_column_from_storage = In_Memory_Column.from_storage
-
-## ---
-   private: true
-   ---
-get_java_columns table:Table =
-    underlying = get_underlying_from_table table
-    (underlying:In_Memory_Table).java_table.getColumns
 
 ## ---
    private: true
