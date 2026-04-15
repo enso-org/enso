@@ -283,19 +283,17 @@ final class Utils {
     }
 
     var nativeApi = WorkingDirectory.getInstance();
-    System.err.println("Getting project root");
     var projectRoot = nativeApi.findProjectRoot(fileToRun);
     if (projectRoot != null) {
-      System.err.println("Project root " + projectRoot);
       var parentDir = nativeApi.parentFile(projectRoot);
       assert parentDir != null;
       var curDir = nativeApi.currentWorkingDir();
-      System.err.println("Current working directory to " + curDir);
       if (!parentDir.equals(curDir)) {
-        System.err.println("Setting working directory to " + projectRoot);
         var dirChanged = nativeApi.changeWorkingDir(parentDir);
         if (!dirChanged) {
           LOGGER.error("Cannot change working directory to {}", parentDir);
+        } else {
+          LOGGER.info("Changed working directory to {}", parentDir);
         }
       }
       return curDir;

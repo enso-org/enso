@@ -1601,7 +1601,6 @@ public class Main {
     } else if (line.hasOption(RUN_OPTION)) {
       originalCwdOrNull = Utils.adjustCwdToProject(line.getOptionValue(RUN_OPTION));
     }
-    System.err.println("Changed the path :)");
 
     var logMasking = new boolean[1];
     var props = parseSystemProperties(line);

@@ -45,7 +45,14 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
   public String currentWorkingDir() {
     var buffer = StackValue.get(MAX_LENGTH * WCHAR_SIZE);
     int length = GetCurrentDirectoryW(MAX_LENGTH, buffer);
-    return length == 0 || length == MAX_LENGTH ? null : wcharPtrAsString(buffer, length);
+    if (length == 0 || length == MAX_LENGTH) {
+      LOGGER.error("GetCurrentDirectory failed with length {}", length);
+      return null;
+    }
+
+    var result = wcharPtrAsString(buffer, length);
+    LOGGER.info("Current working directory is {}", result);
+    return result;
   }
 
   @Override
