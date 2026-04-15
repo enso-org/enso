@@ -49,85 +49,13 @@ export interface Socket {
   readonly port: number
 }
 
-function formatStringDiagnostics(value: string): string {
-  const codePoints = Array.from(
-    value,
-    (char) => `U+${char.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}`,
-  )
-  return JSON.stringify({
-    value,
-    length: value.length,
-    codePoints,
-  })
-}
-
-function pathDiagnostics(label: string, details: Record<string, string | readonly string[]>): void {
-  const formattedDetails = Object.fromEntries(
-    Object.entries(details).map(([key, value]) => {
-      if (typeof value === 'string') {
-        return [key, JSON.parse(formatStringDiagnostics(value))]
-      } else {
-        return [key, value.map((item) => JSON.parse(formatStringDiagnostics(item)))]
-      }
-    }),
-  )
-  console.warn(`[PATH_DIAGNOSTICS] ${label}: ${JSON.stringify(formattedDetails)}`)
-}
-
-function logChildProcessOutput(projectPath: Path, stream: 'stdout' | 'stderr', chunk: Buffer | string): void {
+function logChildProcessOutput(
+  projectPath: Path,
+  stream: 'stdout' | 'stderr',
+  chunk: Buffer | string,
+): void {
   const text = chunk.toString()
   console.warn(`[PATH_DIAGNOSTICS] child.${stream} ${projectPath}: ${text}`)
-}
-
-function attachChildProcessLogging(
-  child: childProcess.ChildProcess,
-  details: {
-    projectPath: Path
-    cwd: string
-    cmd: string
-    cmdArgs: readonly string[]
-    env: NodeJS.ProcessEnv
-  },
-): void {
-  pathDiagnostics('child.spawn', {
-    projectPath: details.projectPath,
-    cwd: details.cwd,
-    cmd: details.cmd,
-    cmdArgs: details.cmdArgs,
-  })
-  console.warn(
-    `[PATH_DIAGNOSTICS] child.pid ${details.projectPath}: ${child.pid ?? 'unknown'} envOverrides=${JSON.stringify({
-      LANGUAGE_SERVER_YDOC_PORT: details.env.LANGUAGE_SERVER_YDOC_PORT,
-      ENSO_CLOUD_PROJECT_SESSION_ID: details.env.ENSO_CLOUD_PROJECT_SESSION_ID,
-      ENSO_CLOUD_PROJECT_ID: details.env.ENSO_CLOUD_PROJECT_ID,
-      ENSO_CLOUD_PROJECT_DIRECTORY_PATH: details.env.ENSO_CLOUD_PROJECT_DIRECTORY_PATH,
-      ENSO_CLOUD_API_URL: details.env.ENSO_CLOUD_API_URL,
-      JAVA_TOOL_OPTIONS: details.env.JAVA_TOOL_OPTIONS,
-    })}`,
-  )
-
-  child.stdout?.on('data', (chunk) => {
-    logChildProcessOutput(details.projectPath, 'stdout', chunk)
-  })
-  child.stderr?.on('data', (chunk) => {
-    logChildProcessOutput(details.projectPath, 'stderr', chunk)
-  })
-  child.on('spawn', () => {
-    console.warn(`[PATH_DIAGNOSTICS] child.event spawn ${details.projectPath}: pid=${child.pid ?? 'unknown'}`)
-  })
-  child.on('error', (error) => {
-    console.error(`[PATH_DIAGNOSTICS] child.event error ${details.projectPath}:`, error)
-  })
-  child.on('exit', (code, signal) => {
-    console.warn(
-      `[PATH_DIAGNOSTICS] child.event exit ${details.projectPath}: code=${code ?? 'null'} signal=${signal ?? 'null'}`,
-    )
-  })
-  child.on('close', (code, signal) => {
-    console.warn(
-      `[PATH_DIAGNOSTICS] child.event close ${details.projectPath}: code=${code ?? 'null'} signal=${signal ?? 'null'}`,
-    )
-  })
 }
 
 /**
@@ -456,12 +384,7 @@ export class EnsoRunner implements Runner {
           jsonPort.toString(),
           ...(extraArgs ?? []),
         ]
-        pathDiagnostics('openProject', {
-          projectPath,
-          projectId,
-          rootId,
-          args,
-        })
+        console.debug('openProject', { projectPath, projectId } )
 
         const env = {
           ...process.env,
@@ -478,13 +401,6 @@ export class EnsoRunner implements Runner {
               cwd,
               stdio: ['pipe', 'pipe', 'pipe'],
               windowsHide: true,
-            })
-            attachChildProcessLogging(child, {
-              projectPath,
-              cwd,
-              cmd,
-              cmdArgs,
-              env,
             })
             return child
           }),
@@ -658,7 +574,6 @@ function checkExecutable(filePath: string) {
   } catch {
     throw new Error(`Enso executable at ${filePath} is not executable`)
   }
-  pathDiagnostics('checkExecutable', { filePath })
   return Path(filePath)
 }
 
@@ -714,12 +629,11 @@ function checkExecutables(...segments: readonly string[]): Path | undefined {
 /** Find the path to the `enso` executable. */
 export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   workDir = path.resolve(workDir)
-  pathDiagnostics('findEnsoExecutable.start', { workDir })
 
   // Check ENSO_ENGINE_PATH environment variable first
   const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
-    pathDiagnostics('findEnsoExecutable.envPath', { envPath })
+    console.debug('findEnsoExecutable: Checking ENSO_ENGINE_PATH environment variable', { envPath, workDir })
     try {
       fs.accessSync(envPath)
       return checkExecutable(envPath)
@@ -745,10 +659,9 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   ]
 
   for (const directory of directories) {
-    pathDiagnostics('findEnsoExecutable.searchDirectory', { directory })
     const result = checkExecutables(...directory)
     if (result) {
-      pathDiagnostics('findEnsoExecutable.found', { result })
+      console.debug('findEnsoExecutable: Found.', { result, workDir })
       return result
     }
   }
