@@ -26,7 +26,7 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import OptionallyKeepAlive from '@/components/OptionallyKeepAlive.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import { unrefElement } from '@/composables/events'
+import { modKey, unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { useTopLevelArgument } from '@/providers/topLevelArgument'
@@ -183,7 +183,9 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
   },
 })
 
-function toggleDropdownWidget() {
+function toggleDropdownWidget(event: MouseEvent) {
+  // Allow mod+click to edit component code instead of opening dropdown
+  if (modKey(event)) return
   if (!dropDownInteraction.value.isActive()) dropDownInteraction.value.start()
   else dropDownInteraction.value.cancel()
 }
