@@ -26,7 +26,7 @@ public final class ProgressTimingCollector {
   static final int MAX_DISTINCT_HANDLES = 100_000;
 
   private static final Logger logger =
-      LoggerFactory.getLogger("org.enso.telemetry.progress.TopSlowestComponents");
+      LoggerFactory.getLogger("org.enso.telemetry.SlowestComponents");
 
   private final ConcurrentHashMap<String, TimingStats> stats = new ConcurrentHashMap<>();
 
@@ -121,7 +121,7 @@ public final class ProgressTimingCollector {
       logger
           .atTrace()
           .setMessage(
-              "Slowest component: handle_name={}, invocations={}, total_items={},"
+              "Slow component: handle_name={}, invocations={}, total_items={},"
                   + " total_ms={}, avg_per_item_ms={}, stddev_per_item_ms={},"
                   + " rank={}, session_id={}, project_id={}")
           .addArgument(entry.getKey())
