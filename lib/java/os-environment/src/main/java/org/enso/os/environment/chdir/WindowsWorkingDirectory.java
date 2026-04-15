@@ -4,12 +4,12 @@ import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.util.List;
 import org.enso.common.Platform;
+import org.enso.os.environment.WindowsArguments;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
-import org.graalvm.nativeimage.c.struct.CPointerTo;
+import org.graalvm.nativeimage.c.struct.SizeOf;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
-import org.graalvm.word.PointerBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,18 +24,21 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public String currentWorkingDir() {
-    var buffer = StackValue.get(MAX_LENGTH, WCharPointer.class);
+    System.err.println("Here We Go");
+    var buffer = StackValue.get(MAX_LENGTH, WindowsArguments.WCharPointer.class);
+    System.err.println("Calling read");
     var length = GetCurrentDirectoryW(MAX_LENGTH, buffer);
+    System.err.println("Read current directory - " + length);
     if (length == 0 || length == MAX_LENGTH) {
       return null;
     }
-    return asCharBuffer(buffer, length).toString();
+    return WindowsArguments.getStringFromPointer(buffer, length);
   }
 
   @Override
   public boolean changeWorkingDir(String path) {
     path = normalizeSlashes(path);
-    var buffer = StackValue.get(MAX_LENGTH, WCharPointer.class);
+    var buffer = StackValue.get(MAX_LENGTH, WindowsArguments.WCharPointer.class);
     asCharBuffer(buffer, MAX_LENGTH).append(path).append('\0');
 
     try {
@@ -57,7 +60,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     file = normalizeSlashes(file);
 
     var full = dir + Platform.separatorChar() + file;
-    var buffer = StackValue.get(MAX_LENGTH, WCharPointer.class);
+    var buffer = StackValue.get(MAX_LENGTH, WindowsArguments.WCharPointer.class);
     asCharBuffer(buffer, MAX_LENGTH).append(full).append('\0');
 
     try {
@@ -78,15 +81,12 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     }
   }
 
-  @CPointerTo(nameOfCType = "wchar_t")
-  interface WCharPointer extends PointerBase {}
-
-  private static CharBuffer asCharBuffer(WCharPointer wcString, int length) {
+  private static CharBuffer asCharBuffer(WindowsArguments.WCharPointer wcString, int length) {
     /*
      * Wide characters encoded using UTF-16LE (for little-endian) are the native character
      * format on Windows, so we can simply wrap wide strings without any conversion.
      */
-    return CTypeConversion.asByteBuffer(wcString, length * 2)
+    return CTypeConversion.asByteBuffer(wcString, length * WindowsArguments.WCHAR_SIZE)
         .order(ByteOrder.LITTLE_ENDIAN)
         .asCharBuffer();
   }
@@ -97,7 +97,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
    * docs</a>
    */
   @CFunction
-  private static native int GetCurrentDirectoryW(int nBufferLength, WCharPointer lpBuffer);
+  static native int GetCurrentDirectoryW(int nBufferLength, WindowsArguments.WCharPointer lpBuffer);
 
   /**
    * <a
@@ -105,7 +105,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
    * docs</a>
    */
   @CFunction
-  private static native int SetCurrentDirectoryW(WCharPointer lpPathName);
+  static native int SetCurrentDirectoryW(WindowsArguments.WCharPointer lpPathName);
 
   /**
    * <a
@@ -113,7 +113,7 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
    * docs</a>
    */
   @CFunction
-  private static native int PathFileExistsW(WCharPointer pszPath);
+  static native int PathFileExistsW(WindowsArguments.WCharPointer pszPath);
 
   static final class Directives implements CContext.Directives {
     @Override
