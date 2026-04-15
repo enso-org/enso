@@ -57,7 +57,7 @@ public abstract sealed class WorkingDirectory
    */
   public final String findProjectRoot(String path) {
     assert path != null;
-   var nativeApi = WorkingDirectory.getInstance();
+    var nativeApi = WorkingDirectory.getInstance();
     String curPath;
     if (isPathAbsolute(path)) {
       curPath = path;

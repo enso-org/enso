@@ -198,66 +198,7 @@ final class Utils {
       return mainArgs;
     }
 
-    var fullCommandLine = WindowsArguments.readCommandLineArgs();
-    return parseArgs(fullCommandLine);
-  }
-
-  private static String[] parseArgs(String commandLine) {
-    var result = new ArrayList<String>();
-
-    int length = commandLine.length();
-    int currentIndex = 0;
-
-    boolean inQuotes = false;
-    var argument = new StringBuilder();
-    while (currentIndex < length) {
-      var c = commandLine.charAt(currentIndex);
-      if ((c == ' ' || c == '\t') && !inQuotes) {
-        result.add(argument.toString());
-        argument.setLength(0);
-        currentIndex++;
-      } else if (c == '"') {
-        char nextC = currentIndex + 1 < length ? commandLine.charAt(currentIndex + 1) : '\0';
-        if (nextC == '"') {
-          argument.append('"');
-          currentIndex += 2;
-        } else {
-          inQuotes = !inQuotes;
-          currentIndex++;
-        }
-      } else if (c == '\\') {
-        int newIndex = currentIndex;
-        while (c == '\\') {
-          newIndex++;
-          c = newIndex + 1 < length ? commandLine.charAt(newIndex) : '\0';
-        }
-
-        if (c == '"') {
-          int toAdd = (newIndex - currentIndex) / 2;
-          if (toAdd > 0) {
-            argument.append(commandLine, currentIndex, currentIndex + toAdd);
-          }
-          if ((newIndex - currentIndex) % 2 == 1) {
-            argument.append('"');
-            newIndex++;
-          }
-        } else {
-          argument.append(commandLine, currentIndex, newIndex);
-        }
-        currentIndex = newIndex;
-      } else {
-        argument.append(c);
-        currentIndex++;
-      }
-    }
-
-    if (!argument.isEmpty()) {
-      // If in quote then an issue!
-      result.add(argument.toString());
-    }
-
-    result.remove(0);
-    return result.toArray(new String[0]);
+    return WindowsArguments.readCommandLineArgs();
   }
 
   /**
