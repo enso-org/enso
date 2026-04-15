@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -134,7 +134,7 @@ public class ProgressTimingCollectorTest {
     int recordsPerThread = 1000;
     var latch = new CountDownLatch(threads);
     var executor = Executors.newFixedThreadPool(threads);
-    var errors = new ArrayList<Throwable>();
+    var errors = new ConcurrentLinkedQueue<Throwable>();
 
     for (int t = 0; t < threads; t++) {
       final int threadId = t;
@@ -145,9 +145,7 @@ public class ProgressTimingCollectorTest {
                 collector.recordTiming("handle_" + (threadId % 4), 1, 10);
               }
             } catch (Throwable e) {
-              synchronized (errors) {
-                errors.add(e);
-              }
+              errors.add(e);
             } finally {
               latch.countDown();
             }

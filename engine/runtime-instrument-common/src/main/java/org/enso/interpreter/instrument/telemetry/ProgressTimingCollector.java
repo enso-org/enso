@@ -38,8 +38,7 @@ public final class ProgressTimingCollector {
   /**
    * Creates a new collector that schedules periodic telemetry flushes on the given executor.
    *
-   * @param scheduler the executor to use for periodic flush scheduling (not owned by this
-   *     collector)
+   * @param scheduler the executor to use for periodic flush scheduling
    */
   public ProgressTimingCollector(ScheduledExecutorService scheduler) {
     this.periodicTask =
@@ -81,10 +80,7 @@ public final class ProgressTimingCollector {
     emitTelemetryMessages(topTen);
   }
 
-  /**
-   * Returns the current top-N entries sorted by average per-item time descending. Does not modify
-   * state.
-   */
+  /** Returns the current top-N entries sorted by average per-item time descending. */
   List<Map.Entry<String, TimingStats>> computeTopN() {
     return stats.entrySet().stream()
         .sorted(
