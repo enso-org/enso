@@ -1129,7 +1129,6 @@ public class Main {
     new Main().launch(args);
   }
 
-
   /**
    * Main entry point for the CLI program.
    *
