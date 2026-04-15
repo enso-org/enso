@@ -7,7 +7,8 @@
     - is_implicit_conversion source_type:Standard.Table.Value_Type.Value_Type target_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
     - is_integer_type value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
     - is_same_type value_type1:Standard.Table.Value_Type.Value_Type value_type2:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
-    - jdbc_value_setter -> Standard.Base.Any.Any
+    - jdbc_value_setter_class_name -> Standard.Base.Any.Any
+    - jdbc_value_setter_database_name -> Standard.Base.Any.Any
     - prepare_type_overrides column_type_suggestions:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - should_warn_on_materialize db_type:Standard.Table.Value_Type.Value_Type in_memory_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
     - sql_type_to_text sql_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
