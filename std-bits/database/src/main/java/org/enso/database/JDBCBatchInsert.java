@@ -20,7 +20,7 @@ public final class JDBCBatchInsert {
       Connection connection,
       String insertTemplate,
       JDBCValueSetter jdbcValueSetter,
-      Value storages,
+      Value columnStorages,
       int batchSize,
       Value dateTimeWithTimezone,
       Value sqlTypeHintIds,
@@ -30,13 +30,12 @@ public final class JDBCBatchInsert {
       int numRows)
       throws SQLException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
-      int columnCount = Math.toIntExact(storages.getArraySize());
+      int columnCount = Math.toIntExact(columnStorages.getArraySize());
 
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
-          var storageValue = storages.getArrayElement(columnId);
-          var storage = storageValue.asHostObject();
-          if (!(storage instanceof ColumnStorage<?> javaStorage)) {
+          if (!(columnStorages.getArrayElement(columnId).asHostObject()
+              instanceof ColumnStorage<?> columnStorage)) {
             throw new IllegalStateException(
                 "Expected Java column storages for JDBC batch insert.");
           }
@@ -46,7 +45,7 @@ public final class JDBCBatchInsert {
               useSqlTypeHintsForNullValues
                   ? sqlTypeHintIds.getArrayElement(columnId).asInt()
                   : Types.NULL;
-          var value = javaStorage.getItemBoxed(rowId);
+          var value = columnStorage.getItemBoxed(rowId);
           setStatementValue(
               stmt,
               columnId + 1,
