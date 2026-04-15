@@ -2,6 +2,7 @@ package org.enso.os.environment;
 
 import java.util.List;
 import org.enso.common.Platform;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
@@ -13,14 +14,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @CContext(WindowsArguments.Directives.class)
-public class WindowsArguments {
+final class WindowsArguments implements Arguments {
+  static final WindowsArguments INSTANCE = new WindowsArguments();
+
+  private WindowsArguments() {}
+
+  @Override
+  public String[] alterArgs(String[] originalArgs) {
+    if (!ImageInfo.inImageRuntimeCode()) {
+      return originalArgs;
+    }
+
+    return readCommandLineArgs();
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(WindowsArguments.class);
 
   private static final int WCHAR_SIZE = 2;
 
-  private WindowsArguments() {}
-
-  public static String[] readCommandLineArgs() {
+  private static String[] readCommandLineArgs() {
     var cmd = GetCommandLineW();
 
     CIntPointer numOfArgs = StackValue.get(Long.BYTES);
@@ -50,10 +62,10 @@ public class WindowsArguments {
   }
 
   @CPointerTo(nameOfCType = "wchar_t")
-  public interface WCharPointer extends PointerBase {}
+  private interface WCharPointer extends PointerBase {}
 
   @CPointerTo(WCharPointer.class)
-  public interface WCharPointerPointer extends PointerBase {
+  private interface WCharPointerPointer extends PointerBase {
     WCharPointer read(int index);
   }
 

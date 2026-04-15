@@ -8,8 +8,6 @@ import java.util.LinkedList;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.common.LanguageInfo;
-import org.enso.common.Platform;
-import org.enso.os.environment.WindowsArguments;
 import org.enso.os.environment.chdir.WorkingDirectory;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.SourceSection;
@@ -193,14 +191,6 @@ final class Utils {
     print.accept("        at <" + langId + "> " + fmtFrame);
   }
 
-  static String[] getArgs(String[] mainArgs) {
-    if (!ImageInfo.inImageRuntimeCode() || Platform.getOperatingSystem() != Platform.WINDOWS) {
-      return mainArgs;
-    }
-
-    return WindowsArguments.readCommandLineArgs();
-  }
-
   /**
    * This method has to be called as early as possible. It attempts to find the project root
    * directory of the given file, and if the project root is found, it uses native code to change
@@ -234,7 +224,7 @@ final class Utils {
         if (!dirChanged) {
           LOGGER.error("Cannot change working directory to {}", parentDir);
         } else {
-          LOGGER.info("Changed working directory to {}", parentDir);
+          LOGGER.debug("Changed working directory to {}", parentDir);
         }
       }
       return curDir;
