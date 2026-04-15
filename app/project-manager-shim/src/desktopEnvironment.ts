@@ -64,9 +64,5 @@ function getWindowsDocumentsPath() {
     return undefined
   }
 
-  const result = out.stdout.toString().trim() || undefined
-  console.debug('getWindowsDocumentsPath.result', {
-    result,
-  })
-  return result
+  return out.stdout.toString().trim() || undefined
 }

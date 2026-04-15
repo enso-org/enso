@@ -258,7 +258,6 @@ export class EnsoRunner implements Runner {
       this.ensoPath.endsWith('.bat') ?
         ['cmd.exe', ['/c', this.ensoPath, ...args]]
       : [this.ensoPath, args]
-    console.debug('runProcess', { ensoPath: this.ensoPath, cmd, cmdArgs })
     const isDevMode = process.env.NODE_ENV === 'development'
     if (isDevMode) {
       console.log('runProcess', cmd, cmdArgs.join(' '))
@@ -371,7 +370,6 @@ export class EnsoRunner implements Runner {
           jsonPort.toString(),
           ...(extraArgs ?? []),
         ]
-        console.debug('openProject', { projectPath, projectId })
 
         const env = {
           ...process.env,
@@ -619,10 +617,6 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   // Check ENSO_ENGINE_PATH environment variable first
   const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
-    console.debug('findEnsoExecutable: Checking ENSO_ENGINE_PATH environment variable', {
-      envPath,
-      workDir,
-    })
     try {
       fs.accessSync(envPath)
       return checkExecutable(envPath)
@@ -650,7 +644,6 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   for (const directory of directories) {
     const result = checkExecutables(...directory)
     if (result) {
-      console.debug('findEnsoExecutable: Found.', { result, workDir })
       return result
     }
   }
