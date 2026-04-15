@@ -371,7 +371,7 @@ export class EnsoRunner implements Runner {
           jsonPort.toString(),
           ...(extraArgs ?? []),
         ]
-        console.debug('openProject', { projectPath, projectId } )
+        console.debug('openProject', { projectPath, projectId })
 
         const env = {
           ...process.env,
@@ -619,7 +619,10 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   // Check ENSO_ENGINE_PATH environment variable first
   const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
-    console.debug('findEnsoExecutable: Checking ENSO_ENGINE_PATH environment variable', { envPath, workDir })
+    console.debug('findEnsoExecutable: Checking ENSO_ENGINE_PATH environment variable', {
+      envPath,
+      workDir,
+    })
     try {
       fs.accessSync(envPath)
       return checkExecutable(envPath)

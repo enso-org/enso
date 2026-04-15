@@ -24,19 +24,22 @@ public class WindowsArguments {
     var cmd = GetCommandLineW();
 
     CIntPointer numOfArgs = StackValue.get(Long.BYTES);
-    var strs = CommandLineToArgvW(cmd, numOfArgs);
 
-    var numArgs = numOfArgs.read();
+    WCharPointerPointer args = CommandLineToArgvW(cmd, numOfArgs);
+    try {
+      var numArgs = numOfArgs.read();
 
-    var results = new String[numArgs];
-    for (var i = 0; i < results.length; i++) {
-      var arg = strs.read(i);
-      results[i] = toJavaString(arg);
-      LOGGER.debug("Read command line argument {}: {}", i, results[i]);
+      var results = new String[numArgs];
+      for (var i = 0; i < results.length; i++) {
+        var arg = args.read(i);
+        results[i] = toJavaString(arg);
+        LOGGER.debug("Read command line argument {}: {}", i, results[i]);
+      }
+
+      return results;
+    } finally {
+      LocalFree(args);
     }
-
-    LocalFree(strs);
-    return results;
   }
 
   private static String toJavaString(WCharPointer arg) {
