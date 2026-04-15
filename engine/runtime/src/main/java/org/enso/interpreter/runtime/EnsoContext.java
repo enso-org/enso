@@ -56,7 +56,6 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.state.WithContextNode;
-import org.enso.interpreter.runtime.telemetry.ProgressTimingCollector;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
@@ -333,17 +332,11 @@ public final class EnsoContext {
   public void shutdown() {
     threadManager.shutdown();
     resourceManager.shutdown();
-    shutdownProgressTelemetry();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
     packageRepository.shutdown();
     topScope = null;
     EnsoPolyglotJava.close(this);
     EnsoParser.freeAll();
-  }
-
-  private static void shutdownProgressTelemetry() {
-    ProgressTimingCollector.flushAsTelemetry();
-    ProgressTimingCollector.shutdown();
   }
 
   private boolean shouldAssertionsBeEnabled() {

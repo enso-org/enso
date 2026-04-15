@@ -1,11 +1,10 @@
-package org.enso.interpreter.runtime.telemetry;
+package org.enso.interpreter.instrument.telemetry;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -16,13 +15,11 @@ import org.slf4j.LoggerFactory;
  * Collects timing data from {@link org.enso.base.ProgressHandle} completions and periodically emits
  * a telemetry summary of the top-N slowest components ranked by average per-item time.
  *
- * <p>Starts a periodic flush timer on first {@link #record} call. The caller is responsible for
- * invoking {@link #flushAsTelemetry} and {@link #shutdown} during engine teardown (before logging
- * is torn down) to guarantee delivery of the final telemetry batch.
+ * <p>Starts a periodic flush timer on construction. The caller is responsible for invoking {@link
+ * #flushAsTelemetry} and {@link #shutdown} during engine teardown (before logging is torn down) to
+ * guarantee delivery of the final telemetry batch.
  */
 public final class ProgressTimingCollector {
-
-  private ProgressTimingCollector() {}
 
   static final int TOP_N = 10;
   static final int PERIODIC_FLUSH_MINUTES = 5;
@@ -31,14 +28,27 @@ public final class ProgressTimingCollector {
   private static final Logger logger =
       LoggerFactory.getLogger("org.enso.telemetry.progress.TopSlowestComponents");
 
-  private static final ConcurrentHashMap<String, TimingStats> stats = new ConcurrentHashMap<>();
-  private static volatile boolean initialized = false;
+  private final ConcurrentHashMap<String, TimingStats> stats = new ConcurrentHashMap<>();
 
-  private static volatile String cachedProjectId;
-  private static volatile String cachedSessionId;
+  private volatile String cachedProjectId;
+  private volatile String cachedSessionId;
 
-  private static ScheduledExecutorService scheduler;
-  private static ScheduledFuture<?> periodicTask;
+  private ScheduledFuture<?> periodicTask;
+
+  /**
+   * Creates a new collector that schedules periodic telemetry flushes on the given executor.
+   *
+   * @param scheduler the executor to use for periodic flush scheduling (not owned by this
+   *     collector)
+   */
+  public ProgressTimingCollector(ScheduledExecutorService scheduler) {
+    this.periodicTask =
+        scheduler.scheduleAtFixedRate(
+            this::flushAsTelemetry,
+            PERIODIC_FLUSH_MINUTES,
+            PERIODIC_FLUSH_MINUTES,
+            TimeUnit.MINUTES);
+  }
 
   /**
    * Records a single progress handle completion.
@@ -47,8 +57,7 @@ public final class ProgressTimingCollector {
    * @param itemCount the {@code up_to} value (workload size) from {@code Progress.run}
    * @param elapsedMs total elapsed time in milliseconds
    */
-  public static void record(String handleName, long itemCount, long elapsedMs) {
-    ensureInitialized();
+  public void record(String handleName, long itemCount, long elapsedMs) {
     if (stats.size() >= MAX_DISTINCT_HANDLES && !stats.containsKey(handleName)) {
       evictLowest();
     }
@@ -64,7 +73,7 @@ public final class ProgressTimingCollector {
   }
 
   /** Computes the top-N slowest components and emits them as telemetry messages. */
-  public static synchronized void flushAsTelemetry() {
+  public synchronized void flushAsTelemetry() {
     var topTen = computeTopN();
     if (topTen.isEmpty()) {
       return;
@@ -76,7 +85,7 @@ public final class ProgressTimingCollector {
    * Returns the current top-N entries sorted by average per-item time descending. Does not modify
    * state.
    */
-  static List<Map.Entry<String, TimingStats>> computeTopN() {
+  List<Map.Entry<String, TimingStats>> computeTopN() {
     return stats.entrySet().stream()
         .sorted(
             Comparator.comparingDouble(
@@ -87,27 +96,22 @@ public final class ProgressTimingCollector {
   }
 
   /** Returns whether stats contain an entry for the given handle name. For testing only. */
-  static boolean containsHandle(String name) {
+  boolean containsHandle(String name) {
     return stats.containsKey(name);
   }
 
-  /** Shuts down the scheduler and resets all state. */
-  public static synchronized void shutdown() {
+  /** Shuts down the periodic task and resets all state. Does not shut down the executor. */
+  public synchronized void shutdown() {
     if (periodicTask != null) {
       periodicTask.cancel(false);
       periodicTask = null;
     }
-    if (scheduler != null) {
-      scheduler.shutdownNow();
-      scheduler = null;
-    }
     stats.clear();
     cachedProjectId = null;
     cachedSessionId = null;
-    initialized = false;
   }
 
-  private static void emitTelemetryMessages(List<Map.Entry<String, TimingStats>> topTen) {
+  private void emitTelemetryMessages(List<Map.Entry<String, TimingStats>> topTen) {
     var projectId = resolveProjectId();
     var sessionId = resolveSessionId();
     for (int i = 0; i < topTen.size(); i++) {
@@ -133,30 +137,7 @@ public final class ProgressTimingCollector {
     }
   }
 
-  private static void ensureInitialized() {
-    if (!initialized) {
-      synchronized (ProgressTimingCollector.class) {
-        if (!initialized) {
-          scheduler =
-              Executors.newSingleThreadScheduledExecutor(
-                  r -> {
-                    var t = new Thread(r, "progress-telemetry-timer");
-                    t.setDaemon(true);
-                    return t;
-                  });
-          periodicTask =
-              scheduler.scheduleAtFixedRate(
-                  ProgressTimingCollector::flushAsTelemetry,
-                  PERIODIC_FLUSH_MINUTES,
-                  PERIODIC_FLUSH_MINUTES,
-                  TimeUnit.MINUTES);
-          initialized = true;
-        }
-      }
-    }
-  }
-
-  private static void evictLowest() {
+  private void evictLowest() {
     int toEvict = Math.max(1, stats.size() / 5);
     stats.entrySet().stream()
         .sorted(
@@ -168,7 +149,7 @@ public final class ProgressTimingCollector {
         .forEach(stats::remove);
   }
 
-  private static String resolveProjectId() {
+  private String resolveProjectId() {
     if (cachedProjectId == null) {
       var id = System.getenv("ENSO_CLOUD_PROJECT_ID");
       if (id == null) {
@@ -179,7 +160,7 @@ public final class ProgressTimingCollector {
     return cachedProjectId;
   }
 
-  private static String resolveSessionId() {
+  private String resolveSessionId() {
     if (cachedSessionId == null) {
       var id = System.getenv("ENSO_CLOUD_PROJECT_SESSION_ID");
       if (id == null) {

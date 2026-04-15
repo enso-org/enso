@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.telemetry;
+package org.enso.interpreter.instrument.telemetry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -7,25 +7,37 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ProgressTimingCollectorTest {
 
+  private ScheduledExecutorService scheduler;
+  private ProgressTimingCollector collector;
+
+  @Before
+  public void setUp() {
+    scheduler = Executors.newSingleThreadScheduledExecutor();
+    collector = new ProgressTimingCollector(scheduler);
+  }
+
   @After
   public void cleanup() {
-    ProgressTimingCollector.shutdown();
+    collector.shutdown();
+    scheduler.shutdownNow();
   }
 
   @Test
   public void perItemComputationIsCorrect() {
     // 100 items in 5000ms -> 50ms/item
-    ProgressTimingCollector.record("A", 100, 5000);
+    collector.record("A", 100, 5000);
     // 50 items in 1000ms -> 20ms/item
-    ProgressTimingCollector.record("A", 50, 1000);
+    collector.record("A", 50, 1000);
 
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(1, topN.size());
 
     var stats = topN.get(0).getValue();
@@ -39,11 +51,11 @@ public class ProgressTimingCollectorTest {
   @Test
   public void stddevComputationIsCorrect() {
     // 1 item in 100ms -> 100ms/item
-    ProgressTimingCollector.record("B", 1, 100);
+    collector.record("B", 1, 100);
     // 1 item in 200ms -> 200ms/item
-    ProgressTimingCollector.record("B", 1, 200);
+    collector.record("B", 1, 200);
 
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     var stats = topN.get(0).getValue();
     // avg = 150, stddev = sqrt(((100-150)^2 + (200-150)^2) / 2) = 50
     assertEquals(150.0, stats.avgPerItem(), 0.01);
@@ -52,9 +64,9 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void singleInvocationHasZeroStddev() {
-    ProgressTimingCollector.record("C", 10, 500);
+    collector.record("C", 10, 500);
 
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     var stats = topN.get(0).getValue();
     assertEquals(50.0, stats.avgPerItem(), 0.01);
     assertEquals(0.0, stats.stddevPerItem(), 0.01);
@@ -62,11 +74,11 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void topNOrdersByAvgPerItemDescending() {
-    ProgressTimingCollector.record("slow", 1, 1000); // 1000 ms/item
-    ProgressTimingCollector.record("medium", 1, 500); // 500 ms/item
-    ProgressTimingCollector.record("fast", 1, 100); // 100 ms/item
+    collector.record("slow", 1, 1000); // 1000 ms/item
+    collector.record("medium", 1, 500); // 500 ms/item
+    collector.record("fast", 1, 100); // 100 ms/item
 
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(3, topN.size());
     assertEquals("slow", topN.get(0).getKey());
     assertEquals("medium", topN.get(1).getKey());
@@ -76,10 +88,10 @@ public class ProgressTimingCollectorTest {
   @Test
   public void topNLimitsToTenEntries() {
     for (int i = 0; i < 15; i++) {
-      ProgressTimingCollector.record("handle_" + i, 1, (i + 1) * 100L);
+      collector.record("handle_" + i, 1, (i + 1) * 100L);
     }
 
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(ProgressTimingCollector.TOP_N, topN.size());
     // The slowest (handle_14, 1500ms) should be first
     assertEquals("handle_14", topN.get(0).getKey());
@@ -89,27 +101,27 @@ public class ProgressTimingCollectorTest {
 
   @Test
   public void flushDoesNotClearData() {
-    ProgressTimingCollector.record("X", 1, 100);
-    ProgressTimingCollector.record("X", 1, 200);
+    collector.record("X", 1, 100);
+    collector.record("X", 1, 200);
 
-    ProgressTimingCollector.flushAsTelemetry();
+    collector.flushAsTelemetry();
 
     // Data should still be there
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(1, topN.size());
     assertEquals(2, topN.get(0).getValue().invocations());
   }
 
   @Test
   public void accumulatesAcrossMultipleFlushes() {
-    ProgressTimingCollector.record("Z", 1, 100);
-    ProgressTimingCollector.flushAsTelemetry();
+    collector.record("Z", 1, 100);
+    collector.flushAsTelemetry();
 
-    ProgressTimingCollector.record("Z", 1, 200);
-    ProgressTimingCollector.flushAsTelemetry();
+    collector.record("Z", 1, 200);
+    collector.flushAsTelemetry();
 
     // Both recordings should be accumulated
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(1, topN.size());
     var stats = topN.get(0).getValue();
     assertEquals(2, stats.invocations());
@@ -130,7 +142,7 @@ public class ProgressTimingCollectorTest {
           () -> {
             try {
               for (int i = 0; i < recordsPerThread; i++) {
-                ProgressTimingCollector.record("handle_" + (threadId % 4), 1, 10);
+                collector.record("handle_" + (threadId % 4), 1, 10);
               }
             } catch (Throwable e) {
               synchronized (errors) {
@@ -147,7 +159,7 @@ public class ProgressTimingCollectorTest {
     assertTrue("No errors during concurrent recording", errors.isEmpty());
 
     // 4 distinct handles, each with 2 threads * 1000 records = 2000 invocations
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(4, topN.size());
     long totalInvocations = topN.stream().mapToLong(e -> e.getValue().invocations()).sum();
     assertEquals(threads * recordsPerThread, totalInvocations);
@@ -156,9 +168,9 @@ public class ProgressTimingCollectorTest {
   @Test
   public void zeroItemCountHandledGracefully() {
     // up_to is forced to max(1) in Progress.run, but guard against 0 defensively
-    ProgressTimingCollector.record("edge", 0, 100);
+    collector.record("edge", 0, 100);
 
-    var topN = ProgressTimingCollector.computeTopN();
+    var topN = collector.computeTopN();
     assertEquals(1, topN.size());
     // With itemCount=0, Math.max(0,1)=1, so perItem = 100/1 = 100
     assertEquals(100.0, topN.get(0).getValue().avgPerItem(), 0.01);
@@ -168,19 +180,18 @@ public class ProgressTimingCollectorTest {
   public void evictsLowestAvgPerItemWhenMaxDistinctHandlesReached() {
     int max = ProgressTimingCollector.MAX_DISTINCT_HANDLES;
     // "fast" has the lowest avgPerItem (1ms/item), should be evicted
-    ProgressTimingCollector.record("fast", 1, 1);
+    collector.record("fast", 1, 1);
     // All others have 100ms/item
     for (int i = 1; i < max; i++) {
-      ProgressTimingCollector.record("handle_" + i, 1, 100);
+      collector.record("handle_" + i, 1, 100);
     }
 
-    assertTrue(ProgressTimingCollector.containsHandle("fast"));
+    assertTrue(collector.containsHandle("fast"));
 
     // Recording a new handle should evict bottom 20% by avgPerItem, including "fast"
-    ProgressTimingCollector.record("newcomer", 1, 100);
+    collector.record("newcomer", 1, 100);
 
-    assertTrue("newcomer should be present", ProgressTimingCollector.containsHandle("newcomer"));
-    assertFalse(
-        "fast should have been evicted", ProgressTimingCollector.containsHandle("fast"));
+    assertTrue("newcomer should be present", collector.containsHandle("newcomer"));
+    assertFalse("fast should have been evicted", collector.containsHandle("fast"));
   }
 }
