@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 
 /**
  * Converts provided object into Text. This is a generic node to be used to convert any object into
@@ -24,6 +25,7 @@ public final class InvokeToTextNode extends Node {
   @CompilerDirectives.CompilationFinal private UnresolvedSymbol toText;
   @Child private InteropMethodCallNode methodNode;
   @Child private InvokeCallableNode invokeCallableNode;
+  @Child private AnyToTextNode anyToText;
 
   private InvokeToTextNode() {}
 
@@ -48,6 +50,9 @@ public final class InvokeToTextNode extends Node {
    * @return the textual representation of the {@code obj}
    */
   public Object executeToText(VirtualFrame frame, Object obj) {
+    if (obj instanceof EnsoMultiValue emv) {
+      return executeMultiValue(emv);
+    }
     if (frame == null || this == uncached) {
       return executeToTextNoFrame(obj);
     } else {
@@ -92,5 +97,12 @@ public final class InvokeToTextNode extends Node {
         new CallArgumentInfo[] {new CallArgumentInfo()},
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+  }
+
+  private Object executeMultiValue(EnsoMultiValue emv) {
+    if (anyToText == null) {
+      anyToText = this == uncached ? AnyToTextNode.getUncached() : AnyToTextNode.build();
+    }
+    return anyToText.execute(emv);
   }
 }
