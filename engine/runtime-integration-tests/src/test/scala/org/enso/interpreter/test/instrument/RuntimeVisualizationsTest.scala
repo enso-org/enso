@@ -226,7 +226,7 @@ class RuntimeVisualizationsTest
 
     object Visualization {
 
-      val metadata = new Metadata
+      val metadata = new Metadata("from Standard.Base import to_text\n\n")
 
       val code =
         metadata.appendToCode(
@@ -251,7 +251,7 @@ class RuntimeVisualizationsTest
 
       val code =
         metadata.appendToCode(
-          """import Standard.Base.IO
+          """from Standard.Base import IO, to_text
             |
             |encode x =
             |   IO.println "encoding..."
@@ -2182,13 +2182,6 @@ class RuntimeVisualizationsTest
         TestMessages.error(
           contextId,
           idMain,
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Error",
-              "Standard.Base.Error.Error",
-              "throw"
-            )
-          ),
           Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
         ),
         context.executionComplete(contextId)
@@ -2285,13 +2278,7 @@ class RuntimeVisualizationsTest
         TestMessages.panic(
           contextId,
           idMain,
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "throw"
-            )
-          ),
+          null,
           Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
           Some("Standard.Base.Panic.Panic")
         ),
@@ -2324,13 +2311,7 @@ class RuntimeVisualizationsTest
         TestMessages.panic(
           contextId,
           idMain,
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "throw"
-            )
-          ),
+          null,
           Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
           builtin = false
         ),
@@ -2421,13 +2402,7 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)

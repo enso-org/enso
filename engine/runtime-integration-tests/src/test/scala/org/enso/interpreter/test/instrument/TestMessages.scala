@@ -252,7 +252,7 @@ object TestMessages {
     errorBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       fromCache,
       typeChanged,
       payload
@@ -351,7 +351,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       payload,
       builtin,
       true
@@ -376,7 +376,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       payload,
       builtin,
       true
@@ -393,7 +393,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       payload,
       builtin,
       typeChanged
