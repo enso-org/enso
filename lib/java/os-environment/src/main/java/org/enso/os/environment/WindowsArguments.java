@@ -41,9 +41,9 @@ final class WindowsArguments implements Arguments {
     try {
       var numArgs = numOfArgs.read();
 
-      var results = new String[numArgs];
+      var results = new String[numArgs - 1];
       for (var i = 0; i < results.length; i++) {
-        var arg = args.read(i);
+        var arg = args.read(i + 1);
         results[i] = toJavaString(arg);
         LOGGER.debug("Read command line argument {}: {}", i, results[i]);
       }
