@@ -26,7 +26,7 @@
     var(--color-visualization-bg) 98%,
     black
   );
-  font-family: var(--font-mono);
+  --ag-font-family: var(--font-mono);
 
   .ag-header {
     background: linear-gradient(

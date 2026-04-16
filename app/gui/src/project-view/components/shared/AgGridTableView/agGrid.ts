@@ -48,6 +48,8 @@ ModuleRegistry.registerModules([
   agE.ClipboardModule,
   agE.ColumnMenuModule,
   agE.ContextMenuModule,
+  agE.CsvExportModule,
+  agE.ExcelExportModule,
   agE.MultiFilterModule,
   agE.ServerSideRowModelApiModule,
   agE.ServerSideRowModelModule,
