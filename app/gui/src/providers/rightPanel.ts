@@ -1,6 +1,6 @@
-import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useIsFeatureUnderPaywall } from '$/composables/paywall'
 import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND, isCloudCategory, type Category } from '$/providers/category'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
@@ -219,7 +219,9 @@ function useRightPanel(focusedPanel: ToValue<Panel>, textStore: TextStore = useT
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
-  const backendType = computed(() => context.value?.category?.backend)
+  const backendType = computed(
+    () => context.value?.category && CATEGORY_BACKEND[context.value.category.type],
+  )
 
   const focusedAssetDetailsQuery = useQuery({
     queryKey: [backendType, 'getAssetDetails', focusedAsset] as const,

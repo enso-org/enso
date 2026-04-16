@@ -1,9 +1,8 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from '#/assets/logs.svg'
 import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import type {
   Backend,
   ProjectSession as BackendProjectSession,
@@ -21,9 +20,10 @@ export interface ProjectSessionProps {
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectSession(props: ProjectSessionProps) {
-  const { backend, project, projectSession, index } = props
+  const { project, projectSession, index } = props
 
   const { getText } = useText()
+  const container = useContainerData()
 
   return (
     <div className="flex flex-row gap-4 rounded-2xl p-2">
@@ -34,15 +34,15 @@ export function ProjectSession(props: ProjectSessionProps) {
         </time>
       </div>
       <div className="flex items-center gap-1">
-        <Dialog.Trigger>
-          <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
-
-          <ProjectLogsModal
-            backend={backend}
-            projectSessionId={projectSession.projectSessionId}
-            projectTitle={project.title}
-          />
-        </Dialog.Trigger>
+        <Button
+          variant="icon"
+          isActive
+          icon={LogsIcon}
+          aria-label={getText('showLogs')}
+          onPress={() => {
+            container.openProjectLogTab(projectSession.projectSessionId, project.title)
+          }}
+        />
       </div>
     </div>
   )

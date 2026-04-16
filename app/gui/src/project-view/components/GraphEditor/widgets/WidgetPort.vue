@@ -44,8 +44,9 @@ const selection = useGraphSelection(true)
 const hasPersistedConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isBeingDraggedAwayFrom = computed(() => graph.isTargetBeingDraggedAwayFrom(portId.value))
 const isCurrentEdgeHoverTarget = computed(() => {
+  if (graph.mouseEditedEdge == null) return false
   const edgeSourceAtThisNode =
-    graph.mouseEditedEdge?.source != null &&
+    graph.mouseEditedEdge.source != null &&
     tree.externalId != null &&
     graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) === tree.externalId
   return selection?.hoveredPort === portId.value && !edgeSourceAtThisNode

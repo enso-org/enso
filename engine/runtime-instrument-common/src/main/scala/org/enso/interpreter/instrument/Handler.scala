@@ -9,6 +9,7 @@ import org.enso.interpreter.instrument.execution.{
   CommandExecutionEngine,
   CommandProcessor
 }
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector
 import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -23,7 +24,8 @@ abstract class Handler {
     executionService: ExecutionService,
     sequentialExecutionService: ExecutionService,
     truffleContext: TruffleContext,
-    commandProcessor: CommandProcessor
+    commandProcessor: CommandProcessor,
+    progressTimingCollector: ProgressTimingCollector
   )
 
   @volatile private var ctx: HandlersContext = _
@@ -49,7 +51,8 @@ abstract class Handler {
       executionService,
       executionService,
       truffleContext,
-      commandProcessor
+      commandProcessor,
+      commandProcessor.progressTimingCollector
     )
     executionService.initializeLanguageServerConnection(endpoint)
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
@@ -83,6 +86,11 @@ abstract class Handler {
   }
 
   def close(): Unit = {
+    val localCtx = ctx
+    if (localCtx != null && localCtx.progressTimingCollector != null) {
+      localCtx.progressTimingCollector.flushAsTelemetry()
+      localCtx.progressTimingCollector.shutdown()
+    }
     contextManager.close();
   }
 

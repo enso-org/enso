@@ -7,7 +7,6 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import type { AssetColumnProps, AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
@@ -22,6 +21,7 @@ import { unsetModal } from '#/providers/ModalProvider'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { useDriveCurrentBackend } from '$/providers/react/container'
 import {
   AssetType,
   FALLBACK_COLOR,
@@ -39,7 +39,7 @@ export { PathColumn } from './PathColumn'
 export function LabelsColumn(props: AssetColumnProps) {
   const { item, labels } = props
 
-  const { associatedBackend: backend } = useCategoriesAPI()
+  const backend = useDriveCurrentBackend()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))

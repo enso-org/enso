@@ -25,5 +25,6 @@ module org.enso.runtime.instrument.common {
   requires org.graalvm.polyglot;
 
   exports org.enso.interpreter.instrument;
+  exports org.enso.interpreter.instrument.telemetry;
   exports org.enso.interpreter.service;
 }

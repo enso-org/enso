@@ -6,9 +6,11 @@ import { Dialog } from '#/components/Dialog'
 import Page from '#/components/Page'
 import { Text } from '#/components/Text'
 import { backendQueryOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useBindGlobalActions } from '#/hooks/menuHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories'
+import { useTransferBetweenCategories } from '#/layouts/Drive/Categories'
 import SettingsTabType from '#/layouts/Settings/TabType'
+import ConfirmDeleteModal, { type ConfirmDeleteModalProps } from '#/modals/ConfirmDeleteModal'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -39,6 +41,7 @@ function goToSettingsTab(router: Router, tab: SettingsTabType) {
 
 /** The component that contains the entire UI. */
 export function Dashboard() {
+  const [isTransitioning, startTransition] = React.useTransition()
   const { remoteBackend, localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const { router } = useRouter()
@@ -50,6 +53,10 @@ export function Dashboard() {
   const closingOnAppExit = useVueValue(
     React.useCallback(() => openedProjects.closingOnAppExit.value, [openedProjects]),
   )
+  const transferBetweenCategories = useTransferBetweenCategories()
+  const confirmDelete = useEventCallback((properties: ConfirmDeleteModalProps) => {
+    modalProvider.setModal(<ConfirmDeleteModal {...properties} />)
+  })
 
   const inputBindingHandlers = React.useMemo(() => {
     const hasOrganization = backendModule.isUserOnPlanWithMultipleSeats(user)
@@ -122,19 +129,22 @@ export function Dashboard() {
   }, [closingOnAppExit])
 
   return (
-    <CategoriesProvider>
-      <Page hideInfoBar hideModalWrapper>
-        <div
-          className="flex h-full flex-col text-xs text-primary"
-          onContextMenu={(event) => {
-            event.preventDefault()
-            modalProvider.unsetModal()
-          }}
-        >
-          <AppContainerInner />
-        </div>
-      </Page>
-    </CategoriesProvider>
+    <Page hideInfoBar hideModalWrapper>
+      <div
+        className="flex h-full flex-col text-xs text-primary"
+        onContextMenu={(event) => {
+          event.preventDefault()
+          modalProvider.unsetModal()
+        }}
+      >
+        <AppContainerInner
+          startReactTransition={startTransition}
+          isReactTransitioning={isTransitioning}
+          transferBetweenCategories={transferBetweenCategories}
+          confirmDelete={confirmDelete}
+        />
+      </div>
+    </Page>
   )
 }
 

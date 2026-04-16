@@ -28,7 +28,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
+import org.enso.interpreter.node.expression.builtin.text.InvokeToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -118,7 +118,7 @@ public abstract class SortVectorNode extends Node {
       @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
-      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
+      @Shared("anyToTextNode") @Cached InvokeToTextNode toTextNode,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
@@ -157,7 +157,7 @@ public abstract class SortVectorNode extends Node {
       LessThanNode lessThanNode,
       EqualsNode equalsNode,
       TypeOfNode typeOfNode,
-      AnyToTextNode toTextNode,
+      InvokeToTextNode toTextNode,
       long ascending,
       long problemBehaviorNum,
       InteropLibrary interop) {
@@ -194,7 +194,7 @@ public abstract class SortVectorNode extends Node {
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
-      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
+      @Shared("anyToTextNode") @Cached InvokeToTextNode toTextNode,
       @Cached MethodResolverNode methodResolverNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
@@ -540,12 +540,12 @@ public abstract class SortVectorNode extends Node {
   private abstract static class SortComparator implements java.util.Comparator<Object> {
 
     private final Set<String> warnings = new HashSet<>();
-    final AnyToTextNode toTextNode;
+    final InvokeToTextNode toTextNode;
     final ProblemBehavior problemBehavior;
     final InteropLibrary interop;
 
     protected SortComparator(
-        AnyToTextNode toTextNode, ProblemBehavior problemBehavior, InteropLibrary interop) {
+        InvokeToTextNode toTextNode, ProblemBehavior problemBehavior, InteropLibrary interop) {
       this.toTextNode = toTextNode;
       this.problemBehavior = problemBehavior;
       this.interop = interop;
@@ -553,8 +553,8 @@ public abstract class SortVectorNode extends Node {
 
     @TruffleBoundary
     protected void attachIncomparableValuesWarning(Object x, Object y) {
-      var xStr = toTextNode.execute(x).toString();
-      var yStr = toTextNode.execute(y).toString();
+      var xStr = toTextNode.executeToText(null, x).toString();
+      var yStr = toTextNode.executeToText(null, y).toString();
       String warnText = "Values " + xStr + " and " + yStr + " are incomparable";
       warnings.add(warnText);
     }
@@ -592,7 +592,7 @@ public abstract class SortVectorNode extends Node {
         LessThanNode lessThanNode,
         EqualsNode equalsNode,
         TypeOfNode typeOfNode,
-        AnyToTextNode toTextNode,
+        InvokeToTextNode toTextNode,
         boolean ascending,
         ProblemBehavior problemBehavior,
         InteropLibrary interop) {
@@ -675,7 +675,8 @@ public abstract class SortVectorNode extends Node {
 
     private String getQualifiedTypeName(Object object) {
       var typeObj = typeOfNode.findTypeOrError(object);
-      return toTextNode.execute(typeObj).toString();
+      var txt = toTextNode.executeToText(null, typeObj);
+      return txt.toString();
     }
 
     private int getPrimitiveValueCost(Object object) {
@@ -824,7 +825,7 @@ public abstract class SortVectorNode extends Node {
         Type comparator,
         CallOptimiserNode callNode,
         WarningsLibrary warnLib,
-        AnyToTextNode toTextNode,
+        InvokeToTextNode toTextNode,
         State state,
         Atom less,
         Atom equal,

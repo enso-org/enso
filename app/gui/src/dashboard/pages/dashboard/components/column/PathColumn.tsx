@@ -6,12 +6,12 @@ import { Icon } from '#/components/Icon'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCategories, type AnyCloudCategory } from '#/layouts/Drive/Categories'
+import { parseDirectoriesPath } from '#/layouts/Drive/Categories/parseDirectoriesPath'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import { setDriveLocation } from '#/providers/DriveProvider'
-import { useUser } from '$/providers/react'
+import { useCategories, useUser } from '$/providers/react'
+import { useDriveCurrentCategory, useDriveCurrentDirectory } from '$/providers/react/container'
+import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
-import { parseDirectoriesPath } from 'enso-common/src/services/Backend/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
 
@@ -21,13 +21,16 @@ export function PathColumn(props: AssetColumnProps) {
   const { virtualParentsPath, parentsPath } = item
 
   const { rootDirectoryId } = useUser()
-  const { getCategoryByDirectoryId } = useCategories()
+  const { getCategoryByDirectoryId, categoryLabel } = useCategories()
+  const [, setDrive] = useDriveCurrentDirectory()
+  const [, setCategory] = useDriveCurrentCategory()
 
   const { finalPath } = parseDirectoriesPath({
     parentsPath,
     virtualParentsPath,
     rootDirectoryId,
     getCategoryByDirectoryId,
+    categoryLabel,
   })
 
   const navigateToDirectory = useEventCallback((targetDirectory: DirectoryId) => {
@@ -36,13 +39,12 @@ export function PathColumn(props: AssetColumnProps) {
     if (targetDirectoryIndex === -1 || !targetDirectoryInfo) {
       return
     }
-    const pathToDirectory = finalPath
-      .slice(0, targetDirectoryIndex + 1)
-      .map(({ id, categoryId }) => ({ id, categoryId }))
+    const pathToDirectory = finalPath.slice(0, targetDirectoryIndex + 1)
     const rootDirectoryInThePath = pathToDirectory[0]
     // This should never happen, as we always have the root directory in the path.
     invariant(rootDirectoryInThePath, 'Root directory id is null')
-    setDriveLocation(targetDirectory, rootDirectoryInThePath.categoryId)
+    setDrive(targetDirectory)
+    setCategory(rootDirectoryInThePath.category)
   })
 
   const firstItemInPath = finalPath.at(0)
@@ -116,8 +118,8 @@ export function PathColumn(props: AssetColumnProps) {
 /** Props for the {@link PathItem} component. */
 interface PathItemProps {
   readonly id: DirectoryId
-  readonly label: AnyCloudCategory['label']
-  readonly icon: AnyCloudCategory['icon']
+  readonly label: string
+  readonly icon: IconName
   readonly onNavigate: (targetDirectory: DirectoryId) => void
 }
 

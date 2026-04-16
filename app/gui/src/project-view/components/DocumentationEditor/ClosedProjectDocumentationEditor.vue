@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { useDocumentViewId } from '@/components/DocumentationEditor/documentViewId'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -17,7 +18,7 @@ const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
-  return backendForType(rightPanel.context.category.backend)
+  return backendForType(CATEGORY_BACKEND[rightPanel.context.category.type])
 })
 
 const fileContentsFromCloud = useQuery({

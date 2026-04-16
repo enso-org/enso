@@ -170,6 +170,7 @@ object ProgramExecutionSupport {
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
           ctx.state.expressionExecutionState,
+          ctx.progressTimingCollector,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -212,6 +213,7 @@ object ProgramExecutionSupport {
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
           ctx.state.expressionExecutionState,
+          ctx.progressTimingCollector,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -910,6 +912,7 @@ object ProgramExecutionSupport {
             runtimeCache,
             visualization.module,
             visualization.callback,
+            ctx.progressTimingCollector,
             expressionValue +: visualization.arguments: _*
           )
         }

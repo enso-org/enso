@@ -1,6 +1,7 @@
 import type LocalStorage from '#/utilities/LocalStorage'
 import { useIsFeatureUnderPaywall as useIsFeatureUnderPaywallVue } from '$/composables/paywall/paywall'
 import type { ActionsStore } from '$/providers/actions'
+import type { CategoriesStore } from '$/providers/category'
 import type { ConfigStore, RemoteConfig } from '$/providers/config'
 import type { SessionStore } from '$/providers/session'
 import type { TextStore } from '$/providers/text'
@@ -38,3 +39,6 @@ export const useActionsStore = useInReactFunction(ActionsContext)
 export type IsFeatureUnderPaywallFuntion = ReturnType<typeof useIsFeatureUnderPaywallVue>
 export const IsFeatureUnderPaywallContext = createContext<IsFeatureUnderPaywallFuntion | null>(null)
 export const useIsFeatureUnderPaywall = useInReactFunction(IsFeatureUnderPaywallContext)
+
+export const CategoriesContext = createContext<CategoriesStore | null>(null)
+export const useCategories = useInReactFunction(CategoriesContext)

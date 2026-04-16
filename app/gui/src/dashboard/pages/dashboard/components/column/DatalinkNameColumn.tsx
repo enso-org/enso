@@ -3,11 +3,10 @@ import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { isDoubleClick } from '#/utilities/event'
-import { useRightPanelData } from '$/providers/react/container'
+import { useDriveCurrentBackend, useRightPanelData } from '$/providers/react/container'
 import { titleSchema, type DatalinkAsset } from 'enso-common/src/services/Backend'
 import { useStore } from 'zustand'
 
@@ -24,7 +23,7 @@ export interface DatalinkNameColumnProps extends AssetNameColumnProps {
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, isEditable } = props
 
-  const { associatedBackend: backend } = useCategoriesAPI()
+  const backend = useDriveCurrentBackend()
   const getAssetChildren = useGetAssetChildren()
   const renameAsset = useRenameAsset(backend)
   const rightPanel = useRightPanelData()

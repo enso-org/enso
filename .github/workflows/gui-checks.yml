@@ -48,6 +48,9 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🧾 Check generated tsconfigs
+        run: pnpm run check:tsconfigs
+
       - uses: actions/cache/restore@v4
         if: "${{ !(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')) }}"
         name: Download cache

@@ -1,11 +1,13 @@
-/** @file Backend agnostic utility functions. */
-import type { DirectoryId } from '../Backend.js'
-import type { AnyCategory } from './Category.js'
+/** @file {@link parseDirectoriesPath} utility function. */
+import { categoryIcon, type Category } from '$/providers/category'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import type { DirectoryId } from 'enso-common/src/services/Backend'
 
 /** Options for {@link parseDirectoriesPath}. */
 export interface ParsedDirectoriesPathOptions {
   readonly rootDirectoryId: DirectoryId
-  readonly getCategoryByDirectoryId: (id: DirectoryId) => AnyCategory | null
+  readonly getCategoryByDirectoryId: (id: DirectoryId) => Category | undefined
+  readonly categoryLabel: (category: Category) => string
   readonly parentsPath: string
   readonly virtualParentsPath: string
 }
@@ -13,17 +15,24 @@ export interface ParsedDirectoriesPathOptions {
 /** An item in the path. */
 export interface PathItem {
   readonly id: DirectoryId
-  readonly categoryId: AnyCategory['id'] | null
-  readonly label: AnyCategory['label']
-  readonly icon: AnyCategory['icon']
+  readonly category: Category
+  readonly label: string
+  readonly icon: Icon
 }
 
 /** Parse the parents path and virtual parents path into a list of {@link PathItem}. */
 export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
-  const { getCategoryByDirectoryId, parentsPath, rootDirectoryId, virtualParentsPath } = options
+  const {
+    getCategoryByDirectoryId,
+    categoryLabel,
+    parentsPath,
+    rootDirectoryId,
+    virtualParentsPath,
+  } = options
 
   // e.g: parentsPath = 'directory-id1adsf/directory-id2adsf/directory-id3adsf'
 
+  // eslint-disable-next-line no-restricted-syntax
   const splitPath = parentsPath.split('/') as DirectoryId[]
   const rootDirectoryInPath = splitPath[0] || rootDirectoryId
 
@@ -40,7 +49,7 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
 
   const response: {
     readonly finalPath: readonly PathItem[]
-    readonly category: AnyCategory | null
+    readonly category: Category | null
   } = (() => {
     const result: PathItem[] = []
 
@@ -57,9 +66,9 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
 
     result.push({
       id: rootDirectoryId,
-      icon: rootCategory.icon,
-      label: rootCategory.label,
-      categoryId: rootCategory.id,
+      icon: categoryIcon(rootCategory.type),
+      label: categoryLabel(rootCategory),
+      category: rootCategory,
     })
 
     for (const [index, id] of virtualParentsIds.entries()) {
@@ -73,7 +82,7 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
         id,
         label: name,
         icon: 'folder',
-        categoryId: rootCategory.id,
+        category: rootCategory,
       })
     }
 

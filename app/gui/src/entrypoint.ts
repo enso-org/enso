@@ -10,6 +10,7 @@ import { createQueryClient } from '$/utils/queryClient'
 import * as sentry from '@sentry/vue'
 import type { Vue } from '@sentry/vue/types/types'
 import { VueQueryPlugin } from '@tanstack/vue-query'
+import { Path } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as detect from 'enso-common/src/utilities/detect'
 import * as idbKeyval from 'idb-keyval'
@@ -26,6 +27,7 @@ async function main() {
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = await createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
+  const defaultDownloadPath = await getDefaultDownloadPath()
 
   const app = createApp(App)
   setupSentry(app)
@@ -33,6 +35,7 @@ async function main() {
   app.use(router)
   app.use(widgetDevtools)
   app.provide('rootDirPath', rootDirPath)
+  app.provide('defaultDownloadPath', defaultDownloadPath)
   app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
 }
@@ -112,6 +115,11 @@ async function getRootDirPath() {
   if (!supportsLocalBackend) return undefined
   const rootDirRequest = await fetch(`/api/root-directory-path`)
   return await rootDirRequest.text()
+}
+
+async function getDefaultDownloadPath() {
+  const response = await fetch('/api/download-directory-path')
+  return Path(await response.text())
 }
 
 main()

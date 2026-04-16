@@ -4,28 +4,30 @@ import { Button } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
-import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
-import CategorySwitcher from '#/layouts/CategorySwitcher'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import AssetsTable from '#/layouts/AssetsTable'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
+import DriveProvider from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as appUtils from '$/appUtils'
+import { isCloudCategory } from '$/providers/category'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
-import { useContainerData } from '$/providers/react/container'
+import {
+  useContainerData,
+  useDriveCurrentBackend,
+  useDriveCurrentCategory,
+  useDriveLocation,
+} from '$/providers/react/container'
 import { BackendType, DirectoryDoesNotExistError } from 'enso-common/src/services/Backend'
 import { OfflineError } from 'enso-common/src/utilities/errors'
 import * as React from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
-import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export const Drive = React.memo(function Drive() {
@@ -45,9 +47,10 @@ function DriveInner() {
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const { category } = useCategoriesAPI()
+  const [category, setCategory] = useDriveCurrentCategory()
+  const { setDefaultCategory } = useDriveLocation()
 
-  const isCloud = categoryModule.isCloudCategory(category)
+  const isCloud = isCloudCategory(category)
 
   const supportLocalBackend = localBackend != null
 
@@ -75,7 +78,7 @@ function DriveInner() {
                 size="medium"
                 variant="primary"
                 onPress={() => {
-                  setDriveLocation(null, 'local')
+                  setCategory({ type: 'local' })
                 }}
               >
                 {getText('switchToLocal')}
@@ -109,7 +112,7 @@ function DriveInner() {
               toast.error(getText('directoryDoesNotExistError'), {
                 toastId: 'directory-does-not-exist-error',
               })
-              setDriveLocation(null, null)
+              setDefaultCategory()
               resetQueries()
               resetErrorBoundary()
             }
@@ -130,10 +133,9 @@ function DriveInner() {
 
 /** The assets view of the Drive. */
 function DriveAssetsView() {
-  const { getText } = useText()
   const { setFocusedPanel } = useContainerData()
   const { isOffline } = offlineHooks.useOffline()
-  const { associatedBackend } = useCategoriesAPI()
+  const associatedBackend = useDriveCurrentBackend()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const isCloud = associatedBackend.type === BackendType.remote
   const isInaccessible = isCloud && isOffline
@@ -146,32 +148,19 @@ function DriveAssetsView() {
     <div className="relative flex h-full w-full" onFocus={onFocus}>
       <div
         data-testid="drive-view"
-        className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
+        className="mt-4 flex flex-1 flex-col gap-4 overflow-hidden px-4"
       >
-        <div className="grid flex-1 gap-3 overflow-hidden sm:grid-cols-[180px_minmax(0,1fr)]">
-          <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-12 sm:flex">
-            <div className="flex flex-col gap-2">
-              <Text variant="subtitle" weight="semibold">
-                {getText('category')}
-              </Text>
-              <CategorySwitcher />
-            </div>
+        <div className="flex grow flex-col gap-3">
+          <DriveBar query={query} setQuery={setQuery} />
 
-            <AssetsTableAssetsUnselector />
-          </div>
-
-          <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
-            <DriveBar query={query} setQuery={setQuery} />
-
-            {isInaccessible && <OfflineMessage />}
-            {!isInaccessible && (
-              <Suspense>
-                <ErrorBoundary>
-                  <AssetsTable query={query} setQuery={setQuery} />
-                </ErrorBoundary>
-              </Suspense>
-            )}
-          </div>
+          {isInaccessible && <OfflineMessage />}
+          {!isInaccessible && (
+            <Suspense>
+              <ErrorBoundary>
+                <AssetsTable query={query} setQuery={setQuery} />
+              </ErrorBoundary>
+            </Suspense>
+          )}
         </div>
       </div>
     </div>
@@ -192,6 +181,7 @@ function OfflineMessage(props: OfflineMessageProps) {
 
   const { localBackend } = useBackends()
   const { getText } = useText()
+  const [, setCategory] = useDriveCurrentCategory()
 
   return (
     <result.Result
@@ -206,7 +196,7 @@ function OfflineMessage(props: OfflineMessageProps) {
           variant="primary"
           className="mx-auto"
           onPress={() => {
-            setDriveLocation(null, 'local')
+            setCategory({ type: 'local' })
             onPress?.()
           }}
         >
