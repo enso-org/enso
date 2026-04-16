@@ -222,6 +222,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         Aggregate_Column.Shortest c as -> Aggregate_Column.Shortest (resolve_text c) as
         Aggregate_Column.Longest c as -> Aggregate_Column.Longest (resolve_text c) as
         Aggregate_Column.SQL fn c as -> Aggregate_Column.SQL fn (if c==[] then [] else resolve_selector_to_vector c) as
+        Aggregate_Column.ST_Union c as -> Aggregate_Column.ST_Union (resolve c) as
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.
@@ -280,6 +281,7 @@ java_aggregator name column =
         Aggregate_Column.Longest c _ -> ShortestOrLongestAggregator.new name (c:In_Memory_Column).java_column ShortestOrLongestAggregator.LONGEST
         Aggregate_Column.Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name (c:In_Memory_Column).java_column join prefix suffix quote
         Aggregate_Column.SQL _ _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Custom SQL aggregation not supported in memory.")
+        Aggregate_Column.ST_Union _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Spatial aggregation only supported on Spatial Tables.")
         unknown -> Error.throw (Invalid_Aggregation.Error name [] "Unsupported aggregation: "+unknown.to_display_text)
 
 ## ---
