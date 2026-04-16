@@ -1,8 +1,8 @@
 /** @file Hooks for interacting with the backend. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { Category, CategoryType } from '$/providers/category'
 import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
 import { useFullUserSession } from '$/providers/react'
 import { useContainerData } from '$/providers/react/container'
@@ -34,16 +34,25 @@ import * as backendModule from 'enso-common/src/services/Backend'
 import {
   AssetType,
   BackendType,
+  FilterBy,
   type AnyAsset,
   type AssetId,
   type DirectoryId,
-  type FilterBy,
   type User,
   type UserGroupInfo,
 } from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
+
+const CATEGORY_TO_FILTER_BY: Readonly<Record<CategoryType, FilterBy | null>> = {
+  cloud: FilterBy.active,
+  local: FilterBy.active,
+  recent: null,
+  trash: FilterBy.trashed,
+  team: FilterBy.active,
+  localDirectory: FilterBy.active,
+}
 
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
@@ -205,7 +214,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     filterBy = CATEGORY_TO_FILTER_BY[category.type],
     infinite = false,
   } = options
-  const rootPath = 'rootPath' in category ? category.rootPath : undefined
+  const rootPath = 'path' in category ? category.path : undefined
   return {
     meta: { persist: false },
     queryKey: [
@@ -381,7 +390,7 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
 }
 
 /** Return query data for the children of a directory, fetching it if it does not exist. */
-export function useEnsureListDirectory(backend: Backend, category: Category) {
+export function useEnsureListDirectory(backend: Backend, category: CategoryType) {
   const queryClient = useQueryClient()
   return useEventCallback(async (parentId: DirectoryId) => {
     return (
@@ -390,8 +399,8 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
           {
             parentId,
             labels: null,
-            filterBy: CATEGORY_TO_FILTER_BY[category.type],
-            recentProjects: category.type === 'recent',
+            filterBy: CATEGORY_TO_FILTER_BY[category],
+            recentProjects: category === 'recent',
             sortExpression: null,
             sortDirection: null,
             from: null,
@@ -405,7 +414,7 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
 }
 
 /** A function to create a new folder. */
-export function useNewFolder(backend: Backend, category: Category) {
+export function useNewFolder(backend: Backend, category: CategoryType) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const setNewestFolderId = useSetAssetToRename()
   const setSelectedAssets = useSetSelectedAssets()
@@ -432,7 +441,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 }
 
 /** A function to create a new project. */
-export function useNewProject(backend: Backend, category: Category) {
+export function useNewProject(backend: Backend, category: CategoryType) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const { openProjectLocally } = useContainerData()
 
@@ -562,5 +571,81 @@ export function useRenameAsset(backend: Backend) {
         assetId,
       ])
     },
+  )
+}
+
+/** Helper for updating cached asset version tags during optimistic update. */
+function mapAssetVersionTags(
+  versions: backendModule.AssetVersions,
+  versionId: backendModule.S3ObjectVersionId,
+  updateTags: (tags: readonly string[]) => readonly string[],
+): backendModule.AssetVersions {
+  return {
+    ...versions,
+    versions: versions.versions.map((version) => {
+      if (version.versionId !== versionId) {
+        return version
+      }
+      const tags = version.tags ?? []
+      return { ...version, tags: [...updateTags(tags)] }
+    }),
+  }
+}
+
+/** Adds or removes an asset version tag, with optimistic update. */
+function useUpdateAssetVersionTag(
+  backend: Backend,
+  remove: boolean,
+  optimisticUpdate: (tag: string, tags: readonly string[]) => readonly string[],
+) {
+  const queryClient = useQueryClient()
+  const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
+
+  return useEventCallback(
+    async (assetId: AssetId, versionId: backendModule.S3ObjectVersionId, tag: string) => {
+      const queryKey = backendQueryOptions(backend, 'listAssetVersions', [assetId]).queryKey
+      await queryClient.cancelQueries({ queryKey })
+      const previousVersions = queryClient.getQueryData<backendModule.AssetVersions>(queryKey)
+
+      if (previousVersions != null) {
+        queryClient.setQueryData<backendModule.AssetVersions>(
+          queryKey,
+          mapAssetVersionTags(previousVersions, versionId, (tags) => optimisticUpdate(tag, tags)),
+        )
+      }
+
+      try {
+        await updateAsset([
+          assetId,
+          {
+            versionId,
+            tag,
+            remove,
+          },
+          assetId,
+        ])
+      } catch (error) {
+        if (previousVersions != null) {
+          queryClient.setQueryData(queryKey, previousVersions)
+        }
+        throw error
+      } finally {
+        await queryClient.invalidateQueries({ queryKey })
+      }
+    },
+  )
+}
+
+/** Return a function to remove tag from an asset version. */
+export function useRemoveAssetVersionTag(backend: Backend) {
+  return useUpdateAssetVersionTag(backend, true, (tag, tags) =>
+    tags.filter((existingTag) => existingTag !== tag),
+  )
+}
+
+/** Return a function to add tag to an asset version. */
+export function useAddAssetVersionTag(backend: Backend) {
+  return useUpdateAssetVersionTag(backend, false, (tag, tags) =>
+    tags.includes(tag) ? tags : [...tags, tag],
   )
 }

@@ -11,7 +11,7 @@ class ExpressionIdTest extends InterpreterTest {
     "be correct in simple arithmetic expressions" in
     withIdsInstrumenter { instrumenter =>
       val code = "main = 2 + 45 * 20"
-      val meta = new Metadata
+      val meta = new Metadata("from Standard.Base import all\n\n")
       val id1  = meta.addItem(7, 11)
       val id2  = meta.addItem(11, 7)
       val id3  = meta.addItem(11, 2)
@@ -40,7 +40,10 @@ class ExpressionIdTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |
-          |main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
+          |main = (2-2 == 0).if_then_else (Mist.Cons 5 6) 0
+          |
+          |type Mist
+          |    Cons h t
           |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(38, 41)
@@ -87,19 +90,23 @@ class ExpressionIdTest extends InterpreterTest {
           |import Standard.Base.Data.List.List
           |
           |main =
-          |    x = List.Cons 1 2
-          |    y = List.Nil
+          |    x = Mist.Cons 1 2
+          |    y = Mist.Nil
           |
           |    add = a -> b -> a + b
           |
           |    foo = x -> case x of
-          |        List.Cons a b ->
+          |        Mist.Cons a b ->
           |            z = add a b
           |            x = z * z
           |            x
           |        _ -> 5 * 5
           |
           |    foo x + foo y
+          |
+          |type Mist
+          |    Cons h t
+          |    Nil
           |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(127, 113, "1111")

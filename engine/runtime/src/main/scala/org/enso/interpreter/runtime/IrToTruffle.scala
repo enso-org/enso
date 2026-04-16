@@ -412,7 +412,7 @@ private[runtime] class IrToTruffle(
       exportedModule: BindingsMap.ExportedModule
     ): ImportExportScope = {
       val exportedRuntimeMod = exportedModule.module.module.unsafeAsModule()
-      new ImportExportScope(exportedRuntimeMod)
+      new ImportExportScope(exportedRuntimeMod, null, null)
     }
 
     override protected def buildImportScope(
@@ -420,9 +420,12 @@ private[runtime] class IrToTruffle(
       resolvedModule: ResolvedModule
     ): ImportExportScope = {
       val mod = resolvedModule.module.unsafeAsModule()
-      resolvedImport.importDef.onlyNames
-        .map(only => new ImportExportScope(mod, only.map(_.name).asJava))
-        .getOrElse(new ImportExportScope(mod))
+      val d   = resolvedImport.importDef
+      val onlyNamesOrNull =
+        d.onlyNames.map(only => only.map(_.name).asJava).getOrElse(null)
+      val hiddenNamesOrNull =
+        d.hiddenNames.map(hide => hide.map(_.name).asJava).getOrElse(null)
+      new ImportExportScope(mod, onlyNamesOrNull, hiddenNamesOrNull)
     }
   }
 

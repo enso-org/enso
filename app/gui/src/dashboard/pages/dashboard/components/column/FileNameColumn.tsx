@@ -3,11 +3,11 @@ import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { fileIcon } from '#/utilities/fileIcon'
 import { useStore } from '#/utilities/zustand'
+import { useDriveCurrentBackend } from '$/providers/react/container'
 import { titleSchema, type FileAsset } from 'enso-common/src/services/Backend'
 
 /** Props for a {@link FileNameColumn}. */
@@ -23,7 +23,7 @@ export interface FileNameColumnProps extends AssetNameColumnProps {
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, isEditable } = props
 
-  const { associatedBackend: backend } = useCategoriesAPI()
+  const backend = useDriveCurrentBackend()
   const getAssetChildren = useGetAssetChildren()
   const driveStore = useDriveStore()
   const renameAsset = useRenameAsset(backend)

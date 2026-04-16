@@ -72,11 +72,15 @@ class LambdaShorthandArgsTest extends InterpreterTest {
           |
           |main =
           |    f = case _ of
-          |           List.Cons a b -> 10
-          |           List.Nil -> 0
-          |    res1 = f (List.Cons 1 2)
-          |    res2 = f List.Nil
+          |           Mist.Cons a b -> 10
+          |           Mist.Nil -> 0
+          |    res1 = f (Mist.Cons 1 2)
+          |    res2 = f Mist.Nil
           |    res2 - res1
+          |
+          |type Mist
+          |    Nil
+          |    Cons h t
           |""".stripMargin
 
       eval(code) shouldEqual -10

@@ -5,7 +5,6 @@ import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions, useRenameAsset } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -13,6 +12,7 @@ import { setModal } from '#/providers/ModalProvider'
 import { isDoubleClick } from '#/utilities/event'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { useDriveCurrentBackend } from '$/providers/react/container'
 import { isAssetCredential, titleSchema, type SecretAsset } from 'enso-common/src/services/Backend'
 import { toast } from 'react-toastify'
 import { useStore } from 'zustand'
@@ -26,7 +26,7 @@ export interface SecretNameColumnProps extends AssetNameColumnProps {
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, isEditable } = props
 
-  const { associatedBackend: backend } = useCategoriesAPI()
+  const backend = useDriveCurrentBackend()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
