@@ -9,18 +9,19 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import static java.util.Arrays.stream;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.graalvm.polyglot.Value;
 
 /** Java-side implementation of JDBC batch inserts for in-memory table uploads. */
 public final class JDBCBatchInsert {
-  private JDBCBatchInsert() {}
-
-  public static void batchInsert(
+  public void batchInsert(
       Connection connection,
       String insertTemplate,
       JDBCValueSetter jdbcValueSetter,
-      Value columnStorages,
+      ColumnStorage<?>[] storages,
       int batchSize,
       Value dateTimeWithTimezone,
       Value sqlTypeHintIds,
@@ -30,21 +31,15 @@ public final class JDBCBatchInsert {
       int numRows)
       throws SQLException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
-      int columnCount = Math.toIntExact(columnStorages.getArraySize());
-      ColumnStorage<?>[] resolvedColumnStorages = new ColumnStorage<?>[columnCount];
+      int columnCount = storages.length;
 
-      for (int columnId = 0; columnId < columnCount; columnId++) {
-        if (!(columnStorages.getArrayElement(columnId).asHostObject()
-            instanceof ColumnStorage<?> columnStorage)) {
-          throw new IllegalStateException("Expected Java column storages for JDBC batch insert.");
-        }
-
-        resolvedColumnStorages[columnId] = columnStorage;
-      }
+      // Localize storages to avoid issues with foreign memory access.
+      var localisedStorages =
+            stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
 
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
-          ColumnStorage<?> columnStorage = resolvedColumnStorages[columnId];
+          ColumnStorage<?> columnStorage = localisedStorages[columnId];
           boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
           int nullType =
               useSqlTypeHintsForNullValues

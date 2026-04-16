@@ -9,6 +9,8 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL.SQL_Type
 
+polyglot java import org.enso.database.JDBCValueSetter
+
 ## ---
    private: true
    ---
@@ -165,20 +167,10 @@ type SQL_Type_Mapping
     ## ---
        private: true
        ---
-       Provides the database name used when constructing a JDBCValueSetter for
-       Java-side batch insert handling in the JVM that owns the batch insert
-       implementation.
-    jdbc_value_setter_database_name : Text
-    jdbc_value_setter_database_name =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       Provides an optional fully-qualified Java class name for a specialized
-       JDBCValueSetter used by Java-side batch insert handling.
-    jdbc_value_setter_class_name : Nothing | Text
-    jdbc_value_setter_class_name =
+       Creates the JDBCValueSetter used by both statement setters and Java-side
+       batch insert handling for this backend.
+    value_setter : JDBCValueSetter
+    value_setter =
         Unimplemented.throw "This is an interface only."
 
     ## ---

@@ -193,18 +193,14 @@ type DuckDB_Type_Mapping
        ---
        Creates a Statement_Setter for DuckDB.
     statement_setter =
-        fill_home = Statement_Setter.create_fill_hole DuckDBJDBCValueSetter.new
+        fill_home = Statement_Setter.create_fill_hole DuckDB_Type_Mapping.value_setter
         Statement_Setter.for_fill_hole fill_home
 
     ## ---
        private: true
        ---
-    jdbc_value_setter_database_name = "DuckDB"
-
-    ## ---
-       private: true
-       ---
-    jdbc_value_setter_class_name = "org.enso.duckdb.DuckDBJDBCValueSetter"
+    value_setter =
+        DuckDBJDBCValueSetter.new
 
     ## ---
        private: true
