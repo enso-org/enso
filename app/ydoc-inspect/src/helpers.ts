@@ -105,14 +105,22 @@ export function createHelpers(doc: Y.Doc, truncate: number) {
     })
   }
 
-  function send(channelId: string, message: string | Uint8Array): void {
+  function send(channelId: string, message: string | Uint8Array | object): void {
     const sndArray = doc.getArray<string | Uint8Array>(`snd:${channelId}`)
-    sndArray.push([message])
+    sndArray.push([
+      typeof message === 'object' && !(message instanceof Uint8Array) ?
+        JSON.stringify(message)
+      : message,
+    ])
   }
 
-  function receive(channelId: string, message: string | Uint8Array): void {
+  function receive(channelId: string, message: string | Uint8Array | object): void {
     const rcvArray = doc.getArray<string | Uint8Array>(`rcv:${channelId}`)
-    rcvArray.push([message])
+    rcvArray.push([
+      typeof message === 'object' && !(message instanceof Uint8Array) ?
+        JSON.stringify(message)
+      : message,
+    ])
   }
 
   function watch(channelId?: string): () => void {
