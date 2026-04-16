@@ -4,7 +4,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.enso.common.Platform;
-import org.graalvm.nativeimage.StackValue;
+import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
@@ -21,8 +21,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
   // WChars in windows are 2 bytes
   private static final int WCHAR_SIZE = 2;
 
-  // Windows MAX_PATH is 260, but GetCurrentDirectoryW can return longer.
-  private static final int MAX_LENGTH = 4096;
+  // Windows MAX_PATH is 260 and MAX_PATH_WIDE is 32767
+  private static final int MAX_LENGTH = 32767;
 
   private static String wcharPtrAsString(PointerBase buffer, int length) {
     return CTypeConversion.asByteBuffer(buffer, length * WCHAR_SIZE)
@@ -33,12 +33,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   private static PointerBase stringAsWCharPtr(String input) {
     var bytes = input.getBytes(StandardCharsets.UTF_16LE);
-    if (bytes.length + 2 > MAX_LENGTH * WCHAR_SIZE) {
-      throw new RuntimeException("Path is too long to be used with Windows API: " + input);
-    }
-
-    var buffer = StackValue.get(MAX_LENGTH * WCHAR_SIZE);
-    CTypeConversion.asByteBuffer(buffer, MAX_LENGTH * WCHAR_SIZE)
+    var buffer = UnmanagedMemory.malloc(bytes.length + 2);
+    CTypeConversion.asByteBuffer(buffer, bytes.length + 2)
         .order(ByteOrder.LITTLE_ENDIAN)
         .put(bytes)
         .put(new byte[] {0, 0});
@@ -47,24 +43,28 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public String currentWorkingDir() {
-    var buffer = StackValue.get(MAX_LENGTH * WCHAR_SIZE);
-    int length = GetCurrentDirectoryW(MAX_LENGTH, buffer);
-    if (length == 0 || length == MAX_LENGTH) {
-      LOGGER.error("GetCurrentDirectory failed with length {}", length);
-      return null;
-    }
+    var buffer = UnmanagedMemory.malloc(MAX_LENGTH * WCHAR_SIZE);
+    try {
+      int length = GetCurrentDirectoryW(MAX_LENGTH, buffer);
+      if (length == 0 || length == MAX_LENGTH) {
+        LOGGER.error("GetCurrentDirectory failed with length {}", length);
+        return null;
+      }
 
-    var result = wcharPtrAsString(buffer, length);
-    LOGGER.debug("Current working directory is {}", result);
-    return result;
+      var result = wcharPtrAsString(buffer, length);
+      LOGGER.debug("Current working directory is {}", result);
+      return result;
+    } finally {
+      UnmanagedMemory.free(buffer);
+    }
   }
 
   @Override
   public boolean changeWorkingDir(String path) {
     path = normalizeSlashes(path);
 
+    var buffer = stringAsWCharPtr(path);
     try {
-      var buffer = stringAsWCharPtr(path);
       var res = SetCurrentDirectoryW(buffer);
       if (res == 0) {
         LOGGER.error("SetCurrrentDirectory to {} failed with {}", path, res);
@@ -74,6 +74,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     } catch (Throwable t) {
       LOGGER.error("Cannot change working directory to " + path + " on Windows", t);
       throw t;
+    } finally {
+      UnmanagedMemory.free(buffer);
     }
   }
 
@@ -82,13 +84,15 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
     dir = normalizeSlashes(dir);
     file = normalizeSlashes(file);
     var full = dir + Platform.separatorChar() + file;
+    var buffer = stringAsWCharPtr(full);
     try {
-      var buffer = stringAsWCharPtr(full);
       var res = PathFileExistsW(buffer);
       return res != 0;
     } catch (Throwable t) {
       LOGGER.error("Cannot check if {} exists on Windows", full, t);
       return false;
+    } finally {
+      UnmanagedMemory.free(buffer);
     }
   }
 
