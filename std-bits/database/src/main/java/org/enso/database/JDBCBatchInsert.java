@@ -1,5 +1,7 @@
 package org.enso.database;
 
+import static java.util.Arrays.stream;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -9,8 +11,6 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import static java.util.Arrays.stream;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.graalvm.polyglot.Value;
@@ -35,7 +35,7 @@ public final class JDBCBatchInsert {
 
       // Localize storages to avoid issues with foreign memory access.
       var localisedStorages =
-            stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
+          stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
 
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
