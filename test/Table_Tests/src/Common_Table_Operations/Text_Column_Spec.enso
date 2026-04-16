@@ -158,10 +158,10 @@ add_text_columns_specs suite_builder setup =
 
             result.name . should_equal "reverse([X])" 
             
-            case (prefix.contains "PostgreSQL") of
+            case ((prefix.contains "PostgreSQL") || (prefix.contains "Snowflake")) of
                 False -> result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A👩‍🔬"]
                 True ->
-                    # PostgreSQL uses the backend REVERSE function, which does not
+                    # PostgreSQL and Snowflake use the backend REVERSE function, which does not
                     # preserve grapheme clusters like Text.reverse does.
                     result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A🔬‍👩"]
 
