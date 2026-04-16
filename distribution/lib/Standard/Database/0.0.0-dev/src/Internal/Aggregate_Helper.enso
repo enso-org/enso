@@ -116,7 +116,10 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
         Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]
         Aggregate_Column.SQL fn columns _ -> custom_sql fn columns
-        Aggregate_Column.ST_Union c _ -> simple_aggregate "ST_UNION" [c]
+        Aggregate_Column.ST_Union c _ -> simple_aggregate "ST_UNION_AGG" [c]
+        Aggregate_Column.ST_Make_Line c order_by _ -> case is_non_empty_selector order_by of
+            False -> simple_aggregate "ST_MAKE_LINE" [c]
+            True -> aggregate_with_order_by "ST_MAKE_LINE" c order_by
 
 ## ---
    private: true
