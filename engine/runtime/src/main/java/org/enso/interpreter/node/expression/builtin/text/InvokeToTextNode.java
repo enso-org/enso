@@ -4,6 +4,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -19,7 +21,7 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
  * objects.
  */
 public final class InvokeToTextNode extends Node {
-  private static final InvokeToTextNode UNCACHED = new InvokeToTextNode();
+  private static Reference<InvokeToTextNode> UNCACHED;
   @CompilerDirectives.CompilationFinal private UnresolvedSymbol toText;
   @Child private InteropMethodCallNode methodNode;
   @Child private InvokeCallableNode invokeCallableNode;
@@ -34,7 +36,12 @@ public final class InvokeToTextNode extends Node {
 
   @NeverDefault
   public static InvokeToTextNode getUncached() {
-    return UNCACHED;
+    var node = UNCACHED != null ? UNCACHED.get() : null;
+    if (node == null) {
+      node = new InvokeToTextNode();
+      UNCACHED = new WeakReference<>(node);
+    }
+    return node;
   }
 
   /**
@@ -101,6 +108,6 @@ public final class InvokeToTextNode extends Node {
   }
 
   private boolean isUncached() {
-    return this == UNCACHED;
+    return UNCACHED != null && this == UNCACHED.get();
   }
 }
