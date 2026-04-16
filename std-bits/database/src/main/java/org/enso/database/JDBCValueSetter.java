@@ -25,35 +25,6 @@ public class JDBCValueSetter {
     return new JDBCValueSetter(databaseName);
   }
 
-  /**
-   * Creates a JDBCValueSetter for Java-side bulk insert handling in the JVM that owns the batch
-   * insert implementation.
-   *
-   * @param databaseName the database name for the setter
-   * @param setterClassName optional fully-qualified class name for a specialized setter
-   * @return a new JDBCValueSetter instance
-   */
-  public static JDBCValueSetter create(String databaseName, Object setterClassName) {
-    if (setterClassName == null) {
-      return create(databaseName);
-    }
-    String className = setterClassName.toString();
-    try {
-      var setterClass = Class.forName(className);
-      var constructor = setterClass.getDeclaredConstructor();
-      Object instance = constructor.newInstance();
-      if (instance instanceof JDBCValueSetter jdbcValueSetter) {
-        return jdbcValueSetter;
-      } else {
-        throw new IllegalStateException(
-            "Bulk insert JDBC value setter class " + className + " is not a JDBCValueSetter.");
-      }
-    } catch (ReflectiveOperationException e) {
-      throw new IllegalStateException(
-          "Cannot instantiate bulk insert JDBC value setter " + className + ".", e);
-    }
-  }
-
   protected JDBCValueSetter(String databaseName) {
     this.databaseName = databaseName;
   }
