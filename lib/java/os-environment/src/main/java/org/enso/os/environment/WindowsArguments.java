@@ -45,7 +45,7 @@ final class WindowsArguments implements Arguments {
       for (var i = 0; i < results.length; i++) {
         var arg = args.read(i + 1);
         results[i] = toJavaString(arg);
-        LOGGER.debug("Read command line argument {}: {}", i, results[i]);
+        LOGGER.trace("Read command line argument {}: {}", i, results[i]);
       }
 
       return results;
