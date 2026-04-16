@@ -23,8 +23,8 @@ public final class JDBCBatchInsert {
       JDBCValueSetter jdbcValueSetter,
       ColumnStorage<?>[] storages,
       int batchSize,
-      Value dateTimeWithTimezone,
-      Value sqlTypeHintIds,
+      boolean[] dateTimeWithTimezone,
+      int[] sqlTypeHintIds,
       boolean useSqlTypeHintsForNullValues,
       boolean supportsSeparateNaN,
       boolean supportsInfinity,
@@ -40,10 +40,10 @@ public final class JDBCBatchInsert {
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
           ColumnStorage<?> columnStorage = localisedStorages[columnId];
-          boolean keepTimezone = dateTimeWithTimezone.getArrayElement(columnId).asBoolean();
+          boolean keepTimezone = dateTimeWithTimezone[columnId];
           int nullType =
               useSqlTypeHintsForNullValues
-                  ? sqlTypeHintIds.getArrayElement(columnId).asInt()
+                  ? sqlTypeHintIds[columnId]
                   : Types.NULL;
           var value = columnStorage.getItemBoxed(rowId);
           setStatementValue(
