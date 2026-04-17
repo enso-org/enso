@@ -4184,7 +4184,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idYX     = metadata.addItem(65, 1, "aa")
       val idY      = metadata.addItem(65, 7, "ab")
@@ -4210,6 +4210,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idZ, code, "p y s")
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
