@@ -296,7 +296,6 @@ type SQLServer_Dialect
             Aggregate_Column.Median _ _ -> unsupported "Median"
             Aggregate_Column.SQL _ _ _ -> True
             Aggregate_Column.ST_Union _ _ -> unsupported "ST_Union"
-            Aggregate_Column.ST_Make_Line _ _ _ -> unsupported "ST_Make_Line"
 
     ## ---
        private: true

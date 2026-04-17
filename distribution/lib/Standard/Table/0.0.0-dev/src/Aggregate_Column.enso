@@ -217,15 +217,3 @@ type Aggregate_Column
           group union.
         - `as`: name of new column.
     ST_Union (column:Text|Integer|Any=0) (as:Text="")
-
-    ## Creates a new column with the spatial points in the column connected
-       together within each group. If no rows, evaluates to `Nothing`.
-
-       Only supported on Spatial Tables.
-
-       ## Arguments
-        - `column`: column (specified by name, expression or index) to find the
-          group union.
-        - `order_by`: Specifies how to order the results within the group.
-        - `as`: name of new column.
-    ST_Make_Line (column:Text|Integer|Any=0) (order_by:(Sort_Column | Text | Nothing | Vector (Text | Sort_Column))=[]) (as:Text="")

@@ -304,7 +304,6 @@ type SQLite_Dialect
         Aggregate_Column.Median _ _ -> unsupported "Median"
         Aggregate_Column.SQL name _ _ -> unsupported ("SQL aggregate " + name)
         Aggregate_Column.ST_Union _ _ -> unsupported "ST_Union"
-        Aggregate_Column.ST_Make_Line _ _ _ -> unsupported "ST_Make_Line"
 
     ## ---
        private: true

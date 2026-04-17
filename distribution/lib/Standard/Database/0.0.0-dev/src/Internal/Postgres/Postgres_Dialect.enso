@@ -290,7 +290,6 @@ type Postgres_Dialect
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate = case aggregate of
         Aggregate_Column.ST_Union _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Union")
-        Aggregate_Column.ST_Make_Line _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Make_Line")
         _ -> True
 
     ## ---
