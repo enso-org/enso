@@ -91,7 +91,6 @@ test('Copy/paste from Table Visualization', async ({ page, editorPage }) => {
     page.evaluate(() => window.navigator.clipboard.readText()),
   )
   await editorPage
-  await page.getByRole('button', { name: 'Toggle Drive Panel' }).click()
 
   await actions.openVisualization(page, 'Table')
   const tableVisualization = locate.tableVisualization(page)
@@ -130,8 +129,6 @@ test('Copy/paste from Table Visualization', async ({ page, editorPage }) => {
   await widget.locator('.valueCell').first().click()
   await editorPage.press('Mod+V')
   await expectTableInputContent(page, node)
-
-  await page.waitForTimeout(1000)
 
   // Select a range in table input widget
   await node.getByText('0,0').hover()
