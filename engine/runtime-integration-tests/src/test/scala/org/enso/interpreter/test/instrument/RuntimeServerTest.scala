@@ -5441,7 +5441,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("from Standard.Base import all\n\n")
     val code =
       """main = bar "one" 2
         |
@@ -5484,16 +5484,24 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: Expected `str` to be Text, but got Integer.",
-            Some(mainFile),
-            Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
+            "Type error: expected `that` to be Text, but got Integer.",
+            None,
+            Some(model.Range(model.Position(46, 4), model.Position(62, 58))),
             None,
             Vector(
+              Api.StackTraceElement(
+                "Text.+",
+                None,
+                Some(
+                  model.Range(model.Position(46, 4), model.Position(62, 58))
+                ),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.bar",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(2, 10), model.Position(2, 15))
+                  model.Range(model.Position(4, 10), model.Position(4, 15))
                 ),
                 None
               ),
@@ -5501,7 +5509,7 @@ class RuntimeServerTest
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(0, 7), model.Position(0, 18))
+                  model.Range(model.Position(2, 7), model.Position(2, 18))
                 ),
                 None
               )
@@ -5560,11 +5568,19 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: Expected `str` to be Text, but got Integer.",
-            Some(mainFile),
-            Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
+            "Type error: expected `that` to be Text, but got Integer.",
+            None,
+            Some(model.Range(model.Position(46, 4), model.Position(62, 58))),
             None,
             Vector(
+              Api.StackTraceElement(
+                "Text.+",
+                None,
+                Some(
+                  model.Range(model.Position(46, 4), model.Position(62, 58))
+                ),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.bar",
                 Some(mainFile),
@@ -5785,7 +5801,7 @@ class RuntimeServerTest
             "Type error: expected `that` to be Integer, but got Function.",
             None,
             Some(
-              model.Range(model.Position(1057, 4), model.Position(1076, 59))
+              model.Range(model.Position(1058, 4), model.Position(1077, 59))
             ),
             None,
             Vector(
@@ -5793,7 +5809,7 @@ class RuntimeServerTest
                 "Integer.+",
                 None,
                 Some(
-                  model.Range(model.Position(1057, 4), model.Position(1076, 59))
+                  model.Range(model.Position(1058, 4), model.Position(1077, 59))
                 ),
                 None
               ),
@@ -5897,7 +5913,7 @@ class RuntimeServerTest
             "Type error: expected `that` to be Integer, but got Function.",
             None,
             Some(
-              model.Range(model.Position(1057, 4), model.Position(1076, 59))
+              model.Range(model.Position(1058, 4), model.Position(1077, 59))
             ),
             None,
             Vector(
@@ -5905,7 +5921,7 @@ class RuntimeServerTest
                 "Integer.+",
                 None,
                 Some(
-                  model.Range(model.Position(1057, 4), model.Position(1076, 59))
+                  model.Range(model.Position(1058, 4), model.Position(1077, 59))
                 ),
                 None
               ),
@@ -5997,7 +6013,7 @@ class RuntimeServerTest
           contextId,
           Api.ExecutionResult.Failure(
             "Exit was called with exit code 42.",
-            Some(mainFile)
+            None
           )
         )
       )
