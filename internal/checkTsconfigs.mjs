@@ -6,13 +6,14 @@ function run(command, args, options = {}) {
     stdio: options.captureOutput ? 'pipe' : 'inherit',
     encoding: options.captureOutput ? 'utf8' : undefined,
   })
-  if (result.status !== 0) {
+  if (result.error) {
+    console.error(result.error)
+  }
+  if (result.error || result.status !== 0) {
     process.exit(result.status ?? 1)
   }
   return result.stdout ?? ''
 }
-
-run('bazel', ['run', '//:write_all', '--verbose_failures'])
 
 // There is an issue on Windows that causes changes in MODULE.bazel.lock.
 const exclude = [':(exclude)MODULE.bazel.lock', ':(exclude)app/gui/.dev-env']

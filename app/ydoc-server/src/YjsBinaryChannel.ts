@@ -9,13 +9,13 @@ import * as Y from 'yjs'
  * ArrayBuffer constructor. The brand ensures type safety by preventing
  * accidental use of plain numbers where ByteBuffer is expected.
  */
-type JavaByteBuffer = number & { readonly __brand: 'JavaByteBuffer' }
+export type JavaByteBuffer = number & { readonly __brand: 'JavaByteBuffer' }
 
 /**
  * Represents the Java ByteBuffer class accessed via GraalVM polyglot.
  * Provides factory methods to create ByteBuffer instances.
  */
-interface JavaByteBufferClass {
+export interface JavaByteBufferClass {
   /** Allocates a new direct byte buffer with the given capacity */
   allocateDirect(capacity: number): JavaByteBuffer
 }

@@ -68,8 +68,10 @@ export function useLogData(options: LogDataOptions) {
 
 // === Parsing ===
 
-const entryRe = new RegExp(`\\[${LOG_LEVELS.join('|')}] \\[([^\\]]+)] \\[([^\\]]+)] (.*)`)
-function parseEntry(line: string): LogEntry | undefined {
+const entryRe = new RegExp(`\\[(${LOG_LEVELS.join('|')})] \\[([^\\]]+)] \\[([^\\]]+)] (.*)`)
+
+/** @internal */
+export function parseEntry(line: string): LogEntry | undefined {
   const matched = entryRe.exec(line)
   if (!matched) return undefined
   const [_, levelName, timestamp, mod, event] = matched

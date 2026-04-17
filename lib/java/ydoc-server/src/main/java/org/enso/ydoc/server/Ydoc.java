@@ -296,7 +296,8 @@ public final class Ydoc implements AutoCloseable {
                   "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
               bindings.putMember(
                   "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
-              var isDebug = LOG.isLoggable(System.Logger.Level.DEBUG);
+              // FIXME: (#14948) replace with LOG.isLoggable(System.Logger.Level.DEBUG)
+              var isDebug = "true".equals(System.getenv("ENSO_IDE_YDOC_LS_DEBUG"));
               bindings.putMember("YDOC_LS_DEBUG", isDebug);
 
               ctx.eval(ydocJs);
