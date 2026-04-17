@@ -224,6 +224,134 @@ class RuntimeVisualizationsTest
       }
     }
 
+    object MainAll { context =>
+
+      val metadata = new Metadata(
+        "from Standard.Base import all hiding Number\n\n"
+      )
+
+      val idMainX = metadata.addItem(63, 1, "aa")
+      val idMainY = metadata.addItem(73, 7, "ab")
+      val idMainZ = metadata.addItem(89, 5, "ac")
+      val idFooY  = metadata.addItem(133, 8, "ad")
+      val idFooZ  = metadata.addItem(150, 5, "ae")
+
+      def code =
+        metadata.appendToCode(
+          """
+            |from Standard.Base.Data.Numbers import Number
+            |
+            |main =
+            |    x = 6
+            |    y = x.foo 5
+            |    z = y + 5
+            |    z
+            |
+            |Number.foo self = x ->
+            |    y = self + 3
+            |    z = y * x
+            |    z
+            |""".stripMargin.linesIterator.mkString("\n")
+        )
+
+      object Update {
+
+        def mainX(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idMainX,
+            ConstantsGen.INTEGER,
+            fromCache,
+            typeChanged,
+            methodCall = None
+          )
+
+        def mainY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idMainY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                ConstantsGen.NUMBER,
+                "foo"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+
+        def mainZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idMainZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "+"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+
+        def fooY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idFooY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "+"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+
+        def fooZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idFooZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "*"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+      }
+    }
+
     object Visualization {
 
       val metadata = new Metadata("from Standard.Base import to_text\n\n")
@@ -2559,9 +2687,9 @@ class RuntimeVisualizationsTest
 
   it should "attach text visualization with arguments" in withContext() {
     context =>
-      val idMainRes  = context.Main.metadata.addItem(99, 1)
-      val contents   = context.Main.code
-      val mainFile   = context.writeMain(context.Main.code)
+      val idMainRes  = context.MainAll.metadata.addItem(99, 1)
+      val contents   = context.MainAll.code
+      val mainFile   = context.writeMain(context.MainAll.code)
       val moduleName = "Enso_Test.Test.Main"
 
       val contextId       = UUID.randomUUID()
@@ -2595,9 +2723,9 @@ class RuntimeVisualizationsTest
         6
       ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.PushContextResponse(contextId)),
-        context.Main.Update.mainX(contextId),
-        context.Main.Update.mainY(contextId),
-        context.Main.Update.mainZ(contextId),
+        context.MainAll.Update.mainX(contextId),
+        context.MainAll.Update.mainY(contextId),
+        context.MainAll.Update.mainZ(contextId),
         TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
         context.executionComplete(contextId)
       )
