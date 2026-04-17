@@ -371,11 +371,11 @@ class RuntimeVisualizationsTest
     }
 
     object AnnotatedVisualization {
-
-      val metadata    = new Metadata
-      val idIncY      = metadata.addItem(111, 7)
-      val idIncRes    = metadata.addItem(129, 8)
-      val idIncMethod = metadata.addItem(102, 43)
+      val importOffset = 14
+      val metadata     = new Metadata
+      val idIncY       = metadata.addItem(importOffset + 111, 7)
+      val idIncRes     = metadata.addItem(importOffset + 129, 8)
+      val idIncMethod  = metadata.addItem(importOffset + 102, 43)
 
       val code =
         metadata.appendToCode(
@@ -392,6 +392,8 @@ class RuntimeVisualizationsTest
             |""".stripMargin.linesIterator.mkString("\n")
         )
 
+      metadata.assertInCode(idIncRes, code, "encode y")
+      metadata.assertInCode(idIncY, code, "a*x + b")
     }
 
   }
