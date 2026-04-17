@@ -4347,7 +4347,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idY = metadata.addItem(65, 7, "ab")
 
@@ -4364,6 +4364,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+      val span     = 96
+      contents.substring(span, span + 1) shouldEqual "x"
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -4414,7 +4416,7 @@ class RuntimeVisualizationsTest
             Seq(),
             execute = true,
             idMap = Some(
-              model.IdMap(Vector(model.Span(100, 101) -> idYX))
+              model.IdMap(Vector(model.Span(span, span + 1) -> idYX))
             )
           )
         )
