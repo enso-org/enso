@@ -1432,7 +1432,7 @@ class RuntimeErrorsTest
         ConstantsGen.VECTOR,
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(
-            Api.ExpressionUpdate.Payload.Value.Warnings(1, None, false)
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("foo"), false)
           )
         ),
         methodCall = Some(
