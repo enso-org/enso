@@ -106,14 +106,8 @@ async function connectWithRetry(): Promise<void> {
           await client.connectProject(projectUrl)
           const astH = createAstHelpers(client.projectDoc, (subdoc) => client.loadSubdoc(subdoc))
           globals = exposeGlobals(client, helpers, astH)
-          const moduleNames = astH.modules()
-          if (moduleNames.length > 0) {
-            console.log(
-              `AST available for ${moduleNames.length} module(s): ${moduleNames.join(', ')}`,
-            )
-          }
-        } catch {
-          console.log('Could not connect to project doc. AST commands will not be available.')
+        } catch (e) {
+          console.error('Could not connect to project doc. AST commands will not be available.', e)
         }
 
         if (watch) {
