@@ -202,6 +202,9 @@ public final class JDBCBatchInsert {
 
     var ensoAtom = EnsoExceptionWrapper.wrapCommonExceptions(e);
     if (ensoAtom.isEmpty()) {
+      if (e instanceof RuntimeException runtimeException) {
+        throw runtimeException;
+      }
       throw new RuntimeException(e);
     }
     return EnsoMeta.asDataflowError(ensoAtom.get());
