@@ -10,7 +10,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.Paths
 import java.util.logging.Level
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
@@ -31,13 +30,6 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .allowAllAccess(true)
       .environment("NO_COLOR", "true")
       .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths
-          .get("../../test/micro-distribution/component")
-          .toFile
-          .getAbsolutePath
-      )
       .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")

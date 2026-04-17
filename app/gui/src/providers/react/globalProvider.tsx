@@ -3,6 +3,7 @@ import { useIsFeatureUnderPaywall } from '$/composables/paywall'
 import { useActionsStore, type ActionsStore } from '$/providers/actions'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useBackends, type BackendsStore } from '$/providers/backends'
+import { useCategories, type CategoriesStore } from '$/providers/category'
 import { useConfig, type ConfigStore } from '$/providers/config'
 import { useDevtoolsStore, type EnsoDevtoolsStore } from '$/providers/devTools'
 import { useHttpClient } from '$/providers/httpClient'
@@ -10,6 +11,7 @@ import { useOpenedProjects, type OpenedProjectsStore } from '$/providers/openedP
 import { useQueryParams, type QueryParams } from '$/providers/queryParams'
 import {
   ActionsContext,
+  CategoriesContext,
   ConfigContext,
   HTTPClientContext,
   IsFeatureUnderPaywallContext,
@@ -49,6 +51,7 @@ interface ContextsForReactProviderProps {
   openedProjects: OpenedProjectsStore
   ensoDevtools: EnsoDevtoolsStore
   isFeatureUnderPaywall: IsFeatureUnderPaywallFuntion
+  categories: CategoriesStore
 }
 
 /**
@@ -75,6 +78,7 @@ export const ContextsForReactProvider = reactComponent(
       openedProjects,
       ensoDevtools,
       isFeatureUnderPaywall,
+      categories,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -93,7 +97,9 @@ export const ContextsForReactProvider = reactComponent(
                                 <IsFeatureUnderPaywallContext.Provider
                                   value={isFeatureUnderPaywall}
                                 >
-                                  {children}
+                                  <CategoriesContext.Provider value={categories}>
+                                    {children}
+                                  </CategoriesContext.Provider>
                                 </IsFeatureUnderPaywallContext.Provider>
                               </EnsoDevtoolsStoreContext.Provider>
                             </OpenedProjectsContext.Provider>
@@ -132,6 +138,7 @@ export const ContextsForReactProvider = reactComponent(
         openedProjects: useOpenedProjects(),
         ensoDevtools: useDevtoolsStore(),
         isFeatureUnderPaywall: useIsFeatureUnderPaywall(),
+        categories: useCategories(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

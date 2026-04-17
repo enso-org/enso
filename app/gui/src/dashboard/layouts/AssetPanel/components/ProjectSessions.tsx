@@ -3,6 +3,7 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { Scroller } from '#/components/Scroller'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
@@ -10,7 +11,7 @@ import {
 } from '$/providers/react/container'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
-import { AssetType, BackendType, type ProjectAsset } from 'enso-common/src/services/Backend'
+import { AssetType, type ProjectAsset } from 'enso-common/src/services/Backend'
 import { ProjectSession } from './ProjectSession'
 
 /** A list of previous versions of an asset. */
@@ -18,12 +19,9 @@ export function ProjectSessions() {
   const { getText } = useText()
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
-  const { remoteBackend, localBackend } = useBackends()
+  const { backendForType } = useBackends()
 
-  const backend =
-    category?.backend === BackendType.remote ? remoteBackend
-    : category?.backend === BackendType.local ? localBackend
-    : null
+  const backend = category != null ? backendForType(CATEGORY_BACKEND[category.type]) : null
 
   if (backend == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />

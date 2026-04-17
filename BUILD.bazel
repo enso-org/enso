@@ -39,14 +39,19 @@ ts_config(
 )
 
 write_source_files(
-    name = "write_all",
+    name = "write_generated",
     additional_update_targets = [
         "//app/rust-ffi:write_wasm_dist",
         "//app/ydoc-shared:write_ast_codegen",
         "//app/gui:write_icon_metadata",
-        "//app/gui:write_tsconfigs",
         "//app/table-expression:write_parser_codegen",
-        # Generated tsconfig files
+    ],
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    additional_update_targets = [
+        "//app/gui:write_tsconfigs",
         "//app/common:write_tsconfigs",
         "//app/electron-client:write_tsconfigs",
         "//app/lang-markdown:write_tsconfigs",
@@ -56,6 +61,14 @@ write_source_files(
         "//app/ydoc-channel:write_tsconfigs",
         "//app/ydoc-server:write_tsconfigs",
         "//app/ydoc-shared:write_tsconfigs",
+    ],
+)
+
+write_source_files(
+    name = "write_all",
+    additional_update_targets = [
+        ":write_generated",
+        ":write_tsconfigs",
     ],
 )
 

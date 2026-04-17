@@ -10,12 +10,12 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import type { Category } from '#/layouts/Drive/Categories'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import Label from '#/pages/dashboard/components/Label'
 import { tv } from '#/utilities/tailwindVariants'
+import { CATEGORY_BACKEND, type Category } from '$/providers/category'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import {
@@ -54,7 +54,7 @@ export function AssetProperties() {
   const category = useRightPanelContextCategory()
   const { getText } = useText()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category == null || CATEGORY_BACKEND[category.type] !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 

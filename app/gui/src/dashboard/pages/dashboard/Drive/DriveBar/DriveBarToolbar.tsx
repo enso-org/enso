@@ -23,9 +23,6 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { AssetSearchBar } from '#/layouts/AssetSearchBar'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
-import { canTransferBetweenCategories } from '#/layouts/CategorySwitcher/Category'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
@@ -36,7 +33,9 @@ import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DrivePr
 import { unsetModal } from '#/providers/ModalProvider'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+import { canTransferBetweenCategories } from '$/providers/category'
+import { useCategories, useText } from '$/providers/react'
+import { useDriveCurrentBackend, useDriveCurrentCategory } from '$/providers/react/container'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
 import {
@@ -62,7 +61,8 @@ export interface DriveBarToolbarProps {
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { query, setQuery } = props
 
-  const { category, associatedBackend: backend } = useCategoriesAPI()
+  const [category] = useDriveCurrentCategory()
+  const backend = useDriveCurrentBackend()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
@@ -93,15 +93,15 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     : null
 
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
-  const newFolder = useNewFolder(backend, category)
-  const uploadFilesRaw = useUploadFiles(backend, category)
+  const newFolder = useNewFolder(backend, category.type)
+  const uploadFilesRaw = useUploadFiles(backend, category.type)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, currentDirectoryId)
   })
   const newSecret = useMutationCallback(backendMutationOptions(backend, 'createSecret'))
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
-  const newProjectRaw = useNewProject(backend, category)
+  const newProjectRaw = useNewProject(backend, category.type)
   const exportArchive = useExportArchive({ backend })
 
   const newProjectMutation = useMutationCallback({
@@ -191,11 +191,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     case 'trash': {
       return (
         <ErrorBoundary FallbackComponent={InlineErrorDisplay}>
-          <TrashFolderToolbar
-            shouldBeDisabled={shouldBeDisabled}
-            backend={backend}
-            category={category}
-          >
+          <TrashFolderToolbar shouldBeDisabled={shouldBeDisabled} backend={backend}>
             {pasteDataStatus}
             {searchBar}
           </TrashFolderToolbar>
@@ -204,9 +200,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     }
     case 'cloud':
     case 'local':
-    case 'user':
     case 'team':
-    case 'local-directory': {
+    case 'localDirectory': {
       return (
         <div className="flex w-full flex-1 shrink-0 gap-2">
           <Button.Group
@@ -294,20 +289,21 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 interface TrashFolderToolbarProps extends PropsWithChildren {
   readonly shouldBeDisabled: boolean
   readonly backend: Backend
-  readonly category: TrashCategory
 }
 
 /**
  * A toolbar for the trash folder.
  */
 function TrashFolderToolbar(props: TrashFolderToolbarProps) {
-  const { shouldBeDisabled, backend, category, children } = props
+  const { shouldBeDisabled, backend, children } = props
   const { getText } = useText()
+  const { categoryDirectoryId } = useCategories()
+  const category = { type: 'trash' as const }
 
   const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
-    parentId: category.homeDirectoryId,
+    parentId: categoryDirectoryId(category),
     refetchInterval: null,
     labels: null,
     sortDirection: null,
@@ -323,7 +319,11 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
 
   const clearTrash = useEventCallback(async () => {
-    const allTrashedItems = await getAllTrashedItems(queryClient, backend, category)
+    const allTrashedItems = await getAllTrashedItems(
+      queryClient,
+      backend,
+      categoryDirectoryId(category),
+    )
     await deleteAssetsMutation([allTrashedItems.map((item) => item.id), true])
   })
 

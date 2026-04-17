@@ -40,6 +40,7 @@ import org.enso.interpreter.instrument.execution.ErrorResolver;
 import org.enso.interpreter.instrument.execution.LocationResolver;
 import org.enso.interpreter.instrument.job.VisualizationResult;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
@@ -183,6 +184,7 @@ public final class ExecutionService {
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -198,6 +200,7 @@ public final class ExecutionService {
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
+                  progressTimingCollector,
                   onCachedCallback,
                   onComputedCallback,
                   funCallCallback,
@@ -248,6 +251,7 @@ public final class ExecutionService {
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -273,6 +277,7 @@ public final class ExecutionService {
                 syncState,
                 nextExecutionItem,
                 expressionExecutionState,
+                progressTimingCollector,
                 funCallCallback,
                 onComputedCallback,
                 onCachedCallback,
@@ -370,6 +375,7 @@ public final class ExecutionService {
       RuntimeCache executionCache,
       Module module,
       Object function,
+      ProgressTimingCollector progressTimingCollector,
       Object... arguments) {
 
     return submitExecutionWithCacheAccess(
@@ -399,6 +405,7 @@ public final class ExecutionService {
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
+                  progressTimingCollector,
                   onCachedCallback,
                   onComputedCallback,
                   funCallCallback,

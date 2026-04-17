@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import StandaloneButton from '@/components/StandaloneButton.vue'
@@ -12,7 +13,9 @@ const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
 const backendForAsset = computed(
   () =>
-    (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
+    (rightPanel.context?.category &&
+      backendForType(CATEGORY_BACKEND[rightPanel.context.category.type])) ??
+    null,
 )
 const isPreviewingMediaFile = ref(false)
 

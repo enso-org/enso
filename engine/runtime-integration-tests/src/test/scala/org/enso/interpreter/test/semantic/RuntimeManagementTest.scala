@@ -110,7 +110,7 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
           |import Standard.Base.IO
           |
           |type Mock_File
@@ -142,7 +142,7 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual closure of other managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
           |import Standard.Base.IO
           |import Standard.Base.Nothing
           |import Standard.Base.Data.Numbers.Number
@@ -177,7 +177,7 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual takeover of other managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
           |import Standard.Base.IO
           |import Standard.Base.Nothing
           |import Standard.Base.Data.Numbers.Number

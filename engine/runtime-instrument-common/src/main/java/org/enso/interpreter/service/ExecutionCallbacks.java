@@ -17,6 +17,7 @@ import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
@@ -37,6 +38,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
   private final ExpressionExecutionState expressionExecutionState;
+  private final ProgressTimingCollector progressTimingCollector;
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
@@ -67,6 +69,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
@@ -78,6 +81,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
     this.expressionExecutionState = expressionExecutionState;
+    this.progressTimingCollector = progressTimingCollector;
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
@@ -124,7 +128,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
                 CompilerDirectives.transferToInterpreter();
                 var expressionValue = ExpressionValue.progress(nodeId, progress, msg);
                 onProgressCallbackOrNull.accept(expressionValue);
-              });
+              },
+              progressTimingCollector);
       refreshObserver(newObserver);
     }
   }

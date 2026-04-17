@@ -2,7 +2,6 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
@@ -27,9 +26,6 @@ public class SharedEngineTest {
             .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(System.err)
             .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath())
             .build();
   }
 

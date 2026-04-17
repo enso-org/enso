@@ -4,6 +4,7 @@ import { Result } from '#/components/Result'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useBackends, useText } from '$/providers/react'
 import {
   useContainerData,
@@ -43,7 +44,7 @@ export function AssetVersions() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category == null || CATEGORY_BACKEND[category.type] !== BackendType.remote) {
     return (
       <Result
         status="info"
@@ -209,7 +210,6 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
               updateCommentMutation.variables[1].versionId === version.versionId
             }
           />
-
           {index !== versions.length - 1 && <div className="ml-[3px] h-5 w-[0.5px] bg-primary" />}
         </div>
       ))}

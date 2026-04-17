@@ -74,7 +74,6 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
         loadedClasses.computeIfAbsent(
             name,
             t -> {
-              logger.log(Logger.Level.TRACE, "Class {0} found in cache", name);
               var f = new CompletableFuture<Class<?>>();
               placeholder[0] = f;
               return f;
@@ -85,6 +84,8 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       } catch (ClassNotFoundException e) {
         placeholder[0].completeExceptionally(e);
       }
+    } else {
+      logger.log(Logger.Level.TRACE, "Class {0} is already being loaded by other thread", name);
     }
     try {
       return pendingClass.get();
@@ -112,7 +113,6 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       if (resolve) {
         l.getMethods();
       }
-      logger.log(Logger.Level.TRACE, "Class {0} found, putting in cache", name);
       return l;
     } catch (ClassNotFoundException ex) {
       logger.log(Logger.Level.TRACE, "Class {0} not found, delegating to super", name);

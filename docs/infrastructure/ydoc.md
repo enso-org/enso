@@ -25,6 +25,7 @@ Language Server through dedicated message channels.
 - [Startup Flow](#startup-flow)
 - [Source Code Layout](#source-code-layout)
 - [Debugging](#debugging)
+  - [Inspecting Channel Traffic with ydoc-inspect](#inspecting-channel-traffic-with-ydoc-inspect)
 
 <!-- /MarkdownTOC -->
 
@@ -236,3 +237,83 @@ enso$ YDOC_SERVER_JS=`pwd`/app/ydoc-server-polyglot/dist/main.cjs \
 Compiling _native image_ version takes more time, however launching the _native
 image_ version is usually way faster than the `--jvm` version. Moreover it more
 closely mimics the _production mode_ used by majority of Enso users.
+
+#### Inspecting Channel Traffic with ydoc-inspect
+
+The `ydoc-inspect` tool connects to a running Ydoc server and provides an
+interactive console for observing and injecting messages on YjsChannels. It
+syncs the server's internal inspect Y.Doc via WebSocket and exposes helper
+functions through Chrome DevTools `chrome://inspect` page.
+
+##### Prerequisites
+
+The inspect endpoint is only available when the Ydoc server runs in debug mode.
+This is controlled by the `ENSO_IDE_YDOC_LS_DEBUG` environment variable, which
+is set to `true` automatically when the application is started in dev mode with
+`pnpm run dev:gui`. When debug mode is active, the `InspectManager` wraps both
+JSON and binary channel servers to intercept all message traffic and expose it
+through a `/project/inspect` WebSocket endpoint.
+
+##### Running ydoc-inspect
+
+Start the application and open a project:
+
+```bash
+enso$ corepack pnpm run dev:gui
+```
+
+Launch the inspect tool:
+
+```bash
+enso$ corepack pnpm run dev:inspect
+```
+
+Available CLI options:
+
+| Option       | Default     | Description                              |
+| ------------ | ----------- | ---------------------------------------- |
+| `--host`     | `localhost` | Ydoc server hostname                     |
+| `--port`     | `30617`     | Ydoc server port                         |
+| `--truncate` | `240`       | Max characters for message data display  |
+| `--no-watch` | _(off)_     | Disable automatic live message streaming |
+
+##### DevTools Console Commands
+
+Once connected, open `chrome://inspect` and attach to the Node.js process. The
+following global functions are available in the DevTools console:
+
+```js
+channels()                    // List all registered channels
+messages(channelId?, n?)      // Get messages (optionally for a channel, last n)
+filter(channelId?, pattern?)  // Filter messages by regex (string or RegExp)
+send(channelId, msg)          // Send a message to the client as Language Server
+receive(channelId, msg)       // Send a message to Language Server as client
+watch(channelId?)             // Watch live messages (returns stop function)
+unwatch()                     // Stop watching live messages
+```
+
+##### Architecture
+
+The inspect system works by inserting an `InspectManager` between the Ydoc
+server and the Language Server. When debug mode is active:
+
+1. `InspectManager` wraps JSON and binary `YjsChannelServer` instances
+2. Each new channel gets a tap that copies all messages (with timestamps and
+   direction) into per-channel Y.Arrays (`log:<id>` and `meta:<id>`)
+3. The inspect client syncs this Y.Doc and reads the arrays to display messages
+4. Commands from the inspect client are written to `snd:<id>` / `rcv:<id>`
+   arrays, consumed by the server, and forwarded to real channels
+
+```
++-----------------+     Y.Doc sync     +-------------------+
+| ydoc-inspect    |<------------------>| InspectManager    |
+| (Node.js)       |    WebSocket       | (ydoc-server)     |
++-----------------+                    +-----+----------+--+
+                                         tap |          | tap
+                                 +-----------+--+ +-----+----------+
+                                 | JSON Channel | | Binary Channel |
+                                 +--------------+ +----------------+
+```
+
+The inspect Y.Doc is a standard `WSSharedDoc`, so multiple inspect clients can
+connect simultaneously and observe the same traffic.

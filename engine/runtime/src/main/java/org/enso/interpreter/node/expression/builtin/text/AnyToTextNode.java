@@ -17,22 +17,26 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
+/**
+ * This is an implementation of {@code Any.to_text}. This node shouldn't be used directly. To invoke
+ * {@code to_text} use {@link InvokeToTextNode}.
+ */
 @BuiltinMethod(
     type = "Any",
     name = Constants.Names.TO_TEXT,
     description = "Generic text conversion.")
 @GenerateUncached
-public abstract class AnyToTextNode extends Node {
+abstract class AnyToTextNode extends Node {
 
-  public static AnyToTextNode build() {
+  static AnyToTextNode build() {
     return AnyToTextNodeGen.create();
   }
 
-  public static AnyToTextNode getUncached() {
+  static AnyToTextNode getUncached() {
     return AnyToTextNodeGen.getUncached();
   }
 
-  public abstract Text execute(Object self);
+  abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(Atom at) {

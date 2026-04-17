@@ -148,16 +148,19 @@ export class YjsTransport extends Transport {
   }
 }
 
-/** A JSON-RPC transport that uses YjsChannel for communication. */
+/**
+ * Server-side JSON-RPC transport that establishes two channels to the Language Server:
+ * - A proxy channel (`{channelName}`) for IDE client - LS communication
+ * - A backend channel (`backend-{channelName}`) for ydoc-server - LS communication
+ *
+ * Both channels are registered with the LS via `server.onConnect()`, but operate
+ * independently so requests from the IDE and the ydoc-server don't interfere.
+ */
 export class YjsServerTransport extends YjsTransport {
   private readonly proxyChannel: YjsChannel
   private readonly server: YjsChannelServer
 
-  /**
-   * Create a {@link YjsTransport}.
-   * @param doc - The shared Y.Doc document
-   * @param channelName - The name of the channel (used to get/create the Y.Array)
-   */
+  /** Create a {@link YjsServerTransport}. */
   constructor(doc: Y.Doc, channelName: string, server: YjsChannelServer) {
     super(doc, `backend-${channelName}`)
     this.server = server
