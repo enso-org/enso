@@ -3954,15 +3954,16 @@ class RuntimeVisualizationsTest
       val moduleNameLib   = "Enso_Test.Test.Lib"
       val metadata        = new Metadata
 
-      val idS    = metadata.addItem(50, 13, "eeee")
-      val idX    = metadata.addItem(72, 14, "aaaa")
+      val idS    = metadata.addItem(80, 13, "eeee")
+      val idX    = metadata.addItem(102, 14, "aaaa")
       val idAArg = UUID.randomUUID()
       val idBArg = UUID.randomUUID()
-      val idRes  = metadata.addItem(91, 1, "dddd")
+      val idRes  = metadata.addItem(121, 1, "dddd")
 
       val typesMetadata = new Metadata
       val codeTypes = typesMetadata.appendToCode(
-        """type Foo
+        """from Standard.Base import all
+          |type Foo
           |    A
           |
           |type Bar
@@ -3995,6 +3996,7 @@ class RuntimeVisualizationsTest
 
       val code =
         """from project.Lib import Singleton
+          |from Standard.Base import all
           |
           |main =
           |    s = Singleton.S 1
