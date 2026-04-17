@@ -2724,19 +2724,21 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x     = metadata.addItem(52, 25, "aa")
-    val id_y     = metadata.addItem(86, 21, "ab")
+    val id_x     = metadata.addItem(57, 17, "aa")
+    val id_y     = metadata.addItem(83, 16, "ab")
 
     val code =
-      """import Standard.Base.Data.Time.Date
+      """import Standard.Base.Data.Time.Date.Date
         |
         |main =
-        |    x = Date.new_builtin 1970 1 1
-        |    y = Date.Date.year self=x
+        |    x = Date.new 1970 1 1
+        |    y = Date.year self=x
         |    y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+    metadata.assertInCode(id_x, code, "Date.new 1970 1 1")
+    metadata.assertInCode(id_y, code, "Date.year self=x")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2768,7 +2770,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, id_x, ConstantsGen.DATE),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.DATE,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "new"
+          )
+        )
+      ),
       TestMessages.update(
         contextId,
         id_y,
@@ -2791,17 +2804,18 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x     = metadata.addItem(52, 25, "aa")
+    val id_x     = metadata.addItem(57, 17, "aa")
 
     val code =
-      """import Standard.Base.Data.Time.Date
+      """import Standard.Base.Data.Time.Date.Date
         |
         |main =
-        |    x = Date.new_builtin 2022 1 1
+        |    x = Date.new 2022 1 1
         |    x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+    metadata.assertInCode(id_x, code, "Date.new 2022 1 1")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2833,7 +2847,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, id_x, "Standard.Base.Data.Time.Date.Date"),
+      TestMessages.update(
+        contextId,
+        id_x,
+        "Standard.Base.Data.Time.Date.Date",
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "new"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
