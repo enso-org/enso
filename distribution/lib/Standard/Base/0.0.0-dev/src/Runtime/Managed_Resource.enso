@@ -90,7 +90,7 @@ type Managed_Resource
        then `Error` with `Uninitialized_State` payload is passed into the action
        instead of the resource.
 
-       ## Arguments<
+       ## Arguments
         - `action`: The action that will be applied to the resource managed by
           the `Managed_Resource` (or to `Uninitialized_State` error).
 
