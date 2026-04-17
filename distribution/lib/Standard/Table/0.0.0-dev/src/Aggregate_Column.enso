@@ -217,3 +217,17 @@ type Aggregate_Column
           group union.
         - `as`: name of new column.
     ST_Union (column:Text|Integer|Any=0) (as:Text="")
+
+    ## Internal aggregation function for database backends to create an array
+       of values in the column within each group. If no rows, evaluates to
+       `Nothing`.
+
+       ## Arguments
+        - `column`: column (specified by name, expression or index) to find the
+          group array.
+        - `as`: name of new column.
+        - `ignore_nothing`: if `True`, then missing values are ignored and not
+          included in the array.
+        - `order_by`: required for database tables. Specifies how to order the
+          results within the group.
+    Array_Agg (column:Text|Integer|Any=0) (as:Text="") (ignore_nothing:Boolean=True) (order_by:(Sort_Column | Text | Nothing | Vector (Text | Sort_Column))=[])
