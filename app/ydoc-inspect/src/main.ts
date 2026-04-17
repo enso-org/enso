@@ -1,5 +1,5 @@
 import { InspectClient } from './client.js'
-import { createHelpers, exposeGlobals, formatEntry } from './helpers.js'
+import { createAstHelpers, createHelpers, exposeGlobals, formatEntry } from './helpers.js'
 
 function parseArgs(): { host: string; port: string; watch: boolean; truncate: number } {
   const args = process.argv.slice(2)
@@ -23,18 +23,18 @@ const INITIAL_CHANNELS_NUMBER = 3
 
 const { host, port, watch, truncate } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
+const projectUrl = `ws://${host}:${port}/project/inspect/index`
 
 let client: InspectClient
 let helpers: ReturnType<typeof createHelpers>
 let globals: ReturnType<typeof exposeGlobals>
 let connecting = false
 
-// Motd
-console.log(`
+const motd = `
 ydoc-inspect: connecting to ${url}
 Open chrome://inspect to attach DevTools
 
-Available commands:
+Channel commands:
   channels()                   - List all registered channels
   messages(channelId?, n?)     - Get messages (optionally for a channel, last n)
   filter(channelId?, pattern?) - Filter messages by regex (string or RegExp)
@@ -42,7 +42,24 @@ Available commands:
   receive(channelId, msg)      - Send a message to Language Server as client
   watch(channelId?)            - Watch live messages (returns stop function)
   unwatch()                    - Stop watching live messages
-`)
+
+AST commands:
+  modules()                    - List all module names in the project
+  ast(moduleName?)             - Get root AST node (defaults to Main)
+  tree(moduleName?, depth?)    - Print AST tree structure
+  node(id)                     - Look up an AST node by id
+  meta(id)                     - Show metadata for a node
+  code(moduleName?)            - Print module source code
+
+  help()                       - Print this help message
+`
+
+function help(): void {
+  console.log(motd)
+}
+;(globalThis as Record<string, unknown>)['help'] = help
+
+help()
 
 async function connectWithRetry(): Promise<void> {
   if (connecting) return
@@ -83,6 +100,22 @@ async function connectWithRetry(): Promise<void> {
           console.log('No channels registered. Make sure ydoc-server is running in debug mode.')
           return
         }
+
+        // Connect to the project doc for AST inspection.
+        try {
+          await client.connectProject(projectUrl)
+          const astH = createAstHelpers(client.projectDoc, (subdoc) => client.loadSubdoc(subdoc))
+          globals = exposeGlobals(client, helpers, astH)
+          const moduleNames = astH.modules()
+          if (moduleNames.length > 0) {
+            console.log(
+              `AST available for ${moduleNames.length} module(s): ${moduleNames.join(', ')}`,
+            )
+          }
+        } catch {
+          console.log('Could not connect to project doc. AST commands will not be available.')
+        }
+
         if (watch) {
           const existing = helpers.messages()
           if (existing.length > 0) {

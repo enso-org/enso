@@ -12,6 +12,7 @@ import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
 import type { YjsChannelServer } from 'ydoc-channel'
 import { YjsBinaryChannel } from './YjsBinaryChannel'
+import type { InspectManager } from './inspect'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -103,11 +104,13 @@ export function setupGatewayClient(
   byteBuffer: any,
   jsonChannelServer: YjsChannelServer,
   binaryChannelServer: YjsChannelServer,
+  inspectManager?: InspectManager | null,
 ): void {
   console.log(
     `Setting up Gateway Client: docName=${docName}, lsUrl=${lsUrl ?? 'none'}, dataUrl=${dataUrl ?? 'none'}`,
   )
   const lsSession = getSessionForUrl(lsUrl, jsonChannelServer)
+  inspectManager?.registerSession(lsSession.docs)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
     ws.close()
@@ -124,6 +127,9 @@ export function setupGatewayClient(
     try {
       dataSocket?.close()
       await lsSession.release()
+      if (LanguageServerSession.sessions.size === 0) {
+        inspectManager?.unregisterSession()
+      }
     } catch (error) {
       console.error('Session release failed.\n', error)
     }
