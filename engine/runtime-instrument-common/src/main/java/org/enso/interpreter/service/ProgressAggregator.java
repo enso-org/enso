@@ -41,6 +41,8 @@ final class ProgressAggregator {
   public synchronized void create(Object key, long max) {
     Progress p;
     if (stack.isEmpty()) {
+      current = 0.0;
+      message = null;
       p = new Progress(max, 0.0, 1.0);
     } else {
       var previous = stack.peek();
@@ -90,7 +92,7 @@ final class ProgressAggregator {
     }
   }
 
-  final class Progress implements AutoCloseable {
+  private final class Progress {
     private final long max;
     private long current;
     private final double from;
@@ -128,16 +130,6 @@ final class ProgressAggregator {
       } catch (ArithmeticException e) {
         // keep unchanged
       }
-    }
-
-    /**
-     * Closes the progress and removes it from the stack of currently active progresses. Most
-     * importantly, no new progress will become child of this progress anymore.
-     */
-    @Override
-    public void close() {
-      advance(max);
-      closeProgress(this);
     }
   }
 }
