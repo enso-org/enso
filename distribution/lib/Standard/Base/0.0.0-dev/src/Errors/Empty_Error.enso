@@ -1,5 +1,5 @@
 import project.Data.Text.Text
-import project.Data.Text.Extensions
+from project.Data.Text.Extensions import all
 
 ## An error representing that the collection is empty.
 type Empty_Error

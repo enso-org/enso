@@ -13,7 +13,7 @@ import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Report_Unmatched
 import project.Data.Vector.Vector
-import project.Data.Text.Extensions
+from project.Data.Text.Extensions import all
 import project.Error.Error
 import project.Errors.Common.Additional_Warnings
 import project.Errors.Common.Index_Out_Of_Bounds
