@@ -16,19 +16,13 @@ import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 
-## ---
-   private: true
-   ---
-   Constructs a new Date from a year, month, and day.
-
-   Recommended to use `Date.new` instead which handles potential exceptions.
+## Constructs a new Date from a year, month, and day.
 
    ## Arguments
     - `year`: The year to represent.
     - `month`: The month-of-year to represent, from 1 (January) to 12 (December).
     - `day`: The day-of-month to represent, from 1 to 31. It must be valid for
       the year and month.
-new_date_builtin : Integer -> Integer -> Integer -> Date
 new_date_builtin year month day = @Builtin_Method "Date.new_builtin"
 
 today = @Builtin_Method "Date.today"
