@@ -1,7 +1,5 @@
-import * as agC from 'ag-grid-community'
-import { ModuleRegistry } from 'ag-grid-community'
-import * as agE from 'ag-grid-enterprise'
-import { LicenseManager } from 'ag-grid-enterprise'
+import * as ag from 'ag-grid-enterprise'
+import { LicenseManager, ModuleRegistry } from 'ag-grid-enterprise'
 export { AgGridVue } from 'ag-grid-vue3'
 
 if (typeof $config.AG_GRID_LICENSE_KEY !== 'string') {
@@ -28,34 +26,35 @@ if (typeof $config.AG_GRID_LICENSE_KEY !== 'string') {
 }
 
 ModuleRegistry.registerModules([
-  agC.BigIntFilterModule,
-  agC.CellStyleModule,
-  agC.ClientSideRowModelApiModule,
-  agC.ClientSideRowModelModule,
-  agC.ColumnApiModule,
-  agC.ColumnAutoSizeModule,
-  agC.ColumnHoverModule,
-  agC.DateFilterModule,
-  agC.EventApiModule,
-  agC.NumberFilterModule,
-  agC.RenderApiModule,
-  agC.RowAutoHeightModule,
-  agC.RowDragModule,
-  agC.TextEditorModule,
-  agC.TextFilterModule,
-  agC.TooltipModule,
-  agE.CellSelectionModule,
-  agE.ClipboardModule,
-  agE.ColumnMenuModule,
-  agE.ContextMenuModule,
-  agE.CsvExportModule,
-  agE.ExcelExportModule,
-  agE.MultiFilterModule,
-  agE.ServerSideRowModelApiModule,
-  agE.ServerSideRowModelModule,
-  agE.SetFilterModule,
-  agE.StatusBarModule,
+  ag.BigIntFilterModule,
+  ag.CellSelectionModule,
+  ag.CellStyleModule,
+  ag.ClientSideRowModelApiModule,
+  ag.ClientSideRowModelModule,
+  ag.ClipboardModule,
+  ag.ColumnApiModule,
+  ag.ColumnAutoSizeModule,
+  ag.ColumnHoverModule,
+  ag.ColumnMenuModule,
+  ag.ContextMenuModule,
+  ag.CsvExportModule,
+  ag.DateFilterModule,
+  ag.EventApiModule,
+  ag.ExcelExportModule,
+  ag.GridStateModule,
+  ag.MultiFilterModule,
+  ag.NumberFilterModule,
+  ag.RenderApiModule,
+  ag.RowAutoHeightModule,
+  ag.RowDragModule,
+  ag.ServerSideRowModelApiModule,
+  ag.ServerSideRowModelModule,
+  ag.SetFilterModule,
+  ag.StatusBarModule,
+  ag.TextEditorModule,
+  ag.TextFilterModule,
+  ag.TooltipModule,
 ])
 if (import.meta.env.DEV) {
-  ModuleRegistry.registerModules([agC.ValidationModule])
+  ModuleRegistry.registerModules([ag.ValidationModule])
 }

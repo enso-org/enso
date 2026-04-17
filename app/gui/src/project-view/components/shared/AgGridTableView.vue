@@ -36,7 +36,7 @@ const AGGRID_DEFAULT_PASTE_ICON =
   '<span class="ag-icon ag-icon-paste" unselectable="on" role="presentation"></span>'
 
 /** Whether to include column headers in copied clipboard content or not. See {@link sendToClipboard}. */
-const copyWithHeaders = ref(false)
+const copyWithHeaders = { value: false }
 
 export const commonContextMenuActions = {
   cut: {

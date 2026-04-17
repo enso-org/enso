@@ -665,6 +665,7 @@
     "./src/project-view/components/resizeHandles.ts",
     "./src/project-view/components/shared/AgGridTableView.vue",
     "./src/project-view/components/shared/AgGridTableView/agGrid.ts",
+    "./src/project-view/components/shared/AgGridTableView/workaroundAg16857.ts",
     "./src/project-view/components/shared/GrowingSpinner.vue",
     "./src/project-view/components/shared/LoadingSpinner.vue",
     "./src/project-view/components/visualizations/GeoMapVisualization.vue",

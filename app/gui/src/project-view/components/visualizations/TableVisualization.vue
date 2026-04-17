@@ -1,5 +1,6 @@
 <script lang="ts">
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
+import { onCellMouseOver } from '@/components/shared/AgGridTableView/workaroundAg16857'
 import {
   useTableVizToolbar,
   type SortModel,
@@ -1223,6 +1224,7 @@ config.setToolbar(
         @sortOrFilterUpdated="checkSortAndFilter"
         @columnVisibleChanged="onColumnStateChange"
         @columnMoved="onColumnStateChange"
+        @cellMouseOver="onCellMouseOver"
       />
     </Suspense>
   </div>
