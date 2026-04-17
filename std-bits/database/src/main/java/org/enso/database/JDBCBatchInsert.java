@@ -7,17 +7,51 @@ import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import org.enso.base.polyglot.EnsoExceptionWrapper;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.graalvm.polyglot.Value;
 
 /** Java-side implementation of JDBC batch inserts for in-memory table uploads. */
 public final class JDBCBatchInsert {
-  public void batchInsert(
+  public Value batchInsert(
+      Connection connection,
+      String insertTemplate,
+      JDBCValueSetter jdbcValueSetter,
+      ColumnStorage<?>[] storages,
+      int batchSize,
+      boolean[] dateTimeWithTimezone,
+      int[] sqlTypeHintIds,
+      boolean useSqlTypeHintsForNullValues,
+      boolean supportsSeparateNaN,
+      boolean supportsInfinity,
+      int numRows) {
+    try {
+      batchInsertImpl(
+          connection,
+          insertTemplate,
+          jdbcValueSetter,
+          storages,
+          batchSize,
+          dateTimeWithTimezone,
+          sqlTypeHintIds,
+          useSqlTypeHintsForNullValues,
+          supportsSeparateNaN,
+          supportsInfinity,
+          numRows);
+      return Value.asValue(null);
+    } catch (Exception e) {
+      return wrapException(e, insertTemplate);
+    }
+  }
+
+  private static void batchInsertImpl(
       Connection connection,
       String insertTemplate,
       JDBCValueSetter jdbcValueSetter,
@@ -29,7 +63,7 @@ public final class JDBCBatchInsert {
       boolean supportsSeparateNaN,
       boolean supportsInfinity,
       int numRows)
-      throws SQLException {
+      throws SQLException, IllegalStateException {
     try (PreparedStatement stmt = connection.prepareStatement(insertTemplate)) {
       int columnCount = storages.length;
 
@@ -41,10 +75,7 @@ public final class JDBCBatchInsert {
         for (int columnId = 0; columnId < columnCount; columnId++) {
           ColumnStorage<?> columnStorage = localisedStorages[columnId];
           boolean keepTimezone = dateTimeWithTimezone[columnId];
-          int nullType =
-              useSqlTypeHintsForNullValues
-                  ? sqlTypeHintIds[columnId]
-                  : Types.NULL;
+          int nullType = useSqlTypeHintsForNullValues ? sqlTypeHintIds[columnId] : Types.NULL;
           var value = columnStorage.getItemBoxed(rowId);
           setStatementValue(
               stmt,
@@ -150,5 +181,29 @@ public final class JDBCBatchInsert {
     } else {
       jdbcValueSetter.setLocalDateTime(stmt, columnIndex, zonedDateTime);
     }
+  }
+
+  private static Value wrapException(Exception e, String insertTemplate) {
+    if (e instanceof SQLTimeoutException timeoutException) {
+      return EnsoMeta.asDataflowError(
+          EnsoMeta.makeInstance(
+              "Standard.Database.Errors",
+              "SQL_Timeout",
+              "Error",
+              timeoutException,
+              insertTemplate));
+    }
+
+    if (e instanceof SQLException sqlException) {
+      return EnsoMeta.asDataflowError(
+          EnsoMeta.makeInstance(
+              "Standard.Database.Errors", "SQL_Error", "Error", sqlException, insertTemplate));
+    }
+
+    var ensoAtom = EnsoExceptionWrapper.wrapCommonExceptions(e);
+    if (ensoAtom.isEmpty()) {
+      throw new RuntimeException(e);
+    }
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }
