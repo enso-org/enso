@@ -50,7 +50,7 @@ type Time_Of_Day
 
              example_now = Time_Of_Day.now
        ```
-    now -> Time_Of_Day = Date_Helpers.tod_now
+    now -> Time_Of_Day = Date_Helpers.time_now
 
     ## ---
        group: Constants
@@ -95,7 +95,7 @@ type Time_Of_Day
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
     new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch JException (Date_Helpers.tod_new_builtin hour minute second total_nanoseconds) caught_panic->
+        Panic.catch JException (Date_Helpers.time_new_builtin hour minute second total_nanoseconds) caught_panic->
             Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
     ## ---
@@ -196,7 +196,7 @@ type Time_Of_Day
 
              example_hour = Time_Of_Day.now.hour
        ```
-    hour self -> Integer = Date_Helpers.tod_hour self
+    hour self -> Integer = Date_Helpers.time_hour self
 
     ## ---
        group: Metadata
@@ -212,7 +212,7 @@ type Time_Of_Day
 
              example_minute = Time_Of_Day.now.minute
        ```
-    minute self -> Integer = Date_Helpers.tod_minute self
+    minute self -> Integer = Date_Helpers.time_minute self
 
     ## ---
        group: Metadata
@@ -228,7 +228,7 @@ type Time_Of_Day
 
              example_second = Time_Of_Day.now.second
        ```
-    second self -> Integer = Date_Helpers.tod_second self
+    second self -> Integer = Date_Helpers.time_second self
 
     ## ---
        group: Metadata
@@ -244,7 +244,7 @@ type Time_Of_Day
 
              example_millisecond = Time_Of_Day.now.millisecond
        ```
-    millisecond self -> Integer = Date_Helpers.tod_millisecond self
+    millisecond self -> Integer = Date_Helpers.time_millisecond self
 
     ## ---
        group: Metadata
@@ -260,7 +260,7 @@ type Time_Of_Day
 
              example_microsecond = Time_Of_Day.now.microsecond
        ```
-    microsecond self -> Integer = Date_Helpers.tod_microsecond self
+    microsecond self -> Integer = Date_Helpers.time_microsecond self
 
     ## ---
        group: Metadata
@@ -282,7 +282,7 @@ type Time_Of_Day
              example_nanosecond = Time_Of_Day.now.nanosecond
        ```
     nanosecond self include_milliseconds=False:Boolean -> Integer =
-        Date_Helpers.tod_nanoseconds self include_milliseconds
+        Date_Helpers.time_nanoseconds self include_milliseconds
 
     ## ---
        group: DateTime
@@ -314,7 +314,7 @@ type Time_Of_Day
 
              example_to_seconds = Time_Of_Day.now.to_seconds
        ```
-    to_seconds self -> Integer = Date_Helpers.tod_to_seconds self
+    to_seconds self -> Integer = Date_Helpers.time_to_seconds self
 
     ## ---
        group: Conversions
@@ -413,7 +413,7 @@ type Time_Of_Day
     + : Duration | Time_Period -> Time_Of_Day ! Time_Error
     + self (amount : Duration | Time_Period) =
         case amount of
-            duration : Duration -> Date_Helpers.tod_plus self duration
+            duration : Duration -> Date_Helpers.time_plus self duration
             time_period : Time_Period ->
                 self + time_period.to_duration
 
@@ -448,7 +448,7 @@ type Time_Of_Day
     - : Duration | Time_Period -> Time_Of_Day ! Time_Error
     - self amount:(Duration | Time_Period) =
         case amount of
-            duration : Duration -> Date_Helpers.tod_minus self duration
+            duration : Duration -> Date_Helpers.time_minus self duration
             time_period : Time_Period ->
                 self - time_period.to_duration
 

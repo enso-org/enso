@@ -1,3 +1,4 @@
+private
 ## Internal text utilities for inspecting text primitives.
 
 import project.Data.Text.Text
