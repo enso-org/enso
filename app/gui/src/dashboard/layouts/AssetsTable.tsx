@@ -28,9 +28,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import { AssetsTableCombinedContextMenu } from '#/layouts/AssetsTableCombinedContextMenu'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -48,7 +46,6 @@ import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
 import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
 import {
-  setDriveLocation,
   useDriveStore,
   useSetAssetToRename,
   useSetCanDownload,
@@ -68,9 +65,16 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useFullUserSession, useLocalStorage, useText } from '$/providers/react'
+import { categoryKey, type Category } from '$/providers/category'
+import { useCategories, useFullUserSession, useLocalStorage, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useContainerData, useRightPanelData } from '$/providers/react/container'
+import {
+  useContainerData,
+  useDriveCurrentBackend,
+  useDriveCurrentCategory,
+  useDriveCurrentDirectory,
+  useRightPanelData,
+} from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type {
@@ -168,7 +172,10 @@ function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery } = props
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
-  const { category, associatedBackend: backend } = useCategoriesAPI()
+  const [category, setCategory] = useDriveCurrentCategory()
+  const [, setDirectory] = useDriveCurrentDirectory()
+  const backend = useDriveCurrentBackend()
+  const { categoryDirectoryId } = useCategories()
   const containerData = useContainerData()
   const { openProjectLocally } = containerData
   const focusedPanel = useVueValue(useCallback(() => containerData.focusedPanel, [containerData]))
@@ -185,7 +192,7 @@ function AssetsTable(props: AssetsTableProps) {
   const rightPanel = useRightPanelData()
 
   const allowedColumns = useMemo(
-    () => getColumnList(user.plan, backend.type, category, query.query !== ''),
+    () => getColumnList(user.plan, backend.type, category.type, query.query !== ''),
     [user.plan, backend.type, category, query.query],
   )
 
@@ -206,9 +213,9 @@ function AssetsTable(props: AssetsTableProps) {
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()
 
-  const uploadFiles = useUploadFiles(backend, category)
+  const uploadFiles = useUploadFiles(backend, category.type)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
-  const paste = usePaste(category)
+  const paste = usePaste()
 
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
@@ -287,7 +294,7 @@ function AssetsTable(props: AssetsTableProps) {
         return false
       }
       if (queryDirectoryId === queryDirectoryIdRef.current) {
-        setDriveLocation(null, category.id)
+        setCategory(category)
       }
       return false
     },
@@ -583,7 +590,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                setDriveLocation(item.id, category.id)
+                setDirectory(item.id)
                 break
               }
               case AssetType.project: {
@@ -984,7 +991,7 @@ function AssetsTable(props: AssetsTableProps) {
       event.dataTransfer.setData(
         ASSETS_MIME_TYPE,
         JSON.stringify({
-          category,
+          category: categoryKey(category),
           items: nodes.map((node) => ({
             id: node.id,
             title: node.title,
@@ -1056,7 +1063,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const specialEmptyText =
     query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
-    : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
+    : currentDirectoryId !== categoryDirectoryId(category) ? getText('thisFolderIsEmpty')
     : null
 
   const table = (

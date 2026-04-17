@@ -735,7 +735,7 @@ type In_Memory_Column_Implementation
 
     last (this_column : Column & In_Memory_Column) = this_column.at (this_column.row_count - 1)
 
-    reverse (this_column : Column & In_Memory_Column) =
+    reverse_rows (this_column : Column & In_Memory_Column) =
         In_Memory_Column.from_java_column this_column.java_column.reverse
 
     duplicate_count (this_column : Column & In_Memory_Column) =
@@ -957,4 +957,3 @@ private with_map_operation_problem_aggregator (location : Text | Nothing) on_pro
     Java_Problems.with_problem_aggregator on_problems java_aggregator->
         problem_builder = MapOperationProblemAggregator.new java_aggregator location
         f problem_builder
-

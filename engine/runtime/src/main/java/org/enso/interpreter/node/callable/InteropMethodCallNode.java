@@ -44,8 +44,26 @@ public abstract class InteropMethodCallNode extends Node {
    * @param arguments the arguments for the function.
    * @return the result of calling the function.
    */
-  public abstract Object execute(UnresolvedSymbol method, Object state, Object[] arguments)
+  public abstract Object execute(UnresolvedSymbol method, State state, Object[] arguments)
       throws ArityException;
+
+  /**
+   * Helper method that handles {@link State} and {@link ArityException} automatically. Any arity
+   * exception is converted to {@code PanicException}.
+   *
+   * @param method method to invoke
+   * @param args provided arguments
+   * @return the result of invoking {@link #execute}
+   */
+  public final Object executeOrPanic(UnresolvedSymbol method, Object... args) {
+    var ctx = EnsoContext.get(this);
+    try {
+      var state = ctx.currentState();
+      return execute(method, state, args);
+    } catch (ArityException e) {
+      throw ctx.raiseAssertionPanic(this, null, e);
+    }
+  }
 
   @CompilerDirectives.TruffleBoundary
   CallArgumentInfo[] buildSchema(int length) {

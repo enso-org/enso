@@ -41,6 +41,7 @@ import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.logger.Converter;
 import org.enso.logger.ObservedMessage;
+import org.enso.os.environment.Arguments;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -1124,6 +1125,8 @@ public class Main {
    * @param args the command line arguments
    */
   public static void main(String[] args) throws Exception {
+    // Handle an issue with Windows arguments containing UTF-16 characters
+    args = Arguments.getCurrent().alterArgs(args);
     new Main().launch(args);
   }
 

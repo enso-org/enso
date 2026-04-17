@@ -1,11 +1,8 @@
 /** @file Events related to changes in the asset list. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import {
-  dropOperationBetweenCategories,
-  useTransferBetweenCategories,
-  type Category,
-} from '#/layouts/Drive/Categories'
+import { useTransferBetweenCategories } from '#/layouts/Drive/Categories/transferBetweenCategoriesHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
+import { dropOperationBetweenCategories, type Category } from '$/providers/category'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
 /**
  * Options for the paste action.
@@ -22,8 +19,8 @@ export interface PasteActionOptions {
  * A hook to copy or move assets as appropriate. Assets are moved, except when performing
  * a cut and paste between the Team Space and the User Space, in which case the asset is copied.
  */
-export function usePaste(category: Category) {
-  const transferBetweenCategories = useTransferBetweenCategories(category)
+export function usePaste() {
+  const transferBetweenCategories = useTransferBetweenCategories()
 
   return useEventCallback((options: PasteActionOptions) => {
     const { newParentId, pasteData, fromCategory, toCategory, method } = options

@@ -6,15 +6,11 @@ import {
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import {
-  useCategories,
-  useCategoriesAPI,
-  useTransferBetweenCategories,
-} from '#/layouts/Drive/Categories'
+import { useTransferBetweenCategories } from '#/layouts/Drive/Categories'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { Category, CategoryType } from '$/providers/category'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useUploadsToCloudStore } from '$/providers/react/upload'
 import { useQueryClient } from '@tanstack/react-query'
@@ -35,7 +31,6 @@ import {
 } from 'enso-common/src/services/Backend'
 import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
 import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
 
 declare module '$/utils/queryClient' {
   /** */
@@ -67,7 +62,7 @@ function useUploadLocally(backend: Backend) {
 }
 
 /** A function to upload files. */
-export function useUploadFiles(backend: Backend, category: Category) {
+export function useUploadFiles(backend: Backend, category: CategoryType) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const uploads = useUploadsToCloudStore()
   const uploadLocally = useUploadLocally(backend)
@@ -228,42 +223,33 @@ export function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset i
 /** Get both deleted and non-deleted siblings. */
 function useGetSiblings() {
   const queryClient = useQueryClient()
-  const { cloudCategories } = useCategoriesAPI()
-  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
-  const cloudTrashCategory = cloudCategories.categories.find(
-    (category) => category.type === 'trash',
-  )
 
   return useEventCallback(async (backend: Backend, parentId: DirectoryId) => {
-    const nonDeletedAssets =
-      cloudHomeCategory ?
-        await queryClient.fetchQuery(
-          listDirectoryQueryOptions({
-            backend,
-            parentId,
-            category: cloudHomeCategory,
-            labels: null,
-            sortExpression: null,
-            sortDirection: null,
-            refetchInterval: null,
-          }),
-        )
-      : null
-    const deletedAssets =
-      cloudTrashCategory ?
-        await queryClient.fetchQuery(
-          listDirectoryQueryOptions({
-            backend,
-            parentId,
-            category: cloudTrashCategory,
-            labels: null,
-            sortExpression: null,
-            sortDirection: null,
-            refetchInterval: null,
-          }),
-        )
-      : null
-    return [...(nonDeletedAssets?.assets ?? []), ...(deletedAssets?.assets ?? [])] as const
+    const [nonDeletedAssets, deletedAssets] = await Promise.all([
+      queryClient.fetchQuery(
+        listDirectoryQueryOptions({
+          backend,
+          parentId,
+          category: { type: 'cloud' },
+          labels: null,
+          sortExpression: null,
+          sortDirection: null,
+          refetchInterval: null,
+        }),
+      ),
+      queryClient.fetchQuery(
+        listDirectoryQueryOptions({
+          backend,
+          parentId,
+          category: { type: 'trash' },
+          labels: null,
+          sortExpression: null,
+          sortDirection: null,
+          refetchInterval: null,
+        }),
+      ),
+    ])
+    return [...nonDeletedAssets.assets, ...deletedAssets.assets] as const
   })
 }
 
@@ -278,8 +264,6 @@ export function useUploadFileToCloud() {
   const { remoteBackend } = useBackends()
   const uploads = useUploadsToCloudStore()
   const getSiblings = useGetSiblings()
-  const { cloudCategories } = useCategoriesAPI()
-  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
 
   const upload = useEventCallback(
     /**
@@ -324,15 +308,11 @@ export function useUploadFileToCloud() {
             return
           }
 
-          invariant(
-            cloudHomeCategory != null,
-            'Cloud home category must exist to upload Local project to Cloud',
-          )
           const resolutions = await resolveDuplications({
             canReplace: true,
             targetId: targetDirectoryId,
             conflictingIds: conflictingAssets.map((asset) => asset.id),
-            category: cloudHomeCategory,
+            category: { type: 'cloud' },
             backend: remoteBackend,
           })
 
@@ -434,14 +414,9 @@ export function useUploadFileToCloud() {
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToLocal(category: Category) {
-  const transferBetweenCategories = useTransferBetweenCategories(category)
+  const transferBetweenCategories = useTransferBetweenCategories()
 
-  const { localCategories } = useCategories()
-  const localHomeCategory = localCategories.categories.find(
-    (otherCategory) => otherCategory.type === 'local',
-  )
   return useEventCallback(async (assets: readonly AnyAsset[]) => {
-    invariant(localHomeCategory, 'Local home category must exist to download to local')
-    await transferBetweenCategories(category, localHomeCategory, assets)
+    await transferBetweenCategories(category, { type: 'local' }, assets)
   })
 }

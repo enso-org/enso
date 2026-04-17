@@ -151,6 +151,20 @@ add_text_columns_specs suite_builder setup =
                 True  -> result.should_equal expected_proper_column
                 False -> result.should_fail_with Unsupported_Database_Operation
 
+    if setup.is_operation_supported "REVERSE" then suite_builder.group prefix+"Text_Column (reverse)" group_builder->
+        group_builder.specify "works with scalar values" <|
+            column = build_sorted_table [["X", ["street", "", Nothing, "café", "👩‍🔬A"]]] . at 0
+            result = column.reverse
+
+            result.name . should_equal "reverse([X])" 
+            
+            case ((prefix.contains "PostgreSQL") || (prefix.contains "Snowflake")) of
+                False -> result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A👩‍🔬"]
+                True ->
+                    # PostgreSQL and Snowflake use the backend REVERSE function, which does not
+                    # preserve grapheme clusters like Text.reverse does.
+                    result . to_vector . should_equal ["teerts", "", Nothing, "éfac", "A🔬‍👩"]
+
     suite_builder.group prefix+"Text_Column (left, right, mid)" group_builder->
         group_builder.specify "work with scalar arguments" <|
             column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0

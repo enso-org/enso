@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.execution
 
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.{Endpoint, ExecutionContextManager}
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector
 import org.enso.interpreter.service.ExecutionService
 import org.enso.text.ContentBasedVersioning
 
@@ -28,5 +29,6 @@ case class RuntimeContext(
   jobControlPlane: JobControlPlane,
   locking: Locking,
   state: ExecutionState,
-  versionCalculator: ContentBasedVersioning
+  versionCalculator: ContentBasedVersioning,
+  progressTimingCollector: ProgressTimingCollector
 )

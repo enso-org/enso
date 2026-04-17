@@ -12,9 +12,7 @@ import { useUploadFileToCloud, useUploadFileToLocal } from '#/hooks/backendUploa
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import { canTransferBetweenCategories, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useExportArchive } from '#/pages/useExportArchive'
@@ -22,7 +20,9 @@ import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/provid
 import { setModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
+import { canTransferBetweenCategories, isCloudCategory } from '$/providers/category'
 import { useBackends, useText, useUser } from '$/providers/react'
+import { useDriveCurrentBackend, useDriveCurrentCategory } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import * as backendModule from 'enso-common/src/services/Backend'
 import * as React from 'react'
@@ -46,7 +46,8 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
 ) {
   const { currentDirectoryId, doCopy, doCut, doPaste } = props
 
-  const { category, associatedBackend: backend } = useCategoriesAPI()
+  const [category] = useDriveCurrentCategory()
+  const backend = useDriveCurrentBackend()
   const { getText } = useText()
   const { localBackend } = useBackends()
   const user = useUser()
@@ -67,7 +68,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
 
   const globalContextMenuEntries = useGlobalContextMenuEntries({
     backend,
-    category,
+    category: category.type,
     currentDirectoryId,
     directoryId: null,
     doPaste,

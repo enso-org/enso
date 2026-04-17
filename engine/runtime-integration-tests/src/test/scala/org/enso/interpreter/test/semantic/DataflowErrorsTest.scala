@@ -53,28 +53,25 @@ class DataflowErrorsTest extends InterpreterTest {
     "be catchable by a user-provided special handling function" in {
       val code =
         """
-          |import Standard.Base.Data.Numbers
-          |import Standard.Base.Error.Error
+          |from Standard.Base import all
           |
           |main =
           |    intError = Error.throw 1
-          |    intError.catch Error (x -> x + 3)
+          |    intError.catch Number (x -> x + 3)
           |""".stripMargin
       eval(code) shouldEqual 4
     }
 
     "accept a constructor handler in catch function" in {
       val code =
-        """import Standard.Base.Nothing
-          |import Standard.Base.Error.Error
-          |import Standard.Base.IO
+        """from Standard.Base import all
           |
           |type My_Cons
           |    Mk_My_Cons err
           |
           |main =
           |    unitErr = Error.throw Nothing
-          |    IO.println (unitErr.catch Error My_Cons.Mk_My_Cons)
+          |    IO.println (unitErr.catch Nothing My_Cons.Mk_My_Cons)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Cons Nothing)")
@@ -96,7 +93,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    myErr = Error.throw (My_Error.Mk_My_Error 20)
-          |    IO.println (myErr.catch Error .recover)
+          |    IO.println (myErr.catch My_Error .recover)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Recovered 20)")
@@ -105,7 +102,7 @@ class DataflowErrorsTest extends InterpreterTest {
     "make the catch method an identity for non-error values" in {
       val code =
         """
-          |import Standard.Base.Error.Error
+          |from Standard.Base import all
           |
           |main = 10.catch (x -> x + 1)
           |""".stripMargin

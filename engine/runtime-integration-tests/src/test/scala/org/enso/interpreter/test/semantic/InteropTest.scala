@@ -10,7 +10,8 @@ class InteropTest extends InterpreterTest {
   ): Unit = {
     "support tail recursive functions" in {
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main =
           |    recurFun = i -> if i == 0 then 0 else recurFun i-1
           |    recurFun
@@ -22,7 +23,8 @@ class InteropTest extends InterpreterTest {
 
     "support calling curried functions" in {
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main =
           |    fun = x -> y -> z -> x + y + z
           |    fun y=1
@@ -34,7 +36,8 @@ class InteropTest extends InterpreterTest {
 
     "support creating curried calls" in {
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main = x -> y -> z -> x + y + z
           |""".stripMargin
 
@@ -72,10 +75,13 @@ class InteropTest extends InterpreterTest {
     }
 
     "work with unresolved symbols from builtin scope" in {
-      val code   = "main = .to_text"
+      val code   = """from Standard.Base import all
+                   |
+                   |main = .to_text
+          """.stripMargin
       val symbol = eval(code)
       symbol.call(1) shouldEqual "1"
-      symbol.execute("Foo") shouldEqual "'Foo'"
+      symbol.execute("Foo") shouldEqual "Foo"
     }
   }
 }

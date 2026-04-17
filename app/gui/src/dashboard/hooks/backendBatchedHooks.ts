@@ -1,6 +1,5 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import {
   useMutationState,
@@ -32,15 +31,16 @@ export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
 export const DELETE_ASSETS_MUTATION_METHOD = 'deleteAssets'
 
 /** A key for {@link deleteAssetsMutationOptions}. */
-export function deleteAssetsMutationKey(backendType: BackendType) {
+export function deleteAssetsMutationKey(backendType: BackendType | null) {
   return [backendType, DELETE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "delete" mutations for a list of assets. */
-export function deleteAssetsMutationOptions(backend: Backend) {
+export function deleteAssetsMutationOptions(backend: Backend | null) {
   return mutationOptions({
-    mutationKey: deleteAssetsMutationKey(backend.type),
+    mutationKey: deleteAssetsMutationKey(backend?.type ?? null),
     mutationFn: async ([ids, force]: readonly [ids: readonly AssetId[], force: boolean]) => {
+      if (backend == null) throw Error('Backend unavailable')
       const results = await Promise.allSettled(
         ids.map((id) => backend.deleteAsset(id, { force }, '(unknown)')),
       )
@@ -60,9 +60,9 @@ export function deleteAssetsMutationOptions(backend: Backend) {
     },
     meta: {
       invalidates: [
-        [backend.type, 'listDirectory'],
-        [backend.type, 'getAssetDetails'],
-        [backend.type, 'listAssetVersions'],
+        [backend?.type, 'listDirectory'],
+        [backend?.type, 'getAssetDetails'],
+        [backend?.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
       refetchType: 'all',
@@ -186,19 +186,19 @@ export function useRestoreAssetsMutationState<Result>(
 export const COPY_ASSETS_MUTATION_METHOD = 'copyAssets'
 
 /** A key for {@link copyAssetsMutationOptions}. */
-export function copyAssetsMutationKey(backendType: BackendType) {
+export function copyAssetsMutationKey(backendType: BackendType | null) {
   return [backendType, COPY_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "copy" mutations for a list of assets. */
-export function copyAssetsMutationOptions(backend: Backend) {
+export function copyAssetsMutationOptions(backend: Backend | null) {
   return mutationOptions({
-    mutationKey: copyAssetsMutationKey(backend.type),
+    mutationKey: copyAssetsMutationKey(backend?.type ?? null),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       /**
        * Copy an asset and return a promise that resolves to the asset or an error.
        */
-      const copyAsset = async (id: AssetId) => backend.copyAsset(id, parentId)
+      const copyAsset = async (id: AssetId) => backend?.copyAsset(id, parentId)
 
       const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
 
@@ -218,8 +218,8 @@ export function copyAssetsMutationOptions(backend: Backend) {
     },
     meta: {
       invalidates: [
-        [backend.type, 'listDirectory'],
-        [backend.type, 'getAssetDetails'],
+        [backend?.type, 'listDirectory'],
+        [backend?.type, 'getAssetDetails'],
       ],
       awaitInvalidates: true,
       refetchType: 'all',
@@ -263,15 +263,16 @@ export function useCopyAssetsMutationState<Result>(
 export const MOVE_ASSETS_MUTATION_METHOD = 'moveAssets'
 
 /** A key for {@link moveAssetsMutationOptions}. */
-export function moveAssetsMutationKey(backendType: BackendType) {
+export function moveAssetsMutationKey(backendType: BackendType | null) {
   return [backendType, MOVE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "move" mutations for a list of assets. */
-export function moveAssetsMutationOptions(backend: Backend) {
+export function moveAssetsMutationOptions(backend: Backend | null) {
   return mutationOptions({
-    mutationKey: moveAssetsMutationKey(backend.type),
+    mutationKey: moveAssetsMutationKey(backend?.type ?? null),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
+      if (backend == null) throw Error('No backend available')
       const results = await Promise.allSettled(
         ids.map((id) =>
           backend
@@ -336,8 +337,8 @@ export function moveAssetsMutationOptions(backend: Backend) {
     },
     meta: {
       invalidates: [
-        [backend.type, 'listDirectory'],
-        [backend.type, 'listAssetVersions'],
+        [backend?.type, 'listDirectory'],
+        [backend?.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
     },
@@ -381,13 +382,13 @@ export function useMoveAssetsMutationState<Result>(
 export async function getAllTrashedItems(
   queryClient: QueryClient,
   backend: Backend,
-  category: TrashCategory,
+  parentId: DirectoryId | null,
 ): Promise<readonly AnyAsset[]> {
   return (
     await queryClient.ensureQueryData(
       backendQueryOptions(backend, 'listDirectory', [
         {
-          parentId: category.homeDirectoryId,
+          parentId,
           labels: null,
           filterBy: FilterBy.trashed,
           recentProjects: false,

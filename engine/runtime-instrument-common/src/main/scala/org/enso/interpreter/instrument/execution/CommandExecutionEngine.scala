@@ -58,17 +58,21 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
   implicit private val commandExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(commandExecutor)
 
+  val progressTimingCollector =
+    jobExecutionEngine.progressTimingCollector
+
   private val runtimeContext =
     RuntimeContext(
-      executionService  = interpreterContext.executionService,
-      contextManager    = interpreterContext.contextManager,
-      endpoint          = interpreterContext.endpoint,
-      truffleContext    = interpreterContext.truffleContext,
-      jobProcessor      = jobExecutionEngine,
-      jobControlPlane   = jobExecutionEngine,
-      locking           = locking,
-      state             = executionState,
-      versionCalculator = Sha3_224VersionCalculator
+      executionService        = interpreterContext.executionService,
+      contextManager          = interpreterContext.contextManager,
+      endpoint                = interpreterContext.endpoint,
+      truffleContext          = interpreterContext.truffleContext,
+      jobProcessor            = jobExecutionEngine,
+      jobControlPlane         = jobExecutionEngine,
+      locking                 = locking,
+      state                   = executionState,
+      versionCalculator       = Sha3_224VersionCalculator,
+      progressTimingCollector = progressTimingCollector
     )
 
   /** @inheritdoc */

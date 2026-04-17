@@ -1,9 +1,14 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.common.RuntimeOptions
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.graalvm.polyglot.Context
 
 class TextTest extends InterpreterTest {
   override def subject = "Text Library"
+
+  override def contextModifiers: Option[Context#Builder => Context#Builder] =
+    Some(b => b.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true"))
 
   override def specify(implicit
     interpreterContext: InterpreterContext
@@ -107,7 +112,6 @@ class TextTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base.Any.Any
-          |import Standard.Base.Data.List.List
           |import Standard.Base.Data.Numbers
           |from Standard.Base.Errors.Common import all
           |import Standard.Base.Panic.Panic
@@ -115,25 +119,28 @@ class TextTest extends InterpreterTest {
           |import Standard.Base.Nothing
           |
           |main =
-          |    IO.println (List.Cons Nothing Nothing).to_display_text
+          |    IO.println (Mist.Cons Nothing Nothing).to_display_text
           |    IO.println (Syntax_Error.Error "foo").to_display_text
-          |    IO.println (Type_Error.Error Nothing List.Nil "`myvar`: exp={exp} got={got}").to_display_text
+          |    IO.println (Type_Error.Error Nothing Mist.Nil "`myvar`: exp={exp} got={got}").to_display_text
           |    IO.println (Compile_Error.Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match.Error 32).to_display_text
           |    IO.println (Arithmetic_Error.Error "cannot frobnicate quaternions").to_display_text
           |    IO.println ((Panic.catch Any (1 + "foo") .convert_to_dataflow_error).catch Any .to_display_text)
           |    IO.println ((Panic.catch Any (7 1) .convert_to_dataflow_error).catch Any .to_display_text)
           |    IO.println (Arity_Error.Error 10 10 20).to_display_text
+          |type Mist
+          |    Cons h t
+          |    Nil
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
         "Cons",
         "Syntax error: foo.",
-        "Type error: `myvar`: exp=Nothing got=List.",
+        "Type error: `myvar`: exp=Nothing got=Mist.",
         "Compile error: error :(.",
         "Inexhaustive pattern match: no branch matches 32.",
         "Arithmetic error: cannot frobnicate quaternions.",
-        "Type error: Expected `that` to be Integer, but got Text.",
+        "Type error: expected `that` to be Integer, but got Text.",
         "Type error: expected a function, but got 7.",
         "Wrong number of arguments. Expected 10, but got 20."
       )

@@ -3,7 +3,7 @@ import * as analytics from '$/utils/analytics'
 import { proxyRefs } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
 import { createGlobalState } from '@vueuse/core'
-import { BackendType, isProjectId, Plan } from 'enso-common/src/services/Backend'
+import { BackendType, Plan, type ProjectSessionId } from 'enso-common/src/services/Backend'
 import { Err } from 'enso-common/src/utilities/data/result'
 import { computed, onScopeDispose, reactive, readonly, ref, watchEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation, type RouteLocationRaw } from 'vue-router'
@@ -14,24 +14,40 @@ import { useFeatureFlag } from './featureFlags'
 import { useOpenedProjects } from './openedProjects'
 import {
   PROJECT_ID_SCHEMA,
+  PROJECT_SESSION_ID_SCHEMA,
   RUNNING_PROJECT_INFO_SCHEMA,
   type ProjectInfo,
   type RunningProjectInfo,
 } from './openedProjects/projectInfo'
 
 const PROJECT_TAB_SCHEMA = z.object({ type: z.literal('project'), id: PROJECT_ID_SCHEMA })
+const PROJECT_LOG_TAB_SCHEMA = z.object({
+  type: z.literal('projectLog'),
+  id: PROJECT_SESSION_ID_SCHEMA,
+  title: z.string(),
+})
 const SETTINGS_TAB_SCHEMA = z.object({ type: z.literal('settings') })
-const TAB_SCHEMA = z.discriminatedUnion('type', [PROJECT_TAB_SCHEMA, SETTINGS_TAB_SCHEMA])
+const TAB_SCHEMA = z.discriminatedUnion('type', [
+  PROJECT_TAB_SCHEMA,
+  SETTINGS_TAB_SCHEMA,
+  PROJECT_LOG_TAB_SCHEMA,
+])
 const OPENED_TAB_SCHEMA = z.intersection(
   TAB_SCHEMA,
   z.object({ runningProject: z.optional(RUNNING_PROJECT_INFO_SCHEMA) }),
 )
 const DEFAULT_FOCUS: Panel = { type: 'drive' }
+const PROJECT_LOG_PARAMS_SCHEMA = z.object({
+  id: PROJECT_SESSION_ID_SCHEMA,
+  title: z.string(),
+})
 
 /** A structure identifying tab displayed in the TabView. */
 export type Tab = z.infer<typeof TAB_SCHEMA>
 /** A structure identifying a project tab displayed in the TabView. */
 export type ProjectTab = z.infer<typeof PROJECT_TAB_SCHEMA>
+/** A structure identifying a project log tab displayed in the TabView. */
+export type ProjectLogTab = z.infer<typeof PROJECT_LOG_TAB_SCHEMA>
 type OpenedTab = z.infer<typeof OPENED_TAB_SCHEMA>
 
 /** A structure identifying one of the GUI panels. */
@@ -52,11 +68,18 @@ LocalStorage.registerKey('leftPanelWidth', { schema: z.number() })
 LocalStorage.registerKey('leftPanelToggledOn', { schema: z.boolean(), default: true })
 
 /** Get tab which should be displayed when navigated to this route. */
-export function tabFromRoute(route: RouteLocation) {
+export function tabFromRoute(route: RouteLocation): Tab | null {
   switch (route.name) {
     case 'project': {
-      if (typeof route.params.id !== 'string' || !isProjectId(route.params.id)) return null
-      return { type: 'project' as const, id: route.params.id }
+      const id = PROJECT_ID_SCHEMA.safeParse(route.params.id)
+      if (!id.success) return null
+      return { type: 'project' as const, id: id.data }
+    }
+    case 'projectLog': {
+      const parsed = PROJECT_LOG_PARAMS_SCHEMA.safeParse(route.params)
+      if (!parsed.success) return null
+      const { id, title } = parsed.data
+      return { type: 'projectLog' as const, id, title }
     }
     case 'settings':
       return { type: 'settings' as const }
@@ -70,6 +93,14 @@ export function routeFromTab(tab: Opt<Tab>, from: RouteLocation): RouteLocationR
   switch (tab?.type) {
     case 'project':
       return { name: 'project', params: { id: tab.id }, query: from.query }
+    case 'projectLog': {
+      const { id, title } = tab
+      return {
+        name: 'projectLog',
+        params: { id, title },
+        query: from.query,
+      }
+    }
     case 'settings':
       return { name: 'settings', query: from.query }
     case undefined:
@@ -83,6 +114,8 @@ export function panelKey(panel: Opt<Panel>) {
   switch (panel?.type) {
     case 'project':
       return `project/${panel.id}`
+    case 'projectLog':
+      return `projectLog/${panel.id}`
     case 'settings':
     case 'drive':
       return panel.type
@@ -160,6 +193,13 @@ function createContainerStore() {
     if (userAction) {
       openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
     }
+  }
+
+  /** Add project log tab to list. */
+  function openProjectLogTab(id: ProjectSessionId, title: string) {
+    const tab: Tab = { type: 'projectLog', id, title }
+    if (!isTabOpened(tab)) tabs.set(panelKey(tab), tab)
+    currentTab.value = tab
   }
 
   /** Checks if project with given backend type may be opened locally. */
@@ -289,6 +329,7 @@ function createContainerStore() {
     isTabOpened,
     isCurrentTab,
     openProjectTab,
+    openProjectLogTab,
     canOpenProjectLocally,
     openProjectLocally,
     canOpenProjectNatively,

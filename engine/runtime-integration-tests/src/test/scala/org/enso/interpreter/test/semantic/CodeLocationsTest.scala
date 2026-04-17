@@ -61,7 +61,10 @@ class CodeLocationsTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |
-          |main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
+          |main = (2-2 == 0).if_then_else (Mist.Cons 5 6) 0
+          |
+          |type Mist
+          |    Cons h t
           |""".stripMargin.linesIterator.mkString("\n")
       instrumenter.assertNodeExists(38, 41, classOf[ApplicationNode])
       instrumenter.assertNodeExists(63, 13, classOf[ApplicationNode])
@@ -120,19 +123,23 @@ class CodeLocationsTest extends InterpreterTest {
           |from Standard.Base import all
           |
           |main =
-          |    x = List.Cons 1 2
-          |    y = List.Nil
+          |    x = Mist.Cons 1 2
+          |    y = Mist.Nil
           |
           |    add = a -> b -> a + b
           |
           |    foo = x -> case x of
-          |        List.Cons a b ->
+          |        Mist.Cons a b ->
           |            z = add a b
           |            x = z * z
           |            x
           |        _ -> 5 * 5
           |
           |    foo x + foo y
+          |
+          |type Mist
+          |    Cons h t
+          |    Nil
           |""".stripMargin.linesIterator.mkString("\n")
       instrumenter.assertNodeExists(121, 0, 114, 1, classOf[CaseNode])
       instrumenter.assertNodeExists(172, 7, classOf[ApplicationNode])

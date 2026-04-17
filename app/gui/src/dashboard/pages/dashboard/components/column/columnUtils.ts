@@ -1,6 +1,6 @@
 /** @file Types and constants related to `Column`s. */
 import type { SvgUseIcon } from '#/components/types'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { CategoryType } from '$/providers/category'
 import * as backend from 'enso-common/src/services/Backend'
 
 /** Column type. */
@@ -53,14 +53,14 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 export function getColumnList(
   userPlan: backend.Plan,
   backendType: backend.BackendType,
-  category: Category,
+  category: CategoryType,
   isSearching: boolean,
 ): readonly Column[] {
   const isCloud = backendType === backend.BackendType.remote
   const isEnterprise = userPlan === backend.Plan.enterprise
-  const isTrash = category.type === 'trash'
-  const isRecent = category.type === 'recent'
-  const isRoot = category.type === 'cloud'
+  const isTrash = category === 'trash'
+  const isRecent = category === 'recent'
+  const isRoot = category === 'cloud'
 
   const columns = [
     Column.name,

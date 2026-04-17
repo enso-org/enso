@@ -7,6 +7,7 @@ import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import type { SubscribeButtonProps } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
 import { SubscribeButton } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
+import { setPendingCheckoutTargetPlan } from '#/modules/payments/pendingCheckout'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import * as appUtils from '$/appUtils'
@@ -155,6 +156,7 @@ export function Card(props: CardProps) {
       }
       analytics.checkout.before(planInfo)
       const { url } = await remoteBackend.createCheckoutSession(planInfo)
+      setPendingCheckoutTargetPlan(mutationData.plan)
       window.open(url, '_blank')?.focus()
       await router.push(`${appUtils.PAYMENTS_SUCCESS_PATH}`)
     },

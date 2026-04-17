@@ -1,5 +1,6 @@
 /** @file Actions for the "drive" page. */
 import { expect, type Locator, type Page } from 'integration-test/base'
+import { assert } from 'ydoc-shared/util/assert'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
@@ -67,9 +68,7 @@ function locateSecretValueInput(page: Page) {
 
 /** Find a radio button that navigates to specified drive category. */
 function locateCategoryButton(page: Page, category: string): Locator {
-  return page
-    .getByLabel(TEXT.categorySwitcherMenuLabel)
-    .getByRole('button', { name: category, exact: true })
+  return page.locator('.LeftPanel .leftBar').getByRole('button', { name: category, exact: true })
 }
 
 /** Actions for the "drive" page. */
@@ -87,10 +86,10 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
   /** Switch to a different category. */
   goToCategory = {
     /** Switch to the "cloud" category. */
-    cloud: () => this.goToCategoryNamed(TEXT.cloudCategory),
-    local: () => this.goToCategoryNamed(TEXT.localCategory),
-    recent: () => this.goToCategoryNamed(TEXT.recentCategory),
-    trash: () => this.goToCategoryNamed(TEXT.trashCategory),
+    cloud: () => this.goToCategoryNamed('Cloud'),
+    local: () => this.goToCategoryNamed('Local'),
+    recent: () => this.goToCategoryNamed('Recent'),
+    trash: () => this.goToCategoryNamed('Trash'),
   }
 
   /** Interact with the assets search bar. */
@@ -111,7 +110,7 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
   /** Expect the category to be selected. */
   expectCategory(category: string) {
     return this.step(`Expect category '${category}'`, (page) =>
-      expect(locateCategoryButton(page, category)).toHaveAttribute('data-selected', 'true'),
+      expect(locateCategoryButton(page, category)).toContainClass('toggledOn'),
     )
   }
 
@@ -185,7 +184,9 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
       /** Click the background to deselect all rows. */
       clickAway() {
         return self.step('Click drive table background', async (page) => {
-          await page.getByTestId('assets-table-assets-unselector').first().click()
+          const lastRowBbox = await page.getByTestId('asset-row').last().boundingBox()
+          assert(lastRowBbox != null)
+          await page.mouse.click(lastRowBbox.x + 40, lastRowBbox.y + lastRowBbox.height + 40)
         })
       },
       /**
@@ -243,19 +244,9 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
         return self.step(
           `Drag drive table row '${row}' to '${category}' category`,
           async (page) => {
-            const categoryId = (
-              {
-                Cloud: 'cloudCategory',
-                Local: 'localCategory',
-                Recent: 'recentCategory',
-                Trash: 'trashCategory',
-              } satisfies { [C in typeof category]: `${Lowercase<C>}Category` & keyof typeof TEXT }
-            )[category]
-
             const categoryElement = page
-              .getByLabel(TEXT.categorySwitcherMenuLabel)
-              .getByRole('button', { name: TEXT[categoryId], exact: true })
-              .getByText(TEXT[categoryId])
+              .locator('.LeftPanel .leftBar')
+              .getByRole('button', { name: category, exact: true })
 
             await getRow(page, row).dragTo(categoryElement, {
               sourcePosition: ASSET_ROW_SAFE_POSITION,
