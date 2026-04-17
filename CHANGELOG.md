@@ -18,6 +18,8 @@
 - [A comment can be attached to the asset version][14923]
 - [New tabular view of session log with filtering][14953]
 - [Input ports no longer highlight on hover unless being connected to][14968]
+- [Fix duplicated entries in Component Browser][14974]. The overshadowed methods
+  from parent types are no longer displayed.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -34,6 +36,7 @@
 [14823]: https://github.com/enso-org/enso/pull/14823
 [14953]: https://github.com/enso-org/enso/pull/14953
 [14968]: https://github.com/enso-org/enso/pull/14968
+[14974]: https://github.com/enso-org/enso/pull/14974
 
 #### Enso Standard Library
 
