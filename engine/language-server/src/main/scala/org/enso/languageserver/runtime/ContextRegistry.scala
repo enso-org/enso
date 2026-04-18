@@ -306,26 +306,11 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
-      case AttachVisualization(clientId, visualizationId, expressionId, cfg) =>
-        if (store.hasContext(clientId, cfg.executionContextId)) {
-          val handler = context.actorOf(
-            AttachVisualizationHandler.props(
-              runtimeFailureMapper,
-              timeout,
-              runtime
-            )
-          )
-          handler.forward(
-            Api.AttachVisualization(
-              visualizationId,
-              expressionId,
-              cfg.toApi
-            )
-          )
-        } else {
-          sender() ! AccessDenied
-        }
-
+      // Attach/modify visualization requests no longer arrive here. They
+      // flow through the vis subdoc and `VisualizationBridgeActor` directly
+      // into the runtime. Only oneshot auto-detach (from
+      // `ContextEventsListener` for `executionContext/executeExpression`
+      // results) still sends `DetachVisualization` through this path.
       case DetachVisualization(
             clientId,
             contextId,
@@ -342,23 +327,6 @@ final class ContextRegistry(
           )
           handler.forward(
             Api.DetachVisualization(contextId, visualizationId, expressionId)
-          )
-        } else {
-          sender() ! AccessDenied
-        }
-
-      case ModifyVisualization(clientId, visualizationId, cfg) =>
-        if (store.hasContext(clientId, cfg.executionContextId)) {
-          val handler = context.actorOf(
-            ModifyVisualizationHandler.props(
-              runtimeFailureMapper,
-              timeout,
-              runtime
-            )
-          )
-
-          handler.forward(
-            Api.ModifyVisualization(visualizationId, cfg.toApi)
           )
         } else {
           sender() ! AccessDenied

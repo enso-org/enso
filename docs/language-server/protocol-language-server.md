@@ -29,8 +29,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionConfig`](#expressionConfig)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
-  - [`VisualizationConfiguration`](#visualizationconfiguration)
-  - [`VisualizationExpression`](#visualizationexpression)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
@@ -148,11 +146,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
   - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
-  - [`executionContext/attachVisualization`](#executioncontextattachvisualization)
-  - [`executionContext/detachVisualization`](#executioncontextdetachvisualization)
-  - [`executionContext/modifyVisualization`](#executioncontextmodifyvisualization)
-  - [`executionContext/visualizationUpdate`](#executioncontextvisualizationupdate)
-  - [`executionContext/visualizationEvaluationFailed`](#executioncontextvisualizationevaluationfailed)
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestions-database-example)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
@@ -210,8 +203,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`EmptyStackError`](#emptystackerror)
   - [`InvalidStackItemError`](#invalidstackitemerror)
   - [`ModuleNotFoundError`](#modulenotfounderror)
-  - [`VisualizationNotFoundError`](#visualizationnotfounderror)
-  - [`VisualizationExpressionError`](#visualizationexpressionerror)
   - [`FileNotOpenedError`](#filenotopenederror)
   - [`TextEditValidationError`](#texteditvalidationerror)
   - [`InvalidVersionError`](#invalidversionerror)
@@ -449,24 +440,6 @@ interface FunctionSchema {
   methodPointer: MethodPointer;
   /** Indexes of arguments that have not been applied to this function. */
   notAppliedArguments: number[];
-}
-```
-
-### `VisualizationConfiguration`
-
-A configuration object for properties of the visualization.
-
-```typescript
-interface VisualizationConfiguration {
-  /** An execution context of the visualization. */
-  executionContextId: UUID;
-  /** The qualified name of the module to be used to evaluate the arguments for
-   * the visualization expression. */
-  visualizationModule: string;
-  /** An expression that creates a visualization. */
-  expression: string | MethodPointer;
-  /** A list of arguments to pass to the visualization expression. */
-  positionalArgumentsExpressions?: string[];
 }
 ```
 
@@ -1730,11 +1703,10 @@ destroying the context.
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
 - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
-- [`executionContext/attachVisualization`](#executioncontextattachvisualization)
-- [`executionContext/modifyVisualization`](#executioncontextmodifyvisualization)
-- [`executionContext/detachVisualization`](#executioncontextdetachvisualization)
-- [`executionContext/visualizationUpdate`](#executioncontextvisualizationupdate)
-- [`executionContext/visualizationEvaluationFailed`](#executioncontextvisualizationevaluationfailed)
+
+(Visualization attach/detach/modify and update/failed notifications were moved
+off JSON-RPC to the vis subdoc; see
+[`docs/infrastructure/ydoc.md`](../infrastructure/ydoc.md).)
 
 #### Disables
 
@@ -3273,6 +3245,17 @@ fine-grained control over program and expression execution to the clients of the
 language server. This is incredibly important for enabling the high levels of
 interactivity required by Enso Studio.
 
+> **Visualization transport note.** The historically JSON-RPC-based
+> visualization endpoints `executionContext/attachVisualization`,
+> `detachVisualization`, `modifyVisualization`, `visualizationUpdate`, and
+> `visualizationEvaluationFailed` are being retired in favour of a dedicated Yjs
+> subdoc synchronized through the ydoc-server. Clients write request slots into
+> the subdoc and receive response bytes via CRDT sync; no JSON-RPC call is
+> involved. See [`docs/infrastructure/ydoc.md`](../infrastructure/ydoc.md) for
+> the new transport. Their spec sections below remain for reference until the
+> backing Language Server handlers are deleted in a follow-up change. New
+> clients should not use them.
+
 ### Execution Management Example
 
 Given the default project structure.
@@ -3891,10 +3874,8 @@ This message allows the client to execute an arbitrary expression in a context
 of a given node. It behaves like putting a breakpoint after the expression with
 `expressionId` and executing the provided `expression`. All the local and global
 symbols that are available for the `expressionId` will be available when
-executing the `expression`. The result of the evaluation will be delivered as a
-visualization result on a binary connection. You can think of it as a oneshot
-[`executionContext/attachVisualization`](#executioncontextattachvisualization)
-visualization request, meaning that the expression will be executed once.
+executing the `expression`. The result of the evaluation is delivered once as a
+visualization result on the binary connection.
 
 For example, given the current code:
 
@@ -3943,193 +3924,8 @@ type ExecutionContextExecuteExpressionResult = null;
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
-- [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
+- Error code `2007` (previously `VisualizationExpressionError`) is emitted when
   the provided expression cannot be evaluated.
-
-### `executionContext/attachVisualization`
-
-This message allows the client to attach a visualization, potentially
-preprocessed by some arbitrary Enso code, to a given node in the program.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface ExecutionContextAttachVisualizationParameters {
-  visualizationId: UUID;
-  expressionId: UUID;
-  visualizationConfig: VisualizationConfiguration;
-}
-```
-
-#### Result
-
-```typescript
-type ExecutionContextAttachVisualizationResult = null;
-```
-
-#### Errors
-
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
-  `executionContext/canModify` capability for this context.
-- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
-  by provided id.
-- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualization cannot be found.
-- [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
-  the expression specified in the `VisualizationConfiguration` cannot be
-  evaluated.
-
-### `executionContext/detachVisualization`
-
-This message allows a client to detach a visualization from the executing code.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface ExecutionContextDetachVisualizationParameters {
-  executionContextId: UUID;
-  visualizationId: UUID;
-  expressionId: UUID;
-}
-```
-
-#### Result
-
-```typescript
-type ExecutionContextDetachVisualizationResult = null;
-```
-
-#### Errors
-
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
-  `executionContext/canModify` capability for this context.
-- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
-  by provided id.
-- [`VisualizationNotFoundError`](#visualizationnotfounderror) when a
-  visualization can not be found.
-
-### `executionContext/modifyVisualization`
-
-This message allows a client to modify the configuration for an existing
-visualization.
-
-A successful response means that the new visualization configuration has been
-applied. In case of an error response, the visualization state does not change.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface ExecutionContextModifyVisualizationParameters {
-  visualizationId: UUID;
-  visualizationConfig: VisualizationConfiguration;
-}
-```
-
-#### Result
-
-```typescript
-type ExecutionContextModifyVisualizationResult = null;
-```
-
-#### Errors
-
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
-  `executionContext/canModify` capability for this context.
-- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
-  by provided id.
-- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualization cannot be found.
-- [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
-  the expression specified in the `VisualizationConfiguration` cannot be
-  evaluated.
-- [`VisualizationNotFoundError`](#visualizationnotfounderror) when a
-  visualization can not be found.
-
-### `executionContext/visualizationUpdate`
-
-This message is responsible for providing a visualization data update to the
-client.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Data
-- **Visibility:** Public
-
-The `visualizationData` component of the table definition _must_ be
-pre-serialized before being inserted into this message. As far as this level of
-transport is concerned, it is just a binary blob.
-
-#### Parameters
-
-```csharp
-namespace org.enso.languageserver.protocol.binary;
-
-// A visualization context identifying a concrete visualization.
-table VisualizationContext {
-  // A visualization identifier.
-  visualizationId: EnsoUUID (required);
-  // A context identifier.
-  contextId: EnsoUUID (required);
-  // An expression identifier.
-  expressionId: EnsoUUID (required);
-}
-
-// An event signaling visualization update.
-table VisualizationUpdate {
-  // A visualization context identifying a concrete visualization.
-  visualizationContext: VisualizationContext (required);
-  // A visualization data.
-  data: [ubyte] (required);
-}
-
-root_type VisualizationUpdate;
-```
-
-#### Errors
-
-None
-
-### `executionContext/visualizationEvaluationFailed`
-
-Signals that an evaluation of a visualization expression on the computed value
-has failed.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Notification
-
-```typescript
-interface ExecutionContextVisualizationEvaluationFailedNotification {
-  /** An execution context identifier. */
-  contextId: ContextId;
-  /** A visualization identifier. */
-  visualizationId: UUID;
-  /** An identifier of a visualised expression. */
-  expressionId: UUID;
-  /** An error message. */
-  message: string;
-  /** Detailed information about the error. */
-  diagnostic?: Diagnostic;
-}
-```
 
 ## Search Operations
 
@@ -5559,47 +5355,6 @@ It signals that the given module cannot be found.
 "error" : {
   "code" : 2005,
   "message" : "Module not found [Foo.Bar.Baz]"
-}
-```
-
-### `VisualizationNotFoundError`
-
-It signals that the visualization cannot be found.
-
-```typescript
-"error" : {
-  "code" : 2006,
-  "message" : "Visualization not found"
-}
-```
-
-### `VisualizationExpressionError`
-
-It signals that the expression specified in the `VisualizationConfiguration`
-cannot be evaluated. The error contains an optional `data` field of type
-[`Diagnostic`](#diagnostic) providing error details.
-
-```typescript
-"error" : {
-  "code" : 2007,
-  "message" : "Evaluation of the visualization expression failed [i is not defined]"
-  "payload" : {
-    "kind" : "Error",
-    "message" : "i is not defined",
-    "path" : null,
-    "location" : {
-      "start" : {
-        "line" : 0,
-        "character" : 8
-      },
-      "end" : {
-        "line" : 0,
-        "character" : 9
-      }
-    },
-    "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
-    "stack" : []
-  }
 }
 ```
 

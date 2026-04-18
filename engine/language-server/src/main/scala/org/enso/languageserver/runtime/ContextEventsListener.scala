@@ -81,7 +81,11 @@ final class ContextEventsListener(
         )
       )
 
-    case Api.VisualizationUpdate(ctx, data) if ctx.contextId == contextId =>
+    case Api.VisualizationUpdate(ctx, data)
+        if ctx.contextId == contextId && oneshotVisualizations.contains(ctx) =>
+      // Only oneshot visualizations (produced by `executionContext/executeExpression`)
+      // still flow through the legacy binary channel. Attach/detach/modify
+      // visualizations are routed through the vis subdoc via `VisualizationBridgeActor`.
       val payload =
         VisualizationUpdate(
           VisualizationContext(
@@ -92,20 +96,18 @@ final class ContextEventsListener(
           data
         )
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
-      if (oneshotVisualizations.contains(ctx)) {
-        context.parent ! DetachVisualization(
-          rpcSession.clientId,
-          contextId,
-          ctx.visualizationId,
-          ctx.expressionId
+      context.parent ! DetachVisualization(
+        rpcSession.clientId,
+        contextId,
+        ctx.visualizationId,
+        ctx.expressionId
+      )
+      context.become(
+        withState(
+          oneshotVisualizations - ctx,
+          expressionUpdates
         )
-        context.become(
-          withState(
-            oneshotVisualizations - ctx,
-            expressionUpdates
-          )
-        )
-      }
+      )
 
     case Api.ExpressionUpdates(`contextId`, apiUpdates) =>
       context.become(

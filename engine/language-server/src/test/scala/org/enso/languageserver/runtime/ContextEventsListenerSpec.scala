@@ -299,21 +299,13 @@ class ContextEventsListenerSpec
           )
         )
 
+        // After the oneshot auto-detach, subsequent `Api.VisualizationUpdate`
+        // events for the same ctx are no longer forwarded to the binary
+        // channel. Regular attach/modify visualization updates are routed
+        // through the vis subdoc by `VisualizationBridgeActor` instead.
         val data2 = Array[Byte](2, 3, 4)
         listener ! Api.VisualizationUpdate(ctx, data2)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data2
-            )
-          )
-        )
+        router.expectNoMessage()
         registry.expectNoMessage()
     }
 
@@ -358,48 +350,11 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send visualization updates" taggedAs Retry in withEventsListener {
-      (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
-          UUID.randomUUID(),
-          contextId,
-          UUID.randomUUID()
-        )
-
-        val data1 = Array[Byte](1, 2, 3)
-        listener ! Api.VisualizationUpdate(ctx, data1)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data1
-            )
-          )
-        )
-        registry.expectNoMessage()
-
-        val data2 = Array[Byte](2, 3, 4)
-        listener ! Api.VisualizationUpdate(ctx, data2)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data2
-            )
-          )
-        )
-        registry.expectNoMessage()
-    }
+    // "send visualization updates" (non-oneshot) was removed: regular
+    // attach/modify/detach visualizations are now routed through the vis
+    // subdoc by `VisualizationBridgeActor`, so `ContextEventsListener` only
+    // forwards the binary `VisualizationUpdate` for oneshot visualizations
+    // (exercised in "register oneshot visualization" above).
 
     "send execution failed notification" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, _, listener) =>

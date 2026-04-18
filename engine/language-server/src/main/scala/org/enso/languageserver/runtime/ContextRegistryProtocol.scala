@@ -483,33 +483,19 @@ object ContextRegistryProtocol {
     expressionId: UUID
   )
 
-  /** Requests the language server to attach a visualization to the expression
-    * specified by `expressionId`.
-    *
-    * @param clientId the requester id
-    * @param visualizationId an identifier of a visualization
-    * @param expressionId an identifier of an expression which is visualised
-    * @param visualizationConfig a configuration object for properties of the
-    * visualization
+  // `AttachVisualization` / `ModifyVisualization` used to carry JSON-RPC
+  // attach/modify requests through `ContextRegistry`. That path is gone,
+  // requests now flow through the vis subdoc and `VisualizationBridgeActor`
+  // straight to the runtime. `DetachVisualization` below is retained because
+  // `ContextEventsListener` still routes oneshot auto-detaches (from
+  // `executionContext/executeExpression`) through it, and
+  // `VisualizationAttached` is kept as the success marker that
+  // `ExecuteExpressionHandler` signals on completion.
+
+  /** Signals that attaching a visualization has succeeded. Emitted by
+    * `ExecuteExpressionHandler` when the runtime acknowledges an
+    * `executionContext/executeExpression` request.
     */
-  case class AttachVisualization(
-    clientId: ClientId,
-    visualizationId: UUID,
-    expressionId: UUID,
-    visualizationConfig: VisualizationConfiguration
-  ) extends ToLogString {
-
-    /** @inheritdoc */
-    override def toLogString(shouldMask: Boolean): String =
-      "AttachVisualization(" +
-      s"clientId=$clientId," +
-      s"visualizationId=$visualizationId," +
-      s"expressionId=$expressionId,visualizationConfig=" +
-      visualizationConfig.toLogString(shouldMask) +
-      ")"
-  }
-
-  /** Signals that attaching a visualization has succeeded. */
   case object VisualizationAttached
 
   /** Requests the language server to detach a visualization from the expression
@@ -530,32 +516,6 @@ object ContextRegistryProtocol {
   /** Signals that detaching a visualization has succeeded.
     */
   case object VisualizationDetached
-
-  /** Requests the language server to modify a visualization.
-    *
-    * @param clientId  the requester id
-    * @param visualizationId     an identifier of a visualization
-    * @param visualizationConfig a configuration object for properties of the
-    *                            visualization
-    */
-  case class ModifyVisualization(
-    clientId: ClientId,
-    visualizationId: UUID,
-    visualizationConfig: VisualizationConfiguration
-  ) extends ToLogString {
-
-    /** @inheritdoc */
-    override def toLogString(shouldMask: Boolean): String =
-      "ModifyVisualization(" +
-      s"clientId=$clientId," +
-      s"visualizationId=$visualizationId,visualizationConfig=" +
-      visualizationConfig.toLogString(shouldMask) +
-      ")"
-  }
-
-  /** Signals that a visualization modification has succeeded.
-    */
-  case object VisualizationModified
 
   /** Represents a visualization context.
     *
@@ -589,8 +549,10 @@ object ContextRegistryProtocol {
     */
   case object VisualizationNotFound extends Failure
 
-  /** Signals that an expression specified in a [[AttachVisualization]] or
-    * a [[ModifyVisualization]] cannot be evaluated.
+  /** Signals that an expression specified in a visualization request cannot
+    * be evaluated. Produced by the `executionContext/executeExpression`
+    * path. Attach/modify flow through `VisualizationBridgeActor` and surface
+    * failures via the vis subdoc's slot status instead.
     *
     * @param message the reason of the failure
     * @param diagnostic the detailed information about the failure
