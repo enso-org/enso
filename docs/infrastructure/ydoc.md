@@ -21,6 +21,7 @@ Language Server through dedicated message channels.
   - [YjsChannel.Server Interface](#yjschannelcallbacks-interface)
   - [JSON Channel](#json-channel)
   - [Binary Channel](#binary-channel)
+  - [Visualization Channels](#visualization-channels)
 - [Thread Safety](#thread-safety)
 - [Startup Flow](#startup-flow)
 - [Source Code Layout](#source-code-layout)
@@ -100,10 +101,13 @@ public interface YjsChannel.Server {
 }
 ```
 
-Two callback instances are passed to the Ydoc server at startup:
+Four callback instances are passed to the Ydoc server at startup:
 
 - `YDOC_JSON_CHANNEL_CALLBACKS` - For JSON-RPC text messages
 - `YDOC_BINARY_CHANNEL_CALLBACKS` - For binary protocol messages
+- `YDOC_VIS_CONTROL_CHANNEL_CALLBACKS` - For visualization attach/detach/fail
+  JSON messages (see [Visualization Channels](#visualization-channels))
+- `YDOC_VIS_DATA_CHANNEL_CALLBACKS` - For visualization response bytes
 
 ### JSON Channel
 
@@ -123,6 +127,26 @@ side, `YjsBinaryChannel` extends `YjsChannel` to convert between JavaScript
 On the Language Server side, `BinaryYdocServer.BinaryServerCallbacks` decodes
 incoming binary messages and forwards them to connection controllers.
 
+### Visualization Channels
+
+Visualization requests and responses are carried over a dedicated pair of
+channels and an accompanying subdoc, not over the `executionContext/*` JSON-RPC
+methods or the FlatBuffers `VisualizationUpdate` notification.
+
+- `vis:control` (JSON strings) carries `attach`, `detach`, `ready`, and
+  `failed` messages between the ydoc-server bridge and the Language Server.
+- `vis:data` (binary, raw `Uint8Array` on the JS side, Java `ByteBuffer` on the
+  LS side) carries response payloads framed as `[16-byte requestId][bytes]`.
+
+The **visualization subdoc** is a Yjs subdoc held under
+`DistributedProject.visualizations` (a Y.Map keyed by a single reserved slot).
+Clients write slots into the subdoc's top-level `slots: Y.Map<requestId, ...>`
+to request visualizations; the ydoc-server
+[`visualizationBridge`](../../app/ydoc-server/src/visualizationBridge.ts)
+observes those mutations and emits `attach` / `detach` messages on
+`vis:control`. Responses flowing back from the LS as binary frames on `vis:data`
+are written into the originating slot's `response` field.
+
 ## Thread Safety
 
 GraalJS polyglot context requires all JavaScript interactions to occur on a
@@ -137,14 +161,20 @@ on the owner thread.
 
 ## Startup Flow
 
-1. `MainModule` of the Language Server creates callback instances for JSON and
-   binary channels
-2. `YdocServerApi.launchYdocServer()` starts the Ydoc server
-3. The `Ydoc` class initializes GraalJS context and loads `main.ts` ydoc
-   entrypoint passing callback objects for JSON and binary channels
-4. When a WebSocket client connects, Ydoc creates channels and invokes
-   `onConnect()` on the appropriate callbacks
-5. The Language Server subscribes to channels and begins message exchange
+1. `MainModule` of the Language Server creates callback instances for the JSON,
+   binary, `vis:control`, and `vis:data` channels (the last two are supplied by
+   `VisualizationBridgeActor`)
+2. `YdocServerApi.launchYdocServer()` starts the Ydoc server, passing all four
+   callbacks
+3. The `Ydoc` class initializes GraalJS context and loads the `main.ts` ydoc
+   entrypoint, binding all four callback objects
+4. When a WebSocket client connects, Ydoc creates channels for that session
+   (shared across clients of the same project URL) and invokes `onConnect()` on
+   the appropriate callbacks
+5. The Language Server subscribes to channels and begins message exchange. For
+   the visualization channels, `VisualizationBridgeActor` records the channel
+   references and decodes `attach` / `detach` JSON into
+   `Api.AttachVisualization` / `Api.DetachVisualization` on the Runtime API
 
 ## Source Code Layout
 

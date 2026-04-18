@@ -16,7 +16,9 @@ public final class Main {
       String ydocHost,
       String ydocPort,
       YjsChannel.Server jsonChannelCallbacks,
-      YjsChannel.Server binaryChannelCallbacks)
+      YjsChannel.Server binaryChannelCallbacks,
+      YjsChannel.Server visControlChannelCallbacks,
+      YjsChannel.Server visDataChannelCallbacks)
       throws IOException {
     var builder = Ydoc.builder();
     if (ydocHost != null) {
@@ -31,6 +33,12 @@ public final class Main {
     }
     if (binaryChannelCallbacks != null) {
       builder.binaryChannelCallbacks(binaryChannelCallbacks);
+    }
+    if (visControlChannelCallbacks != null) {
+      builder.visControlChannelCallbacks(visControlChannelCallbacks);
+    }
+    if (visDataChannelCallbacks != null) {
+      builder.visDataChannelCallbacks(visDataChannelCallbacks);
     }
     var hostAccess =
         WebEnvironment.defaultHostAccess

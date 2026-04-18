@@ -44,6 +44,7 @@
     "./src/util/net/YjsTransport.ts",
     "./src/util/types.ts",
     "./src/uuid.ts",
+    "./src/visualizations.ts",
     "./src/yjsModel.ts"
   ]
 }

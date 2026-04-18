@@ -104,12 +104,20 @@ export function setupGatewayClient(
   byteBuffer: any,
   jsonChannelServer: YjsChannelServer,
   binaryChannelServer: YjsChannelServer,
+  visControlChannelServer?: YjsChannelServer<string>,
+  visDataChannelServer?: YjsChannelServer<unknown>,
   inspectManager?: InspectManager | null,
 ): void {
   console.log(
     `Setting up Gateway Client: docName=${docName}, lsUrl=${lsUrl ?? 'none'}, dataUrl=${dataUrl ?? 'none'}`,
   )
-  const lsSession = getSessionForUrl(lsUrl, jsonChannelServer)
+  const lsSession = getSessionForUrl(
+    lsUrl,
+    jsonChannelServer,
+    visControlChannelServer,
+    visDataChannelServer,
+    byteBuffer,
+  )
   inspectManager?.registerSession(lsSession.docs)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
@@ -136,10 +144,22 @@ export function setupGatewayClient(
   })
 }
 
-function getSessionForUrl(lsUrl: string | undefined | null, jsonChannelServer: YjsChannelServer) {
+function getSessionForUrl(
+  lsUrl: string | undefined | null,
+  jsonChannelServer: YjsChannelServer,
+  visControlServer?: YjsChannelServer<string>,
+  visDataServer?: YjsChannelServer<unknown>,
+  byteBufferClass?: any,
+) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
-    lsSession = LanguageServerSession.get(lsUrl, jsonChannelServer)
+    lsSession = LanguageServerSession.get(
+      lsUrl,
+      jsonChannelServer,
+      visControlServer,
+      visDataServer,
+      byteBufferClass,
+    )
   } else {
     const anySession = LanguageServerSession.sessions.values().next().value
     if (LanguageServerSession.sessions.size === 1 && anySession) {

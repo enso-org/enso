@@ -12,12 +12,19 @@ public abstract class YdocServerApi {
    * @param port port to bind to
    * @param jsonServer implementation handling JSON messages
    * @param binaryServer implementation handling binary messages communication
+   * @param visControlServer implementation handling visualization control (JSON) messages
+   * @param visDataServer implementation handling visualization data (binary) messages
    * @return
    * @throws IOException
    * @throws URISyntaxException
    */
   public static AutoCloseable launchYdocServer(
-      String hostname, int port, YjsChannel.Server jsonServer, YjsChannel.Server binaryServer)
+      String hostname,
+      int port,
+      YjsChannel.Server jsonServer,
+      YjsChannel.Server binaryServer,
+      YjsChannel.Server visControlServer,
+      YjsChannel.Server visDataServer)
       throws IOException, URISyntaxException {
     var loader = YdocServerApi.class.getClassLoader();
     var it = ServiceLoader.load(YdocServerApi.class, loader).iterator();
@@ -25,13 +32,16 @@ public abstract class YdocServerApi {
       throw new IllegalStateException("No Ydoc server implementation found");
     }
     var impl = it.next();
-    return impl.runYdocServer(hostname, port, jsonServer, binaryServer);
+    return impl.runYdocServer(
+        hostname, port, jsonServer, binaryServer, visControlServer, visDataServer);
   }
 
   protected abstract AutoCloseable runYdocServer(
       String hostname,
       int port,
       YjsChannel.Server jsonChannelCallbacks,
-      YjsChannel.Server binaryChannelCallbacks)
+      YjsChannel.Server binaryChannelCallbacks,
+      YjsChannel.Server visControlChannelCallbacks,
+      YjsChannel.Server visDataChannelCallbacks)
       throws IOException, URISyntaxException;
 }

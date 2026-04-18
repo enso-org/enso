@@ -22,8 +22,13 @@ export interface JavaByteBufferClass {
 
 /**
  * Codec that converts between Java ByteBuffer (external API) and Uint8Array (Y.Array storage).
+ *
+ * Exported for reuse by other binary-carrying channels (e.g. the visualization
+ * data channel), which need the same polyglot-aware encoding but are wired up
+ * outside of `YjsBinaryChannel` because they share a `Y.Array` with a paired
+ * identity-coded endpoint on the ydoc-server side.
  */
-class JavaByteBufferCodec implements ChannelCodec<JavaByteBuffer, Uint8Array> {
+export class JavaByteBufferCodec implements ChannelCodec<JavaByteBuffer, Uint8Array> {
   constructor(private readonly ByteBuffer: JavaByteBufferClass) {}
 
   encode(message: JavaByteBuffer): Uint8Array {

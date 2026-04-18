@@ -23,7 +23,6 @@ import type {
   response,
   StackItem,
   TextFileContents,
-  VisualizationConfiguration,
 } from './languageServerTypes'
 import { AbortScope, exponentialBackoff } from './util/net'
 import type { YjsTransport } from './util/net/YjsTransport'
@@ -466,42 +465,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     })
   }
 
-  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextattachvisualization) */
-  attachVisualization(
-    visualizationId: Uuid,
-    expressionId: ExpressionId,
-    visualizationConfig: VisualizationConfiguration,
-  ): Promise<LsRpcResult<void>> {
-    return this.request('executionContext/attachVisualization', {
-      visualizationId,
-      expressionId,
-      visualizationConfig,
-    })
-  }
-
-  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextdetachvisualization) */
-  detachVisualization(
-    visualizationId: Uuid,
-    expressionId: ExpressionId,
-    contextId: ContextId,
-  ): Promise<LsRpcResult<void>> {
-    return this.request('executionContext/detachVisualization', {
-      visualizationId,
-      expressionId,
-      contextId,
-    })
-  }
-
-  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextmodifyvisualization) */
-  modifyVisualization(
-    visualizationId: Uuid,
-    visualizationConfig: VisualizationConfiguration,
-  ): Promise<LsRpcResult<void>> {
-    return this.request('executionContext/modifyVisualization', {
-      visualizationId,
-      visualizationConfig,
-    })
-  }
+  // Visualization attach/detach/modify have moved off JSON-RPC onto the vis
+  // subdoc synced via ydoc-server.
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#searchgetsuggestionsdatabase) */
   getSuggestionsDatabase(): Promise<LsRpcResult<response.GetSuggestionsDatabase>> {

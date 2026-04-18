@@ -542,6 +542,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
   log.trace("Created Binary Channel Callbacks [{}]", binaryChannelCallbacks)
 
+  val visualizationBridge =
+    org.enso.languageserver.runtime.VisualizationBridgeActor(
+      runtimeConnector,
+      system
+    )
+  log.trace(
+    "Created Visualization Bridge [{}]",
+    visualizationBridge.actor
+  )
+
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
     val ydocExecutor = Executors.newSingleThreadExecutor(r => {
@@ -557,7 +567,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           c.hostname,
           c.port,
           jsonRpcServer.yjsChannelCallbacks,
-          binaryChannelCallbacks
+          binaryChannelCallbacks,
+          visualizationBridge.controlCallbacks,
+          visualizationBridge.dataCallbacks
         )
     )
     ydocExecutor
