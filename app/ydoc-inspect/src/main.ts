@@ -16,10 +16,12 @@ function parseArgs(): { host: string; port: string; watch: boolean; truncate: nu
   return { host, port, watch, truncate }
 }
 
+/* How long to wait before retrying when the ydoc-server websocket is unreachable. */
 const RETRY_INTERVAL_MS = 2000
+/* Upper bound on how long to wait for the initial channel registrations after connecting. */
 const SYNC_TIMEOUT_MS = 5000
-/* The number of yjs channels created when gui connects to the Language Server. */
-const INITIAL_CHANNELS_NUMBER = 3
+/* How long to wait after the last channel update before assuming the initial batch is complete. */
+const SYNC_SETTLE_MS = 250
 
 const { host, port, watch, truncate } = parseArgs()
 const url = `ws://${host}:${port}/project/inspect`
@@ -76,19 +78,21 @@ async function connectWithRetry(): Promise<void> {
         console.log('Connected. Syncing inspect data...')
         await new Promise<void>((resolve) => {
           const channelsMap = client.doc.getMap('channels')
-          if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
+          let settleTimer: ReturnType<typeof setTimeout> | undefined
+          const finish = () => {
+            clearTimeout(overallTimeout)
+            if (settleTimer) clearTimeout(settleTimer)
+            channelsMap.unobserve(handler)
             resolve()
-            return
           }
-          const timeout = setTimeout(resolve, SYNC_TIMEOUT_MS)
           const handler = () => {
-            if (channelsMap.size >= INITIAL_CHANNELS_NUMBER) {
-              clearTimeout(timeout)
-              channelsMap.unobserve(handler)
-              resolve()
-            }
+            if (channelsMap.size === 0) return
+            if (settleTimer) clearTimeout(settleTimer)
+            settleTimer = setTimeout(finish, SYNC_SETTLE_MS)
           }
+          const overallTimeout = setTimeout(finish, SYNC_TIMEOUT_MS)
           channelsMap.observe(handler)
+          if (channelsMap.size > 0) handler()
         })
         const channels = helpers.channels()
         if (channels.length > 0) {
