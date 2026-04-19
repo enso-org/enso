@@ -226,6 +226,44 @@ class VisualizationBridgeActorSpec
     system.stop(actor)
   }
 
+  it must "forward attach with an inFrame expression as Api.AttachVisualization with VisualizationExpression.InFrame" in {
+    val runtime = TestProbe()
+    val actor = system.actorOf(
+      VisualizationBridgeServer.props(runtime.ref, system.eventStream)
+    )
+    val control = new RecordingChannel
+    val data    = new RecordingChannel
+    actor ! ControlChannelEstablished(control)
+    actor ! DataChannelEstablished(data)
+
+    val requestId       = UUID.randomUUID().toString
+    val visualizationId = UUID.randomUUID().toString
+    val contextId       = UUID.randomUUID().toString
+    val nodeId          = UUID.randomUUID().toString
+    val expression      = "1 + 2"
+    val attachJson =
+      s"""{"kind":"attach","requestId":"$requestId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId",
+         |"nodeExternalId":"$nodeId",
+         |"request":{"visualizationModule":"",
+         |"expression":{"inFrame":"$expression"}}}""".stripMargin
+
+    actor ! ControlMessage(attachJson)
+
+    val fwd = runtime.expectMsgType[Api.Request]
+    fwd.payload.isInstanceOf[Api.AttachVisualization] must be(true)
+    val att = fwd.payload.asInstanceOf[Api.AttachVisualization]
+    att.visualizationId.toString must be(visualizationId)
+    att.expressionId.toString must be(nodeId)
+    att.visualizationConfig.executionContextId.toString must be(contextId)
+    att.visualizationConfig.expression match {
+      case Api.VisualizationExpression.InFrame(expr) => expr must be(expression)
+      case other => fail(s"expected InFrame expression, got $other")
+    }
+
+    system.stop(actor)
+  }
+
   it must "forward detach control messages as Api.DetachVisualization" in {
     val runtime = TestProbe()
     val actor = system.actorOf(

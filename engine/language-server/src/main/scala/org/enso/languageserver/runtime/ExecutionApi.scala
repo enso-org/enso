@@ -1,15 +1,11 @@
 package org.enso.languageserver.runtime
 
-import io.circe.generic.auto._
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Decoder
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.libraries.LibraryComponentGroup
-import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  ExecutionDiagnostic,
-  VisualizationContext
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnostic
 
 import java.util.UUID
 
@@ -220,24 +216,6 @@ object ExecutionApi {
       }
   }
 
-  case object VisualizationEvaluationFailed
-      extends Method("executionContext/visualizationEvaluationFailed") {
-
-    case class Params(
-      contextId: ContextId,
-      visualizationId: VisualizationId,
-      expressionId: ExpressionId,
-      message: String,
-      diagnostic: Option[ExecutionDiagnostic]
-    )
-
-    implicit val hasParams
-      : HasParams.Aux[this.type, VisualizationEvaluationFailed.Params] =
-      new HasParams[this.type] {
-        type Params = VisualizationEvaluationFailed.Params
-      }
-  }
-
   case object ExecutionContextSetExecutionEnvironment
       extends Method("executionContext/setExecutionEnvironment") {
 
@@ -269,21 +247,4 @@ object ExecutionApi {
   case class ModuleNotFoundError(moduleName: String)
       extends Error(2005, s"Module not found [$moduleName]")
 
-  case object VisualizationNotFoundError
-      extends Error(2006, s"Visualization not found")
-
-  case class VisualizationExpressionError(
-    ctx: VisualizationContext,
-    msg: String,
-    diagnostic: Option[ContextRegistryProtocol.ExecutionDiagnostic]
-  ) extends Error(
-        2007,
-        s"Evaluation of the visualization expression failed [$msg]"
-      ) {
-
-    override def payload: Option[Json] =
-      diagnostic.map(
-        Encoder[ContextRegistryProtocol.ExecutionDiagnostic].apply(_)
-      )
-  }
 }

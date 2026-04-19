@@ -124,9 +124,11 @@ export class VisualizationDataRegistry {
     }
   }
 
-  /** Latest decoded visualization response for the given id, or null if none
-   *  has been received (the returned value may be a previously-ready result
-   *  from a superseded-but-compatible slot). */
+  /**
+   * Latest decoded visualization response for the given id, or null if none
+   * has been received (the returned value may be a previously-ready result
+   * from a superseded-but-compatible slot).
+   */
   getRawData(visualizationId: Uuid): Result<string> | null {
     return this.visualizationValues.get(visualizationId) ?? null
   }

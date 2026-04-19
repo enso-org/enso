@@ -145,7 +145,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-  - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestions-database-example)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
@@ -1702,11 +1701,10 @@ destroying the context.
 - [`executionContext/interrupt`](#executioncontextinterrupt)
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
-- [`executionContext/executeExpression`](#executioncontextexecuteexpression)
 
-(Visualization attach/detach/modify and update/failed notifications were moved
-off JSON-RPC to the vis subdoc; see
-[`docs/infrastructure/ydoc.md`](../infrastructure/ydoc.md).)
+(Visualization attach/detach/modify and update/failed notifications and the
+one-shot `executeExpression` request were all moved off JSON-RPC to the vis
+subdoc; see [`docs/infrastructure/ydoc.md`](../infrastructure/ydoc.md).)
 
 #### Disables
 
@@ -3247,14 +3245,14 @@ interactivity required by Enso Studio.
 
 > **Visualization transport note.** The historically JSON-RPC-based
 > visualization endpoints `executionContext/attachVisualization`,
-> `detachVisualization`, `modifyVisualization`, `visualizationUpdate`, and
-> `visualizationEvaluationFailed` are being retired in favour of a dedicated Yjs
-> subdoc synchronized through the ydoc-server. Clients write request slots into
-> the subdoc and receive response bytes via CRDT sync; no JSON-RPC call is
-> involved. See [`docs/infrastructure/ydoc.md`](../infrastructure/ydoc.md) for
-> the new transport. Their spec sections below remain for reference until the
-> backing Language Server handlers are deleted in a follow-up change. New
-> clients should not use them.
+> `detachVisualization`, `modifyVisualization`, `executeExpression`,
+> `visualizationUpdate`, and `visualizationEvaluationFailed` have all been
+> replaced by a dedicated Yjs subdoc synchronized through the ydoc-server.
+> Clients write request slots into the subdoc and receive response bytes via
+> CRDT sync; no JSON-RPC or FlatBuffers call is involved. See
+> [`docs/infrastructure/ydoc.md`](../infrastructure/ydoc.md) for the new
+> transport. The backing JSON-RPC handlers and the FlatBuffers
+> `VisualizationUpdate` table have been deleted.
 
 ### Execution Management Example
 
@@ -3867,65 +3865,6 @@ interface ExecutionContextExecutionStatusNotification {
   diagnostics: Diagnostic[];
 }
 ```
-
-### `executionContext/executeExpression`
-
-This message allows the client to execute an arbitrary expression in a context
-of a given node. It behaves like putting a breakpoint after the expression with
-`expressionId` and executing the provided `expression`. All the local and global
-symbols that are available for the `expressionId` will be available when
-executing the `expression`. The result of the evaluation is delivered once as a
-visualization result on the binary connection.
-
-For example, given the current code:
-
-```python
-main =
-    operator1 = 42
-    operator2 = operator1 + 1
-
-fun1 x = x.to_text
-```
-
-- You can execute an expression in the context of a function body. In this case,
-  the `expressionId` should point to the body of a function. E.g. in the context
-  of `main` available symbols are `operator1`, `operator2` and `fun1`.
-- Execute expression in the context of a local binding. E.g. in the context of
-  `operator2 = operator1 + 1` available symbols are `operator1`, `operator2` and
-  `fun1`.
-- Execute expression in the context of arbitrary expression. E.g. in the context
-  of `operator1 + 1` available symbols are `operator1` and `fun1`.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-interface ExecutionContextExecuteExpressionParameters {
-  executionContextId: UUID;
-  visualizationId: UUID;
-  expressionId: UUID;
-  expression: string;
-}
-```
-
-#### Result
-
-```typescript
-type ExecutionContextExecuteExpressionResult = null;
-```
-
-#### Errors
-
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
-  `executionContext/canModify` capability for this context.
-- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
-  by provided id.
-- Error code `2007` (previously `VisualizationExpressionError`) is emitted when
-  the provided expression cannot be evaluated.
 
 ## Search Operations
 
@@ -5064,8 +5003,9 @@ interface AiCompletionParameters {
   /** The execution context id to use for executing expressions. */
   contextId: UUID;
   /**
-   * The expression providing the execution scope. The same as `expressionId`
-   * parameter of `executionContext/executeExpression` method.
+   * The expression providing the execution scope. Points at the expression in
+   * the user's code whose enclosing frame should be used when evaluating the
+   * AI-suggested code.
    */
   expressionId: UUID;
   /** The user prompt. */

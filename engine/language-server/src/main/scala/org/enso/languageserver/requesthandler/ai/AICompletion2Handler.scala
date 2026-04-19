@@ -108,13 +108,16 @@ class AICompletion2Handler(
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
 
-      val executeExpression = Api.ExecuteExpression(
-        contextId,
+      val attachInFrame = Api.AttachVisualization(
         visualizationId,
         expressionId,
-        code
+        Api.VisualizationConfiguration(
+          contextId,
+          Api.VisualizationExpression.InFrame(code),
+          ""
+        )
       )
-      runtime ! Api.Request(requestId, executeExpression)
+      runtime ! Api.Request(requestId, attachInFrame)
 
       session.rpcController ! AiProtocol.AiCompletionProgressNotification(
         code,

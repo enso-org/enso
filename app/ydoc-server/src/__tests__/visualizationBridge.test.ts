@@ -173,6 +173,66 @@ describe('VisualizationBridge', () => {
     expect(view?.failure?.message).toBe('boom')
   })
 
+  it('emits an attach message with an inFrame expression when an in-frame slot appears', () => {
+    const f = makeFixture()
+    const requestId = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: {
+          visualizationModule: '',
+          expression: { inFrame: '1 + 2' },
+        },
+      },
+      requestId,
+    )
+    expect(f.controlFromBridge).toHaveLength(1)
+    const parsed = JSON.parse(f.controlFromBridge[0]!)
+    expect(parsed.kind).toBe('attach')
+    expect(parsed.requestId).toBe(requestId)
+    expect(parsed.contextId).toBe(CTX_ID)
+    expect(parsed.nodeExternalId).toBe(NODE_ID)
+    expect(parsed.request.expression).toEqual({ inFrame: '1 + 2' })
+  })
+
+  it('removes an in-frame slot after response without emitting detach', () => {
+    const f = makeFixture()
+    const requestId = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: {
+          visualizationModule: '',
+          expression: { inFrame: '1 + 2' },
+        },
+      },
+      requestId,
+    )
+
+    const payload = new TextEncoder().encode('3')
+    const frame = new Uint8Array(16 + payload.byteLength)
+    frame.set(uuidToBytes(requestId), 0)
+    frame.set(payload, 16)
+    f.peerData.send(frame)
+
+    const view = f.vis.getSlot(requestId as VisRequestId)
+    expect(view?.status).toBe('ready')
+    expect(new TextDecoder().decode(view!.response!)).toBe('3')
+
+    // Simulate the client removing the slot once the one-shot response is read.
+    f.vis.removeSlot(requestId)
+
+    // In-frame one-shots are terminal on response: only the original `attach`
+    // message should have been emitted on the control channel. Outright slot
+    // removal must not produce a detach.
+    const kinds = f.controlFromBridge.map((m) => JSON.parse(m).kind)
+    expect(kinds).toEqual(['attach'])
+  })
+
   it('supersede: new slot for same visualizationId coexists with detached old slot', () => {
     const f = makeFixture()
     const oldRequest = newVisRequestId()

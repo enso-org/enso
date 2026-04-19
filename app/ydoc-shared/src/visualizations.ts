@@ -18,6 +18,23 @@ declare const brandVisualizationId: unique symbol
 export type VisualizationId = Uuid & { [brandVisualizationId]: never }
 
 /**
+ * The expression body carried inside a `VisRequestPreprocessor`. The shape is
+ * the same tagged union the Language Server accepts, with the rule that
+ * exactly one tag is present per value:
+ *
+ * - plain `string` - evaluated as `Api.VisualizationExpression.Text` in the
+ *   preprocessor module scope,
+ * - `LSMethodPointer` object - evaluated as
+ *   `Api.VisualizationExpression.ModuleMethod`,
+ * - `{ inFrame: string }` - evaluated as `Api.VisualizationExpression.InFrame`
+ *   in the node's breakpoint frame. The underlying runtime auto-detaches the
+ *   visualization after exactly one response, so slots with this expression
+ *   shape are **terminal on response** (`isTerminal()` returns `true` once
+ *   `status === 'ready'`).
+ */
+export type VisExpression = string | LSMethodPointer | { inFrame: string }
+
+/**
  * Immutable preprocessor portion of a visualization request. Matches the
  * "what" fields of the LS `VisualizationConfiguration` (module + expression +
  * positional args) but excludes the context id, which is carried on the slot
@@ -25,8 +42,15 @@ export type VisualizationId = Uuid & { [brandVisualizationId]: never }
  */
 export interface VisRequestPreprocessor {
   visualizationModule: string
-  expression: string | LSMethodPointer
+  expression: VisExpression
   positionalArgumentsExpressions?: string[]
+}
+
+/** Narrow a request to an `inFrame` expression. */
+export function isInFrameRequest(
+  req: VisRequestPreprocessor | undefined,
+): req is VisRequestPreprocessor & { expression: { inFrame: string } } {
+  return !!req && typeof req.expression === 'object' && 'inFrame' in req.expression
 }
 
 export type VisSlotStatus = 'pending' | 'ready' | 'failed' | 'detached'
@@ -91,9 +115,16 @@ export class VisualizationSlotView {
     return this.inner.get(VIS_SLOT_FIELDS.createdAt) as number | undefined
   }
 
+  /** True once the slot will not change status again.
+   *
+   * `failed` and `detached` are terminal for every slot. `ready` is terminal
+   * only for slots whose request is an `inFrame` one-shot. The runtime
+   * auto-detaches those after the first response, so the client consumes the
+   * payload and removes the slot rather than expecting further updates. */
   isTerminal(): boolean {
     const s = this.status
-    return s === 'failed' || s === 'detached'
+    if (s === 'failed' || s === 'detached') return true
+    return s === 'ready' && isInFrameRequest(this.request)
   }
 }
 
@@ -134,7 +165,10 @@ export class Visualizations {
 
   /**
    * Create a new slot under a fresh request id. Client-side entry point for
-   * attach and modify — modify is just "create new slot, detach the old one".
+   * every visualization kind, i.e. persistent attaches, modifies, and one-shot
+   * `inFrame` evaluations all land here. `modify` is just "create a new slot,
+   * detach the old one". One-shot evaluations are slots whose request carries
+   * an `{ inFrame }` expression and which the client removes on `ready`.
    */
   createSlot(
     spec: VisualizationSlotSpec,

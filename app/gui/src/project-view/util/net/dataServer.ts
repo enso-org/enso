@@ -21,7 +21,6 @@ import {
   ReadBytesReply,
   ReadFileCommand,
   Success,
-  VisualizationUpdate,
   WriteBytesCommand,
   WriteBytesReply,
   WriteFileCommand,
@@ -38,7 +37,6 @@ const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.NONE]: None,
   [OutboundPayload.ERROR]: Error,
   [OutboundPayload.SUCCESS]: Success,
-  [OutboundPayload.VISUALIZATION_UPDATE]: VisualizationUpdate,
   [OutboundPayload.FILE_CONTENTS_REPLY]: FileContentsReply,
   [OutboundPayload.WRITE_BYTES_REPLY]: WriteBytesReply,
   [OutboundPayload.READ_BYTES_REPLY]: ReadBytesReply,
@@ -85,22 +83,15 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
       if (!payload) return
-      if (payload instanceof VisualizationUpdate) {
-        const id = payload.visualizationContext()?.visualizationId()
-        if (!id) return
-        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-        this.emit(`${payloadType}`, [payload, uuid])
-      } else {
-        const id = binaryMessage.correlationId()
-        if (id == null) {
-          console.error('BUG: Data message with no correlation id', payloadType, payload)
-          return
-        }
-        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-        this.emit(`${payloadType}`, [payload, uuid])
-        const callback = this.resolveCallbacks.get(uuid)
-        callback?.(payload)
+      const id = binaryMessage.correlationId()
+      if (id == null) {
+        console.error('BUG: Data message with no correlation id', payloadType, payload)
+        return
       }
+      const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+      this.emit(`${payloadType}`, [payload, uuid])
+      const callback = this.resolveCallbacks.get(uuid)
+      callback?.(payload)
     })
     channel.addEventListener('error', (error) =>
       console.error('Language Server Binary socket error:', error),

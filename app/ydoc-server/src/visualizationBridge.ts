@@ -11,6 +11,7 @@
 import { YjsChannel, type YjsChannelServer } from 'ydoc-channel'
 import type { Diagnostic } from 'ydoc-shared/languageServerTypes'
 import {
+  isInFrameRequest,
   Visualizations,
   VisualizationSlotView,
   type VisRequestId,
@@ -68,6 +69,11 @@ export class VisualizationBridge {
   private readonly announced = new Set<string>()
   /** Request ids we have already emitted a `detach` for. */
   private readonly detached = new Set<string>()
+  /** Request ids whose slot was an `inFrame` one-shot. We track these so
+   *  that when the slot is subsequently removed from the map (client-side
+   *  GC after reading the one-shot response) we know not to emit a detach
+   *  for it. */
+  private readonly oneshotRequestIds = new Set<string>()
   private readonly observer: () => void
   private readonly unsubscribeControl: () => void
   private readonly unsubscribeData: () => void
@@ -89,7 +95,11 @@ export class VisualizationBridge {
     this.scan()
   }
 
-  /** Walks the slots map and emits attach/detach messages for state changes. */
+  /** Walks the slots map and emits attach / detach messages for state
+   * changes. One-shot `inFrame` attaches never transition to `'detached'`
+   * (the runtime auto-detaches internally) and are removed outright by the
+   * client on `'ready' | 'failed'`; we skip both the detach-status emission
+   * and the "outright removed" detach emission for those. */
   private scan(): void {
     const liveIds = new Set<string>()
     for (const view of this.vis.entries()) {
@@ -98,17 +108,28 @@ export class VisualizationBridge {
       if (!this.announced.has(rid)) {
         if (view.status === 'pending') {
           this.announced.add(rid)
+          if (isInFrameRequest(view.request)) this.oneshotRequestIds.add(rid)
           this.emitAttach(view)
         }
       }
-      if (view.status === 'detached' && !this.detached.has(rid)) {
+      if (
+        !this.oneshotRequestIds.has(rid) &&
+        view.status === 'detached' &&
+        !this.detached.has(rid)
+      ) {
         this.detached.add(rid)
         this.emitDetach(view)
       }
     }
-    // Emit detach for outright-removed slots we had previously announced.
+    // Emit detach for outright-removed slots we had previously announced —
+    // but only if the slot's request wasn't an `inFrame` oneshot. For those,
+    // removal on response is expected and carries no LS-side meaning.
     for (const rid of this.announced) {
-      if (!liveIds.has(rid) && !this.detached.has(rid)) {
+      if (
+        !liveIds.has(rid) &&
+        !this.detached.has(rid) &&
+        !this.oneshotRequestIds.has(rid)
+      ) {
         this.detached.add(rid)
         this.emitRawDetach(rid)
       }

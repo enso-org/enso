@@ -19,6 +19,7 @@ import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
   InstrumentFrame,
+  OneshotExpression,
   RuntimeCache,
   UnevaluatedVisualization,
   Visualization
@@ -64,6 +65,28 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+    // InFrame expressions bypass the module-scope compile/evaluate path and
+    // register a one-shot evaluation tied to the node's breakpoint frame.
+    // The returned Executable causes the enclosing AttachVisualizationCmd to
+    // run ExecuteJob, which fires the oneshot exactly once and auto-detaches
+    // it via VisualizationHolder.getOneshotExpression.remove().
+    config.expression match {
+      case Api.VisualizationExpression.InFrame(expression) =>
+        val oneshot = OneshotExpression(
+          visualizationId,
+          expressionId,
+          config.executionContextId,
+          expression
+        )
+        ctx.contextManager.setOneshotExpression(
+          config.executionContextId,
+          oneshot
+        )
+        val stack = ctx.contextManager.getStack(config.executionContextId)
+        return Some(Executable(config.executionContextId, stack))
+      case _ => ()
+    }
+
     // Try non-blocking lock acquisition first
     val contextLock =
       ctx.locking.getOrCreateContextLock(config.executionContextId)
@@ -574,6 +597,12 @@ object UpsertVisualizationJob {
               name
             )
             .thenApply(f => f.asInstanceOf[AnyRef])
+        case _: Api.VisualizationExpression.InFrame =>
+          // InFrame is handled via the oneshot short-circuit in `runImpl`
+          // and never reaches the module-scope evaluation path.
+          throw new IllegalStateException(
+            "InFrame visualization expression reached module-scope evaluator"
+          )
       }
       pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
@@ -752,7 +781,8 @@ object UpsertVisualizationJob {
                 if methodReference.methodName.name == methodPointer.name =>
               externalId
           }
-      case _: Api.VisualizationExpression.Text => None
+      case _: Api.VisualizationExpression.Text    => None
+      case _: Api.VisualizationExpression.InFrame => None
     }
 
   private object ExternalIdOfMethod {

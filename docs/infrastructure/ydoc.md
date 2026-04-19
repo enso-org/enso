@@ -130,22 +130,31 @@ incoming binary messages and forwards them to connection controllers.
 ### Visualization Channels
 
 Visualization requests and responses are carried over a dedicated pair of
-channels and an accompanying subdoc, not over the `executionContext/*` JSON-RPC
-methods or the FlatBuffers `VisualizationUpdate` notification.
+channels and an accompanying subdoc. The legacy
+`executionContext/{attach,detach,modify}Visualization` and
+`executionContext/executeExpression` JSON-RPC methods and the FlatBuffers
+`VisualizationUpdate` binary notification have been removed.
 
-- `vis:control` (JSON strings) carries `attach`, `detach`, `ready`, and
-  `failed` messages between the ydoc-server bridge and the Language Server.
+- `vis:control` (JSON strings) carries `attach`, `detach`, `execute`, `ready`,
+  and `failed` messages between the ydoc-server bridge and the Language Server.
 - `vis:data` (binary, raw `Uint8Array` on the JS side, Java `ByteBuffer` on the
   LS side) carries response payloads framed as `[16-byte requestId][bytes]`.
 
 The **visualization subdoc** is a Yjs subdoc held under
 `DistributedProject.visualizations` (a Y.Map keyed by a single reserved slot).
 Clients write slots into the subdoc's top-level `slots: Y.Map<requestId, ...>`
-to request visualizations; the ydoc-server
+to request visualizations; each slot has a `kind` of `attach` or `execute`.
+The ydoc-server
 [`visualizationBridge`](../../app/ydoc-server/src/visualizationBridge.ts)
-observes those mutations and emits `attach` / `detach` messages on
+observes those mutations and emits `attach`, `detach`, or `execute` messages on
 `vis:control`. Responses flowing back from the LS as binary frames on `vis:data`
 are written into the originating slot's `response` field.
+
+`attach` slots live until the client explicitly writes a `detached` status.
+`execute` slots are terminal on response: once the bridge records `ready` (or
+`failed`), the client consumes the payload and removes the slot, no `detach`
+message is ever emitted for an execute slot, since the runtime already treats
+the underlying visualization as short-lived.
 
 ## Thread Safety
 

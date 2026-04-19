@@ -15,6 +15,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
 
 import java.io.File
 import java.lang.InternalError
+import scala.annotation.unused
 import scala.concurrent.{ExecutionContext, Future}
 
 final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
@@ -27,7 +28,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     */
   def mapApiError(
     error: Api.Error
-  )(implicit ec: ExecutionContext): Future[ContextRegistryProtocol.Failure] = {
+  )(implicit @unused ec: ExecutionContext): Future[ContextRegistryProtocol.Failure] = {
     error match {
       case Api.ContextNotExistError(contextId) =>
         Future.successful(ContextRegistryProtocol.ContextNotFound(contextId))
@@ -39,19 +40,6 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
         )
       case Api.ModuleNotFound(moduleName) =>
         Future.successful(ContextRegistryProtocol.ModuleNotFound(moduleName))
-      case Api.VisualizationExpressionFailed(ctx, message, result) =>
-        for (diagnostic <- liftOptionOfFuture(result.map(toProtocolDiagnostic)))
-          yield ContextRegistryProtocol.VisualizationExpressionFailed(
-            ContextRegistryProtocol.VisualizationContext(
-              ctx.visualizationId,
-              ctx.contextId,
-              ctx.expressionId
-            ),
-            message,
-            diagnostic
-          )
-      case Api.VisualizationNotFound() =>
-        Future.successful(ContextRegistryProtocol.VisualizationNotFound)
       case e =>
         Future.failed(new InternalError(s"unexpected error $e"))
     }
@@ -191,15 +179,7 @@ object RuntimeFailureMapper {
         EmptyStackError
       case ContextRegistryProtocol.InvalidStackItemError(_) =>
         InvalidStackItemError
-      case ContextRegistryProtocol.VisualizationNotFound =>
-        VisualizationNotFoundError
       case ContextRegistryProtocol.ModuleNotFound(name) =>
         ModuleNotFoundError(name)
-      case ContextRegistryProtocol.VisualizationExpressionFailed(
-            ctx,
-            msg,
-            result
-          ) =>
-        VisualizationExpressionError(ctx, msg, result)
     }
 }

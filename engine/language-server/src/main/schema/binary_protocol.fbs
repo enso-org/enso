@@ -26,7 +26,6 @@ table InboundMessage {
 union OutboundPayload {
   ERROR: Error,
   SUCCESS: Success,
-  VISUALIZATION_UPDATE: VisualizationUpdate,
   FILE_CONTENTS_REPLY: FileContentsReply,
   WRITE_BYTES_REPLY: WriteBytesReply,
   READ_BYTES_REPLY: ReadBytesReply,
@@ -93,29 +92,6 @@ table InitSessionCommand {
 }
 
 root_type InitSessionCommand;
-
-// A visualization context identifying a concrete visualization.
-table VisualizationContext {
-  // A visualization identifier.
-  visualization_id: EnsoUUID (required);
-
-  // A context identifier.
-  context_id: EnsoUUID (required);
-
-  // An expression identifier.
-  expression_id: EnsoUUID (required);
-
-}
-
-// An event signaling visualization update.
-table VisualizationUpdate {
-  // A visualization context identifying a concrete visualization.
-  visualization_context: VisualizationContext (required);
-
-  // A visualization data.
-  data: [ubyte] (required);
-
-}
 
 // A representation of a path relative to a specified content root.
 table Path {

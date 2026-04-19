@@ -3,7 +3,6 @@ package org.enso.languageserver.websocket.json
 import org.enso.polyglot.runtime.Runtime.Api
 import io.circe.literal._
 
-import java.util.UUID
 
 object ExecutionContextJsonMessages {
 
@@ -104,27 +103,6 @@ object ExecutionContextJsonMessages {
             }
           }
           """
-
-  def executionContextExecuteExpressionRequest(
-    reqId: Int,
-    executionContextId: UUID,
-    visualizationId: Api.VisualizationId,
-    expressionId: Api.ExpressionId,
-    expression: String
-  ) =
-    json"""
-      { "jsonrpc": "2.0",
-        "method": "executionContext/executeExpression",
-        "id": $reqId,
-        "params": {
-          "executionContextId": $executionContextId,
-          "visualizationId": $visualizationId,
-          "expressionId": $expressionId,
-          "expression": $expression
-        }
-      }
-      """
-
 
   def executionContextGetComponentGroupsRequest(
     reqId: Int,

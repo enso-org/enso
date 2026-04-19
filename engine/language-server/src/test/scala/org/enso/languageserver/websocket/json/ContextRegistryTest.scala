@@ -704,58 +704,9 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
       client.expectJson(json.ok(3))
     }
 
-    "successfully execute expression" in {
-      val client = getInitialisedWsClient()
-
-      // create context
-      client.send(json.executionContextCreateRequest(1))
-      val (requestId, contextId) =
-        runtimeConnectorProbe.receiveN(1).head match {
-          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
-            (requestId, contextId)
-          case msg =>
-            fail(s"Unexpected message: $msg")
-        }
-      runtimeConnectorProbe.lastSender ! Api.Response(
-        requestId,
-        Api.CreateContextResponse(contextId)
-      )
-      client.expectJson(json.executionContextCreateResponse(1, contextId))
-
-      // attach visualization
-      val visualizationId = UUID.randomUUID()
-      val expressionId    = UUID.randomUUID()
-      client.send(
-        json.executionContextExecuteExpressionRequest(
-          2,
-          contextId,
-          visualizationId,
-          expressionId,
-          "expression"
-        )
-      )
-      val requestId2 =
-        runtimeConnectorProbe.receiveN(1).head match {
-          case Api.Request(
-                requestId,
-                Api.ExecuteExpression(
-                  `contextId`,
-                  `visualizationId`,
-                  `expressionId`,
-                  _
-                )
-              ) =>
-            requestId
-          case msg =>
-            fail(s"Unexpected message: $msg")
-        }
-      runtimeConnectorProbe.lastSender ! Api.Response(
-        requestId2,
-        Api.VisualizationAttached()
-      )
-      client.expectJson(json.ok(2))
-    }
-
+    // `executionContext/executeExpression` was removed as a JSON-RPC method;
+    // one-shot expression evaluation now flows through the vis subdoc +
+    // `VisualizationBridgeActor` (exercised in `VisualizationBridgeActorSpec`).
 
     "get component groups" in {
       val client = getInitialisedWsClient()

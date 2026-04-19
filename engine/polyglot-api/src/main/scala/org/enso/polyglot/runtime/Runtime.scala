@@ -317,6 +317,30 @@ object Runtime {
            else positionalArgumentsExpressions.mkString("[", ",", "]")) +
           ")"
       }
+
+      /** A one-shot visualization expression evaluated in the node's local
+        * Truffle frame. Local bindings in scope at the node are resolvable
+        * by name. The visualization fires exactly once and is auto-detached
+        * by the runtime after the first update.
+        *
+        * @param expression the expression to evaluate in the node's frame
+        */
+      @named("visualizationExpressionInFrame")
+      case class InFrame(expression: String) extends VisualizationExpression {
+
+        /** @inheritdoc */
+        override val module: String = ""
+
+        /** @inheritdoc */
+        override val positionalArgumentsExpressions: Vector[String] =
+          Vector.empty
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "InFrame(expression=" +
+          (if (shouldMask) STUB else expression) +
+          ")"
+      }
     }
 
     /** A configuration object for properties of the visualization.
@@ -1179,14 +1203,6 @@ object Runtime {
       */
     @named("setExpressionValueNotification")
     final case class InitializedNotification() extends ApiResponse
-
-    @named("executeExpression")
-    final case class ExecuteExpression(
-      contextId: ContextId,
-      visualizationId: VisualizationId,
-      expressionId: ExpressionId,
-      expression: String
-    ) extends ApiRequest
 
     /** A request sent from the client to the runtime server, to create a new
       * visualization for an expression identified by `expressionId`.

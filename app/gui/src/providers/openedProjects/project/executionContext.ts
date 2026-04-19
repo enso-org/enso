@@ -91,13 +91,17 @@ type ExecutionContextState =
   | { status: 'not-created' }
   | {
       status: 'created'
-      /** Which request id (slot) is currently the authoritative in-flight one
-       *  for each visualization id. Set when a slot is written; cleared when
-       *  it is detached or superseded. */
+      /**
+       * Which request id (slot) is currently the authoritative in-flight one
+       * for each visualization id. Set when a slot is written; cleared when
+       * it is detached or superseded.
+       */
       visualizationSlotByVisId: Map<Uuid, VisRequestId>
-      /** The config we currently believe the bridge/runtime is computing for
-       *  each visualization id. Used to decide whether a config change is a
-       *  no-op, a modify, or a detach+attach. */
+      /**
+       * The config we currently believe the bridge/runtime is computing for
+       * each visualization id. Used to decide whether a config change is a
+       * no-op, a modify, or a detach+attach.
+       */
       visualizations: Map<Uuid, NodeVisualizationConfiguration>
       stack: StackItem[]
       environment: ExecutionEnvironment
@@ -146,8 +150,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
   private _executionEnvironment: ExecutionEnvironment = 'Design'
 
-  /** Handle to the vis subdoc wrapper once it has been created on the server
-   *  side and synced to us. Writes to slots go through this. */
+  /**
+   * Handle to the vis subdoc wrapper once it has been created on the server
+   * side and synced to us. Writes to slots go through this.
+   */
   private visualizations: Visualizations | null = null
   private unobserveVisDoc: (() => void) | null = null
 
@@ -568,11 +574,13 @@ function serializeMethodPointer(
   }
 }
 
-/** Turn a client-side node configuration into the preprocessor payload that
- *  lives inside a vis slot. The result is plain JSON intended to be stored
- *  immutably in the Y.Map. The shape must stay in sync with
- *  `VisRequestPreprocessor` in `ydoc-shared/visualizations.ts` and the
- *  decoder in `VisualizationBridgeServer.scala`. */
+/**
+ * Turn a client-side node configuration into the preprocessor payload that
+ * lives inside a vis slot. The result is plain JSON intended to be stored
+ * immutably in the Y.Map. The shape must stay in sync with
+ * `VisRequestPreprocessor` in `ydoc-shared/visualizations.ts` and the
+ * decoder in `VisualizationBridgeServer.scala`.
+ */
 function serializeRequest(
   config: NodeVisualizationConfiguration,
   projectNames: ProjectNameStore,

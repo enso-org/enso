@@ -1,32 +1,16 @@
 /// <reference types="wicg-file-system-access" />
 
-import {
-  GET_WIDGETS_METHOD,
-  WIDGETS_ENSO_MODULE,
-} from '@/components/GraphEditor/widgets/WidgetFunction/consts'
 import * as Ast from '@/util/ast/abstract'
-import { Pattern } from '@/util/ast/match'
 import type { QualifiedName } from '@/util/qualifiedName'
-import {
-  Builder,
-  EnsoUUID,
-  OutboundMessage,
-  OutboundPayload,
-  VisualizationContext,
-  VisualizationUpdate,
-} from 'ydoc-shared/binaryProtocol'
 import { ErrorCode } from 'ydoc-shared/languageServer'
 import type {
   ContextId,
-  ExpressionId,
   LibraryComponentGroup,
   Path,
   Uuid,
-  VisualizationConfiguration,
   response,
 } from 'ydoc-shared/languageServerTypes'
 import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
-import { uuidToBits } from 'ydoc-shared/uuid'
 import { Doc } from 'yjs'
 import mockDb from './data/mockSuggestions.json' with { type: 'json' }
 import { mockDataWSHandler } from './dataServer'
@@ -120,8 +104,6 @@ const fileTree = {
   },
 }
 
-const visualizations = new Map<Uuid, VisualizationConfiguration>()
-const visualizationExprIds = new Map<Uuid, ExpressionId>()
 
 const encoder = new TextEncoder()
 const encodeJSON = (data: unknown) => encoder.encode(JSON.stringify(data))
@@ -140,6 +122,9 @@ const scatterplotJson = (params: string[]) =>
     ],
   })
 
+// Preserved as a reference for future vis subdoc-based mocking. The binary
+// viz-update path is gone; no runtime reads this map until tests are migrated.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => Uint8Array | null)> =
   {
     // JSON
@@ -409,91 +394,11 @@ function mockWidgetConfiguration(method: string | undefined) {
   return mockWidgetConfigurations.get(method) ?? null
 }
 
-function createMessageId(builder: Builder) {
-  const messageUuid = crypto.randomUUID()
-  const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
-  return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
-}
-
-function createId(id: Uuid) {
-  const [low, high] = uuidToBits(id)
-  return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, low, high)
-}
-
-type VizRequest = { type: 'widget'; id: string | undefined } | { type: 'visualization'; id: string }
-function recognizeVizRequest(config: VisualizationConfiguration): VizRequest {
-  if (typeof config.expression === 'string') {
-    // Getting widget configuration is a special case, where we sometimes pass lambda as
-    // expression to discard the input value
-    if (/^[a-z_]+ *->.*get_widget_json/.test(config.expression)) {
-      return { type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } as VizRequest
-    } else {
-      return {
-        type: 'visualization',
-        id: `${config.visualizationModule}.${config.expression}`,
-      } as VizRequest
-    }
-  } else if (
-    config.expression.module === WIDGETS_ENSO_MODULE &&
-    config.expression.name === GET_WIDGETS_METHOD
-  ) {
-    return { type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } as VizRequest
-  } else {
-    return {
-      type: 'visualization',
-      id: `${config.expression.definedOnType}.${config.expression.name}`,
-    } as VizRequest
-  }
-}
-
-function makeVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
-  const req = recognizeVizRequest(config)
-  const vizDataHandler =
-    req.type === 'visualization' ? mockVizPreprocessors[req.id] : mockWidgetConfiguration(req.id)
-  if (!vizDataHandler) return
-  const vizData =
-    vizDataHandler instanceof Uint8Array ? vizDataHandler : (
-      vizDataHandler(config.positionalArgumentsExpressions ?? [])
-    )
-  if (!vizData) return
-  const exprId = expressionId ?? visualizationExprIds.get(id)
-  return makeVizUpdate(id, config.executionContextId, exprId, vizData)
-}
-
-function makeVizUpdate(
-  id: Uuid,
-  executionCtxId: Uuid,
-  exprId: Uuid | undefined,
-  vizData: Uint8Array,
-) {
-  const builder = new Builder()
-  const visualizationContextOffset = VisualizationContext.createVisualizationContext(
-    builder,
-    createId(id),
-    createId(executionCtxId),
-    exprId ? createId(exprId) : null,
-  )
-  const dataOffset = VisualizationUpdate.createDataVector(builder, vizData)
-  const payload = VisualizationUpdate.createVisualizationUpdate(
-    builder,
-    visualizationContextOffset,
-    dataOffset,
-  )
-  const rootTable = OutboundMessage.createOutboundMessage(
-    builder,
-    createMessageId,
-    null, // correlationId
-    OutboundPayload.VISUALIZATION_UPDATE,
-    payload,
-  )
-  return builder.finish(rootTable).toArrayBuffer()
-}
-
 export const mockLSHandler = async (
   method: string,
   params: object,
   sendMessage: (message: { method: string; params: object }) => void,
-  sendBinary: (data?: ArrayBuffer) => void,
+  _sendBinary: (data?: ArrayBuffer) => void,
 ) => {
   switch (method) {
     case 'session/initProtocolConnection':
@@ -513,70 +418,6 @@ export const mockLSHandler = async (
         100,
       )
       return { contextId: data_.contextId }
-    }
-    case 'executionContext/attachVisualization': {
-      const data_ = params as {
-        visualizationId: Uuid
-        expressionId: ExpressionId
-        visualizationConfig: VisualizationConfiguration
-      }
-      visualizations.set(data_.visualizationId, data_.visualizationConfig)
-      visualizationExprIds.set(data_.visualizationId, data_.expressionId)
-      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
-      return
-    }
-    case 'executionContext/detachVisualization': {
-      const data_ = params as {
-        visualizationId: Uuid
-        expressionId: ExpressionId
-        contextId: ContextId
-      }
-      visualizations.delete(data_.visualizationId)
-      visualizationExprIds.delete(data_.visualizationId)
-      return
-    }
-    case 'executionContext/modifyVisualization': {
-      const data_ = params as {
-        visualizationId: Uuid
-        visualizationConfig: VisualizationConfiguration
-      }
-      visualizations.set(data_.visualizationId, data_.visualizationConfig)
-      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
-      return
-    }
-    case 'executionContext/executeExpression': {
-      const data_ = params as {
-        executionContextId: ContextId
-        visualizationId: Uuid
-        expressionId: ExpressionId
-        expression: string
-      }
-      const aiPromptPat = Pattern.parseExpression(
-        'Standard.Visualization.AI.build_ai_prompt __ . to_json',
-      )
-      const exprAst = Ast.parseExpression(data_.expression)!
-      if (aiPromptPat.test(exprAst)) {
-        sendBinary(
-          makeVizUpdate(
-            data_.visualizationId,
-            data_.executionContextId,
-            data_.expressionId,
-            encodeJSON('Could you __$$GOAL$$__, please?'),
-          ),
-        )
-      } else {
-        // Check if there's existing preprocessor mock which matches our expression
-        const { func, args } = Ast.analyzeAppLike(exprAst)
-        if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
-        const visualizationConfig: VisualizationConfiguration = {
-          executionContextId: data_.executionContextId,
-          visualizationModule: func.lhs.code(),
-          expression: func.rhs.code(),
-          positionalArgumentsExpressions: args.map((ast) => ast.code()),
-        }
-        sendBinary(makeVizData(data_.visualizationId, visualizationConfig, data_.expressionId))
-      }
-      return
     }
     case 'executionContext/push':
     case 'executionContext/pop':
@@ -644,18 +485,18 @@ export const mockLSHandler = async (
   }
 }
 
-/** Prepare visualization update data sent by a mock binary endpoint */
+/**
+ * Stub: visualizations no longer flow through the binary channel.
+ *
+ * Integration tests that used this to push a mock runtime response now need
+ * to write into the vis subdoc directly. Until those tests are migrated,
+ * this caches the preprocessor payload so that subsequent widget lookups
+ * can see it but does not deliver anything to the client.
+ */
 export function makeVisUpdates(preprocessor: string, data: unknown) {
-  const updates: ArrayBuffer[] = []
-  for (const [id, config] of visualizations.entries()) {
-    if (recognizeVizRequest(config).id === preprocessor) {
-      const exprId = visualizationExprIds.get(id)
-      const vizData = encodeJSON(data)
-      updates.push(makeVizUpdate(id, config.executionContextId, exprId, vizData))
-      mockWidgetConfigurations.set(preprocessor, vizData)
-    }
-  }
-  return updates
+  const vizData = encodeJSON(data)
+  mockWidgetConfigurations.set(preprocessor, vizData)
+  return [] as ArrayBuffer[]
 }
 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')

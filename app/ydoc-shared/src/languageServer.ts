@@ -450,23 +450,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     })
   }
 
-  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextexecuteexpression) */
-  executeExpression(
-    executionContextId: Uuid,
-    visualizationId: Uuid,
-    expressionId: ExpressionId,
-    expression: string,
-  ): Promise<LsRpcResult<void>> {
-    return this.request('executionContext/executeExpression', {
-      executionContextId,
-      visualizationId,
-      expressionId,
-      expression,
-    })
-  }
-
-  // Visualization attach/detach/modify have moved off JSON-RPC onto the vis
-  // subdoc synced via ydoc-server.
+  // Visualization attach/detach/modify and one-shot executeExpression have
+  // moved off JSON-RPC onto the vis subdoc synced via ydoc-server.
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#searchgetsuggestionsdatabase) */
   getSuggestionsDatabase(): Promise<LsRpcResult<response.GetSuggestionsDatabase>> {

@@ -17,11 +17,9 @@ import org.enso.languageserver.protocol.binary.InboundPayload._
 import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
-  SuccessReplyFactory,
-  VisualizationUpdateFactory
+  SuccessReplyFactory
 }
 import org.enso.languageserver.requesthandler.file._
-import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualizationUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -93,7 +91,7 @@ class BinaryConnectionController(
   }
 
   private def initialized(
-    outboundChannel: ActorRef,
+    @unused outboundChannel: ActorRef,
     @unused clientId: UUID,
     handlers: Map[InboundPayloadType, Props]
   ): Receive = {
@@ -107,10 +105,6 @@ class BinaryConnectionController(
           msg.payloadType()
         )
       }
-
-    case update: VisualizationUpdate =>
-      val updatePacket = convertVisualizationUpdateToOutPacket(update)
-      outboundChannel ! updatePacket
   }
 
   private def connectionEndHandler(
@@ -150,23 +144,6 @@ class BinaryConnectionController(
         logger.error("Unrecognized error occurred in binary protocol.", th)
         ErrorFactory.createServiceError()
     }
-
-  private def convertVisualizationUpdateToOutPacket(
-    update: VisualizationUpdate
-  ): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
-    val event                               = VisualizationUpdateFactory.create(update)
-    val msg = OutboundMessageFactory.create(
-      UUID.randomUUID(),
-      None,
-      OutboundPayload.VISUALIZATION_UPDATE,
-      event
-    )
-
-    builder.finish(msg)
-    val updatePacket = builder.dataBuffer()
-    updatePacket
-  }
 
   private def createSessionInitResponsePacket(
     requestId: EnsoUUID

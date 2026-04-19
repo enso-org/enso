@@ -21,7 +21,11 @@ import scala.util.control.NonFatal
   * Receives `attach` / `detach` JSON messages on the `vis:control` channel,
   * forwards them to the runtime as `Api.AttachVisualization` /
   * `Api.DetachVisualization`, and pushes responses back as `ready` + binary
-  * frame on `vis:data`, or `failed` JSON on `vis:control`.
+  * frame on `vis:data`, or `failed` JSON on `vis:control`. One-shot
+  * evaluations are just attach requests whose expression is 
+  * `Api.VisualizationExpression.InFrame`. The runtime auto-detaches them 
+  * after one update, and the bridge cleans up the correlation maps eagerly 
+  * on first response.
   *
   * There is a single bridge actor per Language Server process. Both callback
   * classes (control + data) feed channel references into the same actor.
@@ -65,7 +69,7 @@ object VisualizationBridgeServer {
   }
 
   /** YjsChannel.Server for the `vis:data` (binary) channel. The bridge does
-    * not subscribe here — responses flow LS → ydoc. We only record the
+    * not subscribe here. Responses flow LS -> ydoc. We only record the
     * channel so the actor can emit binary frames.
     */
   final class DataServerCallbacks(bridge: ActorRef)
@@ -113,23 +117,34 @@ object VisualizationBridgeServer {
     positionalArgumentsExpressions: Option[Vector[String]]
   )
 
-  /** Union wrapper for `expression: string | MethodPointer` in the request. */
+  /** Union wrapper for `expression: string | MethodPointer | { inFrame }` in
+    * the request. Exactly one field is populated. InFrame carries its payload
+    * as a nested `{ "inFrame": "..." }` object to keep the string-shorthand
+    * decoding of plain text expressions unambiguous.
+    */
   final case class VisExpression(
     text: Option[String],
-    methodPointer: Option[MethodPointer]
+    methodPointer: Option[MethodPointer],
+    inFrame: Option[String]
   )
 
   object VisExpression {
 
-    /** Custom decoder that accepts either a JSON string (text expression) or
-      * an object matching `MethodPointer`.
+    /** Custom decoder that accepts:
+      *   - a bare JSON string -> `Text`
+      *   - an object matching `MethodPointer` -> `ModuleMethod`
+      *   - `{ "inFrame": "..." }` -> `InFrame`
       */
     implicit val decoder: Decoder[VisExpression] = Decoder.instance { cursor =>
       cursor.as[String] match {
-        case Right(s) => Right(VisExpression(Some(s), None))
+        case Right(s) => Right(VisExpression(Some(s), None, None))
         case Left(_) =>
-          cursor.as[MethodPointer].map { mp =>
-            VisExpression(None, Some(mp))
+          cursor.downField("inFrame").as[String] match {
+            case Right(expr) => Right(VisExpression(None, None, Some(expr)))
+            case Left(_) =>
+              cursor.as[MethodPointer].map { mp =>
+                VisExpression(None, Some(mp), None)
+              }
           }
       }
     }
@@ -227,7 +242,7 @@ final class VisualizationBridgeActor(
   private var controlChannel: Option[YjsChannel] = None
   private var dataChannel: Option[YjsChannel]    = None
 
-  /** visualizationId (string UUID) → in-flight requestId (string UUID).
+  /** visualizationId (string UUID) -> in-flight requestId (string UUID).
     *
     * Used to correlate runtime `VisualizationUpdate` events back to the
     * originating vis slot. Cleared on detach.
@@ -243,6 +258,14 @@ final class VisualizationBridgeActor(
     * detach messaging.
     */
   private val visToExpression: mutable.Map[String, UUID] = mutable.Map.empty
+
+  /** Visualization ids that were attached with an `InFrame` expression.
+    * These are terminal on first response, the runtime auto-detaches the
+    * underlying oneshot via `VisualizationHolder.getOneshotExpression.remove()`,
+    * so we drop our correlation entries eagerly instead of waiting for a
+    * client detach that will never arrive.
+    */
+  private val oneshotVisIds: mutable.Set[String] = mutable.Set.empty
 
   override def preStart(): Unit = {
     // `RuntimeConnector` publishes the inner notification payload directly on
@@ -313,21 +336,22 @@ final class VisualizationBridgeActor(
 
     val args =
       msg.request.positionalArgumentsExpressions.getOrElse(Vector.empty)
-    val visExpr = (
-      msg.request.expression.text,
-      msg.request.expression.methodPointer
-    ) match {
-      case (Some(text), _) =>
+    val e       = msg.request.expression
+    val isInFrame = e.inFrame.isDefined
+    val visExpr = (e.text, e.methodPointer, e.inFrame) match {
+      case (Some(text), _, _) =>
         VisualizationExpression.Text(
           msg.request.visualizationModule,
           text,
           args
         )
-      case (_, Some(mp)) =>
+      case (_, Some(mp), _) =>
         VisualizationExpression.ModuleMethod(mp, args)
+      case (_, _, Some(expr)) =>
+        VisualizationExpression.InFrame(expr)
       case _ =>
         logger.warn(
-          "vis attach: request.expression missing both text and methodPointer"
+          "vis attach: request.expression missing text/methodPointer/inFrame"
         )
         return
     }
@@ -341,6 +365,7 @@ final class VisualizationBridgeActor(
     visToRequest.put(msg.visualizationId, msg.requestId)
     visToContext.put(msg.visualizationId, contextId)
     visToExpression.put(msg.visualizationId, expressionId)
+    if (isInFrame) oneshotVisIds.add(msg.visualizationId)
 
     val apiReq = Api.AttachVisualization(
       visualizationId     = visualizationId,
@@ -352,7 +377,7 @@ final class VisualizationBridgeActor(
 
   private def forwardDetach(msg: DetachMsg): Unit = {
     val visualizationId = parseUuidOr(msg.visualizationId).getOrElse {
-      // Best-effort: a slot was removed before we learned its fields; ignore.
+      // Best-effort: a slot was removed before we learned its fields. Ignore.
       visToRequest.remove(msg.visualizationId)
       return
     }
@@ -361,6 +386,7 @@ final class VisualizationBridgeActor(
     visToRequest.remove(msg.visualizationId)
     visToContext.remove(msg.visualizationId)
     visToExpression.remove(msg.visualizationId)
+    oneshotVisIds.remove(msg.visualizationId)
     if (contextId == null || expressionId == null) {
       logger.warn(
         s"vis detach: missing tracked context/expression for $visualizationId"
@@ -383,14 +409,20 @@ final class VisualizationBridgeActor(
     val reqIdOpt = visToRequest.get(visIdStr)
     reqIdOpt match {
       case None =>
-        // Not a visualization we are tracking; leave it for legacy path, if
-        // any. Once the legacy path is removed this branch should be a warn.
+        // Not a visualization we are tracking.
         logger.debug(
           s"vis: runtime emitted VisualizationUpdate for untracked $visIdStr"
         )
       case Some(requestId) =>
         sendDataFrame(requestId, bytes)
         sendControl(ReadyMsg(requestId))(Codecs.readyEncoder)
+        // InFrame oneshots are terminal. The runtime will not emit further
+        // updates for this visualization id, so drop our correlation state.
+        if (oneshotVisIds.remove(visIdStr)) {
+          visToRequest.remove(visIdStr)
+          visToContext.remove(visIdStr)
+          visToExpression.remove(visIdStr)
+        }
     }
   }
 
@@ -403,6 +435,11 @@ final class VisualizationBridgeActor(
       case None => ()
       case Some(requestId) =>
         sendControl(FailedMsg(requestId, message))(Codecs.failedEncoder)
+        if (oneshotVisIds.remove(visIdStr)) {
+          visToRequest.remove(visIdStr)
+          visToContext.remove(visIdStr)
+          visToExpression.remove(visIdStr)
+        }
     }
   }
 
