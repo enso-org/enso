@@ -53,7 +53,7 @@ export function isInFrameRequest(
   return !!req && typeof req.expression === 'object' && 'inFrame' in req.expression
 }
 
-export type VisSlotStatus = 'pending' | 'ready' | 'failed' | 'detached'
+export type VisSlotStatus = 'pending' | 'ready' | 'failed'
 
 export interface VisSlotFailure {
   message: string
@@ -115,15 +115,18 @@ export class VisualizationSlotView {
     return this.inner.get(VIS_SLOT_FIELDS.createdAt) as number | undefined
   }
 
-  /** True once the slot will not change status again.
+  /**
+   * True once the slot will not change status again.
    *
-   * `failed` and `detached` are terminal for every slot. `ready` is terminal
-   * only for slots whose request is an `inFrame` one-shot. The runtime
-   * auto-detaches those after the first response, so the client consumes the
-   * payload and removes the slot rather than expecting further updates. */
+   * `failed` is terminal for every slot. `ready` is terminal only for slots
+   * whose request is an `inFrame` one-shot. The runtime auto-detaches those
+   * after the first response, so the client consumes the payload and removes
+   * the slot rather than expecting further updates. For persistent attaches
+   * a detach is a slot deletion, not a terminal status.
+   */
   isTerminal(): boolean {
     const s = this.status
-    if (s === 'failed' || s === 'detached') return true
+    if (s === 'failed') return true
     return s === 'ready' && isInFrameRequest(this.request)
   }
 }
@@ -141,7 +144,10 @@ export interface VisualizationSlotSpec {
  * Enforces the invariants listed in the rationale doc:
  * - `request` is set once at slot creation, never updated.
  * - `response` is only written via `recordResponse` (bridge-only).
- * - `status: 'detached'` is terminal (no back-transitions).
+ * - Detach is a slot deletion (`removeSlot`), not a status flip. The bridge
+ *   observes the deletion and emits a detach message to the LS; for one-shot
+ *   `inFrame` slots the deletion is expected after the response is consumed
+ *   and produces no detach message.
  */
 export class Visualizations {
   readonly doc: Y.Doc
@@ -187,17 +193,12 @@ export class Visualizations {
     return requestId
   }
 
-  /** Mark a slot detached. Terminal. */
-  markDetached(requestId: VisRequestId): void {
-    const inner = this.slots.get(requestId)
-    if (!inner) return
-    if (inner.get(VIS_SLOT_FIELDS.status) === 'detached') return
-    this.doc.transact(() => {
-      inner.set(VIS_SLOT_FIELDS.status, 'detached' satisfies VisSlotStatus)
-    })
-  }
-
-  /** Remove a slot entirely. For client-side GC of terminal slots. */
+  /**
+   * Remove a slot entirely. This is how clients detach: the bridge observes
+   * the deletion and emits a detach control message to the LS (except for
+   * `inFrame` one-shots, whose slot removal after response is expected and
+   * produces no detach message). Idempotent.
+   */
   removeSlot(requestId: VisRequestId): void {
     this.slots.delete(requestId)
   }

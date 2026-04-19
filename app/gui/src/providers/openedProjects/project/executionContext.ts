@@ -322,7 +322,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
       // the context is gone.
       if (state.status === 'created' && this.visualizations) {
         for (const requestId of state.visualizationSlotByVisId.values()) {
-          this.visualizations.markDetached(requestId)
+          this.visualizations.removeSlot(requestId)
         }
       }
       if (state.status === 'created') {
@@ -466,7 +466,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
         const detach = (visId: Uuid) => {
           const requestId = state.visualizationSlotByVisId.get(visId)
-          if (requestId != null) vis.markDetached(requestId)
+          if (requestId != null) vis.removeSlot(requestId)
           state.visualizationSlotByVisId.delete(visId)
           state.visualizations.delete(visId)
         }

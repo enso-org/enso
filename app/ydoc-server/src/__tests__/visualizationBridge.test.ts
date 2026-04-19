@@ -105,7 +105,7 @@ describe('VisualizationBridge', () => {
     expect(parsed.request.visualizationModule).toBe('Standard.Visualization.Preprocessor')
   })
 
-  it('emits a detach message when a slot transitions to detached', () => {
+  it('emits a detach message when a slot is removed', () => {
     const f = makeFixture()
     const requestId = newVisRequestId()
     f.vis.createSlot(
@@ -117,7 +117,7 @@ describe('VisualizationBridge', () => {
       },
       requestId,
     )
-    f.vis.markDetached(requestId)
+    f.vis.removeSlot(requestId)
     // One attach + one detach.
     expect(f.controlFromBridge).toHaveLength(2)
     const second = JSON.parse(f.controlFromBridge[1]!)
@@ -235,7 +235,7 @@ describe('VisualizationBridge', () => {
     expect(kinds).toEqual(['attach'])
   })
 
-  it('supersede: new slot for same visualizationId coexists with detached old slot', () => {
+  it('supersede: new slot for same visualizationId triggers attach after old slot detach', () => {
     const f = makeFixture()
     const oldRequest = newVisRequestId()
     const newRequest = newVisRequestId()
@@ -249,8 +249,8 @@ describe('VisualizationBridge', () => {
       },
       oldRequest,
     )
-    // Simulate the client-side "modify": detach old slot, create new one.
-    f.vis.markDetached(oldRequest)
+    // Simulate the client-side "modify": remove old slot, create new one.
+    f.vis.removeSlot(oldRequest)
     f.vis.createSlot(
       {
         visualizationId: VIS_ID,
@@ -264,8 +264,30 @@ describe('VisualizationBridge', () => {
     // Bridge should have emitted: attach(old), detach(old), attach(new).
     const kinds = f.controlFromBridge.map((m) => JSON.parse(m).kind)
     expect(kinds).toEqual(['attach', 'detach', 'attach'])
-    // Both slots still exist in the subdoc (immutability).
-    expect(f.vis.getSlot(oldRequest as VisRequestId)?.status).toBe('detached')
+    // Old slot is gone; new slot remains pending.
+    expect(f.vis.getSlot(oldRequest as VisRequestId)).toBeNull()
     expect(f.vis.getSlot(newRequest as VisRequestId)?.status).toBe('pending')
+  })
+
+  it('prunes per-request state once a slot is removed', () => {
+    const f = makeFixture()
+    const rid = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: request(),
+      },
+      rid,
+    )
+    f.vis.removeSlot(rid)
+    // Internal state check: the bridge should no longer track the rid.
+    const internal = f.bridge as unknown as {
+      announced: Set<string>
+      oneshotRequestIds: Set<string>
+    }
+    expect(internal.announced.has(rid)).toBe(false)
+    expect(internal.oneshotRequestIds.has(rid)).toBe(false)
   })
 })

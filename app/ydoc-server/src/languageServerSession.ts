@@ -41,7 +41,7 @@ import * as fileFormat from './fileFormat'
 import { deserializeIdMap, idMapToArray, serializeIdMap } from './serialization'
 import { createVisualizationBridge, type VisualizationBridge } from './visualizationBridge'
 import { WSSharedDoc } from './ydoc'
-import type { JavaByteBufferClass } from './YjsBinaryChannel'
+import type { JavaByteBuffer, JavaByteBufferClass } from './YjsBinaryChannel'
 
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
@@ -60,7 +60,7 @@ export class LanguageServerSession {
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
   unregister: () => void
-  visualizationBridge: VisualizationBridge | undefined
+  visualizationBridge: VisualizationBridge
 
   static DEBUG = false
 
@@ -69,9 +69,9 @@ export class LanguageServerSession {
     ls: LanguageServer,
     indexDoc: WSSharedDoc,
     unregister: () => void,
-    visControlServer?: YjsChannelServer<string>,
-    visDataServer?: YjsChannelServer<unknown>,
-    byteBufferClass?: JavaByteBufferClass,
+    visControlServer: YjsChannelServer<string>,
+    visDataServer: YjsChannelServer<JavaByteBuffer>,
+    byteBufferClass: JavaByteBufferClass,
   ) {
     this.clientScope = new AbortScope()
     this.docs = new Map()
@@ -94,22 +94,20 @@ export class LanguageServerSession {
     })
     this.clientScope.onAbort(() => this.ls.release())
 
-    if (visControlServer && visDataServer) {
-      // Wrap the vis subdoc in a WSSharedDoc so the gateway server can route
-      // its own WebSocket connections (keyed by the subdoc's guid) to it.
-      // Without this, clients attaching providers to the subdoc would find no
-      // endpoint and the slot contents would never sync.
-      const visWsDoc = new WSSharedDoc()
-      this.model.adoptVisualizationsDoc(visWsDoc.doc)
-      this.docs.set(visWsDoc.doc.guid, visWsDoc)
-      this.visualizationBridge = createVisualizationBridge(
-        this.indexDoc.doc,
-        visWsDoc.doc,
-        visControlServer,
-        visDataServer,
-        byteBufferClass,
-      )
-    }
+    // Wrap the vis subdoc in a WSSharedDoc so the gateway server can route
+    // its own WebSocket connections (keyed by the subdoc's guid) to it.
+    // Without this, clients attaching providers to the subdoc would find no
+    // endpoint and the slot contents would never sync.
+    const visWsDoc = new WSSharedDoc()
+    this.model.adoptVisualizationsDoc(visWsDoc.doc)
+    this.docs.set(visWsDoc.doc.guid, visWsDoc)
+    this.visualizationBridge = createVisualizationBridge(
+      this.indexDoc.doc,
+      visWsDoc.doc,
+      visControlServer,
+      visDataServer,
+      byteBufferClass,
+    )
 
     this.setupClient()
   }
@@ -120,9 +118,9 @@ export class LanguageServerSession {
   static get(
     url: string,
     callbacks: YjsChannelServer,
-    visControlServer?: YjsChannelServer<string>,
-    visDataServer?: YjsChannelServer<unknown>,
-    byteBufferClass?: JavaByteBufferClass,
+    visControlServer: YjsChannelServer<string>,
+    visDataServer: YjsChannelServer<JavaByteBuffer>,
+    byteBufferClass: JavaByteBufferClass,
   ): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
@@ -296,7 +294,7 @@ export class LanguageServerSession {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
     this.unregister()
-    this.visualizationBridge?.close()
+    this.visualizationBridge.close()
     const modules = this.authoritativeModules.values()
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()

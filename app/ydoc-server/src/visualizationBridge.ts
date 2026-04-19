@@ -65,15 +65,17 @@ export class VisualizationBridge {
   private readonly vis: Visualizations
   private readonly control: YjsChannel<string>
   private readonly data: YjsChannel<Uint8Array>
-  /** Request ids we have already emitted an `attach` for. */
+  /**
+   * Request ids for which we have emitted an `attach` and which are still
+   * tracked. Entries are pruned when the slot disappears from the map (and a
+   * detach is emitted at the same time for non-one-shots).
+   */
   private readonly announced = new Set<string>()
-  /** Request ids we have already emitted a `detach` for. */
-  private readonly detached = new Set<string>()
   /**
    * Request ids whose slot was an `inFrame` one-shot. We track these so
    * that when the slot is subsequently removed from the map (client-side
    * GC after reading the one-shot response) we know not to emit a detach
-   * for it.
+   * for it. Pruned together with `announced`.
    */
   private readonly oneshotRequestIds = new Set<string>()
   private readonly observer: () => void
@@ -99,41 +101,27 @@ export class VisualizationBridge {
   }
 
   /**
-   * Walks the slots map and emits attach / detach messages for state
-   * changes. One-shot `inFrame` attaches never transition to `'detached'`
-   * (the runtime auto-detaches internally) and are removed outright by the
-   * client on `'ready' | 'failed'`; we skip both the detach-status emission
-   * and the "outright removed" detach emission for those.
+   * Walk the slots map, emit attach for newly-pending slots, and emit detach
+   * for slots we had previously announced which are no longer present. One-shot
+   * `inFrame` attaches are removed by the client after consuming their response
+   * and carry no detach message. The runtime auto-detaches them internally.
    */
   private scan(): void {
     const liveIds = new Set<string>()
     for (const view of this.vis.entries()) {
-      const rid = view.requestId as unknown as string
+      const rid = view.requestId
       liveIds.add(rid)
-      if (!this.announced.has(rid)) {
-        if (view.status === 'pending') {
-          this.announced.add(rid)
-          if (isInFrameRequest(view.request)) this.oneshotRequestIds.add(rid)
-          this.emitAttach(view)
-        }
-      }
-      if (
-        !this.oneshotRequestIds.has(rid) &&
-        view.status === 'detached' &&
-        !this.detached.has(rid)
-      ) {
-        this.detached.add(rid)
-        this.emitDetach(view)
+      if (!this.announced.has(rid) && view.status === 'pending') {
+        this.announced.add(rid)
+        if (isInFrameRequest(view.request)) this.oneshotRequestIds.add(rid)
+        this.emitAttach(view)
       }
     }
-    // Emit detach for outright-removed slots we had previously announced —
-    // but only if the slot's request wasn't an `inFrame` oneshot. For those,
-    // removal on response is expected and carries no LS-side meaning.
-    for (const rid of this.announced) {
-      if (!liveIds.has(rid) && !this.detached.has(rid) && !this.oneshotRequestIds.has(rid)) {
-        this.detached.add(rid)
-        this.emitRawDetach(rid)
-      }
+    for (const rid of Array.from(this.announced)) {
+      if (liveIds.has(rid)) continue
+      if (!this.oneshotRequestIds.has(rid)) this.emitRawDetach(rid)
+      this.announced.delete(rid)
+      this.oneshotRequestIds.delete(rid)
     }
   }
 
@@ -157,19 +145,6 @@ export class VisualizationBridge {
     this.control.send(JSON.stringify(msg))
   }
 
-  private emitDetach(view: VisualizationSlotView): void {
-    const visualizationId = view.visualizationId ?? ''
-    const contextId = view.contextId ?? ''
-    const msg: DetachMsg = {
-      kind: 'detach',
-      requestId: view.requestId,
-      visualizationId,
-      contextId,
-    }
-    this.control.send(JSON.stringify(msg))
-  }
-
-  /** Used when a slot was removed outright (no fields to read). */
   private emitRawDetach(requestId: string): void {
     const msg: DetachMsg = {
       kind: 'detach',
@@ -251,37 +226,24 @@ export class VisualizationBridge {
  * reusing one instance would cause messages sent by the bridge to be
  * echo-suppressed before the LS-side subscribe handler fires. This mirrors
  * how `YjsServerTransport` wires the JSON channel pair.
- *
- * The two endpoints of the data channel use **different codecs** on the same
- * `Y.Array`. The LS-side endpoint uses `JavaByteBufferCodec` to convert the
- * Java `ByteBuffer` that the Language Server sends into a `Uint8Array` for
- * storage; without this codec, `channel.send(byteBuffer)` stores the Java
- * object directly and Yjs serializes it as an empty `{}` on the wire. The
- * ydoc-server-side endpoint uses the identity codec because it reads and
- * writes the already-decoded `Uint8Array`. Pass `byteBufferClass` when
- * running under GraalJS polyglot; omit it in unit tests that only use
- * `Uint8Array` on both sides.
  */
 export function createVisualizationBridge(
   indexDoc: Y.Doc,
   visSubdoc: Y.Doc,
   controlServer: YjsChannelServer<string>,
-  dataServer: YjsChannelServer<JavaByteBuffer | Uint8Array>,
-  byteBufferClass?: JavaByteBufferClass,
+  dataServer: YjsChannelServer<JavaByteBuffer>,
+  byteBufferClass: JavaByteBufferClass,
 ): VisualizationBridge {
   const bridgeControl = new YjsChannel<string>(indexDoc, VIS_CONTROL_CHANNEL)
   const bridgeData = new YjsChannel<Uint8Array>(indexDoc, VIS_DATA_CHANNEL)
   const lsControl = new YjsChannel<string>(indexDoc, VIS_CONTROL_CHANNEL)
-  const lsData =
-    byteBufferClass != null ?
-      new YjsChannel<JavaByteBuffer, Uint8Array>(
-        indexDoc,
-        VIS_DATA_CHANNEL,
-        new JavaByteBufferCodec(byteBufferClass),
-      )
-    : new YjsChannel<Uint8Array>(indexDoc, VIS_DATA_CHANNEL)
+  const lsData = new YjsChannel<JavaByteBuffer, Uint8Array>(
+    indexDoc,
+    VIS_DATA_CHANNEL,
+    new JavaByteBufferCodec(byteBufferClass),
+  )
   controlServer.onConnect(lsControl)
-  ;(dataServer as YjsChannelServer<unknown>).onConnect(lsData)
+  dataServer.onConnect(lsData)
   return new VisualizationBridge(new Visualizations(visSubdoc), bridgeControl, bridgeData)
 }
 

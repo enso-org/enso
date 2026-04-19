@@ -11,7 +11,7 @@ import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
 import type { YjsChannelServer } from 'ydoc-channel'
-import { YjsBinaryChannel } from './YjsBinaryChannel'
+import { YjsBinaryChannel, type JavaByteBuffer, type JavaByteBufferClass } from './YjsBinaryChannel'
 import type { InspectManager } from './inspect'
 import { LanguageServerSession } from './languageServerSession'
 
@@ -101,11 +101,11 @@ export function setupGatewayClient(
   lsUrl: string | undefined | null,
   dataUrl: string | undefined | null,
   docName: string,
-  byteBuffer: any,
+  byteBuffer: JavaByteBufferClass,
   jsonChannelServer: YjsChannelServer,
   binaryChannelServer: YjsChannelServer,
-  visControlChannelServer?: YjsChannelServer<string>,
-  visDataChannelServer?: YjsChannelServer<unknown>,
+  visControlChannelServer: YjsChannelServer<string>,
+  visDataChannelServer: YjsChannelServer<JavaByteBuffer>,
   inspectManager?: InspectManager | null,
 ): void {
   console.log(
@@ -147,9 +147,9 @@ export function setupGatewayClient(
 function getSessionForUrl(
   lsUrl: string | undefined | null,
   jsonChannelServer: YjsChannelServer,
-  visControlServer?: YjsChannelServer<string>,
-  visDataServer?: YjsChannelServer<unknown>,
-  byteBufferClass?: any,
+  visControlServer: YjsChannelServer<string>,
+  visDataServer: YjsChannelServer<JavaByteBuffer>,
+  byteBufferClass: JavaByteBufferClass,
 ) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
