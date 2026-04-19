@@ -104,7 +104,6 @@ const fileTree = {
   },
 }
 
-
 const encoder = new TextEncoder()
 const encodeJSON = (data: unknown) => encoder.encode(JSON.stringify(data))
 

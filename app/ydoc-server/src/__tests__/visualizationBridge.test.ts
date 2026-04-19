@@ -30,8 +30,10 @@ interface Fixture {
   indexDoc: Y.Doc
   visDoc: Y.Doc
   vis: Visualizations
-  /** Channel pair wired together through the index doc. The bridge holds one
-   *  end; the "LS peer" end is exposed here for assertions. */
+  /**
+   * Channel pair wired together through the index doc. The bridge holds one
+   * end; the "LS peer" end is exposed here for assertions.
+   */
   bridgeControl: YjsChannel<string>
   bridgeData: YjsChannel<Uint8Array>
   peerControl: YjsChannel<string>

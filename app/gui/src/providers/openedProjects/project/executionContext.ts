@@ -111,12 +111,6 @@ type EntryPoint = Omit<ExplicitCall, 'type'>
 
 type ExecutionContextNotification = {
   'expressionUpdates'(updates: ExpressionUpdate[]): void
-  'visualizationEvaluationFailed'(
-    visualizationId: Uuid,
-    expressionId: ExpressionId,
-    message: string,
-    diagnostic: Diagnostic | undefined,
-  ): void
   'executionFailed'(message: string): void
   'executionComplete'(): void
   'executionStatus'(diagnostics: Diagnostic[]): void
@@ -205,9 +199,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.abort.handleObserve(this.lsRpc, 'executionContext/executionStatus', (event) => {
       if (event.contextId == this.id) this.emit('executionStatus', [event.diagnostics])
     })
-    // `executionContext/visualizationEvaluationFailed` is gone; failures now
-    // surface through the vis subdoc slot's `failure` field. See
-    // `VisualizationDataRegistry` for the consumer.
     this.lsRpc.on('transport/closed', () => {
       // Connection closed: the created execution context is no longer available
       // There is no point in any scheduled action until resynchronization

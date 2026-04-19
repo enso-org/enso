@@ -26,7 +26,7 @@ export interface ExpressionInfo {
 /**
  * Holds the latest available visualization response per visualization id.
  *
- * Reads slots from the vis subdoc. For each `visualizationId`, 
+ * Reads slots from the vis subdoc. For each `visualizationId`,
  * the registry picks the slot with the largest `createdAt`
  * that has reached a terminal state (`ready` or `failed`), decodes its
  * response bytes as UTF-8 JSON (to keep the existing `getRawData` contract),

@@ -29,12 +29,15 @@ export interface JavaByteBufferClass {
  * identity-coded endpoint on the ydoc-server side.
  */
 export class JavaByteBufferCodec implements ChannelCodec<JavaByteBuffer, Uint8Array> {
+  /** @param ByteBuffer Polyglot handle to `java.nio.ByteBuffer`. */
   constructor(private readonly ByteBuffer: JavaByteBufferClass) {}
 
+  /** Wrap a Java `ByteBuffer` in a `Uint8Array` view without copying. */
   encode(message: JavaByteBuffer): Uint8Array {
     return new Uint8Array(new ArrayBuffer(message))
   }
 
+  /** Allocate a direct Java `ByteBuffer` and copy the stored bytes into it. */
   decode(stored: Uint8Array): JavaByteBuffer {
     const bb = this.ByteBuffer.allocateDirect(stored.byteLength)
     const arr = new Uint8Array(new ArrayBuffer(bb))

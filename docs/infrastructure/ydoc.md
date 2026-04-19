@@ -143,8 +143,8 @@ channels and an accompanying subdoc. The legacy
 The **visualization subdoc** is a Yjs subdoc held under
 `DistributedProject.visualizations` (a Y.Map keyed by a single reserved slot).
 Clients write slots into the subdoc's top-level `slots: Y.Map<requestId, ...>`
-to request visualizations; each slot has a `kind` of `attach` or `execute`.
-The ydoc-server
+to request visualizations; each slot has a `kind` of `attach` or `execute`. The
+ydoc-server
 [`visualizationBridge`](../../app/ydoc-server/src/visualizationBridge.ts)
 observes those mutations and emits `attach`, `detach`, or `execute` messages on
 `vis:control`. Responses flowing back from the LS as binary frames on `vis:data`

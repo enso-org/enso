@@ -69,16 +69,19 @@ export class VisualizationBridge {
   private readonly announced = new Set<string>()
   /** Request ids we have already emitted a `detach` for. */
   private readonly detached = new Set<string>()
-  /** Request ids whose slot was an `inFrame` one-shot. We track these so
-   *  that when the slot is subsequently removed from the map (client-side
-   *  GC after reading the one-shot response) we know not to emit a detach
-   *  for it. */
+  /**
+   * Request ids whose slot was an `inFrame` one-shot. We track these so
+   * that when the slot is subsequently removed from the map (client-side
+   * GC after reading the one-shot response) we know not to emit a detach
+   * for it.
+   */
   private readonly oneshotRequestIds = new Set<string>()
   private readonly observer: () => void
   private readonly unsubscribeControl: () => void
   private readonly unsubscribeData: () => void
   private disposed = false
 
+  /** Observe `vis` and translate slot mutations into `control` / `data` frames. */
   constructor(vis: Visualizations, control: YjsChannel<string>, data: YjsChannel<Uint8Array>) {
     this.vis = vis
     this.control = control
@@ -95,11 +98,13 @@ export class VisualizationBridge {
     this.scan()
   }
 
-  /** Walks the slots map and emits attach / detach messages for state
+  /**
+   * Walks the slots map and emits attach / detach messages for state
    * changes. One-shot `inFrame` attaches never transition to `'detached'`
    * (the runtime auto-detaches internally) and are removed outright by the
    * client on `'ready' | 'failed'`; we skip both the detach-status emission
-   * and the "outright removed" detach emission for those. */
+   * and the "outright removed" detach emission for those.
+   */
   private scan(): void {
     const liveIds = new Set<string>()
     for (const view of this.vis.entries()) {
@@ -125,11 +130,7 @@ export class VisualizationBridge {
     // but only if the slot's request wasn't an `inFrame` oneshot. For those,
     // removal on response is expected and carries no LS-side meaning.
     for (const rid of this.announced) {
-      if (
-        !liveIds.has(rid) &&
-        !this.detached.has(rid) &&
-        !this.oneshotRequestIds.has(rid)
-      ) {
+      if (!liveIds.has(rid) && !this.detached.has(rid) && !this.oneshotRequestIds.has(rid)) {
         this.detached.add(rid)
         this.emitRawDetach(rid)
       }
@@ -229,6 +230,7 @@ export class VisualizationBridge {
     this.vis.recordResponse(rid, owned)
   }
 
+  /** Unsubscribe from observers and channels. Idempotent. */
   close(): void {
     if (this.disposed) return
     this.disposed = true
@@ -299,7 +301,7 @@ function uuidFromBytes(bytes: Uint8Array): string {
   return s
 }
 
-// Unused but kept for symmetry/tests: encode a UUID string into 16 bytes.
+/** Encode a UUID string into its 16 raw bytes. Used by tests and symmetric with {@link uuidFromBytes}. */
 export function uuidToBytes(uuid: string): Uint8Array {
   const hex = uuid.replace(/-/g, '')
   if (hex.length !== 32) throw new Error(`Invalid UUID: ${uuid}`)
