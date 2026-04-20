@@ -23,7 +23,7 @@ The Electron main process. Package name: `enso`. Produces the installable deskto
 
 ## Build
 
-Driven by `./run ide build` (the Enso build CLI). Don't call `electron-builder` or `pnpm run dist` manually unless you're debugging packaging — the build CLI wires the engine bundle, GUI, and Electron together with the right env vars.
+Currently driven by `./run ide build` (the legacy Enso build CLI). Don't call `electron-builder` or `pnpm run dist` manually unless you're debugging packaging — the build CLI wires the engine bundle, GUI, and Electron together with the right env vars. `./run` is slated to be replaced by a Bazel target; check for one before assuming `./run` is the only path.
 
 `watch:linux` / `watch:macos` / `watch:windows` scripts are for local iteration once `./run ide build` has produced the engine bundle.
 

@@ -2,6 +2,8 @@
 
 Domain logic of the Enso build CLI. Owns the Target concept (see `README.md` in `build_tools/`) and implements all the artifact producers.
 
+**Status: legacy**, slated for replacement by Bazel. Maintain existing targets, but don't add new ones when a Bazel target can cover the same case.
+
 ## Module map
 
 Each module handles one artifact family or one integration:

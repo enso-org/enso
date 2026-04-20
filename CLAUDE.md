@@ -3,7 +3,7 @@
 Enso Analytics is a visual/textual programming environment for data preparation and analysis. This repository contains **two top-level products that share this monorepo**:
 
 - **Enso Engine** — the Enso language implementation: parser, compiler, interpreter (Truffle/GraalVM), language server, and the Enso standard library. Written in Scala, Java, and Rust.
-- **Enso IDE** — a desktop application (Electron) with a visual graph editor and a dashboard for project/cloud management. Written in TypeScript, Vue, and React.
+- **Enso IDE** — a desktop application (Electron) with a visual graph editor and a dashboard for project/cloud management. Written in TypeScript. UI uses Vue (with a legacy React dashboard that's being progressively migrated to Vue).
 
 The two products are glued together by several generated/shared artifacts: the Rust parser is compiled to **both** WASM (for the GUI) and a JNI `cdylib` (for the JVM), and its AST types are code-generated into Java so the engine can deserialize parser output.
 
@@ -14,7 +14,7 @@ The two products are glued together by several generated/shared artifacts: the R
 - `lib/rust/` — Rust workspace libraries (parser, prelude, reflect/metamodel, zst). Some crates ship to crates.io.
 - `lib/java/` — JPMS-friendly wrappers around third-party Java libraries, plus interpreter DSL, persistance, and ydoc server.
 - `lib/scala/` — Scala support libraries (pkg, project-manager, editions, logging, etc.).
-- `build_tools/` — The `./run` CLI (Rust). Both developers and CI invoke this to build/test/release any artifact.
+- `build_tools/` — The `./run` CLI (Rust). Historically the canonical build orchestrator; now legacy and being replaced by Bazel. Still in active use for many flows.
 - `distribution/` — Packaged output layout, templates, and the **Enso standard library sources** under `distribution/lib/Standard/`.
 - `std-bits/` — Java helpers that the Enso standard library calls via host interop.
 - `test/` — Enso-language test projects (one per standard library module).
@@ -30,9 +30,9 @@ Four coexist; **which one to use depends on what you're building**:
 - **Cargo** — for everything under the `[workspace]` in root `Cargo.toml` (build_tools + lib/rust + app/rust-ffi).
 - **pnpm + Vite/esbuild** — for the TypeScript monorepo (packages listed in `pnpm-workspace.yaml`).
 - **SBT** — for the Scala/Java engine (`build.sbt`). See `docs/sbt-cheatsheet.md`.
-- **Bazel** — an alternative build being rolled in for the TS/Rust pieces. `BUILD.bazel` files exist alongside `Cargo.toml` / `package.json`. Prefer Bazel only if the change touches `BUILD.bazel` or CI uses it for the target.
+- **Bazel** — the **target** build system. Actively being rolled out across the repo; `BUILD.bazel` files live alongside `Cargo.toml` / `package.json`. Prefer Bazel targets for new build functionality, and migrate existing flows to Bazel when you touch them.
 
-The `./run` (or `run.cmd` / `run.ps1`) script at the repo root dispatches to the Enso build CLI (in `build_tools/cli/`), which is the canonical entry point for end-to-end build/test/release flows.
+The `./run` (or `run.cmd` / `run.ps1`) script at the repo root dispatches to the Enso build CLI (in `build_tools/cli/`) — the **legacy** end-to-end orchestrator. It still works (and transparently calls Bazel when available, Cargo otherwise), but the plan is to replace it with Bazel targets. Don't extend `./run` with new functionality unless Bazel can't cover the case yet.
 
 ## Languages and toolchains
 

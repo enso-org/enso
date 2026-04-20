@@ -1,6 +1,8 @@
-# project-view/ (Vue)
+# project-view/ (Vue — target framework)
 
 The Vue 3 half of the IDE: graph editor, code editor, visualizations, component browser, markdown/plain-text editors, circular menus, documentation panes. Import this half via the `@/` path alias.
+
+**Historical / migration context**: the separate React "dashboard" under `src/dashboard/` is legacy and is being merged into a **single unified Vue GUI app** over time. Both the framework split and the conceptual dashboard/project-view split are historical. New features default to Vue; when you organize code here, put it where it will still make sense once the halves are unified rather than in a shape that assumes "project-view" stays a separate silo.
 
 ## Structure
 

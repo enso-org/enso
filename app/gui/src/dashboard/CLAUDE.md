@@ -1,6 +1,8 @@
-# dashboard/ (React)
+# dashboard/ (React, legacy)
 
 The React half of the IDE: sign-up/sign-in, cloud project browser, settings, billing, subscription management. Import this half via the `#/` path alias.
+
+**Historical / migration context**: this half was built as an independent React effort, separate from the Vue graph editor. The plan is to **unify** dashboard and project-view into a single Vue GUI app — both the framework split and the conceptual split between "dashboard" and "project-view" are going away. Don't grow this tree. When a component here needs non-trivial work, prefer porting it to Vue (in `src/project-view/` or a new shared location) over extending the React version. Default all new features to Vue.
 
 ## Structure
 

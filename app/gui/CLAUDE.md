@@ -2,14 +2,16 @@
 
 The main Enso IDE GUI — a single-page web app built with Vite, served by Electron (desktop) or a static host (cloud). Published as package `enso-gui`.
 
-## The Vue/React split (non-obvious)
+## The Vue/React + dashboard/project-view split (historical, being unified)
 
-`src/` contains **two separate SPAs mounted side-by-side**:
+`src/` contains **two separate SPAs mounted side-by-side**. Both the framework split and the conceptual split into "dashboard" vs "project-view" are historical — the React dashboard was built as an independent effort. The long-term plan is a **single unified Vue GUI app**; the halves will merge.
 
-- `src/dashboard/` — **React**. Auth, cloud storage, project browser, settings, billing. Uses `react-aria`, `@tanstack/react-query`, `react-hook-form`, `zod`. TailwindCSS for styling.
-- `src/project-view/` — **Vue 3**. Graph editor, component browser, code editor, visualizations, documentation editor. Uses `@vueuse/core`, `@tanstack/vue-query`, `yjs`.
+- `src/project-view/` — **Vue 3** (target framework and target home for everything). Graph editor, component browser, code editor, visualizations, documentation editor. Uses `@vueuse/core`, `@tanstack/vue-query`, `yjs`.
+- `src/dashboard/` — **React** (legacy). Auth, cloud storage, project browser, settings, billing. Uses `react-aria`, `@tanstack/react-query`, `react-hook-form`, `zod`. TailwindCSS for styling. Being progressively ported to Vue and folded into the unified GUI.
 
 They are bridged by **`veaury`**, which lets a Vue component embed a React tree (and vice versa). When editing, stay in one framework per file — don't mix unless you're at the bridge boundary.
+
+**Rule of thumb for new work:** default to Vue, and place new code where it will still make sense once the halves are merged. When a dashboard component needs non-trivial changes, consider porting it to Vue instead of extending the React version.
 
 `src/components/` at the top of `src/` holds the small set of components that are rendered *outside* either SPA (app container, command palette, loading screen). `App.vue` / `ReactRoot.tsx` / `entrypoint.ts` wire the two together.
 
