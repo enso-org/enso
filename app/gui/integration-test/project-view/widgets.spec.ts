@@ -1038,7 +1038,9 @@ test('Table widget', async ({ editorPage, page }) => {
   await expect(widget.locator('.ag-cell')).toHaveText(['0', '', ''])
 
   // Putting first value
-  await widget.locator('.ag-cell', { hasNotText: '0' }).first().click()
+  const firstValueCell = widget.locator('.ag-cell', { hasNotText: '0' }).first()
+  await firstValueCell.click()
+  await expect(firstValueCell).toBeFocused()
   await page.keyboard.type('Value')
   await page.keyboard.press('Enter')
   // There will be new blank row allowing adding new rows.
@@ -1046,8 +1048,10 @@ test('Table widget', async ({ editorPage, page }) => {
 
   // Renaming column
   await widget.locator('.ag-header-cell-text', { hasText: 'Column 1' }).first().click()
-  await page.keyboard.type('Header')
-  await page.keyboard.press('Enter')
+  const headerInput = widget.locator('.ag-text-field-input')
+  await expect(headerInput).toBeFocused()
+  await headerInput.fill('Header')
+  await headerInput.press('Enter')
   await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header'])
 
   // Adding next column
