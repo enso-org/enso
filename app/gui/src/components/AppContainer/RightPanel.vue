@@ -17,13 +17,17 @@ import DocumentationEditor from '@/components/DocumentationEditor'
 import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
+import { registerHandlers } from '@/providers/action'
 import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, toRef, toValue, useTemplateRef } from 'vue'
+import PanelContents from './PanelContents.vue'
 
 const width = toRef(useContainerData(), 'rightPanelWidth')
 const data = useRightPanelData()
+const PANEL_BACKGROUND_COLOR = 'white'
+// Inner container inside `PanelContents` component needs separate style, because it's teleported.
+const CONTAINER_STYLE = { backgroundColor: PANEL_BACKGROUND_COLOR }
 
 // Not a part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
@@ -70,6 +74,13 @@ const resizeHandles = useResizeHandles({
 })
 resizeHandles.onResizeWidth((value) => (width.value = value))
 const widthStyle = computed(() => ({ width: optPx(width.value) }))
+
+registerHandlers({
+  'panel.close': {
+    action: () => data.setTab(undefined),
+    available: () => data.tab != null,
+  },
+})
 </script>
 
 <template>
@@ -77,11 +88,13 @@ const widthStyle = computed(() => ({ width: optPx(width.value) }))
     <SizeTransition width :duration="250">
       <div v-if="component != null" class="sizeWrapper">
         <div ref="contentElement" class="content" :style="widthStyle">
-          <WithFullscreenMode v-model="data.fullscreen">
-            <div class="contentInner withBackgroundColor">
-              <component :is="component" />
-            </div>
-          </WithFullscreenMode>
+          <PanelContents
+            v-slot="{ toolbarElement }"
+            v-model:fullscreen="data.fullscreen"
+            :containerStyle="CONTAINER_STYLE"
+          >
+            <component :is="component" :toolbar="toolbarElement" />
+          </PanelContents>
           <ResizeHandles left v-on="resizeHandles.events" />
         </div>
       </div>
@@ -105,10 +118,6 @@ const widthStyle = computed(() => ({ width: optPx(width.value) }))
 </template>
 
 <style lang="css" scoped>
-.withBackgroundColor {
-  --panel-background: white;
-}
-
 .RightPanel {
   --tab-highlight: white;
   display: flex;
@@ -116,6 +125,7 @@ const widthStyle = computed(() => ({ width: optPx(width.value) }))
   flex-direction: row;
   height: 100%;
   z-index: 2;
+  --panel-background: v-bind(PANEL_BACKGROUND_COLOR);
 }
 
 .content {
@@ -137,16 +147,6 @@ const widthStyle = computed(() => ({ width: optPx(width.value) }))
   min-width: 0;
   flex-grow: 1;
   background-color: var(--panel-background);
-}
-
-/* React panels rely on being inside columned flex. */
-.contentInner {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--panel-background);
-  padding: 1.25rem 1rem;
 }
 
 .rightBar {

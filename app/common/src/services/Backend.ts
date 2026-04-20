@@ -110,6 +110,11 @@ export enum BackendType {
   remote = 'remote',
 }
 
+/** Determine backend type from session ID. */
+export function projectSessionBackendType(id: ProjectSessionId): BackendType {
+  return id.startsWith('projectsession-') ? BackendType.remote : BackendType.local
+}
+
 /** Check if this path points to an asset in cloud drive. */
 export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
   return ensoPath.startsWith('enso://')
@@ -1193,16 +1198,27 @@ export interface UpdateFileRequestBody {
 }
 
 /** HTTP request body for the "update asset" endpoint. */
-export interface UpdateAssetRequestBody {
+export interface UpdateAsset {
   readonly parentDirectoryId?: DirectoryId | null
   readonly description?: string | null
   readonly title?: string | null
   readonly metadataId?: MetadataId | null
+}
 
-  // Update version comments
+/** HTTP request body for the "update asset version tag" action. */
+export interface UpdateAssetVersionTag {
+  readonly versionId?: S3ObjectVersionId
+  readonly tag?: string
+  readonly remove?: boolean
+}
+
+/** HTTP request body for the "update asset version comment" action. */
+export interface UpdateAssetVersionComment {
   readonly versionId?: S3ObjectVersionId
   readonly comment?: string | null
 }
+
+export type UpdateAssetRequestBody = UpdateAsset & UpdateAssetVersionTag & UpdateAssetVersionComment
 
 /** HTTP request body for the "delete asset" endpoint. */
 export interface DeleteAssetRequestBody {

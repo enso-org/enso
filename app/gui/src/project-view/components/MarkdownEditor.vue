@@ -7,6 +7,7 @@ import { defineAsyncComponent } from 'vue'
 // and toolbar has default `true` in inner component
 const { toolbar = true, ...props } = defineProps<{
   toolbar?: boolean
+  teleportToolbarTo?: HTMLElement | string | undefined
   readonly?: boolean
   extensions?: Extension
   contentTestId?: string

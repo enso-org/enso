@@ -16,6 +16,8 @@
 - [Execution can be scheduled for the specific version tag][14883]
 - [Add component spacing options][14888]
 - [A comment can be attached to the asset version][14923]
+- [New tabular view of session log with filtering][14953]
+- [Input ports no longer highlight on hover unless being connected to][14968]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -30,6 +32,8 @@
 [14883]: https://github.com/enso-org/enso/pull/14883
 [14888]: https://github.com/enso-org/enso/pull/14888
 [14823]: https://github.com/enso-org/enso/pull/14823
+[14953]: https://github.com/enso-org/enso/pull/14953
+[14968]: https://github.com/enso-org/enso/pull/14968
 
 #### Enso Standard Library
 
@@ -53,6 +57,8 @@
 - [Add last_index_of][14903]
 - [Add pad_left and pad_right][14922]
 - [More control over when in write operation for post and process.][14930]
+- [Improve database write performance][14960]
+- [Add reverse][14931]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -74,6 +80,8 @@
 [14903]: https://github.com/enso-org/enso/pull/14903
 [14922]: https://github.com/enso-org/enso/pull/14922
 [14930]: https://github.com/enso-org/enso/pull/14930
+[14960]: https://github.com/enso-org/enso/pull/14960
+[14931]: https://github.com/enso-org/enso/pull/14931
 
 #### Enso Language & Runtime
 

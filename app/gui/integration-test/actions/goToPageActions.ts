@@ -23,7 +23,7 @@ export function goToPageActions<Context>(
     drive: () =>
       step('Go to Drive', (page) =>
         // Drive is not a separate tab, we focus left panel instead.
-        page.getByTestId('assets-table-assets-unselector').first().click(),
+        page.locator('.leftBar').click(),
       ).into(DrivePageActions<Context>),
     projectView: () =>
       step('Go to Project page', (page) =>

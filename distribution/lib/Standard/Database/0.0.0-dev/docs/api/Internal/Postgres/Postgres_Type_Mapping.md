@@ -12,6 +12,7 @@
     - sql_type_to_text sql_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - sql_type_to_value_type sql_type:Standard.Base.Any.Any json_as_text:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - statement_setter -> Standard.Base.Any.Any
+    - value_setter -> Standard.Base.Any.Any
     - value_type_to_sql value_type:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
 - complex_types_map -> Standard.Base.Any.Any
 - max_precision -> Standard.Base.Any.Any

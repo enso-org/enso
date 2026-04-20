@@ -3,6 +3,7 @@
   "compilerOptions": { "types": ["node", "vitest/importMeta", "@testing-library/jest-dom"] },
   "extends": "./tsconfig.app.json",
   "files": [
+    "./src/components/ProjectLog/__tests__/logParsing.test.ts",
     "./src/dashboard/data/__tests__/dataLinkSchema.test.ts",
     "./src/dashboard/utilities/__tests__/AssetQuery.test.ts",
     "./src/dashboard/utilities/__tests__/LruCache.test.ts",

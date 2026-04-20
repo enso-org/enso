@@ -18,7 +18,6 @@ from project.Errors import Unsupported_Database_Type
 polyglot java import java.sql.Types
 polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 polyglot java import org.enso.database.JDBCValueSetter
-
 ## ---
    private: true
    ---
@@ -159,9 +158,14 @@ type SQLite_Type_Mapping
        ---
        Creates a Statement_Setter for SQLite.
     statement_setter =
-        jdbc_value_setter = JDBCValueSetter.create "SQLite"
-        fill_home = Statement_Setter.create_fill_hole jdbc_value_setter
+        fill_home = Statement_Setter.create_fill_hole SQLite_Type_Mapping.value_setter
         Statement_Setter.for_fill_hole fill_home
+
+    ## ---
+       private: true
+       ---
+    value_setter =
+        JDBCValueSetter.create "SQLite"
 
     ## ---
        private: true

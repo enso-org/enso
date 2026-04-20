@@ -8,6 +8,7 @@
     "./src/edits.ts",
     "./src/fileFormat.ts",
     "./src/index.ts",
+    "./src/inspect.ts",
     "./src/languageServerSession.ts",
     "./src/serialization.ts",
     "./src/ydoc.ts"

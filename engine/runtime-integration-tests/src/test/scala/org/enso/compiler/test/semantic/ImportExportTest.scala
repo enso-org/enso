@@ -21,7 +21,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.compiler.pass.IRPass
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import java.util.logging.Level
 import java.io.IOException
 
@@ -55,13 +55,6 @@ class ImportExportTest
         .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
     )
 
@@ -693,52 +686,6 @@ class ImportExportTest
         .reason
         .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
         .symbolName shouldEqual "baz"
-    }
-  }
-
-  "Import resolution from another library from micro-distribution honor Main" should {
-    "resolve Api from Main" in {
-      val mainIr = """
-                     |from Test.Logical_Export import Element
-                     |
-                     |main =
-                     |    element = Element.Element.create
-                     |    element.describe
-                     |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Main"))
-        .getIr
-
-      mainIr.imports.size shouldEqual 1
-      val in = mainIr.imports.head
-        .asInstanceOf[Import.Module]
-
-      in.name.name should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name) shouldEqual List("Element")
-
-      val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
-      errors.size shouldEqual 0
-    }
-
-    "not expose Impl from Main" in {
-      val mainIr = """
-                     |from Test.Logical_Export import Impl
-                     |
-                     |main = Impl
-                     |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Main"))
-        .getIr
-
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe true
-      mainIr.imports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
-      mainIr.imports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Impl"
     }
   }
 

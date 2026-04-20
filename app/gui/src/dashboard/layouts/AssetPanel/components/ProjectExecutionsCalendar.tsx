@@ -23,6 +23,7 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { tv } from '#/utilities/tailwindVariants'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
@@ -72,7 +73,7 @@ export function ProjectExecutionsCalendar() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category == null || CATEGORY_BACKEND[category.type] !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
   if (focusedAsset == null) {

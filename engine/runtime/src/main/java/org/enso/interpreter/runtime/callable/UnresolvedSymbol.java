@@ -99,7 +99,8 @@ public final class UnresolvedSymbol extends EnsoObject {
   }
 
   private PanicException makePrivateAccessPanic(Node node, Function targetFunction) {
-    String thisProjName = getThisProject().libraryName().qualifiedName();
+    var thisProject = getThisProject();
+    String thisProjName = thisProject != null ? thisProject.libraryName().qualifiedName() : null;
     String targetProjName = null;
     if (getFunctionProject(targetFunction) instanceof Package<TruffleFile> targetProj) {
       targetProjName = targetProj.libraryName().qualifiedName();

@@ -74,8 +74,8 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to be reversed" <|
             expected_1 = Column.from_vector "Test" [6, 4, 2, 5, 3, 1]
-            test_column.reverse.to_vector . should_equal expected_1.to_vector
-            empty_column.reverse.to_vector . should_equal empty_column.to_vector
+            test_column.reverse_rows.to_vector . should_equal expected_1.to_vector
+            empty_column.reverse_rows.to_vector . should_equal empty_column.to_vector
 
         group_builder.specify "should allow to count duplicate value occurrences" <|
             c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]

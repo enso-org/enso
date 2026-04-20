@@ -67,6 +67,11 @@ const routes = [
                 component: () => import('$/project-view/ProjectView.vue'),
               },
               {
+                name: 'projectLog',
+                path: 'projectLog/:id/:title',
+                component: () => import('$/components/ProjectLog.vue'),
+              },
+              {
                 name: 'settings',
                 path: 'settings',
                 component: () =>
