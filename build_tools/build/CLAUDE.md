@@ -8,7 +8,7 @@ Domain logic of the Enso build CLI. Owns the Target concept (see `README.md` in 
 
 Each module handles one artifact family or one integration:
 
-- `engine/` + `engine.rs` — Scala/Java engine (Project Manager, runtime, language server). Shells out to SBT.
+- `engine/` + `engine.rs` — Scala/Java engine (runtime + language server). Shells out to SBT. Note: the Scala Project Manager is no longer part of this bundle — the Electron app uses the TypeScript `app/project-manager-shim/` instead.
 - `ide/` + `ide.rs` — Top-level IDE target. Glues GUI and backend.
 - `project/` + `project.rs` — GUI side: invokes pnpm/Vite.
 - `release/` + `release.rs` — Cutting releases, signing, uploading assets.

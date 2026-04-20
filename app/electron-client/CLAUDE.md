@@ -17,7 +17,7 @@ The Electron main process. Package name: `enso`. Produces the installable deskto
 ## What this process does
 
 - Serves the GUI bundle (from `app/gui/dist/`) in a BrowserWindow.
-- Spawns the Project Manager (Scala backend) — or the TS shim in dev.
+- Runs the Project Manager in-process via the TS `project-manager-shim` (the Scala Project Manager is no longer used, not even in the packaged Electron build).
 - Implements the custom `enso://` protocol handler used by Enso Cloud links.
 - Handles deep-links, auto-update (electron-updater via electron-builder), custom window chrome.
 

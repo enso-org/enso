@@ -43,7 +43,7 @@ The project-view talks to the Enso Language Server via Yjs documents. The Yjs cl
 
 ## Dashboard ↔ backend
 
-The dashboard talks to the Enso Cloud over HTTPS (AWS Amplify + Cognito). In local/desktop mode it also talks to the local Project Manager (TS shim during dev, real Scala PM in production builds).
+The dashboard talks to the Enso Cloud over HTTPS (AWS Amplify + Cognito). In local/desktop mode it also talks to the local TypeScript Project Manager (`app/project-manager-shim/`), which is used in both dev and the packaged Electron build. The old Scala Project Manager is no longer wired in.
 
 ## Assets and icons
 

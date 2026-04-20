@@ -26,8 +26,8 @@ The packages form three layers — the graph editor, the collab/yjs layer, and t
 ### Rust bridge
 - `rust-ffi/` — `wasm-bindgen` wrapper around `enso-parser` (from `lib/rust/parser/`). Built to WASM and consumed by `ydoc-shared` for client-side parsing.
 
-### Dev support
-- `project-manager-shim/` — A TypeScript re-implementation of the engine's Project Manager service. Used in dev/watch mode so the GUI can start without the full Scala/Java backend build.
+### Project Manager
+- `project-manager-shim/` — TypeScript Project Manager used by **both dev/watch and the packaged Electron build**. Named "shim" for historical reasons — the old Scala PM (`lib/scala/project-manager`) is no longer wired into any build, and this is now the real thing.
 
 ## Build order gotcha
 
