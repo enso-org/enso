@@ -850,16 +850,16 @@ type DB_Table_Implementation
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_point" [longitude, latitude]
             this_table.set new_column as=new_name
 
-    spatial_line (this_table : Table & DB_Table) (column : Column) (as : Text) (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex) (order_by : Vector (Text | Sort_Column) | Text) =
+    spatial_line (this_table : Table & DB_Table) (column : Column) (as : Text) (group_by : Vector Column) (order_by : Vector (Text | Sort_Column) | Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_make_line" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
             ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
             problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
                 new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_make_line" [column]
 
-                aggregate_table = this_table.aggregate group_by [..Array_Agg column new_name ignore_nothing=True order_by=ordering] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
+                aggregate_table = this_table.aggregate group_by [..Array_Agg column.name new_name ignore_nothing=True order_by=ordering] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
 
-                new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_MakeLine" [aggregate_table.get new_name])
+                new_column = _resolve_sql_function aggregate_table (SQL_Function.SQL "ST_MakeLine" [aggregate_table.get new_name])
                 aggregate_table.set new_column as=new_name
 
     spatial_geometry_type (this_table : Table & DB_Table) (column : Column) (as : Text) =

@@ -114,8 +114,7 @@ type Spatial_Table
     st_make_lines self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) =
         _column_resolved = _resolve_column column self.parent
         _group_by_resolved = group_by.map c-> _resolve_column c self.parent
-        ## _order_by_resolved = order_by.map c-> if c.is_a Sort_Column then c else _resolve_column c self.parent
-        (self:Table).implementation.spatial_line self.parent.underlying _column_resolved _group_by_resolved order_by as
+        (self:Table).implementation.spatial_line self.parent.underlying _column_resolved as _group_by_resolved order_by
 
     ## ---
        group: Standard.Base.Calculations

@@ -119,7 +119,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.ST_Union c _ -> simple_aggregate "ST_UNION_AGG" [c]
         Aggregate_Column.Array_Agg c _ ignore_nothing order_by ->
             fn = if ignore_nothing then "ARRAY_AGG_NOT_NULL" else "ARRAY_AGG"
-            aggregate_with_order_by fn c order_by
+            aggregate_with_order_by fn c (order_by.if_nothing [])
 
 ## ---
    private: true
