@@ -1,6 +1,7 @@
 # enso-parser-fuzz
 
-AFL-driven fuzz harness for the Enso parser. Runs `enso-parser` (with the `debug` feature) against arbitrary byte streams and flags crashes/timeouts.
+AFL-driven fuzz harness for the Enso parser. Runs `enso-parser` (with the
+`debug` feature) against arbitrary byte streams and flags crashes/timeouts.
 
 ## Run
 
