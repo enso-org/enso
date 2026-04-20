@@ -47,13 +47,15 @@ resulting in a stack overflow error), while `sum_2` is an allocation-free loop.
 
 Enso can detect tail call locations automatically while executing the code. A
 deeply recursive function at _tail call position_ is profiled by Enso runtime
-and _tail call optimizations_ is automatically enabled after few nested
+and _tail call optimizations_ get automatically enabled after few nested
 invocations of the function. Should there be a need to enable such _tail call
 optimizations_ immediatelly users (especially library providers) can explicitly
 mark a function invocation as a tail call by adding the `@Tail_Call` annotation.
-Note that if the annotation is placed incorrectly, it may either be reported as
-a warning by the compiler, or silently ignored. Incorrectly placed `@Tail_Call`
-annotation however never leads to incorrect runtime behavior.
+Then the _tail call optimization_ is enabled immediatelly without speculative
+profiling. Should the `@Tail_Call` annotation be placed incorrectly, it may
+either be reported as a warning by the compiler, or silently ignored.
+Incorrectly placed `@Tail_Call` annotation however never leads to incorrect
+runtime behavior.
 
 For example, the following code reverses a list in a tail recursive fashion:
 
