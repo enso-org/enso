@@ -297,6 +297,7 @@ type SQLServer_Dialect
             Aggregate_Column.SQL _ _ _ -> True
             Aggregate_Column.ST_Union _ _ -> unsupported "ST_Union"
             Aggregate_Column.ST_Intersection _ _ -> unsupported "ST_Intersection"
+            Aggregate_Column.ST_Extent _ _ -> unsupported "ST_Extent"
             Aggregate_Column.Array_Agg _ _ _ _ -> unsupported "Array_Agg"
 
     ## ---
