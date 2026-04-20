@@ -1,12 +1,10 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-import project.Data.Time.Duration.Duration
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Meta_Helpers
 import project.Meta
-import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import False, True
@@ -54,12 +52,15 @@ type Progress
         - `step`: how often the progress should be reported. It has to be at
           least one or higher.
     run label:Text up_to:Integer action:(Progress->Any) step:Integer=1 handle_name:Text="Progress" -> Any =
-        logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
+        base_name = Progress.to Meta.Type . qualified_name
+        logger_name = if handle_name == "Progress" then base_name else
+            base_name + "." + handle_name
+        logger = LoggerFactory.getLogger logger_name
         min_step = step.max 1
         counter = Ref.new min_step
         max = up_to.max 1
 
-        Managed_Resource.bracket (ProgressHandle.new handle_name max) _.close handle->
+        Managed_Resource.bracket (ProgressHandle.new logger handle_name max) _.close handle->
             progress = Progress.Running handle label max logger counter min_step
             log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, max]
             res = action progress
@@ -145,38 +146,6 @@ Log_Level.from (that:Text) =
         "info" -> ..Info
         "warning" -> ..Warning
         _ -> ..Severe
-
-## Utility type for profiling
-
-   Should be controlled by an environment variable set to the log level:
-   - `ENSO_PROFILE_VIZZES` - for visualizations.
-   - `ENSO_PROFILE_SQL` - for SQL queries.
-   - `ENSO_PROFILE_TABLE` - for table function calls.
-type Profile
-    ## ---
-       advanced: true
-       icon: time
-       ---
-       Time the evaluation of a function, log the duration and return the result.
-
-       ## Arguments
-        - `level`: Log level to log the duration at. If `Nothing`, the duration is not logged.
-        - `label`: Label to log with the duration.
-        - `function`: Function to execute.
-        - `suffix_callback`: Optional callback to generate a suffix for the log message based
-           on the result of the function. The callback is only called if `level` is not `Nothing`.
-        - `module`: Module to log the message to. Defaults to `Profile`.
-    time_execution level:(Log_Level | Nothing) ~label:Text ~function suffix_callback=Nothing module=Profile =
-        if Nothing == level then @Tail_Call function else
-            pair = Duration.time_execution function
-
-            ## If the function threw an error, we just return the error
-            Error.return_if_error pair.second
-
-            duration = pair.first
-            suffix = if suffix_callback == Nothing then "" else suffix_callback pair.second
-            module.log_message ("Execution time for " + label + ": " + duration.to_text + suffix) level
-            pair.second
 
 private log_impl logger ~message level args =
     builder = case level of

@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.progress;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.stream.Collectors;
@@ -64,7 +65,7 @@ public class ProgressTest {
     assertEquals("LOG {}:{}", oneTimeLog.get(2).getMessage());
     assertEquals(progressHandle, oneTimeLog.get(2).getArguments().get(0));
     assertEquals("We have the result 2.0", oneTimeLog.get(2).getArguments().get(1));
-    assertEquals("ADVANCE {}+{}", oneTimeLog.get(3).getMessage());
+    assertEquals("ADVANCE {}+{}~{}ms", oneTimeLog.get(3).getMessage());
     assertEquals(progressHandle, oneTimeLog.get(0).getArguments().get(0));
     assertEquals(1L, oneTimeLog.get(3).getArguments().get(1));
 
@@ -130,7 +131,7 @@ public class ProgressTest {
 
     assertTrue("Initialization first", msgs.get(0).getMessage().startsWith("INIT "));
 
-    assertEquals(
+    assertProgressMessages(
         "Initialize five steps. Then five `advance` calls and finally advance to finish.",
         """
         INIT Progress:from 0 to 5@5
@@ -139,7 +140,7 @@ public class ProgressTest {
         ADVANCE Progress+1
         ADVANCE Progress+1
         ADVANCE Progress+1
-        ADVANCE Progress+5\
+        ADVANCE Progress+5~*ms\
         """,
         txt);
   }
@@ -262,5 +263,17 @@ public class ProgressTest {
         ADVANCE JavaProgress+5\
         """,
         txt);
+  }
+
+  private static void assertProgressMessages(String msg, String expectedGlob, String actual) {
+    var expSeg = expectedGlob.split("\\*");
+    var at = 0;
+    for (var seg : expSeg) {
+      var next = actual.indexOf(seg, at);
+      assertNotEquals(msg + "\nWhen looking for " + seg + " at " + at, -1, next);
+      at = next + seg.length();
+    }
+    assertEquals(
+        msg + "\nIs fully processed, but remains: " + actual.substring(at), at, actual.length());
   }
 }

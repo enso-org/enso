@@ -12,7 +12,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.util.UUID
 import java.util.logging.Level
 
@@ -48,13 +48,6 @@ class BuiltinTypesTest
         )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(System.err)
         .out(out)
@@ -171,7 +164,7 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.FLOAT_BUILTIN),
+      TestMessages.update(contextId, idMain, ConstantsGen.FLOAT),
       context.executionComplete(contextId)
     )
   }
@@ -390,15 +383,17 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(40, 15)
+    val idMain   = metadata.addItem(44, 15)
 
     val code =
-      """import Standard.Base.Runtime.Ref
+      """import Standard.Base.Runtime.Ref.Ref
         |
         |main =
         |    Ref.new 42
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+
+    metadata.assertInCode(idMain, code, "\n    Ref.new 42")
 
     runCode(contextId, requestId, contents)
 
@@ -442,15 +437,17 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(48, 18)
+    val idMain   = metadata.addItem(58, 18)
 
     val code =
-      """import Standard.Base.Data.Time.Date_Time
+      """import Standard.Base.Data.Time.Date_Time.Date_Time
         |
         |main =
         |    Date_Time.now
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+
+    metadata.assertInCode(idMain, code, "\n    Date_Time.now")
 
     runCode(contextId, requestId, contents)
 
@@ -468,15 +465,17 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(50, 20)
+    val idMain   = metadata.addItem(62, 20)
 
     val code =
-      """import Standard.Base.Data.Time.Time_Of_Day
+      """import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
         |
         |main =
         |    Time_Of_Day.now
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+
+    metadata.assertInCode(idMain, code, "\n    Time_Of_Day.now")
 
     runCode(contextId, requestId, contents)
 
@@ -494,15 +493,17 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(48, 18)
+    val idMain   = metadata.addItem(58, 18)
 
     val code =
-      """import Standard.Base.Data.Time.Time_Zone
+      """import Standard.Base.Data.Time.Time_Zone.Time_Zone
         |
         |main =
         |    Time_Zone.new
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+
+    metadata.assertInCode(idMain, code, "\n    Time_Zone.new")
 
     runCode(contextId, requestId, contents)
 

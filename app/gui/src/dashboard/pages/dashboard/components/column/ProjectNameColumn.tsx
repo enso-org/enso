@@ -2,14 +2,13 @@
 import EditableSpan from '#/components/EditableSpan'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { isDoubleClick } from '#/utilities/event'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
-import { useContainerData } from '$/providers/react/container'
+import { useContainerData, useDriveCurrentBackend } from '$/providers/react/container'
 import { BackendType, titleSchema, type ProjectAsset } from 'enso-common/src/services/Backend'
 import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import {
@@ -27,7 +26,7 @@ export interface ProjectNameColumnProps extends AssetNameColumnProps {
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, isEditable, isPlaceholder } = props
 
-  const { associatedBackend: backend } = useCategoriesAPI()
+  const backend = useDriveCurrentBackend()
   const { user } = useFullUserSession()
   const getAssetChildren = useGetAssetChildren()
   const renameAsset = useRenameAsset(backend)

@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,6 +22,7 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -233,6 +236,218 @@ public class ExportedSymbolsTest {
       assertThat(
           mainExportedSymbols.get("Synthetic_Module").get(0),
           is(instanceOf(BindingsMap.ResolvedModule.class)));
+    }
+  }
+
+  @Test
+  public void exportExtensionMethodViaAll() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import all
+
+              main = Raw_Type.enhanced_method
+              """);
+      assertEquals(42, mainValue.asInt());
+    }
+  }
+
+  @Test
+  public void exportExtensionMethodByName() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import enhanced_method
+
+              main = Raw_Type.enhanced_method
+              """);
+      assertEquals(42, mainValue.asInt());
+    }
+  }
+
+  @Test
+  public void exportExtensionMethodByAllWithHiding() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            Raw_Type.wrong_method = 33
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import all hiding wrong_method
+
+              main = Raw_Type.enhanced_method
+              """);
+      assertEquals(42, mainValue.asInt());
+    }
+  }
+
+  @Test
+  public void exportExtensionWrongMethod() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            Raw_Type.wrong_method = 33
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      try {
+
+        var mainValue =
+            ctx.evalModule(
+                """
+                import local.Enhancing.Raw_Module.Raw_Type
+                from local.Enhancing.Ext_Module import wrong_method
+
+                main = Raw_Type.enhanced_method
+                """);
+        fail("Expecting exception, not a value: " + mainValue);
+      } catch (PolyglotException ex) {
+        assertEquals(
+            "Method `enhanced_method` of type Raw_Type could not be found.", ex.getMessage());
+      }
+    }
+  }
+
+  @Test
+  public void exportExtensionHidingTheRightMethod() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            import project.Raw_Module.Raw_Type
+
+            Raw_Type.enhanced_method = 42
+            Raw_Type.wrong_method = 33
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      try {
+
+        var mainValue =
+            ctx.evalModule(
+                """
+                import local.Enhancing.Raw_Module.Raw_Type
+                from local.Enhancing.Ext_Module import all hiding enhanced_method
+
+                main = Raw_Type.enhanced_method
+                """);
+        fail("Expecting exception, not a value: " + mainValue);
+      } catch (PolyglotException ex) {
+        assertEquals(
+            "Method `enhanced_method` of type Raw_Type could not be found.", ex.getMessage());
+      }
+    }
+  }
+
+  @Test
+  public void exportConversionWhileHidingSomething() throws IOException {
+    var rawMod =
+        new SourceModule(
+            QualifiedName.fromString("Raw_Module"),
+            """
+            type Raw_Type
+            """);
+    var extMod =
+        new SourceModule(
+            QualifiedName.fromString("Ext_Module"),
+            """
+            from Standard.Base import Integer
+            import project.Raw_Module.Raw_Type
+
+            something = 33
+            Integer.from (_:Raw_Type) = 42
+            """);
+    ProjectUtils.createProject("Enhancing", Set.of(rawMod, extMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+
+      var mainValue =
+          ctx.evalModule(
+              """
+              from Standard.Base import Integer
+              import local.Enhancing.Raw_Module.Raw_Type
+              from local.Enhancing.Ext_Module import all hiding something
+
+              main =
+                  fourtyTwo = Raw_Type:Integer
+                  fourtyTwo
+              """);
+      assertEquals("Conversion from Raw_Type to Integer found", 42, mainValue.asInt());
     }
   }
 

@@ -35,3 +35,4 @@
     - Supports_Unicode_Normalization
     - Text_Length_Limited_Columns
     - Use_Builtin_Bankers
+    - Use_SQL_Type_Hints_For_Null_Values

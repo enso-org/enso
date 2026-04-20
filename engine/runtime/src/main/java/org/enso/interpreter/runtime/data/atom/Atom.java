@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
+import org.enso.interpreter.node.expression.builtin.text.InvokeToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -385,7 +385,7 @@ public abstract class Atom extends EnsoObject {
   public Object toDisplayString(boolean allowSideEffects) {
     return toDisplayString(
         allowSideEffects,
-        InteropLibrary.getUncached(),
+        InvokeToTextNode.getUncached(),
         WarningsLibrary.getUncached(),
         InteropLibrary.getUncached(),
         BranchProfile.getUncached());
@@ -394,14 +394,13 @@ public abstract class Atom extends EnsoObject {
   @ExportMessage
   Text toDisplayString(
       boolean allowSideEffects,
-      @CachedLibrary("this") InteropLibrary atoms,
+      @Cached InvokeToTextNode toTextNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached BranchProfile handleError) {
-    Object result = null;
     String msg;
     try {
-      result = atoms.invokeMember(this, Constants.Names.TO_TEXT);
+      var result = toTextNode.executeToText(null, this);
       if (warnings.hasWarnings(result)) {
         result = warnings.removeWarnings(result);
       }
@@ -416,11 +415,8 @@ public abstract class Atom extends EnsoObject {
             this.toString(
                 "Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }
-    } catch (AbstractTruffleException
-        | UnsupportedMessageException
-        | ArityException
-        | UnknownIdentifierException
-        | UnsupportedTypeException panic) {
+    } catch (AbstractTruffleException | UnsupportedMessageException panic) {
+
       handleError.enter();
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
     }

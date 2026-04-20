@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { useDocumentViewId } from '@/components/DocumentationEditor/documentViewId'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -12,12 +13,14 @@ import { useQuery } from '@tanstack/vue-query'
 import { Err, mapOk, Ok, type Result, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 
+defineProps<{ toolbar: HTMLElement | string }>()
+
 const rightPanel = useRightPanelData()
 const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
-  return backendForType(rightPanel.context.category.backend)
+  return backendForType(CATEGORY_BACKEND[rightPanel.context.category.type])
 })
 
 const fileContentsFromCloud = useQuery({
@@ -78,6 +81,7 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
+    :teleportToolbarTo="toolbar"
   >
   </MarkdownEditor>
   <!-- Specifying `<ResultComponent ... centered /> does not work with React components

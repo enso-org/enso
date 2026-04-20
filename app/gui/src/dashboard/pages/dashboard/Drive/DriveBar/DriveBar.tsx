@@ -2,6 +2,7 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
+import Portal from '#/components/Portal'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { DriveBarNavigation } from './DriveBarNavigation'
 import { DriveBarToolbar } from './DriveBarToolbar'
@@ -10,6 +11,7 @@ import { DriveBarToolbar } from './DriveBarToolbar'
 export interface DriveBarProps {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly toolbar: React.RefObject<HTMLElement>
 }
 
 /**
@@ -19,7 +21,9 @@ export interface DriveBarProps {
 export function DriveBar(props: DriveBarProps) {
   return (
     <div className="flex flex-col gap-2">
-      <DriveBarNavigation />
+      <Portal root={props.toolbar}>
+        <DriveBarNavigation />
+      </Portal>
       <DriveBarToolbar {...props} />
     </div>
   )

@@ -293,6 +293,7 @@ type DuckDB_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> False
             Dialect_Flag.Use_Builtin_Bankers -> True
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Use_SQL_Type_Hints_For_Null_Values -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
 
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
@@ -423,7 +424,7 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", ["PROPER", Nothing]]
+    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, ["REVERSE", Base_Generator.make_function "reverse"], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]

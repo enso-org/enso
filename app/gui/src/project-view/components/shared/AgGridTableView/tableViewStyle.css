@@ -1,0 +1,39 @@
+/*
+ * Styles for the AgGridTableView component.
+ *
+ * This file is imported in the shared AgGridTableView component as well as the plain vue component, so that the styles
+ * apply whether the component is used in a custom element or as a normal Vue component. This is necessary because of
+ * the way Vue handles custom elements: In order to be usable from a custom element, the shared component is compiled in
+ * custom element mode, which injects styles into the shadow DOM instead of compiling them into the stylesheet. To use
+ * some components inside custom elements and also directly, we import the styles separately into both contexts.
+ */
+
+.agGridTableView,
+.agGridTableViewWrapper {
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: contain;
+}
+
+.ag-theme-alpine {
+  --ag-grid-size: 3px;
+  --ag-list-item-height: 20px;
+  --ag-foreground-color: var(--color-text);
+  --ag-background-color: var(--color-visualization-bg);
+  --ag-header-foreground-color: var(--color-ag-header-text);
+  --ag-odd-row-background-color: color-mix(
+    in srgb,
+    var(--color-visualization-bg) 98%,
+    black
+  );
+  --ag-header-background-color: var(--color-visualization-bg);
+  font-family: var(--font-mono);
+
+  .ag-header {
+    background: linear-gradient(
+      to top,
+      var(--ag-odd-row-background-color),
+      var(--ag-background-color)
+    );
+  }
+}

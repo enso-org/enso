@@ -110,6 +110,11 @@ export enum BackendType {
   remote = 'remote',
 }
 
+/** Determine backend type from session ID. */
+export function projectSessionBackendType(id: ProjectSessionId): BackendType {
+  return id.startsWith('projectsession-') ? BackendType.remote : BackendType.local
+}
+
 /** Check if this path points to an asset in cloud drive. */
 export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
   return ensoPath.startsWith('enso://')
@@ -302,7 +307,7 @@ export interface ProjectSession {
   readonly projectSessionId: ProjectSessionId
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
-  readonly userEmail: EmailAddress
+  readonly userEmail?: EmailAddress
 }
 
 export interface ProjectSessionLogs {
@@ -1191,12 +1196,27 @@ export interface UpdateFileRequestBody {
 }
 
 /** HTTP request body for the "update asset" endpoint. */
-export interface UpdateAssetRequestBody {
-  readonly parentDirectoryId: DirectoryId | null
-  readonly description: string | null
-  readonly title: string | null
-  readonly metadataId: MetadataId | null
+export interface UpdateAsset {
+  readonly parentDirectoryId?: DirectoryId | null
+  readonly description?: string | null
+  readonly title?: string | null
+  readonly metadataId?: MetadataId | null
 }
+
+/** HTTP request body for the "update asset version tag" action. */
+export interface UpdateAssetVersionTag {
+  readonly versionId?: S3ObjectVersionId
+  readonly tag?: string
+  readonly remove?: boolean
+}
+
+/** HTTP request body for the "update asset version comment" action. */
+export interface UpdateAssetVersionComment {
+  readonly versionId?: S3ObjectVersionId
+  readonly comment?: string | null
+}
+
+export type UpdateAssetRequestBody = UpdateAsset & UpdateAssetVersionTag & UpdateAssetVersionComment
 
 /** HTTP request body for the "delete asset" endpoint. */
 export interface DeleteAssetRequestBody {
@@ -1697,6 +1717,18 @@ export class NetworkError extends Error {
 
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
+
+/** Check whether an error represents HTTP 401 (Not Authorized). */
+export function isUnauthorizedError(error: Error): boolean {
+  return (
+    error instanceof NotAuthorizedError ||
+    (typeof error === 'object' &&
+      error != null &&
+      'status' in error &&
+      typeof error.status === 'number' &&
+      error.status === STATUS_NOT_AUTHORIZED)
+  )
+}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {

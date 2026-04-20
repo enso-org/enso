@@ -147,6 +147,11 @@ type In_Memory_Text_Column_Implementation
         operation = CaseOperation.new Case.Proper.to_java Locale.default.java_locale
         apply_unary_operation column operation new_name
 
+    reverse (column : Column & In_Memory_Column) =
+        Value_Type_Checks.is_text column
+        new_name = naming_helper.function_name "reverse" [column]
+        apply_unary_map column new_name .reverse expected_result_type=Value_Type.Char
+
     left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type_Checks.is_integer n
         Value_Type_Checks.is_text this_column
@@ -293,4 +298,3 @@ private _apply_pad (this_column : Column & In_Memory_Column) (length : Column | 
             _apply_binary_map this_column (text -> pad-> do_pad text length pad) with_pad new_name skip_nulls=False expected_result_type=Value_Type.Char
         else
             apply_unary_map this_column new_name (text -> do_pad text length with_pad) expected_result_type=Value_Type.Char nothing_unchanged=False
-    

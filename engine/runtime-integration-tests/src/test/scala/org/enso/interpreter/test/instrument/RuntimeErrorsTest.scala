@@ -15,7 +15,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.util.UUID
 import java.util.logging.ConsoleHandler
 
@@ -23,7 +23,8 @@ import java.util.logging.ConsoleHandler
 class RuntimeErrorsTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with org.enso.testkit.ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -55,13 +56,6 @@ class RuntimeErrorsTest
         )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
         .option("engine.WarnInterpreterOnly", "false")
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logHandler)
@@ -176,7 +170,7 @@ class RuntimeErrorsTest
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -185,7 +179,7 @@ class RuntimeErrorsTest
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -194,7 +188,7 @@ class RuntimeErrorsTest
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -274,7 +268,7 @@ class RuntimeErrorsTest
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -283,7 +277,7 @@ class RuntimeErrorsTest
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -292,7 +286,7 @@ class RuntimeErrorsTest
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -370,7 +364,7 @@ class RuntimeErrorsTest
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -521,7 +515,7 @@ class RuntimeErrorsTest
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -1419,15 +1413,15 @@ class RuntimeErrorsTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val xId        = metadata.addItem(46, 9)
-    val yId        = metadata.addItem(64, 72)
-    val mainResId  = metadata.addItem(141, 7)
+    val yId        = metadata.addItem(64, 22)
+    val mainResId  = metadata.addItem(91, 7)
 
     val code =
       """from Standard.Base import all
         |
         |main =
         |    x = [1, 2, 3]
-        |    y = Warning.attach_with_stacktrace x 'foo' Runtime.primitive_get_stack_trace
+        |    y = Warning.attach 'foo' x
         |    y.at 10
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -1437,7 +1431,7 @@ class RuntimeErrorsTest
     metadata.assertInCode(
       yId,
       code,
-      "Warning.attach_with_stacktrace x 'foo' Runtime.primitive_get_stack_trace"
+      "Warning.attach 'foo' x"
     )
     metadata.assertInCode(mainResId, code, "y.at 10")
 
@@ -1481,6 +1475,15 @@ class RuntimeErrorsTest
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(
             Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("foo"), false)
+          )
+        ),
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Warning",
+              ConstantsGen.WARNING,
+              "attach"
+            )
           )
         )
       ),
@@ -2496,7 +2499,7 @@ class RuntimeErrorsTest
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -2505,7 +2508,7 @@ class RuntimeErrorsTest
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -2621,7 +2624,7 @@ class RuntimeErrorsTest
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -2630,7 +2633,7 @@ class RuntimeErrorsTest
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )

@@ -11,13 +11,10 @@ import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import type * as assetsTable from '#/layouts/AssetsTable'
-import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
-  setDriveLocation,
   useDriveStore,
   useSetDragTargetAssetId,
   useSetSelectedAssets,
@@ -28,7 +25,13 @@ import * as eventModule from '#/utilities/event'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
+import { isLocalCategory } from '$/providers/category'
 import { useFullUserSession } from '$/providers/react'
+import {
+  useDriveCurrentBackend,
+  useDriveCurrentCategory,
+  useDriveCurrentDirectory,
+} from '$/providers/react/container'
 import { useIsProjectClosing } from '$/providers/react/openedProjects'
 import type { Label } from 'enso-common/src/services/Backend'
 import * as backendModule from 'enso-common/src/services/Backend'
@@ -94,7 +97,9 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     grabKeyboardFocus,
   } = props
 
-  const { category, associatedBackend: backend } = useCategoriesAPI()
+  const [category] = useDriveCurrentCategory()
+  const backend = useDriveCurrentBackend()
+  const [, setDirectory] = useDriveCurrentDirectory()
   const [isNavigating, startNavigation] = useTransition()
 
   const driveStore = useDriveStore()
@@ -197,7 +202,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     item.type === backendModule.AssetType.directory ?
       () => {
         startNavigation(() => {
-          setDriveLocation(item.id, category.id)
+          setDirectory(item.id)
         })
       }
     : undefined,
@@ -257,7 +262,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
-                  setDriveLocation(item.id, category.id)
+                  setDirectory(item.id)
                 })
               }
             }}

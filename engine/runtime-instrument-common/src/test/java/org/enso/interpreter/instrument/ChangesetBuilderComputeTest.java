@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.enso.compiler.Passes;
@@ -117,6 +118,41 @@ public class ChangesetBuilderComputeTest {
   private String rawCode(String code) {
     int idx = code.indexOf("\n\n\n#### METADATA ####\n");
     return idx >= 0 ? code.substring(0, idx) : code;
+  }
+
+  /**
+   * Finds the {@link Range} of all occurrences of {@code expression} in {@code code}. Fails the
+   * test if the expression is not found.
+   */
+  private List<Range> findPositions(String code, String expression) {
+    var positions = new ArrayList<Range>();
+    int idx = code.indexOf(expression);
+    while (idx != -1) {
+      int line = 0;
+      int col = 0;
+      for (int i = 0; i < idx; i++) {
+        if (code.charAt(i) == '\n') {
+          line++;
+          col = 0;
+        } else {
+          col++;
+        }
+      }
+      int endLine = line;
+      int endCol = col;
+      for (int i = 0; i < expression.length(); i++) {
+        if (expression.charAt(i) == '\n') {
+          endLine++;
+          endCol = 0;
+        } else {
+          endCol++;
+        }
+      }
+      positions.add(new Range(new Position(line, col), new Position(endLine, endCol)));
+      idx = code.indexOf(expression, idx + 1);
+    }
+    assertFalse("Expression '" + expression + "' not found in code", positions.isEmpty());
+    return positions;
   }
 
   /**
@@ -526,6 +562,36 @@ public class ChangesetBuilderComputeTest {
     assertNotInvalidated(result, ir, "b");
     assertInvalidated(result, ir, "y");
     assertNotInvalidated(result, ir, "z");
+  }
+
+  @Test
+  public void editAutoscopeConstructorDoesNotInvalidateOtherAutoscopeConstructors() {
+    var rawCode =
+        """
+        type T
+            A
+            B
+
+        type Table
+            Impl data
+            filter self a b = Table.Impl (self.data + a.to_text + b.to_text)
+
+        main =
+            file1 = Table.Impl ''
+            any1 = file1.filter 'Column 1' ..A
+            any2 = any1.filter 'Column 1' ..A
+            any2
+        """;
+
+    var code = addMetadata(rawCode);
+    var ir = preprocessModule(code);
+
+    var edit = new TextEdit(findPositions(rawCode, "..A").get(1), "..B");
+    var result = computeInvalidated(ir, code, edit);
+
+    assertNotInvalidated(result, ir, "file1");
+    assertNotInvalidated(result, ir, "any1");
+    assertInvalidated(result, ir, "any2");
   }
 
   @Test

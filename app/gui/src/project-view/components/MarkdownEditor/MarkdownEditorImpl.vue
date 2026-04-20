@@ -27,13 +27,15 @@ import { type ComponentInstance, computed, useCssModule, useTemplateRef, watch }
 
 const {
   toolbar = true,
+  teleportToolbarTo,
   readonly = false,
   extensions = [],
   contentTestId,
   scrollerTestId,
   editorReadyCallback = () => {},
 } = defineProps<{
-  toolbar?: boolean | undefined
+  toolbar?: boolean
+  teleportToolbarTo?: HTMLElement | string | undefined
   readonly?: boolean | undefined
   /**
    * Additional extensions. This prop is read only during setup, and extensions are not refreshed
@@ -161,15 +163,16 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot" @dragover.prevent>
-    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
-      <ActionButton action="panel.fullscreen" />
-      <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
-      <ActionButton action="documentationEditor.italic" />
-      <ActionButton action="documentationEditor.bold" />
-      <ActionButton action="documentationEditor.link" />
-      <ActionButton action="documentationEditor.code" />
-      <ActionButton action="documentationEditor.image" />
-    </div>
+    <Teleport v-if="toolbar" :disabled="teleportToolbarTo == null" :to="teleportToolbarTo">
+      <div class="toolbar" @pointerdown.prevent>
+        <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
+        <ActionButton action="documentationEditor.italic" />
+        <ActionButton action="documentationEditor.bold" />
+        <ActionButton action="documentationEditor.link" />
+        <ActionButton action="documentationEditor.code" />
+        <ActionButton action="documentationEditor.image" />
+      </div>
+    </Teleport>
     <slot name="belowToolbar" />
     <CodeMirrorRoot
       ref="editorRoot"
@@ -194,7 +197,7 @@ defineExpose({
 }
 
 .toolbar {
-  height: 26px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;

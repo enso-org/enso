@@ -15,6 +15,9 @@
 - [Add right click menu for multiple components][14640].
 - [Execution can be scheduled for the specific version tag][14883]
 - [Add component spacing options][14888]
+- [A comment can be attached to the asset version][14923]
+- [New tabular view of session log with filtering][14953]
+- [Input ports no longer highlight on hover unless being connected to][14968]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -28,6 +31,9 @@
 [14640]: https://github.com/enso-org/enso/pull/14640
 [14883]: https://github.com/enso-org/enso/pull/14883
 [14888]: https://github.com/enso-org/enso/pull/14888
+[14823]: https://github.com/enso-org/enso/pull/14823
+[14953]: https://github.com/enso-org/enso/pull/14953
+[14968]: https://github.com/enso-org/enso/pull/14968
 
 #### Enso Standard Library
 
@@ -43,7 +49,6 @@
 - [Launching another Enso process via `Process_Builder`][14753]
 - [Redshift schema support.][14735]
 - [`Process_Builder.set_env`.][14799]
-- [New `Profile` API for timing code execution.][14827]
 - [Expanded S3 API with versions and signed uri][14831]
 - [Support for reading JSON data from database connections.][14872]
 - [Support for Salesforce reporting API][14901]
@@ -52,6 +57,8 @@
 - [Add last_index_of][14903]
 - [Add pad_left and pad_right][14922]
 - [More control over when in write operation for post and process.][14930]
+- [Improve database write performance][14960]
+- [Add reverse][14931]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -65,7 +72,6 @@
 [14753]: https://github.com/enso-org/enso/pull/14753
 [14735]: https://github.com/enso-org/enso/pull/14735
 [14799]: https://github.com/enso-org/enso/pull/14799
-[14827]: https://github.com/enso-org/enso/pull/14827
 [14831]: https://github.com/enso-org/enso/pull/14831
 [14872]: https://github.com/enso-org/enso/pull/14872
 [14901]: https://github.com/enso-org/enso/pull/14901
@@ -74,6 +80,8 @@
 [14903]: https://github.com/enso-org/enso/pull/14903
 [14922]: https://github.com/enso-org/enso/pull/14922
 [14930]: https://github.com/enso-org/enso/pull/14930
+[14960]: https://github.com/enso-org/enso/pull/14960
+[14931]: https://github.com/enso-org/enso/pull/14931
 
 #### Enso Language & Runtime
 
@@ -87,6 +95,7 @@
 - [One log file per execution][14893]
 - [Opt-in to get more detailed logs][14895]
 - [Automatically apply tail call optimizations][14933]
+- [`from Xyz import to_text` can import extension methods][14949]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
@@ -98,6 +107,7 @@
 [14893]: https://github.com/enso-org/enso/pull/14893
 [14895]: https://github.com/enso-org/enso/pull/14895
 [14933]: https://github.com/enso-org/enso/pull/14933
+[14949]: https://github.com/enso-org/enso/pull/14949
 
 # Enso 2025.3
 

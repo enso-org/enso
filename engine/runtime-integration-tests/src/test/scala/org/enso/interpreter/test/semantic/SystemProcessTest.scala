@@ -23,7 +23,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "echo" [] "" False False False Nothing
+          |    result = System.create_process "echo" [] "" False False False
           |    result.exit_code
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -38,7 +38,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c"] "" False False False Nothing
+          |    result = System.create_process "cmd" ["/c"] "" False False False
           |    result.exit_code
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -51,7 +51,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """import Standard.Base.System
           |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
-          |main = System.create_process "nonexistentcommandxyz" [] "" False False False Nothing
+          |main = System.create_process "nonexistentcommandxyz" [] "" False False False
           |""".stripMargin
 
       val error = the[InterpreterException] thrownBy eval(code)
@@ -68,7 +68,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "ls --gibberish"] "" False False False Nothing
+          |    result = System.create_process "bash" ["-c", "ls --gibberish"] "" False False False
           |    result.exit_code
           |""".stripMargin
 
@@ -84,7 +84,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "exit 7"] "" False False False Nothing
+          |    result = System.create_process "cmd" ["/c", "exit 7"] "" False False False
           |    result.exit_code
           |""".stripMargin
 
@@ -100,7 +100,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True Nothing
+          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -117,7 +117,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True Nothing
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -135,7 +135,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True Nothing
+          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -170,7 +170,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True Nothing
+          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -187,7 +187,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "echo 9"] "" True True True Nothing
+          |    result = System.create_process "bash" ["-c", "echo 9"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -203,7 +203,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True Nothing
+          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -219,7 +219,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False Nothing
+          |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -235,7 +235,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False Nothing
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -251,7 +251,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False True True Nothing
+          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -267,7 +267,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False True True Nothing
+          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -283,7 +283,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf '%b' '\x01\x0F\x10'"] "" False True True Nothing
+          |    result = System.create_process "bash" ["-c", "printf '%b' '\x01\x0F\x10'"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -299,7 +299,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False False False Nothing
+          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -316,7 +316,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False False False Nothing
+          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -333,7 +333,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True Nothing
+          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -349,7 +349,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True Nothing
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -365,7 +365,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf '%b' '\xCA\xFE\xBA\xBE' 1>&2"] "" False True True Nothing
+          |    result = System.create_process "bash" ["-c", "printf '%b' '\xCA\xFE\xBA\xBE' 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -381,7 +381,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False Nothing
+          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False
           |    result.stderr
           |""".stripMargin
 
@@ -397,7 +397,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False Nothing
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False
           |    result.stderr
           |""".stripMargin
 
