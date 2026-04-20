@@ -51,7 +51,9 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
   readonly conflictingMethods = new ReactiveIndex(this, (_, entry): [string, string][] =>
-    entry.kind === SuggestionKind.Method ? [[entry.name, entry.memberOf.key()]] : [],
+    entry.kind === SuggestionKind.Method && entry.selfType != null ?
+      [[entry.name, entry.selfType.key()]]
+    : [],
   )
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
   private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {

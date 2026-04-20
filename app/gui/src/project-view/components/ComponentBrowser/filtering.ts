@@ -287,16 +287,18 @@ export class Filtering {
     const visibleTypeMatch = visibleTypes?.find((ty) => entrySelfType.equals(ty))
     if (visibleTypeMatch != null) return exactMatch()
     const hiddenTypeMatch = this.selfArg.typeInfo?.hiddenTypes.find((t) => entrySelfType.equals(t))
+    if (hiddenTypeMatch != null) {
+      return { score: DIFFERENT_TYPE_PENALTY, fromType: hiddenTypeMatch }
+    }
     const matchedAncestor =
       entrySelfType.equals(ANY_TYPE) ? ANY_TYPE : (
         this.selfArg.ancestors.find((t) => entrySelfType.equals(t))
       )
-    const ancestorOvershadowed =
-      matchedAncestor != null && db.conflictingMethods.lookup(entry.name).has(matchedAncestor.key())
-    if (hiddenTypeMatch != null || (matchedAncestor != null && !ancestorOvershadowed))
-      // Matched ancestor are not added to `fromType`, because type casting is not needed.
-      return { score: DIFFERENT_TYPE_PENALTY, fromType: hiddenTypeMatch }
-    return null
+    if (matchedAncestor == null) return null
+    const ancestorOvershadowed = db.conflictingMethods.lookup(entry.name).has(matchedAncestor.key())
+    if (ancestorOvershadowed) return null
+    // Matched ancestor are not added to `fromType`, because type casting is not needed.
+    return { score: DIFFERENT_TYPE_PENALTY }
   }
 
   /** Check if current filter is clear, and a "Main" view of the CB should be displayed. */

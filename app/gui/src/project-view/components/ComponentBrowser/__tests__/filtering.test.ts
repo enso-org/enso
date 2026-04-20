@@ -99,7 +99,7 @@ test('`Any` type methods taken into account when filtering', () => {
   expect(filteringWithoutSelfType.filter(entry2, db)).toBeNull()
 })
 
-test.only('`Any` or ancestor type methods may be overshadowed', () => {
+test('`Any` or ancestor type methods may be overshadowed', () => {
   const entry1 = makeMethod('Standard.Table.Column.Column.is_nothing')
   const entry2 = makeMethod('Standard.Base.Any.Any.is_nothing')
   const entry3 = makeMethod('Standard.Database.DB_Column.is_nothing')
