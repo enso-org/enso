@@ -1,15 +1,17 @@
-# dashboard/ (React, legacy)
+# dashboard/
 
-The React half of the IDE: sign-up/sign-in, cloud project browser, settings, billing, subscription management. Import this half via the `#/` path alias.
+The **Dashboard feature** subtree: sign-up/sign-in, cloud project browser, settings, billing, subscription management. Everything whose meaning is tied to the Enso Cloud shell (before a project is opened, or alongside it) lives here. Import via the `#/` path alias.
 
-**Historical / migration context**: this half was built as an independent React effort, separate from the Vue graph editor. The plan is to **unify** dashboard and project-view into a single Vue GUI app — both the framework split and the conceptual split between "dashboard" and "project-view" are going away. Don't grow this tree. When a component here needs non-trivial work, prefer porting it to Vue (in `src/project-view/` or a new shared location) over extending the React version. Default all new features to Vue.
+**Currently implemented in React, legacy.** Vue is the main GUI framework; this subtree was built as an independent React effort and is being progressively migrated to Vue. Prefer porting a component to Vue over extending it here. New features default to Vue.
 
-## Structure
+Once the migration completes, this directory is expected to hold only Dashboard-specific Vue code — common UI primitives / utilities should live at `src/` directly (see the sibling project-view structure for the same principle).
+
+## Structure (React, legacy shape)
 
 - `pages/` — Route-level components. Top of the component tree for each URL.
 - `layouts/` — Chromes that wrap multiple pages (protected-route wrappers, split panels).
 - `modules/` — Feature-oriented slices (`payments/` for Stripe flows, etc.). A module owns its state and components.
-- `components/` — Reusable UI atoms/molecules. Sub-folders group related parts (`Button/`, `Form/`, `Dialog/`, `Menu/`). The `aria/` folder re-exports `react-aria-components` with project-level styling applied.
+- `components/` — Reusable UI atoms/molecules. Sub-folders group related parts (`Button/`, `Form/`, `Dialog/`, `Menu/`). The `aria/` folder re-exports `react-aria-components` with project-level styling applied. Truly shared UI will move to `src/` proper as it's ported.
 - `providers/` — React context providers (auth, text/i18n, modals, toasts, etc.).
 - `hooks/` — Custom React hooks.
 - `configurations/` — Static/derived configuration (feature flags, endpoints, subscription tiers).
@@ -18,7 +20,7 @@ The React half of the IDE: sign-up/sign-in, cloud project browser, settings, bil
 - `utilities/` — Pure TS helpers (no React).
 - `styles.css`, `tailwind.css`, `typings.d.ts` — Tailwind plus global resets.
 
-## Conventions
+## Conventions (current React stack)
 
 - **UI lib**: `react-aria-components` for accessibility primitives, `tailwind-variants` and `tailwind-merge` for class composition, `tailwindcss-react-aria-components` for matching selectors.
 - **Forms**: `react-hook-form` + `zod` resolvers. Schemas live with the form, not in `data/`.
@@ -29,11 +31,11 @@ The React half of the IDE: sign-up/sign-in, cloud project browser, settings, bil
 
 ## Auth / cloud
 
-The dashboard authenticates against AWS Cognito via `aws-amplify`. Session tokens are stored via `accessToken.ts` in `app/common/` and mirrored into the Project Manager / LS so the engine can reach Enso Cloud.
+The Dashboard authenticates against AWS Cognito via `aws-amplify`. Session tokens are stored via `accessToken.ts` in `app/common/` and mirrored into the Project Manager / LS so the engine can reach Enso Cloud.
 
-## Talking to the project-view
+## Talking to ProjectView
 
-This half never imports from `@/` (the Vue half). When it needs to open a project, it calls into shared providers under `$/providers/` (the `src/providers/` folder outside either half), and the Vue half subscribes.
+This subtree never imports from `@/` (the ProjectView subtree). Cross-subtree wiring goes through shared providers under `src/providers/` (the `$/providers/` alias), and each side subscribes.
 
 ## Tests
 

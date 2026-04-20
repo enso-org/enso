@@ -3,13 +3,13 @@
 Enso Analytics is a visual/textual programming environment for data preparation and analysis. This repository contains **two top-level products that share this monorepo**:
 
 - **Enso Engine** — the Enso language implementation: parser, compiler, interpreter (Truffle/GraalVM), language server, and the Enso standard library. Written in Scala, Java, and Rust.
-- **Enso IDE** — a desktop application (Electron) with a visual graph editor and a dashboard for project/cloud management. Written in TypeScript. UI uses Vue (with a legacy React dashboard that's being progressively migrated to Vue).
+- **Enso IDE** — a desktop application (Electron) with a visual graph editor and a dashboard for project/cloud management. Written in TypeScript; Vue is the main UI framework. The Dashboard feature is still in React as a historical artifact and is being progressively migrated to Vue.
 
 The two products are glued together by several generated/shared artifacts: the Rust parser is compiled to **both** WASM (for the GUI) and a JNI `cdylib` (for the JVM), and its AST types are code-generated into Java so the engine can deserialize parser output.
 
 ## Top-level layout
 
-- `app/` — Desktop app (Electron), GUI (Vue + React), ydoc server, markdown/table CodeMirror grammars, Rust→WASM bindings. pnpm monorepo.
+- `app/` — Desktop app (Electron), GUI (Vue; the Dashboard feature is still React while it's being ported), ydoc server, markdown/table CodeMirror grammars, Rust→WASM bindings. pnpm monorepo.
 - `engine/` — The Enso language engine. Mixed Scala/Java under `sbt`. Runtime uses GraalVM Truffle.
 - `lib/rust/` — Rust workspace libraries (parser, prelude, reflect/metamodel, zst). Some crates ship to crates.io.
 - `lib/java/` — JPMS-friendly wrappers around third-party Java libraries, plus interpreter DSL, persistance, and ydoc server.

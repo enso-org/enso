@@ -7,7 +7,7 @@ Desktop app and browser GUI. **This is a pnpm workspace** — package membership
 The packages form three layers — the graph editor, the collab/yjs layer, and the Electron shell — plus a few grammars and shims.
 
 ### GUI and shell
-- `gui/` — The main GUI. Today it ships as **two SPAs** bridged by `veaury`: a React "dashboard" (auth, cloud, project browser) and a Vue "project-view" (graph editor, code editor, visualizations). Both the React/Vue split and the dashboard/project-view split are **historical** — the plan is a single unified Vue GUI app. See `gui/CLAUDE.md`.
+- `gui/` — The main GUI (Vue). Organized by feature subtree: `src/project-view/` for the ProjectView feature (graph editor, code editor, visualizations) and `src/dashboard/` for the Dashboard feature (auth, cloud, project browser). Dashboard is still in React as a historical artifact and is being migrated to Vue. Shared UI/infrastructure lives at `src/` directly. See `gui/CLAUDE.md`.
 - `electron-client/` — Electron main process. Packages the GUI + backend bundle, handles auto-update, file associations, custom protocol (`enso://`). The published binary name is just `enso`.
 - `common/` — TS utilities shared by both the dashboard and the Electron client (access tokens, services, download helpers, i18n text).
 

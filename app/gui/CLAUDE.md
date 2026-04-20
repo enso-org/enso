@@ -2,27 +2,29 @@
 
 The main Enso IDE GUI — a single-page web app built with Vite, served by Electron (desktop) or a static host (cloud). Published as package `enso-gui`.
 
-## The Vue/React + dashboard/project-view split (historical, being unified)
+## Source layout
 
-`src/` contains **two separate SPAs mounted side-by-side**. Both the framework split and the conceptual split into "dashboard" vs "project-view" are historical — the React dashboard was built as an independent effort. The long-term plan is a **single unified Vue GUI app**; the halves will merge.
+**Vue is the main GUI framework.** Shared infrastructure — app shell, command palette, loading screen, cross-feature primitives, i18n, providers — lives at `src/` directly (`src/components/`, `src/providers/`, etc.), not inside any feature subtree. Feature-specific code lives in a subtree named after the feature:
 
-- `src/project-view/` — **Vue 3** (target framework and target home for everything). Graph editor, component browser, code editor, visualizations, documentation editor. Uses `@vueuse/core`, `@tanstack/vue-query`, `yjs`.
-- `src/dashboard/` — **React** (legacy). Auth, cloud storage, project browser, settings, billing. Uses `react-aria`, `@tanstack/react-query`, `react-hook-form`, `zod`. TailwindCSS for styling. Being progressively ported to Vue and folded into the unified GUI.
+- `src/project-view/` — the **ProjectView** feature subtree (graph editor, component browser, code editor, visualizations, documentation editor). Vue. Uses `@vueuse/core`, `@tanstack/vue-query`, `yjs`. Import via `@/…`.
+- `src/dashboard/` — the **Dashboard** feature subtree (auth, cloud storage, project browser, settings, billing). Still **React** as a historical artifact; being progressively migrated to Vue. Uses `react-aria`, `@tanstack/react-query`, `react-hook-form`, `zod`. TailwindCSS for styling. Import via `#/…`.
 
-They are bridged by **`veaury`**, which lets a Vue component embed a React tree (and vice versa). When editing, stay in one framework per file — don't mix unless you're at the bridge boundary.
+While the migration is in progress the two subtrees are bridged by **`veaury`** so Vue can embed React (and vice versa). Stay in one framework per file; only cross at the bridge boundary.
 
-**Rule of thumb for new work:** default to Vue, and place new code where it will still make sense once the halves are merged. When a dashboard component needs non-trivial changes, consider porting it to Vue instead of extending the React version.
+Many commons still sit inside `src/project-view/` for historical reasons. The plan is to move genuinely shared UI/utilities **out** of `project-view/` and into `src/` proper so each feature subtree holds only its own feature-specific code. When you add something new, ask: is it ProjectView-only, Dashboard-only, or shared? Shared goes at `src/`.
 
-`src/components/` at the top of `src/` holds the small set of components that are rendered *outside* either SPA (app container, command palette, loading screen). `App.vue` / `ReactRoot.tsx` / `entrypoint.ts` wire the two together.
+**Rule of thumb for new work:** default to Vue, put cross-feature code at `src/`, put feature-specific code in the matching subtree. When a Dashboard component needs non-trivial changes, consider porting it to Vue rather than extending the React version.
+
+`App.vue` / `ReactRoot.tsx` / `entrypoint.ts` wire the subtrees together at the top level.
 
 ## TypeScript path aliases
 
 Defined in `vite.config.ts`:
-- `@/…` → `src/project-view/…` (Vue side)
-- `#/…` → `src/dashboard/…` (React side)
-- `$/…` → `src/…` (reach either side or the shared `src/components/`)
+- `@/…` → `src/project-view/…` (ProjectView feature subtree, Vue)
+- `#/…` → `src/dashboard/…` (Dashboard feature subtree, currently React)
+- `$/…` → `src/…` (shared/cross-feature code: app shell, providers, common components, i18n)
 
-Importing across the boundary (`@/` from `src/dashboard/`, or `#/` from `src/project-view/`) is allowed but suggests you should be using the `veaury` bridge instead.
+Reaching across subtrees (`@/` from `src/dashboard/`, or `#/` from `src/project-view/`) is allowed but usually a smell — prefer pulling shared code into `src/` and importing via `$/`, or cross the framework bridge via `veaury`.
 
 ## Entry points
 
@@ -37,13 +39,13 @@ Importing across the boundary (`@/` from `src/dashboard/`, or `#/` from `src/pro
 - `test:integration` — Playwright (needs `NODE_OPTIONS='--experimental-wasm-modules'` until Node 24 is default).
 - `playwright:install` — install the pinned browser.
 
-## Project-view ↔ backend
+## ProjectView ↔ backend
 
-The project-view talks to the Enso Language Server via Yjs documents. The Yjs client lives in `ydoc-shared`; messaging is handled via WebSocket (`y-websocket` / `modern-isomorphic-ws`). Parsing of Enso source on the client side uses the Rust parser compiled to WASM (`rust-ffi` package → `ydoc-shared/src/ast/`).
+The ProjectView subtree talks to the Enso Language Server via Yjs documents. The Yjs client lives in `ydoc-shared`; messaging is handled via WebSocket (`y-websocket` / `modern-isomorphic-ws`). Parsing of Enso source on the client side uses the Rust parser compiled to WASM (`rust-ffi` package → `ydoc-shared/src/ast/`).
 
 ## Dashboard ↔ backend
 
-The dashboard talks to the Enso Cloud over HTTPS (AWS Amplify + Cognito). In local/desktop mode it also talks to the local TypeScript Project Manager (`app/project-manager-shim/`), which is used in both dev and the packaged Electron build. The old Scala Project Manager is no longer wired in.
+The Dashboard subtree talks to the Enso Cloud over HTTPS (AWS Amplify + Cognito). In local/desktop mode it also talks to the local TypeScript Project Manager (`app/project-manager-shim/`), which is used in both dev and the packaged Electron build. The old Scala Project Manager is no longer wired in.
 
 ## Assets and icons
 

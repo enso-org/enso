@@ -1,9 +1,9 @@
 # gui/integration-test
 
-Playwright-based integration tests for the GUI. Covers both halves of the (historical) dashboard/project-view split — expect this directory structure to evolve as the GUI unifies into a single Vue app:
+Playwright-based integration tests for the GUI. Organized by feature subtree, mirroring `src/`. Expect the structure to evolve as the Dashboard is ported to Vue:
 
-- `dashboard/` — React dashboard flows (sign-in, project list, settings). Legacy half.
-- `project-view/` — Vue graph-editor flows (create nodes, connect edges, open visualization).
+- `dashboard/` — Dashboard feature flows (sign-in, project list, settings). The Dashboard subtree is still React, legacy.
+- `project-view/` — ProjectView feature flows (create nodes, connect edges, open visualization).
 - `actions/` — Reusable test actions (page-object-style helpers).
 - `mock/` — Mocks for the backend, Cognito, feature flags. Dashboard tests run against these by default.
 - `base.ts` — Playwright base test fixture (provides auth'd page, mocked env, debug logging).

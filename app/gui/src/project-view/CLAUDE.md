@@ -1,26 +1,33 @@
-# project-view/ (Vue — target framework)
+# project-view/
 
-The Vue 3 half of the IDE: graph editor, code editor, visualizations, component browser, markdown/plain-text editors, circular menus, documentation panes. Import this half via the `@/` path alias.
+The **ProjectView feature** subtree: graph editor, code editor, visualizations, component browser, markdown/plain-text editors, circular menus, documentation panes. Everything that's specific to viewing and editing an open Enso project lives here. Import via the `@/` path alias.
 
-**Historical / migration context**: the separate React "dashboard" under `src/dashboard/` is legacy and is being merged into a **single unified Vue GUI app** over time. Both the framework split and the conceptual dashboard/project-view split are historical. New features default to Vue; when you organize code here, put it where it will still make sense once the halves are unified rather than in a shape that assumes "project-view" stays a separate silo.
+This is **not** "the Vue half" — Vue is the main framework of the entire GUI. This directory is a feature subtree that happens to be Vue, the same way `src/dashboard/` is a feature subtree that currently happens to be React.
+
+## What belongs here (and what doesn't)
+
+- **Belongs**: code whose meaning depends on an open project — graph rendering, AST editing, component browser, per-node widgets, the Yjs session glue, visualization hosts.
+- **Doesn't belong**: general-purpose UI primitives, cross-feature utilities, framework-level infrastructure. Those are *commons* and should live at `src/` directly (`src/components/`, `src/composables/`, `src/providers/`, `src/util/`, …) so both ProjectView and other features can share them.
+
+Historically, many commons ended up inside this directory because it was the only Vue location. The plan is to progressively **move commons out of `project-view/` into proper places under `src/`**. When you add something here, ask first: is this ProjectView-specific, or would another feature want it too?
 
 ## Structure
 
-- `components/` — Vue SFCs. Large-feature components get their own sub-folder (e.g. `GraphEditor/`, `CodeEditor/`, `ComponentBrowser/`, `DocumentationEditor/`, `MarkdownEditor/`). Small shared components sit at the top level.
-- `composables/` — Vue composables (`useX()`). Prefer a composable over a component method whenever the logic doesn't directly render DOM.
-- `stores/` — App-wide reactive state. These are **plain Vue composables that `provide()` a reactive shape**, not Pinia. A `provideXxx()` is paired with a `useXxx()`/`injectXxx()`.
+- `components/` — Vue SFCs specific to ProjectView. Large-feature components get their own sub-folder (e.g. `GraphEditor/`, `CodeEditor/`, `ComponentBrowser/`, `DocumentationEditor/`, `MarkdownEditor/`). Truly shared components should move to `src/components/`.
+- `composables/` — Vue composables (`useX()`). ProjectView-specific composables only; share-worthy ones belong at `src/composables/`.
+- `stores/` — App-wide reactive state for the ProjectView session. These are **plain Vue composables that `provide()` a reactive shape**, not Pinia. A `provideXxx()` is paired with a `useXxx()`/`injectXxx()`.
 - `providers/` — Pure `inject`/`provide` keys, no logic. Use when a single typed slot is enough and a full store is overkill.
-- `assets/` — Static SVGs/images bundled by Vite.
-- `util/` — Pure TS utilities (no Vue imports in most files).
-- `bindings.ts` — Keyboard shortcuts for this half (see `app/gui/shortcuts.md` for the user-facing list).
+- `assets/` — Static SVGs/images used inside ProjectView.
+- `util/` — Pure TS utilities (no Vue imports in most files). Move to `src/util/` when something stops being ProjectView-specific.
+- `bindings.ts` — Keyboard shortcuts for ProjectView (see `app/gui/shortcuts.md` for the user-facing list).
 
-## Interop with the React dashboard
+## Interop with the Dashboard subtree
 
-Don't reach across frameworks by hand. Use the `$/` alias only for *data* types (`providers/container`, `providers/openedProjects`, i18n `text`) that are framework-agnostic. For UI, embed React into Vue via the existing `ResultComponent` / `veaury` wrappers.
+The Dashboard (currently React under `src/dashboard/`) is being migrated to Vue. Cross-subtree wiring should go through `src/providers/` (the `$/providers/` alias), not by reaching into the other subtree's internals. For React/Vue interop today, use the existing `veaury` wrappers.
 
 ## Graph editor
 
-`GraphEditor.vue` is the heart of the IDE. It renders an SVG scene plus positioned Vue components per node, talks to Yjs (via `ydoc-shared`) for collaborative edits, and uses `y-protocols` for awareness (cursors, selections). New interactions typically become composables in `components/GraphEditor/` or `composables/`.
+`GraphEditor.vue` is the heart of ProjectView. It renders an SVG scene plus positioned Vue components per node, talks to Yjs (via `ydoc-shared`) for collaborative edits, and uses `y-protocols` for awareness (cursors, selections). New interactions typically become composables in `components/GraphEditor/` or `composables/`.
 
 ## Visualizations
 
