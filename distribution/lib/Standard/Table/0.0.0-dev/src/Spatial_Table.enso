@@ -9,6 +9,7 @@ import project.Expression.Expression
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Rows_To_Read.Rows_To_Read
+import project.Sort_Column.Sort_Column
 import project.Table.Table
 
 ## Extension methods for Spatial Tables
