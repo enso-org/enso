@@ -218,6 +218,17 @@ type Aggregate_Column
         - `as`: name of new column.
     ST_Union (column:Text|Integer|Any=0) (as:Text="")
 
+    ## Creates a new column with the intersection of spatial values in the column
+       within each group. If no rows, evaluates to `Nothing`.
+
+       Only supported on Spatial Tables.
+
+       ## Arguments
+        - `column`: column (specified by name, expression or index) to find the
+          group union.
+        - `as`: name of new column.
+    ST_Intersect (column:Text|Integer|Any=0) (as:Text="")
+
     ## Internal aggregation function for database backends to create an array
        of values in the column within each group. If no rows, evaluates to
        `Nothing`.

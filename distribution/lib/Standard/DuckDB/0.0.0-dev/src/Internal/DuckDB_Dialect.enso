@@ -427,7 +427,7 @@ private duckdb_overrides =
     text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, ["REVERSE", Base_Generator.make_function "reverse"], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
-    aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_unary_function "MODE", agg_unary_function "ST_UNION_AGG", agg_array_agg "ARRAY_AGG", agg_array_agg "ARRAY_AGG_NOT_NULL"]
+    aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_unary_function "MODE", agg_unary_function "ST_UNION_AGG", agg_unary_function "ST_INTERSECTION_AGG", agg_array_agg "ARRAY_AGG", agg_array_agg "ARRAY_AGG_NOT_NULL"]
     other = [["RUNTIME_ERROR", make_runtime_error_op], make_st_to_geojson]
     text_ops + scalars + date_ops + aggs + other
 

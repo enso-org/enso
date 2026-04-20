@@ -66,7 +66,7 @@ make_aggregate_column_selector table:Table display:Display=..Always -> Widget = 
     spatial_aggregations = if table.is_a Spatial_Table == False then [] else
         spatial_widget_selector = make_column_name_selector table display=Display.Always add_expression=True
         spatial_widget = ["column", spatial_widget_selector]
-        [Option "..ST_Union" "..ST_Union" [spatial_widget]]
+        [Option "..ST_Union" "..ST_Union" [spatial_widget], Option "..ST_Intersection" "..ST_Intersection" [spatial_widget]]
 
     ## SQL Aggregation Function
     sql_function = if table.underlying.is_a In_Memory_Table then [] else
