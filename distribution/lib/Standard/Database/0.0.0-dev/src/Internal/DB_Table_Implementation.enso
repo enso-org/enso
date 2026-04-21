@@ -859,7 +859,7 @@ type DB_Table_Implementation
 
                 aggregate_table = this_table.aggregate group_by [..Array_Agg column.name new_name ignore_nothing=True order_by=ordering] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
 
-                sql_function = function.replace (regex "st_make(.*)s") "st_make_$1" . to_case ..Upper
+                sql_function = function.replace (regex "st_make(.*)s") "st_make$1" . to_case ..Upper
                 new_column = _resolve_sql_function aggregate_table (SQL_Function.SQL sql_function [aggregate_table.get new_name])
                 aggregate_table.set new_column as=new_name
 
