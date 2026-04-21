@@ -2882,10 +2882,12 @@ class RuntimeErrorsTest
       """from Standard.Base import all
         |
         |main =
-        |    operator1 = Main.function1
+        |    operator1 = Main.function1 0
         |    operator1
         |
-        |function1 = function1
+        |function1 x =
+        |    y = function1 x+1
+        |    y-1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
