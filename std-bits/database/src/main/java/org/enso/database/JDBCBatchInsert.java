@@ -12,9 +12,12 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+
+import org.enso.base.ProgressReporter;
 import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
+import static org.enso.table.data.column.operation.StorageIterators.PROGRESS_STEP;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.graalvm.polyglot.Value;
 
@@ -71,6 +74,8 @@ public final class JDBCBatchInsert {
       var localisedStorages =
           stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
 
+    try (var progressReporter =
+        ProgressReporter.createWithStep("batchInsert", numRows, batchSize)) {
       for (int rowId = 0; rowId < numRows; rowId++) {
         for (int columnId = 0; columnId < columnCount; columnId++) {
           ColumnStorage<?> columnStorage = localisedStorages[columnId];
@@ -92,7 +97,9 @@ public final class JDBCBatchInsert {
         if ((rowId + 1) % batchSize == 0) {
           checkRows(stmt.executeBatch(), batchSize);
         }
+        progressReporter.advance();
       }
+        }
 
       int remainingRows = numRows % batchSize;
       if (remainingRows != 0) {

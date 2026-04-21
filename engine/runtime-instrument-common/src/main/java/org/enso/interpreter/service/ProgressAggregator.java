@@ -41,11 +41,13 @@ final class ProgressAggregator {
   public synchronized void create(Object key, long max) {
     Progress p;
     if (stack.isEmpty()) {
-      p = new Progress(max, 0.0, 1.0);
+      current = 0.0;
+      message = null;
+      p = new Progress(key, max, 0.0, 1.0);
     } else {
       var previous = stack.peek();
       var current = previous.from + previous.singleStep() * previous.current;
-      p = new Progress(max, current, current + previous.singleStep());
+      p = new Progress(key, max, current, current + previous.singleStep());
     }
     stack.addFirst(p);
     map.put(key, p);
@@ -54,7 +56,7 @@ final class ProgressAggregator {
   public void closeProgress(Object key) {
     if (findBy(key) instanceof Progress p) {
       p.advance(p.max);
-      stack.remove(p);
+      p.detach();
     }
   }
 
@@ -91,12 +93,14 @@ final class ProgressAggregator {
   }
 
   final class Progress implements AutoCloseable {
+    private final Object key;
     private final long max;
     private long current;
     private final double from;
     private final double to;
 
-    private Progress(long max, double from, double to) {
+    private Progress(Object key, long max, double from, double to) {
+      this.key = key;
       assert 0.0 <= from && from <= 1.0;
       assert 0.0 <= to && to <= 1.0;
       assert from <= to;
@@ -125,8 +129,18 @@ final class ProgressAggregator {
       try {
         this.current = Math.min(Math.addExact(this.current, steps), this.max);
         advanceTo(from + this.current * singleStep());
+        if (this.current >= this.max) {
+          detach();
+        }
       } catch (ArithmeticException e) {
         // keep unchanged
+      }
+    }
+
+    private void detach() {
+      synchronized (ProgressAggregator.this) {
+        stack.remove(this);
+        map.remove(key);
       }
     }
 
@@ -137,7 +151,6 @@ final class ProgressAggregator {
     @Override
     public void close() {
       advance(max);
-      closeProgress(this);
     }
   }
 }

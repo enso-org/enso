@@ -55,6 +55,18 @@ public class ProgressAggregatorTest implements BiConsumer<Double, String> {
     assertEquals("All done", 1.0, current, 0.001);
   }
 
+  @Test
+  public void reopeningStartsFromZero() {
+    var agg = new ProgressAggregator(this);
+    var first = create(agg, 2);
+    first.close();
+    assertEquals("First run completes", 1.0, current, 0.001);
+
+    var second = create(agg, 10);
+    second.advance(1);
+    assertEquals("Second run starts from zero again", 0.1, current, 0.001);
+  }
+
   @Override
   public void accept(Double t, String msg) {
     this.current = t;
