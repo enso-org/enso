@@ -376,17 +376,22 @@ final class VisualizationBridgeActor(
   }
 
   private def forwardDetach(msg: DetachMsg): Unit = {
-    val visualizationId = parseUuidOr(msg.visualizationId).getOrElse {
-      // Best-effort: a slot was removed before we learned its fields. Ignore.
-      visToRequest.remove(msg.visualizationId)
-      return
-    }
-    val contextId    = visToContext.getOrElse(msg.visualizationId, null)
-    val expressionId = visToExpression.getOrElse(msg.visualizationId, null)
+    // Purge correlation state for this visualization regardless of whether we
+    // can forward the detach. Leaving entries in `visToRequest` would route
+    // stale runtime updates to a slot the client already removed.
+    val contextId    = visToContext.get(msg.visualizationId).orNull
+    val expressionId = visToExpression.get(msg.visualizationId).orNull
     visToRequest.remove(msg.visualizationId)
     visToContext.remove(msg.visualizationId)
     visToExpression.remove(msg.visualizationId)
     oneshotVisIds.remove(msg.visualizationId)
+    val visualizationId = parseUuidOr(msg.visualizationId).getOrElse {
+      logger.warn(
+        s"vis detach: invalid or missing visualizationId '${msg.visualizationId}'; " +
+        s"cannot forward to runtime for requestId ${msg.requestId}"
+      )
+      return
+    }
     if (contextId == null || expressionId == null) {
       logger.warn(
         s"vis detach: missing tracked context/expression for $visualizationId"

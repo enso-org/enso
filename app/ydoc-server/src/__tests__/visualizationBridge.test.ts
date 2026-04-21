@@ -123,6 +123,12 @@ describe('VisualizationBridge', () => {
     const second = JSON.parse(f.controlFromBridge[1]!)
     expect(second.kind).toBe('detach')
     expect(second.requestId).toBe(requestId)
+    // The bridge must carry the real visualizationId and contextId in detach
+    // messages. Empty strings here would make the LS actor unable to resolve
+    // the detach back to a runtime visualization, so the runtime would keep
+    // producing updates after the client turned the visualization off.
+    expect(second.visualizationId).toBe(VIS_ID)
+    expect(second.contextId).toBe(CTX_ID)
   })
 
   it('writes response bytes into the matching slot when a data frame arrives', () => {
@@ -262,8 +268,14 @@ describe('VisualizationBridge', () => {
     )
 
     // Bridge should have emitted: attach(old), detach(old), attach(new).
-    const kinds = f.controlFromBridge.map((m) => JSON.parse(m).kind)
-    expect(kinds).toEqual(['attach', 'detach', 'attach'])
+    const parsed = f.controlFromBridge.map((m) => JSON.parse(m))
+    expect(parsed.map((m) => m.kind)).toEqual(['attach', 'detach', 'attach'])
+    // The detach for the superseded slot must carry the real
+    // visualizationId/contextId so the LS side can translate it into
+    // Api.DetachVisualization rather than silently dropping it.
+    expect(parsed[1]!.visualizationId).toBe(VIS_ID)
+    expect(parsed[1]!.contextId).toBe(CTX_ID)
+    expect(parsed[1]!.requestId).toBe(oldRequest)
     // Old slot is gone; new slot remains pending.
     expect(f.vis.getSlot(oldRequest as VisRequestId)).toBeNull()
     expect(f.vis.getSlot(newRequest as VisRequestId)?.status).toBe('pending')
@@ -286,8 +298,45 @@ describe('VisualizationBridge', () => {
     const internal = f.bridge as unknown as {
       announced: Set<string>
       oneshotRequestIds: Set<string>
+      slotMeta: Map<string, unknown>
     }
     expect(internal.announced.has(rid)).toBe(false)
     expect(internal.oneshotRequestIds.has(rid)).toBe(false)
+    expect(internal.slotMeta.has(rid)).toBe(false)
+  })
+
+  it('peer simulating the LS actor can resolve a detach back to the attach', () => {
+    // This is a structural stand-in for `VisualizationBridgeActor`. It keys
+    // its correlation map on visualizationId, exactly as the Scala side
+    // does. If the bridge emits a detach with empty visualizationId, the
+    // peer cannot clean up its tracking and cannot synthesize an
+    // `Api.DetachVisualization`. This test pins that contract from the
+    // ydoc-server side without having to reach the JVM.
+    const f = makeFixture()
+    const tracked = new Map<string, string>() // visualizationId -> requestId
+    f.peerControl.subscribe((raw) => {
+      const msg = JSON.parse(raw)
+      if (msg.kind === 'attach') tracked.set(msg.visualizationId, msg.requestId)
+      else if (msg.kind === 'detach') {
+        if (!msg.visualizationId) return // simulates the early return
+        tracked.delete(msg.visualizationId)
+      }
+    })
+
+    const rid = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: request(),
+      },
+      rid,
+    )
+    expect(tracked.get(VIS_ID)).toBe(rid)
+
+    f.vis.removeSlot(rid)
+    // The peer must have been able to resolve the detach.
+    expect(tracked.has(VIS_ID)).toBe(false)
   })
 })

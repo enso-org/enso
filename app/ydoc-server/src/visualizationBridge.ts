@@ -78,6 +78,16 @@ export class VisualizationBridge {
    * for it. Pruned together with `announced`.
    */
   private readonly oneshotRequestIds = new Set<string>()
+  /**
+   * Identity fields captured at attach time. The slot is gone from the
+   * Y.Map by the time we observe its removal, so we cannot read these
+   * fields then. Populating a detach message with the real
+   * `visualizationId` + `contextId` is what lets the Language Server
+   * actor translate it into an `Api.DetachVisualization`. Without these
+   * values the actor cannot resolve the correlation and the runtime keeps
+   * computing the detached visualization. Pruned together with `announced`.
+   */
+  private readonly slotMeta = new Map<string, { visualizationId: string; contextId: string }>()
   private readonly observer: () => void
   private readonly unsubscribeControl: () => void
   private readonly unsubscribeData: () => void
@@ -112,28 +122,39 @@ export class VisualizationBridge {
       const rid = view.requestId
       liveIds.add(rid)
       if (!this.announced.has(rid) && view.status === 'pending') {
-        this.announced.add(rid)
-        if (isInFrameRequest(view.request)) this.oneshotRequestIds.add(rid)
-        this.emitAttach(view)
+        if (this.emitAttach(view)) {
+          this.announced.add(rid)
+          if (isInFrameRequest(view.request)) this.oneshotRequestIds.add(rid)
+        }
       }
     }
     for (const rid of Array.from(this.announced)) {
       if (liveIds.has(rid)) continue
-      if (!this.oneshotRequestIds.has(rid)) this.emitRawDetach(rid)
+      if (!this.oneshotRequestIds.has(rid)) {
+        const meta = this.slotMeta.get(rid)
+        if (meta) this.emitDetach(rid, meta)
+        else console.warn('VisualizationBridge: no slot meta for detached rid', rid)
+      }
       this.announced.delete(rid)
       this.oneshotRequestIds.delete(rid)
+      this.slotMeta.delete(rid)
     }
   }
 
-  private emitAttach(view: VisualizationSlotView): void {
+  /**
+   * Emit an attach for a newly-pending slot. Returns true on success, false
+   * if the slot was malformed and the caller should skip tracking it.
+   */
+  private emitAttach(view: VisualizationSlotView): boolean {
     const visualizationId = view.visualizationId
     const contextId = view.contextId
     const nodeExternalId = view.nodeExternalId
     const request = view.request
     if (!visualizationId || !contextId || !nodeExternalId || !request) {
       console.warn('VisualizationBridge: slot missing required fields on attach', view.requestId)
-      return
+      return false
     }
+    this.slotMeta.set(view.requestId, { visualizationId, contextId })
     const msg: AttachMsg = {
       kind: 'attach',
       requestId: view.requestId,
@@ -143,14 +164,18 @@ export class VisualizationBridge {
       request,
     }
     this.control.send(JSON.stringify(msg))
+    return true
   }
 
-  private emitRawDetach(requestId: string): void {
+  private emitDetach(
+    requestId: string,
+    meta: { visualizationId: string; contextId: string },
+  ): void {
     const msg: DetachMsg = {
       kind: 'detach',
       requestId,
-      visualizationId: '',
-      contextId: '',
+      visualizationId: meta.visualizationId,
+      contextId: meta.contextId,
     }
     this.control.send(JSON.stringify(msg))
   }
@@ -175,9 +200,9 @@ export class VisualizationBridge {
         break
       }
       case 'ready':
-        // Data frame on vis:data carries the bytes; when it arrives we set
+        // Data frame on vis:data carries the bytes. When it arrives we set
         // status to 'ready'. The `ready` control message is a redundant hint
-        // kept for inspect visibility; we do not require it.
+        // kept for inspect visibility as we do not require it.
         break
       case 'attach':
       case 'detach':
