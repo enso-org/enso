@@ -842,6 +842,14 @@ type In_Memory_Table_Implementation
         _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
+    spatial_convex_hull (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_concave_hull (this_table : Table & In_Memory_Table) (column : Column) (as : Text) (ratio : Float) (allow_holes : Boolean) =
+        _ = [this_table, column, as, ratio, allow_holes]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
 ## ---
    private: true
    ---

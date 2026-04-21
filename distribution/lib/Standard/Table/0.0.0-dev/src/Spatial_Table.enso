@@ -437,6 +437,43 @@ type Spatial_Table
         resolved = _resolve_column column self.parent
         (self:Table).implementation.spatial_from_wkt self.parent.underlying resolved as
 
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Creates the smallest convex polygon that can enclose each object in the
+       specified column. Use this in conjunction with an ST_Union aggregation to
+       form for sets of objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       convex-hull spatial objects.
+    @column Widget_Helpers.make_column_name_selector add_expression=True
+    st_convex_hull self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_convex_hull self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Creates the `concave` hull for each object in the specified column.
+       Use this in conjunction with an ST_Union aggregation to form for sets
+       of objects.
+
+       ## Arguments
+       - `ratio` dictates the level of concavity. 1.0 returns the convex hull
+         and 0.0 will return the most concave hull possible. Defaults to `0.0`.
+       - `allow_holes`: will allow the output to contain holes. `False` by
+         default.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       concave-hull spatial objects.
+    st_concave_hull self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" ratio:Float=0.0 allow_holes:Boolean=False =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_concave_hull self.parent.underlying resolved as ratio allow_holes
+
 ## When extracting latitude or longitude, which value to extract.
 type Lat_Long_Type
     ## Uses the centroid of the spatial object to extract the latitude or longitude.

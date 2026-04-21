@@ -980,6 +980,18 @@ type DB_Table_Implementation
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_from_wkt" [column]
             this_table.set new_column as=new_name
 
+    spatial_convex_hull (this_table : Table & DB_Table) (column : Column) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_convex_hull" <| expect_spatial_type column this_table.connection.dialect <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_ConvexHull" [column])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_convex_hull" [column]
+            this_table.set new_column as=new_name
+
+    spatial_concave_hull (this_table : Table & DB_Table) (column : Column) (as : Text) (ratio : Float) (allow_holes : Boolean) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_concave_hull" <| expect_spatial_type column this_table.connection.dialect <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_ConcaveHull" [column, ratio, allow_holes])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_concave_hull" [column]
+            this_table.set new_column as=new_name
+
 ## ---
    private: true
    ---

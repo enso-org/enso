@@ -146,11 +146,10 @@ type Spatial_Column
        group: Standard.Base.Conversions
        icon: convert
        ---
-       Converts the spatial objects in the specified column to GeoJSON format.
+       Converts the spatial objects in this column to GeoJSON format.
 
        ## Returns
-       A new table with the existing columns and a new column containing the
-       GeoJSON representation as text of the spatial objects.
+       A new column with containing the GeoJSON representation of this column.
     st_to_geojson self =
         temp_name = self.parent_table.parent.make_temp_column_name
         self.parent_table.st_to_geojson self.column as=temp_name . get temp_name
@@ -159,15 +158,48 @@ type Spatial_Column
        group: Standard.Base.Conversions
        icon: convert
        ---
-       Converts the spatial objects in the specified column to Well Known Text
+       Converts the spatial objects in this column to Well Known Text
        format.
 
        ## Returns
-       A new table with the existing columns and a new column containing the
-       WKT representation of the spatial objects.
+       A new column with containing the WKT representation of this column.
     st_to_wkt self =
         temp_name = self.parent_table.parent.make_temp_column_name
         self.parent_table.st_to_wkt self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Creates the smallest convex polygon that can enclose each object.
+       Use this in conjunction with an ST_Union aggregation to form for sets
+       of objects.
+
+       ## Returns
+       A new column with the convex hull polygons.
+    st_convex_hull self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_convex_hull self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Creates the `concave` hull for each object in the column.
+       Use this in conjunction with an ST_Union aggregation to form for sets
+       of objects.
+
+       ## Arguments
+       - `ratio` dictates the level of concavity. 1.0 returns the convex hull
+         and 0.0 will return the most concave hull possible. Defaults to `0.0`.
+       - `allow_holes`: will allow the output to contain holes. `False` by
+         default.
+
+       ## Returns
+       A new column with the concave hull polygons.
+    st_concave_hull self ratio:Float=0.0 allow_holes:Boolean=False =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_concave_hull self.column as=temp_name ratio allow_holes . get temp_name
 
 ## A column that contains spatial values - designed for use by Expression at the moment.
 type Spatial_Input_Column
