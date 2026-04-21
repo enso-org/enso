@@ -227,7 +227,7 @@ type Aggregate_Column
         - `column`: column (specified by name, expression or index) to find the
           group union.
         - `as`: name of new column.
-    ST_Intersect (column:Text|Integer|Any=0) (as:Text="")
+    ST_Intersection (column:Text|Integer|Any=0) (as:Text="")
 
     ## Creates the minimal bounding box polygon containing the set. If no rows,
        evaluates to `Nothing`.
