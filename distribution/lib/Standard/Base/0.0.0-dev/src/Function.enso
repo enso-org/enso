@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Vector.Vector
+# import project.Data.Vector.Vector
 import project.Internal.Boolean_Helpers
 import project.Nothing.Nothing
 
@@ -143,7 +143,7 @@ const x ~f =
 
    ## Arguments
     - `f`: function accepting pair of values
-curry : (Vector Any -> Any) -> (Any -> Any -> Any)
+# curry : (Vector Any -> Any) -> (Any -> Any -> Any)
 curry f = x -> y -> f [x, y]
 
 ## ---
@@ -154,7 +154,7 @@ curry f = x -> y -> f [x, y]
 
    ## Arguments
     - `f`: function accepting multiple arguments
-uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
+# uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
 uncurry f = (pair -> f pair.first pair.second)
 
 ## ---

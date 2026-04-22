@@ -1,11 +1,6 @@
-import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
-import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
-import project.Errors.Common.Type_Error
 import project.Internal.Text_Helpers
-import project.Panic.Panic
 from project.Data.Boolean import Boolean
 from project.Nothing import all
 
@@ -93,10 +88,6 @@ type Text
        texts are equal if they are identical after canonical decomposition. This
        ensures that different ways of expressing the same character in the
        underlying binary representation are considered equal.
-    @locale Locale.default_widget
-    equals_ignore_case : Text -> Locale -> Boolean
-    equals_ignore_case self (that : Text) (locale : Locale = Locale.default) =
-        Text_Utils.equals_ignore_case self that locale.java_locale
 
     ## ---
        private: true
@@ -105,10 +96,6 @@ type Text
        ---
        Unifies the case of all letters in the text, generating a key which can be
        used to perform case-insensitive comparisons.
-    @locale Locale.default_widget
-    to_case_insensitive_key : Locale -> Text
-    to_case_insensitive_key self (locale : Locale = Locale.default) =
-        Text_Utils.case_insensitive_key self locale.java_locale
 
     ## ---
        icon: text
@@ -124,12 +111,6 @@ type Text
        ```
              "a".compare_to_ignore_case "b"
        ```
-    @locale Locale.default_widget
-    compare_to_ignore_case : Text -> Locale -> Ordering
-    compare_to_ignore_case self that locale=Locale.default =
-        if that.is_nothing then Panic.throw (Type_Error.Error Text that "Expected `that` to be a Text, but got {got}") else
-            comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
-            Ordering.from_sign comparison_result
 
     ## ---
        group: Logical
@@ -219,7 +200,6 @@ type Text
        icon: operators
        ---
        Checks if `self` is greater than `that`.
-    > self that = Comparable.> self=self that
 
     ## ---
        aliases: [greater than or equal]
@@ -227,7 +207,6 @@ type Text
        icon: operators
        ---
        Checks if `self` is greater than or equal to `that`.
-    >= self that = Comparable.>= self=self that
 
     ## ---
        aliases: [less than]
@@ -235,7 +214,6 @@ type Text
        icon: operators
        ---
        Checks if `self` is less than `that`.
-    < self that = Comparable.< self=self that
 
     ## ---
        aliases: [less than or equal]
@@ -243,4 +221,3 @@ type Text
        icon: operators
        ---
        Checks if `self` is less than or equal to `that`.
-    <= self that = Comparable.<= self=self that
