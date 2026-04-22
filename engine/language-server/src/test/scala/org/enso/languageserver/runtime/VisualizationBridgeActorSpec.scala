@@ -258,7 +258,7 @@ class VisualizationBridgeActorSpec
     att.visualizationConfig.executionContextId.toString must be(contextId)
     att.visualizationConfig.expression match {
       case Api.VisualizationExpression.InFrame(expr) => expr must be(expression)
-      case other => fail(s"expected InFrame expression, got $other")
+      case other                                     => fail(s"expected InFrame expression, got $other")
     }
 
     system.stop(actor)
@@ -297,6 +297,207 @@ class VisualizationBridgeActorSpec
     det.visualizationId.toString must be(visualizationId)
     det.contextId.toString must be(contextId)
     det.expressionId.toString must be(nodeId)
+
+    system.stop(actor)
+  }
+
+  // Regression test: during a client-side modify the bridge receives
+  //   attach(reqB, visX); detach(reqA, visX)
+  // where both share the same visualizationId. The runtime treats attach as
+  // an upsert, so forwarding the detach would remove the just-replaced
+  // visualization and silently strand every further update. The actor must
+  // recognise the still-active rid and suppress the runtime detach.
+  it must "suppress runtime detach when another rid is still attached for the same visualizationId" in {
+    val runtime = TestProbe()
+    val actor = system.actorOf(
+      VisualizationBridgeServer.props(runtime.ref, system.eventStream)
+    )
+    val control = new RecordingChannel
+    val data    = new RecordingChannel
+    actor ! ControlChannelEstablished(control)
+    actor ! DataChannelEstablished(data)
+
+    val reqA            = UUID.randomUUID().toString
+    val reqB            = UUID.randomUUID().toString
+    val visualizationId = UUID.randomUUID()
+    val contextId       = UUID.randomUUID()
+    val nodeId          = UUID.randomUUID()
+
+    def attachJson(reqId: String) =
+      s"""{"kind":"attach","requestId":"$reqId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId",
+         |"nodeExternalId":"$nodeId","request":{"visualizationModule":"M",
+         |"expression":"identity"}}""".stripMargin
+
+    def detachJson(reqId: String) =
+      s"""{"kind":"detach","requestId":"$reqId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId"}""".stripMargin
+
+    // Initial attach.
+    actor ! ControlMessage(attachJson(reqA))
+    val attachForA = runtime.expectMsgType[Api.Request]
+    attachForA.payload.isInstanceOf[Api.AttachVisualization] must be(true)
+
+    // Modify: client emits attach(newRid) before detach(oldRid) in the same
+    // scan() batch. The actor forwards the second attach (runtime upserts).
+    actor ! ControlMessage(attachJson(reqB))
+    val attachForB = runtime.expectMsgType[Api.Request]
+    attachForB.payload.isInstanceOf[Api.AttachVisualization] must be(true)
+
+    // Detach for the old rid must NOT be forwarded as another rid is active.
+    actor ! ControlMessage(detachJson(reqA))
+    runtime.expectNoMessage()
+
+    // A runtime update routes to the newest active rid (reqB), not reqA.
+    system.eventStream.publish(
+      Api.VisualizationUpdate(
+        Api.VisualizationContext(visualizationId, contextId, nodeId),
+        Array[Byte](7, 8, 9)
+      )
+    )
+    val readyMsg = pollSentAsString(control)
+    readyMsg must include(""""kind":"ready"""")
+    readyMsg must include(reqB)
+    readyMsg must not include reqA
+
+    // When the remaining rid also detaches, the runtime forward does happen.
+    actor ! ControlMessage(detachJson(reqB))
+    val finalDetach = runtime.expectMsgType[Api.Request]
+    finalDetach.payload.isInstanceOf[Api.DetachVisualization] must be(true)
+
+    system.stop(actor)
+  }
+
+  // Regression test: when the runtime responds with an error to an attach or
+  // detach we initiated, the bridge must surface it as a FailedMsg on the
+  // control channel so the client slot transitions out of `pending`.
+  it must "emit a failed control message on runtime error responses to attach" in {
+    val runtime = TestProbe()
+    val actor = system.actorOf(
+      VisualizationBridgeServer.props(runtime.ref, system.eventStream)
+    )
+    val control = new RecordingChannel
+    val data    = new RecordingChannel
+    actor ! ControlChannelEstablished(control)
+    actor ! DataChannelEstablished(data)
+
+    val requestId       = UUID.randomUUID().toString
+    val visualizationId = UUID.randomUUID()
+    val contextId       = UUID.randomUUID()
+    val nodeId          = UUID.randomUUID()
+    val attachJson =
+      s"""{"kind":"attach","requestId":"$requestId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId",
+         |"nodeExternalId":"$nodeId","request":{"visualizationModule":"M",
+         |"expression":"identity"}}""".stripMargin
+
+    actor ! ControlMessage(attachJson)
+    val fwd           = runtime.expectMsgType[Api.Request]
+    val correlationId = fwd.requestId
+
+    // Simulate the runtime rejecting the attach.
+    actor ! Api.Response(
+      correlationId,
+      Api.ModuleNotFound("Missing.Module")
+    )
+
+    val msg = pollSentAsString(control)
+    msg must include(""""kind":"failed"""")
+    msg must include(requestId)
+    msg must include("Missing.Module")
+
+    system.stop(actor)
+  }
+
+  it must "emit a failed control message with diagnostic on runtime VisualizationExpressionFailed response" in {
+    val runtime = TestProbe()
+    val actor = system.actorOf(
+      VisualizationBridgeServer.props(runtime.ref, system.eventStream)
+    )
+    val control = new RecordingChannel
+    val data    = new RecordingChannel
+    actor ! ControlChannelEstablished(control)
+    actor ! DataChannelEstablished(data)
+
+    val requestId       = UUID.randomUUID().toString
+    val visualizationId = UUID.randomUUID()
+    val contextId       = UUID.randomUUID()
+    val nodeId          = UUID.randomUUID()
+    val attachJson =
+      s"""{"kind":"attach","requestId":"$requestId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId",
+         |"nodeExternalId":"$nodeId","request":{"visualizationModule":"M",
+         |"expression":"identity"}}""".stripMargin
+
+    actor ! ControlMessage(attachJson)
+    val fwd           = runtime.expectMsgType[Api.Request]
+    val correlationId = fwd.requestId
+
+    val diagnostic = Api.ExecutionResult.Diagnostic.error(
+      message      = "boom on line 10",
+      expressionId = Some(nodeId)
+    )
+    actor ! Api.Response(
+      correlationId,
+      Api.VisualizationExpressionFailed(
+        Api.VisualizationContext(visualizationId, contextId, nodeId),
+        "evaluation failed",
+        Some(diagnostic)
+      )
+    )
+
+    val msg = pollSentAsString(control)
+    msg must include(""""kind":"failed"""")
+    msg must include(requestId)
+    msg must include("evaluation failed")
+    msg must include(""""diagnostic"""")
+    msg must include("boom on line 10")
+    msg must include(nodeId.toString)
+
+    system.stop(actor)
+  }
+
+  it must "forward diagnostic payload on event-stream VisualizationEvaluationFailed" in {
+    val runtime = TestProbe()
+    val actor = system.actorOf(
+      VisualizationBridgeServer.props(runtime.ref, system.eventStream)
+    )
+    val control = new RecordingChannel
+    val data    = new RecordingChannel
+    actor ! ControlChannelEstablished(control)
+    actor ! DataChannelEstablished(data)
+
+    val requestId       = UUID.randomUUID().toString
+    val visualizationId = UUID.randomUUID()
+    val contextId       = UUID.randomUUID()
+    val nodeId          = UUID.randomUUID()
+    val attachJson =
+      s"""{"kind":"attach","requestId":"$requestId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId",
+         |"nodeExternalId":"$nodeId","request":{"visualizationModule":"M",
+         |"expression":"identity"}}""".stripMargin
+
+    actor ! ControlMessage(attachJson)
+    runtime.expectMsgType[Api.Request]
+    drainAllSent(control)
+
+    val diagnostic = Api.ExecutionResult.Diagnostic.error(
+      message      = "runtime panic",
+      expressionId = Some(nodeId)
+    )
+    system.eventStream.publish(
+      Api.VisualizationEvaluationFailed(
+        Api.VisualizationContext(visualizationId, contextId, nodeId),
+        "eval failed",
+        Some(diagnostic)
+      )
+    )
+
+    val msg = pollSentAsString(control)
+    msg must include(""""kind":"failed"""")
+    msg must include(requestId)
+    msg must include(""""diagnostic"""")
+    msg must include("runtime panic")
 
     system.stop(actor)
   }

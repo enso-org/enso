@@ -3,11 +3,11 @@ package org.enso.languageserver.runtime
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.event.EventStream
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.generic.auto._
 import io.circe.parser
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.ydoc.api.YjsChannel
 
@@ -22,10 +22,22 @@ import scala.util.control.NonFatal
   * forwards them to the runtime as `Api.AttachVisualization` /
   * `Api.DetachVisualization`, and pushes responses back as `ready` + binary
   * frame on `vis:data`, or `failed` JSON on `vis:control`. One-shot
-  * evaluations are just attach requests whose expression is 
-  * `Api.VisualizationExpression.InFrame`. The runtime auto-detaches them 
-  * after one update, and the bridge cleans up the correlation maps eagerly 
-  * on first response.
+  * evaluations are attach requests whose expression is
+  * `Api.VisualizationExpression.InFrame`. The runtime auto-detaches them
+  * after one update and the bridge drops its correlation eagerly.
+  *
+  * Correlation state is keyed by **bridge requestId**, not by
+  * `visualizationId`. A modify is expressed by the client as
+  * `removeSlot(oldRid); createSlot(newRid)` with the **same** visualizationId,
+  * and `scan()` in `visualizationBridge.ts` emits `attach(newRid)` before
+  * `detach(oldRid)`. If we keyed correlation by visualizationId, the detach
+  * would wipe the just-installed entry for the new rid and silently orphan
+  * every subsequent runtime update. Here we track all in-flight rids per
+  * visualizationId in an ordered set and forward the detach to the runtime
+  * only when it would leave no other tracked rid for that visualizationId
+  * (because the runtime treats `Api.AttachVisualization` as an upsert. A
+  * second attach for the same id replaces the first, so emitting a detach
+  * after a second attach would remove the newer upsert too).
   *
   * There is a single bridge actor per Language Server process. Both callback
   * classes (control + data) feed channel references into the same actor.
@@ -101,12 +113,29 @@ object VisualizationBridgeServer {
     contextId: String
   ) extends ControlMsg
 
-  final case class ReadyMsg(requestId: RequestId) extends ControlMsg
-
   final case class FailedMsg(
     requestId: RequestId,
-    message: String
+    message: String,
+    diagnostic: Option[DiagnosticPayload]
   ) extends ControlMsg
+
+  /** Diagnostic payload shape matching the client's `Diagnostic` type in
+    * `ydoc-shared/src/languageServerTypes.ts`. Only fields that survive the
+    * JSON bridge are populated; `path` is omitted because the client expects a
+    * content-root-relative path and the runtime only carries a `File`.
+    */
+  final case class DiagnosticPayload(
+    kind: String,
+    message: String,
+    location: Option[Json],
+    expressionId: Option[String],
+    stack: Vector[DiagnosticStackElement]
+  )
+
+  final case class DiagnosticStackElement(
+    functionName: String,
+    expressionId: Option[String]
+  )
 
   /** The immutable preprocessor portion of a visualization request. Matches
     * the client-side `VisRequestPreprocessor` type in `ydoc-shared`.
@@ -127,6 +156,9 @@ object VisualizationBridgeServer {
     methodPointer: Option[MethodPointer],
     inFrame: Option[String]
   )
+
+  implicit val methodPointerDecoder: Decoder[MethodPointer] =
+    Decoder.forProduct3("module", "definedOnType", "name")(MethodPointer.apply)
 
   object VisExpression {
 
@@ -150,7 +182,11 @@ object VisualizationBridgeServer {
     }
   }
 
-  /** Decoders for the control-channel message envelope. */
+  /** Decoders for the control-channel message envelope. The LS only ever
+    * decodes the `attach` / `detach` kinds; `ready` and `failed` are LS-side
+    * outbound and echoes are already filtered by `YjsChannel`'s senderId
+    * guard, so they are intentionally not decoded here.
+    */
   private[runtime] object Codecs {
     import io.circe.Decoder.Result
 
@@ -177,19 +213,11 @@ object VisualizationBridgeServer {
         "contextId"
       )(DetachMsg.apply)
 
-    implicit val readyDecoder: Decoder[ReadyMsg] =
-      Decoder.forProduct1("requestId")(ReadyMsg.apply)
-
-    implicit val failedDecoder: Decoder[FailedMsg] =
-      Decoder.forProduct2("requestId", "message")(FailedMsg.apply)
-
     implicit val controlDecoder: Decoder[ControlMsg] = Decoder.instance {
       cursor =>
         cursor.downField("kind").as[String].flatMap {
           case "attach" => attachDecoder.tryDecode(cursor): Result[ControlMsg]
           case "detach" => detachDecoder.tryDecode(cursor): Result[ControlMsg]
-          case "ready"  => readyDecoder.tryDecode(cursor): Result[ControlMsg]
-          case "failed" => failedDecoder.tryDecode(cursor): Result[ControlMsg]
           case other =>
             Left(
               io.circe.DecodingFailure(
@@ -200,21 +228,69 @@ object VisualizationBridgeServer {
         }
     }
 
-    implicit val readyEncoder: Encoder[ReadyMsg] = Encoder.instance { m =>
+    implicit val readyEncoder: Encoder[ReadyMsgOut] = Encoder.instance { m =>
       Json.obj(
         "kind"      -> Json.fromString("ready"),
         "requestId" -> Json.fromString(m.requestId)
       )
     }
 
+    implicit val diagnosticStackElementEncoder
+      : Encoder[DiagnosticStackElement] =
+      Encoder.instance { s =>
+        val base = Json.obj(
+          "functionName" -> Json.fromString(s.functionName)
+        )
+        s.expressionId match {
+          case Some(id) =>
+            base.deepMerge(Json.obj("expressionId" -> Json.fromString(id)))
+          case None => base
+        }
+      }
+
+    implicit val diagnosticPayloadEncoder: Encoder[DiagnosticPayload] =
+      Encoder.instance { d =>
+        val fields = scala.collection.mutable.ArrayBuffer.empty[(String, Json)]
+        fields += ("kind"    -> Json.fromString(d.kind))
+        fields += ("message" -> Json.fromString(d.message))
+        d.location.foreach(loc => fields += ("location" -> loc))
+        d.expressionId.foreach(id =>
+          fields += ("expressionId" -> Json.fromString(id))
+        )
+        fields += ("stack" -> Json.fromValues(d.stack.map(_.asJson)))
+        Json.obj(fields.toSeq: _*)
+      }
+
     implicit val failedEncoder: Encoder[FailedMsg] = Encoder.instance { m =>
-      Json.obj(
+      val base = Json.obj(
         "kind"      -> Json.fromString("failed"),
         "requestId" -> Json.fromString(m.requestId),
         "message"   -> Json.fromString(m.message)
       )
+      m.diagnostic match {
+        case Some(d) =>
+          base.deepMerge(Json.obj("diagnostic" -> d.asJson))
+        case None => base
+      }
     }
   }
+
+  /** Outbound-only marker for the `ready` control message. Kept as a distinct
+    * type from `ControlMsg` because the LS never decodes it.
+    */
+  final case class ReadyMsgOut(requestId: RequestId)
+
+  /** Per-request correlation info. Keyed by bridge requestId so that two
+    * slots sharing a visualizationId (a modify is exactly that: attach(new)
+    * + detach(old) with the same visualizationId) do not clobber each
+    * other's entry.
+    */
+  final case class RequestInfo(
+    visualizationId: String,
+    contextId: UUID,
+    expressionId: UUID,
+    isInFrame: Boolean
+  )
 
   /** Create the bridge actor. */
   def props(runtime: ActorRef, eventStream: EventStream): Props =
@@ -227,6 +303,34 @@ object VisualizationBridgeServer {
     bridge: ActorRef
   ): (YjsChannel.Server, YjsChannel.Server) =
     (new ControlServerCallbacks(bridge), new DataServerCallbacks(bridge))
+
+  /** Convert a runtime diagnostic to the JSON-serializable shape the client
+    * consumes. Kept small: the client's `Diagnostic` also has `path`, but we
+    * drop it here because mapping `File` to a content-root-relative path
+    * requires a `ContentRootManager`, and the bridge actor doesn't have one.
+    * If path-aware diagnostics become important the conversion can grow.
+    */
+  private[runtime] def toDiagnosticPayload(
+    diagnostic: Api.ExecutionResult.Diagnostic
+  ): DiagnosticPayload = {
+    val kindStr = diagnostic.kind match {
+      case Api.DiagnosticType.Error   => "Error"
+      case Api.DiagnosticType.Warning => "Warning"
+    }
+    val stack = diagnostic.stack.map { element =>
+      DiagnosticStackElement(
+        functionName = element.functionName,
+        expressionId = element.expressionId.map(_.toString)
+      )
+    }
+    DiagnosticPayload(
+      kind         = kindStr,
+      message      = diagnostic.message.getOrElse(""),
+      location     = None,
+      expressionId = diagnostic.expressionId.map(_.toString),
+      stack        = stack
+    )
+  }
 }
 
 /** Stateful actor that mediates between vis channels and the runtime. */
@@ -242,30 +346,28 @@ final class VisualizationBridgeActor(
   private var controlChannel: Option[YjsChannel] = None
   private var dataChannel: Option[YjsChannel]    = None
 
-  /** visualizationId (string UUID) -> in-flight requestId (string UUID).
-    *
-    * Used to correlate runtime `VisualizationUpdate` events back to the
-    * originating vis slot. Cleared on detach.
+  /** Per-request correlation table. Populated on attach, cleared on detach
+    * (client-driven) or on terminal InFrame response (eager cleanup).
     */
-  private val visToRequest: mutable.Map[String, String] = mutable.Map.empty
+  private val requestState: mutable.Map[RequestId, RequestInfo] =
+    mutable.Map.empty
 
-  /** Tracks the contextId for each visualizationId so we can honor detaches
-    * from the runtime without re-parsing messages.
+  /** For each visualizationId, the ordered set of in-flight bridge request
+    * ids. Insertion order is preserved so that "most recent" can be read off
+    * the tail when routing runtime updates. During a modify, this set
+    * transiently contains two entries (old rid + new rid) until the detach
+    * arrives.
     */
-  private val visToContext: mutable.Map[String, UUID] = mutable.Map.empty
+  private val requestsByVis
+    : mutable.Map[String, mutable.LinkedHashSet[RequestId]] =
+    mutable.Map.empty
 
-  /** Tracks the expressionId (node external id) for each visualizationId for
-    * detach messaging.
+  /** UUID of `Api.Request` sent to runtime -> bridge requestId that triggered
+    * it. Used so that error `Api.Response`s correlated back by the runtime
+    * can be translated into `FailedMsg` on the client's control channel.
     */
-  private val visToExpression: mutable.Map[String, UUID] = mutable.Map.empty
-
-  /** Visualization ids that were attached with an `InFrame` expression.
-    * These are terminal on first response, the runtime auto-detaches the
-    * underlying oneshot via `VisualizationHolder.getOneshotExpression.remove()`,
-    * so we drop our correlation entries eagerly instead of waiting for a
-    * client detach that will never arrive.
-    */
-  private val oneshotVisIds: mutable.Set[String] = mutable.Set.empty
+  private val runtimeToRequest: mutable.Map[UUID, RequestId] =
+    mutable.Map.empty
 
   override def preStart(): Unit = {
     // `RuntimeConnector` publishes the inner notification payload directly on
@@ -294,8 +396,11 @@ final class VisualizationBridgeActor(
     case Api.VisualizationUpdate(ctx, bytes) =>
       handleVisualizationUpdate(ctx, bytes)
 
-    case Api.VisualizationEvaluationFailed(ctx, message, _) =>
-      handleEvaluationFailed(ctx, message)
+    case Api.VisualizationEvaluationFailed(ctx, message, diagnostic) =>
+      handleEvaluationFailed(ctx, message, diagnostic)
+
+    case Api.Response(Some(correlationId), payload) =>
+      handleRuntimeResponse(correlationId, payload)
   }
 
   private def handleControl(json: String): Unit = {
@@ -303,10 +408,7 @@ final class VisualizationBridgeActor(
     parser.decode[ControlMsg](json) match {
       case Right(msg: AttachMsg) => forwardAttach(msg)
       case Right(msg: DetachMsg) => forwardDetach(msg)
-      case Right(
-            _: ReadyMsg
-          ) => // Ignore our own echo; filtering is best-effort
-      case Right(_: FailedMsg) => // Ditto
+      case Right(_)              => // Unreachable: decoder only produces attach/detach.
       case Left(err) =>
         logger.warn(s"vis:control failed to decode message: $err")
     }
@@ -336,7 +438,7 @@ final class VisualizationBridgeActor(
 
     val args =
       msg.request.positionalArgumentsExpressions.getOrElse(Vector.empty)
-    val e       = msg.request.expression
+    val e         = msg.request.expression
     val isInFrame = e.inFrame.isDefined
     val visExpr = (e.text, e.methodPointer, e.inFrame) match {
       case (Some(text), _, _) =>
@@ -362,48 +464,75 @@ final class VisualizationBridgeActor(
       visualizationModule = msg.request.visualizationModule
     )
 
-    visToRequest.put(msg.visualizationId, msg.requestId)
-    visToContext.put(msg.visualizationId, contextId)
-    visToExpression.put(msg.visualizationId, expressionId)
-    if (isInFrame) oneshotVisIds.add(msg.visualizationId)
+    requestState.put(
+      msg.requestId,
+      RequestInfo(
+        visualizationId = msg.visualizationId,
+        contextId       = contextId,
+        expressionId    = expressionId,
+        isInFrame       = isInFrame
+      )
+    )
+    requestsByVis
+      .getOrElseUpdate(msg.visualizationId, mutable.LinkedHashSet.empty)
+      .add(msg.requestId)
 
     val apiReq = Api.AttachVisualization(
       visualizationId     = visualizationId,
       expressionId        = expressionId,
       visualizationConfig = config.toApi
     )
-    runtime ! Api.Request(UUID.randomUUID(), apiReq)
+    val runtimeReqId = UUID.randomUUID()
+    runtimeToRequest.put(runtimeReqId, msg.requestId)
+    runtime ! Api.Request(runtimeReqId, apiReq)
   }
 
   private def forwardDetach(msg: DetachMsg): Unit = {
-    // Purge correlation state for this visualization regardless of whether we
-    // can forward the detach. Leaving entries in `visToRequest` would route
-    // stale runtime updates to a slot the client already removed.
-    val contextId    = visToContext.get(msg.visualizationId).orNull
-    val expressionId = visToExpression.get(msg.visualizationId).orNull
-    visToRequest.remove(msg.visualizationId)
-    visToContext.remove(msg.visualizationId)
-    visToExpression.remove(msg.visualizationId)
-    oneshotVisIds.remove(msg.visualizationId)
-    val visualizationId = parseUuidOr(msg.visualizationId).getOrElse {
+    val infoOpt  = requestState.remove(msg.requestId)
+    val visIdStr = infoOpt.map(_.visualizationId).getOrElse(msg.visualizationId)
+    // Remove this rid from the ordered set; drop the set entry entirely when
+    // it becomes empty.
+    requestsByVis.get(visIdStr).foreach { set =>
+      set.remove(msg.requestId)
+      if (set.isEmpty) requestsByVis.remove(visIdStr)
+    }
+
+    val stillActiveForVis = requestsByVis.contains(visIdStr)
+    if (stillActiveForVis) {
+      // A newer attach for the same visualizationId is still in flight. The
+      // runtime performs an upsert on attach, so the earlier attach has
+      // already been replaced. Forwarding a detach now would remove the
+      // newer entry too, silently stranding its updates.
+      logger.trace(
+        s"vis detach: suppressing runtime forward for visualizationId=$visIdStr; " +
+        s"another in-flight request is still active"
+      )
+      return
+    }
+
+    val visualizationId = parseUuidOr(visIdStr).getOrElse {
       logger.warn(
-        s"vis detach: invalid or missing visualizationId '${msg.visualizationId}'; " +
+        s"vis detach: invalid or missing visualizationId '$visIdStr'; " +
         s"cannot forward to runtime for requestId ${msg.requestId}"
       )
       return
     }
-    if (contextId == null || expressionId == null) {
-      logger.warn(
-        s"vis detach: missing tracked context/expression for $visualizationId"
-      )
-      return
+    val (contextId, expressionId) = infoOpt match {
+      case Some(info) => (info.contextId, info.expressionId)
+      case None =>
+        logger.warn(
+          s"vis detach: missing tracked context/expression for $visualizationId"
+        )
+        return
     }
     val apiReq = Api.DetachVisualization(
       contextId       = contextId,
       visualizationId = visualizationId,
       expressionId    = expressionId
     )
-    runtime ! Api.Request(UUID.randomUUID(), apiReq)
+    val runtimeReqId = UUID.randomUUID()
+    runtimeToRequest.put(runtimeReqId, msg.requestId)
+    runtime ! Api.Request(runtimeReqId, apiReq)
   }
 
   private def handleVisualizationUpdate(
@@ -411,40 +540,109 @@ final class VisualizationBridgeActor(
     bytes: Array[Byte]
   ): Unit = {
     val visIdStr = ctx.visualizationId.toString
-    val reqIdOpt = visToRequest.get(visIdStr)
-    reqIdOpt match {
+    activeRequestFor(visIdStr) match {
       case None =>
-        // Not a visualization we are tracking.
         logger.debug(
           s"vis: runtime emitted VisualizationUpdate for untracked $visIdStr"
         )
       case Some(requestId) =>
         sendDataFrame(requestId, bytes)
-        sendControl(ReadyMsg(requestId))(Codecs.readyEncoder)
+        sendControl(ReadyMsgOut(requestId))(Codecs.readyEncoder)
         // InFrame oneshots are terminal. The runtime will not emit further
         // updates for this visualization id, so drop our correlation state.
-        if (oneshotVisIds.remove(visIdStr)) {
-          visToRequest.remove(visIdStr)
-          visToContext.remove(visIdStr)
-          visToExpression.remove(visIdStr)
+        if (requestState.get(requestId).exists(_.isInFrame)) {
+          dropRequest(requestId, visIdStr)
         }
     }
   }
 
   private def handleEvaluationFailed(
     ctx: Api.VisualizationContext,
-    message: String
+    message: String,
+    diagnostic: Option[Api.ExecutionResult.Diagnostic]
   ): Unit = {
     val visIdStr = ctx.visualizationId.toString
-    visToRequest.get(visIdStr) match {
+    activeRequestFor(visIdStr) match {
       case None => ()
       case Some(requestId) =>
-        sendControl(FailedMsg(requestId, message))(Codecs.failedEncoder)
-        if (oneshotVisIds.remove(visIdStr)) {
-          visToRequest.remove(visIdStr)
-          visToContext.remove(visIdStr)
-          visToExpression.remove(visIdStr)
+        sendControl(
+          FailedMsg(
+            requestId,
+            message,
+            diagnostic.map(toDiagnosticPayload)
+          )
+        )(Codecs.failedEncoder)
+        if (requestState.get(requestId).exists(_.isInFrame)) {
+          dropRequest(requestId, visIdStr)
         }
+    }
+  }
+
+  /** Route a runtime response back to the bridge requestId that produced the
+    * original `Api.Request`. Success responses (`VisualizationAttached`,
+    * `VisualizationDetached`) are acknowledged silently; error payloads are
+    * surfaced to the client as a `FailedMsg` so the slot transitions out of
+    * `pending`.
+    */
+  private def handleRuntimeResponse(
+    correlationId: UUID,
+    payload: Runtime.ApiResponse
+  ): Unit = {
+    val bridgeReqId = runtimeToRequest.remove(correlationId) match {
+      case Some(id) => id
+      case None     =>
+        // Not a response to a request this bridge initiated.
+        return
+    }
+    payload match {
+      case _: Api.VisualizationAttached => ()
+      case _: Api.VisualizationDetached => ()
+      case Api.VisualizationExpressionFailed(_, message, failure) =>
+        emitFailure(bridgeReqId, message, failure)
+      case _: Api.VisualizationNotFound =>
+        emitFailure(bridgeReqId, "Visualization not found", None)
+      case Api.ModuleNotFound(moduleName) =>
+        emitFailure(bridgeReqId, s"Module not found: $moduleName", None)
+      case Api.ContextNotExistError(contextId) =>
+        emitFailure(
+          bridgeReqId,
+          s"Execution context does not exist: $contextId",
+          None
+        )
+      case other =>
+        logger.debug(
+          s"vis: ignoring runtime response for $bridgeReqId: $other"
+        )
+    }
+  }
+
+  private def emitFailure(
+    bridgeReqId: RequestId,
+    message: String,
+    diagnostic: Option[Api.ExecutionResult.Diagnostic]
+  ): Unit = {
+    // Always clean up: the runtime won't emit further events for this rid.
+    val visIdOpt = requestState.get(bridgeReqId).map(_.visualizationId)
+    visIdOpt.foreach(visIdStr => dropRequest(bridgeReqId, visIdStr))
+    sendControl(
+      FailedMsg(bridgeReqId, message, diagnostic.map(toDiagnosticPayload))
+    )(Codecs.failedEncoder)
+  }
+
+  /** Pick the most recent in-flight bridge requestId for a visualizationId.
+    * Because `mutable.LinkedHashSet` preserves insertion order, the tail of
+    * the set is the latest attach.
+    */
+  private def activeRequestFor(visIdStr: String): Option[RequestId] =
+    requestsByVis.get(visIdStr).flatMap { set =>
+      if (set.isEmpty) None else Some(set.last)
+    }
+
+  private def dropRequest(requestId: RequestId, visIdStr: String): Unit = {
+    requestState.remove(requestId)
+    requestsByVis.get(visIdStr).foreach { set =>
+      set.remove(requestId)
+      if (set.isEmpty) requestsByVis.remove(visIdStr)
     }
   }
 
@@ -465,7 +663,7 @@ final class VisualizationBridgeActor(
     }
   }
 
-  private def sendControl[T <: ControlMsg](msg: T)(implicit
+  private def sendControl[T](msg: T)(implicit
     enc: Encoder[T]
   ): Unit = {
     controlChannel match {

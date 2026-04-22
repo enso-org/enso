@@ -203,20 +203,47 @@ export class Visualizations {
     this.slots.delete(requestId)
   }
 
-  /** Bridge-only: record a successful response and flip status to `ready`. */
+  /**
+   * Bridge-only: record a successful response and flip status to `ready`.
+   * No-ops if the slot is already terminal (either `failed` for any slot, or
+   * `ready` for an `inFrame` one-shot whose response was already consumed).
+   * Writing over a terminal slot would misrepresent its outcome to any
+   * reactive subscriber that has already committed to the current status.
+   */
   recordResponse(requestId: VisRequestId, bytes: Uint8Array): void {
     const inner = this.slots.get(requestId)
     if (!inner) return
+    const view = new VisualizationSlotView(requestId, inner)
+    if (view.isTerminal()) {
+      console.warn(
+        `Visualizations.recordResponse: dropping response for terminal slot ${requestId} ` +
+          `(status=${view.status})`,
+      )
+      return
+    }
     this.doc.transact(() => {
       inner.set(VIS_SLOT_FIELDS.response, bytes)
       inner.set(VIS_SLOT_FIELDS.status, 'ready' satisfies VisSlotStatus)
     })
   }
 
-  /** Bridge-only: record a failure and flip status to `failed`. */
+  /**
+   * Bridge-only: record a failure and flip status to `failed`. No-ops if the
+   * slot is already terminal so a late failure message cannot overwrite a
+   * slot the client has already observed as `ready` (one-shot) or as a
+   * different failure.
+   */
   recordFailure(requestId: VisRequestId, failure: VisSlotFailure): void {
     const inner = this.slots.get(requestId)
     if (!inner) return
+    const view = new VisualizationSlotView(requestId, inner)
+    if (view.isTerminal()) {
+      console.warn(
+        `Visualizations.recordFailure: dropping failure for terminal slot ${requestId} ` +
+          `(status=${view.status})`,
+      )
+      return
+    }
     this.doc.transact(() => {
       inner.set(VIS_SLOT_FIELDS.failure, failure)
       inner.set(VIS_SLOT_FIELDS.status, 'failed' satisfies VisSlotStatus)

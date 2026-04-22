@@ -28,7 +28,9 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     */
   def mapApiError(
     error: Api.Error
-  )(implicit @unused ec: ExecutionContext): Future[ContextRegistryProtocol.Failure] = {
+  )(implicit
+    @unused ec: ExecutionContext
+  ): Future[ContextRegistryProtocol.Failure] = {
     error match {
       case Api.ContextNotExistError(contextId) =>
         Future.successful(ContextRegistryProtocol.ContextNotFound(contextId))

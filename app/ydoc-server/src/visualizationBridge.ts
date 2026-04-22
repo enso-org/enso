@@ -66,26 +66,31 @@ export class VisualizationBridge {
   private readonly control: YjsChannel<string>
   private readonly data: YjsChannel<Uint8Array>
   /**
-   * Request ids for which we have emitted an `attach` and which are still
-   * tracked. Entries are pruned when the slot disappears from the map (and a
-   * detach is emitted at the same time for non-one-shots).
+   * Request ids we have observed at least once during `scan()`. Tracked on
+   * first observation regardless of status so a slot that never passed
+   * through `pending` (e.g. a `ready` slot written in the same transaction
+   * it was created in, or an already-terminal slot restored from a prior
+   * session's subdoc) still has a known "live" set. Entries are pruned when
+   * the rid leaves the live set.
    */
-  private readonly announced = new Set<string>()
+  private readonly seenRids = new Set<string>()
   /**
    * Request ids whose slot was an `inFrame` one-shot. We track these so
    * that when the slot is subsequently removed from the map (client-side
    * GC after reading the one-shot response) we know not to emit a detach
-   * for it. Pruned together with `announced`.
+   * for it. Pruned together with `seenRids`.
    */
   private readonly oneshotRequestIds = new Set<string>()
   /**
-   * Identity fields captured at attach time. The slot is gone from the
-   * Y.Map by the time we observe its removal, so we cannot read these
-   * fields then. Populating a detach message with the real
-   * `visualizationId` + `contextId` is what lets the Language Server
-   * actor translate it into an `Api.DetachVisualization`. Without these
-   * values the actor cannot resolve the correlation and the runtime keeps
-   * computing the detached visualization. Pruned together with `announced`.
+   * Identity fields captured at attach time for rids for which we actually
+   * emitted an `attach` to the LS. The slot is gone from the Y.Map by the
+   * time we observe its removal, so we cannot read these fields then.
+   * Populating a detach message with the real `visualizationId` +
+   * `contextId` is what lets the Language Server actor translate it into an
+   * `Api.DetachVisualization`. Presence in this map also serves as the
+   * "already-attached" signal so removals of rids we never attached (e.g.
+   * a slot that was `failed` on first observation) do not fabricate a
+   * detach message for state the LS never held.
    */
   private readonly slotMeta = new Map<string, { visualizationId: string; contextId: string }>()
   private readonly observer: () => void
@@ -111,31 +116,40 @@ export class VisualizationBridge {
   }
 
   /**
-   * Walk the slots map, emit attach for newly-pending slots, and emit detach
-   * for slots we had previously announced which are no longer present. One-shot
-   * `inFrame` attaches are removed by the client after consuming their response
-   * and carry no detach message. The runtime auto-detaches them internally.
+   * Walk the slots map and reconcile known rids with the live set. For each
+   * first-seen rid, emit an `attach` **only** if the slot is `pending`. A
+   * slot that is already terminal on first observation has no runtime work to
+   * kick off and is tracked passively so its eventual removal does not
+   * fabricate a detach for state the LS never held. For each rid that left
+   * the live set since the last scan, emit a `detach` iff we previously sent
+   * an `attach` for it (`slotMeta` holds that record) and it is not a
+   * one-shot `inFrame` request (those the runtime auto-detaches).
    */
   private scan(): void {
     const liveIds = new Set<string>()
     for (const view of this.vis.entries()) {
       const rid = view.requestId
       liveIds.add(rid)
-      if (!this.announced.has(rid) && view.status === 'pending') {
+      if (this.seenRids.has(rid)) continue
+      this.seenRids.add(rid)
+      if (view.status === 'pending') {
         if (this.emitAttach(view)) {
-          this.announced.add(rid)
           if (isInFrameRequest(view.request)) this.oneshotRequestIds.add(rid)
         }
+      } else {
+        console.warn(
+          `VisualizationBridge: first observed slot ${rid} with non-pending status ` +
+            `${view.status ?? '<unset>'}; tracking passively without attach`,
+        )
       }
     }
-    for (const rid of Array.from(this.announced)) {
+    for (const rid of Array.from(this.seenRids)) {
       if (liveIds.has(rid)) continue
       if (!this.oneshotRequestIds.has(rid)) {
         const meta = this.slotMeta.get(rid)
         if (meta) this.emitDetach(rid, meta)
-        else console.warn('VisualizationBridge: no slot meta for detached rid', rid)
       }
-      this.announced.delete(rid)
+      this.seenRids.delete(rid)
       this.oneshotRequestIds.delete(rid)
       this.slotMeta.delete(rid)
     }

@@ -135,26 +135,46 @@ channels and an accompanying subdoc. The legacy
 `executionContext/executeExpression` JSON-RPC methods and the FlatBuffers
 `VisualizationUpdate` binary notification have been removed.
 
-- `vis:control` (JSON strings) carries `attach`, `detach`, `execute`, `ready`,
-  and `failed` messages between the ydoc-server bridge and the Language Server.
+- `vis:control` (JSON strings) carries the four message kinds exchanged between
+  the ydoc-server bridge and the Language Server. The bridge sends `attach` and
+  `detach` to the LS. The LS sends `ready` and `failed` back.
 - `vis:data` (binary, raw `Uint8Array` on the JS side, Java `ByteBuffer` on the
   LS side) carries response payloads framed as `[16-byte requestId][bytes]`.
 
 The **visualization subdoc** is a Yjs subdoc held under
 `DistributedProject.visualizations` (a Y.Map keyed by a single reserved slot).
 Clients write slots into the subdoc's top-level `slots: Y.Map<requestId, ...>`
-to request visualizations; each slot has a `kind` of `attach` or `execute`. The
-ydoc-server
-[`visualizationBridge`](../../app/ydoc-server/src/visualizationBridge.ts)
-observes those mutations and emits `attach`, `detach`, or `execute` messages on
-`vis:control`. Responses flowing back from the LS as binary frames on `vis:data`
-are written into the originating slot's `response` field.
+to request visualizations. Each slot is a Y.Map with fixed field-name keys
+(`visualizationId`, `contextId`, `nodeExternalId`, `request`, `status`,
+`response`, `failure`, `createdAt`). `status` is one of
+`pending | ready | failed`. The request's `expression` field is a tagged union
+(`string | LSMethodPointer | { inFrame: string }`); slots whose expression is an
+`{ inFrame }` are one-shot evaluations (the old `executeExpression` path).
 
-`attach` slots live until the client explicitly writes a `detached` status.
-`execute` slots are terminal on response: once the bridge records `ready` (or
-`failed`), the client consumes the payload and removes the slot, no `detach`
-message is ever emitted for an execute slot, since the runtime already treats
-the underlying visualization as short-lived.
+The ydoc-server
+[`visualizationBridge`](../../app/ydoc-server/src/visualizationBridge.ts)
+observes those mutations and emits `attach` messages on `vis:control` when it
+sees a newly-`pending` slot, and `detach` messages when a previously-attached
+slot is removed from the map (except for `inFrame` one-shots, the runtime
+auto-detaches those internally, so the client removes the slot after reading the
+response and the bridge does not emit a detach). Responses flowing back from the
+LS as binary frames on `vis:data` are written into the originating slot's
+`response` field and the slot's `status` flips to `ready`. Failures arrive as a
+`failed` JSON control message and flip `status` to `failed`.
+
+Persistent attach slots have no terminal status: they stay `ready` (or `failed`)
+until the client removes them. Removing a slot is how clients "detach" as there
+is no `detached` status. One-shot `inFrame` slots are terminal on `ready`. The
+client consumes the payload and removes the slot, no detach message is emitted
+because the runtime has already auto-detached the underlying oneshot.
+
+Requests are immutable: a client modify is expressed as
+`removeSlot(oldRequestId); createSlot(newRequestId)` with the same
+`visualizationId`. The bridge emits both `attach(new)` and `detach(old)`. The
+LS-side `VisualizationBridgeActor` keys its correlation on the bridge
+`requestId` (not `visualizationId`) and suppresses the runtime detach when
+another in-flight request still shares the same `visualizationId`, since the
+runtime's attach is an upsert.
 
 ## Thread Safety
 

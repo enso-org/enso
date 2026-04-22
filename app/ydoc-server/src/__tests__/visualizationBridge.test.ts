@@ -296,13 +296,151 @@ describe('VisualizationBridge', () => {
     f.vis.removeSlot(rid)
     // Internal state check: the bridge should no longer track the rid.
     const internal = f.bridge as unknown as {
-      announced: Set<string>
+      seenRids: Set<string>
       oneshotRequestIds: Set<string>
       slotMeta: Map<string, unknown>
     }
-    expect(internal.announced.has(rid)).toBe(false)
+    expect(internal.seenRids.has(rid)).toBe(false)
     expect(internal.oneshotRequestIds.has(rid)).toBe(false)
     expect(internal.slotMeta.has(rid)).toBe(false)
+  })
+
+  it('ignores late data frames for slots that are already failed', () => {
+    const f = makeFixture()
+    const rid = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: request(),
+      },
+      rid,
+    )
+
+    // Runtime signals failure first.
+    f.peerControl.send(
+      JSON.stringify({
+        kind: 'failed',
+        requestId: rid,
+        message: 'evaluation failed',
+      }),
+    )
+    expect(f.vis.getSlot(rid as VisRequestId)?.status).toBe('failed')
+
+    // A late data frame must not resurrect the slot to `ready` because that
+    // would flip a terminal outcome to a spurious success.
+    const payload = new TextEncoder().encode('late')
+    const frame = new Uint8Array(16 + payload.byteLength)
+    frame.set(uuidToBytes(rid), 0)
+    frame.set(payload, 16)
+    f.peerData.send(frame)
+
+    const view = f.vis.getSlot(rid as VisRequestId)
+    expect(view?.status).toBe('failed')
+    expect(view?.failure?.message).toBe('evaluation failed')
+    // Original failure payload must not be accompanied by response bytes.
+    expect(view?.response).toBeUndefined()
+  })
+
+  it('ignores late data frames for in-frame slots that already reached ready', () => {
+    const f = makeFixture()
+    const rid = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: {
+          visualizationModule: '',
+          expression: { inFrame: '1 + 2' },
+        },
+      },
+      rid,
+    )
+
+    // First response is the oneshot terminal one.
+    const firstPayload = new TextEncoder().encode('3')
+    const firstFrame = new Uint8Array(16 + firstPayload.byteLength)
+    firstFrame.set(uuidToBytes(rid), 0)
+    firstFrame.set(firstPayload, 16)
+    f.peerData.send(firstFrame)
+    expect(f.vis.getSlot(rid as VisRequestId)?.status).toBe('ready')
+
+    // A second frame after the terminal response must not overwrite the
+    // first one - in-frame slots are terminal on ready, and the runtime
+    // auto-detaches after one update.
+    const secondPayload = new TextEncoder().encode('999')
+    const secondFrame = new Uint8Array(16 + secondPayload.byteLength)
+    secondFrame.set(uuidToBytes(rid), 0)
+    secondFrame.set(secondPayload, 16)
+    f.peerData.send(secondFrame)
+
+    const view = f.vis.getSlot(rid as VisRequestId)
+    expect(view?.status).toBe('ready')
+    expect(new TextDecoder().decode(view!.response!)).toBe('3')
+  })
+
+  it('does not emit a detach for a slot first observed in a terminal state and later removed', () => {
+    // First-observed-as-terminal is a defensive path: the slot was never
+    // passed through `pending`, so the LS never heard an attach for it, and
+    // the bridge must not fabricate a detach on removal.
+    const f = makeFixture()
+    const rid = newVisRequestId()
+
+    // Bypass `createSlot` to write the slot directly with a terminal status,
+    // mimicking either a supersede race or a restored-from-prior-session
+    // ordering where `status` is already `failed` by the time our
+    // `observeDeep` fires.
+    f.visDoc.transact(() => {
+      const inner = new Y.Map<unknown>()
+      inner.set('visualizationId', VIS_ID)
+      inner.set('contextId', CTX_ID)
+      inner.set('nodeExternalId', NODE_ID)
+      inner.set('request', request())
+      inner.set('status', 'failed')
+      inner.set('failure', { message: 'pre-existing failure' })
+      inner.set('createdAt', Date.now())
+      f.vis.slots.set(rid, inner)
+    })
+
+    // No `attach` should have been sent because the slot was never `pending`
+    // at the moment we first saw it.
+    expect(f.controlFromBridge.map((m) => JSON.parse(m).kind)).toEqual([])
+
+    f.vis.removeSlot(rid)
+
+    // No detach either, because the LS has no correlation entry for this rid.
+    expect(f.controlFromBridge.map((m) => JSON.parse(m).kind)).toEqual([])
+
+    // State cleaned up.
+    const internal = f.bridge as unknown as {
+      seenRids: Set<string>
+      slotMeta: Map<string, unknown>
+    }
+    expect(internal.seenRids.has(rid)).toBe(false)
+    expect(internal.slotMeta.has(rid)).toBe(false)
+  })
+
+  it('ignores data frames shorter than the request-id header', () => {
+    const f = makeFixture()
+    const rid = newVisRequestId()
+    f.vis.createSlot(
+      {
+        visualizationId: VIS_ID,
+        contextId: CTX_ID,
+        nodeExternalId: NODE_ID,
+        request: request(),
+      },
+      rid,
+    )
+
+    // A frame with fewer than 16 bytes cannot even carry a full request id.
+    f.peerData.send(new Uint8Array([1, 2, 3]))
+
+    const view = f.vis.getSlot(rid as VisRequestId)
+    expect(view?.status).toBe('pending')
+    expect(view?.response).toBeUndefined()
   })
 
   it('peer simulating the LS actor can resolve a detach back to the attach', () => {

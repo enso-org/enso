@@ -94,17 +94,16 @@ class BinaryConnectionController(
     @unused outboundChannel: ActorRef,
     @unused clientId: UUID,
     handlers: Map[InboundPayloadType, Props]
-  ): Receive = {
-    case Right(msg: InboundMessage) =>
-      if (handlers.contains(msg.payloadType())) {
-        val handler = context.actorOf(handlers(msg.payloadType()))
-        handler.forward(msg)
-      } else {
-        logger.error(
-          "Received InboundMessage with unknown payload type [{}].",
-          msg.payloadType()
-        )
-      }
+  ): Receive = { case Right(msg: InboundMessage) =>
+    if (handlers.contains(msg.payloadType())) {
+      val handler = context.actorOf(handlers(msg.payloadType()))
+      handler.forward(msg)
+    } else {
+      logger.error(
+        "Received InboundMessage with unknown payload type [{}].",
+        msg.payloadType()
+      )
+    }
   }
 
   private def connectionEndHandler(
