@@ -331,6 +331,7 @@ type SQLite_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> True
             Dialect_Flag.Use_Builtin_Bankers -> False
             Dialect_Flag.Primary_Key_Allows_Nulls -> True
+            Dialect_Flag.Use_SQL_Type_Hints_For_Null_Values -> False
             Dialect_Flag.Supports_Separate_NaN -> False
             Dialect_Flag.Supports_Nested_With_Clause -> True
             Dialect_Flag.Supports_Case_Sensitive_Columns -> False

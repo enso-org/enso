@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/vue-query'
 import { Err, mapOk, Ok, type Result, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 
+defineProps<{ toolbar: HTMLElement | string }>()
+
 const rightPanel = useRightPanelData()
 const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = useBackends()
@@ -79,6 +81,7 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
+    :teleportToolbarTo="toolbar"
   >
   </MarkdownEditor>
   <!-- Specifying `<ResultComponent ... centered /> does not work with React components

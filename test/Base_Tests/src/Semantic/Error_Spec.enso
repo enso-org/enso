@@ -186,10 +186,12 @@ add_specs suite_builder =
 
         group_builder.specify "Panic.rethrow with Dataflow_Stack_Trace enabled" <|
             deep_error n:Integer = if n <= 0 then Error.throw "Here is an error" else
-                deep_error n-1
+                x = deep_error n-1
+                x+1
 
             deep_throw n:Integer ~action = if n <= 0 then action else
-                deep_throw n-1 action
+                x = deep_throw n-1 action
+                x+1
 
             action n = Runtime.Context.Dataflow_Stack_Trace.with_enabled <|
                 deep_error n
@@ -211,10 +213,12 @@ add_specs suite_builder =
 
         group_builder.specify "Panic.rethrow without Dataflow_Stack_Trace enabled" <|
             deep_error n:Integer = if n <= 0 then Error.throw "Here is an error" else
-                deep_error n-1
+                x = deep_error n-1
+                x+1
 
             deep_throw n:Integer ~action = if n <= 0 then action else
-                deep_throw n-1 action
+                x = deep_throw n-1 action
+                x+1
 
             action n =
                 deep_error n

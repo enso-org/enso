@@ -6,6 +6,8 @@ import { useTemplateRef } from 'vue'
 import ClosedProjectDocumentationEditor from './ClosedProjectDocumentationEditor.vue'
 import OpenedProjectDocumentationEditor from './OpenedProjectDocumentationEditor.vue'
 
+defineProps<{ toolbar: HTMLElement | string }>()
+
 const rightPanel = useRightPanelData()
 
 const rootElement = useTemplateRef('rootElement')
@@ -15,9 +17,9 @@ providePopoverRoot(rootElement)
 <template>
   <div ref="rootElement" class="DocumentationEditor">
     <WithCurrentProject :id="rightPanel.focusedProject">
-      <OpenedProjectDocumentationEditor />
+      <OpenedProjectDocumentationEditor :toolbar="toolbar" />
       <template #fallback>
-        <ClosedProjectDocumentationEditor />
+        <ClosedProjectDocumentationEditor :toolbar="toolbar" />
       </template>
     </WithCurrentProject>
   </div>

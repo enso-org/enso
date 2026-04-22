@@ -28,6 +28,7 @@
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --aggregate-output /^^^^dev:/",
+    "dev:inspect": "corepack pnpm run -r --filter ydoc-inspect compile && node --inspect app/ydoc-inspect/dist/main.js",
     "check:tsconfigs": "bazel run //:write_all --verbose_failures && node internal/checkTsconfigs.mjs",
     "compile": "corepack pnpm run -r compile",
     "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",

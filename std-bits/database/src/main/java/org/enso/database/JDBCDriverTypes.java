@@ -41,6 +41,10 @@ public final class JDBCDriverTypes {
     return databaseName;
   }
 
+  public JDBCBatchInsert newBatchInsert() {
+    return new JDBCBatchInsert();
+  }
+
   public Class<SQLException> sqlExceptionClass() {
     return SQLException.class;
   }

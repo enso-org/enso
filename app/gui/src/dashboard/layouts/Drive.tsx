@@ -29,19 +29,24 @@ import * as React from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 
+/** Properties of {@link Drive} component. */
+export interface DriveProperties {
+  readonly toolbar: React.RefObject<HTMLElement>
+}
+
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-export const Drive = React.memo(function Drive() {
+export const Drive = React.memo(function Drive(props: DriveProperties) {
   return (
     <ErrorBoundary>
       <DriveProvider>
-        <DriveInner />
+        <DriveInner {...props} />
       </DriveProvider>
     </ErrorBoundary>
   )
 })
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-function DriveInner() {
+function DriveInner(props: DriveProperties) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
@@ -123,7 +128,7 @@ function DriveInner() {
           }}
         >
           <Suspense>
-            <DriveAssetsView />
+            <DriveAssetsView {...props} />
           </Suspense>
         </ErrorBoundary>
       )
@@ -132,7 +137,7 @@ function DriveInner() {
 }
 
 /** The assets view of the Drive. */
-function DriveAssetsView() {
+function DriveAssetsView(props: DriveProperties) {
   const { setFocusedPanel } = useContainerData()
   const { isOffline } = offlineHooks.useOffline()
   const associatedBackend = useDriveCurrentBackend()
@@ -145,24 +150,21 @@ function DriveAssetsView() {
   })
 
   return (
-    <div className="relative flex h-full w-full" onFocus={onFocus}>
-      <div
-        data-testid="drive-view"
-        className="mt-4 flex flex-1 flex-col gap-4 overflow-hidden px-4"
-      >
-        <div className="flex grow flex-col gap-3">
-          <DriveBar query={query} setQuery={setQuery} />
+    <div
+      className="relative flex w-full grow flex-col overflow-hidden"
+      data-testid="drive-view"
+      onFocus={onFocus}
+    >
+      <DriveBar query={query} setQuery={setQuery} toolbar={props.toolbar} />
 
-          {isInaccessible && <OfflineMessage />}
-          {!isInaccessible && (
-            <Suspense>
-              <ErrorBoundary>
-                <AssetsTable query={query} setQuery={setQuery} />
-              </ErrorBoundary>
-            </Suspense>
-          )}
-        </div>
-      </div>
+      {isInaccessible && <OfflineMessage />}
+      {!isInaccessible && (
+        <Suspense>
+          <ErrorBoundary>
+            <AssetsTable query={query} setQuery={setQuery} />
+          </ErrorBoundary>
+        </Suspense>
+      )}
     </div>
   )
 }

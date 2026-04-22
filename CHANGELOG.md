@@ -57,6 +57,8 @@
 - [Add last_index_of][14903]
 - [Add pad_left and pad_right][14922]
 - [More control over when in write operation for post and process.][14930]
+- [Improve database write performance][14960]
+- [Add reverse][14931]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -78,6 +80,8 @@
 [14903]: https://github.com/enso-org/enso/pull/14903
 [14922]: https://github.com/enso-org/enso/pull/14922
 [14930]: https://github.com/enso-org/enso/pull/14930
+[14960]: https://github.com/enso-org/enso/pull/14960
+[14931]: https://github.com/enso-org/enso/pull/14931
 
 #### Enso Language & Runtime
 
@@ -90,6 +94,7 @@
 - [Require opt-in to prefer local libraries][14885]
 - [One log file per execution][14893]
 - [Opt-in to get more detailed logs][14895]
+- [Automatically apply tail call optimizations][14933]
 - [`from Xyz import to_text` can import extension methods][14949]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
@@ -101,6 +106,7 @@
 [14885]: https://github.com/enso-org/enso/pull/14885
 [14893]: https://github.com/enso-org/enso/pull/14893
 [14895]: https://github.com/enso-org/enso/pull/14895
+[14933]: https://github.com/enso-org/enso/pull/14933
 [14949]: https://github.com/enso-org/enso/pull/14949
 
 # Enso 2025.3

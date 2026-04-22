@@ -8,7 +8,7 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.State
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-from Standard.Table import Table, Value_Type
+from Standard.Table import Value_Type
 
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.Statement_Setter.Statement_Setter
@@ -21,9 +21,10 @@ polyglot java import java.sql.PreparedStatement
 polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.base.enso_cloud.HideableValue.Factory
 polyglot java import org.enso.base.enso_cloud.HideableValue.KeyValuePair
+polyglot java import org.enso.database.JDBCBatchInsert
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCDriverTypes
-polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.enso.database.JDBCValueSetter
 
 type JDBC_Connection
     ## ---
@@ -35,7 +36,7 @@ type JDBC_Connection
         - `operation_synchronizer`: a helper for synchronizing access to the
           underlying Connection.
         - `sql_error_handler`: a function wrapper to catch SQL errors.
-    private Value connection_resource operation_synchronizer sql_error_handler
+    private Value connection_resource operation_synchronizer sql_error_handler jdbc_batch_insert
 
     ## ---
        private: true
@@ -163,28 +164,11 @@ type JDBC_Connection
        batches for efficiency.
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
-    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing =
+    batch_insert : Text -> Any -> Vector -> Integer -> Vector -> Vector -> Boolean -> Boolean -> Boolean -> Integer -> Nothing
+    batch_insert self insert_template jdbc_value_setter java_columns batch_size date_time_with_timezone expected_type_hints use_sql_type_hints_for_null_values supports_separate_nan supports_infinity num_rows =
         In_Transaction.ensure_in_transaction
         _profile_sql_if_enabled self insert_template <| self.with_connection related_query=insert_template java_connection->
-            Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
-                table_row_count = table.row_count
-                num_rows = case row_limit of
-                    Nothing -> table_row_count
-                    limit : Integer -> Math.min table_row_count limit
-                columns = table.columns
-                check_rows updates_array expected_size =
-                    updates = Vector.from_polyglot_array updates_array
-                    if updates.length != expected_size then Panic.throw <| Illegal_State.Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
-                        updates.each affected_rows->
-                            if affected_rows != 1 then
-                                Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
-                0.up_to num_rows . each row_id->
-                    values = columns.map col-> col.at row_id
-                    _set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
-                    stmt.addBatch
-                    if (row_id+1) % batch_size == 0 then check_rows stmt.executeBatch batch_size
-                if num_rows % batch_size != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+            self.jdbc_batch_insert.batchInsert java_connection insert_template jdbc_value_setter java_columns batch_size date_time_with_timezone expected_type_hints use_sql_type_hints_for_null_values supports_separate_nan supports_infinity num_rows
 
 ## ---
    private: true
@@ -225,7 +209,7 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
     java_props = properties_as_java_props properties types_record.hideableValueFactory
     java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
     resource = Managed_Resource.register java_connection close_connection
-    JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler
+    JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler types_record.newBatchInsert
 
 ## ---
    private: true

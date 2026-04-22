@@ -169,6 +169,9 @@ function createContainerStore() {
   const leftPanelToggledOn = localStorage.ref('leftPanelToggledOn')
   const rightPanelWidth = localStorage.ref('rightPanelWidth')
 
+  const middlePanelShown = computed(() => tabList.value.length > 0)
+  const leftPanelShown = computed(() => leftPanelToggledOn.value || !middlePanelShown.value)
+
   function isTabOpened(tab: Tab) {
     return tabs.has(panelKey(tab))
   }
@@ -326,6 +329,8 @@ function createContainerStore() {
     leftPanelWidth,
     leftPanelToggledOn,
     rightPanelWidth,
+    middlePanelShown,
+    leftPanelShown,
     isTabOpened,
     isCurrentTab,
     openProjectTab,
