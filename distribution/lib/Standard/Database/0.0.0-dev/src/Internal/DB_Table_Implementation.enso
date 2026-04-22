@@ -859,9 +859,21 @@ type DB_Table_Implementation
 
                 aggregate_table = this_table.aggregate group_by [..Array_Agg column.name new_name ignore_nothing=True order_by=ordering] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
 
-                sql_function = function.replace (regex "st_make(.*)s") "st_make$1" . to_case ..Upper
-                new_column = _resolve_sql_function aggregate_table (SQL_Function.SQL sql_function [aggregate_table.get new_name])
-                aggregate_table.set new_column as=new_name
+                array_table = if function_name == "st_make_lines" then aggregate_table else
+                    ## Need to append first element to the end
+                    base_line = aggregate_table.get new_name . expression
+                    first_expr = SQL_IR_Expression.Operation "CUSTOM_SQL" [SQL_IR_Expression.Literal "ARRAY_EXTRACT", base_line, SQL_IR_Expression.Literal 1]
+                    append_expr = SQL_IR_Expression.Operation "CUSTOM_SQL" [SQL_IR_Expression.Literal "ARRAY_APPEND", base_line, first_expr]
+                    type_ref = SQL_Type_Reference.new this_table.connection this_table.context append_expr
+                    new_column = DB_Column.new "ARRAY_APPEND" this_table.connection type_ref append_expr this_table.context
+                    aggregate_table.set new_column new_name
+
+                new_column = _resolve_sql_function aggregate_table (SQL_Function.SQL "ST_MakeLine" [array_table.get new_name])
+                line_table = aggregate_table.set new_column as=new_name
+
+                if function_name == "st_make_lines" then line_table else
+                    new_column = _resolve_sql_function line_table (SQL_Function.SQL "ST_MakePolygon" [line_table.get new_name])
+                    line_table.set new_column as=new_name
 
     spatial_geometry_type (this_table : Table & DB_Table) (column : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_geometry_type" <| expect_spatial_type column this_table.connection.dialect <|
