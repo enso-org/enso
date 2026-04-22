@@ -873,7 +873,7 @@ type DB_Table_Implementation
 
                 if function == "st_make_lines" then line_table else
                     new_column = _resolve_sql_function line_table (SQL_Function.SQL "ST_MakePolygon" [line_table.get new_name])
-                    line_table.set new_column as=new_name
+                    line_table.set new_column as=new_name . set (..SQL "ST_MakeValid" [..Name new_name]) as=new_name
 
     spatial_geometry_type (this_table : Table & DB_Table) (column : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_geometry_type" <| expect_spatial_type column this_table.connection.dialect <|
