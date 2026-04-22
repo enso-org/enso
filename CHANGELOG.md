@@ -58,7 +58,7 @@
 - [Add pad_left and pad_right][14922]
 - [More control over when in write operation for post and process.][14930]
 - [Improve database write performance][14960]
-- [Add reverse][14931]
+- [Hiding `Prim_Text_Helper` from the API][14979]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -82,6 +82,7 @@
 [14930]: https://github.com/enso-org/enso/pull/14930
 [14960]: https://github.com/enso-org/enso/pull/14960
 [14931]: https://github.com/enso-org/enso/pull/14931
+[14979]: https://github.com/enso-org/enso/pull/14979
 
 #### Enso Language & Runtime
 
