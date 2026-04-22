@@ -87,7 +87,7 @@ make_aggregate_column_vector_selector table:Table display:Display=..Always -> Wi
    private: true
    ---
    Make a column name selector.
-make_column_name_selector table:Table add_expression:Boolean=False display:Display=..Always -> Widget =
+make_column_name_selector table:(Table|Row) add_expression:Boolean=False display:Display=..Always -> Widget =
     _with_table_cache table "make_column_name_selector_"+add_expression.to_text+"_"+display.to_text <|
         col_names = table.column_names
         names = col_names.map n-> Option n n.pretty
