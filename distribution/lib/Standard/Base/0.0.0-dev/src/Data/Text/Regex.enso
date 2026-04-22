@@ -5,7 +5,6 @@ import project.Data.Hashset.Hashset
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
 import project.Data.Text.Regex.Internal.Replacer.Replacer
@@ -19,6 +18,7 @@ import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Syntax_Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Internal.Prim_Text_Helper
 import project.Meta
 import project.Panic.Panic
 import project.Polyglot.Polyglot

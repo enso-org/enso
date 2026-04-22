@@ -1,14 +1,9 @@
+private
+
 ## Internal text utilities for inspecting text primitives.
 
 import project.Any.Any
 import project.Data.Text.Text
-
-## ---
-   private: true
-   ---
-   Forces flattening of a text value.
-optimize : Text -> Text
-optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
 
 ## ---
    private: true
