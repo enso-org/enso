@@ -12,6 +12,7 @@ import project.Expression.Expression
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Parse_Values_Helper
+import project.Row.Row
 import project.Spatial_Table.Spatial_Join_Condition
 import project.Spatial_Table.Spatial_Table
 import project.Table.Table
