@@ -1,5 +1,9 @@
 /// <reference types="wicg-file-system-access" />
 
+import {
+  GET_WIDGETS_METHOD,
+  WIDGETS_ENSO_MODULE,
+} from '@/components/GraphEditor/widgets/WidgetFunction/consts'
 import * as Ast from '@/util/ast/abstract'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { ErrorCode } from 'ydoc-shared/languageServer'
@@ -11,7 +15,13 @@ import type {
   response,
 } from 'ydoc-shared/languageServerTypes'
 import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
-import { Doc } from 'yjs'
+import {
+  VIS_SLOT_FIELDS,
+  Visualizations,
+  type VisRequestPreprocessor,
+} from 'ydoc-shared/visualizations'
+import { VISUALIZATIONS_SUBDOC_KEY } from 'ydoc-shared/yjsModel'
+import { Doc, Map as YMap } from 'yjs'
 import mockDb from './data/mockSuggestions.json' with { type: 'json' }
 import { mockDataWSHandler } from './dataServer'
 
@@ -121,9 +131,6 @@ const scatterplotJson = (params: string[]) =>
     ],
   })
 
-// Preserved as a reference for future vis subdoc-based mocking. The binary
-// viz-update path is gone; no runtime reads this map until tests are migrated.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => Uint8Array | null)> =
   {
     // JSON
@@ -381,11 +388,22 @@ let mockWidgetConfigurations: Map<string, Uint8Array> = new Map(initialMockWidge
 /** Clear standard widget configurations. Use `updateMockWidgetConfiguration` to set a specific configuration needed for test. */
 export function clearMockWidgetConfigurations() {
   mockWidgetConfigurations.clear()
+  preprocessorOverrides.clear()
 }
 
 /** Restore standard mocks of widget configurations. */
 export function restoreMockWidgetConfigurations() {
   mockWidgetConfigurations = new Map(initialMockWidgetConfigurations)
+  preprocessorOverrides.clear()
+}
+
+/**
+ * Per-test reset for {@link updateVisualizationData} overrides. Does not
+ * touch {@link mockWidgetConfigurations}: some test describes own the widget
+ * map via their own `beforeEach`/`afterEach` hooks and must not be stomped on.
+ */
+export function clearPreprocessorOverrides() {
+  preprocessorOverrides.clear()
 }
 
 function mockWidgetConfiguration(method: string | undefined) {
@@ -485,18 +503,128 @@ export const mockLSHandler = async (
 }
 
 /**
- * Stub: visualizations no longer flow through the binary channel.
- *
- * Integration tests that used this to push a mock runtime response now need
- * to write into the vis subdoc directly. Until those tests are migrated,
- * this caches the preprocessor payload so that subsequent widget lookups
- * can see it but does not deliver anything to the client.
+ * Test-only overrides for mock preprocessor responses. A test pushes updated
+ * data via {@link updateVisualizationData}; on receipt the mock ydoc provider
+ * rewrites every matching ready/pending slot in the vis subdoc so the client
+ * observes the new bytes through its normal reactive path.
  */
-export function makeVisUpdates(preprocessor: string, data: unknown) {
-  const vizData = encodeJSON(data)
-  mockWidgetConfigurations.set(preprocessor, vizData)
-  return [] as ArrayBuffer[]
+const preprocessorOverrides = new Map<string, Uint8Array>()
+
+/**
+ * Extract the preprocessor identifier from a slot's immutable request, matching
+ * the scheme the pre-refactor mock used for the binary `VisualizationUpdate`
+ * path. The client serializes preprocessor module + expression + positional
+ * args into the slot's `request` field; we recover the same composite key so
+ * the mock can route responses by preprocessor name.
+ */
+function slotPreprocessorKey(request: VisRequestPreprocessor): string | null {
+  const expression = request.expression
+  if (typeof expression === 'string') {
+    if (/^[a-z_]+ *->.*get_widget_json/.test(expression)) {
+      return request.positionalArgumentsExpressions?.at(0) ?? null
+    }
+    return `${request.visualizationModule}.${expression}`
+  }
+  if ('inFrame' in expression) {
+    const exprAst = Ast.parseExpression(expression.inFrame)
+    if (!exprAst) return null
+    const { func } = Ast.analyzeAppLike(exprAst)
+    if (!(func instanceof Ast.PropertyAccess && func.lhs)) return null
+    return `${func.lhs.code()}.${func.rhs.code()}`
+  }
+  if (expression.module === WIDGETS_ENSO_MODULE && expression.name === GET_WIDGETS_METHOD) {
+    return request.positionalArgumentsExpressions?.at(0) ?? null
+  }
+  return `${expression.definedOnType}.${expression.name}`
 }
+
+function slotPositionalArgs(request: VisRequestPreprocessor): string[] {
+  if (typeof request.expression === 'object' && 'inFrame' in request.expression) {
+    const exprAst = Ast.parseExpression(request.expression.inFrame)
+    if (!exprAst) return []
+    const { args } = Ast.analyzeAppLike(exprAst)
+    return args.map((ast) => ast.code())
+  }
+  return request.positionalArgumentsExpressions ?? []
+}
+
+/**
+ * Look up mock response bytes for a given preprocessor key. The preprocessor
+ * space is unified across both visualization queries
+ * (`Module.expression`-keyed) and widget queries (keyed by the first
+ * positional arg, e.g. `.read`), so tests can push responses for either via a
+ * single {@link updateVisualizationData} call. Lookup order:
+ *
+ * 1. Test overrides set through {@link updateVisualizationData}.
+ * 2. The widget configuration map - widget queries route here because the
+ *    pre-refactor binary path called `mockWidgetConfiguration(positionalArgs[0])`.
+ * 3. Built-in visualization mocks in {@link mockVizPreprocessors}.
+ */
+function responseBytesFor(
+  preprocessorKey: string,
+  positionalArgs: readonly string[],
+): Uint8Array | null {
+  const override = preprocessorOverrides.get(preprocessorKey)
+  if (override) return override
+  const widget = mockWidgetConfigurations.get(preprocessorKey)
+  if (widget) return widget
+  const mock = mockVizPreprocessors[preprocessorKey]
+  if (mock instanceof Uint8Array) return mock
+  if (typeof mock === 'function') return mock(Array.from(positionalArgs))
+  return null
+}
+
+/**
+ * All vis subdoc `slots` maps that the mock currently observes. One entry per
+ * live WebSocket connection to the vis subdoc; iterated by
+ * {@link updateVisualizationData} so a test's push reaches every connection.
+ */
+const visSlotsMaps = new Set<YMap<YMap<unknown>>>()
+
+/** Write response bytes + `status: 'ready'` into `slot`. */
+function writeSlotResponse(slot: YMap<unknown>, bytes: Uint8Array): void {
+  const doc = slot.doc
+  if (!doc) return
+  doc.transact(() => {
+    slot.set(VIS_SLOT_FIELDS.response, bytes)
+    slot.set(VIS_SLOT_FIELDS.status, 'ready')
+  })
+}
+
+/** If the slot's preprocessor is mocked, write the mock bytes into it. */
+function maybeRespondToSlot(slot: YMap<unknown>): void {
+  const request = slot.get(VIS_SLOT_FIELDS.request) as VisRequestPreprocessor | undefined
+  if (!request) return
+  const key = slotPreprocessorKey(request)
+  if (!key) return
+  const bytes = responseBytesFor(key, slotPositionalArgs(request))
+  if (bytes) writeSlotResponse(slot, bytes)
+}
+
+/**
+ * Test entry point: push `data` as the mock response for every slot whose
+ * preprocessor matches `preprocessor`. Also caches the bytes for future slots
+ * created after this call, and for widget lookups that hit
+ * {@link mockWidgetConfigurations}.
+ */
+export function updateVisualizationData(preprocessor: string, data: unknown): void {
+  const bytes = encodeJSON(data)
+  preprocessorOverrides.set(preprocessor, bytes)
+  mockWidgetConfigurations.set(preprocessor, bytes)
+  for (const slots of visSlotsMaps) {
+    for (const [, slot] of slots.entries()) {
+      const request = slot.get(VIS_SLOT_FIELDS.request) as VisRequestPreprocessor | undefined
+      if (!request) continue
+      if (slotPreprocessorKey(request) === preprocessor) writeSlotResponse(slot, bytes)
+    }
+  }
+}
+
+/**
+ * Stable guid for the mock vis subdoc, so the provider can recognize the
+ * subdoc room when the client opens a WebSocket for it.
+ */
+const MOCK_VIS_SUBDOC_GUID = 'mock-visualizations-subdoc'
 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')
 
@@ -521,6 +649,26 @@ export const mockYdocProvider = (room: string, doc: Doc) => {
   if (room === 'index') {
     const modules = doc.getMap('modules')
     for (const file in srcFiles) modules.set(file, new Doc({ guid: `mock-${file}` }))
+    // Install a vis subdoc placeholder so the client resolves the
+    // visualizations container to a loadable subdoc and opens the matching
+    // WebSocket room. The guid is fixed so the provider can recognize the
+    // vis room when that second connection arrives.
+    const visContainer = doc.getMap<Doc>('visualizations')
+    visContainer.set(VISUALIZATIONS_SUBDOC_KEY, new Doc({ guid: MOCK_VIS_SUBDOC_GUID }))
+  } else if (room === MOCK_VIS_SUBDOC_GUID) {
+    const vis = new Visualizations(doc)
+    // Retained for the lifetime of the mock process. Playwright page teardown
+    // destroys the page-level WebSockets anyway, and iterating a stale map is
+    // harmless - its slots resolve to `.doc === null` and the write is a
+    // no-op.
+    visSlotsMaps.add(vis.slots)
+    vis.slots.observeDeep(() => {
+      for (const [, slot] of vis.slots.entries()) {
+        const status = slot.get(VIS_SLOT_FIELDS.status)
+        if (status !== 'pending') continue
+        maybeRespondToSlot(slot)
+      }
+    })
   } else if (room.startsWith('mock-')) {
     const fileContents = srcFiles[room.slice('mock-'.length)]
     if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
