@@ -293,6 +293,8 @@ export interface Project extends CreatedProject {
   readonly url?: HttpsUrl
   /** On Local Backend, this is the internal UUID of the project read from `.enso/project.json` */
   readonly internalId?: UUID
+  /** On Local Backend, this is opaque key derived from parent directory and internal UUID. */
+  readonly localProjectKey?: string
 }
 
 /** A user/organization's project containing and/or currently executing code. */

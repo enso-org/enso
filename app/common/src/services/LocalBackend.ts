@@ -348,6 +348,10 @@ export class LocalBackend extends backend.Backend {
   ): Promise<backend.Project> {
     const { path } = backend.extractTypeAndPath(projectId)
     const { directoryPath } = getDirectoryAndName(path)
+    const localProjectKey = await this.projectManager.getLocalProjectKey(path)
+    if (localProjectKey == null) {
+      throw new Error(`Could not get local project key for project '${path}'`)
+    }
     const state = await this.projectManager.getProject(path)
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directoryPath)
@@ -369,6 +373,8 @@ export class LocalBackend extends backend.Backend {
           state: { type: backend.ProjectState.closed, volumeId: '' },
           url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
           ensoPath,
+          internalId: project.id,
+          localProjectKey,
         }
       }
     } else {
@@ -390,6 +396,7 @@ export class LocalBackend extends backend.Backend {
         url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
         ensoPath: backend.EnsoPath(`${directoryPath}/${cachedProject.projectNormalizedName}`),
         internalId: cachedProject.projectId,
+        localProjectKey,
       }
     }
   }
@@ -960,9 +967,9 @@ export class LocalBackend extends backend.Backend {
     projectId: backend.ProjectId,
   ): Promise<backend.ProjectSession[]> {
     const { path } = backend.extractTypeAndPath(projectId)
-    const uuid = await this.projectManager.getProjectId(path)
-    if (uuid == null) return []
-    const { sessions } = await this.projectManager.listProjectSessions(uuid)
+    const localProjectKey = await this.projectManager.getLocalProjectKey(path)
+    if (localProjectKey == null) return []
+    const { sessions } = await this.projectManager.listProjectSessions(localProjectKey)
     return sessions.map((s) => ({
       projectId,
       projectSessionId: backend.ProjectSessionId(s.projectSessionId),
