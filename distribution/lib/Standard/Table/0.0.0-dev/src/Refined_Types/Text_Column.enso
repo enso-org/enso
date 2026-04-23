@@ -289,6 +289,91 @@ type Text_Column
         self.operations_implementation.pad_right self.column length with_pad
 
     ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Trims whitespace or specified characters from both ends of each element in the column.
+
+       Arguments:
+       - what: The text to trim. Defaults to whitespace.
+       - where: The location to trim from (Left, Right, or Both). Defaults to Both.
+
+        ## Examples
+        ### Trim whitespace from both ends of values in a column.
+
+        ```
+            import Standard.Examples
+
+            example_trim = Examples.text_column_1.trim
+        ```
+
+        ### Trim a specific character from the left side only.
+
+        ```
+            import Standard.Examples
+
+            example_trim_custom = Examples.text_column_1.trim "x" ..Left
+        ```
+    trim self (what : Column | Text | Any = " ") (where : Location = ..Both) -> Column & Text_Column =
+        self.operations_implementation.trim self.column what where
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Trims whitespace or specified characters from the start of each element in the column.
+
+       Arguments:
+       - what: The text to trim. Defaults to whitespace.
+
+        ## Examples
+        ### Trim whitespace from the start of values in a column.
+
+        ```
+            import Standard.Examples
+
+            example_trim_left = Examples.text_column_1.trim_left
+        ```
+
+        ### Trim a specific character from the start.
+
+        ```
+            import Standard.Examples
+
+            example_trim_left_custom = Examples.text_column_1.trim_left "x"
+        ```
+    trim_left self (what : Column | Text | Any = " ") -> Column & Text_Column =
+        self.operations_implementation.trim_left self.column what
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Trims whitespace or specified characters from the end of each element in the column.
+
+       Arguments:
+       - what: The text to trim. Defaults to whitespace.
+
+        ## Examples
+        ### Trim whitespace from the end of values in a column.
+
+        ```
+            import Standard.Examples
+
+            example_trim_right = Examples.text_column_1.trim_right
+        ```
+
+        ### Trim a specific character from the end.
+
+        ```
+            import Standard.Examples
+
+            example_trim_right_custom = Examples.text_column_1.trim_right "x"
+        ```
+    trim_right self (what : Column | Text | Any = " ") -> Column & Text_Column =
+        self.operations_implementation.trim_right self.column what
+
+    ## ---
        group: Standard.Base.Conversions
        icon: convert
        ---

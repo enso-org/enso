@@ -235,6 +235,24 @@ type In_Memory_Text_Column_Implementation
         new_name = naming_helper.function_name "pad_right" [this_column, length, with_pad]
         _apply_pad this_column length with_pad Location.Right new_name
 
+    trim (this_column : Column & In_Memory_Column) (what : Column | Text | Any) (where : Location) =
+        Value_Type_Checks.is_text this_column
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
+        new_name = naming_helper.function_name "trim" [this_column, what, where]
+        _apply_trim this_column parsed_what where new_name
+
+    trim_left (this_column : Column & In_Memory_Column) (what : Column | Text | Any) =
+        Value_Type_Checks.is_text this_column
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
+        new_name = naming_helper.function_name "trim_left" [this_column, what]
+        _apply_trim this_column parsed_what Location.Left new_name
+
+    trim_right (this_column : Column & In_Memory_Column) (what : Column | Text | Any) =
+        Value_Type_Checks.is_text this_column
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
+        new_name = naming_helper.function_name "trim_right" [this_column, what]
+        _apply_trim this_column parsed_what Location.Right new_name
+
     parse_json (column : Column & In_Memory_Column) (on_problems:Problem_Behavior) =
         Value_Type_Checks.is_text column
         new_name = naming_helper.function_name "parse_json" [column]
@@ -298,3 +316,17 @@ private _apply_pad (this_column : Column & In_Memory_Column) (length : Column | 
             _apply_binary_map this_column (text -> pad-> do_pad text length pad) with_pad new_name skip_nulls=False expected_result_type=Value_Type.Char
         else
             apply_unary_map this_column new_name (text -> do_pad text length with_pad) expected_result_type=Value_Type.Char nothing_unchanged=False
+
+private _apply_trim (this_column : Column & In_Memory_Column) (what : Column | Text | Any) location:Location new_name:Text =
+    do_trim text chars =
+        if text.is_nothing then Nothing else
+            if chars.is_nothing || chars.is_empty then text.trim location else text.trim location chars
+
+    case what of
+        _ : Text ->
+            trim_fn = if what.is_empty then t-> t.trim location else
+                t-> t.trim location what
+            apply_unary_map this_column new_name trim_fn expected_result_type=Value_Type.Char
+        _ : Column ->
+            Value_Type_Checks.is_text what
+            _apply_binary_map this_column do_trim what new_name skip_nulls=False expected_result_type=Value_Type.Char

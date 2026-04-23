@@ -188,6 +188,28 @@ type DB_Text_Column_Implementation
         new_name = (naming_helper column).function_name "pad_right" [column, length, with_pad]
         make_op column "PAD_RIGHT" [length, with_pad] new_name
 
+    trim (column : Column & DB_Column) (what : Column | Text | Any) (where : Location) =
+        Value_Type_Checks.is_text column
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then Nothing else what
+        new_name = (naming_helper column).function_name "trim" [column, what, where]
+        operation_name = case where of
+            Location.Left -> "LTRIM"
+            Location.Right -> "RTRIM"
+            Location.Both -> "TRIM"
+        make_op column operation_name [parsed_what] new_name
+
+    trim_left (column : Column & DB_Column) (what : Column | Text | Any) =
+        Value_Type_Checks.is_text column
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then Nothing else what
+        new_name = (naming_helper column).function_name "trim_left" [column, what]
+        make_op column "LTRIM" [parsed_what] new_name
+
+    trim_right (column : Column & DB_Column) (what : Column | Text | Any) =
+        Value_Type_Checks.is_text column
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then Nothing else what
+        new_name = (naming_helper column).function_name "trim_right" [column, what]
+        make_op column "RTRIM" [parsed_what] new_name
+
     parse_json column on_problems =
         _ = [column, on_problems]
         Unimplemented.throw "parse_json is not implemented for database backends."
