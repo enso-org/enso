@@ -24,7 +24,7 @@ from project.Nothing import all
 ## An email object representing all parts of an email.
 type Email
     ## An email object with all standard fields.
-    Message from_address:Email_Address to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[]
+    Message from_address:Email_Address to_addresses:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[]
 
     ## ---
        aliases: [mail]
@@ -95,7 +95,7 @@ type Email
        ---
     to_text self -> Text = 
         'From: ' + self.from_address.to_text 
-            + '\nTo: ' + ((self.to:Any).map .to_text).join '; '
+            + '\nTo: ' + (self.to_addresses.map .to_text).join '; '
             + '\nCc: ' + (self.cc.map .to_text).join '; '
             + '\nBcc: ' + (self.bcc.map .to_text).join '; '
             + '\nSubject: ' + self.subject
