@@ -298,7 +298,7 @@ export class Filtering {
     const ancestorOvershadowed = db.conflictingMethods.lookup(entry.name).has(matchedAncestor.key())
     if (ancestorOvershadowed) return null
     // Matched ancestor are not added to `fromType`, because type casting is not needed.
-    return { score: DIFFERENT_TYPE_PENALTY }
+    return { score: DIFFERENT_TYPE_PENALTY, fromType: undefined }
   }
 
   /** Check if current filter is clear, and a "Main" view of the CB should be displayed. */
