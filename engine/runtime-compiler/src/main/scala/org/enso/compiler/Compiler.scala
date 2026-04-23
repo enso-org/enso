@@ -725,11 +725,12 @@ class Compiler(
       if (module.isSynthetic())
         expr
       else
-        injectSyntheticModuleExports(
-          module.getName().toString(),
-          expr,
-          module.getDirectModulesRefs
-        )
+        //injectSyntheticModuleExports(
+        //  module.getName().toString(),
+        //  expr,
+        //  module.getDirectModulesRefs
+        //)
+        expr
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
@@ -858,7 +859,7 @@ class Compiler(
     * @param modules fully qualified names of modules
     * @return enhanced
     */
-  private def injectSyntheticModuleExports(
+  def injectSyntheticModuleExports(
     n: String,
     ir: IRModule,
     modules: java.util.List[QualifiedName]

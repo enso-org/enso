@@ -2,7 +2,7 @@ private
 
 from Standard.Base import all
 from Standard.Base.Runtime import assert
-from Standard.Base.Runtime import State
+import Standard.Base.Runtime.State
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Group.Group
