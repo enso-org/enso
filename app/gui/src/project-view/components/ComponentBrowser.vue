@@ -22,6 +22,7 @@ import { registerHandlers, toggledAction, type Action } from '@/providers/action
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { VisualizationDataSource } from '@/stores/visualization'
+import { Ast } from '@/util/ast'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
@@ -72,6 +73,14 @@ const emit = defineEmits<{
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
+  acceptedAi: [
+    payload: {
+      prompt: string
+      body: string
+      sourceIdentifier: Ast.Identifier
+      position: Vec2
+    },
+  ]
   canceled: []
   selectedSuggestionId: [id: SuggestionId | undefined]
   isAiPrompt: [boolean]
@@ -95,9 +104,8 @@ const cbOpen: Interaction = {
     emit('canceled')
   },
   end: () => {
-    // In AI prompt mode, the input is likely not a valid expression.
     if (input.mode.mode === 'aiPrompt') {
-      emit('canceled')
+      void acceptAiInput()
     } else {
       acceptInput()
     }
@@ -319,6 +327,20 @@ function acceptInput() {
   interaction.ended(cbOpen)
 }
 
+async function acceptAiInput() {
+  if (input.mode.mode !== 'aiPrompt') return
+  const prompt = input.mode.prompt
+  const sourceIdentifier = input.selfArgument
+  const position = props.nodePosition
+  const result = await input.applyAIPrompt()
+  if (result != null && result.ok && sourceIdentifier != null) {
+    emit('acceptedAi', { prompt, body: result.value.body, sourceIdentifier, position })
+  } else {
+    emit('canceled')
+  }
+  interaction.ended(cbOpen)
+}
+
 // === Action Handlers ===
 
 const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
@@ -351,7 +373,7 @@ const actions = registerHandlers({
   },
   'componentBrowser.acceptAIPrompt': {
     available: () => input.mode.mode == 'aiPrompt',
-    action: () => input.applyAIPrompt(),
+    action: () => void acceptAiInput(),
   },
   'componentBrowser.switchPanelFocus': { action: () => componentList.value?.switchPanelFocus() },
   'list.moveUp': { action: () => componentList.value?.moveUp() },

@@ -45,6 +45,23 @@ once `./run ide build` has produced the engine bundle.
 - `ENSO_POLYGLOT_YDOC_SERVER` — URL for the (polyglot) ydoc server when running
   against a cloud backend.
 - `ENSO_IDE_VERSION`, `ENSO_IDE_COMMIT_HASH` — embedded into buildinfo.
+- `ANTHROPIC_API_KEY` — required by the local Claude agent used for the AI
+  nodes feature (`src/claudeAgent.ts`). Read at startup of the main process;
+  when unset, the IPC handler for `Channel.generateAiComponent` returns a
+  structured error and the renderer shows a toast.
+
+## Local Claude agent
+
+`src/claudeAgent.ts` wraps `@anthropic-ai/claude-agent-sdk`'s `query()` for
+headless, single-turn generation of User Defined Components. The renderer
+reaches it via `window.api.ai.generateComponent(...)` (see
+`enso-gui/src/electronApi.ts`) over IPC channel
+`Channel.generateAiComponent`. The shared request/response types live in
+`enso-common/src/ai.ts` so both halves of the IPC agree on the shape.
+
+The SDK ships its own Claude Code runtime binary, so no external `claude` CLI
+install is required, but the `ANTHROPIC_API_KEY` environment variable must be
+set for the main process.
 
 ## Tests
 

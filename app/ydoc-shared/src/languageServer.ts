@@ -537,11 +537,6 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.request('profiling/stop', {})
   }
 
-  /** @deprecated `ai/completion_v2` should be used instead. */
-  aiCompletion(prompt: string, stopSequence: string): Promise<LsRpcResult<response.AICompletion>> {
-    return this.request('ai/completion', { prompt, stopSequence })
-  }
-
   /**
    * A helper function to subscribe to file updates.
    * Please use `ls.on('file/event')` directly if the initial `'Added'` notifications are not

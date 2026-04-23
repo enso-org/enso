@@ -17,6 +17,7 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.116",
     "@electron/asar": "^3.2.9",
     "chalk": "^5.4.1",
     "commander": "^14.0.1",

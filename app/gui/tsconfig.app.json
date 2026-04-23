@@ -539,6 +539,7 @@
     "./src/project-view/components/GraphEditor/ResizableWidget.vue",
     "./src/project-view/components/GraphEditor/UploadingFile.vue",
     "./src/project-view/components/GraphEditor/WidgetTreeRoot.vue",
+    "./src/project-view/components/GraphEditor/aiNode.ts",
     "./src/project-view/components/GraphEditor/collapsing.ts",
     "./src/project-view/components/GraphEditor/detaching.ts",
     "./src/project-view/components/GraphEditor/graphClipboard.ts",

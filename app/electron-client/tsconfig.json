@@ -25,6 +25,7 @@
     "./src/authentication.ts",
     "./src/backend.ts",
     "./src/cjs-shim.ts",
+    "./src/claudeAgent.ts",
     "./src/configParser.ts",
     "./src/contentConfig.ts",
     "./src/debug.ts",

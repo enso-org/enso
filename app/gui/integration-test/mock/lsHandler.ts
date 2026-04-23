@@ -628,17 +628,6 @@ export const mockLSHandler = async (
         })),
       } satisfies response.FileList
     }
-    case 'ai/completion': {
-      const { prompt } = params as { prompt: string }
-      const match = /^Could you (.*), please\?$/.exec(prompt)
-      if (!match) {
-        return { code: 'How rude!' }
-      } else if (match[1] === 'convert to table') {
-        return { code: 'to_table' }
-      } else {
-        return { code: '"I don\'t understand, sorry"' }
-      }
-    }
     default:
       return Promise.reject(`Method '${method}' not mocked`)
   }

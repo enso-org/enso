@@ -24,6 +24,7 @@ import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { createAiNode } from '@/components/GraphEditor/aiNode'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
@@ -513,6 +514,36 @@ function commitComponentBrowser(
   hideComponentBrowser()
 }
 
+function handleAiAccepted(payload: {
+  prompt: string
+  body: string
+  sourceIdentifier: Ast.Identifier
+  position: Vec2
+}) {
+  const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
+  const topLevel = module.value.root
+  if (currentMethodName == null || topLevel == null) {
+    toasts.userActionFailed.show('Cannot create AI component: no current method loaded.')
+    hideComponentBrowser()
+    return
+  }
+  const binding = graphStore.generateLocallyUniqueIdent('ai_component')
+  module.value.edit((edit) => {
+    createAiNode({
+      edit,
+      topLevel: edit.getVersion(topLevel),
+      currentMethodName,
+      sourceIdent: payload.sourceIdentifier,
+      binding,
+      prompt: payload.prompt,
+      body: payload.body,
+      position: payload.position,
+    })
+    return Ok()
+  })
+  hideComponentBrowser()
+}
+
 // Watch the `editedNode` in the graph store and synchronize component browser display with it.
 watch(
   () => graphStore.editedNodeInfo,
@@ -741,6 +772,7 @@ const contextMenuActions: DisplayableActionName[] = [
             :usage="componentBrowserUsage"
             :graphEditorRoot="root"
             @accepted="commitComponentBrowser"
+            @acceptedAi="handleAiAccepted"
             @canceled="hideComponentBrowser"
             @selectedSuggestionId="overrideDisplayedDocs = $event"
             @isAiPrompt="aiMode = $event"

@@ -7,6 +7,8 @@
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as accessToken from 'enso-common/src/accessToken'
+import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import type { $Config } from 'enso-gui/src/config'
 import type { ElectronApi } from 'enso-gui/src/electronApi'
 import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
@@ -187,6 +189,11 @@ const system: ElectronApi['system'] = {
   },
 }
 
+const ai: ElectronApi['ai'] = {
+  generateComponent: (request: AiComponentRequest): Promise<Result<AiComponentResponse>> =>
+    electron.ipcRenderer.invoke(ipc.Channel.generateAiComponent, request),
+}
+
 const api: ElectronApi = {
   authentication,
   navigation,
@@ -209,6 +216,7 @@ const api: ElectronApi = {
       electron.ipcRenderer.send(ipc.Channel.error, msg)
     },
   },
+  ai,
 }
 
 exposeInMainWorld(API_KEY, api)

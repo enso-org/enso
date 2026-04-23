@@ -78,6 +78,9 @@ async function mockElectronApi(page: Page) {
             electron: 'MOCK-electron-version',
             chrome: 'MOCK-chrome-version',
           },
+          ai: {
+            generateComponent: async () => ({ ok: true, value: { body: 'operator1' } }),
+          },
         }, // satisfies import('$/electronApi').ElectronApi,
       })
     })
