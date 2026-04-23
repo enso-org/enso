@@ -24,7 +24,7 @@ import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
-import { createAiNode } from '@/components/GraphEditor/aiNode'
+import { createAiNode, type AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
@@ -514,12 +514,7 @@ function commitComponentBrowser(
   hideComponentBrowser()
 }
 
-function handleAiAccepted(payload: {
-  prompt: string
-  body: string
-  sourceIdentifier: Ast.Identifier
-  position: Vec2
-}) {
+function handleAiAccepted(payload: AcceptedAiPayload) {
   const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
   const topLevel = module.value.root
   if (currentMethodName == null || topLevel == null) {
@@ -533,11 +528,8 @@ function handleAiAccepted(payload: {
       edit,
       topLevel: edit.getVersion(topLevel),
       currentMethodName,
-      sourceIdent: payload.sourceIdentifier,
       binding,
-      prompt: payload.prompt,
-      body: payload.body,
-      position: payload.position,
+      payload,
     })
     return Ok()
   })

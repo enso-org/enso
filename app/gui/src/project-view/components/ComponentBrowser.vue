@@ -14,6 +14,7 @@ import type { Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
+import type { AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
@@ -73,14 +74,7 @@ const emit = defineEmits<{
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
-  acceptedAi: [
-    payload: {
-      prompt: string
-      body: string
-      sourceIdentifier: Ast.Identifier
-      position: Vec2
-    },
-  ]
+  acceptedAi: [payload: AcceptedAiPayload]
   canceled: []
   selectedSuggestionId: [id: SuggestionId | undefined]
   isAiPrompt: [boolean]

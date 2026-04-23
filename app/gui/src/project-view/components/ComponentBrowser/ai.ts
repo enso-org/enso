@@ -26,11 +26,10 @@ export function useAI(
             'AI component generation requires the desktop runtime (window.api is unavailable).',
           )
         }
-        const sourceNodeId = graphDb.getIdentDefiningNode(sourceIdentifier)
-        if (!sourceNodeId) {
+        if (!graphDb.getIdentDefiningNode(sourceIdentifier)) {
           return Err(`Cannot find node with name ${sourceIdentifier}`)
         }
-        const typeInfo = graphDb.getExpressionInfo(sourceNodeId)?.typeInfo
+        const typeInfo = graphDb.getTypeOfIdentifier(sourceIdentifier)
         const sourceTypeName =
           typeInfo != null ? projectNames.printProjectPath(typeInfo.primaryType) : undefined
         return electronApi.ai.generateComponent({

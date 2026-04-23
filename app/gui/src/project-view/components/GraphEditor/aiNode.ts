@@ -29,15 +29,20 @@ export function isAiAssignment(ast: Ast.Ast): boolean {
   )
 }
 
+/** Data produced by the ComponentBrowser when an AI prompt is accepted. */
+export interface AcceptedAiPayload {
+  prompt: string
+  body: string
+  sourceIdentifier: Identifier
+  position: Vec2
+}
+
 export interface CreateAiNodeOptions {
   edit: Ast.MutableModule
   topLevel: Ast.MutableBodyBlock
   currentMethodName: string
-  sourceIdent: Identifier
   binding: Identifier
-  prompt: string
-  body: string
-  position: Vec2
+  payload: AcceptedAiPayload
 }
 
 /**
@@ -47,22 +52,22 @@ export interface CreateAiNodeOptions {
  * the form `AI: <prompt>`, which the graph editor renders as the node's prompt.
  */
 export function createAiNode(options: CreateAiNodeOptions) {
-  const { edit, topLevel, currentMethodName, sourceIdent, binding, prompt, body, position } =
-    options
+  const { edit, topLevel, currentMethodName, binding, payload } = options
+  const { prompt, body, sourceIdentifier, position } = payload
   const found = Ast.findModuleMethod(topLevel, currentMethodName)
   if (!found) return
   const { statement: currentMethod, index: currentMethodLine } = found
 
   const functionName = generateUniqueName(AI_FUNCTION_NAME_PREFIX, topLevel)
   const functionBody = Ast.parseBlock(body.trim(), edit)
-  const functionDef = Ast.FunctionDef.new(functionName, [sourceIdent], functionBody, {
+  const functionDef = Ast.FunctionDef.new(functionName, [sourceIdentifier], functionBody, {
     edit,
     documentation: frontmatter({ icon: AI_ICON }) + AI_FUNCTION_DOC_PLACEHOLDER,
   })
 
   const call = Ast.App.PositionalSequence(
     Ast.PropertyAccess.new(edit, Ast.Ident.new(edit, AI_MODULE_NAME), functionName),
-    [Ast.Ident.new(edit, sourceIdent)],
+    [Ast.Ident.new(edit, sourceIdentifier)],
   )
   call.setNodeMetadata({ position: position.xy() })
   const assignment = Ast.Assignment.new(binding, call, {

@@ -146,12 +146,11 @@ export function useComponentBrowserInput(
   const sourceNodeType = computed<SelfArg | null>(() => {
     if (!sourceNodeIdentifier.value) return null
     const graphDbValue = toValue(graphDb)
-    const definition = graphDbValue.getIdentDefiningNode(sourceNodeIdentifier.value)
-    if (definition == null) return null
-    const info = graphDbValue.getExpressionInfo(definition)
-    if (info == null || info.typeInfo == null) return { type: 'unknown' }
-    const ancestors = [...info.typeInfo.ancestors(toValue(suggestionDb))]
-    return { type: 'known', typeInfo: info.typeInfo, ancestors }
+    if (graphDbValue.getIdentDefiningNode(sourceNodeIdentifier.value) == null) return null
+    const typeInfo = graphDbValue.getTypeOfIdentifier(sourceNodeIdentifier.value)
+    if (typeInfo == null) return { type: 'unknown' }
+    const ancestors = [...typeInfo.ancestors(toValue(suggestionDb))]
+    return { type: 'known', typeInfo, ancestors }
   })
 
   /** Apply given suggested entry to the input. */
