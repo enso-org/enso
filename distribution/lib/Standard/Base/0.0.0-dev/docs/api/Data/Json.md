@@ -38,4 +38,5 @@
 - read_json_node node:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - render object:Standard.Base.Any.Any depth:Standard.Base.Any.Any= max_depth:Standard.Base.Any.Any= max_length:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - to_json_node value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Nothing.Nothing.get self key:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Ordering.Comparable

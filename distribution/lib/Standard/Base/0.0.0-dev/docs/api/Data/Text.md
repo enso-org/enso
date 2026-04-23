@@ -2,16 +2,9 @@
 ## module Standard.Base.Data.Text
 - type Text
     - + self that:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
-    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - compare_to_ignore_case self that:Standard.Base.Any.Any locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - equals_ignore_case self that:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
     - is_empty self -> Standard.Base.Any.Any
     - is_normalized self -> Standard.Base.Data.Boolean.Boolean
     - length self -> Standard.Base.Data.Numbers.Integer
     - normalize self normalization:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - not_empty self -> Standard.Base.Any.Any
-    - to_case_insensitive_key self locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any

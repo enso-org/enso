@@ -4,16 +4,22 @@
 - Standard.Base.Any.Any.to_display_text self -> Standard.Base.Data.Text.Text
 - Standard.Base.Any.Any.to_text self -> Standard.Base.Data.Text.Text
 - Standard.Base.Data.Text.Text.* self count:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.< self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.<= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.> self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.>= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.bytes self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.char_vector self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.characters self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.cleanse self remove:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.codepoints self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.compare_to_ignore_case self that:Standard.Base.Any.Any locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Data.Ordering.Ordering
 - Standard.Base.Data.Text.Text.contains self term:Standard.Base.Data.Text.Text= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.drop self range:(Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range|Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.ends_with self suffix:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.equals_ignore_case self that:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Data.Boolean.Boolean
 - Standard.Base.Data.Text.Text.find self pattern:(Standard.Base.Data.Text.Regex.Regex|Standard.Base.Data.Text.Text)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.find_all self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.first self -> Standard.Base.Any.Any
@@ -50,6 +56,7 @@
 - Standard.Base.Data.Text.Text.substring self start:Standard.Base.Data.Numbers.Integer length:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.take self range:(Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range|Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.to_case self case_option:Standard.Base.Data.Text.Case.Case= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_case_insensitive_key self locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Data.Text.Text
 - Standard.Base.Data.Text.Text.to_decimal self scale:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal
 - Standard.Base.Data.Text.Text.to_regex self case_insensitive:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.tokenize self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
