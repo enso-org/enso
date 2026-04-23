@@ -48,8 +48,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -95,8 +93,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -154,8 +150,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -206,8 +200,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -267,8 +259,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -322,8 +312,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -381,8 +369,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -445,8 +431,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -472,7 +456,6 @@ jobs:
           ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
-          ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_SENTRY_ORGANIZATION: ${{ vars.ENSO_CLOUD_SENTRY_ORGANIZATION }}
           ENSO_IDE_SENTRY_PROJECT: ${{ vars.ENSO_CLOUD_SENTRY_PROJECT }}
@@ -528,8 +511,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -562,7 +543,6 @@ jobs:
           ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
-          ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_SENTRY_ORGANIZATION: ${{ vars.ENSO_CLOUD_SENTRY_ORGANIZATION }}
           ENSO_IDE_SENTRY_PROJECT: ${{ vars.ENSO_CLOUD_SENTRY_PROJECT }}
@@ -617,8 +597,6 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
-      - name: Enable corepack package manager shims
-        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -644,7 +622,6 @@ jobs:
           ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
-          ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_SENTRY_ORGANIZATION: ${{ vars.ENSO_CLOUD_SENTRY_ORGANIZATION }}
           ENSO_IDE_SENTRY_PROJECT: ${{ vars.ENSO_CLOUD_SENTRY_PROJECT }}

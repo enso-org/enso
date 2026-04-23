@@ -32,7 +32,6 @@ use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::enable_corepack;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
@@ -390,7 +389,6 @@ pub fn setup_script_steps(fetch_depth: Option<u32>) -> Vec<Step> {
         checkout_repo_step(fetch_depth),
         setup_node(),
         setup_corepack(),
-        enable_corepack(),
     ];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and

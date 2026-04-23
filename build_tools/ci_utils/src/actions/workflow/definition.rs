@@ -136,17 +136,6 @@ pub fn setup_corepack() -> Step {
     }
 }
 
-/// Activate corepack's package-manager shims (`pnpm`, `yarn`, `npm`) so tools that shell out to
-/// them — e.g. `electron-builder`'s node-module collector — find them on `PATH`. Without this,
-/// `corepack pnpm ...` works but a bare `pnpm` does not.
-pub fn enable_corepack() -> Step {
-    Step {
-        name: Some("Enable corepack package manager shims".into()),
-        run: Some("corepack enable".into()),
-        ..default()
-    }
-}
-
 /// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {
