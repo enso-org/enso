@@ -27,8 +27,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
     description =
         "Takes a computation acquiring a resource, a function taking the resource and closing it,"
             + " and a function performing arbitrary operations on the resource. Ensures closing"
-            + " the resource, even if an exception is raised in the computation.",
-    autoRegister = false)
+            + " the resource, even if an exception is raised in the computation.")
 public abstract class BracketNode extends Node {
 
   private @Child ThunkExecutorNode invokeConstructorNode = ThunkExecutorNode.build();

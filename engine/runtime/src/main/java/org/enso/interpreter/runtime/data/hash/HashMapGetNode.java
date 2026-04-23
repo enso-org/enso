@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.EnsoContext;
         """
         Gets a value from the dictionary on the specified key, or the given default.
         """,
-    autoRegister = false,
     inlineable = true)
 @GenerateUncached
 public abstract class HashMapGetNode extends Node {
@@ -38,7 +37,7 @@ public abstract class HashMapGetNode extends Node {
   }
 
   public abstract Object execute(
-      VirtualFrame frame, Object self, Object key, @Suspend Object defaultValue);
+      VirtualFrame frame, Object dict, Object key, @Suspend Object defaultValue);
 
   @Specialization(guards = "interop.hasHashEntries(self)", limit = "3")
   Object hashMapGet(

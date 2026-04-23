@@ -357,16 +357,18 @@ type Redshift_Dialect
        private: true
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
-    check_aggregate_support self aggregate =
-        _ = self
-        case aggregate of
-            Aggregate_Column.Count_Distinct columns _ _ ->
-                if columns.length == 1 then True else
-                    Error.throw (Unsupported_Database_Operation.Error "Count_Distinct on multiple columns")
-            Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
-            Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
-            Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
-            _ -> True
+    check_aggregate_support self aggregate = case aggregate of
+        Aggregate_Column.Count_Distinct columns _ _ ->
+            if columns.length == 1 then True else
+                Error.throw (Unsupported_Database_Operation.Error "Count_Distinct on multiple columns")
+        Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
+        Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
+        Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
+        Aggregate_Column.ST_Union _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Union")
+        Aggregate_Column.ST_Intersection _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Intersection")
+        Aggregate_Column.ST_Extent _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Extent")
+        Aggregate_Column.Array_Agg _ _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Array_Agg")
+        _ -> True
 
     ## ---
        private: true

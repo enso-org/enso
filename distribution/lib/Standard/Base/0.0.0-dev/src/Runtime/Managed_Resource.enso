@@ -7,6 +7,7 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Errors.Common.Uninitialized_State
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Internal.Runtime_Helpers
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -33,7 +34,7 @@ type Managed_Resource
           once it is done being used.
         - `action`: The computation to perform on the acquired resource.
     bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
-    bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
+    bracket ~constructor ~destructor ~action = Runtime_Helpers.resource_bracket constructor destructor action
 
     ## ---
        private: true
@@ -69,7 +70,7 @@ type Managed_Resource
     register : Any -> (Any -> Nothing) -> Boolean -> Managed_Resource
     register resource function system_finalization_allowed=False =
         _handle_double_registration <|
-            @Tail_Call register_builtin resource function system_finalization_allowed
+            @Tail_Call Runtime_Helpers.resource_register_builtin resource function system_finalization_allowed
 
     ## ---
        private: true
@@ -77,8 +78,7 @@ type Managed_Resource
        ---
        Forces finalization of a managed resource using the registered finalizer,
        even if the resource is still reachable.
-    finalize : Nothing
-    finalize self = @Builtin_Method "Managed_Resource.finalize"
+    finalize self -> Nothing = Runtime_Helpers.resource_finalize self
 
     ## ---
        private: true
@@ -97,7 +97,8 @@ type Managed_Resource
        ## Returns
        Value returned from the `action`
     with : (Any -> Any) -> Any
-    with self ~action = @Tail_Call with_builtin self action
+    with self ~action = 
+        @Tail_Call Runtime_Helpers.resource_with_builtin self action
 
     ## ---
        private: true
@@ -107,7 +108,7 @@ type Managed_Resource
        finalization step for this resource, effectively removing it from the
        managed resources system.
     take : Any
-    take self = @Builtin_Method "Managed_Resource.take"
+    take self = Runtime_Helpers.resource_take self
 
     ## ---
        private: true
@@ -119,16 +120,6 @@ type Managed_Resource
     has_been_finalized self -> Boolean = self.with x->
         if x.is_error.not then False else
             if x.catch.is_a Uninitialized_State then True else x
-
-## ---
-   private: true
-   ---
-register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
-
-## ---
-   private: true
-   ---
-with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
 
 ## ---
    private: true

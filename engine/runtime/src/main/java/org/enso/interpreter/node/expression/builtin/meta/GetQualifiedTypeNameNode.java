@@ -12,8 +12,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 @BuiltinMethod(
     type = "Meta",
     name = "get_qualified_type_name",
-    description = "Returns a qualified type name of the given value.",
-    autoRegister = false)
+    description = "Returns a qualified type name of the given value.")
 public class GetQualifiedTypeNameNode extends Node {
   private @Child TypeOfNode typeOfNode = TypeOfNode.create();
 

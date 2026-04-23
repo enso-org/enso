@@ -2724,19 +2724,21 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x     = metadata.addItem(52, 25, "aa")
-    val id_y     = metadata.addItem(86, 21, "ab")
+    val id_x     = metadata.addItem(57, 17, "aa")
+    val id_y     = metadata.addItem(83, 16, "ab")
 
     val code =
-      """import Standard.Base.Data.Time.Date
+      """import Standard.Base.Data.Time.Date.Date
         |
         |main =
-        |    x = Date.new_builtin 1970 1 1
-        |    y = Date.Date.year self=x
+        |    x = Date.new 1970 1 1
+        |    y = Date.year self=x
         |    y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+    metadata.assertInCode(id_x, code, "Date.new 1970 1 1")
+    metadata.assertInCode(id_y, code, "Date.year self=x")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2768,7 +2770,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, id_x, ConstantsGen.DATE),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.DATE,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "new"
+          )
+        )
+      ),
       TestMessages.update(
         contextId,
         id_y,
@@ -2791,17 +2804,18 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x     = metadata.addItem(52, 25, "aa")
+    val id_x     = metadata.addItem(57, 17, "aa")
 
     val code =
-      """import Standard.Base.Data.Time.Date
+      """import Standard.Base.Data.Time.Date.Date
         |
         |main =
-        |    x = Date.new_builtin 2022 1 1
+        |    x = Date.new 2022 1 1
         |    x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+    metadata.assertInCode(id_x, code, "Date.new 2022 1 1")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2833,7 +2847,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, id_x, "Standard.Base.Data.Time.Date.Date"),
+      TestMessages.update(
+        contextId,
+        id_x,
+        "Standard.Base.Data.Time.Date.Date",
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "new"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
@@ -5416,7 +5441,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("from Standard.Base import all\n\n")
     val code =
       """main = bar "one" 2
         |
@@ -5459,16 +5484,24 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: Expected `str` to be Text, but got Integer.",
-            Some(mainFile),
-            Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
+            "Type error: expected `that` to be Text, but got Integer.",
+            None,
+            Some(model.Range(model.Position(46, 4), model.Position(62, 58))),
             None,
             Vector(
+              Api.StackTraceElement(
+                "Text.+",
+                None,
+                Some(
+                  model.Range(model.Position(46, 4), model.Position(62, 58))
+                ),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.bar",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(2, 10), model.Position(2, 15))
+                  model.Range(model.Position(4, 10), model.Position(4, 15))
                 ),
                 None
               ),
@@ -5476,7 +5509,7 @@ class RuntimeServerTest
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(0, 7), model.Position(0, 18))
+                  model.Range(model.Position(2, 7), model.Position(2, 18))
                 ),
                 None
               )
@@ -5535,11 +5568,19 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: Expected `str` to be Text, but got Integer.",
-            Some(mainFile),
-            Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
+            "Type error: expected `that` to be Text, but got Integer.",
+            None,
+            Some(model.Range(model.Position(46, 4), model.Position(62, 58))),
             None,
             Vector(
+              Api.StackTraceElement(
+                "Text.+",
+                None,
+                Some(
+                  model.Range(model.Position(46, 4), model.Position(62, 58))
+                ),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.bar",
                 Some(mainFile),
@@ -5760,7 +5801,7 @@ class RuntimeServerTest
             "Type error: expected `that` to be Integer, but got Function.",
             None,
             Some(
-              model.Range(model.Position(1057, 4), model.Position(1076, 59))
+              model.Range(model.Position(1058, 4), model.Position(1077, 59))
             ),
             None,
             Vector(
@@ -5768,7 +5809,7 @@ class RuntimeServerTest
                 "Integer.+",
                 None,
                 Some(
-                  model.Range(model.Position(1057, 4), model.Position(1076, 59))
+                  model.Range(model.Position(1058, 4), model.Position(1077, 59))
                 ),
                 None
               ),
@@ -5872,7 +5913,7 @@ class RuntimeServerTest
             "Type error: expected `that` to be Integer, but got Function.",
             None,
             Some(
-              model.Range(model.Position(1057, 4), model.Position(1076, 59))
+              model.Range(model.Position(1058, 4), model.Position(1077, 59))
             ),
             None,
             Vector(
@@ -5880,7 +5921,7 @@ class RuntimeServerTest
                 "Integer.+",
                 None,
                 Some(
-                  model.Range(model.Position(1057, 4), model.Position(1076, 59))
+                  model.Range(model.Position(1058, 4), model.Position(1077, 59))
                 ),
                 None
               ),
@@ -5972,7 +6013,7 @@ class RuntimeServerTest
           contextId,
           Api.ExecutionResult.Failure(
             "Exit was called with exit code 42.",
-            Some(mainFile)
+            None
           )
         )
       )

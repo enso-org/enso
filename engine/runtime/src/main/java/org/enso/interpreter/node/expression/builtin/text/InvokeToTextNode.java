@@ -19,22 +19,24 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
  * objects.
  */
 public final class InvokeToTextNode extends Node {
-  private static final InvokeToTextNode UNCACHED = new InvokeToTextNode();
   @CompilerDirectives.CompilationFinal private UnresolvedSymbol toText;
   @Child private InteropMethodCallNode methodNode;
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private AnyToTextNode anyToText;
+  private final boolean isUncached;
 
-  private InvokeToTextNode() {}
+  private InvokeToTextNode(boolean isUncached) {
+    this.isUncached = isUncached;
+  }
 
   @NeverDefault
   public static InvokeToTextNode create() {
-    return new InvokeToTextNode();
+    return new InvokeToTextNode(false);
   }
 
   @NeverDefault
   public static InvokeToTextNode getUncached() {
-    return UNCACHED;
+    return new InvokeToTextNode(true);
   }
 
   /**
@@ -101,6 +103,6 @@ public final class InvokeToTextNode extends Node {
   }
 
   private boolean isUncached() {
-    return this == UNCACHED;
+    return isUncached;
   }
 }

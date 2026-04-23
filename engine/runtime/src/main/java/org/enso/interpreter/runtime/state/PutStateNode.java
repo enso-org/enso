@@ -12,11 +12,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 
 /** Use this node to manipulate {@link State}. */
-@BuiltinMethod(
-    type = "State",
-    name = "put",
-    description = "Updates the value of monadic state.",
-    autoRegister = false)
+@BuiltinMethod(type = "State", name = "put", description = "Updates the value of monadic state.")
 @ReportPolymorphism
 public abstract class PutStateNode extends Node {
   public static PutStateNode build() {

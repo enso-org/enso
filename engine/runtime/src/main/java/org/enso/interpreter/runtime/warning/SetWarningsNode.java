@@ -21,8 +21,7 @@ import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 @BuiltinMethod(
     type = "Warning",
     name = "set_array",
-    description = "Sets all the warnings associated with the value.",
-    autoRegister = false)
+    description = "Sets all the warnings associated with the value.")
 public abstract class SetWarningsNode extends Node {
   private static SetWarningsNode uncached;
 

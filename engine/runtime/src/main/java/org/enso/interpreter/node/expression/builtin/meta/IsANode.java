@@ -4,11 +4,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
-@BuiltinMethod(
-    type = "Meta",
-    name = "is_a",
-    description = "Checks type of a node.",
-    autoRegister = false)
+@BuiltinMethod(type = "Meta", name = "is_a", description = "Checks type of a node.")
 public class IsANode extends Node {
   private @Child IsValueOfTypeNode check = IsValueOfTypeNode.build();
 

@@ -12,7 +12,7 @@ public final class SortArrayNode extends Node {
 
   public Object execute(
       VirtualFrame frame,
-      @AcceptsError Object self,
+      @AcceptsError Object array,
       long ascending,
       Object comparators,
       Object compareFunctions,
@@ -20,7 +20,7 @@ public final class SortArrayNode extends Node {
       Object onFunc,
       long problemBehavior) {
     return sortVectorNode.execute(
-        frame, self, ascending, comparators, compareFunctions, byFunc, onFunc, problemBehavior);
+        frame, array, ascending, comparators, compareFunctions, byFunc, onFunc, problemBehavior);
   }
 
   public static SortArrayNode build() {

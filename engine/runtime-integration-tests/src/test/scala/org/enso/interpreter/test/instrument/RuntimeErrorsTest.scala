@@ -581,13 +581,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -762,13 +756,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         throwId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Panic",
-            "Standard.Base.Panic.Panic",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, catchId)),
         builtin = false
       ),
@@ -776,13 +764,7 @@ class RuntimeErrorsTest
         contextId,
         catchId,
         ConstantsGen.INTEGER,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Panic",
-            "Standard.Base.Panic.Panic",
-            "catch"
-          )
-        )
+        null
       ),
       context.executionComplete(contextId)
     )
@@ -859,13 +841,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
@@ -945,13 +921,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -1175,13 +1145,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -1229,13 +1193,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         fromCache   = false,
         typeChanged = false,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
@@ -1563,13 +1521,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Panic",
-            "Standard.Base.Panic.Panic",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.Panic(
           "MyError",
           Seq(xId)
@@ -1874,13 +1826,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Panic",
-            "Standard.Base.Panic.Panic",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.Panic(
           "IllegalArgumentException",
           Seq(xId)
@@ -1958,13 +1904,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Panic",
-            "Standard.Base.Panic.Panic",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.Panic(
           "MyError1",
           Seq(xId)
@@ -2021,13 +1961,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Panic",
-            "Standard.Base.Panic.Panic",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
@@ -2733,13 +2667,6 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        methodCall = Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(

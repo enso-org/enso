@@ -30,6 +30,8 @@ public class AutoscopedConstructorTest {
               .eval(
                   "enso",
                   """
+                  from Standard.Base import to_text
+
                   type N
                       False
 

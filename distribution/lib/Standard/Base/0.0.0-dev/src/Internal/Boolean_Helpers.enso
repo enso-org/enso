@@ -1,0 +1,8 @@
+private
+
+and b ~that = @Builtin_Method "Boolean.&&"
+or b ~that = @Builtin_Method "Boolean.||"
+not b = @Builtin_Method "Boolean.not"
+if_then_else b ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+if_then b ~on_true = @Builtin_Method "Boolean.if_then"
+any_equals one two = @Builtin_Method "Any.=="

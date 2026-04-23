@@ -1,4 +1,3 @@
-import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
@@ -19,12 +18,13 @@ import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
+import project.Internal.Time.Date_Helpers
 import project.Meta
 import project.Panic.Panic
-import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date import make_day_picker
+from project.Internal.Time.Date_Helpers import ensure_in_epoch, unix_epoch_start
 from project.Metadata import Display, Widget
 from project.Nothing import all
 from project.Widget_Helpers import make_date_time_format_selector
@@ -35,47 +35,6 @@ polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.Time_Utils
-
-## ---
-   private: true
-   ---
-unix_epoch_start : Date_Time
-unix_epoch_start = Date_Time.new 1970 zone=Time_Zone.utc
-
-## ---
-   private: true
-   ---
-ensure_in_epoch : (Date_Time | Date) -> (Any -> Any) -> Any
-ensure_in_epoch date ~action =
-    datetime = case date of
-        x : Date_Time -> x
-        x : Date -> x.to_date_time
-    ret_value = action
-    case Date_Time.enso_epoch_start <= datetime of
-        True -> ret_value
-        False ->
-            Warning.attach (Time_Error.Error ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
-
-## ---
-   private: true
-   ---
-   Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
-   second, nanosecond and timezone.
-
-   Recommended to use `Date_Time.new` instead which handles potential exceptions.
-
-   ## Arguments
-    - `year`: The year to represent, any Integer is valid.
-    - `month`: the month-of-year to represent, from 1 (January) to 12 (December)
-    - `day`: the day-of-month to represent, from 1 to 31 and must be valid for
-      the year and month
-    - `hour`: the hour-of-day to represent, from 0 to 23
-    - `minute`: the minute-of-hour to represent, from 0 to 59
-    - `second`: the second-of-minute to represent, from 0 to 59
-    - `nanosecond`: the nano-of-second to represent, from 0 to 999,999,999
-    - `zone`: the timezone
-new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
-new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
 
 ## ---
    private: true
@@ -106,8 +65,7 @@ type Date_Time
        epoch is likely an error, as the Gregorian calendar had not yet been
        introduced. Therefore, for such historical date times, a warning is
        attached to the result.
-    enso_epoch_start : Date_Time
-    enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
+    enso_epoch_start -> Date_Time = Date_Helpers.date_time_enso_epoch_start
 
     ## ---
        aliases: [current time]
@@ -125,8 +83,7 @@ type Date_Time
 
              example_now = Date_Time.now
        ```
-    now : Date_Time
-    now = @Builtin_Method "Date_Time.now"
+    now -> Date_Time = Date_Helpers.date_time_now
 
     ## ---
        group: Constants
@@ -181,7 +138,7 @@ type Date_Time
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
     new (year:Integer=(Missing_Argument.throw "year")) (month:Integer=1) (day:Integer=1) (hour:Integer=0) (minute:Integer=0) (second:Integer=0) (millisecond:Integer=0) (microsecond:Integer=0) (nanosecond = 0) (zone:Time_Zone=Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
+        Panic.catch JException (Date_Helpers.date_time_new_builtin year month day hour minute second total_nanoseconds zone) cause->
             Error.throw (Time_Error.Error cause.payload.getMessage)
 
     ## ---
@@ -381,8 +338,7 @@ type Date_Time
 
              example_year = Date_Time.now.year
        ```
-    year : Integer
-    year self = @Builtin_Method "Date_Time.year"
+    year self -> Integer = Date_Helpers.date_time_year self
 
     ## ---
        group: Metadata
@@ -398,8 +354,7 @@ type Date_Time
 
              example_month = Date_Time.now.month
        ```
-    month : Integer
-    month self = @Builtin_Method "Date_Time.month"
+    month self -> Integer = Date_Helpers.date_time_month self
 
     ## ---
        group: Metadata
@@ -415,8 +370,7 @@ type Date_Time
 
              example_day = Date_Time.now.day
        ```
-    day : Integer
-    day self = @Builtin_Method "Date_Time.day"
+    day self -> Integer = Date_Helpers.date_time_day self
 
     ## ---
        group: Metadata
@@ -432,8 +386,7 @@ type Date_Time
 
              example_hour = Date_Time.now.hour
        ```
-    hour : Integer
-    hour self = @Builtin_Method "Date_Time.hour"
+    hour self -> Integer = Date_Helpers.date_time_hour self
 
     ## ---
        group: Metadata
@@ -449,8 +402,7 @@ type Date_Time
 
              example_minute = Date_Time.now.minute
        ```
-    minute : Integer
-    minute self = @Builtin_Method "Date_Time.minute"
+    minute self -> Integer = Date_Helpers.date_time_minute self
 
     ## ---
        group: Metadata
@@ -466,8 +418,7 @@ type Date_Time
 
              example_second = Date_Time.now.second
        ```
-    second : Integer
-    second self = @Builtin_Method "Date_Time.second"
+    second self -> Integer = Date_Helpers.date_time_second self
 
     ## ---
        group: Metadata
@@ -483,8 +434,7 @@ type Date_Time
 
              example_millisecond = Date_Time.now.millisecond
        ```
-    millisecond : Integer
-    millisecond self = @Builtin_Method "Date_Time.millisecond"
+    millisecond self -> Integer = Date_Helpers.date_time_millisecond self
 
     ## ---
        group: Metadata
@@ -500,8 +450,7 @@ type Date_Time
 
              example_microsecond = Date_Time.now.microsecond
        ```
-    microsecond : Integer
-    microsecond self = @Builtin_Method "Date_Time.microsecond"
+    microsecond self -> Integer = Date_Helpers.date_time_microsecond self
 
     ## ---
        group: Metadata
@@ -522,9 +471,8 @@ type Date_Time
 
              example_nanosecond = Date_Time.now.nanosecond
        ```
-    nanosecond : Boolean -> Integer
-    nanosecond self include_milliseconds=False =
-        self.nanosecond_builtin include_milliseconds
+    nanosecond self include_milliseconds:Boolean=False -> Integer =
+        Date_Helpers.date_time_nanosecond self include_milliseconds
 
     ## ---
        group: DateTime
@@ -540,8 +488,7 @@ type Date_Time
 
              example_zone = Date_Time.now.zone
        ```
-    zone : Time_Zone
-    zone self = @Builtin_Method "Date_Time.zone"
+    zone self -> Time_Zone = Date_Helpers.date_time_zone self
 
     ## ---
        icon: convert
@@ -612,8 +559,8 @@ type Date_Time
 
              example_time_of_day = Date_Time.now.time_of_day
        ```
-    time_of_day : Time_Of_Day
-    time_of_day self = @Builtin_Method "Date_Time.time_of_day"
+    time_of_day self -> Time_Of_Day =
+        Date_Helpers.date_time_of_day self
 
     ## ---
        icon: metadata
@@ -762,8 +709,7 @@ type Date_Time
 
              example_date = Date_Time.now.date
        ```
-    date : Date
-    date self = @Builtin_Method "Date_Time.date"
+    date self -> Date = Date_Helpers.date_time_date self
 
     ## ---
        aliases: [change time zone]
@@ -920,7 +866,7 @@ type Date_Time
     + self (amount : Duration | Period | Time_Period | Date_Period) =
         case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
+                Panic.catch ArithmeticException (Date_Helpers.date_time_plus self duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
             time_period : Time_Period ->
@@ -1005,7 +951,7 @@ type Date_Time
     - self amount:(Duration | Period | Time_Period | Date_Period) =
         result = case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
+                Panic.catch ArithmeticException (Date_Helpers.date_time_minus self duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
             time_period : Time_Period ->

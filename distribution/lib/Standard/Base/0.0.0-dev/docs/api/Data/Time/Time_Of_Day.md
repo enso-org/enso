@@ -13,20 +13,19 @@
     - default_widget include_now:Standard.Base.Data.Boolean.Boolean= display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
     - end_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - format self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter -> Standard.Base.Any.Any
-    - hour self -> Standard.Base.Any.Any
-    - microsecond self -> Standard.Base.Any.Any
-    - millisecond self -> Standard.Base.Any.Any
-    - minute self -> Standard.Base.Any.Any
-    - nanosecond self include_milliseconds:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - hour self -> Standard.Base.Data.Numbers.Integer
+    - microsecond self -> Standard.Base.Data.Numbers.Integer
+    - millisecond self -> Standard.Base.Data.Numbers.Integer
+    - minute self -> Standard.Base.Data.Numbers.Integer
+    - nanosecond self include_milliseconds:Standard.Base.Any.Any= -> Standard.Base.Data.Numbers.Integer
     - new hour:Standard.Base.Any.Any= minute:Standard.Base.Any.Any= second:Standard.Base.Any.Any= millisecond:Standard.Base.Any.Any= microsecond:Standard.Base.Any.Any= nanosecond:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - now -> Standard.Base.Any.Any
+    - now -> Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
     - parse text:Standard.Base.Data.Text.Text format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
-    - second self -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Data.Numbers.Integer
     - start_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_date_time self date:Standard.Base.Any.Any zone:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
-    - to_seconds self -> Standard.Base.Any.Any
-- new_builtin hour:Standard.Base.Any.Any minute:Standard.Base.Any.Any second:Standard.Base.Any.Any nanosecond:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_seconds self -> Standard.Base.Data.Numbers.Integer
 - Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day

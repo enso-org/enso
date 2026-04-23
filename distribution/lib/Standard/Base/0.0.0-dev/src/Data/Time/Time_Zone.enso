@@ -1,11 +1,13 @@
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
+import project.Internal.Time.Date_Helpers
 import project.Panic.Panic
 from project.Metadata import Display, make_single_choice, Widget
 from project.Metadata.Choice import Option
@@ -14,36 +16,6 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import org.enso.base.Time_Utils
-
-## ---
-   private: true
-   ---
-   Obtains an instance of `Time_Zone` using an offset in hours, minutes and
-   seconds from the UTC zone.
-
-   Recommended to use `Time_Zone.new` instead which provides defaults.
-
-   ## Arguments
-    - `hours`: The timezone offset in hours from UTC, from -18 to +18.
-    - `minutes`: The timezone offset in minutes from the nearest hour, from 0 to
-      ±59. The sign must match that of the hours argument.
-    - `seconds`: The timezone offset in seconds from the nearest minute, from 0
-      to ±59. The sign must match that of the minutes argument.
-new_builtin : Integer -> Integer -> Integer -> Time_Zone
-new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"
-
-## ---
-   private: true
-   ---
-   This method parses the ID producing a `Time_Zone`.
-
-   Recommended to use `Time_Zone.parse` instead which handles potential
-   exceptions.
-
-   ## Arguments
-    - `text`: The text representing a zone identifier.
-parse_builtin : Text -> Time_Zone
-parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
 
 ## A type representing a time zone.
 
@@ -68,8 +40,7 @@ type Time_Zone
 
              example_system = Time_Zone.system
        ```
-    system : Time_Zone
-    system = @Builtin_Method "Time_Zone.system"
+    system -> Time_Zone = Date_Helpers.tz_system 
 
     ## ---
        aliases: [current time zone]
@@ -131,7 +102,7 @@ type Time_Zone
     @seconds (Widget.Numeric_Input minimum=-59 maximum=59 display=Display.When_Modified)
     new : Integer -> Integer -> Integer -> Time_Zone
     new (hours:Integer = 0) (minutes:Integer = 0) (seconds:Integer = 0) =
-        new_builtin hours minutes seconds
+        Date_Helpers.tz_new_builtin hours minutes seconds
 
     ## ---
        aliases: [time zone from text]
@@ -176,10 +147,9 @@ type Time_Zone
              example_parse = Time_Zone.parse "+03:02:01"
        ```
     @id (make_single_choice Time_Zone.zone_names Display.Always)
-    parse : Text -> Time_Zone ! Time_Error
-    parse id:Text =
+    parse id:Text -> Time_Zone ! Time_Error =
         Panic.catch JException handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
-            parse_builtin id
+            Date_Helpers.tz_parse_builtin id
 
     ## ---
        group: DateTime
@@ -196,7 +166,7 @@ type Time_Zone
              example_zone_id = Time_Zone.system.zone_id
        ```
     zone_id : Text
-    zone_id self = @Builtin_Method "Time_Zone.zone_id"
+    zone_id self = Date_Helpers.tz_zone_id self
 
     ## ---
        group: DateTime
@@ -207,7 +177,7 @@ type Time_Zone
        ## Arguments
         - `at`: The date to compute offset at.
     offset : Date_Time -> Integer
-    offset self at = @Builtin_Method "Time_Zone.offset"
+    offset self at = Date_Helpers.tz_offset self at
 
     ## ---
        private: true

@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     name = "from_polyglot_array",
     description =
         "Creates a Vector by providing its underlying storage as a polyglot array. The underlying"
-            + " array should be guaranteed to never be mutated.",
-    autoRegister = false)
+            + " array should be guaranteed to never be mutated.")
 abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
 
   static FromPolyglotArrayBuiltinVectorNode build() {

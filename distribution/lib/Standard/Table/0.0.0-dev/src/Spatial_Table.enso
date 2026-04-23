@@ -9,6 +9,7 @@ import project.Expression.Expression
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Rows_To_Read.Rows_To_Read
+import project.Sort_Column.Sort_Column
 import project.Table.Table
 
 ## Extension methods for Spatial Tables
@@ -71,8 +72,12 @@ type Spatial_Table
        Note: Enso assumes that the points are in WGS84 coordinate system (EPSG:4326).
 
        ## Arguments
-        - `longitude`: The column, expression, or name/index of the column containing longitude values
-        - `latitude`: The column, expression, or name/index of the column containing latitude values
+        - `longitude`: The column, expression, or name/index of the column
+           containing longitude values
+        - `latitude`: The column, expression, or name/index of the column
+           containing latitude values
+        - `as`: The name for the new point column. It not provided, a default
+           name will be generated.
 
        ## Returns
        A new table with the existing columns and the new point column.
@@ -84,7 +89,80 @@ type Spatial_Table
         (self:Table).implementation.spatial_point self.parent.underlying lon_resolved lat_resolved as
 
     ## ---
-       aliases: [create_points]
+       aliases: [create_lines]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Merges a set of points into a Spatial line objects.
+
+       The points are merged in the order specified by the `order_by` argument,
+       or if not provided, in the order they appear in the table.
+
+       A grouping can also be applied using the `group_by` argument, in which
+       case points will only be merged together if they belong to the same group
+       and these columns will be included in the output table.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column
+          containing spatial objects. Please ensure that the column contains
+          spatial point objects, otherwise an error will occur.
+        - `as`: The name for the new point column. It not provided, a default
+           name will be generated.
+        - `group_by`: Specifies the columns to group by. The running statistic is
+          calculated separately for each group. By default, all rows are treated
+          as a single group.
+        - `order_by`: Specifies the columns to order by. Defaults to the order of
+          the rows in the table. The running statistic is calculated according to
+          the specified ordering.
+
+       ## Returns
+       A new table with the existing columns and the new geometry type column as text.
+    @column _spatial_widget single_choice=True
+    @group_by Widget_Helpers.make_column_name_multi_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    st_make_lines self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) =
+        _column_resolved = _resolve_column column self.parent
+        _group_by_resolved = group_by.map c-> _resolve_column c self.parent
+        (self:Table).implementation.spatial_shape "st_make_lines" self.parent.underlying _column_resolved as _group_by_resolved order_by
+
+    ## ---
+       aliases: [create_polygon]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Merges a set of points into a Spatial polygon objects.
+
+       The points are merged in the order specified by the `order_by` argument,
+       or if not provided, in the order they appear in the table.
+
+       A grouping can also be applied using the `group_by` argument, in which
+       case points will only be merged together if they belong to the same group
+       and these columns will be included in the output table.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column
+          containing spatial objects. Please ensure that the column contains
+          spatial point objects, otherwise an error will occur.
+        - `as`: The name for the new point column. It not provided, a default
+           name will be generated.
+        - `group_by`: Specifies the columns to group by. The running statistic is
+          calculated separately for each group. By default, all rows are treated
+          as a single group.
+        - `order_by`: Specifies the columns to order by. Defaults to the order of
+          the rows in the table. The running statistic is calculated according to
+          the specified ordering.
+
+       ## Returns
+       A new table with the existing columns and the new geometry type column as text.
+    @column _spatial_widget single_choice=True
+    @group_by Widget_Helpers.make_column_name_multi_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    st_make_polygons self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) =
+        _column_resolved = _resolve_column column self.parent
+        _group_by_resolved = group_by.map c-> _resolve_column c self.parent
+        (self:Table).implementation.spatial_shape "st_make_polygons" self.parent.underlying _column_resolved as _group_by_resolved order_by
+
+    ## ---
        group: Standard.Base.Calculations
        icon: spatial
        ---
@@ -92,6 +170,8 @@ type Spatial_Table
 
        ## Arguments
         - `column`: The column, expression, or name/index of the column containing spatial objects.
+        - `as`: The name for the new point column. It not provided, a default
+           name will be generated.
 
        ## Returns
        A new table with the existing columns and the new geometry type column as text.
@@ -356,6 +436,43 @@ type Spatial_Table
     st_from_wkt self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
         resolved = _resolve_column column self.parent
         (self:Table).implementation.spatial_from_wkt self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Creates the smallest convex polygon that can enclose each object in the
+       specified column. Use this in conjunction with an ST_Union aggregation to
+       form for sets of objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       convex-hull spatial objects.
+    @column Widget_Helpers.make_column_name_selector add_expression=True
+    st_convex_hull self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_convex_hull self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Creates the `concave` hull for each object in the specified column.
+       Use this in conjunction with an ST_Union aggregation to form for sets
+       of objects.
+
+       ## Arguments
+       - `ratio` dictates the level of concavity. 1.0 returns the convex hull
+         and 0.0 will return the most concave hull possible. Defaults to `0.0`.
+       - `allow_holes`: will allow the output to contain holes. `False` by
+         default.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       concave-hull spatial objects.
+    st_concave_hull self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" ratio:Float=0.0 allow_holes:Boolean=False =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_concave_hull self.parent.underlying resolved as ratio allow_holes
 
 ## When extracting latitude or longitude, which value to extract.
 type Lat_Long_Type

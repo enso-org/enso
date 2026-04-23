@@ -42,8 +42,8 @@
     - flatten self -> Standard.Base.Any.Any
     - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fold_with_index self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - from_array array:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - from_polyglot_array array:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_array array:Standard.Base.Data.Array.Array -> Standard.Base.Data.Vector.Vector
+    - from_polyglot_array array:Standard.Base.Any.Any -> (Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
     - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - insert self at:Standard.Base.Any.Any= item:Standard.Base.Any.Any= -> Standard.Base.Any.Any

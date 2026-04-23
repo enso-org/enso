@@ -850,6 +850,31 @@ type DB_Table_Implementation
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_point" [longitude, latitude]
             this_table.set new_column as=new_name
 
+    spatial_shape function:Text (this_table : Table & DB_Table) (column : Column) (as : Text) (group_by : Vector Column) (order_by : Vector (Text | Sort_Column) | Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect function <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
+            problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+                new_name = if as!="" then as else this_table.column_naming_helper.function_name function [column]
+
+                aggregate_table = this_table.aggregate group_by [..Array_Agg column.name new_name ignore_nothing=True order_by=ordering] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
+
+                array_table = if function == "st_make_lines" then aggregate_table else
+                    ## Need to append first element to the end
+                    first_column = _resolve_sql_function aggregate_table (SQL_Function.SQL "ARRAY_EXTRACT" [aggregate_table.get new_name, 1])
+                    first_name = DB_Table_Implementation.make_temp_column_name aggregate_table
+                    first_table = aggregate_table.set first_column as=first_name
+
+                    append_column = _resolve_sql_function first_table (SQL_Function.SQL "ARRAY_APPEND" [first_table.get new_name, first_table.get first_name])
+                    first_table.set append_column as=new_name . remove_columns [first_name]
+
+                new_column = _resolve_sql_function aggregate_table (SQL_Function.SQL "ST_MakeLine" [array_table.get new_name])
+                line_table = aggregate_table.set new_column as=new_name
+
+                if function == "st_make_lines" then line_table else
+                    new_column = _resolve_sql_function line_table (SQL_Function.SQL "ST_MakePolygon" [line_table.get new_name])
+                    line_table.set new_column as=new_name . set (..SQL "ST_MakeValid" [..Name new_name]) as=new_name
+
     spatial_geometry_type (this_table : Table & DB_Table) (column : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_geometry_type" <| expect_spatial_type column this_table.connection.dialect <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_GeometryType" [column])
@@ -965,6 +990,18 @@ type DB_Table_Implementation
             Value_Type_Checks.is_text column
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_GeomFromText" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_from_wkt" [column]
+            this_table.set new_column as=new_name
+
+    spatial_convex_hull (this_table : Table & DB_Table) (column : Column) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_convex_hull" <| expect_spatial_type column this_table.connection.dialect <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_ConvexHull" [column])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_convex_hull" [column]
+            this_table.set new_column as=new_name
+
+    spatial_concave_hull (this_table : Table & DB_Table) (column : Column) (as : Text) (ratio : Float) (allow_holes : Boolean) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_concave_hull" <| expect_spatial_type column this_table.connection.dialect <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_ConcaveHull" [column, ratio, allow_holes])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_concave_hull" [column]
             this_table.set new_column as=new_name
 
 ## ---

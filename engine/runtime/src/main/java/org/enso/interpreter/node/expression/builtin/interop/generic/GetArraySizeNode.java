@@ -13,8 +13,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_array_size",
-    description = "Returns the size of a polyglot array.",
-    autoRegister = false)
+    description = "Returns the size of a polyglot array.")
 public class GetArraySizeNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

@@ -103,14 +103,7 @@ public class TypeMembersTest {
     var compileError = module.invokeMember("eval_expression", "v");
     assertEquals(
         "all members",
-        Set.of(
-            ConstantsNames.TO_DISPLAY_TEXT,
-            "message",
-            ConstantsNames.TO_TEXT,
-            "to",
-            "==",
-            "!=",
-            "pretty"),
+        Set.of(ConstantsNames.TO_DISPLAY_TEXT, "message", "to", "==", "!="),
         compileError.getMemberKeys());
   }
 
@@ -176,9 +169,9 @@ public class TypeMembersTest {
 
             main = My_Type
             """);
-    var displayTextRes = myType.invokeMember(ConstantsNames.TO_DISPLAY_TEXT);
-    assertThat("Has correct result type", displayTextRes.isString(), is(true));
-    assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
+    var compareResult = myType.invokeMember("==", 0);
+    assertTrue("Result of == is boolean", compareResult.isBoolean());
+    assertFalse("Not equal", compareResult.asBoolean());
   }
 
   @Test

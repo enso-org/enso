@@ -4,6 +4,7 @@ import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
 import project.Errors.Common.Type_Error
+import project.Internal.Text_Helpers
 import project.Panic.Panic
 from project.Data.Boolean import Boolean
 from project.Nothing import all
@@ -41,8 +42,7 @@ type Text
        A character is defined as an Extended Grapheme Cluster, see Unicode
        Standard Annex 29. This is the smallest unit that still has semantic
        meaning in most text-processing applications.
-    length : Integer
-    length self = @Builtin_Method "Text.length"
+    length self -> Integer = Text_Helpers.length self
 
     ## ---
        aliases: [concatenate]
@@ -60,8 +60,7 @@ type Text
        ```
              "Hello" + ", world!"
        ```
-    + : Text -> Text
-    + self that = @Builtin_Method "Text.+"
+    + self that:Text -> Text = Text_Helpers.plus self that
 
     ## ---
        group: Logical
@@ -191,8 +190,7 @@ type Text
        ```
              "14.95€".is_normalized
        ```
-    is_normalized : Boolean
-    is_normalized self = @Builtin_Method "Text.is_normalized"
+    is_normalized self -> Boolean = Text_Helpers.is_normalized self
 
     ## ---
        aliases: [normalise]

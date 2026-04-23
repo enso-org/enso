@@ -1,4 +1,5 @@
 import project.Errors.Common.No_Such_Conversion
+import project.Internal.Boolean_Helpers
 from project.Data.Boolean import Boolean
 from project.Metadata import Widget
 
@@ -111,8 +112,7 @@ type Any
        While the generic equality provided here will work for _all_ values in
        Enso, its performance may often be suboptimal. Many types can implement
        their own equality operations that will be more efficient than these.
-    == : Any -> Boolean
-    == self that = @Builtin_Method "Any.=="
+    == self that -> Boolean = Boolean_Helpers.any_equals self that
 
     ## ---
        aliases: [not equals]
@@ -142,5 +142,4 @@ type Any
        relying on the default definition given here. If you do, please ensure
        that you satisfy universal equality, as described in the documentation for
        `Any.==`.
-    != : Any -> Boolean
-    != self that = (self == that).not
+    != self that -> Boolean = (self == that).not

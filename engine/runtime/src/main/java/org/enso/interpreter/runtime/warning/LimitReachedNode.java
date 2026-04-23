@@ -11,8 +11,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     type = "Warning",
     name = "limit_reached",
     description =
-        "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
-    autoRegister = false)
+        "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.")
 public abstract class LimitReachedNode extends Node {
   public static LimitReachedNode build() {
     return LimitReachedNodeGen.create();

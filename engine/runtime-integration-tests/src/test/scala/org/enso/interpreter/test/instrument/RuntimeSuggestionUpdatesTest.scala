@@ -1667,7 +1667,7 @@ class RuntimeSuggestionUpdatesTest extends AnyFlatSpec with Matchers {
     val aModuleName = "Enso_Test.Test.A"
 
     val mainCode =
-      """import Standard.Base.IO
+      """from Standard.Base import IO, to_text
         |
         |import project.A
         |
@@ -2407,6 +2407,7 @@ class RuntimeSuggestionUpdatesTest extends AnyFlatSpec with Matchers {
     val mainCode =
       """import Enso_Test.Test_Lib.Xyz
         |from Enso_Test.Test_Lib.Main import test_main
+        |import Standard.Base.Data.Text.Extensions
         |
         |main =
         |    a = Xyz.test_xyz

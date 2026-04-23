@@ -40,7 +40,7 @@ class RuntimeAsyncCommandsTest
 
   object Visualization {
 
-    val metadata = new Metadata
+    val metadata = new Metadata("from Standard.Base import to_text\n\n")
 
     val code =
       metadata.appendToCode(
@@ -822,7 +822,9 @@ class RuntimeAsyncCommandsTest
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+    val metadata = new Metadata(
+      "import Standard.Base.Data.Numbers\nfrom Standard.Base import to_text\n\n"
+    )
 
     val idOp1  = metadata.addItem(23, 2)
     val idOp2  = metadata.addItem(42, 13)

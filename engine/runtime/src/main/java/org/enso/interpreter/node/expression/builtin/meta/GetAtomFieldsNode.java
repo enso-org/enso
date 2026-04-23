@@ -16,8 +16,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 @BuiltinMethod(
     type = "Meta",
     name = "get_atom_fields",
-    description = "Gets the fields of an unresolved atom.",
-    autoRegister = false)
+    description = "Gets the fields of an unresolved atom.")
 public abstract class GetAtomFieldsNode extends Node {
   private static final String LIMIT = "3";
 

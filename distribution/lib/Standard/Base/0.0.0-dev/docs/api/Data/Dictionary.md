@@ -5,13 +5,12 @@
     - contains_key self key:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - each_with_key self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - empty -> Standard.Base.Any.Any
+    - empty -> Standard.Base.Data.Dictionary.Dictionary
     - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fold_with_key self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - from_keys_and_values keys:Standard.Base.Data.Vector.Vector values:Standard.Base.Data.Vector.Vector error_on_duplicates:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - from_vector vec:Standard.Base.Any.Any error_on_duplicates:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - get self key:Standard.Base.Any.Any ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - get_builtin self key:Standard.Base.Any.Any ~if_missing:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - insert self key:Standard.Base.Any.Any= value:Standard.Base.Any.Any= no_warning:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - is_empty self -> Standard.Base.Any.Any
     - keys self -> Standard.Base.Any.Any
@@ -25,7 +24,7 @@
     - singleton key:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - size self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-    - to_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Data.Text.Text
     - to_vector self -> Standard.Base.Any.Any
     - transform self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - values self -> Standard.Base.Any.Any

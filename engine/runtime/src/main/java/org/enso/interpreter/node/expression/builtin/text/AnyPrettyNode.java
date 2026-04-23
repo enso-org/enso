@@ -24,7 +24,7 @@ public abstract class AnyPrettyNode extends Node {
     return AnyPrettyNodeGen.create();
   }
 
-  public abstract Text execute(Object self);
+  public abstract Text execute(Object obj);
 
   @Specialization
   Text doAtom(Atom at) {

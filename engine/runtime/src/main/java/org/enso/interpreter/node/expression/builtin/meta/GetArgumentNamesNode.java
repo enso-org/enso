@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
-@BuiltinMethod(type = "Meta", name = "get_argument_names", autoRegister = false)
+@BuiltinMethod(type = "Meta", name = "get_argument_names")
 public abstract class GetArgumentNamesNode extends Node {
   static GetArgumentNamesNode build() {
     return GetArgumentNamesNodeGen.create();

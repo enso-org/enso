@@ -36,7 +36,7 @@ abstract class AnyToTextNode extends Node {
     return AnyToTextNodeGen.getUncached();
   }
 
-  abstract Text execute(Object self);
+  abstract Text execute(Object obj);
 
   @Specialization
   Text doAtom(Atom at) {

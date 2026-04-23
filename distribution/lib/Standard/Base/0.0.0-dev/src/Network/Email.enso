@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
@@ -94,7 +95,7 @@ type Email
        ---
     to_text self -> Text = 
         'From: ' + self.from_address.to_text 
-            + '\nTo: ' + (self.to.map .to_text).join '; '
+            + '\nTo: ' + ((self.to:Any).map .to_text).join '; '
             + '\nCc: ' + (self.cc.map .to_text).join '; '
             + '\nBcc: ' + (self.bcc.map .to_text).join '; '
             + '\nSubject: ' + self.subject

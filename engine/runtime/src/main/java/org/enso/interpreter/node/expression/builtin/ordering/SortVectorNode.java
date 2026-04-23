@@ -82,7 +82,7 @@ public abstract class SortVectorNode extends Node {
    */
   public abstract Object execute(
       VirtualFrame frame,
-      @AcceptsError Object self,
+      @AcceptsError Object vector,
       long ascending,
       Object comparators,
       Object compareFunctions,
