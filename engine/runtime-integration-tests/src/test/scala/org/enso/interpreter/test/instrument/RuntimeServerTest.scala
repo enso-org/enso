@@ -5486,14 +5486,14 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Type error: expected `that` to be Text, but got Integer.",
             None,
-            Some(model.Range(model.Position(46, 4), model.Position(62, 58))),
+            Some(model.Range(model.Position(41, 4), model.Position(57, 58))),
             None,
             Vector(
               Api.StackTraceElement(
                 "Text.+",
                 None,
                 Some(
-                  model.Range(model.Position(46, 4), model.Position(62, 58))
+                  model.Range(model.Position(41, 4), model.Position(57, 58))
                 ),
                 None
               ),
@@ -5570,14 +5570,14 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Type error: expected `that` to be Text, but got Integer.",
             None,
-            Some(model.Range(model.Position(46, 4), model.Position(62, 58))),
+            Some(model.Range(model.Position(41, 4), model.Position(57, 58))),
             None,
             Vector(
               Api.StackTraceElement(
                 "Text.+",
                 None,
                 Some(
-                  model.Range(model.Position(46, 4), model.Position(62, 58))
+                  model.Range(model.Position(41, 4), model.Position(57, 58))
                 ),
                 None
               ),
