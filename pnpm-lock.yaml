@@ -63,6 +63,9 @@ patchedDependencies:
   '@aws-amplify/auth':
     hash: ee700ddad588504ca446bda41b375cee97be5584448234e000072c2294b4b08f
     path: patches/@aws-amplify__auth.patch
+  app-builder-lib@26.8.1:
+    hash: d183546bc267f4939c5b6b2ba826bf274d2a14d0bdd757151241cd178f599f14
+    path: patches/app-builder-lib@26.8.1.patch
 
 importers:
 
@@ -12729,7 +12732,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  app-builder-lib@26.8.1(dmg-builder@26.8.1)(electron-builder-squirrel-windows@24.13.3):
+  app-builder-lib@26.8.1(patch_hash=d183546bc267f4939c5b6b2ba826bf274d2a14d0bdd757151241cd178f599f14)(dmg-builder@26.8.1)(electron-builder-squirrel-windows@24.13.3):
     dependencies:
       '@develar/schema-utils': 2.6.5
       '@electron/asar': 3.4.1
@@ -13798,7 +13801,7 @@ snapshots:
 
   dmg-builder@26.8.1(electron-builder-squirrel-windows@24.13.3):
     dependencies:
-      app-builder-lib: 26.8.1(dmg-builder@26.8.1)(electron-builder-squirrel-windows@24.13.3)
+      app-builder-lib: 26.8.1(patch_hash=d183546bc267f4939c5b6b2ba826bf274d2a14d0bdd757151241cd178f599f14)(dmg-builder@26.8.1)(electron-builder-squirrel-windows@24.13.3)
       builder-util: 26.8.1
       fs-extra: 10.1.0
       iconv-lite: 0.6.3
@@ -13906,7 +13909,7 @@ snapshots:
 
   electron-builder@26.8.1(electron-builder-squirrel-windows@24.13.3):
     dependencies:
-      app-builder-lib: 26.8.1(dmg-builder@26.8.1)(electron-builder-squirrel-windows@24.13.3)
+      app-builder-lib: 26.8.1(patch_hash=d183546bc267f4939c5b6b2ba826bf274d2a14d0bdd757151241cd178f599f14)(dmg-builder@26.8.1)(electron-builder-squirrel-windows@24.13.3)
       builder-util: 26.8.1
       builder-util-runtime: 9.5.1
       chalk: 4.1.2
