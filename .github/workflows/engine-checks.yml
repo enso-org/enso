@@ -46,6 +46,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -106,6 +108,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -168,6 +172,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -234,6 +240,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -319,6 +327,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -404,6 +414,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -464,6 +476,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -514,6 +528,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -602,6 +618,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -690,6 +708,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -778,6 +798,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -866,6 +888,8 @@ jobs:
           node-version-file: .node-version
       - if: runner.os != 'Linux'
         run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Enable corepack package manager shims
+        run: corepack enable
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
