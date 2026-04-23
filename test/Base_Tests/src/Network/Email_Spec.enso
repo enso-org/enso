@@ -23,17 +23,17 @@ add_specs suite_builder =
         group_builder.specify "should send a simple plain text email to one recipient" <|
             response = Email.send from_address [to_address_1] subject="Simple Test" body=(..Plain_Text 'This is a plain text email.') provider=test_provider
             response.email.from_address.address . should_equal from_address.address
-            response.email.to.length . should_equal 1
+            response.email.to_addresses.length . should_equal 1
             response.email.subject . should_equal "Simple Test"
         
         group_builder.specify "should send an email with named sender and recipient" <|
             response = Email.send from_address [to_address_2] subject="Named Test" body=(..Plain_Text 'Email with names') provider=test_provider
             response.email.from_address.name . should_equal from_address.name
-            response.email.to.first.name . should_equal to_address_2.name
+            response.email.to_addresses.first.name . should_equal to_address_2.name
         
         group_builder.specify "should send an email to multiple recipients" <|
             response = Email.send from_address [to_address_1, to_address_2] subject="Multiple Recipients" body=(..Plain_Text 'Email to multiple people') provider=test_provider
-            response.email.to.length . should_equal 2
+            response.email.to_addresses.length . should_equal 2
             
         group_builder.specify "should send an email with empty body" <|
             response = Email.send from_address [to_address_1] subject="Empty Body Test" body=..No_Body provider=test_provider
@@ -80,7 +80,7 @@ add_specs suite_builder =
     suite_builder.group "Email Sending - Complex Combinations" group_builder->
         group_builder.specify "should send an email with all fields populated" <|
             response = Email.send from_address [to_address_1, to_address_2] cc=[cc_address] bcc=[bcc_address] subject="Full Email Test" body=(..HTML "<h1>Complete</h1>" "Complete") provider=test_provider
-            response.email.to.length . should_equal 2
+            response.email.to_addresses.length . should_equal 2
             response.email.cc.length . should_equal 1
             response.email.bcc.length . should_equal 1
             response.email.subject . should_equal "Full Email Test"
@@ -108,7 +108,7 @@ add_specs suite_builder =
         group_builder.specify "should create an email with all fields using Email.new" <|
             email = Email.new from_address [to_address_1, to_address_2] cc=[cc_address] bcc=[bcc_address] subject="Full New Test" body=(..HTML "<p>HTML</p>" "Plain")
             response = email.send_message provider=test_provider
-            response.email.to.length . should_equal 2
+            response.email.to_addresses.length . should_equal 2
             response.email.cc.length . should_equal 1
             response.email.bcc.length . should_equal 1
         
