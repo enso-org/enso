@@ -124,31 +124,3 @@ type Boolean
     if_then : Any -> Any | Nothing
     if_then self ~on_true =
         @Tail_Call Boolean_Helpers.if_then self on_true
-
-    ## ---
-       aliases: [greater than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than `that`.
-
-    ## ---
-       aliases: [greater than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than or equal to `that`.
-
-    ## ---
-       aliases: [less than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than `that`.
-
-    ## ---
-       aliases: [less than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than or equal to `that`.
