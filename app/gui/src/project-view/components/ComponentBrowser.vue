@@ -23,7 +23,6 @@ import { registerHandlers, toggledAction, type Action } from '@/providers/action
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { Ast } from '@/util/ast'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
@@ -323,12 +322,13 @@ function acceptInput() {
 
 async function acceptAiInput() {
   if (input.mode.mode !== 'aiPrompt') return
-  const prompt = input.mode.prompt
-  const sourceIdentifier = input.selfArgument
-  const position = props.nodePosition
   const result = await input.applyAIPrompt()
-  if (result != null && result.ok && sourceIdentifier != null) {
-    emit('acceptedAi', { prompt, body: result.value.body, sourceIdentifier, position })
+  if (result != null && result.ok && input.selfArgument != null) {
+    emit('acceptedAi', {
+      prompt: input.mode.prompt,
+      body: result.value.body,
+      sourceIdentifier: input.selfArgument,
+    })
   } else {
     emit('canceled')
   }

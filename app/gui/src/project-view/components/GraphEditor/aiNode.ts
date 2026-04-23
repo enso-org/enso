@@ -34,7 +34,6 @@ export interface AcceptedAiPayload {
   prompt: string
   body: string
   sourceIdentifier: Identifier
-  position: Vec2
 }
 
 export interface CreateAiNodeOptions {
@@ -42,6 +41,7 @@ export interface CreateAiNodeOptions {
   topLevel: Ast.MutableBodyBlock
   currentMethodName: string
   binding: Identifier
+  position: Vec2
   payload: AcceptedAiPayload
 }
 
@@ -52,8 +52,8 @@ export interface CreateAiNodeOptions {
  * the form `AI: <prompt>`, which the graph editor renders as the node's prompt.
  */
 export function createAiNode(options: CreateAiNodeOptions) {
-  const { edit, topLevel, currentMethodName, binding, payload } = options
-  const { prompt, body, sourceIdentifier, position } = payload
+  const { edit, topLevel, currentMethodName, binding, position, payload } = options
+  const { prompt, body, sourceIdentifier } = payload
   const found = Ast.findModuleMethod(topLevel, currentMethodName)
   if (!found) return
   const { statement: currentMethod, index: currentMethodLine } = found

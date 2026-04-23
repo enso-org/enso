@@ -522,13 +522,13 @@ function handleAiAccepted(payload: AcceptedAiPayload) {
     hideComponentBrowser()
     return
   }
-  const binding = graphStore.generateLocallyUniqueIdent('ai_component')
   module.value.edit((edit) => {
     createAiNode({
       edit,
       topLevel: edit.getVersion(topLevel),
       currentMethodName,
-      binding,
+      binding: graphStore.generateLocallyUniqueIdent('ai_component'),
+      position: componentBrowserNodePosition.value,
       payload,
     })
     return Ok()
