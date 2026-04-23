@@ -1,5 +1,13 @@
 # Next Release
 
+#### Enso Language & Runtime
+
+- [Extending Boolean, Nothing, Text via extension methods][14980]
+
+[14980]: https://github.com/enso-org/enso/pull/14980
+
+# Enso 2026.1
+
 #### Enso IDE
 
 - [Add component alignment options][14590].
