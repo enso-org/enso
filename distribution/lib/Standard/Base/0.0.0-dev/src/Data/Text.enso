@@ -59,61 +59,6 @@ type Text
 
     ## ---
        group: Logical
-       icon: operators
-       ---
-       Checks whether `self` is equal to `that`, ignoring the case of the texts.
-
-       Two texts are considered equal ignoring case if they are of the same
-       length and corresponding characters are equal ignoring case.
-
-       ## Arguments
-        - `that`: The text to compare `self` for case-insensitive equality with.
-        - `locale`: The locale to use for case-insensitive comparison.
-
-       ## Examples
-       ### The string 'É' (i.e. U+00C9, LATIN CAPITAL LETTER E WITH ACUTE) is
-         equal to the string 'é' (i.e. U+00E9, LATIN SMALL LETTER E WITH ACUTE)
-         ignoring case, which is canonically the same as the string 'e\u0301'
-         (i.e. the letter `e` followed by U+0301, COMBINING ACUTE ACCENT).
-         Therefore:
-
-       ```
-             (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
-       ```
-
-       ## Remarks
-
-       ### Unicode Equality
-       The definition of equality includes Unicode canonicalization. I.e. two
-       texts are equal if they are identical after canonical decomposition. This
-       ensures that different ways of expressing the same character in the
-       underlying binary representation are considered equal.
-
-    ## ---
-       private: true
-       advanced: true
-       unstable: true
-       ---
-       Unifies the case of all letters in the text, generating a key which can be
-       used to perform case-insensitive comparisons.
-
-    ## ---
-       icon: text
-       ---
-       Compare two texts to discover their ordering.
-
-       ## Arguments
-        - `that`: The text to order `self` with respect to.
-
-       ## Examples
-       ### Checking how "a" orders in relation to "b".
-
-       ```
-             "a".compare_to_ignore_case "b"
-       ```
-
-    ## ---
-       group: Logical
        icon: metadata
        ---
        Check if `self` is empty.
@@ -193,31 +138,3 @@ type Text
         mode = normalization.get_java_mode
         name = normalization.get_mode_name
         Text_Utils.normalizeWithMode self name mode
-
-    ## ---
-       aliases: [greater than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than `that`.
-
-    ## ---
-       aliases: [greater than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than or equal to `that`.
-
-    ## ---
-       aliases: [less than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than `that`.
-
-    ## ---
-       aliases: [less than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than or equal to `that`.
