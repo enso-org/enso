@@ -1,6 +1,5 @@
 import project.Any.Any
 from project.Data.Boolean import Boolean, False, True
-from project.Function import const
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
    universal value to indicate the lack of presence of a value.
@@ -52,7 +51,8 @@ type Nothing
              my_result.if_not_nothing <| my_result + 1
        ```
     if_not_nothing : Any -> Any
-    if_not_nothing self ~action = const Nothing action
+    if_not_nothing self ~_ =
+        Nothing
 
 ## ---
    group: Logical
@@ -82,8 +82,8 @@ Any.is_nothing self -> Boolean = False
    ```
          "Hello".if_nothing ""
    ```
-Any.if_nothing self ~other =
-   const self other
+Any.if_nothing self ~_ =
+    self
 
 ## ---
    group: Logical

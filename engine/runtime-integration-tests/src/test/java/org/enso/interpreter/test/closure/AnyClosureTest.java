@@ -21,12 +21,12 @@ public final class AnyClosureTest extends TransitiveInfra {
 
   @Override
   protected int minimumOfModules() {
-    return 5;
+    return 3;
   }
 
   @Override
   protected int maximumOfModules() {
-    return 8;
+    return 6;
   }
 
   @Override
