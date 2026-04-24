@@ -1,6 +1,5 @@
 package org.enso.compiler.test;
 
-import static org.enso.compiler.test.ExecCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;

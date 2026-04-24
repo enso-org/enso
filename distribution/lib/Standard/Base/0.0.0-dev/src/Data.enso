@@ -42,6 +42,8 @@ from project.Metadata.Widget import File_Browse, Folder_Browse, Numeric_Input, T
 from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
 
+export project.Data.Numbers
+
 ## ---
    aliases: [load, open]
    macros:
