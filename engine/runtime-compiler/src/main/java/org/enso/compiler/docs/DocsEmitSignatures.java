@@ -21,11 +21,11 @@ final class DocsEmitSignatures implements DocsVisit {
 
   @Override
   public boolean visitModule(QualifiedName name, Module module, PrintWriter w) throws IOException {
+    w.println("## Enso Signatures 1.0");
+    w.println("## module " + name);
     if (isEmpty(module)) {
       return false;
     } else {
-      w.println("## Enso Signatures 1.0");
-      w.println("## module " + name);
       return true;
     }
   }
