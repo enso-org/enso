@@ -258,7 +258,7 @@ It is important to ensure these operations do not remove a part of the intersect
 Otherwise the value loses part of its functionality which would have a detrimental effect
 in the GUI, confusing users. 
 If the `DB_Table` part is not kept as hidden, but completely removed, the
-table can no longer be casted to `DB_Table` and used as such.
+table can no longer be cast to `DB_Table` and used as such.
 ## Signature vs. Cast
 
 There are two slightly different places where _type checking_ occurs:
