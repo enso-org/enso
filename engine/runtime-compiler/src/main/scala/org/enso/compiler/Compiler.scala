@@ -13,13 +13,11 @@ import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,
-  Name,
   Warning,
   Module => IRModule
 }
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
@@ -28,7 +26,6 @@ import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
-import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
 import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
 import org.enso.compiler.dump.service.IRDumper
@@ -721,16 +718,7 @@ class Compiler(
     val idMap = Option(context.getIdMap(module))
     val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 
-    val exprWithModuleExports =
-      if (module.isSynthetic())
-        expr
-      else
-        //injectSyntheticModuleExports(
-        //  module.getName().toString(),
-        //  expr,
-        //  module.getDirectModulesRefs
-        //)
-        expr
+    val exprWithModuleExports = expr
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
@@ -827,74 +815,6 @@ class Compiler(
     */
   def parseInline(source: CharSequence): Tree =
     Parser.parseBlock(source)
-
-  /** Enhances the provided IR with import/export statements for the provided list
-    * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
-    * That way one can access modules using fully qualified names.
-    * E.g.,
-    * Given module A/B/C.enso
-    * ````
-    *   type C
-    *       C a
-    * ````
-    * it is possible to
-    * ```
-    * import A
-    * ...
-    *   x = A.B.C 0
-    * ```
-    * because the compiler will inject synthetic modules A and A.B such that
-    * A.enso:
-    * ````
-    *   import project.A.B
-    *   export project.A.B
-    * ````
-    * and A/B.enso:
-    * ````
-    *   import project.A.B.C
-    *   export project.A.B.C
-    * ````
-    * @param n name of module providing the IR
-    * @param ir IR to be enhanced
-    * @param modules fully qualified names of modules
-    * @return enhanced
-    */
-  def injectSyntheticModuleExports(
-    n: String,
-    ir: IRModule,
-    modules: java.util.List[QualifiedName]
-  ): IRModule = {
-    import scala.jdk.CollectionConverters._
-    n.getClass
-    val moduleNames = modules.asScala.map { q =>
-      val name = q.path.foldRight(
-        List(
-          Name.Literal
-            .builder()
-            .name(q.item)
-            .isMethod(false)
-            .build()
-        )
-      ) { case (part, acc) =>
-        Name.Literal
-          .builder()
-          .name(part)
-          .isMethod(false)
-          .build() :: acc
-      }
-      Name.Qualified.builder().parts(name).build()
-    }.toList
-    ir.copyWithImportsAndExports(
-      ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
-      ir.exports ::: moduleNames.map(m =>
-        Export.Module
-          .builder()
-          .name(m)
-          .isSynthetic(true)
-          .build()
-      )
-    )
-  }
 
   private def recognizeBindings(
     module: IRModule,
