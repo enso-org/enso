@@ -23,7 +23,7 @@ Each subdir mirrors a standard-library module name.
 The standard library uses Enso's polyglot-Java host interop (`Polyglot.import`)
 to reach these classes at runtime. Adding a method here makes it immediately
 callable from the matching `distribution/lib/Standard/<Module>/` sources — no
-Truffle wiring required.
+Truffle wiring required. To call these, use `polyglot java import ` syntax.
 
 ## Shape
 
