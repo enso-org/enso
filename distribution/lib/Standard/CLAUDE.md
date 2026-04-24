@@ -10,8 +10,7 @@ placeholder that the release pipeline rewrites).
   integration. Every other module imports from `Base`.
 - `Table/` — Columnar data / table operations.
 - `Database/` — Generic SQL abstractions.
-- `Generic_JDBC/` — JDBC integration layer (backs `Microsoft`, `Snowflake`,
-  Postgres, Redshift, …).
+- `Generic_JDBC/` — JDBC integration layer for unsupported connections.
 - `AWS/`, `Google/`, `Google_Api/`, `Microsoft/`, `Snowflake/`, `Tableau/`,
   `DuckDB/`, `Saas/` — Provider-specific integrations.
 - `Image/`, `Geo/` — Media and geo types.
