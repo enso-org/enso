@@ -154,7 +154,7 @@ to_ `Float` while `c` in the case branch only _can be cast to_.
 >
 > This behavior is often described as being **open to subclasses**. E.g. the
 > `c:Complex` check allows values with _intersection types_ that include
-> `Complex` to pass thru with all their runtime information available, but one
+> `Complex` to pass through with all their runtime information available, but one
 > has to perform an explicit cast to extract the other types associated with
 > such a value.
 
@@ -210,7 +210,7 @@ Text.from (that:Float) = Float.to_text
 
 then `Complex&Float` value `cf` can be typed as `cf:Text`. The value can also be
 converted to another _intersection type_ like `ct = cf:Complex&Text`. In such
-case it looses its `Float` type and `ct:Float` would fail.
+case it loses its `Float` type and `ct:Float` would fail.
 
 In short: when a [conversion](../syntax/conversions.md) is needed to satisfy a
 type check a new value is created to satisfy just the types requested in the
@@ -227,8 +227,8 @@ this compound type may get _hidden_ when passing around various type checks
 retains its identity as a `Table & DB_Table` and can be uncovered via a cast or
 a `case of` expression during runtime.
 
-To ensure intersection types properly propagate thru the Enso program the basic
-language constructs are designed to handle them properly. Namely:
+To ensure intersection types properly propagate through the Enso program the
+basic language constructs are designed to handle them properly. Namely:
 
 - casting `x : A` will hide the `B` part, so the actual type is `x : A & ~B`.
 - inspecting the type via `case of`, e.g.
@@ -318,7 +318,7 @@ id x = x:Text&Any
 ```
 
 again. The first one only considers _visible types_, while the second one
-considers also _hidden types_. As a project of this behavior, there is also a
+considers also _hidden types_. As a projection of this behavior, there is also a
 difference in a simple _Any type check_:
 
 ```ruby
