@@ -83,5 +83,24 @@ Gotchas:
 
 ## Tests
 
-Playwright-driven E2E tests in `tests/` + `playwright.config.ts`. They launch a
-packaged (or unpackaged) build. Runs are long; avoid in inner dev loops.
+Two layers, same directory, different runners — controlled by the `testIgnore`
+rule in `playwright.config.ts`:
+
+- `tests/headless/*.test.ts` — Vitest unit tests for main-process code. No
+  Electron, no DOM. Fast. Run with `corepack pnpm vitest --run tests/headless`.
+  This is where `claudeAgent.test.ts` lives.
+- `tests/*.spec.ts` — Playwright end-to-end tests that launch the packaged
+  Electron binary from `dist/ide/` and drive the app from a real user's
+  perspective (login → dashboard → project → graph editor). `electronTest.ts`
+  extends Playwright's `test` fixture to spawn Electron and exposes helpers
+  like `loginAsTestUser`, `createNewProject`, `openComponentBrowser`. See
+  `tests/README.md` for prerequisites (a built `dist/ide/`, credentials at
+  `playwright/.auth/user.json`). Run with
+  `corepack pnpm -r --filter enso ide-integration-test [path.spec.ts]`.
+  Runs are long (minutes), so avoid them in inner dev loops.
+
+When adding a Playwright test that needs an external dependency the CI doesn't
+have yet (e.g. `aiNode.spec.ts` needs the local `claude` CLI), gate the whole
+describe block on an env flag (`process.env.ENSO_TEST_AI === '1'`) and note
+the flag in the plan's verification section so per-step smokes still exercise
+it locally.
