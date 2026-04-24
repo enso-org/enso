@@ -133,7 +133,7 @@ class ImportsTest extends PackageTest {
       fail("Should throw CompilerError")
     } catch {
       case e: InterpreterException =>
-        e.getMessage.contains("Conflicting resolutions") shouldBe true
+        e.getMessage.trim shouldEqual "Method `c_mod_method` of type C.type could not be found."
     }
   }
 
