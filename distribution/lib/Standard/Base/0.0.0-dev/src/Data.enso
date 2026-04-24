@@ -34,6 +34,7 @@ import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
