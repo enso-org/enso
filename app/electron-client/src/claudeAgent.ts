@@ -1,16 +1,21 @@
 /**
- * @file Electron-main-side adapter that runs the local Claude Agent SDK to generate
- * the body of a User Defined Component from a natural-language prompt. Exposed to the
- * renderer via IPC; the renderer never imports the SDK directly.
+ * @file Electron-main-side adapter that shells out to the user-installed `claude` CLI
+ * executable to generate the body of a User Defined Component from a natural-language
+ * prompt. Exposed to the renderer via IPC; the renderer never invokes the CLI directly.
+ *
+ * Authentication rides on whatever the `claude` CLI is already configured with (OAuth,
+ * keychain, `ANTHROPIC_API_KEY`, or subscription token). The main process does not require
+ * or read the API key beyond forwarding the parent environment.
  */
-import { query } from '@anthropic-ai/claude-agent-sdk'
 import { ipcMain } from 'electron'
 import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
+import { spawn } from 'node:child_process'
 import { Channel } from './ipc.js'
 
+const CLAUDE_EXECUTABLE = 'claude'
 const REQUEST_TIMEOUT_MS = 60_000
-const MAX_AGENT_TURNS = 2
+const STDERR_TAIL_CHARS = 2_000
 
 // =====================
 // === System prompt ===
@@ -75,64 +80,213 @@ ${typeLine}
 User request: ${prompt}`
 }
 
-function extractBody(structuredOutput: unknown): string | null {
+// ======================
+// === CLI invocation ===
+// ======================
+
+interface CliOutcome {
+  stdout: string
+  stderr: string
+  exitCode: number | null
+  spawnError?: NodeJS.ErrnoException
+}
+
+// `--tools ''` disables all built-in tools, matching Step 1's SDK `allowedTools: []`. Step 6
+// will replace this with `--allowedTools Read Glob Grep` plus `--add-dir <stdlibRoot>
+// --add-dir <projectSrcRoot>` once stdlib and project paths are threaded through the
+// request. `--setting-sources ''` keeps the invocation hermetic (no user settings, plugins,
+// or `CLAUDE.md` discovery) without touching auth. `--bare` is deliberately *not* used: it
+// disables OAuth/keychain and would re-introduce the `ANTHROPIC_API_KEY` requirement we
+// just dropped.
+function buildCliArgs(): string[] {
+  return [
+    '--print',
+    '--output-format',
+    'json',
+    '--json-schema',
+    JSON.stringify(RESPONSE_SCHEMA),
+    '--system-prompt',
+    SYSTEM_PROMPT,
+    '--tools',
+    '',
+    '--setting-sources',
+    '',
+    '--no-session-persistence',
+  ]
+}
+
+function runClaude(
+  args: readonly string[],
+  stdinPayload: string,
+  signal: AbortSignal,
+): Promise<CliOutcome> {
+  return new Promise((resolve) => {
+    const child = spawn(CLAUDE_EXECUTABLE, args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: process.env,
+    })
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+    let spawnError: NodeJS.ErrnoException | undefined
+    let settled = false
+    const settle = () => {
+      if (settled) return
+      settled = true
+      const outcome: CliOutcome = {
+        stdout: Buffer.concat(stdoutChunks).toString('utf8'),
+        stderr: Buffer.concat(stderrChunks).toString('utf8'),
+        exitCode: child.exitCode,
+      }
+      if (spawnError) outcome.spawnError = spawnError
+      resolve(outcome)
+    }
+
+    child.stdout?.on('data', (chunk: Buffer) => stdoutChunks.push(chunk))
+    child.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+    child.on('error', (err) => {
+      spawnError = err as NodeJS.ErrnoException
+    })
+    child.on('close', settle)
+
+    signal.addEventListener(
+      'abort',
+      () => {
+        child.kill('SIGTERM')
+      },
+      { once: true },
+    )
+
+    if (child.stdin) {
+      // Swallow EPIPE etc. — the 'close' handler still resolves with the captured state.
+      child.stdin.on('error', (err) => {
+        spawnError ??= err as NodeJS.ErrnoException
+      })
+      child.stdin.end(stdinPayload)
+    }
+  })
+}
+
+// =======================
+// === Output parsing ===
+// =======================
+
+function parseJsonSafe(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+// With `--json-schema` active, the CLI places the model's structured output in the
+// envelope's `result` field. Current releases stringify it; we also accept an already-
+// decoded object for forward-compatibility.
+function extractPayload(envelope: unknown): unknown {
+  if (envelope == null || typeof envelope !== 'object' || !('result' in envelope)) return null
+  const result = (envelope as { result: unknown }).result
+  if (typeof result === 'string') return parseJsonSafe(result)
+  return result
+}
+
+function extractBody(payload: unknown): string | null {
   if (
-    structuredOutput != null &&
-    typeof structuredOutput === 'object' &&
-    'body' in structuredOutput &&
-    typeof structuredOutput.body === 'string'
+    payload != null &&
+    typeof payload === 'object' &&
+    'body' in payload &&
+    typeof payload.body === 'string'
   ) {
-    return structuredOutput.body
+    return payload.body
   }
   return null
+}
+
+function truncateStderr(stderr: string): string {
+  const trimmed = stderr.trim()
+  if (trimmed.length <= STDERR_TAIL_CHARS) return trimmed
+  return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
 }
 
 // ====================
 // === Public entry ===
 // ====================
 
-/** Run the local Claude agent to produce a User Defined Component body. */
+/** Run the local `claude` CLI to produce a User Defined Component body. */
 export async function generateAiComponent(
   request: AiComponentRequest,
 ): Promise<Result<AiComponentResponse>> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return Err('ANTHROPIC_API_KEY is not set in the Electron main-process environment')
-  }
   const abortController = new AbortController()
   const timeout = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS)
   try {
-    for await (const message of query({
-      prompt: buildUserPrompt(request),
-      options: {
-        systemPrompt: SYSTEM_PROMPT,
-        allowedTools: [],
-        outputFormat: { type: 'json_schema', schema: RESPONSE_SCHEMA },
-        maxTurns: MAX_AGENT_TURNS,
-        abortController,
-      },
-    })) {
-      if (message.type === 'result') {
-        if (message.subtype === 'success') {
-          const body = extractBody(message.structured_output)
-          if (body == null) {
-            return Err('Claude returned a result without a valid `body` field')
-          }
-          return Ok({ body })
-        }
-        const detail = message.errors.length > 0 ? `: ${message.errors.join('; ')}` : ''
-        return Err(`Claude agent ended with ${message.subtype}${detail}`)
+    const cli = await runClaude(buildCliArgs(), buildUserPrompt(request), abortController.signal)
+    if (cli.spawnError) {
+      if (cli.spawnError.code === 'ENOENT') {
+        return Err(
+          `'${CLAUDE_EXECUTABLE}' executable not found on PATH — install Claude Code to use the AI node feature`,
+        )
       }
+      return Err(`Failed to spawn '${CLAUDE_EXECUTABLE}': ${cli.spawnError.message}`)
     }
-    return Err('Claude agent query ended without a result message')
-  } catch (error) {
     if (abortController.signal.aborted) {
       return Err(`Claude agent timed out after ${REQUEST_TIMEOUT_MS}ms`)
     }
-    const detail = error instanceof Error ? error.message : String(error)
-    return Err(`Claude agent query failed: ${detail}`)
+    if (cli.exitCode !== 0) {
+      const tail = truncateStderr(cli.stderr)
+      const detail = tail ? `: ${tail}` : ''
+      return Err(`'${CLAUDE_EXECUTABLE}' exited with code ${cli.exitCode}${detail}`)
+    }
+    const envelope = parseJsonSafe(cli.stdout)
+    if (envelope == null) {
+      return Err('Claude agent produced malformed JSON on stdout')
+    }
+    const body = extractBody(extractPayload(envelope))
+    if (body == null) {
+      return Err('Claude agent returned a result without a valid `body` field')
+    }
+    return Ok({ body })
   } finally {
     clearTimeout(timeout)
   }
+}
+
+// ======================
+// === Startup probe ===
+// ======================
+
+// Best-effort check that `claude` is reachable. Non-blocking: startup continues even if the
+// probe fails, because the first real IPC call surfaces the error to the renderer anyway.
+function probeClaudeVersion(): void {
+  let probe
+  try {
+    probe = spawn(CLAUDE_EXECUTABLE, ['--version'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: process.env,
+    })
+  } catch (err) {
+    console.warn(`[AI] could not spawn '${CLAUDE_EXECUTABLE} --version' probe:`, err)
+    return
+  }
+  const stdoutChunks: string[] = []
+  const stderrChunks: string[] = []
+  probe.stdout?.on('data', (chunk: Buffer) => stdoutChunks.push(chunk.toString('utf8')))
+  probe.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk.toString('utf8')))
+  probe.on('error', (err) => {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.warn(
+        `[AI] '${CLAUDE_EXECUTABLE}' not found on PATH; AI node generation will fail until Claude Code is installed.`,
+      )
+      return
+    }
+    console.warn(`[AI] '${CLAUDE_EXECUTABLE} --version' probe failed:`, err.message)
+  })
+  probe.on('close', (exitCode) => {
+    if (exitCode === 0) {
+      console.info(`[AI] '${CLAUDE_EXECUTABLE}' CLI available: ${stdoutChunks.join('').trim()}`)
+    } else if (exitCode != null) {
+      console.warn(
+        `[AI] '${CLAUDE_EXECUTABLE} --version' exited ${exitCode}: ${stderrChunks.join('').trim()}`,
+      )
+    }
+  })
 }
 
 // ===================
@@ -141,6 +295,7 @@ export async function generateAiComponent(
 
 /** Register the {@link Channel.generateAiComponent} IPC handler. */
 export function initClaudeAgentIpc() {
+  probeClaudeVersion()
   ipcMain.handle(Channel.generateAiComponent, async (_event, request: AiComponentRequest) =>
     generateAiComponent(request),
   )

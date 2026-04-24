@@ -45,23 +45,30 @@ once `./run ide build` has produced the engine bundle.
 - `ENSO_POLYGLOT_YDOC_SERVER` — URL for the (polyglot) ydoc server when running
   against a cloud backend.
 - `ENSO_IDE_VERSION`, `ENSO_IDE_COMMIT_HASH` — embedded into buildinfo.
-- `ANTHROPIC_API_KEY` — required by the local Claude agent used for the AI
-  nodes feature (`src/claudeAgent.ts`). Read at startup of the main process;
-  when unset, the IPC handler for `Channel.generateAiComponent` returns a
-  structured error and the renderer shows a toast.
+- `ANTHROPIC_API_KEY` — **not** required by the main process. The AI node
+  feature shells out to the user's `claude` CLI, which handles auth itself
+  (OAuth / keychain / API key / subscription token). If the parent env does set
+  `ANTHROPIC_API_KEY`, it is forwarded unchanged to the spawned CLI so CI
+  pipelines keep working.
 
 ## Local Claude agent
 
-`src/claudeAgent.ts` wraps `@anthropic-ai/claude-agent-sdk`'s `query()` for
-headless, single-turn generation of User Defined Components. The renderer
-reaches it via `window.api.ai.generateComponent(...)` (see
-`enso-gui/src/electronApi.ts`) over IPC channel
-`Channel.generateAiComponent`. The shared request/response types live in
-`enso-common/src/ai.ts` so both halves of the IPC agree on the shape.
+`src/claudeAgent.ts` shells out to the user-installed `claude` CLI executable
+(assumed to be on `PATH`) via `child_process.spawn` for headless, single-turn
+generation of User Defined Components. Invocation flags:
+`--print --output-format json --json-schema <RESPONSE_SCHEMA> --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
+The prompt is always written to the child's stdin (uniform handling regardless
+of length). `--setting-sources ""` keeps the invocation hermetic (no user
+settings/plugins/`CLAUDE.md` discovery) without touching auth; `--bare` is
+deliberately avoided because it would re-introduce the `ANTHROPIC_API_KEY`
+requirement.
 
-The SDK ships its own Claude Code runtime binary, so no external `claude` CLI
-install is required, but the `ANTHROPIC_API_KEY` environment variable must be
-set for the main process.
+The renderer reaches the IPC via `window.api.ai.generateComponent(...)` (see
+`enso-gui/src/electronApi.ts`) over channel `Channel.generateAiComponent`. The
+shared request/response types live in `enso-common/src/ai.ts` so both halves of
+the IPC agree on the shape. At main-process startup `claudeAgent.ts` runs a
+best-effort `claude --version` probe and logs the result; failure is non-fatal —
+the first real IPC call surfaces the ENOENT error to the renderer as a toast.
 
 ## Tests
 
