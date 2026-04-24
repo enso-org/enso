@@ -1195,6 +1195,15 @@ function AssetsTable(props: AssetsTableProps) {
           </FileTrigger>
         </div>
       </AssetsTableAssetsUnselector>
+      {/*
+       * Always-rendered background strip below the table and dropzone. The dropzone
+       * above is hidden in the recent and trash categories, so tests (and real
+       * clicks that happen to land here) need a stable unselector target that does
+       * not depend on category. Kept thin to avoid adding noticeable empty space.
+       */}
+      <AssetsTableAssetsUnselector asChild>
+        <div data-testid="assets-table-background" className="h-8 w-full shrink-0" />
+      </AssetsTableAssetsUnselector>
     </Scroller>
   )
 
