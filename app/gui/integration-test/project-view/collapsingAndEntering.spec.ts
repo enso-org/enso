@@ -198,11 +198,6 @@ test('Input node', async ({ editorPage }) => {
       // Input node has output port
       const outputPort = await locate.outputPortCoordinates(page, inputNode)
       await page.mouse.click(outputPort.x + 20, outputPort.y)
-      // Drop the edge on empty space to the left of the input node. Using an
-      // offset from the node keeps the drop site independent of the graph
-      // navigator's final pan/zoom — `graphEditor.click({ position })` would
-      // target a fixed pixel in the editor whose underlying canvas point
-      // depends on how the viewport settles.
       const inputBox = await inputNode.boundingBox()
       assert(inputBox)
       await page.mouse.click(inputBox.x - 300, inputBox.y + inputBox.height / 2)

@@ -41,10 +41,7 @@ export const [providePersisted, usePersisted] = createContextStore(
       const nodesCount = graphStore.db.nodeIdToNode.size
       const visibleNodeAreas = graphStore.visibleNodeAreas
       // Nodes without stored metadata.position are registered with `Vec2.Infinity`
-      // first and receive a real position one tick later via auto-layout. Treating
-      // those as "ready" causes `zoomToAll` to fit to unbounded rects and leaves
-      // the navigator in a nonsense pan/zoom state. Require finite positions so
-      // the restore callback only runs once the graph has a stable layout.
+      // first and receive a real position one tick later via auto-layout.
       return (
         nodesCount > 0 &&
         visibleNodeAreas.length == nodesCount &&
