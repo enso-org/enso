@@ -853,11 +853,10 @@ type DB_Table_Implementation
     spatial_shape function:Text (this_table : Table & DB_Table) (column : Column) (as : Text) (group_by : Vector Column) (order_by : Vector (Text | Sort_Column) | Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect function <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
-            ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
             problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
                 new_name = if as!="" then as else this_table.column_naming_helper.function_name function [column]
 
-                aggregate_table = this_table.aggregate group_by [..Array_Agg column.name new_name ignore_nothing=True order_by=ordering] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
+                aggregate_table = this_table.aggregate group_by [..Array_Agg column.name new_name ignore_nothing=True order_by=order_by] error_on_missing_columns=True on_problems=Problem_Behavior.Report_Error
 
                 array_table = if function == "st_make_lines" then aggregate_table else
                     ## Need to append first element to the end
