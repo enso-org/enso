@@ -4,8 +4,20 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record NullType() implements StorageType<Void> {
+public final class NullType implements StorageType<Void> {
   public static final NullType INSTANCE = new NullType();
+
+  private NullType() {}
+
+  @Override
+  public char typeChar() {
+    return 'N';
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Null";
+  }
 
   @Override
   public boolean isNumeric() {
@@ -40,7 +52,7 @@ public record NullType() implements StorageType<Void> {
 
   @Override
   public ColumnStorage<Void> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof NullType) {
+    if (StorageType.ofStorage(storage) instanceof NullType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<Void>) storage;
       return output;

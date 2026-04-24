@@ -3,25 +3,39 @@ layout: developer-doc
 title: Logging Service
 category: infrastructure
 tags: [infrastructure, logging, debug]
-order: 6
+order: 7
 ---
 
 # Logging
 
-The Enso project features a centralised logging service to allow for the
-aggregation of logs from multiple components. This service can be started with
-one of the main components, allowing other components to connect to it. The
-service aggregates all logs in one place for easier analysis of the interaction
-between components. Components can also log to console or files directly without
-involving the centralized logging service. For more information about this
-architecture, see [Logging server](#logging-server).
+The `enso` executable configures a centralized logging service on its startup
+and redirects all major logging methods (slf4j library, JDK's `System.getLogger`
+and Enso `Standard.Base.Logging`) to the same set of [appenders](#appenders).
+This behavior is the same when running in `--jvm` mode as well as
+[dual JVM mode](./dual_jvm.md).
+
+<!-- if not, report a bug like #14881 -->
+
+The idea is to aggregate all logs in one place and dispatch the log messages
+appropriately to configured [appenders](#appenders):
+
+- errors and warnings are printed to the console stderr
+- errors, warnings and info messages are recorded by the [File](#file-appender)
+- [telemetry](#telemetry) & co. is sent over [network](#socket-appender)
+
+The system provides reasonable _default behavior_ to raise attention of
+problems, but don't overload by too much logging. The system allows to
+**opt-in** for more detailed logging either globally or on per-logger basis. See
+[user configuration](#user-config).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Configuration](#configuration)
+- [User config](#user-config)
+  - [IDE Config](#ide-config)
+  - [Progress and Profiling](#progress-and-profiling)
+- [Configuration in Code](#configuration-in-code)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
-    - [Project Manager](#project-manager)
     - [Engine runner](#engine-runner)
     - [Format](#format)
     - [File](#file-appender)
@@ -41,7 +55,66 @@ architecture, see [Logging server](#logging-server).
 
 <!-- /MarkdownTOC -->
 
-## Configuration
+## User Config
+
+The overall logging level can be configured by `--log-level` command line option
+of the `enso` executable. The argument to the CLI option sets the
+[custom Log Level](#custom-log-levels) to enable globally for all loggers. Using
+`--log-level debug` makes sure debug messages are visible. Setting the global
+level to `--log-level trace` increases the verbosity to maximum level and shows
+all messages logged by the code.
+
+It is possible to configure individual loggers by setting their logging level.
+Each logger is associated with a _fully qualified name_. Any custom log level is
+therefore defined with `--vm.D=x.y.Z.Logger.level=debug` where `x`, `y` and `Z`
+refer to the _FQN_ of the logger - e.g. usually the package elements and class
+name. The `debug` value (or other) shall represent a valid level name. System
+properties always take priority over any default values defined in embedded
+`application.conf` file (see [custom Log Levels](#custom-log-levels) section).
+
+### IDE Config
+
+When running the IDE one can configure the logging using the same arguments, but
+providing them via `ENSO_ENGINE_ARGS` environment variable:
+
+```bash
+enso$ ENSO_ENGINE_ARGS="--log-level debug" corepack pnpm run dev:gui
+```
+
+Turns the `DEBUG` verbosity on.
+
+### Progress and Profiling
+
+Enso API accompanies `Logging` with additional `Progress` API. Such an API is
+used in the interactive GUI mode to track and report progress of longer running
+tasks. The GUI can then show the progress of component computation:
+
+[FastVisualizationsIntegrated.webm](https://github.com/user-attachments/assets/5bfe60af-d3ba-4ca0-b20b-79a602c61cc9)
+
+Such a reporting isn't only useful in _visual mode_. It can provide valuable
+information in the CLI mode as well. In particular it can be used for profiling!
+Use the [logger configuration properties](#user-config) to pick appropriate
+progress handle of interest and turn its profiling info on:
+
+```bash
+enso$ enso --vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug --run test/Table_Tests
+[Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~21ms
+[Standard.Base.Logging.Progress.Table.select_columns] ADVANCE Table.select_columns+1~8ms
+[Standard.Base.Logging.Progress.Table.set] ADVANCE Table.set+1~19ms
+[Standard.Base.Logging.Progress.Table.rename_columns] ADVANCE Table.rename_columns+1~16ms
+```
+
+Use `ENSO_ENGINE_ARGS` to enable the [profiling for the IDE](#ide-config):
+
+```bash
+enso$ ENSO_ENGINE_ARGS=--vm.D=Standard.Base.Logging.Progress.Table.Logger.level=debug corepack pnpm dev:gui
+```
+
+Find timings of individual
+[`Progress.run` operations](https://github.com/enso-org/enso/pull/12163) logged
+in appropriate log file and/or see them in the console.
+
+## Configuration in Code
 
 All logging settings are configured via the `logging-service` section of the
 `application.conf` config file. Each of the main components can customize format
@@ -51,7 +124,6 @@ configuration is using HOCON-style, as defined by
 accepted in the config are inspired by SLF4J's properties, formatting and
 implementations. Currently 3 components define logging configuration:
 
-- [`project-manager`](../../lib/scala/project-manager/src/main/resources/application.conf)
 - [`launcher`](../../engine/launcher/src/main/resources/application.conf)
 - [CLI](../../engine/runner/src/main/resources/application.conf)
 
@@ -135,6 +207,26 @@ Any custom log level is therefore defined with `-Dx.y.Z.Logger.level` where `x`,
 properties always have a higher priority over those defined in the
 `application.conf` file.
 
+### Truffle loggers
+
+[TruffleLogger](https://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/TruffleLogger.html)
+is designed to be independent of any other logging facilities. Setting a custom
+level for Truffle logger can be done programmatically via
+[ContextBuilder.option](<https://www.graalvm.org/truffle/javadoc/org/graalvm/polyglot/Context.Builder.html#option(java.lang.String,java.lang.String)>)
+polyglot context builder option, or via
+`polyglot.log.<language-id>.<class-name>.level` system property. Note that it is
+not enough to set just `-Dpolyglot.log.<language-id>.<class-name>.level` system
+property, one has to also specify this level via for forwarded log messages via
+`-D<language-id>.<class-name>.Logger.level` prop.
+
+For example, to set trace level for class
+`com.oracle.graal.python.runtime.PythonContext` in `python` Truffle language,
+use the following properties:
+
+```sh
+-Dpolyglot.log.python.com.oracle.graal.python.runtime.PythonContext.level=FINE -Dpython.com.oracle.graal.python.runtime.PythonContext.Logger.level=trace
+```
+
 ### Appenders
 
 Log output target is configured in the `application.conf` files in the
@@ -157,6 +249,10 @@ via an environmental variable but it depends on which component we are
 executing:
 
 #### Project Manager
+
+<!-- prettier-ignore -->
+> [!WARNING] 
+> Project Manager has been Removed. Can this section be updated?
 
 Project manager by default starts a centralized logging server that collects
 logs (as defined in `logging-service.server` config key) and the logs output can
@@ -254,6 +350,10 @@ The two fields can be overridden via environment variables:
 The following section describes the _logging server_ architecture when user
 opens a project from IDE. In CLI mode (i.e. running `enso --run script.enso`),
 there is no _logging server_ - see [Engine runner appender](#engine-runner).
+
+> [!WARNING]
+>
+> Project manager has been removed. The following information may be outdated.
 
 The centralized logging service is implemented as a logging server started by
 the
@@ -365,10 +465,10 @@ warning in the logs, and nothing will be sent.
 ### Log level
 
 TelemetryAppender is enabled by default for all logging levels. If you wish to
-send telemetry event only to the TelemetryAppender, use `TRACE` level. If you
-use `DEBUG` level, it will, by default, be also send to the FileAppender. If you
-use `INFO` level, it will, by default, be also send to the FileAppender and
-ConsoleAppender.
+send telemetry event only to the TelemetryAppender, use `TRACE` or `DEBUG`
+levels. If you use `INFO` level, it will, by default, be also send to the
+[file appender](#file-appender). If you for some reason use even higher level it
+will also appear on a console.
 
 Note that changing the log level for the `org.enso.telemetry` namespace, either
 via `application.conf` or via system property, will not affect the Telemetry
@@ -376,32 +476,27 @@ Appender. The Telemetry Appender is always enabled for all log levels.
 
 ## JVM Architecture
 
-Enso's logging makes use of two logging APIs - `java.util.logging` and
-`org.slf4j`. The former is being used by the Truffle runtime, which itself
-relies on `jul`, while the latter is used everywhere else. The implementation of
-the logging is using off the shelf `Logback` implementation with some custom
-setup methods. The two APIss cooperate by essentially forwarding log messages
-from the former to the latter.
+Enso's logging makes use of three logging APIs - `System.getLogger`,
+`java.util.logging` and `org.slf4j`. The former is being used by the Truffle
+runtime, which itself relies on `jul`, while the latter is used everywhere else.
 
-While typically any SLF4J customization would be performed via custom
-`LoggerFactory` and `Logger` implementation that is returned via a
-`StaticLoggerBinder` instance, this is not possible for our use-case:
-
-- file logging requires Enso-specific directory which is only known during
-  runtime
-- centralized logging
-- modifying log levels without recompilation
+The actual logging uses off the shelf `Logback` implementation with some custom
+setup methods. The all logging APIs cooperate by sending their messages to the
+`Logback` implementation. The proper configuration depends on parsing the CLI
+arguments of the `enso` executable - while such configuration happens as soon as
+possible, it may suffer from bootstrapping quirks.
 
 ### SLF4J Interface
 
 The user code must not be calling any of the underlying implementations, such as
 Log4J or Logback, and should only request loggers via factory methods.
 
-One can use the `org.slf4j.LoggerFactory` directly to retrieve class-specific
-logger. For Scala code, it is recommended to use the
-`com.typesafe.scalalogging.Logger` instead which wraps the SLF4J logger with
-macros that compute the log messages only if the given logging level is enabled,
-and allows much prettier initialisation.
+- use the `org.slf4j.LoggerFactory` directly to retrieve class-specific logger.
+- alternatively use JDK's `System.getLogger`
+- avoid using `java.util.logging` unless done by 3rd party library
+- Scala code is likely to use `com.typesafe.scalalogging.Logger`
+
+Typical logging code in Java follows:
 
 ```java
 package foo;

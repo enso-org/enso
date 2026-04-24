@@ -7,10 +7,11 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link.Data_Link_SPI
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Enso_Cloud.Internal.Authentication
-import project.Error.Error
+import project.Enso_Cloud.Internal.Enso_File_Data_Link.Enso_File_Data_Link
 import project.Function.Function
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -22,9 +23,11 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
-import project.Nothing.Nothing
+import project.Runtime
 from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
+from project.Nothing import all
 
 polyglot java import org.enso.base.enso_cloud.CloudAPI
 polyglot java import org.enso.base.enso_cloud.CloudRequestCache
@@ -32,7 +35,7 @@ polyglot java import org.enso.base.enso_cloud.CloudRequestCache
 ## ---
    private: true
    ---
-cloud_root_uri = "" + CloudAPI.getAPIRootURI
+cloud_root_uri = "" + CloudAPI.getInstance.getAPIRootURI
 
 ## ---
    private: true
@@ -91,7 +94,7 @@ tags_api = cloud_root_uri + "tags"
    Flushes all cloud caches, including the authentication data (so the next
    request will re-read the credentials file).
 flush_caches : Nothing
-flush_caches = CloudAPI.flushCloudCaches
+flush_caches = Runtime.gc flush_caches=True
 
 ## ---
    private: true
@@ -168,3 +171,9 @@ invalidate_caches_with_prefix (prefix : Text) =
    anything.
 set_cached (key : Text) value (cache_duration : Duration | Nothing = Duration.new seconds=60) =
     CloudRequestCache.INSTANCE.put key value cache_duration
+
+type Services_Impl
+
+Data_Link_SPI.from (that:Services_Impl) =
+    _ = that
+    Data_Link_SPI.new Enso_File_Data_Link "Enso_File"

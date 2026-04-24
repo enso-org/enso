@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { Score, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { type URLString } from '@/util/data/urlString'
-import { type Icon } from '@/util/iconMetadata/iconName'
+import { type AnyWidgetIcon } from '@/util/icons'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -14,10 +13,10 @@ const icon = computed(() => props.input[DisplayIcon].icon)
 
 <script lang="ts">
 export const DisplayIcon: unique symbol = Symbol.for('WidgetInput:DisplayIcon')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [DisplayIcon]?: {
-      icon: Icon | URLString | '$evaluating'
+      icon: AnyWidgetIcon
       allowChoice?: boolean
       showContents?: boolean
       noGap?: boolean
@@ -36,8 +35,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div :class="{ WidgetIcon: true, noGap: props.input[DisplayIcon].noGap === true }">
-    <div class="iconContainer">
+  <div
+    :class="{
+      WidgetIcon: true,
+      widgetParent: true,
+      noGap: props.input[DisplayIcon].noGap === true,
+    }"
+  >
+    <div class="iconContainer widgetSingleLine">
       <Transition>
         <GrowingSpinner
           v-if="icon === '$evaluating'"
@@ -54,22 +59,16 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetIcon {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   gap: var(--widget-token-pad-unit);
   &.noGap {
     gap: 0;
   }
 }
 .iconContainer {
-  position: relative;
-  height: 16px;
-  width: 16px;
-  margin: 0 calc((var(--node-port-height) - 16px) / 2);
+  width: var(--node-port-height);
 }
 .nodeCategoryIcon {
-  position: absolute;
+  margin: auto;
 }
 .LoadingSpinner {
   border-radius: 100%;

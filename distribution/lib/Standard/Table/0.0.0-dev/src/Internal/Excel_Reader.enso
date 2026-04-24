@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Excel.Excel_File_Format.Excel_File_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Section.Excel_Section
@@ -13,10 +14,8 @@ from project.Errors import Empty_Sheet, Invalid_Location
 from project.In_Memory_Table import from_java_table
 
 polyglot java import java.io.File as Java_File
-polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
-polyglot java import org.apache.poi.UnsupportedFileFormatException
+polyglot java import java.io.IOException
 polyglot java import org.enso.table.error.InvalidLocationException
-polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 
@@ -34,13 +33,17 @@ make_java_headers headers:Headers = case headers of
    private: true
    ---
    Handle and map the Java errors when reading an Excel file
-handle_reader : File -> (Java_File -> (Table | Vector)) -> (Table | Vector)
-handle_reader file reader =
+handle_reader : File -> Excel_File_Format -> (Java_File -> (Table | Vector)) -> (Table | Vector)
+handle_reader file file_format reader =
+    java_file_format = file_format.to_java
     # TODO [RW] handle InvalidFormatException
     File_Error.handle_java_exceptions file <| handle_invalid_location <|
         handle_bad_format file <| Empty_Sheet.handle_java_exception <|
             java_file = Java_File.new file.path
-            reader java_file
+            result = reader java_file java_file_format
+            ExcelReader.closeFile java_file java_file_format
+            result
+
 
 ## ---
    private: true
@@ -54,28 +57,27 @@ handle_reader file reader =
       operation. By default, a warning is issued, but the operation proceeds. If
       set to `Report_Error`, the operation fails with a dataflow error. If set to
       `Ignore`, the operation proceeds without errors or warnings.
-    - `xls_format`: If `True` then the file is read in using Excel 95-2003 format
-      otherwise reads in Excel 2007+ format.
-read_file : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_file file section on_problems:Problem_Behavior xls_format=False =
-    file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
-    reader java_file = case section of
+    - `xls_format`: The Excel file format. XLSX for Excel 2007 and later, XLS for
+      Excel 97-2003. By default, XLSX is used.
+read_file : File -> Excel_Section -> Problem_Behavior -> Excel_File_Format -> (Table | Vector)
+read_file file section on_problems:Problem_Behavior xls_format:Excel_File_Format=Excel_File_Format.XLSX = handle_bad_format file <|
+    reader java_file java_format = case section of
         Excel_Section.Worksheet sheet headers skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_limit = row_limit.rows_to_read
                 java_table = case sheet of
-                    _ : Integer -> ExcelReader.readSheetByIndex java_file sheet (make_java_headers headers) skip_rows java_limit file_format java_problem_aggregator
-                    _ : Text -> ExcelReader.readSheetByName java_file sheet (make_java_headers headers) skip_rows java_limit file_format java_problem_aggregator
+                    _ : Integer -> ExcelReader.readSheetByIndex java_file sheet (make_java_headers headers) skip_rows java_limit java_format java_problem_aggregator
+                    _ : Text -> ExcelReader.readSheetByName java_file sheet (make_java_headers headers) skip_rows java_limit java_format java_problem_aggregator
                 row_limit.attach_warning (from_java_table java_table)
         Excel_Section.Cell_Range address headers skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_limit = row_limit.rows_to_read
                 java_table = case address of
-                    _ : Excel_Range -> ExcelReader.readRange java_file address.java_range (make_java_headers headers) skip_rows java_limit file_format java_problem_aggregator
-                    _ : Text -> ExcelReader.readRangeByName java_file address (make_java_headers headers) skip_rows java_limit file_format java_problem_aggregator
+                    _ : Excel_Range -> ExcelReader.readRange java_file address.java_range (make_java_headers headers) skip_rows java_limit java_format java_problem_aggregator
+                    _ : Text -> ExcelReader.readRangeByName java_file address (make_java_headers headers) skip_rows java_limit java_format java_problem_aggregator
                 row_limit.attach_warning (from_java_table java_table)
-
-    handle_reader file reader
+                
+    handle_reader file xls_format reader
 
 ## ---
    private: true
@@ -93,9 +95,8 @@ handle_bad_format file ~action =
    A helper that handles the Java exceptions reported when a malformed XLS file
    is opened.
 handle_bad_format_with_handler handler ~action =
-    Panic.catch UnsupportedFileFormatException handler=handler <|
-        Panic.catch NotOLE2FileException handler=handler <|
-            action
+    Panic.catch IOException handler=handler <|
+        action
 
 ## ---
    private: true

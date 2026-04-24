@@ -47,8 +47,8 @@ const { size = 30, phase, thickness = 3 } = defineProps<SpinnerProps>()
       :height="ROTATING_ELEMENT_SIZE - thickness"
       :rx="ROTATING_ELEMENT_SIZE / 2 - thickness / 2"
       stroke="currentColor"
-      strokeLinecap="round"
-      :strokeWidth="thickness"
+      stroke-linecap="round"
+      :stroke-width="thickness"
       class="spinner spinner-loading"
       :class="
         twJoin(

@@ -5,8 +5,6 @@
 
 use crate::prelude::*;
 
-
-
 /// Placeholders that can be used with `format:<...>` in git commands.
 /// See: <https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt>
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -228,7 +226,6 @@ impl Display for Placeholder {
         }
     }
 }
-
 
 /// Get reference names from the decoration printed from `git log` with `--decorate=full` and
 /// `%D` format ([Placeholder::RefNames]).

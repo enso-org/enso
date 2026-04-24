@@ -8,8 +8,6 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tokio::task::JoinHandle;
 
-
-
 const REFRESHES_PER_SECOND: u32 = 100;
 
 #[derive_where(Debug)]
@@ -18,10 +16,10 @@ struct GlobalState {
     ///
     /// All progress bars must be added to this multi-progress bar. This ensures that the progress
     /// bars are displayed in a way that does not interfere with tracing log output.
-    mp:            MultiProgress,
+    mp: MultiProgress,
     #[derive_where(skip)]
-    bars:          Vec<WeakProgressBar>,
-    _tick_thread:  std::thread::JoinHandle<()>,
+    bars: Vec<WeakProgressBar>,
+    _tick_thread: std::thread::JoinHandle<()>,
     ongoing_tasks: Vec<JoinHandle<Result>>,
 }
 
@@ -29,11 +27,7 @@ impl GlobalState {
     pub fn tick(&mut self) {
         let mut to_remove = vec![];
         for (index, bar) in self.bars.iter().enumerate() {
-            if let Some(bar) = bar.upgrade() {
-                bar.tick()
-            } else {
-                to_remove.push(index)
-            }
+            if let Some(bar) = bar.upgrade() { bar.tick() } else { to_remove.push(index) }
         }
 
         for to_remove in to_remove.iter().rev() {
@@ -45,9 +39,9 @@ impl GlobalState {
 impl Default for GlobalState {
     fn default() -> Self {
         GlobalState {
-            mp:            MultiProgress::new(),
-            bars:          default(),
-            _tick_thread:  std::thread::spawn(|| {
+            mp: MultiProgress::new(),
+            bars: default(),
+            _tick_thread: std::thread::spawn(|| {
                 GLOBAL.lock().unwrap().tick();
                 std::thread::sleep(Duration::from_secs(1) / REFRESHES_PER_SECOND);
             }),

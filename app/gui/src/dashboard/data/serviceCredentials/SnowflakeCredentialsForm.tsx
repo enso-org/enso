@@ -7,7 +7,7 @@ import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '$/providers/react'
+import { useRemoteConfig, useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as snowflake from './snowflake'
 import type { CredentialFormProps } from './types'
@@ -17,6 +17,7 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const apiUrl = useRemoteConfig('ENSO_IDE_API_URL')
 
   return (
     <Form
@@ -25,7 +26,7 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
       className="w-full"
       onSubmit={async (values) => {
         try {
-          await snowflake.submitForm(createCredentials, values)
+          await snowflake.submitForm(apiUrl, createCredentials, values)
         } catch (error) {
           toastAndLog(null, error)
         }

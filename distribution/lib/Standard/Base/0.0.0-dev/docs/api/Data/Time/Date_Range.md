@@ -2,15 +2,15 @@
 ## module Standard.Base.Data.Time.Date_Range
 - type Date_Range
     - Internal_Constructor start:Standard.Base.Data.Time.Date.Date end:Standard.Base.Data.Time.Date.Date step:Standard.Base.Data.Time.Period.Period increasing:Standard.Base.Data.Boolean.Boolean cached_length:Standard.Base.Data.Numbers.Integer
-    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
-    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Data.Time.Date.Date -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Data.Time.Date.Date -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - contains self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - default_column_name self -> Standard.Base.Any.Any
     - each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - each_with_index self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
-    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Data.Time.Date.Date -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
+    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Data.Time.Date.Date -> Standard.Base.Data.Boolean.Boolean)) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - first self -> Standard.Base.Any.Any
     - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -24,7 +24,7 @@
     - new start:Standard.Base.Any.Any= end:Standard.Base.Any.Any= step:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - new_internal start:Standard.Base.Any.Any end:Standard.Base.Any.Any increasing:Standard.Base.Any.Any step:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - not_empty self -> Standard.Base.Any.Any
-    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Data.Time.Date.Date -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
     - reduce self function:Standard.Base.Any.Any ~if_empty:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - reverse self -> Standard.Base.Any.Any

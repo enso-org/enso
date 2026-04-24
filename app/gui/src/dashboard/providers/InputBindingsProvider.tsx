@@ -6,8 +6,8 @@ import * as React from 'react'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import { useLocalStorage } from '$/providers/react'
+import * as object from 'enso-common/src/utilities/data/object'
 import { z } from 'zod'
 
 declare module '#/utilities/LocalStorage' {
@@ -80,14 +80,7 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
       )
     }
     return {
-      /** Transparently pass through `handler()`. */
-      get handler() {
-        return inputBindingsRaw.handler.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `attach()`. */
-      get attach() {
-        return inputBindingsRaw.attach.bind(inputBindingsRaw)
-      },
+      ...inputBindingsRaw,
       reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
         inputBindingsRaw.reset(bindingKey)
         updateLocalStorage()
@@ -103,14 +96,6 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
       /** Transparently pass through `metadata`. */
       get metadata() {
         return inputBindingsRaw.metadata
-      },
-      /** Transparently pass through `register()`. */
-      get register() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `unregister()`. */
-      get unregister() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
   })

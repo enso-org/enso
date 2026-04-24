@@ -247,9 +247,11 @@ public class EqualsTest {
   public void testTruffleNumberPlus() {
     var plus100 =
         ctxRule
-            .eval("enso", """
-    plus100 x = 100+x
-    """)
+            .eval(
+                "enso",
+                """
+                plus100 x = 100+x
+                """)
             .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plus100");
     assertTrue("plus100 can be executed", plus100.canExecute());
     var foreignNumber = ctxRule.asValue(new WrappedPrimitive(42));

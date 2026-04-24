@@ -1,5 +1,8 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import org.enso.common.RuntimeOptions;
@@ -98,10 +101,13 @@ public class NonStrictModeTests {
     String line1 =
         "Unnamed:1:1: error: Package containing the module That.Does.Not.Exist could not be loaded:"
             + " The package could not be resolved: The library `That.Does` is not defined within"
-            + " the edition.";
+            + " the edition";
     String line2 = "    1 | import That.Does.Not.Exist";
     String line3 = "      | ^~~~~~~~~~~~~~~~~~~~~~~~~~";
-    logHandler.assertMessage(
-        "enso.org.enso.compiler.Compiler", line1 + "\n" + line2 + "\n" + line3);
+    var logMessages = logHandler.getRawLogMessages("enso.org.enso.compiler.Compiler");
+    assertEquals(1, logMessages.size());
+    assertThat(
+        logMessages.get(0),
+        allOf(containsString(line1), containsString(line2), containsString(line3)));
   }
 }

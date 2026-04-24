@@ -13,11 +13,11 @@ const open = defineModel<boolean>('open', { default: false })
 const {
   title,
   placement = 'bottom-start',
-  alwaysShowArrow = false,
+  showArrow = true,
 } = defineProps<{
   title?: string | undefined
   placement?: Placement
-  alwaysShowArrow?: boolean | undefined
+  showArrow?: boolean | 'always' | undefined
 }>()
 
 const rootElement = shallowRef<HTMLElement>()
@@ -50,7 +50,7 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
       v-show="!open"
       name="arrow_right_head_only"
       class="arrow"
-      :class="{ visible: alwaysShowArrow }"
+      :class="{ visible: showArrow !== false, alwaysVisible: showArrow === 'always' }"
     />
     <ConditionalTeleport :target="popoverRoot">
       <SizeTransition height :duration="100">
@@ -90,8 +90,8 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
   --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);
   --icon-transform-origin: center;
   transition: opacity 100ms ease-in-out;
-  .DropdownMenu:has(.MenuButton:hover) &,
-  &.visible {
+  .DropdownMenu:has(.MenuButton:hover) &.visible,
+  &.alwaysVisible {
     opacity: 0.8;
     visibility: inherit;
   }

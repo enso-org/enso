@@ -16,8 +16,10 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
+from Standard.Base.Data.XML import from_java_document
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
@@ -54,18 +56,21 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Table_Ref.Table_Ref
-import project.Internal.Visualization_Helpers.Visualization_Helpers
+import project.Internal.Value_Type_Checks
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
+import project.Refined_Types.Spatial_Column.Spatial_Column
 import project.Row.Row
 import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.Spatial_Table.Lat_Long_Type
+import project.SQL_Function.SQL_Function
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.By_Type
@@ -79,12 +84,12 @@ from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Storage import java_to_enso
 
 polyglot java import org.enso.base.ObjectComparator
+polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
-polyglot java import org.enso.table.data.table.Row as Java_Row
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
@@ -127,7 +132,7 @@ type In_Memory_Table_Implementation
     get_row (this_table : Table & In_Memory_Table) index:Integer ~if_missing:Any =
         if index < -this_table.row_count || index >= this_table.row_count then if_missing else
             used_index = (if index < 0 then index + this_table.row_count else index)
-            Row.Value (Java_Row.new this_table.java_table used_index)
+            Row.Value (this_table.java_table.row used_index)
 
     first_value (this_table : Table & In_Memory_Table) = this_table.at 0 . at 0
 
@@ -212,7 +217,10 @@ type In_Memory_Table_Implementation
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by this_table.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
-            java_columns = columns_for_ordering.map c->(c.column:In_Memory_Column).java_column
+            java_storages = columns_for_ordering.map c->
+                raw_column = (c.column:In_Memory_Column).java_column
+                raw_column.getStorage
+
             directions = columns_for_ordering.map c->c.associated_selector.direction.to_sign
 
             comparator = case text_ordering.sort_digits_as_numbers of
@@ -225,7 +233,7 @@ type In_Memory_Table_Implementation
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                this_table.java_table.orderBy java_columns directions comparator
+                this_table.java_table.orderBy this_table java_storages directions comparator
             from_java_table java_table
 
     order_by (this_table : Table & In_Memory_Table) (columns : Vector (Text | Sort_Column) | Text) text_ordering:Text_Ordering error_on_missing_columns:Boolean on_problems:Problem_Behavior =
@@ -275,12 +283,12 @@ type In_Memory_Table_Implementation
                 column_value_type = column.value_type
                 already_parsed = Auto != type && column_value_type.is_same_type type
                 if already_parsed then column else
-                    Value_Type.expect_text column <|
-                        storage = (column:In_Memory_Column).java_column.getStorage
-                        new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                            parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
-                            parser.parseColumn storage parse_problem_aggregator
-                        In_Memory_Column.from_storage column.name new_storage
+                    Value_Type_Checks.is_text column
+                    storage = (column:In_Memory_Column).java_column.getStorage
+                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                        parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
+                        parser.parseColumn storage parse_problem_aggregator
+                    In_Memory_Column.from_storage column.name new_storage
             Table.new new_columns
 
     format (this_table : Table & In_Memory_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type) (format : Text | Date_Time_Formatter | Column) locale:Locale error_on_missing_columns:Boolean on_problems:Problem_Behavior = columns.if_not_error <|
@@ -395,7 +403,7 @@ type In_Memory_Table_Implementation
         ## Construct Group
         Add_Group_Number.add_flagged_group this_table resolved_column used_predicate group_row name from step on_problems
 
-    set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
+    set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression | SQL_Function) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
         unique = this_table.column_naming_helper.create_unique_name_strategy
         unique.mark_used this_table.column_names
@@ -406,7 +414,7 @@ type In_Memory_Table_Implementation
             _ : Expression -> this_table.evaluate_expression value on_problems
             _ : Constant_Column -> this_table.make_constant_column value.value
             _ : Simple_Expression -> value.evaluate this_table (set_mode==Set_Mode.Update && as=="") on_problems
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
+            _ : SQL_Function -> Error.throw (Illegal_Argument.Error "SQL_Function is not supported by in-memory tables.")
 
         ## If `as` was specified, use that. Otherwise, if `value` is a
            `Column`, use its name. In these two cases, do not make it unique.
@@ -424,7 +432,7 @@ type In_Memory_Table_Implementation
                     Error.throw (Missing_Column.Error renamed.name)
 
             new_table = check_add_mode.if_not_error <|
-                if resolved.length != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.length) else
+                if resolved.row_count != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.row_count) else
                     from_java_table (this_table.java_table.addOrReplaceColumn (renamed:In_Memory_Column).java_column)
 
             problem_builder.report_unique_name_strategy unique
@@ -452,7 +460,8 @@ type In_Memory_Table_Implementation
 
     columns (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->
-            In_Memory_Column.from_java_column (this_table.java_table.getColumns.at i)
+            java_column = this_table.java_table.getColumns.at i
+            In_Memory_Column.from_java_column java_column
 
     column_names (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->
@@ -549,7 +558,9 @@ type In_Memory_Table_Implementation
             [Row_Count_Mismatch.Error left_row_count right_row_count]
         on_problems.attach_problems_before problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                (this_table:In_Memory_Table).java_table.zip (right:In_Memory_Table).java_table keep_unmatched_bool right_prefix java_aggregator
+                this_java_table = (this_table:In_Memory_Table).java_table
+                right_java_table = (right:In_Memory_Table).java_table
+                this_java_table.zip right_java_table keep_unmatched_bool right_prefix java_aggregator
             from_java_table new_java_table
 
     union (this_table : Table & In_Memory_Table) (tables : Table | Vector) columns_to_keep:Columns_To_Keep match_columns:Match_Columns on_problems:Problem_Behavior =
@@ -564,21 +575,21 @@ type In_Memory_Table_Implementation
 
     default_max_rows = Rows_To_Read.All_Rows
 
-    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read) = case max_rows of
-        Rows_To_Read.All_Rows -> this_table
-        Rows_To_Read.First n -> this_table.take (..First n)
-        Rows_To_Read.First_With_Warning n ->
-            truncated = this_table.take (..First n)
-            if (this_table : Table & In_Memory_Table).row_count <= n then truncated else
-                Problem_Behavior.Report_Warning.attach_problem_after truncated <|
-                    Not_All_Rows_Downloaded.Warning n
+    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read) =
+        limit = max_rows.rows_to_read
+        if limit.is_nothing then this_table else
+            limited_table = this_table.take (..First limit)
+            max_rows.attach_warning limited_table
 
     column_info (this_table : Table & In_Memory_Table) =
         cols = this_table.columns
-        col_data = this_table.columns.map c-> (c:Visualization_Helpers).await_metrics
-        raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (this_table.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
+
+        col_data = this_table.columns.map c-> (c:In_Memory_Column).await_metrics
+        item_count = col_data.map dict-> this_table.row_count - (dict.get "# Nothing" 0)
+
+        raw_table = Table.new [["Column", cols.map .name], ["Items Count", item_count], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
         expanded = raw_table.expand_column "Metrics" prefix=..None
-        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get DataQualityMetrics.SAMPLED then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
         tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
         tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 
@@ -686,8 +697,9 @@ type In_Memory_Table_Implementation
                     if is_write.not then Panic.throw caught_panic else
                         Error.throw (File_Error.Unsupported_Output_Type resolved_format Table)
                 Panic.catch No_Such_Method handler=handle_no_write_method <|
-                    to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
-                    resolved_format.write_table path to_write on_existing_file match_columns on_problems
+                    if (path:File_Like).can_write_into_parent.not then Error.throw (File_Error.Not_Found (path:File_Like).parent) else
+                        to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
+                        resolved_format.write_table path to_write on_existing_file match_columns on_problems
 
     to_csv (this_table : Table & In_Memory_Table) =
         Text.from this_table (..Delimited delimiter=",")
@@ -708,7 +720,7 @@ type In_Memory_Table_Implementation
             java_element_columns = resolved_element_columns.map c->(c:In_Memory_Column).java_column
             java_attribute_column = resolved_attribute_columns.map c->(c:In_Memory_Column).java_column
             java_value_column = if value_column.is_nothing then Nothing else (resolved_value_column:In_Memory_Column).java_column
-            XML_Document.new (Java_TableToXml.to_xml this_table.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
+            from_java_document (Java_TableToXml.to_xml this_table.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
 
     columns_helper (this_table : Table & In_Memory_Table) =
         Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.columns (x->x) this_table (x->x)
@@ -754,6 +766,78 @@ type In_Memory_Table_Implementation
         data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
 
+    spatial_columns (this_table : Table & In_Memory_Table) =
+        _ = this_table
+        []
+
+    as_spatial_column (this_table : Table & In_Memory_Table) (column : Column) =
+        _ = [this_table, column]
+        Panic.throw (Type_Error.Error Spatial_Column column "Spatial functions are not currently implemented for in-memory tables.")
+
+    spatial_point (this_table : Table & In_Memory_Table) (longitude : Column) (latitude : Column) (as : Text) =
+        _ = [this_table, longitude, latitude, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_geometry_type (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_longitude (this_table : Table & In_Memory_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
+        _ = [this_table, column, value, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_latitude (this_table : Table & In_Memory_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
+        _ = [this_table, column, value, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_centroid (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_extent (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_perimeter (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_area (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_distance (this_table : Table & In_Memory_Table) (from_column : Column) (to_column : Column) (as : Text) =
+        _ = [this_table, from_column, to_column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_length (this_table : Table & In_Memory_Table) (from_column : Column) (to_column : Column) (as : Text) =
+        _ = [this_table, from_column, to_column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_intersection (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
+        _ = [this_table, columns, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_union (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
+        _ = [this_table, columns, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_to_geojson (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_from_geojson (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_to_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_from_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
 ## ---
    private: true
    ---
@@ -771,7 +855,9 @@ make_join_helpers left_table right_table =
         Java_Join_Equals_Ignore_Case.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column locale.java_locale
     make_between _ left right_lower right_upper =
         Java_Join_Between.new (left:In_Memory_Column).java_column (right_lower:In_Memory_Column).java_column (right_upper:In_Memory_Column).java_column
-    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+    make_custom_sql _ _ _ =
+        Unimplemented.throw "Custom SQL joins are not implemented for in-memory tables."
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between make_custom_sql
 
 private _check_table_in_memory t = case t of
     _ : In_Memory_Table -> Nothing

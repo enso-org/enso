@@ -14,8 +14,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_member",
-    description = "Gets a member by name from a polyglot object.",
-    autoRegister = false)
+    description = "Gets a member by name from a polyglot object.")
 public class GetMemberNode extends Node {
   private @Child HostValueToEnsoNode fromHost = HostValueToEnsoNode.build();
   private @Child InteropLibrary library =

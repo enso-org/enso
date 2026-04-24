@@ -56,7 +56,8 @@ public class ImportsAndFQNConsistencyTest {
   @Parameters(name = "exported symbol '{0}'")
   public static List<Symbol> symbolsToTest() {
     var ensoCtx = ctxRule.ensoContext();
-    var src = """
+    var src =
+"""
 from Standard.Base import all
 from Standard.Table import all
 main = 42
@@ -108,6 +109,7 @@ main = 42
   @Test
   public void testSymbolCanBeAccessedBySimpleNameWithFQNImport() {
     var sb = new StringBuilder();
+    sb.append("import Standard.Base.Data.Text.Extensions").append(System.lineSeparator());
     sb.append("import ").append(symbol.getFqn()).append(System.lineSeparator());
     sb.append("main = ")
         .append(symbol.getLastPathItem())
@@ -121,6 +123,7 @@ main = 42
   @Test
   public void testSymbolCanBeAccessedByFQNWithLibImport() {
     var sb = new StringBuilder();
+    sb.append("import Standard.Base.Data.Text.Extensions").append(System.lineSeparator());
     sb.append("import ").append(symbol.getLibName()).append(System.lineSeparator());
     sb.append("main = ").append(symbol.getFqn()).append(".to_text").append(System.lineSeparator());
     code = sb.toString();
@@ -233,10 +236,8 @@ main = 42
             switch (binding) {
               case Definition.Type tp -> tp.name().name().equals(symbol);
               case Method.Binding methodBind -> methodBind.methodName().name().equals(symbol);
-              case Method.Explicit methodExplicit -> methodExplicit
-                  .methodName()
-                  .name()
-                  .equals(symbol);
+              case Method.Explicit methodExplicit ->
+                  methodExplicit.methodName().name().equals(symbol);
               default -> false;
             });
   }

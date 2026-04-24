@@ -16,6 +16,6 @@
     - to_js_object self -> Standard.Base.Any.Any
     - uri self -> Standard.Base.Any.Any
     - with_materialized_body self -> Standard.Base.Any.Any
-    - write self file:Standard.Base.System.File.Generic.Writable_File.Writable_File on_existing_file:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - write self file:Standard.Base.System.File.Generic.Writable_File.Writable_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
 - filename_from_content_disposition content_disposition:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - resolve_file_metadata_for_response response:Standard.Base.Any.Any -> Standard.Base.Any.Any

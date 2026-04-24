@@ -2,8 +2,6 @@ package org.enso.languageserver.http.server
 
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
-import akka.http.scaladsl.model.RemoteAddress
-import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -66,26 +64,16 @@ class BinaryWebSocketServer[A, B](
     }
 
   private val route: Route =
-    extractClientIP {
-      case RemoteAddress.Unknown =>
-        complete(
-          InternalServerError.toString +
-          "Set akka.http.server.remote-address-header to on"
-        )
-
-      case ip: RemoteAddress.IP =>
-        path(config.path) {
-          get { handleWebSocketMessages(newConnection(ip)) }
-        }
+    path(config.path) {
+      get { handleWebSocketMessages(newConnection()) }
     }
 
   private def newConnection(
-    ip: RemoteAddress.IP
   ): Flow[Message, Message, NotUsed] = {
 
-    val frontController = factory.createController(ip)
+    val frontController = factory.createController()
 
-    val inboundFlow  = createInboundFlow(frontController, ip)
+    val inboundFlow  = createInboundFlow(frontController)
     val outboundFlow = createOutboundFlow(frontController)
 
     Flow.fromSinkAndSource(inboundFlow, outboundFlow)
@@ -116,16 +104,14 @@ class BinaryWebSocketServer[A, B](
   }
 
   private def createInboundFlow(
-    frontController: ActorRef,
-    ip: RemoteAddress.IP
+    frontController: ActorRef
   ): Sink[Message, NotUsed] = {
     val flow = Flow[Message]
       .mapConcat[BinaryMessage] {
         case msg: TextMessage =>
           logger.warn(
-            "Received text message [{}] over the data connection [{}].",
-            msg,
-            ip
+            "Received text message [{}] over the data connection.",
+            msg
           )
           Nil
 

@@ -53,6 +53,7 @@ final class InvalidateModulesIndexHandler(
     implicit ec: ExecutionContext
   ): Unit = {
     runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
+    replyTo ! SearchProtocol.InvalidateSuggestionsDatabaseResult
   }
 }
 

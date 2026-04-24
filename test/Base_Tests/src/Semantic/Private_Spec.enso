@@ -87,13 +87,13 @@ add_specs spec_builder =
         group_builder.specify "cannot call private static method from different project" <|
             obj = Public_Type.create 42
             Test.expect_panic Private_Access <|
-                Public_Type.priv_method obj
+                Public_Type.priv_method self=obj
 
         group_builder.specify "cannot call private method from a lambda method" <|
             obj = Public_Type.create 42
             Test.expect_panic Private_Access <|
                 Public_Type.in_ctx <|
-                    Public_Type.priv_method obj
+                    Public_Type.priv_method self=obj
 
         group_builder.specify "cannot call private static method that was directly imported" <|
             Test.expect_panic Private_Access <|

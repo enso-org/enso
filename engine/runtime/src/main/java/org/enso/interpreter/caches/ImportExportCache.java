@@ -8,10 +8,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ModuleReference;
@@ -20,9 +19,12 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
-import org.enso.pkg.SourceFile;
 import org.enso.version.BuildVersion;
 
+/**
+ * A cache for import/export information about a library. import/export is represented by {@link
+ * org.enso.compiler.core.ir.Module IR}.
+ */
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
@@ -35,7 +37,7 @@ public final class ImportExportCache
   public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
       LibraryName libraryName) {
     var impl = new ImportExportCache(libraryName);
-    return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
+    return Cache.create(impl, Level.FINEST, libraryName.toString(), false, false);
   }
 
   @Override
@@ -73,7 +75,7 @@ public final class ImportExportCache
     var pool = CacheUtils.createPool(context.getCompiler().context(), true);
     var ref = pool.read(data);
     var bindings = ref.get(MapToBindings.class);
-    return new CachedBindings(libraryName, bindings, Optional.empty());
+    return new CachedBindings(libraryName, bindings);
   }
 
   @Override
@@ -83,45 +85,26 @@ public final class ImportExportCache
 
   @Override
   public Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
-    return entry.sources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
+    return Optional.of(CacheUtils.computeDigestFromLibName(entry.libraryName));
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
+    throw new IllegalStateException("unreachable");
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(
-            pkg -> {
-              TruffleFile bindingsCacheRoot =
-                  pkg.getBindingsCacheRootForPackage(BuildVersion.ensoVersion());
-              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-              var distribution = context.getDistributionManager();
-              var pathSegments =
-                  new String[] {
-                    pkg.namespace(),
-                    pkg.normalizedName(),
-                    pkg.getConfig().version(),
-                    BuildVersion.ensoVersion(),
-                    libraryName.namespace()
-                  };
-              var path =
-                  distribution.LocallyInstalledDirectories()
-                      .irCacheDirectory()
-                      .resolve(StringUtils.join(pathSegments, "/"));
-              var globalCacheRoot = context.getTruffleFile(path.toFile());
-              return new Cache.Roots(localCacheRoot, globalCacheRoot);
-            });
+  public Iterable<TruffleFile> getCacheRoots(EnsoContext context) {
+    var pkg = context.getPackageRepository().getPackageForLibraryJava(libraryName);
+
+    if (pkg.isPresent()) {
+      TruffleFile bindingsCacheRoot =
+          pkg.get().getBindingsCacheRootForPackage(BuildVersion.ensoVersion());
+      var perUserRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+      return Collections.singletonList(perUserRoot);
+    }
+    return Collections.emptyList();
   }
 
   @Override
@@ -165,10 +148,7 @@ public final class ImportExportCache
     }
   }
 
-  public static record CachedBindings(
-      LibraryName libraryName,
-      MapToBindings bindings,
-      Optional<List<SourceFile<TruffleFile>>> sources) {}
+  public static record CachedBindings(LibraryName libraryName, MapToBindings bindings) {}
 
   public record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {

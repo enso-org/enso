@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.error.PanicException;
     type = "State",
     name = "run",
     description = "Runs a stateful computation in a local state environment.",
-    autoRegister = false,
     inlineable = true)
 @ReportPolymorphism
 @GenerateUncached
@@ -86,8 +85,9 @@ public abstract class RunStateNode extends Node {
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {
-      return thunkExecutorNode.executeThunk(
-          frame, computation, state(), BaseNode.TailStatus.NOT_TAIL);
+      var res =
+          thunkExecutorNode.executeThunk(frame, computation, state(), BaseNode.TailStatus.NOT_TAIL);
+      return res;
     } finally {
       objects.removeKey(data, key);
     }

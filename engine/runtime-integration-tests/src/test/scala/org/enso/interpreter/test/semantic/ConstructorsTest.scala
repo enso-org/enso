@@ -48,10 +48,10 @@ class ConstructorsTest extends InterpreterTest {
           |
           |main =
           |    add = x -> y -> x + y
-          |    testCons = List.Cons 1 2
+          |    testCons = List.Cons 1 <| List.Cons 2 List.Nil
           |
           |    result = case testCons of
-          |        List.Cons x y -> add x y
+          |        List.Cons x (List.Cons y _) -> add x y
           |
           |    result + 1
           |""".stripMargin

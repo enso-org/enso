@@ -1,5 +1,5 @@
 import * as react from 'react'
-import { Router, useRoute } from 'vue-router'
+import { useRoute, type Router } from 'vue-router'
 import { useInReactFunction } from './common'
 
 export interface RouterForReact {

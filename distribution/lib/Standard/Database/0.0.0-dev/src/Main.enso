@@ -20,6 +20,7 @@ export project.Extensions.Upload_Table.select_into_database_table
 export project.Extensions.Upload_Table.update_rows
 
 export project.SQL_Query.SQL_Query
+export project.SQL_Query.SQL_Query_With_Schema
 
 export project.Update_Action.Update_Action
 

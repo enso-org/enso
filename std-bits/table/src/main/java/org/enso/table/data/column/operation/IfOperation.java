@@ -16,7 +16,7 @@ public final class IfOperation {
    * verifies if the condition is valid for the operation.
    */
   private static boolean canApply(ColumnStorage<?> condition) {
-    var conditionType = condition.getType();
+    var conditionType = StorageType.ofStorage(condition);
     return conditionType instanceof BooleanType || conditionType instanceof NullType;
   }
 
@@ -43,7 +43,7 @@ public final class IfOperation {
     if (!canApply(conditionStorage)) {
       throw new IllegalStateException(
           "Unsupported condition type: "
-              + conditionStorage.getType()
+              + StorageType.ofStorage(conditionStorage)
               + ". This is a bug in the Table library.");
     }
 
@@ -67,7 +67,7 @@ public final class IfOperation {
       StorageType<T> resultStorageType,
       ProblemAggregator problemAggregator,
       ColumnStorage<?> conditionStorage) {
-    var conditionType = conditionStorage.getType();
+    var conditionType = StorageType.ofStorage(conditionStorage);
 
     // Handle set of Nulls for condition
     if (conditionType instanceof NullType) {

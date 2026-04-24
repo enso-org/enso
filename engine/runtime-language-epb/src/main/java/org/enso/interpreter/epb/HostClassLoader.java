@@ -1,6 +1,7 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -13,23 +14,26 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.graalvm.polyglot.Context;
 
 /**
  * Host class loader that serves as a replacement for {@link
- * com.oracle.truffle.host.HostClassLoader}. Add URLs to Jar archives with {@link #add(URL)}. All
- * the classes that are loaded via this class loader are first searched inside those archives. If
- * not found, delegates to parent class loaders.
+ * com.oracle.truffle.host.HostClassLoader}. All the classes that are loaded via this class loader
+ * are first searched inside those archives. If not found, delegates to parent class loaders.
  */
 @ExportLibrary(InteropLibrary.class)
 final class HostClassLoader extends URLClassLoader implements AutoCloseable, TruffleObject {
 
-  private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Future<Class<?>>> loadedClasses =
+      new ConcurrentHashMap<>();
   private static final Logger logger = System.getLogger(HostClassLoader.class.getName());
   // Classes from "org.graalvm" packages are loaded either by a class loader for the boot
   // module layer, or by a specific class loader, depending on how enso is run. For example,
@@ -54,11 +58,6 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
     isRuntimeModInBootLayer = hasRuntimeMod;
   }
 
-  void add(URL u) {
-    logger.log(Logger.Level.DEBUG, "Adding URL '{0}' to class path", u);
-    addURL(u);
-  }
-
   @Override
   @CompilerDirectives.TruffleBoundary
   public Class<?> loadClass(String name) throws ClassNotFoundException {
@@ -67,43 +66,88 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
 
   @Override
   @CompilerDirectives.TruffleBoundary
+  @SuppressWarnings("unchecked")
   protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     logger.log(Logger.Level.TRACE, "Loading class {0}", name);
-    var l = loadedClasses.get(name);
-    if (l != null) {
-      logger.log(Logger.Level.TRACE, "Class {0} found in cache", name);
-      return l;
-    }
-    synchronized (this) {
-      l = loadedClasses.get(name);
-      if (l != null) {
-        logger.log(Logger.Level.TRACE, "Class {0} found in cache", name);
-        return l;
-      }
-      if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
-        return polyglotClassLoader.loadClass(name);
-      }
-      if (name.startsWith("org.slf4j")) {
-        // Delegating to system class loader ensures that log classes are not loaded again
-        // and do not require special setup. In other words, it is using log configuration that
-        // has been setup by the runner that started the process. See #11641.
-        return polyglotClassLoader.loadClass(name);
-      }
+    var placeholder = new CompletableFuture[1];
+    var pendingClass =
+        loadedClasses.computeIfAbsent(
+            name,
+            t -> {
+              var f = new CompletableFuture<Class<?>>();
+              placeholder[0] = f;
+              return f;
+            });
+    if (placeholder[0] != null) {
       try {
-        l = findClass(name);
-        if (resolve) {
-          l.getMethods();
-        }
-        logger.log(Logger.Level.TRACE, "Class {0} found, putting in cache", name);
-        loadedClasses.put(name, l);
-        return l;
-      } catch (ClassNotFoundException ex) {
-        logger.log(Logger.Level.TRACE, "Class {0} not found, delegating to super", name);
+        placeholder[0].complete(loadClassUnsafe(name, resolve));
+      } catch (ClassNotFoundException e) {
+        placeholder[0].completeExceptionally(e);
+      }
+    } else {
+      logger.log(Logger.Level.TRACE, "Class {0} is already being loaded by other thread", name);
+    }
+    try {
+      return pendingClass.get();
+    } catch (InterruptedException | ExecutionException e) {
+      if (e.getCause() instanceof ClassCastException cce) {
+        throw cce;
+      }
+      throw new ClassNotFoundException("Unable to find class " + name, e);
+    }
+  }
+
+  /** Find a class with a given name without giving any Thread-safety guarantees. */
+  private Class<?> loadClassUnsafe(String name, boolean resolve) throws ClassNotFoundException {
+    if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
+      return polyglotClassLoader.loadClass(name);
+    }
+    if (name.startsWith("org.slf4j")) {
+      // Delegating to system class loader ensures that log classes are not loaded again
+      // and do not require special setup. In other words, it is using log configuration that
+      // has been setup by the runner that started the process. See #11641.
+      return polyglotClassLoader.loadClass(name);
+    }
+    try {
+      var l = findClass(name);
+      if (resolve) {
+        l.getMethods();
+      }
+      return l;
+    } catch (ClassNotFoundException ex) {
+      logger.log(Logger.Level.TRACE, "Class {0} not found, delegating to super", name);
+      return super.loadClass(name, resolve);
+    } catch (Throwable e) {
+      if (isAttemptToLoadBytecodeInNI(e)) {
+        logger.log(
+            Logger.Level.TRACE,
+            "Attempt to load bytecode for class {0}, delegating to super" + name);
         return super.loadClass(name, resolve);
-      } catch (Throwable e) {
+      } else {
         logger.log(Logger.Level.TRACE, "Failure while loading a class: " + e.getMessage(), e);
         throw e;
       }
+    }
+  }
+
+  /**
+   * Returns true if the given exception represents {@code
+   * com.oracle.svm.core.jdk.UnsupportedFeatureError} thrown when an attempt to load a class via
+   * bytecode is made. It is known that {@link #findClass(String)} throws this Error if {@code jar}
+   * URL protocol is enabled (via {@code --enable-protocols=jar} option) during native image build,
+   * because it tries to define the class.
+   *
+   * <p>This exception is more or less an equivalent of {@link ClassNotFoundException} so we treat
+   * it that way.
+   */
+  private static boolean isAttemptToLoadBytecodeInNI(Throwable t) {
+    var isAot = TruffleOptions.AOT;
+    if (isAot) {
+      return t instanceof Error err
+          && err.getMessage() != null
+          && err.getMessage().contains("Classes cannot be defined at runtime");
+    } else {
+      return false;
     }
   }
 
@@ -123,9 +167,10 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   protected String findLibrary(String libname) {
     if (findLibraries != null) {
       try {
-        var res = InteropLibrary.getUncached().execute(findLibraries, libname);
-        if (res instanceof String s) {
-          return s;
+        var iop = InteropLibrary.getUncached();
+        var res = iop.execute(findLibraries, libname);
+        if (iop.isString(res)) {
+          return iop.asString(res);
         }
       } catch (InteropException ex) {
         logger.log(Logger.Level.WARNING, "Cannot find " + libname, ex);
@@ -201,7 +246,8 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       var ctx = EpbContext.get(null);
       return ctx.getEnv().asHostSymbol(clazz);
     } catch (ClassNotFoundException ex) {
-      throw UnknownIdentifierException.create(member, ex);
+      logger.log(Level.DEBUG, "Cannot find class {0} in host class loader", member);
+      throw UnknownIdentifierException.create(member);
     }
   }
 

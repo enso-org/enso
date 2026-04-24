@@ -1,18 +1,47 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.ZonedDateTime;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
-public record DateTimeType() implements StorageType<ZonedDateTime> {
-  public static final DateTimeType INSTANCE = new DateTimeType();
+public final class DateTimeType implements StorageType<ZonedDateTime> {
+  public static final DateTimeType INSTANCE = new DateTimeType(true);
+  public static final DateTimeType INSTANCE_NO_TZ = new DateTimeType(false);
+
+  private final boolean hasTimeZone;
+
+  private DateTimeType(boolean hasTimeZone) {
+    this.hasTimeZone = hasTimeZone;
+  }
 
   @Override
-  public boolean isNumeric() {
-    return false;
+  public char typeChar() {
+    return hasTimeZone ? 'Z' : 'Y';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), hasTimeZone);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Date_Time";
+  }
+
+  /**
+   * Returns true if the DateTimeType includes timezone information.
+   *
+   * @return true if the DateTimeType includes timezone information.
+   */
+  public boolean hasTimeZone() {
+    return hasTimeZone;
   }
 
   @Override
@@ -44,7 +73,7 @@ public record DateTimeType() implements StorageType<ZonedDateTime> {
 
   @Override
   public ColumnStorage<ZonedDateTime> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateTimeType) {
+    if (StorageType.ofStorage(storage) instanceof DateTimeType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<ZonedDateTime>) storage;
       return output;

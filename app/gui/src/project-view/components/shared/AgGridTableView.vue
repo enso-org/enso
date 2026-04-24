@@ -1,5 +1,24 @@
 <script lang="ts">
-import { registerHandlers } from '@/providers/action'
+export type AgGridTableViewProps<TData, TValue> = {
+  rowData: TData[]
+  columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
+  defaultColDef: ColDef<TData>
+  getRowId?: GetRowIdFunc<TData>
+  components?: Record<string, Component>
+  singleClickEdit?: boolean
+  stopEditingWhenCellsLoseFocus?: boolean
+  suppressDragLeaveHidesColumns?: boolean
+  suppressMoveWhenColumnDragging?: boolean
+  textFormatOption?: TextFormatOptions
+  processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
+  datasource?: IServerSideDatasource | boolean
+  rowCount?: number
+  isServerSideModel?: boolean
+  gridIdHash?: string | null
+  getContextMenuItems?: (
+    params: GetContextMenuItemsParams,
+  ) => (MenuItemDef | string)[] | GetContextMenuItems
+}
 
 /**
  * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
@@ -63,14 +82,22 @@ export const commonContextMenuActions = {
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
+import { LINE_BOUNDARIES } from '$/utils/data/string'
 import { gridBindings } from '@/bindings'
+import { clipboardNodeData, writeClipboard } from '@/components/GraphEditor/graphClipboard'
+import {
+  parseTsvData,
+  rowsToTsv,
+  tableToEnsoExpression,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableParsing'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
 import {
-  type VueComponentHandle,
   default as VueComponentHost,
   VueHostInstance,
+  type VueComponentHandle,
 } from '@/components/VueHostRender.vue'
 import { modKey } from '@/composables/events'
+import { registerHandlers } from '@/providers/action'
 import { useAutoBlur } from '@/util/autoBlur'
 import type {
   CellEditingStartedEvent,
@@ -100,44 +127,18 @@ import type {
 } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
-  Component,
-  type ComponentInstance,
   computed,
   h,
   reactive,
   ref,
   shallowRef,
   watch,
+  type Component,
+  type ComponentInstance,
 } from 'vue'
-import { clipboardNodeData, writeClipboard } from '../GraphEditor/clipboard'
-import {
-  parseTsvData,
-  rowsToTsv,
-  tableToEnsoExpression,
-} from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
 
-const props = defineProps<{
-  rowData: TData[]
-  columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
-  defaultColDef: ColDef<TData>
-  getRowId?: GetRowIdFunc<TData>
-  components?: Record<string, Component>
-  singleClickEdit?: boolean
-  stopEditingWhenCellsLoseFocus?: boolean
-  suppressDragLeaveHidesColumns?: boolean
-  suppressMoveWhenColumnDragging?: boolean
-  textFormatOption?: TextFormatOptions
-  processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource?: IServerSideDatasource | boolean
-  rowCount?: number
-  isServerSideModel?: boolean
-  gridIdHash?: string | null
-  getContextMenuItems?: (
-    params: GetContextMenuItemsParams,
-  ) => (MenuItemDef | string)[] | GetContextMenuItems
-}>()
+const props = defineProps<AgGridTableViewProps<TData, TValue>>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
   cellEditingStopped: [event: CellEditingStoppedEvent]
@@ -148,6 +149,7 @@ const emit = defineEmits<{
   columnVisibleChanged: [event: ColumnVisibleEvent]
   columnMoved: [event: ColumnMovedEvent]
 }>()
+defineOptions({ inheritAttrs: false })
 
 const widths = reactive(new Map<string, number>())
 const wrapper = ref<HTMLElement>()
@@ -368,12 +370,18 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
-  <div ref="wrapper" @keydown="handler" @keydown.capture="suppressCopy" @keydown.space.stop>
+  <div
+    ref="wrapper"
+    class="agGridTableViewWrapper"
+    @keydown="handler($event) || stopIfPrevented($event)"
+    @keydown.capture="suppressCopy"
+    @keydown.space.stop
+  >
     <AgGridVue
       v-bind="$attrs"
       ref="grid"
       :key="gridKey"
-      class="ag-theme-alpine inner"
+      class="ag-theme-alpine agGridTableView"
       :headerHeight="26"
       :rowModelType="rowModelType"
       :serverSideDatasource="datasource"
@@ -417,33 +425,4 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 
 <style src="@ag-grid-community/styles/ag-grid.css" />
 <style src="@ag-grid-community/styles/ag-theme-alpine.css" />
-<style scoped>
-.inner {
-  width: 100%;
-  height: 100%;
-}
-
-/*
- * FIXME: This style should apply when using this component both in visualization and in widget.
- * Right now, it appear to only have an effect on visualization, so we have a copy of it inside
- * WidgetTableEditor.
- */
-.ag-theme-alpine {
-  --ag-grid-size: 3px;
-  --ag-list-item-height: 20px;
-  --ag-foreground-color: var(--color-text);
-  --ag-background-color: var(--color-visualization-bg);
-  --ag-header-foreground-color: var(--color-ag-header-text);
-  --ag-odd-row-background-color: color-mix(in srgb, var(--color-visualization-bg) 98%, black);
-  --ag-header-background-color: var(--color-visualization-bg);
-  font-family: var(--font-mono);
-
-  :deep(.ag-header) {
-    background: linear-gradient(
-      to top,
-      var(--ag-odd-row-background-color),
-      var(--ag-background-color)
-    );
-  }
-}
-</style>
+<style src="@/components/shared/AgGridTableView/tableViewStyle.css" />

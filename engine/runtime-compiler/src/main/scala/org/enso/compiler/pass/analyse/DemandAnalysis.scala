@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -10,7 +10,6 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
-  MetadataStorage,
   Module,
   Name,
   Type
@@ -64,7 +63,7 @@ case object DemandAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings =
+    ir.copyWithBindings(
       ir.bindings.map(t =>
         t.mapExpressions(
           runExpression(
@@ -117,20 +116,23 @@ case object DemandAnalysis extends IRPass {
         analyseType(typ, isInsideCallArgument)
       case cse: Case =>
         analyseCase(cse, isInsideCallArgument)
-      case block @ Expression.Block(expressions, retVal, _, _, _) =>
-        block.copy(
-          expressions = expressions.map(x =>
-            analyseExpression(x, isInsideCallArgument = false)
-          ),
-          returnValue = analyseExpression(retVal, isInsideCallArgument = false)
+      case block: Expression.Block =>
+        val newExprs = block.expressions.map(x =>
+          analyseExpression(x, isInsideCallArgument = false)
         )
-      case binding @ Expression.Binding(_, expression, _, _) =>
-        binding.copy(expression =
-          analyseExpression(
-            expression,
-            isInsideCallArgument = false
+        block
+          .copyBuilder()
+          .expressions(newExprs)
+          .returnValue(
+            analyseExpression(block.returnValue, isInsideCallArgument = false)
           )
+          .build()
+      case binding: Expression.Binding =>
+        val newExpr = analyseExpression(
+          binding.expression(),
+          isInsideCallArgument = false
         )
+        binding.copyBuilder().expression(newExpr).build()
       case lit: Literal     => lit
       case err: Error       => err
       case foreign: Foreign => foreign
@@ -153,10 +155,12 @@ case object DemandAnalysis extends IRPass {
     function: Function
   ): Function =
     function match {
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
-        lam.copy(
-          arguments = args.map(analyseDefinitionArgument),
-          body = analyseExpression(
+      case lam: Function.Lambda =>
+        val args = lam.arguments()
+        val body = lam.body()
+        lam.copyWithArgumentsAndBody(
+          args.map(analyseDefinitionArgument),
+          analyseExpression(
             body,
             isInsideCallArgument = false
           )
@@ -188,13 +192,13 @@ case object DemandAnalysis extends IRPass {
       name match {
         case lit: Name.Literal if isDefined(lit) =>
           val newNameLocation =
-            name.location.map(l => new IdentifiedLocation(l.location()))
-          val newName = lit.copy(location = newNameLocation)
-          new Application.Force(
-            newName,
-            name.identifiedLocation(),
-            new MetadataStorage()
-          )
+            name.location.map(l => new IdentifiedLocation(l.location())).orNull
+          val newName = lit.copyBuilder().location(newNameLocation).build()
+          Application.Force
+            .builder()
+            .target(newName)
+            .location(name.identifiedLocation())
+            .build()
         case _ => name
       }
     }
@@ -202,7 +206,7 @@ case object DemandAnalysis extends IRPass {
 
   private def isDefined(name: Name): Boolean = {
     val aliasInfo = name
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Missing alias occurrence information for a name usage"
       )
@@ -229,8 +233,8 @@ case object DemandAnalysis extends IRPass {
           case e       => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
-          function  = newFun,
-          arguments = pref.arguments.map(analyseCallArgument)
+          newFun,
+          pref.arguments.map(analyseCallArgument)
         )
       case force: Application.Force =>
         force.copyWithTarget(

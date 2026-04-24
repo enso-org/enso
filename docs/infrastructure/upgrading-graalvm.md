@@ -3,7 +3,7 @@ layout: developer-doc
 title: Upgrading GraalVM
 category: infrastructure
 tags: [infrastructure, build, graalvm, graal, jvm]
-order: 5
+order: 6
 ---
 
 # Upgrading GraalVM
@@ -29,7 +29,8 @@ to perform the following tasks:
   associated version of Java.
 - Update version of ANTLR dependency to match Truffle's to avoid spurious
   [warnings](https://github.com/enso-org/enso/issues/12485) in Native Image
-- Change the base image in the [`Dockerfile`](../../tools/ci/docker/Dockerfile)
-  to contain the correct GraalVM version.
+- Change the base image in the
+  [`Dockerfile`](../../tools/ci/docker/engine/Dockerfile) to contain the correct
+  GraalVM version.
 - Just to be sure, search for the version regex in all the files in the repo.
 - Ensure that all deprecations have been handled.

@@ -1,12 +1,5 @@
 package org.enso.interpreter.runtime.data.text;
 
-import java.util.ArrayDeque;
-
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.builtin.BuiltinObject;
-import org.enso.polyglot.common_utils.Core_Text_Utils;
-
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -15,6 +8,11 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.api.strings.TruffleString.Encoding;
+import java.util.ArrayDeque;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** Runtime representation of Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
@@ -42,22 +40,22 @@ public final class Text extends BuiltinObject {
   @Builtin.Method(
       description =
           """
-  Computes the number of characters in the text.
+          Computes the number of characters in the text.
 
-    ! What is a Character?
-      A character is defined as an Extended Grapheme Cluster, see Unicode
-      Standard Annex 29. This is the smallest unit that still has semantic
-      meaning in most text-processing applications.
+            ! What is a Character?
+              A character is defined as an Extended Grapheme Cluster, see Unicode
+              Standard Annex 29. This is the smallest unit that still has semantic
+              meaning in most text-processing applications.
 
-    > Example
-      Getting the length of the string "건반(Korean)".
+            > Example
+              Getting the length of the string "건반(Korean)".
 
-          "건반(Korean)".length
-   """)
-  public long length() {
-    int l = length;
+                  "건반(Korean)".length
+          """)
+  public static long length(Text t) {
+    int l = t.length;
     if (l == -1) {
-      return computeAndSetLength();
+      return t.computeAndSetLength();
     } else {
       return l;
     }
@@ -66,20 +64,24 @@ public final class Text extends BuiltinObject {
   @Builtin.Method(
       description =
           """
-  Checks whether this text is in FCD normalized form.
+          Checks whether this text is in FCD normalized form.
 
-  > Example
-    Check if the string is normalized
+          > Example
+            Check if the string is normalized
 
-        "14.95€".is_normalized
-  """)
-  public boolean is_normalized() {
-    return switch (fcdNormalized) {
+                "14.95€".is_normalized
+          """)
+  public static boolean is_normalized(Text t) {
+    return switch (t.fcdNormalized) {
       case 1 -> true;
       case -1 -> false;
-      case 0 -> computeAndSetFcd();
+      case 0 -> t.computeAndSetFcd();
       default -> false;
     };
+  }
+
+  public boolean is_normalized() {
+    return is_normalized(this);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -208,9 +210,9 @@ public final class Text extends BuiltinObject {
   @Override
   public String toString() {
     return switch (this.contents) {
-        case String s -> s;
-        case ConcatRope r -> flattenAndSetContent(r);
-        case null, default -> throw new NullPointerException();
+      case String s -> s;
+      case ConcatRope r -> flattenAndSetContent(r);
+      case null, default -> throw new NullPointerException();
     };
   }
 
@@ -227,12 +229,12 @@ public final class Text extends BuiltinObject {
     workStack.push(c);
     while (!workStack.isEmpty()) {
       switch (workStack.pop()) {
-          case String s -> bldr.append(s);
-          case ConcatRope rope -> {
-            workStack.push(rope.right());
-            workStack.push(rope.left());
-          }
-          case null, default -> throw new NullPointerException();
+        case String s -> bldr.append(s);
+        case ConcatRope rope -> {
+          workStack.push(rope.right());
+          workStack.push(rope.left());
+        }
+        case null, default -> throw new NullPointerException();
       }
     }
     var result = bldr.toString();

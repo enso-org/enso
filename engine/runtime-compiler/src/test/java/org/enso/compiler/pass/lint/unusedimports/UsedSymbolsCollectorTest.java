@@ -24,8 +24,8 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -43,8 +43,8 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -66,9 +66,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -85,9 +85,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -104,9 +104,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -121,9 +121,10 @@ public class UsedSymbolsCollectorTest {
   @Test
   public void inlineSignature_ReturnType() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type A
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type A
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -138,9 +139,10 @@ public class UsedSymbolsCollectorTest {
   @Test
   public void typeAscription_ReturnType() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -158,9 +160,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-            type Error
-            """);
+        type T
+        type Error
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -178,11 +180,11 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type A
-            type B
-            type C
-            type D
-            """);
+        type A
+        type B
+        type C
+        type D
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -206,9 +208,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type S
-            type T
-            """);
+        type S
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -228,9 +230,10 @@ public class UsedSymbolsCollectorTest {
   @Test
   public void typeCast_NestedMethodBody() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -248,9 +251,10 @@ public class UsedSymbolsCollectorTest {
   @Test
   public void annotation_1() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -268,8 +272,8 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            method x = x + 1
-            """);
+        method x = x + 1
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -286,9 +290,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                method self = 42
-            """);
+        type T
+            method self = 42
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -305,9 +309,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons
-            """);
+        type T
+            Cons
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -326,9 +330,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons
-            """);
+        type T
+            Cons
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -347,13 +351,13 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Boolean"),
         """
-            export project.Boolean.Boolean.False
-            export project.Boolean.Boolean.True
+        export project.Boolean.Boolean.False
+        export project.Boolean.Boolean.True
 
-            type Boolean
-                False
-                True
-            """);
+        type Boolean
+            False
+            True
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -375,11 +379,11 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type A
-            type B
-                Value data
-            type C
-            """);
+        type A
+        type B
+            Value data
+        type C
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -398,9 +402,9 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -422,13 +426,13 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            export project.Other_Module.My_Type
-            """);
+        export project.Other_Module.My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -445,13 +449,13 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
         """
-            type Other_Type
-            """);
+        type Other_Type
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            export project.Other_Module.Other_Type as My_Type
-            """);
+        export project.Other_Module.Other_Type as My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -468,14 +472,14 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
         """
-            type X
-                Cons
-            """);
+        type X
+            Cons
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            export project.Other_Module.X as T
-            """);
+        export project.Other_Module.X as T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -492,15 +496,16 @@ public class UsedSymbolsCollectorTest {
   @Test
   public void extensionMethod_ImportAll_DoesNotWork() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Extensions"),
         """
-            import project.Module.T
-            T.extension_method = 42
-            """);
+        import project.Module.T
+        T.extension_method = 42
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -518,15 +523,16 @@ public class UsedSymbolsCollectorTest {
   @Test
   public void usedSymbol_FromSyntheticSubmodule() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.A.B"), """
-            type B_Type
-            """);
+        QualifiedName.fromString("local.Proj.A.B"),
+        """
+        type B_Type
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.A"),
         """
-            export project.A.B
-            type A_Type
-            """);
+        export project.A.B
+        type A_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -544,13 +550,13 @@ public class UsedSymbolsCollectorTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib.A.A"),
         """
-            static_method x = x
-            """);
+        static_method x = x
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib.Main"),
         """
-            export project.A.A
-            """);
+        export project.A.A
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),

@@ -1,66 +1,65 @@
 <script lang="ts">
-import { ProjectId } from '#/services/Backend'
-import { isLocalProjectId } from '#/services/LocalBackend'
-import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
+import { useOpenedProjects } from '$/providers/openedProjects'
+import type { Initialized as InitializedProject } from '$/providers/openedProjects/projectStates'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
+import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
-import { Opt } from '@/util/data/opt'
-import { ToValue } from '@/util/reactivity'
-import { computed, ToRefs, toValue, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import { Loader, ResultComponent } from '@/util/react'
+import type { ProjectId } from 'enso-common/src/services/Backend'
+import { computed, type Ref, shallowRef, watch } from 'vue'
 
-/**
- * A context of a single opened project.
- *
- * Use `WithCurrentProject` component to provide which project is the current for entire component
- * tree (it's injects context and also sets proper css properties). Inside, inject will bring all
- * project-related stores. If the project is closed, all stores becomes undefined.
- */
-const [provideCurrentProject, useCurrentProject] = createContextStore(
+export type CurrentProjectStore = ReturnType<typeof useCurrentProjectRaw>
+const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
   'currentProject',
-  (projectId: ToValue<Opt<ProjectId>>) => {
-    const openedProjects = injectOpenedProjects()
-
-    const hybridResolvedProjectId = computed(() => {
-      const id = toValue(projectId)
-      // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
-      if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
-        for (const openedId of openedProjects.listIds()) {
-          if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
-        }
-      }
-      return id
-    })
-
+  (project: Ref<InitializedProject | undefined>) => {
     const ref = computed(() => {
-      const id = hybridResolvedProjectId.value
-      return id != null ? openedProjects.get(id) : undefined
+      assert(project.value != null)
+      return project.value
     })
-
     return {
-      id: hybridResolvedProjectId,
-      /* Current project as a single ref  */
-      ref,
-      /* Current project's stores decomposed to separate refs. */
-      storesRefs: {
-        store: computed(() => ref.value?.store),
-        names: computed(() => ref.value?.names),
-        suggestionDb: computed(() => ref.value?.suggestionDb),
-        graph: computed(() => ref.value?.graph),
-        widgetRegistry: computed(() => ref.value?.widgetRegistry),
-      } satisfies ToRefs<{ [K in keyof OpenedProject]: OpenedProject[K] | undefined }>,
+      maybeRef: project,
+      id: computed(() => ref.value.info.id),
+      info: computed(() => ref.value.info),
+      store: computed(() => ref.value.store),
+      projectNames: computed(() => ref.value.projectNames),
+      suggestionDb: computed(() => ref.value.suggestionDb),
+      module: computed(() => ref.value.module),
+      graph: computed(() => ref.value.graph),
+      widgetRegistry: computed(() => ref.value.widgetRegistry),
     }
   },
 )
 
-export { useCurrentProject }
+export function useCurrentProject(allowMissing: true): CurrentProjectStore | undefined
+export function useCurrentProject(allowMissing?: false): CurrentProjectStore
+export function useCurrentProject(allowMissing?: boolean): CurrentProjectStore | undefined
+/**
+ * A context of a single opened project.
+ *
+ * Use `WithCurrentProject` component to provide which project is the current for entire component
+ * tree (it injects context, makes sure the project is available, and sets proper css properties).
+ *
+ * The refs inside aren't proxied, so this store may be deconstructed.
+ */
+export function useCurrentProject(allowMissing?: boolean) {
+  const currentProjectStore = useCurrentProjectRaw(allowMissing)
+  if (currentProjectStore == null) return undefined
+  // If the store is defined, but there is no project in it, it has to be fallback component.
+  if (currentProjectStore.maybeRef.value == null) {
+    if (allowMissing) return undefined
+    else throw new Error(`Trying to inject currentProject in WithProject's fallback component`)
+  }
+  return currentProjectStore
+}
 
-function useStoreTemplate<K extends keyof OpenedProject>(
-  storeKey: K,
-): () => NonNullable<OpenedProject[K]> {
+function useStoreTemplate<
+  K extends Exclude<keyof CurrentProjectStore, 'maybeRef' | 'id' | 'ensoPath'>,
+>(storeKey: K): () => NonNullable<CurrentProjectStore[K]['value']> {
   return () => {
-    const currentProject = useCurrentProject().ref
-    const store: Opt<OpenedProject[K]> = currentProject.value?.[storeKey]
+    const currentProject = useCurrentProject().maybeRef
+    const store: Opt<CurrentProjectStore[K]['value']> = currentProject.value?.[storeKey]
     if (store == null) {
       throw new Error('Current Project missing, probably closed.')
     }
@@ -77,7 +76,7 @@ function useStoreTemplate<K extends keyof OpenedProject>(
 export const useProjectStore = useStoreTemplate('store')
 
 /** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
-export const useProjectNames = useStoreTemplate('names')
+export const useProjectNames = useStoreTemplate('projectNames')
 
 /** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useSuggestionDbStore = useStoreTemplate('suggestionDb')
@@ -92,11 +91,36 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 <script setup lang="ts">
 const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
-const provided = provideCurrentProject(() => id).ref
+const openedProjects = useOpenedProjects()
+const project = computed(() => (id ? openedProjects.get(id) : undefined))
+const initializedProject = computed(() =>
+  project.value?.state.status === 'initialized' ? project.value.state : undefined,
+)
+const providedProject = shallowRef<InitializedProject | undefined>(initializedProject.value)
+
+// When project appears, the setup and mount handlers should already see it in context. But when project disappears,
+// we want to keep stores while unmounting (because unmount handlers may still read some computed values).
+// That's why we use two separate watches.
+watch(
+  initializedProject,
+  (project) => {
+    if (project != null) providedProject.value = project
+  },
+  { flush: 'pre' },
+)
+watch(
+  initializedProject,
+  (project) => {
+    if (project == null) providedProject.value = project
+  },
+  { flush: 'post' },
+)
+
+provideCurrentProject(providedProject)
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
-  const groups = provided.value?.suggestionDb.groups ?? []
+  const groups = initializedProject.value?.suggestionDb.groups ?? []
   for (const group of groups) {
     styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
@@ -106,7 +130,23 @@ const groupColors = computed(() => {
 
 <template>
   <div class="WithCurrentProject" :style="groupColors">
-    <slot />
+    <slot v-if="project?.error != null" name="error">
+      <ResultComponent
+        status="error"
+        title="Failed to open project"
+        :subtitle="`${project.error}`"
+      />
+    </slot>
+    <slot v-else-if="initializedProject != null" />
+    <slot
+      v-else-if="
+        project?.nextTask?.process === 'opening' || project?.nextTask?.process === 'restoring'
+      "
+      name="loading"
+    >
+      <Loader minHeight="full" />
+    </slot>
+    <slot v-else name="fallback" />
   </div>
 </template>
 

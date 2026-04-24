@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
+import { multipleChoiceConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SelectionArrow from '@/components/GraphEditor/widgets/WidgetSelection/SelectionArrow.vue'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
@@ -12,9 +20,6 @@ import {
 import { unrefElement } from '@/composables/events'
 import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { useTopLevelArgument } from '@/providers/topLevelArgument'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { multipleChoiceConfiguration } from '@/providers/widgetRegistry/configuration'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
@@ -22,11 +27,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { computed, ref, toRef, useTemplateRef } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const {
-  graph,
-  names: projectNames,
-  suggestionDb: suggestionDbStore,
-} = useCurrentProject().storesRefs
+const { module, projectNames: projectNames, suggestionDb: suggestionDbStore } = useCurrentProject()
 
 const tree = injectWidgetTree()
 
@@ -50,8 +51,6 @@ const expressionTags = useExpressionTags({
   suggestionDb: () => suggestionDbStore.value?.entries,
   projectNames,
 })
-
-const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
 
 const entries = useTagEntries(expressionTags, (expression) =>
   selectedExpressions.value.has(expression),
@@ -79,7 +78,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 
 const selectionArrow = provideSelectionArrow({
   node: () => props.input.value,
-  show: toRef(tree, 'extended'),
+  show: toRef(tree, 'showDetails'),
   isHovered,
 })
 
@@ -137,28 +136,28 @@ function onClick({
   tag: ExpressionTag | NestedChoiceTag
   selected: boolean
 }) {
-  if (!graph.value) return
   if (tag instanceof NestedChoiceTag) return
 
-  const edit = graph.value.startEdit()
-  const directInteraction = true
-  const tagValue = tag.resolveExpression(edit, graph.value)
-  const inputValue = editedValue.value ?? props.input.value
-  if (inputValue instanceof Ast.Vector) {
-    toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
-    props.updateCallback({ edit, directInteraction })
-  } else {
-    const vector = Ast.Vector.new(
-      edit,
-      inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
-    )
-    toggleVectorValue(vector, tagValue, previousState)
-    props.updateCallback({
-      edit,
-      portUpdate: { value: vector, origin: props.input.portId },
-      directInteraction,
-    })
-  }
+  module.value.edit((edit) => {
+    const directInteraction = true
+    const tagValue = tag.resolveExpression(edit, module.value)
+    const inputValue = editedValue.value ?? props.input.value
+    if (inputValue instanceof Ast.Vector) {
+      toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
+      return props.updateCallback({ edit, directInteraction })
+    } else {
+      const vector = Ast.Vector.new(
+        edit,
+        inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
+      )
+      toggleVectorValue(vector, tagValue, previousState)
+      return props.updateCallback({
+        edit,
+        portUpdate: { value: vector, origin: props.input.portId },
+        directInteraction,
+      })
+    }
+  })
 }
 </script>
 
@@ -177,7 +176,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetMultiSelection clickable"
+    class="WidgetMultiSelection widgetParent clickable"
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
@@ -190,7 +189,6 @@ export const widgetDefinition = defineWidget(
       :show="dropDownInteraction.isActive()"
       :entries="entries"
       :topLevel="true"
-      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
   </div>
@@ -198,10 +196,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetMultiSelection {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   position: relative;
-  min-height: var(--node-port-height);
 }
 </style>

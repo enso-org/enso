@@ -6,8 +6,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.LongStream;
+import org.enso.base.ProgressReporter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -18,7 +20,6 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
-import org.enso.table.util.ProgressHandler;
 
 /**
  * Abstract class GroupingOrderingVisitor
@@ -93,10 +94,11 @@ class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var it = runningStatistic.getNewRowVisitor();
-    try (var progressHandle = ProgressHandler.init("running", numRows)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("running", numRows, StorageIterators.PROGRESS_STEP)) {
       for (long i = 0; i < numRows; i++) {
         it.visit(i);
-        progressHandle.advance();
+        progressReporter.advance();
       }
       it.finalise();
     }

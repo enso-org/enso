@@ -1,53 +1,28 @@
 /** @file A toolbar containing chat and the user menu. */
-import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
-import { Menu } from '#/components/Menu'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { ProgressBar } from '#/components/ProgressBar'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import { VisualTooltip } from '#/components/VisualTooltip'
-import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import { Plan } from '#/services/Backend'
 import { rfc3339DurationProgress } from '#/utilities/time'
-import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
-import { useBackends, useFullUserSession, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
-import type { TextId } from 'enso-common/src/text'
+import { Plan } from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { AnimatePresence, motion } from 'framer-motion'
-import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
 import { UserMenu } from './UserMenu'
-
-const TEXT_ID_SCHEMA = z.custom<TextId>((s) => typeof s === 'string')
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const TOPBAR_LINKS_SCHEMA = z.object({
-  items: z.array(
-    z
-      .object({
-        name: TEXT_ID_SCHEMA,
-        url: z.string().url().optional(),
-        menu: z
-          .array(
-            z.object({
-              name: TEXT_ID_SCHEMA,
-              url: z.string().url(),
-            }),
-          )
-          .optional(),
-      })
-      .refine((obj) => 'url' in obj || 'menu' in obj),
-  ),
-})
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
@@ -61,7 +36,7 @@ export function UserBar(props: UserBarProps) {
 
   const { user } = useFullUserSession()
   const { getText } = useText()
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
   const { isOffline } = useOffline()
   const { remoteBackend } = useBackends()
   const { data: organization } = useQuery(
@@ -83,41 +58,24 @@ export function UserBar(props: UserBarProps) {
     : trialProgress.daysLeft > 0 ? getText('xDaysLeftInTrial', trialProgress.daysLeft)
     : trialProgress.hoursLeft > 0 ? getText('xHoursLeftInTrial', trialProgress.hoursLeft)
     : getText('lessThanOneHourLeftInTrial')
+  const isCurrentlyTrialing = trialProgress != null && subscription?.trialEnd != null
 
   const shouldShowInviteButton = !isFeatureUnderPaywall('inviteUser')
   const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
   const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
-  const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (
-    <div className="pt-0.5">
+    <div className="flex-shrink-0 pt-0.5">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x">
-        <AnimatePresence initial={false}>
-          {isOffline && (
-            <motion.div
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              exit={{ opacity: 0, x: 12 }}
-              className="mr-2 flex items-center gap-2"
-            >
-              <SvgMask src={Offline} className="aspect-square w-4 flex-none" />
-              <Text tooltip={getText('offlineToastMessage')} tooltipDisplay="always">
-                {getText('youAreOffline')}
-              </Text>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="flex sm:hidden">
-          <Popover.Trigger>
-            <Button variant="icon" icon="help" aria-label={getText('help')} />
-            <Popover size="auto">
-              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
-            </Popover>
-          </Popover.Trigger>
-        </div>
-        {trialProgress && subscription?.trialEnd != null && (
+        {isOffline && (
+          <div className="mr-2 flex items-center gap-2">
+            <SvgMask src={Offline} className="aspect-square w-4 flex-none" />
+            <Text tooltip={getText('offlineToastMessage')} tooltipDisplay="always">
+              {getText('youAreOffline')}
+            </Text>
+          </div>
+        )}
+        {isCurrentlyTrialing && (
           <VisualTooltip
             className="relative px-2"
             tooltip={getText(
@@ -131,11 +89,11 @@ export function UserBar(props: UserBarProps) {
               variant="clipped"
               className="absolute inset-0"
               progressBarClassName="bg-accent/50"
+              aria-label={getText('trialProgressLabel')}
             />
             <Text className="absolute inset-0 mx-2 cursor-help text-center">{trialText}</Text>
           </VisualTooltip>
         )}
-        <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
         {shouldShowInviteButton && (
           <Dialog.Trigger>
             <Button size="medium" variant="outline">
@@ -163,82 +121,5 @@ export function UserBar(props: UserBarProps) {
         </Popover.Trigger>
       </div>
     </div>
-  )
-}
-
-/** Props for a {@link UserBarHelpSection}. */
-export interface UserBarHelpSectionProps {
-  readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
-  readonly className?: string
-}
-
-/** A section containing help buttons. */
-export function UserBarHelpSection(props: UserBarHelpSectionProps) {
-  const { items, className } = props
-  const { getText } = useText()
-
-  const getSafetyProps = (url: string) =>
-    isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}
-
-  return (
-    <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
-      {items.map((item) => {
-        if (item.url != null && item.menu != null) {
-          return (
-            <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
-              <Button href={item.url} {...getSafetyProps(item.url)}>
-                {getText(item.name)}
-              </Button>
-
-              <Menu.Trigger>
-                <Button icon={ArrowDownIcon} aria-label={getText('more')} />
-
-                <Menu placement="bottom right">
-                  {item.menu.map((menuItem) => (
-                    <Menu.Item
-                      key={menuItem.name}
-                      href={menuItem.url}
-                      {...getSafetyProps(menuItem.url)}
-                    >
-                      {getText(menuItem.name)}
-                    </Menu.Item>
-                  ))}
-                </Menu>
-              </Menu.Trigger>
-            </Button.GroupJoin>
-          )
-        }
-
-        if (item.menu != null) {
-          return (
-            <Menu.Trigger key={item.name}>
-              <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
-
-              <Menu placement="bottom right">
-                {item.menu.map((menuItem) => (
-                  <Menu.Item
-                    key={menuItem.name}
-                    href={menuItem.url}
-                    {...getSafetyProps(menuItem.url)}
-                  >
-                    {getText(menuItem.name)}
-                  </Menu.Item>
-                ))}
-              </Menu>
-            </Menu.Trigger>
-          )
-        }
-
-        if (item.url != null) {
-          return (
-            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
-              {getText(item.name)}
-            </Button>
-          )
-        }
-
-        return null
-      })}
-    </Button.Group>
   )
 }

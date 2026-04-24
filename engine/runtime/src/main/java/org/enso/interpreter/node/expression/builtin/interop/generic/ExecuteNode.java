@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 @BuiltinMethod(
     type = "Polyglot",
     name = "execute",
-    description = "Executes a polyglot function object (e.g. a lambda).",
-    autoRegister = false)
+    description = "Executes a polyglot function object (e.g. a lambda).")
 public abstract class ExecuteNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

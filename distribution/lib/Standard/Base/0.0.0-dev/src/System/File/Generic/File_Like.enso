@@ -1,3 +1,4 @@
+import project.Data.Boolean
 import project.Data.Text.Text
 import project.System.File.File
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -27,12 +28,40 @@ type File_Like
     ## ---
        private: true
        ---
+       Returns the file's extension.
+    extension self -> Text = self.underlying.extension
+
+    ## ---
+       private: true
+       ---
     parent self -> File_Like = File_Like.from self.underlying.parent
 
     ## ---
        private: true
        ---
     to_display_text self -> Text = self.underlying.to_display_text
+
+    ## ---
+       private: true
+       ---
+    exists self = self.underlying.exists
+
+    ## ---
+       private: true
+       ---
+    can_write_into_parent self = self.underlying.can_write_into_parent
+
+    ## ---
+       icon: data_output
+       ---
+       Copies the file to the specified destination.
+
+       ## Arguments
+        - `destination`: the destination to move the file to.
+        - `replace_existing`: specifies if the operation should proceed if the
+          destination file already exists. Defaults to `False`.
+    copy_to self destination replace_existing =
+        self.underlying.copy_to destination replace_existing
 
 ## ---
    private: true

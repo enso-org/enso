@@ -245,6 +245,22 @@ type SQL_Statement
        private: true
        advanced: true
        ---
+       Adds a prefix and suffix to the SQL statement.
+
+       ## Arguments
+        - `prefix`: The prefix to add.
+        - `suffix`: The suffix to add.
+    surround self (prefix : Text = "") (suffix : Text = "") -> SQL_Statement =
+        if prefix=="" && suffix=="" then self else
+            prefix_fragment = if prefix=="" then [] else [SQL_Fragment.Code_Part prefix]
+            suffix_fragment = if suffix=="" then [] else [SQL_Fragment.Code_Part suffix]
+            new_fragments = prefix_fragment + self.internal_fragments + suffix_fragment
+            SQL_Statement.Value new_fragments
+
+    ## ---
+       private: true
+       advanced: true
+       ---
        A vector of code fragments.
        Consists of two types of values:
        - SQL_Fragment.Code_Part, representing parts of raw SQL code and

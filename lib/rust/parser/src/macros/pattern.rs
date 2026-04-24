@@ -7,8 +7,6 @@ use crate::syntax;
 
 use std::collections::VecDeque;
 
-
-
 // ===============
 // === Pattern ===
 // ===============
@@ -23,7 +21,7 @@ use std::collections::VecDeque;
 #[allow(missing_docs)]
 pub struct Pattern {
     #[deref]
-    pub data:                Rc<PatternData>,
+    pub data: Rc<PatternData>,
     pub matches_empty_input: bool,
 }
 
@@ -166,8 +164,6 @@ impl<T: Into<String>> Div<T> for Pattern {
     }
 }
 
-
-
 // =============
 // === Match ===
 // =============
@@ -245,7 +241,6 @@ impl<'s> Match<'s> {
     }
 }
 
-
 // ===================
 // === MatchResult ===
 // ===================
@@ -255,7 +250,7 @@ impl<'s> Match<'s> {
 #[allow(missing_docs)]
 pub struct MatchResult<'s> {
     pub matched: Match<'s>,
-    pub rest:    VecDeque<syntax::Item<'s>>,
+    pub rest: VecDeque<syntax::Item<'s>>,
 }
 
 impl<'s> MatchResult<'s> {
@@ -270,8 +265,6 @@ impl<'s> MatchResult<'s> {
         self
     }
 }
-
-
 
 // ======================
 // === MatchedSegment ===
@@ -295,8 +288,6 @@ impl<'s> MatchedSegment<'s> {
     }
 }
 
-
-
 // ==========================
 // === Pattern Resolution ===
 // ==========================
@@ -309,10 +300,12 @@ impl Pattern {
         mut input: VecDeque<syntax::Item<'s>>,
     ) -> Result<MatchResult<'s>, VecDeque<syntax::Item<'s>>> {
         match &*self.data {
-            PatternData::Expected(msg, item) =>
-                item.resolve(input).map(|t| t.map(|s| Match::expected(msg, s))),
-            PatternData::Named(msg, item) =>
-                item.resolve(input).map(|t| t.map(|s| Match::named(msg, s))),
+            PatternData::Expected(msg, item) => {
+                item.resolve(input).map(|t| t.map(|s| Match::expected(msg, s)))
+            }
+            PatternData::Named(msg, item) => {
+                item.resolve(input).map(|t| t.map(|s| Match::named(msg, s)))
+            }
             PatternData::Everything => Ok(MatchResult::new(Match::Everything(input), default())),
             PatternData::Nothing => Ok(MatchResult::new(Match::Nothing, input)),
             PatternData::Or(fst, snd) => fst
@@ -361,8 +354,9 @@ impl Pattern {
             },
             PatternData::Block => match input.pop_front() {
                 None => Err(default()),
-                Some(syntax::Item::Block(lines)) =>
-                    Ok(MatchResult::new(Match::Block(lines), input)),
+                Some(syntax::Item::Block(lines)) => {
+                    Ok(MatchResult::new(Match::Block(lines), input))
+                }
                 Some(t) => {
                     input.push_front(t);
                     Err(input)

@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
 @BuiltinMethod(
@@ -12,18 +13,18 @@ import org.enso.interpreter.runtime.warning.AppendWarningNode;
     name = "==",
     description =
         """
-      Compares self with other object and returns True iff `self` is exactly the same as
-      the other object, including all its transitively accessible properties or fields,
-      False otherwise.
+        Compares self with other object and returns True iff `self` is exactly the same as
+        the other object, including all its transitively accessible properties or fields,
+        False otherwise.
 
-      Can handle arbitrary objects, including all foreign objects.
+        Can handle arbitrary objects, including all foreign objects.
 
-      Does not throw dataflow errors or panics.
+        Does not throw dataflow errors or panics.
 
-      Note that this is different than `Meta.is_same_object`, which checks whether two
-      references point to the same object on the heap. Moreover, `Meta.is_same_object`
-      implies `Any.==` for all object with the exception of `Number.nan`.
-      """)
+        Note that this is different than `Meta.is_same_object`, which checks whether two
+        references point to the same object on the heap. Moreover, `Meta.is_same_object`
+        implies `Any.==` for all object with the exception of `Number.nan`.
+        """)
 public final class EqualsBuiltinNode extends Node {
   @Child private EqualsNode node;
   @Child private AppendWarningNode append;
@@ -41,12 +42,15 @@ public final class EqualsBuiltinNode extends Node {
    * Compares two objects for equality.
    *
    * @param frame the stack frame we are executing at
-   * @param self the self object
-   * @param other the other object
+   * @param left the self object
+   * @param right the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public Object execute(VirtualFrame frame, Object self, Object other) {
-    var areEqual = node.execute(frame, self, other);
+  public Object execute(VirtualFrame frame, Object left, Object right) {
+    if (left instanceof DataflowError e) {
+      return e;
+    }
+    var areEqual = node.execute(frame, left, right);
     if (areEqual.getWarnings() != null) {
       if (append == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();

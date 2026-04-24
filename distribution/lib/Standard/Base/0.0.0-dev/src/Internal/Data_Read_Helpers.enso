@@ -1,11 +1,10 @@
 private
 
-import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Read.Return_As
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
-import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Metadata.Display
@@ -19,16 +18,11 @@ import project.Warning.Warning
 from project.Data import Raw_Response
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata.Widget import Single_Choice
-from project.System.File_Format import Auto_Detect, format_types
+from project.System.File_Format import Auto_Detect, File_Format_SPI
 
 polyglot java import java.lang.Thread
-
-## ---
-   private: true
-   ---
-looks_like_uri path:Text -> Boolean =
-    (path.starts_with "http://" Case_Sensitivity.Insensitive) || (path.starts_with "https://" Case_Sensitivity.Insensitive)
 
 ## ---
    private: true
@@ -68,7 +62,7 @@ decode_http_response_following_data_links response format =
    private: true
    ---
 format_widget_with_raw_response -> Widget =
-    options = ([Auto_Detect, Raw_Response] + format_types).flat_map .get_dropdown_options
+    options = ([Auto_Detect, Raw_Response] + File_Format_SPI.get_types).flat_map .get_dropdown_options
     Single_Choice display=Display.When_Modified values=options
 
 ## ---
@@ -87,3 +81,9 @@ handle_legacy_format (method_name : Text) (new_argument_name : Text) format = ca
         warning = Deprecated.Warning "Standard.Base.Data" method_name "Deprecated: The `try_auto_parse_result` argument was replaced with `"+new_argument_name+"`. `True` becomes `Auto_Detect` and `False` becomes `Raw_Response`."
         Warning.attach warning new_format
     _ -> format
+
+type Data_List_Default_Impl
+
+Return_As.SPI.from (that : Data_List_Default_Impl) =
+    _ = that
+    Return_As.SPI.new Return_As.Return_As_Base

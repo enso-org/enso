@@ -4,8 +4,6 @@ use crate::syntax::tree::*;
 
 use crate::syntax::statement::BodyBlockParser;
 
-
-
 // =============
 // === Lines ===
 // =============
@@ -15,7 +13,7 @@ use crate::syntax::statement::BodyBlockParser;
 #[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct Line<'s> {
     /// Token ending the previous line, if any.
-    pub newline:    token::Newline<'s>,
+    pub newline: token::Newline<'s>,
     /// The content of the line, if any.
     pub expression: Option<Tree<'s>>,
 }
@@ -42,8 +40,6 @@ impl<'s> span::Builder<'s> for Line<'s> {
     }
 }
 
-
-
 // ==================
 // === Body Block ===
 // ==================
@@ -64,8 +60,6 @@ pub fn parse_block<'s>(
     BodyBlockParser::default().parse_body_block(lines, expression_parser)
 }
 
-
-
 // === Multi-line expression construction ===
 
 /// Adapts a sequence of lines by combining sibling lines in case of multi-line statements, such as
@@ -79,13 +73,14 @@ pub fn compound_lines<'s, I: IntoIterator<Item = Line<'s>>>(
 /// [`Iterator`] that adapts a sequence of lines by merging multi-line statements.
 #[derive(Debug)]
 pub struct CompoundLines<'s, I> {
-    lines:    I,
+    lines: I,
     prefixes: Vec<Prefix<'s>>,
-    newline:  Option<token::Newline<'s>>,
+    newline: Option<token::Newline<'s>>,
 }
 
 impl<'s, I> Iterator for CompoundLines<'s, I>
-where I: Iterator<Item = Line<'s>>
+where
+    I: Iterator<Item = Line<'s>>,
 {
     type Item = Line<'s>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -134,7 +129,6 @@ where I: Iterator<Item = Line<'s>>
     }
 }
 
-
 // === Prefix-list representation ===
 
 /// Representation used to build multi-line statements.
@@ -147,8 +141,9 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
     type Error = Tree<'s>;
     fn try_from(tree: Tree<'s>) -> Result<Self, Self::Error> {
         match tree.variant {
-            Variant::AnnotatedBuiltin(node) if node.expression.is_none() =>
-                Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
+            Variant::AnnotatedBuiltin(node) if node.expression.is_none() => {
+                Ok(Prefix::BuiltinAnnotation { node, span: tree.span })
+            }
             _ => Err(tree),
         }
     }
@@ -176,13 +171,12 @@ impl<'s> Prefix<'s> {
 impl<'s> From<Prefix<'s>> for Tree<'s> {
     fn from(prefix: Prefix<'s>) -> Self {
         match prefix {
-            Prefix::BuiltinAnnotation { node, span } =>
-                Tree { variant: Variant::AnnotatedBuiltin(node), span, warnings: default() },
+            Prefix::BuiltinAnnotation { node, span } => {
+                Tree { variant: Variant::AnnotatedBuiltin(node), span, warnings: default() }
+            }
         }
     }
 }
-
-
 
 // ======================
 // === Operator Block ===
@@ -193,7 +187,7 @@ impl<'s> From<Prefix<'s>> for Tree<'s> {
 #[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct OperatorBlockExpression<'s> {
     /// The operator at the beginning of the line.
-    pub operator:   OperatorOrError<'s>,
+    pub operator: OperatorOrError<'s>,
     /// The rest of the expression.
     pub expression: Tree<'s>,
 }
@@ -204,7 +198,6 @@ impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
     }
 }
 
-
 // === Operator block lines ====
 
 /// A line in an operator block.
@@ -212,7 +205,7 @@ impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
 #[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct OperatorLine<'s> {
     /// Token ending the previous line, if any.
-    pub newline:    token::Newline<'s>,
+    pub newline: token::Newline<'s>,
     /// The operator-expression, if any.
     pub expression: Option<OperatorBlockExpression<'s>>,
 }

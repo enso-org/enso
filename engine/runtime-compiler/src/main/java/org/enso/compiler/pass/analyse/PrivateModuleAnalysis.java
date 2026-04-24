@@ -6,7 +6,6 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -115,10 +114,9 @@ public final class PrivateModuleAnalysis implements MiniPassFactory {
                           && !currentPackage.equals(importedModulePackage)
                           && importedModule.isPrivate()) {
                         importErrors.add(
-                            ImportExport.apply(
+                            ImportExport.create(
                                 resolvedImp.importDef(),
-                                new ImportExport.ImportPrivateModule(importedModuleName),
-                                new MetadataStorage()));
+                                new ImportExport.ImportPrivateModule(importedModuleName)));
                       }
                       return null;
                     });
@@ -128,10 +126,9 @@ public final class PrivateModuleAnalysis implements MiniPassFactory {
       // Ensure that no symbols are exported from a private module.
       if (isCurrentModulePrivate && containsExport(moduleIr)) {
         exportErrors.add(
-            ImportExport.apply(
+            ImportExport.create(
                 moduleIr.exports().apply(0),
-                new ImportExport.ExportSymbolsFromPrivateModule(moduleName),
-                new MetadataStorage()));
+                new ImportExport.ExportSymbolsFromPrivateModule(moduleName)));
       }
 
       // Ensure that private modules are not exported
@@ -144,10 +141,9 @@ public final class PrivateModuleAnalysis implements MiniPassFactory {
                   var associatedExportIR = findExportIRByName(moduleIr, expModuleRef.getName());
                   assert associatedExportIR.isDefined();
                   exportErrors.add(
-                      ImportExport.apply(
+                      ImportExport.create(
                           associatedExportIR.get(),
-                          new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
-                          new MetadataStorage()));
+                          new ImportExport.ExportPrivateModule(expModuleRef.getName().toString())));
                 }
                 return null;
               });

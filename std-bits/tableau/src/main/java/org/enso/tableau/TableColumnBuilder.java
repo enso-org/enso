@@ -126,8 +126,10 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
       case Types.VARCHAR, Types.CHAR:
         var textType =
             column.length().isEmpty()
-                ? new TextType(-1, false)
-                : new TextType(column.length().getAsInt(), column.typeID() == Types.CHAR);
+                ? TextType.VARIABLE_LENGTH
+                : (column.typeID() == Types.CHAR
+                    ? TextType.fixedLength(column.length().getAsInt())
+                    : TextType.variableLengthWithLimit(column.length().getAsInt()));
         var textBuilder = Builder.getForText(textType, initialRowCount);
         return new TableColumnBuilder(
             textBuilder,

@@ -17,13 +17,14 @@ public class OperatorToFunctionMini extends MiniIRPass {
       ListBuffer<CallArgument> args = new ListBuffer<>();
       args.addOne(binOp.left());
       args.addOne(binOp.right());
-      return new Application.Prefix(
-          binOp.operator(),
-          args.toList(),
-          false,
-          binOp.location().isDefined() ? binOp.location().get() : null,
-          binOp.passData(),
-          binOp.diagnostics());
+      return Application.Prefix.builder()
+          .function(binOp.operator())
+          .arguments(args.toList())
+          .hasDefaultsSuspended(false)
+          .location(binOp.location().isDefined() ? binOp.location().get() : null)
+          .passData(binOp.passData())
+          .diagnostics(binOp.diagnostics())
+          .build();
     }
     return ir;
   }

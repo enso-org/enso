@@ -31,30 +31,31 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   @Override
   public ColumnStorage<BigDecimal> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    var storageType = storage.getType();
-    if (storageType instanceof BigDecimalType bigDecimalType) {
-      return bigDecimalType.asTypedStorage(storage);
-    } else if (storage instanceof ColumnLongStorage longStorage) {
-      return convertLongStorage(longStorage);
-    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      return convertDoubleStorage(doubleStorage);
-    } else if (storageType instanceof BigIntegerType bigIntegerType) {
-      return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage));
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      return convertBoolStorage(boolStorage);
-    } else if (canApply(storage.getType())) {
-      return castFromObject(storage, problemAggregator);
-    } else {
-      throw new IllegalStateException(
-          "No known strategy for casting storage " + storage + " to BigDecimal.");
-    }
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case BigDecimalType bigDecimalType -> bigDecimalType.asTypedStorage(storage);
+      case BigIntegerType bigIntegerType ->
+          convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage));
+      case IntegerType integerType -> convertLongStorage(integerType.asTypedStorage(storage));
+      case FloatType floatType ->
+          convertDoubleStorage(floatType.asTypedStorage(storage), problemAggregator);
+      case BooleanType booleanType -> convertBoolStorage(booleanType.asTypedStorage(storage));
+      default -> {
+        if (!canApply(storageType)) {
+          throw new IllegalStateException(
+              "No known strategy for casting storage " + storage + " to BigDecimal.");
+        }
+        yield castFromObject(storage, problemAggregator);
+      }
+    };
   }
 
-  private ColumnStorage<BigDecimal> convertDoubleStorage(ColumnDoubleStorage doubleStorage) {
+  private ColumnStorage<BigDecimal> convertDoubleStorage(
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForBigDecimal(doubleStorage.getSize()),
-        (index, value, isNothing) -> BigDecimal.valueOf(value));
+        (index, value, isNothing) -> fromFloatWarnOnSpecial(value, problemAggregator));
   }
 
   private ColumnStorage<BigDecimal> convertLongStorage(ColumnLongStorage longStorage) {
@@ -88,7 +89,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
             switch (value) {
               case Boolean b -> booleanAsBigDecimal(b);
               case Long l -> BigDecimal.valueOf(l);
-              case Double d -> BigDecimal.valueOf(d);
+              case Double d -> fromFloatWarnOnSpecial(d, problemAggregator);
               case BigInteger bigInteger -> new BigDecimal(bigInteger);
               case BigDecimal bigDecimal -> bigDecimal;
               default -> {
@@ -100,5 +101,19 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
 
   private static BigDecimal booleanAsBigDecimal(boolean value) {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
+  }
+
+  /** For nan/inf, return null and report a warning. */
+  private static BigDecimal fromFloatWarnOnSpecial(
+      double d, CastProblemAggregator problemAggregator) {
+    // According to the BigInteger Javadocs, valueOf is preferred because "the
+    // value returned is equal to that resulting from constructing a BigDecimal
+    // from the result of using Double.toString(double)."
+    if (Double.isFinite(d)) {
+      return BigDecimal.valueOf(d);
+    } else {
+      problemAggregator.reportConversionFailure(d);
+      return null;
+    }
   }
 }

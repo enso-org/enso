@@ -1,6 +1,6 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { assert } from 'vitest'
-import { type App, createApp, watch, WatchSource } from 'vue'
+import { createApp, watch, type App, type WatchSource } from 'vue'
 
 /**
  * An utility for testing composables that actually depend on vue's `setup` environment.

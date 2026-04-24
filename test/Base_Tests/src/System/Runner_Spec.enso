@@ -1,17 +1,14 @@
 from Standard.Base import all
 from Standard.Test import all
 
-polyglot java import java.lang.ProcessBuilder as J_ProcessBuilder
-polyglot java import java.lang.Process as J_Process
+from project.Enso_Bin_Utils import create_tmp_dir, enso_run, create_new_project, runs_in_aot
+
 polyglot java import java.lang.System as J_System
-polyglot java import java.lang.String as J_String
-polyglot java import java.io.File as J_File
-polyglot java import org.enso.base_test_helpers.ExecutableLocation as J_ExecutableLocation
 
 
 add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
     test_jvm_mode relative:Boolean =
-        tmp_root = tmp_dir
+        tmp_root = create_tmp_dir
 
         cleanup =
             tmp_root.delete recursive=True
@@ -22,7 +19,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
 
             expected_version = J_System.getProperty "java.vm.version"
 
-            proj_dir = create_dummy_project proj_parent_dir "Proj" """
+            proj_dir = create_new_project proj_parent_dir "Proj" """
                 polyglot java import java.lang.System
                 import Standard.Base.IO
 
@@ -42,11 +39,13 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
 
             proj_dir.exists . should_be_true
             proj_dir.is_directory . should_be_true
-            out = enso_run cwd=tmp_root.path args=["--run", if relative then "NeedsJvm/Proj" else proj_dir.to_text ]
+            out = enso_run cwd=tmp_root.path args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--run", if relative then "NeedsJvm/Proj" else proj_dir.to_text ]
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 clue . should_contain expected_version
-                clue . should_contain "OpenJDK"
+                # Should be true for both GraalVM CE and GraalVM EE
+                is_expected_name = clue.contains "OpenJDK" || clue.contains "Java HotSpot"
+                is_expected_name . should_be_true
                 clue . should_contain "Server VM"
 
     group_builder.specify "package.yaml JVM mode (relative)" <|
@@ -56,7 +55,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
         test_jvm_mode False
 
     group_builder.specify "should be able to run a project specified with relative path" <|
-        tmp_root = tmp_dir
+        tmp_root = create_tmp_dir
 
         cleanup =
             tmp_root.delete recursive=True
@@ -64,57 +63,121 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
         Panic.with_finalizer cleanup <|
             proj_parent_dir = tmp_root / "Dir1" / "Dir2"
             proj_parent_dir.create_directory
-            proj_dir = create_dummy_project proj_parent_dir "Proj" "main = 42"
+            proj_dir = create_new_project proj_parent_dir "Proj" "main = 42"
             proj_dir.exists . should_be_true
             proj_dir.is_directory . should_be_true
             # The spawned subprocess will try to run the newly created project
             # via a relative path
-            out = enso_run cwd=tmp_root.path args=["--vm.D", "org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
+            out = enso_run cwd=tmp_root.path args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--vm.D=org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 clue . should_contain "org.enso.runner.Main"
 
+    group_builder.specify "--compile creates manifest" <|
+        tmp_dir = create_tmp_dir
 
-runs_in_aot =
-    prop = J_System.getProperty "org.graalvm.nativeimage.imagecode"
-    prop == "runtime"
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest.exists . should_be_true
+
+    group_builder.specify "created manifest after --compile has correct dependencies" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            code = """
+                from Standard.Base import all
+                from Standard.Image import all
+                main = 42
+            proj_dir = create_new_project tmp_dir "Proj" code
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest.exists . should_be_true
+            manifest_lines = manifest.read_text.lines . map (_.trim)
+            manifest_lines . should_contain "dependencies:"
+            dep_idx = manifest_lines.index_of (_ == "dependencies:") + 1
+            manifest_lines.at dep_idx . should_contain "Standard.Base"
+            manifest_lines.at (dep_idx + 1) . should_contain "Standard.Image"
+
+    group_builder.specify "--compile creates source archive by default" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest_lines = manifest.read_text.lines . map (_.trim)
+            manifest_lines . should_contain "archives:"
+            srcs_idx = manifest_lines.index_of (_ == "archives:") + 1
+            archive_name = manifest_lines.at srcs_idx . replace (regex "^\s*-") "" . trim
+            archive_name . ends_with "tgz" . should_be_true
+            archive = proj_dir / archive_name
+            archive . exists . should_be_true
+
+    group_builder.specify "--compile does not create any archives when sys prop is set" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--vm.D=org.enso.compiler.noSourceArchives="+proj_dir.path, "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest_lines = manifest.read_text.lines . map (_.trim)
+            manifest_lines . should_not_contain "archives:"
+            file_names = proj_dir.list.map (_.name)
+            Test.with_clue ("No .tgz files in " + file_names.to_text) <|
+                file_names.filter (_.ends_with "tgz") . is_empty . should_be_true
+
+    group_builder.specify "Executing language server with YDOC_SERVER_JS" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+
+            enso_args = [ "--server", "--daemon" ]
+                + [ "--root-id", "fbfd4950-2324-4108-99b7-019a614f94ab"]
+                + [ "--project-id", "2b27d943-7c6b-4481-8e69-67d0c57a02ed" ]
+                + [ "--path",  proj_dir.path, "--interface", "127.0.0.1", "--rpc-port", "37432" ]
+                + if runs_in_aot then [] else [ "--jvm" ]
+
+            js_file = File.create_temporary_file "custom_ydoc" ".js"
+            js_code = """
+                console.log("Custom JavaScript is running");
+                let msg = "Preventing the startup by throwing an exception";
+                console.log(msg)
+                throw msg;
 
 
-tmp_dir -> File =
-    tmp_file = File.create_temporary_file
-    tmp_path = tmp_file.path
-    tmp_file.delete
-    d = File.new tmp_path
-    d.create_directory
-    d
+            js_code.write js_file
 
-private enso_bin -> Text =
-    J_ExecutableLocation.getExecutableLocation
+            proc_bldr = Process.new_builder "enso"
+                . set_arguments enso_args
+                . set_env "JAVA_TOOL_OPTIONS" "-ea"
+                . set_env "YDOC_SERVER_JS" js_file.to_text
+                . set_directory proj_dir.parent
 
-private enso_run (cwd:Text) (args : Vector Text) -> Text =
-    proc_bldr = J_ProcessBuilder.new [enso_bin]+args
-    proc_bldr.redirectErrorStream True
-    proc_bldr.directory (J_File.new cwd)
-    proc = proc_bldr.start
-    retcode = proc.waitFor
-    bytes = proc.getInputStream.readAllBytes
-    out = J_String.new bytes
-    if retcode != 0 then
-        Test.fail out
-    out
+            proc = proc_bldr.create
+            if proc.exit_code != Exit_Code.Failure 7 then
+                Test.fail "Unexpected exit code: "+proc.exit_code.to_text+'\n'+proc.stdout+proc.stderr
 
-create_dummy_project parent_dir:File proj_name:Text main_src:Text -> File =
-    Runtime.assert parent_dir.exists
-    Runtime.assert parent_dir.is_directory
-    proj_dir = parent_dir / proj_name
-    args = ["--new", proj_dir.path, "--new-project-name", proj_name]
-    ret = Process.run enso_bin args
-    ret.exit_code . should_equal Exit_Code.Success
-    main = proj_dir / "src" / "Main.enso"
-    Runtime.assert main.exists
-    main_src.write main
-    proj_dir
-
+            proc.stdout . should_contain "Custom JavaScript is running"
+            proc.stdout . should_contain "Preventing the startup by throwing an exception"
+            proc.stderr . should_contain "Debugger listening on ws://127.0.0.1:9229/enso_ydoc"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

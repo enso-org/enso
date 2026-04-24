@@ -5,20 +5,15 @@
 //! `crate::data_structures::VecMap` representation, it can be created by a context-free translation
 //! from Rust syntax, so it can be built directly by a proc macro, like [`enso_reflect`].
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub use to_meta::to_meta;
 
-
-
 #[cfg(feature = "graphviz")]
 mod graphviz;
 mod to_meta;
-
-
 
 // ==================
 // === Data model ===
@@ -28,11 +23,11 @@ mod to_meta;
 #[derive(Debug, Clone)]
 pub struct TypeData {
     /// A value uniquely identifying the type.
-    pub id:             TypeId,
+    pub id: TypeId,
     /// The Rust identifier of the type.
-    pub name:           String,
+    pub name: String,
     /// The type's contents.
-    pub data:           Data,
+    pub data: Data,
     /// A value uniquely-identifying the type up to the type of a certain field.
     pub subtype_erased: GenericTypeId,
 }
@@ -59,7 +54,7 @@ pub struct Enum {
 #[derive(Debug, Clone)]
 pub struct Variant {
     /// The variant's name.
-    pub ident:  String,
+    pub ident: String,
     /// The variant's data.
     pub fields: Fields,
     /// If true, when abstracting to the `meta` representation, rather than generate a type for
@@ -71,7 +66,7 @@ pub struct Variant {
 #[derive(Debug, Clone)]
 pub struct Struct {
     /// The fields.
-    pub fields:      Fields,
+    pub fields: Fields,
     /// If true, this field should be passed-through to its (sole) field when abstracting to the
     /// `meta` representation.
     pub transparent: bool,
@@ -81,18 +76,18 @@ pub struct Struct {
 #[derive(Debug, Clone)]
 pub struct NamedField {
     #[allow(missing_docs)]
-    pub name:    String,
+    pub name: String,
     /// The abstract identifier of the type, if different from its name in Rust.
-    pub rename:  Option<String>,
+    pub rename: Option<String>,
     #[allow(missing_docs)]
-    pub type_:   LazyType,
+    pub type_: LazyType,
     /// If true, this type should become the parent of the type in this field.
     pub subtype: bool,
     /// If true, the fields of this field should be inserted in place of it.
     pub flatten: bool,
     /// If true, this field should be hidden in generated code, in a target-language-dependent
     /// manner.
-    pub hide:    bool,
+    pub hide: bool,
 }
 
 /// A field in a tuple struct or tuple variant.
@@ -136,8 +131,6 @@ pub enum Primitive {
     Result(LazyType, LazyType),
 }
 
-
-
 // =======================
 // === Type references ===
 // =======================
@@ -171,7 +164,7 @@ impl GenericTypeId {
 #[derive(Copy, Clone, Debug)]
 pub struct LazyType {
     #[allow(missing_docs)]
-    pub id:   TypeId,
+    pub id: TypeId,
     evaluate: Thunk<TypeData>,
 }
 
@@ -188,7 +181,6 @@ impl LazyType {
 }
 
 type Thunk<T> = fn() -> T;
-
 
 // === Reference Traversal ===
 
@@ -273,8 +265,6 @@ impl ReferencedTypes for UnnamedField {
     }
 }
 
-
-
 // ====================================
 // === Abstractions over data model ===
 // ====================================
@@ -314,8 +304,6 @@ impl Primitive {
         }
     }
 }
-
-
 
 // ================================
 // === Operations on data model ===
@@ -362,8 +350,6 @@ impl UnnamedField {
         self.type_.evaluate()
     }
 }
-
-
 
 // ========================
 // === GraphViz support ===

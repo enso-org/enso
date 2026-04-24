@@ -1,5 +1,6 @@
 package org.enso.languageserver.boot
 
+import java.nio.file.Files
 import akka.http.scaladsl.Http
 import akka.pattern.ask
 import akka.util.Timeout
@@ -14,11 +15,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.sampler.{
-  MethodsSampler,
-  NoopSampler,
-  OutputStreamSampler
-}
+import org.enso.profiling.sampler.MethodsSampler
 import org.slf4j.event.Level
 
 import scala.concurrent.duration._
@@ -60,38 +57,17 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
           Future.successful(None)
       }
     }
-    val bindBinaryServer =
-      for {
-        binding <- module.binaryServer.bind(config.interface, config.dataPort)
-        _ <- Future {
-          logger.trace("Server for Binary WebSocket is initialized")
-        }
-      } yield binding
 
-    val bindSecureBinaryServer: Future[Option[Http.ServerBinding]] = {
-      config.secureDataPort match {
-        case Some(port) =>
-          module.binaryServer
-            .bind(config.interface, port, secure = true)
-            .map(Some(_))
-        case None =>
-          Future.successful(None)
-      }
-    }
     for {
-      jsonBinding         <- bindJsonServer
-      secureJsonBinding   <- bindSecureJsonServer
-      binaryBinding       <- bindBinaryServer
-      secureBinaryBinding <- bindSecureBinaryServer
+      jsonBinding       <- bindJsonServer
+      secureJsonBinding <- bindSecureJsonServer
       _ <- Future {
         maybeServerCtx = Some(
           ServerContext(
             sampler,
             module,
             jsonBinding,
-            secureJsonBinding,
-            binaryBinding,
-            secureBinaryBinding
+            secureJsonBinding
           )
         )
       }
@@ -99,10 +75,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, ${config.secureRpcPort
             .map(p => s"secure-json:${config.interface}$p")
-            .getOrElse("<secure-json-not-configured>")}, " +
-          s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
-            .map(p => s", secure-binary:${config.interface}$p")
-            .getOrElse(", <secure-binary-not-configured>")}"
+            .getOrElse("<secure-json-not-configured>")}"
         )
       }
     } yield ComponentStarted
@@ -112,13 +85,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        OutputStreamSampler.ofFile(path.toFile)
-      case None =>
-        new NoopSampler()
+        MethodsSampler.create(Files.newOutputStream(path), null)
+      case None => MethodsSampler.NOOP
     }
     sampler.start()
     config.profilingConfig.profilingTime.foreach(timeout =>
-      sampler.scheduleStop(timeout.length, timeout.unit, ec)
+      sampler.scheduleStop(timeout)
     )
 
     sampler
@@ -141,7 +113,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     }
 
   private def stopSampling(serverContext: ServerContext): Future[Unit] =
-    Future(serverContext.sampler.stop()).recover(logError)
+    Future(serverContext.sampler.close()).recover(logError)
 
   private def releaseResources(serverContext: ServerContext): Future[Unit] =
     for {
@@ -153,10 +125,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     for {
       _ <- serverContext.jsonBinding.terminate(2.seconds).recover[Any](logError)
       _ <- Future { logger.info("Terminated JSON connections") }
-      _ <- serverContext.binaryBinding
-        .terminate(2.seconds)
-        .recover[Any](logError)
-      _ <- Future { logger.info("Terminated binary connections") }
       _ <-
         Await
           .ready(
@@ -199,18 +167,14 @@ object LanguageServerComponent {
     *
     * @param sampler a sampler gathering the application performance statistics
     * @param mainModule a main module containing all components of the server
-    * @param jsonBinding a http binding for rpc protocol
+    * @param jsonBinding an http binding for rpc protocol
     * @param secureJsonBinding an optional https binding for rpc protocol
-    * @param binaryBinding a http binding for data protocol
-    * @param secureBinaryBinding an optional https binding for data protocol
     */
   case class ServerContext(
     sampler: MethodsSampler,
     mainModule: MainModule,
     jsonBinding: Http.ServerBinding,
-    secureJsonBinding: Option[Http.ServerBinding],
-    binaryBinding: Http.ServerBinding,
-    secureBinaryBinding: Option[Http.ServerBinding]
+    secureJsonBinding: Option[Http.ServerBinding]
   )
 
 }

@@ -17,7 +17,8 @@ public class FunctionPointerTest {
 
   @Test
   public void moduleFunctionPointer() throws Exception {
-    var rawCode = """
+    var rawCode =
+        """
         from Standard.Base import all
 
         run a b = a + b

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { type DebugTree, debugTree } from '../../util/lezer'
+import { debugTree, type DebugTree } from '../../util/lezer'
 import { ensoMarkdownParser, ensoStandardMarkdownParser } from '../ensoMarkdown'
 
 function checkTree({

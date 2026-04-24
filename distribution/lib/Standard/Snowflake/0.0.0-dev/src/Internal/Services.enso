@@ -1,0 +1,19 @@
+private
+
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+
+import Standard.Database.Connection.Database.Database_Connection_Details_SPI
+
+import project.Connection.Snowflake_Details.Snowflake_Details
+import project.Snowflake_Data_Link.Snowflake_Data_Link
+
+type Impl
+
+
+Data_Link_SPI.from (that:Impl) =
+    _ = that
+    Data_Link_SPI.new Snowflake_Data_Link "Snowflake_Connection"
+
+Database_Connection_Details_SPI.from (that:Impl) =
+    _ = that
+    Database_Connection_Details_SPI.new Snowflake_Details "Snowflake" "..Snowflake"

@@ -9,23 +9,24 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Dictionary",
-    name = "to_text",
-    description = """
+    name = Constants.Names.TO_TEXT,
+    description =
+        """
         Returns text representation of this hash map
-        """,
-    autoRegister = false)
+        """)
 public abstract class HashMapToTextNode extends Node {
 
   public static HashMapToTextNode build() {
     return HashMapToTextNodeGen.create();
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object dict);
 
   @TruffleBoundary
   @Specialization(guards = "interop.hasHashEntries(hashMap)")

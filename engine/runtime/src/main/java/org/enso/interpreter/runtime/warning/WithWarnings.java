@@ -15,6 +15,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -82,7 +83,11 @@ public final class WithWarnings extends EnsoObject {
     var mapSizeNode = HashMapSizeNode.getUncached();
     assert mapSizeNode.execute(warningsMap) <= maxWarnings;
     if (limitReached) {
-      assert mapSizeNode.execute(warningsMap) == maxWarnings;
+      assert mapSizeNode.execute(warningsMap) >= maxWarnings
+          : "Limit reached (maxWarnings = "
+              + maxWarnings
+              + "): "
+              + mapSizeNode.execute(warningsMap);
     }
     this.value = value;
     this.maxWarnings = maxWarnings;
@@ -193,8 +198,8 @@ public final class WithWarnings extends EnsoObject {
       throws PanicException {
     var warns = Warning.fromMapToArray(warnsMap);
     var ctx = EnsoContext.get(where);
-    var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
-    var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
+    var scopeOfToText = ctx.getBuiltins().textExtensions().getDefinitionScope();
+    var toText = UnresolvedSymbol.build(Constants.Names.TO_TEXT, scopeOfToText);
     var node = InteropMethodCallNode.getUncached();
     var state = State.create(ctx);
     var text = Text.empty();

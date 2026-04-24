@@ -5,14 +5,16 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function.Function
 import project.Internal.Telemetry
 import project.Meta
-import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format.File_Format_SPI
 import project.System.File_Format.File_Name_Pattern
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata.Choice import Option
+from project.Nothing import all
 
 ## A `File_Format` for reading and writing XML files.
 type XML_Format
@@ -86,3 +88,7 @@ type XML_Format
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         XML_Document.from_stream stream
+
+File_Format_SPI.from (that:XML_Format) =
+    _ = that
+    File_Format_SPI.new XML_Format

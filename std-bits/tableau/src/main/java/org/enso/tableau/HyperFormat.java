@@ -26,23 +26,18 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.EnsoExceptionWrapper;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -53,16 +48,18 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Class responsible for reading/writing Tableau Hyper files. */
 public class HyperFormat {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
 
-  private static final Logger LOGGER = Logger.getLogger("enso-hyper-reader");
+  private static final Logger LOGGER = LoggerFactory.getLogger(HyperFormat.class);
 
   private static String getHyperPath() {
     if (System.getenv("HYPER_PATH") != null) {
@@ -73,8 +70,8 @@ public class HyperFormat {
     } else {
       return switch (OSPlatform.CurrentPlatform) {
         case WINDOWS -> System.getenv("LocalAppData") + "/enso/hyper";
-        case MAC_ARM64, MAX_X64 -> System.getProperty("user.home")
-            + "/Library/Application Support/org.enso/hyper";
+        case MAC_ARM64, MAX_X64 ->
+            System.getProperty("user.home") + "/Library/Application Support/org.enso/hyper";
         case LINUX, OTHER -> System.getProperty("user.home") + "/.local/share/enso/hyper";
       };
     }
@@ -94,24 +91,28 @@ public class HyperFormat {
     try (var files = Files.list(HYPER_PATH)) {
       if (files.findAny().isEmpty()) {
         switch (OSPlatform.CurrentPlatform) {
-          case WINDOWS -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/hyperd.exe",
-              "hyperd.exe",
-              false);
-          case MAC_ARM64 -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd",
-              "hyperd",
-              true);
-          case MAX_X64 -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-x64/hyperd",
-              "hyperd",
-              true);
-          case LINUX -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd",
-              "hyperd",
-              true);
-          case OTHER -> throw new IOException(
-              "Unsupported platform: " + OSPlatform.CurrentPlatform);
+          case WINDOWS ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/hyperd.exe",
+                  "hyperd.exe",
+                  false);
+          case MAC_ARM64 ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd",
+                  "hyperd",
+                  true);
+          case MAX_X64 ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-x64/hyperd",
+                  "hyperd",
+                  true);
+          case LINUX ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd",
+                  "hyperd",
+                  true);
+          case OTHER ->
+              throw new IOException("Unsupported platform: " + OSPlatform.CurrentPlatform);
         }
       }
     } catch (IOException
@@ -129,14 +130,16 @@ public class HyperFormat {
         var classLoader = new TableauClassLoader();
         var jnaPath = classLoader.getResource("jnidispatch");
         Thread.currentThread().setContextClassLoader(classLoader);
-        LOGGER.log(Level.INFO, "Starting Hyper process: {0}.", HYPER_PATH);
+        LOGGER.info("Starting Hyper process: {}.", HYPER_PATH);
         try {
           if (jnaPath != null) {
-            System.setProperty("jna.boot.library.path", new File(jnaPath.getFile()).getParent());
+            // Use URI to correctly handle spaces and other encoded characters.
+            System.setProperty(
+                "jna.boot.library.path", Path.of(jnaPath.toURI()).getParent().toString());
           }
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
         } catch (Throwable ioe) {
-          LOGGER.log(Level.SEVERE, "Failed to start Hyper process.", ioe);
+          LOGGER.error("Failed to start Hyper process.", ioe);
           throw new IOException("Failed to start Hyper process.", ioe);
         }
       } finally {
@@ -162,12 +165,11 @@ public class HyperFormat {
             dotIdx == -1 ? name.substring(libIdx + 1) : name.substring(libIdx + 1, dotIdx);
         // Windows libs don't have `lib` prefix.
         var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
-        var bindings = Context.getCurrent().getBindings("enso");
+        var bindings = getBindings();
         var found = bindings.invokeMember("find_native_library", libName);
         try {
           if (found == null || found.asString() == null) {
-            LOGGER.log(
-                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
+            LOGGER.warn("Failed to find library `{}`. Retrying with a fallback", libName);
             return super.getResource(name);
           } else {
             return new File(found.asString()).toURI().toURL();
@@ -190,12 +192,11 @@ public class HyperFormat {
             dotIdx == -1 ? name.substring(libIdx + 1) : name.substring(libIdx + 1, dotIdx);
         // Windows libs don't have `lib` prefix.
         var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
-        var bindings = Context.getCurrent().getBindings("enso");
+        var bindings = getBindings();
         var found = bindings.invokeMember("find_native_library", libName);
         try {
           if (found == null || found.asString() == null) {
-            LOGGER.log(
-                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
+            LOGGER.warn("Failed to find library `{}`. Retrying with a fallback", libName);
             return super.getResourceAsStream(name);
           } else {
             return new FileInputStream(found.asString());
@@ -215,7 +216,7 @@ public class HyperFormat {
           InvalidPathException,
           UnsupportedOperationException,
           SecurityException {
-    LOGGER.log(Level.INFO, "Downloading Hyper from: {0}", uri);
+    LOGGER.info("Downloading Hyper from: {}", uri);
     var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
     var readChannel = Channels.newChannel(url.toURL().openStream());
@@ -241,27 +242,124 @@ public class HyperFormat {
     }
   }
 
-  public static String[] readSchemas(String path) throws IOException {
+  public static Value readSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return catalog.getSchemaNames().stream()
-          .map(s -> s.getName().getUnescaped())
-          .toArray(String[]::new);
+      return Value.asValue(
+          catalog.getSchemaNames().stream()
+              .map(s -> s.getName().getUnescaped())
+              .toArray(String[]::new));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTablesAllSchemas(String path) throws IOException {
+  public static Value listTablesAllSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return listTablesImpl(catalog, catalog.getSchemaNames());
+      return Value.asValue(listTablesImpl(catalog, catalog.getSchemaNames()));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTables(String path, String schemaName) throws IOException {
+  public static Value listTables(String path, String schemaName) {
     var schemaNames = List.of(new SchemaName(schemaName));
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return listTablesImpl(catalog, schemaNames);
+      return Value.asValue(listTablesImpl(catalog, schemaNames));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  public static Value readStructure(String path, String schemaName, String tableName) {
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    try (var connection = getConnection(path)) {
+      return Value.asValue(readStructureInternal(connection, tableNameObject));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  public static Value readTable(
+      String path, String schemaName, String tableName, Integer rowLimit) {
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
+    try {
+      var tableValue =
+          Value.asValue(
+              readTableInternal(
+                  path,
+                  schemaName,
+                  tableName,
+                  rowLimit,
+                  problemAggregator,
+                  tableNameObject,
+                  query));
+      return problemAggregator.attachProblemsToValue(tableValue, false);
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  public static Value writeTable(
+      String path,
+      String schemaName,
+      String tableName,
+      String[] names,
+      ColumnStorage<?>[] storages,
+      boolean append,
+      boolean matchColumnsByName,
+      boolean throwDontWarn) {
+    assert names.length == storages.length;
+
+    // Localize storages to avoid issues with foreign memory access.
+    var localisedStorages =
+        Arrays.stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
+
+    try {
+      List<String> warningUnmatchedColumns = new ArrayList<>();
+      getProcess();
+
+      try (var connection = openOrReplaceFile(process, path)) {
+        TableDefinition tableDef;
+        if (append && tableExists(schemaName, tableName, connection)) {
+          tableDef =
+              connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
+        } else {
+          tableDef = createTable(schemaName, tableName, names, localisedStorages, connection);
+        }
+        insertData(
+            names,
+            localisedStorages,
+            tableDef,
+            connection,
+            matchColumnsByName,
+            warningUnmatchedColumns,
+            throwDontWarn);
+      }
+      return Value.asValue(warningUnmatchedColumns.toArray(String[]::new));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  private static Connection openOrReplaceFile(HyperProcess process, String path)
+      throws IOException {
+    Connection output;
+    try {
+      output = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
+      return output;
+    } catch (HyperException hyperException) {
+      if (hyperException
+          .getMessage()
+          .contains("Database file already exists, but is not a Hyper database")) {
+        Files.deleteIfExists(Path.of(path));
+        return new Connection(process.getEndpoint(), path, CreateMode.CREATE);
+      }
+      throw hyperException;
     }
   }
 
@@ -277,16 +375,8 @@ public class HyperFormat {
     return output.toArray(HyperTable[]::new);
   }
 
-  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
-      throws IOException {
-    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    try (var connection = getConnection(path)) {
-      return readStructureInternal(connection, tableNameObject);
-    }
-  }
-
   private static HyperTableColumn[] readStructureInternal(
-      Connection connection, TableName tableNameObject) {
+      Connection connection, TableName tableNameObject) throws HyperTableNotFound, HyperQueryError {
     try {
       var catalog = connection.getCatalog();
       var definition = catalog.getTableDefinition(tableNameObject);
@@ -306,15 +396,15 @@ public class HyperFormat {
     }
   }
 
-  public static Column[] readTable(
+  private static Column[] readTableInternal(
       String path,
       String schemaName,
       String tableName,
       Integer rowLimit,
-      ProblemAggregator problemAggregator)
-      throws IOException {
-    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
+      ProblemAggregator problemAggregator,
+      TableName tableNameObject,
+      String query)
+      throws IOException, HyperQueryError, HyperTableNotFound {
     try (var connection = getConnection(path)) {
       var columns = readStructureInternal(connection, tableNameObject);
 
@@ -344,32 +434,6 @@ public class HyperFormat {
     }
   }
 
-  public static String[] writeTable(
-      String path,
-      String schemaName,
-      String tableName,
-      Table table,
-      boolean append,
-      boolean matchColumnsByName,
-      boolean throwDontWarn)
-      throws IOException {
-    List<String> warningUnmatchedColumns = new ArrayList<>();
-    getProcess();
-    try (var connection =
-        new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
-      TableDefinition tableDef;
-      if (append && tableExists(schemaName, tableName, connection)) {
-        tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
-      } else {
-        tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
-      }
-      insertData(
-          table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
-      connection.close();
-    }
-    return warningUnmatchedColumns.toArray(String[]::new);
-  }
-
   private static boolean tableExists(String schemaName, String tableName, Connection connection) {
     final var sn = new SchemaName(schemaName);
     final var tn = new TableName(schemaName, tableName);
@@ -377,17 +441,22 @@ public class HyperFormat {
   }
 
   private static TableDefinition createTable(
-      String schemaName, String tableName, Column[] columns, Connection connection) {
+      String schemaName,
+      String tableName,
+      String[] columnNames,
+      ColumnStorage<?>[] columnStorages,
+      Connection connection) {
+    assert columnNames.length == columnStorages.length;
+
     final var sn = new SchemaName(schemaName);
     if (!connection.getCatalog().getSchemaNames().contains(sn)) {
       connection.getCatalog().createSchema(sn);
     }
 
     var tableDef = new TableDefinition(new TableName(schemaName, tableName));
-    for (var col : columns) {
-      String columnName = col.getName();
-      var sqlType = mapEnsoTypeToSqlType(col.getStorage().getType());
-      tableDef.addColumn(columnName, sqlType);
+    for (int i = 0; i < columnNames.length; i++) {
+      var sqlType = mapEnsoTypeToSqlType(StorageType.ofStorage(columnStorages[i]));
+      tableDef.addColumn(columnNames[i], sqlType);
     }
 
     connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
@@ -395,43 +464,52 @@ public class HyperFormat {
     return tableDef;
   }
 
-  private static SqlType mapEnsoTypeToSqlType(StorageType<?> type) {
-    return switch (type) {
-      case TextType t -> SqlType.text();
-      case IntegerType t -> SqlType.bigInt();
-      case FloatType t -> SqlType.doublePrecision();
-      case BooleanType t -> SqlType.bool();
-      case DateType t -> SqlType.date();
-      case TimeOfDayType t -> SqlType.time();
-      case DateTimeType t -> SqlType.timestampTz();
-        // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
-        // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
-        // values is often slower than processing 64-bit values, so it is advisable to use
-        // a sensible precision for the use case at hand instead of always using the maximum
-        // precision by default.
-        // TODO fix this after https://github.com/enso-org/enso/issues/13022
-      case BigDecimalType t -> SqlType.numeric(18, 9);
-      default -> throw new HyperUnsupportedTypeError(type.toString());
+  private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType)
+      throws HyperUnsupportedTypeError {
+    return switch (storageType) {
+      case TextType _ -> SqlType.text();
+      case IntegerType _ -> SqlType.bigInt();
+      case FloatType _ -> SqlType.doublePrecision();
+      case BooleanType _ -> SqlType.bool();
+      case DateType _ -> SqlType.date();
+      case TimeOfDayType _ -> SqlType.time();
+      case DateTimeType _ -> SqlType.timestampTz();
+      // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+      // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
+      // values is often slower than processing 64-bit values, so it is advisable to use
+      // a sensible precision for the use case at hand instead of always using the maximum
+      // precision by default.
+      // TODO fix this after https://github.com/enso-org/enso/issues/13022
+      case BigDecimalType _ -> SqlType.numeric(18, 9);
+      case BigIntegerType _ -> SqlType.numeric(18, 0);
+      default -> throw new HyperUnsupportedTypeError(storageType.toString());
     };
   }
 
   private static void insertData(
-      Table table,
+      String[] names,
+      ColumnStorage<?>[] storages,
       TableDefinition tableDef,
       Connection connection,
       boolean matchColumnsByName,
       List<String> warningUnmatchedColumns,
-      boolean throwDontWarn) {
+      boolean throwDontWarn)
+      throws HyperTypeMismatch {
     var columnStorages =
         getOrderedStorages(
-            table, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+            names, storages, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+    var storageTypes =
+        Arrays.stream(columnStorages)
+            .map(cs -> cs == null ? NullType.INSTANCE : StorageType.ofStorage(cs))
+            .toArray(StorageType<?>[]::new);
 
     validateTypesMatch(columnStorages, tableDef);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
-      for (int row = 0; row < table.rowCount(); ++row) {
-        for (ColumnStorage<?> storage : columnStorages) {
-          addValueToInserter(inserter, storage, row);
+      for (int row = 0; row < storages[0].getSize(); ++row) {
+        for (int col = 0; col < storageTypes.length; col++) {
+          var value = columnStorages[col] == null ? null : columnStorages[col].getItemBoxed(row);
+          addValueToInserter(inserter, storageTypes[col], value);
         }
         inserter.endRow();
       }
@@ -440,12 +518,12 @@ public class HyperFormat {
   }
 
   private static ColumnStorage<?>[] getOrderedStorages(
-      Table table,
+      String[] columnNames,
+      ColumnStorage<?>[] storages,
       TableDefinition tableDef,
       boolean matchColumnsByName,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
-    int numberOfRows = table.rowCount();
     if (matchColumnsByName) {
       var tableDefColumns = tableDef.getColumns();
       var existingColumnNames = new String[tableDefColumns.size()];
@@ -455,66 +533,63 @@ public class HyperFormat {
       }
 
       validateNoExtraColumnsByName(
-          table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
+          columnNames, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
 
+      var columnNameList = Arrays.asList(columnNames);
       var result = new ColumnStorage[existingColumnNames.length];
       for (int i = 0; i < existingColumnNames.length; ++i) {
         String name = existingColumnNames[i];
-        var tableColumn = table.getColumnByName(name);
-        result[i] =
-            tableColumn == null
-                ? Builder.fromRepeatedItem(null, numberOfRows)
-                : tableColumn.getStorage();
-        ;
+        int index = columnNameList.indexOf(name);
+        result[i] = index == -1 ? null : storages[index];
       }
       return result;
     } else { // match by position
-      validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns, throwDontWarn);
-      Column[] sourceColumns = table.getColumns();
+      validateNoExtraColumnsByPosition(
+          columnNames, tableDef, warningUnmatchedColumns, throwDontWarn);
       int defColumnCount = tableDef.getColumns().size();
 
       var result = new ColumnStorage[defColumnCount];
       for (int i = 0; i < result.length; i++) {
-        result[i] =
-            i < sourceColumns.length
-                ? sourceColumns[i].getStorage()
-                : Builder.fromRepeatedItem(null, numberOfRows);
+        result[i] = i < storages.length ? storages[i] : null;
       }
       return result;
     }
   }
 
-  private static void addValueToInserter(Inserter inserter, ColumnStorage<?> storage, int row) {
-    if (storage.isNothing(row)) {
+  private static void addValueToInserter(
+      Inserter inserter, StorageType<?> storageType, Object value) {
+    if (value == null) {
       inserter.addNull();
     } else {
-      switch (storage) {
-        case ColumnDoubleStorage doubleStorage -> inserter.add(doubleStorage.getItemAsDouble(row));
-        case ColumnLongStorage longStorage -> inserter.add(longStorage.getItemAsLong(row));
-        case ColumnBooleanStorage boolStorage -> inserter.add(boolStorage.getItemAsBoolean(row));
-        default -> {
-          Object value = storage.getItemBoxed(row);
-          switch (value) {
-            case String s -> inserter.add(s);
-            case LocalDate ld -> inserter.add(ld);
-            case LocalTime lt -> inserter.add(lt);
-            case ZonedDateTime zdt -> inserter.add(zdt);
-            case BigDecimal bd -> inserter.add(bd);
-            default -> throw new HyperUnsupportedTypeError(value.toString());
-          }
+      switch (storageType) {
+        case FloatType ft -> inserter.add(ft.valueAsType(value));
+        case IntegerType it -> inserter.add(it.valueAsType(value));
+        case BooleanType bt -> inserter.add(bt.valueAsType(value));
+        case TextType tt -> inserter.add(tt.valueAsType(value));
+        case DateType dt -> inserter.add(dt.valueAsType(value));
+        case TimeOfDayType tot -> inserter.add(tot.valueAsType(value));
+        case DateTimeType dtt -> inserter.add(dtt.valueAsType(value));
+        case BigDecimalType bdt -> inserter.add(bdt.valueAsType(value));
+        case BigIntegerType bit -> {
+          var bigIntValue = bit.valueAsType(value);
+          inserter.add(new BigDecimal(bigIntValue));
         }
+        default ->
+            throw new IllegalStateException(
+                "Unexpected storage type: "
+                    + storageType
+                    + " - this is a bug in the Tableau library.");
       }
     }
   }
 
   private static void validateNoExtraColumnsByName(
-      Table table,
+      String[] columnNames,
       String[] allowedColumnNames,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
     Set<String> allowed = Set.of(allowedColumnNames);
-    Set<String> tableColumnNames =
-        Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
+    Set<String> tableColumnNames = Set.of(columnNames);
 
     String[] extraColumns =
         tableColumnNames.stream().filter(name -> !allowed.contains(name)).toArray(String[]::new);
@@ -536,18 +611,16 @@ public class HyperFormat {
   }
 
   private static void validateNoExtraColumnsByPosition(
-      Table table,
+      String[] columnNames,
       TableDefinition tableDef,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
-    int tableColumnCount = table.getColumns().length;
+    int tableColumnCount = columnNames.length;
     int defColumnCount = tableDef.getColumns().size();
 
     if (tableColumnCount > defColumnCount) {
       String[] extraColumnNames =
-          IntStream.range(defColumnCount, tableColumnCount)
-              .mapToObj(i -> table.getColumns()[i].getName())
-              .toArray(String[]::new);
+          Arrays.stream(columnNames, defColumnCount, tableColumnCount).toArray(String[]::new);
 
       throw new HyperUnmatchedColumns(extraColumnNames);
     }
@@ -567,15 +640,21 @@ public class HyperFormat {
     }
   }
 
-  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef) {
+  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef)
+      throws HyperTypeMismatch {
     for (int i = 0; i < storages.length; i++) {
       var storage = storages[i];
-      if (storage.getType() instanceof NullType) {
+      if (storage == null) {
+        continue; // Allow NULLs to append to anything
+      }
+
+      var storageType = StorageType.ofStorage(storage);
+      if (storageType instanceof NullType) {
         continue; // Allow NULLs to append to anything
       }
 
       SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
-      SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
+      SqlType actualSqlType = mapEnsoTypeToSqlType(storageType);
 
       if (!expectedSqlType.equals(actualSqlType)) {
         String columnName = tableDef.getColumns().get(i).getName().toString();
@@ -583,5 +662,40 @@ public class HyperFormat {
             columnName, expectedSqlType.toString(), actualSqlType.toString());
       }
     }
+  }
+
+  private static Value getBindings() {
+    var ctx = Context.getCurrent();
+    var bindings = ctx.getPolyglotBindings().getMember("ensoBindings");
+    if (bindings != null) {
+      return bindings.execute("enso");
+    } else {
+      return ctx.getBindings("enso");
+    }
+  }
+
+  private static Value handleHyperErrors(String path, Exception exception) {
+    var ensoAtom =
+        Optional.ofNullable(
+                switch (exception) {
+                  case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
+                  case HyperQueryError queryError -> queryError.asEnsoAtom();
+                  case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
+                  case HyperUnsupportedTypeError unsupportedType -> unsupportedType.asEnsoAtom();
+                  case HyperUnmatchedColumns unmatchedColumns -> unmatchedColumns.asEnsoAtom();
+                  case HyperException hyperException ->
+                      EnsoMeta.makeInstance(
+                          "Standard.Tableau.Hyper_Errors",
+                          "Hyper_Error",
+                          "Error",
+                          hyperException.getMessage());
+                  default -> null;
+                })
+            .or(() -> EnsoExceptionWrapper.wrapFileExceptions(path, exception))
+            .or(() -> EnsoExceptionWrapper.wrapCommonExceptions(exception));
+    if (ensoAtom.isEmpty()) {
+      throw new RuntimeException(exception);
+    }
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }

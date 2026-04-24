@@ -6,335 +6,183 @@ import {
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import {
-  useCategories,
-  useCategoriesAPI,
-  useTransferBetweenCategories,
-} from '#/layouts/Drive/Categories'
-import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
+import { useTransferBetweenCategories } from '#/layouts/Drive/Categories'
+import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import { setModal } from '#/providers/ModalProvider'
-import type LocalBackend from '#/services/LocalBackend'
-import { extractTypeAndId } from '#/services/LocalBackend'
-import { noop } from '#/utilities/functions'
-import { usePreventNavigation } from '#/utilities/preventNavigation'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { Category, CategoryType } from '$/providers/category'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useUploadsToCloudStore } from '$/providers/react/upload'
+import { useQueryClient } from '@tanstack/react-query'
 import {
-  queryOptions,
-  useMutation,
-  useQueryClient,
-  type QueryClient,
-  type QueryKey,
-  type UseMutationResult,
-} from '@tanstack/react-query'
-import {
-  assetIsFile,
-  assetIsProject,
   AssetType,
-  createPlaceholderFileAsset,
-  createPlaceholderProjectAsset,
+  BackendType,
   escapeSpecialCharacters,
   extractProjectExtension,
-  fileIsNotProject,
   fileIsProject,
-  S3_CHUNK_SIZE_BYTES,
   stripProjectExtension,
   type AnyAsset,
   type AssetId,
-  type default as Backend,
+  type Backend,
   type DirectoryId,
   type FileId,
   type ProjectId,
-  type UploadedLargeAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
-import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-import { useState } from 'react'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
 import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
 
-declare module 'enso-common/src/queryClient' {
+declare module '$/utils/queryClient' {
   /** */
   interface MutationPools {
     readonly uploadFileChunk: true
   }
 }
 
-/** The delay, in milliseconds, before query data for a file being uploaded is cleared. */
-const CLEAR_PROGRESS_DELAY_MS = 5_000
-const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
+/**
+ * Function for uploading files to Local Backend. It requires less hassle than multipart
+ * upload to Cloud.
+ */
+function useUploadLocally(backend: Backend) {
+  const uploadFileStart = useMutationCallback(backendMutationOptions(backend, 'uploadFileStart'))
+  const uploadFileEnd = useMutationCallback(backendMutationOptions(backend, 'uploadFileEnd'))
+
+  return async (file: File, params: UploadFileRequestParams) => {
+    const { uploadId, sourcePath } = await uploadFileStart([params, file])
+    return uploadFileEnd([
+      {
+        uploadId,
+        sourcePath,
+        parts: [],
+        assetId: params.fileId,
+        ...params,
+      },
+    ])
+  }
+}
 
 /** A function to upload files. */
-export function useUploadFiles(backend: Backend, category: Category) {
+export function useUploadFiles(backend: Backend, category: CategoryType) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const toastAndLog = useToastAndLog()
-  const uploadFileMutation = useUploadFileMutation(backend)
+  const uploads = useUploadsToCloudStore()
+  const uploadLocally = useUploadLocally(backend)
   const setSelectedAssets = useSetSelectedAssets()
+  const uploadFile =
+    backend.type === BackendType.local ? uploadLocally : uploads.uploadFile.bind(uploads)
 
   return useEventCallback(async (filesToUpload: readonly File[], parentId: DirectoryId) => {
     const reversedFiles = Array.from(filesToUpload).reverse()
     const siblings = await ensureListDirectory(parentId)
-    const siblingFiles = siblings.filter(assetIsFile)
-    const siblingProjects = siblings.filter(assetIsProject)
-    const siblingFileTitles = new Set(siblingFiles.map((asset) => asset.title))
-    const siblingProjectTitles = new Set(siblingProjects.map((asset) => asset.title))
-    const files = reversedFiles.filter(fileIsNotProject).map((file) => {
-      const asset = createPlaceholderFileAsset(escapeSpecialCharacters(file.name), parentId)
-      return { asset, file }
+    const siblingsByTitle = new Map(siblings.map((asset) => [asset.title, asset]))
+    const files = reversedFiles.map((file) => {
+      if (fileIsProject(file)) {
+        const title = escapeSpecialCharacters(stripProjectExtension(file.name))
+        return { title, file }
+      } else {
+        const title = escapeSpecialCharacters(file.name)
+        return { title, file }
+      }
     })
-    const projects = reversedFiles.filter(fileIsProject).map((file) => {
-      const basename = escapeSpecialCharacters(stripProjectExtension(file.name))
-      const asset = createPlaceholderProjectAsset(basename, parentId)
-      return { asset, file }
-    })
-    const duplicateFiles = files.filter((file) => siblingFileTitles.has(file.asset.title))
-    const duplicateProjects = projects.filter((project) =>
-      siblingProjectTitles.has(stripProjectExtension(project.asset.title)),
+    const duplicates = new Map(
+      files.flatMap((file) => {
+        const asset = siblingsByTitle.get(file.title)
+        return asset ? [[file.file, { asset, ...file }]] : []
+      }),
     )
-    const fileMap = new Map<AssetId, File>([
-      ...files.map(({ asset, file }) => [asset.id, file] as const),
-      ...projects.map(({ asset, file }) => [asset.id, file] as const),
-    ])
     const uploadedFileInfos: SelectedAssetInfo[] = []
     const addToSelection = (info: SelectedAssetInfo) => {
       uploadedFileInfos.push(info)
       setSelectedAssets(uploadedFileInfos)
     }
 
-    const doUploadFile = async (asset: AnyAsset, method: 'new' | 'update') => {
-      const file = fileMap.get(asset.id)
+    const doUploadFile = async (file: File, title: string, fileId: AssetId | null = null) => {
+      if (fileIsProject(file)) {
+        const { extension } = extractProjectExtension(file.name)
+        title = escapeSpecialCharacters(stripProjectExtension(title))
 
-      if (file != null) {
-        const fileId = method === 'new' ? null : asset.id
-
-        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-        switch (true) {
-          case assetIsProject(asset): {
-            const { extension } = extractProjectExtension(file.name)
-            const title = escapeSpecialCharacters(stripProjectExtension(asset.title))
-
-            await uploadFileMutation
-              .mutateAsync([
-                {
-                  fileId,
-                  fileName: `${title}.${extension}`,
-                  parentDirectoryId: asset.parentId,
-                },
-                file,
-              ])
-              .then(({ id }) => {
-                addToSelection({
-                  type: AssetType.project,
-                  // This is SAFE, because it is guarded behind `assetIsProject`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  id: id as ProjectId,
-                  parentId: asset.parentId,
-                  title,
-                })
-              })
-              .catch((error) => {
-                toastAndLog('uploadProjectError', error)
-              })
-
-            break
+        await uploadFile(
+          file,
+          {
+            fileId,
+            fileName: `${title}.${extension}`,
+            parentDirectoryId: parentId,
+          },
+          'requestedByUser',
+        ).then((result) => {
+          if (result.jobId != null) {
+            return
           }
-          case assetIsFile(asset): {
-            const title = escapeSpecialCharacters(asset.title)
-            await uploadFileMutation
-              .mutateAsync([{ fileId, fileName: title, parentDirectoryId: asset.parentId }, file])
-              .then(({ id }) => {
-                addToSelection({
-                  type: AssetType.file,
-                  // This is SAFE, because it is guarded behind `assetIsFile`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  id: id as FileId,
-                  parentId: asset.parentId,
-                  title,
-                })
-              })
-
-            break
+          addToSelection({
+            type: AssetType.project,
+            // This is SAFE, because it is guarded behind `assetIsProject`.
+            // eslint-disable-next-line no-restricted-syntax
+            id: result.id as ProjectId,
+            parentId,
+            title,
+          })
+        })
+      } else {
+        title = escapeSpecialCharacters(title)
+        await uploadFile(
+          file,
+          { fileId, fileName: title, parentDirectoryId: parentId },
+          'requestedByUser',
+        ).then((result) => {
+          if (result.jobId != null) {
+            return
           }
-          default:
-            break
-        }
+          addToSelection({
+            type: AssetType.file,
+            // This is SAFE, because it is guarded behind `assetIsFile`.
+            // eslint-disable-next-line no-restricted-syntax
+            id: result.id as FileId,
+            parentId,
+            title,
+          })
+        })
       }
     }
 
-    if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
-      const assets = [...files, ...projects].map(({ asset }) => asset)
-      void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
-    } else {
-      const siblingFilesByName = new Map(siblingFiles.map((file) => [file.title, file]))
-      const siblingProjectsByName = new Map(
-        siblingProjects.map((project) => [project.title, project]),
-      )
-      const conflictingFiles = duplicateFiles.map((file) => ({
-        // This is SAFE, as `duplicateFiles` only contains files that have siblings
-        // with the same name.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        current: siblingFilesByName.get(file.asset.title)!,
-        new: createPlaceholderFileAsset(file.asset.title, parentId),
-        file: file.file,
-      }))
-      const conflictingProjects = duplicateProjects.map((project) => {
-        const basename = stripProjectExtension(project.asset.title)
-        return {
-          // This is SAFE, as `duplicateProjects` only contains projects that have
-          // siblings with the same name.
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          current: siblingProjectsByName.get(basename)!,
-          new: createPlaceholderProjectAsset(basename, parentId),
-          file: project.file,
+    const resolutions =
+      duplicates.size === 0 ?
+        []
+      : await resolveDuplications({
+          targetId: parentId,
+          conflictingIds: Array.from(duplicates.values(), ({ asset }) => asset.id),
+        })
+    const resolutionsById = new Map(
+      resolutions.map((resolution) => [resolution.assetId, resolution]),
+    )
+
+    await Promise.allSettled(
+      files.flatMap(({ file, title }) => {
+        const duplicate = duplicates.get(file)
+        if (duplicate == null) {
+          return [doUploadFile(file, title)]
         }
-      })
-      setModal(
-        <DuplicateAssetsModal
-          parentKey={parentId}
-          parentId={parentId}
-          conflictingFiles={conflictingFiles}
-          conflictingProjects={conflictingProjects}
-          siblingFileNames={siblingFilesByName.keys()}
-          siblingProjectNames={siblingProjectsByName.keys()}
-          nonConflictingFileCount={files.length - conflictingFiles.length}
-          nonConflictingProjectCount={projects.length - conflictingProjects.length}
-          doUpdateConflicting={async (resolvedConflicts) => {
-            await Promise.allSettled(
-              resolvedConflicts.map((conflict) => {
-                const isUpdating = conflict.current.title === conflict.new.title
-                const asset = isUpdating ? conflict.current : conflict.new
-                fileMap.set(asset.id, conflict.file)
-                return doUploadFile(asset, isUpdating ? 'update' : 'new')
-              }),
-            )
-          }}
-          doUploadNonConflicting={async () => {
-            const newFiles = files
-              .filter((file) => !siblingFileTitles.has(file.asset.title))
-              .map((file) => {
-                const asset = createPlaceholderFileAsset(file.asset.title, parentId)
-                fileMap.set(asset.id, file.file)
-                return asset
-              })
-
-            const newProjects = projects
-              .filter(
-                (project) => !siblingProjectTitles.has(stripProjectExtension(project.asset.title)),
-              )
-              .map((project) => {
-                const basename = stripProjectExtension(project.asset.title)
-                const asset = createPlaceholderProjectAsset(basename, parentId)
-                fileMap.set(asset.id, project.file)
-                return asset
-              })
-
-            const assets = [...newFiles, ...newProjects]
-
-            await Promise.allSettled(assets.map((asset) => doUploadFile(asset, 'new')))
-          }}
-        />,
-      )
-    }
-  })
-}
-
-/** Upload progress for {@link useUploadFileMutation}. */
-export interface UploadFileMutationProgress {
-  /**
-   * Whether this is the first progress update.
-   * Useful to determine whether to create a new toast or to update an existing toast.
-   */
-  readonly event: 'begin' | 'chunk' | 'end'
-  readonly sentBytes: number
-  readonly totalBytes: number
-}
-
-/** Options for {@link useUploadFileMutation}. */
-export interface UploadFileMutationOptions {
-  /** Defaults to `true`. */
-  readonly updateProgress?: boolean | undefined
-  /**
-   * Defaults to `3`.
-   * Controls the default value of {@link UploadFileMutationOptions['chunkRetries']}
-   * and {@link UploadFileMutationOptions['endRetries']}.
-   */
-  readonly retries?: number | undefined
-  /** Defaults to {@link UploadFileMutationOptions['retries']}. */
-  readonly chunkRetries?: number | undefined
-  /** Defaults to {@link UploadFileMutationOptions['retries']}. */
-  readonly endRetries?: number | undefined
-  /** Called for all progress updates (`onBegin`, `onChunkSuccess` and `onSuccess`). */
-  readonly onProgress?: ((progress: UploadFileMutationProgress) => void) | undefined
-  /** Called before any mutations are sent. */
-  readonly onBegin?: ((progress: UploadFileMutationProgress) => void) | undefined
-  /** Called after each successful chunk upload mutation. */
-  readonly onChunkSuccess?: ((progress: UploadFileMutationProgress) => void) | undefined
-  /** Called after the entire mutation succeeds. */
-  readonly onSuccess?: ((progress: UploadFileMutationProgress) => void) | undefined
-  /** Called after any mutations fail. */
-  readonly onError?: ((error: unknown) => void) | undefined
-  /** Called after `onSuccess` or `onError`, depending on whether the mutation succeeded. */
-  readonly onSettled?:
-    | ((progress: UploadFileMutationProgress | null, error: unknown) => void)
-    | undefined
-}
-
-/** The result of a {@link useUploadFileMutation}. */
-export type UploadFileMutationResult = UseMutationResult<
-  UploadedLargeAsset,
-  Error,
-  [body: UploadFileRequestParams, file: File],
-  unknown
-> & { readonly sentBytes: number; readonly totalBytes: number }
-
-/** A key for an "uploading file" computed query. */
-export function uploadingFilesQueryKey() {
-  return UPLOADING_FILES_QUERY_KEY
-}
-
-/** Options for an "uploading file" computed query. */
-export function uploadingFileQueryOptions() {
-  return queryOptions<Record<string, UploadFileMutationProgress>>({
-    queryKey: uploadingFilesQueryKey(),
-    initialData: {},
-  })
-}
-
-/** Set the progress of a file upload. */
-function setUploadingFileProgress(
-  queryClient: QueryClient,
-  id: string,
-  progress: UploadFileMutationProgress,
-) {
-  queryClient.setQueryData<Record<string, UploadFileMutationProgress>>(
-    uploadingFilesQueryKey(),
-    (data) => ({ ...data, [id]: progress }),
-  )
-}
-
-/** Clear the progress of file uploads if all current file uploads are done. */
-function clearUploadingFileProgressIfDone(queryClient: QueryClient) {
-  queryClient.setQueryData<Record<string, UploadFileMutationProgress>>(
-    uploadingFilesQueryKey(),
-    (data) => {
-      if (!data) {
-        return
-      }
-      for (const [, progress] of Object.entries(data)) {
-        if (progress.event !== 'end') {
-          return
+        const resolution = resolutionsById.get(duplicate.asset.id)
+        if (resolution == null) {
+          return [doUploadFile(file, title)]
         }
-      }
-      return {}
-    },
-  )
+        switch (resolution.conclusion) {
+          case 'rename': {
+            return [doUploadFile(duplicate.file, resolution.newName)]
+          }
+          case 'replace': {
+            return [doUploadFile(duplicate.file, duplicate.asset.title, duplicate.asset.id)]
+          }
+          case 'skip': {
+            // Ignored.
+            return []
+          }
+        }
+      }),
+    )
+  })
 }
 
 /**
- * Options for {@link useUploadFileToCloudMutation}.
+ * Options for {@link useUploadFileToCloud}.
  */
 export interface UploadFileToCloudMutationOptions {
   /** The assets to upload. */
@@ -375,36 +223,33 @@ export function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset i
 /** Get both deleted and non-deleted siblings. */
 function useGetSiblings() {
   const queryClient = useQueryClient()
-  const { cloudCategories } = useCategoriesAPI()
-  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
-  const cloudTrashCategory = cloudCategories.categories.find(
-    (category) => category.type === 'trash',
-  )
 
   return useEventCallback(async (backend: Backend, parentId: DirectoryId) => {
-    const nonDeletedAssets =
-      cloudHomeCategory ?
-        await queryClient.fetchQuery(
-          listDirectoryQueryOptions({
-            backend,
-            parentId,
-            category: cloudHomeCategory,
-            refetchInterval: null,
-          }),
-        )
-      : []
-    const deletedAssets =
-      cloudTrashCategory ?
-        await queryClient.fetchQuery(
-          listDirectoryQueryOptions({
-            backend,
-            parentId,
-            category: cloudTrashCategory,
-            refetchInterval: null,
-          }),
-        )
-      : []
-    return [...nonDeletedAssets, ...deletedAssets] as const
+    const [nonDeletedAssets, deletedAssets] = await Promise.all([
+      queryClient.fetchQuery(
+        listDirectoryQueryOptions({
+          backend,
+          parentId,
+          category: { type: 'cloud' },
+          labels: null,
+          sortExpression: null,
+          sortDirection: null,
+          refetchInterval: null,
+        }),
+      ),
+      queryClient.fetchQuery(
+        listDirectoryQueryOptions({
+          backend,
+          parentId,
+          category: { type: 'trash' },
+          labels: null,
+          sortExpression: null,
+          sortDirection: null,
+          refetchInterval: null,
+        }),
+      ),
+    ])
+    return [...nonDeletedAssets.assets, ...deletedAssets.assets] as const
   })
 }
 
@@ -412,15 +257,13 @@ function useGetSiblings() {
  * Packs a project into a file and uploads it to the cloud.
  * Does not work in environments that do not have a local backend.
  */
-export function useUploadFileToCloudMutation() {
+export function useUploadFileToCloud() {
   const { getText } = useText()
   const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
   const { remoteBackend } = useBackends()
-  const uploadFileMutation = useUploadFileMutation(remoteBackend)
+  const uploads = useUploadsToCloudStore()
   const getSiblings = useGetSiblings()
-  const { cloudCategories } = useCategoriesAPI()
-  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
 
   const upload = useEventCallback(
     /**
@@ -465,15 +308,11 @@ export function useUploadFileToCloudMutation() {
             return
           }
 
-          invariant(
-            cloudHomeCategory != null,
-            'Cloud home category must exist to upload Local project to Cloud',
-          )
           const resolutions = await resolveDuplications({
             canReplace: true,
             targetId: targetDirectoryId,
             conflictingIds: conflictingAssets.map((asset) => asset.id),
-            category: cloudHomeCategory,
+            category: { type: 'cloud' },
             backend: remoteBackend,
           })
 
@@ -526,12 +365,7 @@ export function useUploadFileToCloudMutation() {
             const fileData = await (async () => {
               switch (asset.type) {
                 case AssetType.project: {
-                  // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
-                  const parentDirectoryPath = extractTypeAndId(asset.parentId).id
-
-                  const projectResponse = await httpClient.get(
-                    `/api/project-manager/projects/${extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
-                  )
+                  const projectResponse = await httpClient.get(`/api/projects/${asset.id}/download`)
 
                   if (!projectResponse.ok) {
                     throw new Error('Something went wrong, please try again')
@@ -553,14 +387,15 @@ export function useUploadFileToCloudMutation() {
               }
             })()
 
-            await uploadFileMutation.mutateAsync([
+            await uploads.uploadFile(
+              fileData.file,
               {
                 fileName: fileData.fileName,
                 fileId: asset.cloudId ?? null,
                 parentDirectoryId: targetDirectoryId,
               },
-              fileData.file,
-            ])
+              'requestedByUser',
+            )
 
             toast.success(getText('uploadProjectToCloudSuccess'))
           } catch (error) {
@@ -575,197 +410,13 @@ export function useUploadFileToCloudMutation() {
 }
 
 /**
- * Call "upload file" mutations for a file.
- * Always uses multipart upload for Cloud backend.
- */
-export function useUploadFileMutation(
-  backend: Backend,
-  options: UploadFileMutationOptions = {},
-): UploadFileMutationResult {
-  const queryClient = useQueryClient()
-  const toastAndLog = useToastAndLog()
-  const { getText } = useText()
-  const fileChunkUploadPoolSize = useFeatureFlag('fileChunkUploadPoolSize')
-  const {
-    retries = 3,
-    chunkRetries = retries,
-    endRetries = retries,
-    updateProgress = true,
-    onError = (error) => {
-      toastAndLog('uploadLargeFileError', error)
-    },
-  } = options
-  const setProgress: typeof setUploadingFileProgress =
-    updateProgress ? setUploadingFileProgress : noop
-  const uploadFileStartMutation = useMutation(backendMutationOptions(backend, 'uploadFileStart'))
-  const [variables, setVariables] = useState<[params: UploadFileRequestParams, file: File]>()
-  const [sentBytes, setSentBytes] = useState(0)
-  const [totalBytes, setTotalBytes] = useState(0)
-  const uploadFileChunkMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFileChunk', {
-      retry: chunkRetries,
-      meta: { pool: { id: 'uploadFileChunk', parallelism: fileChunkUploadPoolSize } },
-    }),
-  )
-  const uploadFileEndMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFileEnd', { retry: endRetries }),
-  )
-  const mutateAsync = useEventCallback(
-    async ([body, file]: [body: UploadFileRequestParams, file: File]) => {
-      const progressId = uniqueString()
-      setVariables([body, file])
-      const fileSizeBytes = file.size
-      const beginProgress: UploadFileMutationProgress = {
-        event: 'begin',
-        sentBytes: 0,
-        totalBytes: fileSizeBytes,
-      }
-      options.onBegin?.(beginProgress)
-      setProgress(queryClient, progressId, beginProgress)
-      setSentBytes(0)
-      setTotalBytes(fileSizeBytes)
-      try {
-        const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
-          body,
-          file,
-        ])
-        let completedChunkCount = 0
-        const parts = await Promise.all(
-          presignedUrls.map((url, i) =>
-            uploadFileChunkMutation.mutateAsync([url, file, i]).then((part) => {
-              // This cannot be the `onSuccess` callback in `mutateAsync` because then it would not run
-              // if the component is unmounted beforehand (which seems to be the case?).
-              completedChunkCount += 1
-              const newSentBytes = Math.min(
-                completedChunkCount * S3_CHUNK_SIZE_BYTES,
-                fileSizeBytes,
-              )
-              setSentBytes(newSentBytes)
-              const chunkProgress: UploadFileMutationProgress = {
-                event: 'chunk',
-                sentBytes: newSentBytes,
-                totalBytes: fileSizeBytes,
-              }
-              options.onChunkSuccess?.(chunkProgress)
-              setProgress(queryClient, progressId, chunkProgress)
-              return part
-            }),
-          ),
-        )
-        const result = await uploadFileEndMutation.mutateAsync([
-          {
-            parentDirectoryId: body.parentDirectoryId,
-            parts,
-            sourcePath: sourcePath,
-            uploadId: uploadId,
-            assetId: body.fileId,
-            fileName: body.fileName,
-          },
-        ])
-        setSentBytes(fileSizeBytes)
-        const endProgress: UploadFileMutationProgress = {
-          event: 'end',
-          sentBytes: fileSizeBytes,
-          totalBytes: fileSizeBytes,
-        }
-        options.onSuccess?.(endProgress)
-        options.onSettled?.(endProgress, null)
-        setProgress(queryClient, progressId, endProgress)
-        if (updateProgress) {
-          setTimeout(() => {
-            clearUploadingFileProgressIfDone(queryClient)
-          }, CLEAR_PROGRESS_DELAY_MS)
-        }
-        return result
-      } catch (error) {
-        onError(error)
-        options.onSettled?.(null, error)
-        throw error
-      }
-    },
-  )
-
-  const mutate = useEventCallback(
-    ([params, file]: [params: UploadFileRequestParams, file: File]) => {
-      void mutateAsync([params, file])
-    },
-  )
-
-  const reset = useEventCallback(() => {
-    uploadFileStartMutation.reset()
-    uploadFileChunkMutation.reset()
-    uploadFileEndMutation.reset()
-  })
-
-  const submittedAt = uploadFileStartMutation.submittedAt
-
-  const isError =
-    uploadFileStartMutation.isError ||
-    uploadFileChunkMutation.isError ||
-    uploadFileEndMutation.isError
-  const isSuccess = uploadFileEndMutation.isSuccess
-  const isPending =
-    uploadFileStartMutation.isPending ||
-    uploadFileChunkMutation.isPending ||
-    uploadFileEndMutation.isPending
-  const isIdle =
-    uploadFileStartMutation.isIdle && uploadFileChunkMutation.isIdle && uploadFileEndMutation.isIdle
-
-  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: isPending })
-
-  const result: MergeValuesOfObjectUnion<UploadFileMutationResult> = {
-    sentBytes,
-    totalBytes,
-    variables,
-    mutate,
-    mutateAsync,
-    context: uploadFileEndMutation.context,
-    data: uploadFileEndMutation.data,
-    failureCount:
-      uploadFileEndMutation.failureCount +
-      uploadFileChunkMutation.failureCount +
-      uploadFileStartMutation.failureCount,
-    failureReason:
-      uploadFileEndMutation.failureReason ??
-      uploadFileChunkMutation.failureReason ??
-      uploadFileStartMutation.failureReason,
-    isError,
-    error:
-      uploadFileEndMutation.error ?? uploadFileChunkMutation.error ?? uploadFileStartMutation.error,
-    isPaused:
-      uploadFileStartMutation.isPaused ||
-      uploadFileChunkMutation.isPaused ||
-      uploadFileEndMutation.isPaused,
-    isPending,
-    isSuccess,
-    isIdle,
-    status:
-      isPending ? 'pending'
-      : isIdle ? 'idle'
-      : isSuccess ? 'success'
-      : isError ? 'error'
-      : 'error',
-    reset,
-    submittedAt,
-  }
-  // This is UNSAFE. Care must be taken to ensire all state is merged properly.
-  // eslint-disable-next-line no-restricted-syntax
-  return result as UploadFileMutationResult
-}
-
-/**
  * Download a file to local.
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToLocal(category: Category) {
-  const transferBetweenCategories = useTransferBetweenCategories(category)
+  const transferBetweenCategories = useTransferBetweenCategories()
 
-  const { localCategories } = useCategories()
-  const localHomeCategory = localCategories.categories.find(
-    (otherCategory) => otherCategory.type === 'local',
-  )
   return useEventCallback(async (assets: readonly AnyAsset[]) => {
-    invariant(localHomeCategory, 'Local home category must exist to download to local')
-    await transferBetweenCategories(category, localHomeCategory, assets)
+    await transferBetweenCategories(category, { type: 'local' }, assets)
   })
 }

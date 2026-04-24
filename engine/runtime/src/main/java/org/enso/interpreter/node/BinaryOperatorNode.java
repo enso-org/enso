@@ -15,6 +15,7 @@ import org.enso.interpreter.node.BinaryOperatorNodeFactory.DoThatConversionNodeG
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.FunctionAndType;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -25,7 +26,6 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
-import org.graalvm.collections.Pair;
 
 final class BinaryOperatorNode extends ExpressionNode {
   private @Child ExpressionNode left;
@@ -106,7 +106,7 @@ final class BinaryOperatorNode extends ExpressionNode {
       var unresolved = UnresolvedSymbol.build(symbol, type.getDefinitionScope());
       var found = unresolved.resolveFor(this, type);
       if (found != null) {
-        return found.getLeft();
+        return found.function();
       } else {
         return null;
       }
@@ -152,14 +152,14 @@ final class BinaryOperatorNode extends ExpressionNode {
         EnsoMultiValue multi,
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
         @Cached("multi.getDispatchId()") Object cachedDispatchId,
-        @Cached("findFnForMulti(typeOfNode, multi, symbol)") Pair<Function, Type> fnAndType,
+        @Cached("findFnForMulti(typeOfNode, multi, symbol)") FunctionAndType fnAndType,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true, value = "buildWithArity(2)")
             InvokeFunctionNode invokeNode) {
       var selfType = findType(typeOfNode, self);
       if (fnAndType != null) {
-        var fn = fnAndType.getLeft();
-        var thatType = fnAndType.getRight();
+        var fn = fnAndType.function();
+        var thatType = fnAndType.type();
         var result =
             doDispatch(frame, self, multi, selfType, thatType, fn, convertNode, invokeNode);
         if (result != null) {
@@ -170,14 +170,14 @@ final class BinaryOperatorNode extends ExpressionNode {
     }
 
     @TruffleBoundary
-    final Pair<Function, Type> findFnForMulti(
+    final FunctionAndType findFnForMulti(
         TypeOfNode typeOfNode, EnsoMultiValue multi, String symbol) {
       var all = typeOfNode.findAllTypesOrNull(multi, false);
       Function fn = null;
       for (var thatType : all) {
         fn = findSymbol(symbol, thatType);
         if (fn != null) {
-          return Pair.create(fn, thatType);
+          return new FunctionAndType(fn, thatType);
         }
       }
       return null;
@@ -197,8 +197,8 @@ final class BinaryOperatorNode extends ExpressionNode {
       if (that instanceof EnsoMultiValue multi) {
         var fnAndType = findFnForMulti(typeOfNode, multi, symbol);
         if (fnAndType != null) {
-          var fn = fnAndType.getLeft();
-          var thatType = fnAndType.getRight();
+          var fn = fnAndType.function();
+          var thatType = fnAndType.type();
           var result =
               doDispatch(frame, self, multi, selfType, thatType, fn, convertNode, invokeNode);
           if (result != null) {

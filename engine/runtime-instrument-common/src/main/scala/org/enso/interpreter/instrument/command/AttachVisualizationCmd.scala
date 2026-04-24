@@ -42,8 +42,16 @@ class AttachVisualizationCmd(
       )
 
     maybeFutureExecutable.flatMap {
-      case None | null      => Future.successful(())
-      case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
+      case None | null => Future.successful(())
+      case Some(executable) =>
+        ctx.jobProcessor
+          .run(
+            ExecuteJob.apply(
+              executable,
+              s"attach/upsert visualization (id=${request.visualizationId})"
+            )
+          )
+          .map(_ => ())
     }
   }
 

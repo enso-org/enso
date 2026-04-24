@@ -9,6 +9,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.NoSuchElementException;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -63,21 +64,21 @@ public final class EqualsNode extends Node {
    * to convert first argument to the second one and compare again.
    *
    * @param frame the stack frame we are executing at
-   * @param self the self object
+   * @param thiz the self object
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public EqualsAndInfo execute(VirtualFrame frame, Object self, Object other) {
-    var areEqual = node.execute(frame, self, other);
+  public EqualsAndInfo execute(VirtualFrame frame, Object thiz, Object other) {
+    var areEqual = node.execute(frame, thiz, other);
     if (!areEqual.isTrue()) {
-      var selfType = types.findTypeOrNull(self);
+      var selfType = types.findTypeOrNull(thiz);
       var otherType = types.findTypeOrNull(other);
       if (selfType != otherType) {
         if (convert == null) {
           CompilerDirectives.transferToInterpreter();
           convert = insert(WithConversionNode.create());
         }
-        return convert.executeWithConversion(frame, other, self);
+        return convert.executeWithConversion(frame, other, thiz);
       }
     }
     return areEqual;
@@ -125,9 +126,10 @@ public final class EqualsNode extends Node {
               argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
       var state = ctx.currentState();
       var by =
-          node.execute(convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+          node.execute(
+              convFn, null, state, new Object[] {ctx.getBuiltins().comparableType(), value});
       if (by instanceof Atom atom
-          && atom.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
+          && atom.getConstructor() == ctx.getBuiltins().comparableType().getSingleConstructor()) {
         var structs = StructsLibrary.getUncached();
         return structs.getField(atom, 1);
       } else {
@@ -158,7 +160,13 @@ public final class EqualsNode extends Node {
     private static boolean findConversionImpl(
         EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
       var selfScope = selfType.getDefinitionScope();
-      var comparableType = ctx.getBuiltins().comparable().getType();
+      Type comparableType;
+      try {
+        comparableType = ctx.getBuiltins().comparableType();
+      } catch (NoSuchElementException e) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return false;
+      }
 
       var fromSelfType =
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);

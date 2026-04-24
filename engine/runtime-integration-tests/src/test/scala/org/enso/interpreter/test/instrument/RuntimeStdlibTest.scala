@@ -67,6 +67,7 @@ class RuntimeStdlibTest
           distributionHome.toString
         )
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -132,9 +133,6 @@ class RuntimeStdlibTest
       result.linesIterator.toList
     }
 
-    def analyzeJobFinished: Api.Response =
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
-
   }
 
   def extractTypes(suggestion: Suggestion): Seq[QualifiedName] = {
@@ -160,6 +158,13 @@ class RuntimeStdlibTest
     context = new TestContext("Test")
     context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+
+    context.send(
+      Api.Request(UUID.randomUUID(), Api.StartBackgroundProcessing())
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
   }
 
   override protected def afterEach(): Unit = {

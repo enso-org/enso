@@ -1,11 +1,10 @@
-FROM ghcr.io/graalvm/jdk-community:24.0.1
+FROM ghcr.io/graalvm/jdk-community:25.0.1
 
 USER root
 
 ARG LOG_LEVEL=info
 ARG RPC_PORT=30001
-ARG DATA_PORT=30002
-ARG YDOC_PORT=1234
+ARG YDOC_PORT=5976
 ARG PRINT_VERSION=0
 ARG JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=90.0 -XX:InitialRAMPercentage=90.0"
 ARG PROFILING_FILENAME
@@ -30,6 +29,8 @@ ENV ENSO_RUNTIME_DIRECTORY=/opt/enso/work
 ENV ENSO_LOG_DIRECTORY=/opt/enso/logs
 ENV ENSO_HOME=/volumes/workspace/home
 
+RUN mkdir -p /opt/enso
+RUN chown -hR ensodev:ensodev /opt/enso
 COPY --chown=ensodev:ensodev --chmod=555 bin /opt/enso/bin
 COPY --chown=ensodev:ensodev --chmod=555 --from=docker-tools docker-entrypoint.sh /opt/enso/bin/
 COPY --chown=ensodev:ensodev --chmod=554 component /opt/enso/component
@@ -61,7 +62,6 @@ WORKDIR /opt/enso
 ENTRYPOINT [ "/opt/enso/bin/docker-entrypoint.sh" ]
 
 ENV RPC_PORT=${RPC_PORT}
-ENV DATA_PORT=${DATA_PORT}
 ENV YDOC_PORT=${YDOC_PORT}
 ENV LOG_LEVEL=${LOG_LEVEL}
 ENV PRINT_VERSION=${PRINT_VERSION}
@@ -69,7 +69,6 @@ ENV JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS}
 ENV ENSO_LAUNCHER=${ENSO_LAUNCHER}
 
 EXPOSE ${RPC_PORT}
-EXPOSE ${DATA_PORT}
 EXPOSE ${YDOC_PORT}
 
 

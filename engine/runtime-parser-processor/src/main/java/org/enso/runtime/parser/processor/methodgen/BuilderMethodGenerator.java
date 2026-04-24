@@ -26,7 +26,7 @@ public class BuilderMethodGenerator {
                 field -> {
                   var initializer = field.initializer() != null ? " = " + field.initializer() : "";
                   return "private $type $name $initializer;"
-                      .replace("$type", field.getSimpleTypeName())
+                      .replace("$type", field.getTypeName())
                       .replace("$name", field.name())
                       .replace("$initializer", initializer);
                 })
@@ -37,13 +37,13 @@ public class BuilderMethodGenerator {
             .map(
                 field ->
                     """
-        public Builder $fieldName($fieldType $fieldName) {
-          this.$fieldName = $fieldName;
-          return this;
-        }
-        """
+                    public Builder $fieldName($fieldType $fieldName) {
+                      this.$fieldName = $fieldName;
+                      return this;
+                    }
+                    """
                         .replace("$fieldName", field.name())
-                        .replace("$fieldType", field.getSimpleTypeName()))
+                        .replace("$fieldType", field.getTypeName()))
             .collect(Collectors.joining(System.lineSeparator()));
 
     // Validation code for all non-nullable user fields
@@ -53,10 +53,10 @@ public class BuilderMethodGenerator {
             .map(
                 field ->
                     """
-            if (this.$fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if (this.$fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
 
@@ -88,40 +88,47 @@ public class BuilderMethodGenerator {
 
   private String copyConstructor() {
     var sb = new StringBuilder();
+    var docs =
+        """
+        /**
+         * Copy builder. Creates a <i>shallow</i> copy of the given object.
+         *
+         * <p>Using this copy builder is equivalent to calling {@code copy} method,
+         * with appropriate parameters set to different values.
+         *
+         * <p>For more information about the copy semantics, see
+         * {@link org.enso.compiler.core.IR}.
+         *
+         * @param obj the object from which the <emph>shallow</emph> copy is made.
+         */
+        """;
+    sb.append(docs);
     sb.append("Builder(")
-        .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
+        .append(generatedClassContext.getProcessedClassName())
         .append(" obj) {")
         .append(System.lineSeparator());
+    var superClass = generatedClassContext.getProcessedClass().getClazz().getSuperclass();
     // Meta fields are accessed directly.
     for (var metaField : generatedClassContext.getMetaFields()) {
       sb.append("  ")
           .append("this.")
           .append(metaField.name())
-          .append(" = obj.")
+          .append(" = ((")
+          .append(superClass)
+          .append(")obj).")
           .append(metaField.name())
           .append(";")
           .append(System.lineSeparator());
     }
     // Most user fields are accessed via getters
     for (var userField : generatedClassContext.getUserFields()) {
-      if (userField.isPersistanceReference()) {
-        var line =
-            """
-            this.${fieldName} = Reference.of(
-              obj.${fieldName}()
-            );
-            """
-                .replace("${fieldName}", userField.getName());
-        sb.append(line).append(System.lineSeparator());
-      } else {
-        sb.append("  ")
-            .append("this.")
-            .append(userField.getName())
-            .append(" = obj.")
-            .append(userField.getName())
-            .append("();")
-            .append(System.lineSeparator());
-      }
+      sb.append("  ")
+          .append("this.")
+          .append(userField.getName())
+          .append(" = obj.")
+          .append(userField.getName())
+          .append("();")
+          .append(System.lineSeparator());
     }
     sb.append("}");
     return sb.toString();
@@ -129,8 +136,7 @@ public class BuilderMethodGenerator {
 
   private String buildMethod() {
     var sb = new StringBuilder();
-    var processedClassName =
-        generatedClassContext.getProcessedClass().getClazz().getSimpleName().toString();
+    var processedClassName = generatedClassContext.getProcessedClassName();
     var ctorParams = generatedClassContext.getSubclassConstructorParameters();
     var ctorParamsStr = ctorParams.stream().map(ClassField::name).collect(Collectors.joining(", "));
     var fieldsNotInCtor = Utils.diff(generatedClassContext.getAllFields(), ctorParams);
@@ -141,22 +147,24 @@ public class BuilderMethodGenerator {
     sb.append("  ").append("validate();").append(System.lineSeparator());
     sb.append("  ")
         .append(processedClassName)
-        .append(" result = new ")
+        .append(" _result = new ")
         .append(processedClassName)
         .append("(")
         .append(ctorParamsStr)
         .append(");")
         .append(System.lineSeparator());
+    var superClassType = generatedClassContext.getSuperClass();
     for (var fieldNotInCtor : fieldsNotInCtor) {
-      sb.append("  ")
-          .append("result.")
+      sb.append("  ((")
+          .append(superClassType.getSimpleName())
+          .append(")_result).")
           .append(fieldNotInCtor.name())
           .append(" = ")
           .append(fieldNotInCtor.name())
           .append(";")
           .append(System.lineSeparator());
     }
-    sb.append("  ").append("return result;").append(System.lineSeparator());
+    sb.append("  ").append("return _result;").append(System.lineSeparator());
     sb.append("}").append(System.lineSeparator());
     return sb.toString();
   }

@@ -1,18 +1,28 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { type SuggestionEntryArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
+import { singleChoiceConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import type { ToValue } from '$/utils/reactivity'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SelectionArrow from '@/components/GraphEditor/widgets/WidgetSelection/SelectionArrow.vue'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { activityDropdownStyles } from '@/components/GraphEditor/widgets/WidgetSelection/styles'
 import {
   ActionTag,
-  Actions,
-  CustomDropdownItem,
-  Entry,
   ExpressionTag,
   NestedChoiceTag,
   useExpressionTags,
   useTagEntries,
+  type Actions,
+  type CustomDropdownItem,
+  type Entry,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import OptionallyKeepAlive from '@/components/OptionallyKeepAlive.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -20,24 +30,15 @@ import { unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { useTopLevelArgument } from '@/providers/topLevelArgument'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { singleChoiceConfiguration } from '@/providers/widgetRegistry/configuration'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { type SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toRef, toValue, useTemplateRef, type VNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const {
-  graph,
-  names: projectNames,
-  suggestionDb: suggestionDbStore,
-} = useCurrentProject().storesRefs
+const { module, projectNames: projectNames, suggestionDb: suggestionDbStore } = useCurrentProject()
 
 const tree = injectWidgetTree()
 
@@ -90,11 +91,9 @@ function makeExpressionFilter(pattern: Ast.Ast | string | undefined): Expression
 const expressionTags = useExpressionTags({
   dynamicConfig: () => props.input.dynamicConfig,
   staticTags: () => props.input[ArgumentInfoKey]?.info?.tagValues,
-  suggestionDb: () => suggestionDbStore.value?.entries,
+  suggestionDb: () => suggestionDbStore.value.entries,
   projectNames,
 })
-
-const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
 
 const customTags = computed(
   () =>
@@ -145,7 +144,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 
 const selectionArrow = provideSelectionArrow({
   node: () => props.input.value,
-  show: toRef(tree, 'extended'),
+  show: toRef(tree, 'showDetails'),
   isHovered,
 })
 
@@ -210,14 +209,13 @@ function onClick(clickedEntry: Entry, keepOpen: boolean) {
 }
 
 function expressionTagClicked(tag: ExpressionTag) {
-  if (!graph.value) return
-
-  const edit = graph.value.startEdit()
-  const tagValue = tag.resolveExpression(edit, graph.value)
-  props.updateCallback({
-    edit,
-    portUpdate: { value: tagValue, origin: props.input.portId },
-    directInteraction: true,
+  module.value.edit((edit) => {
+    const tagValue = tag.resolveExpression(edit, module.value)
+    return props.updateCallback({
+      edit,
+      portUpdate: { value: tagValue, origin: props.input.portId },
+      directInteraction: true,
+    })
   })
 }
 </script>
@@ -245,7 +243,10 @@ export const widgetDefinition = defineWidget(
   {
     priority: 50,
     score: (props) =>
+      // We don’t want to show the dropdown until the dynamic config is received
+      // to avoid showing stale dropdown items. Custom dropdown items should be displayed without delay, though.
       props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Pending' ? Score.Mismatch
       : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
       : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
         // TODO[ao] here, instead of checking for existing dynamic config, we should rather return
@@ -259,7 +260,7 @@ export const widgetDefinition = defineWidget(
 )
 
 export { CustomDropdownItemsKey }
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly DropdownItem[]
   }
@@ -269,7 +270,7 @@ declare module '@/providers/widgetRegistry' {
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetSelection clickable"
+    class="WidgetSelection widgetParent clickable"
     @pointerdown.prevent
     @click.stop="toggleDropdownWidget"
     @keydown.enter.stop
@@ -284,7 +285,6 @@ declare module '@/providers/widgetRegistry' {
       :show="dropDownInteraction.isActive() && activity == null && entries.length > 0"
       :entries="entries"
       :topLevel="true"
-      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
 
@@ -306,11 +306,7 @@ declare module '@/providers/widgetRegistry' {
 
 <style scoped>
 .WidgetSelection {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   position: relative;
-  min-height: var(--node-port-height);
 }
 
 .activityElement {

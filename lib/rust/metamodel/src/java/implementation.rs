@@ -5,8 +5,6 @@ use crate::java::*;
 
 use std::fmt::Write;
 
-
-
 // ===================================
 // === Implementing Java Datatypes ===
 // ===================================
@@ -143,7 +141,6 @@ pub fn quote_params<'a>(
 ) -> Vec<String> {
     params.into_iter().map(|ty| path(graph, *ty)).collect()
 }
-
 
 // === Helpers ===
 

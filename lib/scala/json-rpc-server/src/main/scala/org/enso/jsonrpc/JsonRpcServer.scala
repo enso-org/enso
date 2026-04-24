@@ -42,14 +42,13 @@ class JsonRpcServer(
   private val messageCallbackSinks =
     messageCallbacks.map(Sink.foreach[WebMessage])
 
-  private def newUser(port: Int): Flow[Message, Message, NotUsed] = {
+  private def newUser: Flow[Message, Message, NotUsed] = {
     val messageHandler =
       system.actorOf(
         Props(
           new MessageHandlerSupervisor(
             clientControllerFactory,
-            protocolFactory,
-            port
+            protocolFactory
           )
         ),
         s"message-handler-supervisor-${UUID.randomUUID()}"
@@ -77,11 +76,11 @@ class JsonRpcServer(
           Sink.actorRef[MessageHandler.WebMessage](
             messageHandler, {
               logger.trace("JSON sink stream finished with no failure")
-              MessageHandler.Disconnected(port)
+              MessageHandler.Disconnected()
             },
             { e: Throwable =>
               logger.trace("JSON sink stream finished with a failure", e)
-              MessageHandler.Disconnected(port)
+              MessageHandler.Disconnected()
             }
           )
         )
@@ -95,7 +94,7 @@ class JsonRpcServer(
           OverflowStrategy.fail
         )
         .mapMaterializedValue { outActor =>
-          messageHandler ! MessageHandler.Connected(outActor, port)
+          messageHandler ! MessageHandler.Connected(outActor)
           NotUsed
         }
         .map((outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message))
@@ -109,7 +108,7 @@ class JsonRpcServer(
   override protected def serverRoute(port: Int): Route = {
     val webSocketEndpoint =
       path(config.path) {
-        get { handleWebSocketMessages(newUser(port)) }
+        get { handleWebSocketMessages(newUser) }
       }
 
     optionalEndpoints.foldLeft(webSocketEndpoint) { (chain, next) =>
@@ -152,6 +151,6 @@ object JsonRpcServer {
       )
   }
 
-  case class WebConnect(webActor: ActorRef, port: Int)
+  case class WebConnect(webActor: ActorRef)
 
 }

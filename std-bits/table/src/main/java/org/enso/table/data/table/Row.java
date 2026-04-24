@@ -32,6 +32,10 @@ public class Row {
     return table.getColumns().length;
   }
 
+  public String get_name(int index) {
+    return table.getColumns()[index].getName();
+  }
+
   public Object get_value(int index, Function<Object, Object> ifMissing) {
     var count = column_count();
     if (index < -count || index >= count) {

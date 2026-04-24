@@ -24,11 +24,11 @@ case object Imports extends IRPass {
   override lazy val invalidatedPasses: Seq[IRPass] = Seq()
 
   val mainModuleName: Name.Literal =
-    Name.Literal(
-      "Main",
-      isMethod           = false,
-      identifiedLocation = null
-    )
+    Name.Literal
+      .builder()
+      .name("Main")
+      .isMethod(false)
+      .build()
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
@@ -49,20 +49,26 @@ case object Imports extends IRPass {
           .map { newName =>
             val parts = newName.parts
             if (parts.length == 2) {
-              i.copyWithNameAndRename(
-                newName.copy(parts = parts :+ mainModuleName),
-                computeRename(
-                  i.rename,
-                  i.onlyNames.nonEmpty || i.isAll,
-                  parts(1).asInstanceOf[Name.Literal]
+              i.copyBuilder()
+                .name(
+                  newName.copyBuilder().parts(parts :+ mainModuleName).build()
                 )
-              )
-            } else { i.copyWithName(newName) }
+                .rename(
+                  computeRename(
+                    i.rename,
+                    i.onlyNames.nonEmpty || i.isAll,
+                    parts(1).asInstanceOf[Name.Literal]
+                  )
+                )
+                .build()
+            } else { i.copyBuilder().name(newName).build() }
           }
           .getOrElse(
-            errors.ImportExport(
+            errors.ImportExport.create(
               i,
-              errors.ImportExport.ProjectKeywordUsedButNotInProject("import")
+              new errors.ImportExport.ProjectKeywordUsedButNotInProject(
+                "import"
+              )
             )
           )
       case other => other
@@ -73,25 +79,31 @@ case object Imports extends IRPass {
           .map { newName =>
             val parts = newName.parts
             if (parts.length == 2) {
-              ex.copy(
-                name = newName.copy(parts = parts :+ mainModuleName),
-                rename = computeRename(
-                  ex.rename,
-                  ex.onlyNames.nonEmpty,
-                  parts(1).asInstanceOf[Name.Literal]
+              ex.copyBuilder()
+                .name(
+                  newName.copyBuilder().parts(parts :+ mainModuleName).build()
                 )
-              )
-            } else { ex.copy(name = newName) }
+                .rename(
+                  computeRename(
+                    ex.rename,
+                    ex.onlyNames.nonEmpty,
+                    parts(1).asInstanceOf[Name.Literal]
+                  )
+                )
+                .build()
+            } else { ex.copyWithName(newName) }
           }
           .getOrElse(
-            errors.ImportExport(
+            errors.ImportExport.create(
               ex,
-              errors.ImportExport.ProjectKeywordUsedButNotInProject("export")
+              new errors.ImportExport.ProjectKeywordUsedButNotInProject(
+                "export"
+              )
             )
           )
       case other => other
     }
-    ir.copy(imports = newImports, exports = newExports)
+    ir.copyWithImportsAndExports(newImports, newExports)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -125,18 +137,20 @@ case object Imports extends IRPass {
       case head :: _ if head.name == currentProjectAlias =>
         val pkg = Option(context.getPackage())
         pkg.map { pkg =>
-          val namespace = Name.Literal(
-            pkg.namespace,
-            isMethod           = false,
-            identifiedLocation = null
-          )
-          val pkgName =
-            Name.Literal(
-              pkg.normalizedName,
-              isMethod           = false,
-              identifiedLocation = null
-            )
-          name.copy(parts = namespace :: pkgName :: name.parts.tail)
+          val namespace = Name.Literal
+            .builder()
+            .name(pkg.namespace)
+            .isMethod(false)
+            .build()
+          val pkgName = Name.Literal
+            .builder()
+            .name(pkg.normalizedName)
+            .isMethod(false)
+            .build()
+          name
+            .copyBuilder()
+            .parts(namespace :: pkgName :: name.parts.tail)
+            .build()
         }
       case _ => Some(name)
     }

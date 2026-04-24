@@ -12,28 +12,30 @@ import {
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { StartedUpload, useAsyncResources } from '@/providers/asyncResources'
+import { type StartedUpload, useAsyncResources } from '@/providers/asyncResources'
 import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
-import { AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
+import { type AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, useCssModule, useTemplateRef, watch } from 'vue'
 
 const {
   toolbar = true,
+  teleportToolbarTo,
   readonly = false,
   extensions = [],
   contentTestId,
   scrollerTestId,
   editorReadyCallback = () => {},
 } = defineProps<{
-  toolbar?: boolean | undefined
+  toolbar?: boolean
+  teleportToolbarTo?: HTMLElement | string | undefined
   readonly?: boolean | undefined
   /**
    * Additional extensions. This prop is read only during setup, and extensions are not refreshed
@@ -118,6 +120,8 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   lineMode: 'multi',
   contentTestId,
   scrollerTestId,
+  // Using `useEditorFocus` instead.
+  disableDeselectOnBlur: true,
 })
 
 useLinkTitles(editorView, { readonly: () => readonly })
@@ -159,15 +163,16 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot" @dragover.prevent>
-    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
-      <ActionButton action="panel.fullscreen" />
-      <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
-      <ActionButton action="documentationEditor.italic" />
-      <ActionButton action="documentationEditor.bold" />
-      <ActionButton action="documentationEditor.link" />
-      <ActionButton action="documentationEditor.code" />
-      <ActionButton action="documentationEditor.image" />
-    </div>
+    <Teleport v-if="toolbar" :disabled="teleportToolbarTo == null" :to="teleportToolbarTo">
+      <div class="toolbar" @pointerdown.prevent>
+        <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
+        <ActionButton action="documentationEditor.italic" />
+        <ActionButton action="documentationEditor.bold" />
+        <ActionButton action="documentationEditor.link" />
+        <ActionButton action="documentationEditor.code" />
+        <ActionButton action="documentationEditor.image" />
+      </div>
+    </Teleport>
     <slot name="belowToolbar" />
     <CodeMirrorRoot
       ref="editorRoot"
@@ -192,7 +197,7 @@ defineExpose({
 }
 
 .toolbar {
-  height: 26px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;

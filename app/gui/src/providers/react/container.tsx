@@ -1,9 +1,15 @@
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { ContainerData, useContainerData as useContainerDataVue } from '$/providers/container'
-import { RightPanelData, useRightPanelData as useRightPanelDataVue } from '$/providers/rightPanel'
+import { useDriveLocation as useDriveStoreVue, type DriveLocationStore } from '$/providers//drive'
+import { useContainerData as useContainerDataVue, type ContainerData } from '$/providers/container'
+import { useInReactFunction, useVueRef, useVueValue } from '$/providers/react/common'
+import {
+  useRightPanelData as useRightPanelDataVue,
+  type RightPanelData,
+} from '$/providers/rightPanel'
+import { reactComponent } from '@/util/react'
+import type { Backend, DirectoryId } from 'enso-common/src/services/Backend'
 import * as react from 'react'
-import { applyPureReactInVue } from 'veaury'
-import { useInReactFunction, useVueValue } from './common'
+import { toRef } from 'vue'
+import type { Category } from '../category'
 
 const RightPanelDataContext = react.createContext<RightPanelData | null>(null)
 export const useRightPanelData = useInReactFunction(RightPanelDataContext)
@@ -11,35 +17,59 @@ export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 const ContainerDataContext = react.createContext<ContainerData | null>(null)
 export const useContainerData = useInReactFunction(ContainerDataContext)
 
-export const ContainerDataProviderForReact = applyPureReactInVue(
-  ({ value, children }: react.PropsWithChildren<{ value: ContainerData }>) => {
-    return <ContainerDataContext.Provider value={value}>{children}</ContainerDataContext.Provider>
-  },
-  {
-    useInjectPropsFromWrapper: () => {
-      const result = {
-        value: useContainerDataVue(),
-      }
-      // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
-      return () => result
-    },
-  },
-)
+const DriveLocationStoreContext = react.createContext<{
+  currentCategory: [Category, (newCategory: Category) => void]
+  currentDirectory: [DirectoryId | null, (newDir: DirectoryId | null) => void]
+  associatedBackend: Backend
+  setDefaultCategory: () => void
+} | null>(null)
+export const useDriveLocation = useInReactFunction(DriveLocationStoreContext)
 
-export const RightPanelDataProviderForReact = applyPureReactInVue(
-  ({ value, children }: react.PropsWithChildren<{ value: RightPanelData }>) => {
-    return <RightPanelDataContext.Provider value={value}>{children}</RightPanelDataContext.Provider>
+export const ContainerProviderForReact = reactComponent(
+  ({
+    container,
+    rightPanel,
+    driveStore,
+    children,
+  }: react.PropsWithChildren<{
+    container: ContainerData
+    rightPanel: RightPanelData
+    driveStore: DriveLocationStore
+  }>) => {
+    const reactDriveStore = {
+      currentCategory: useVueRef(
+        react.useCallback(() => toRef(driveStore, 'currentCategory'), [driveStore]),
+      ),
+      currentDirectory: useVueRef(
+        react.useCallback(() => toRef(driveStore, 'currentDirectory'), [driveStore]),
+      ),
+      associatedBackend: useVueValue(
+        react.useCallback(() => driveStore.associatedBackend, [driveStore]),
+      ),
+      setDefaultCategory: driveStore.setDefaultCategory,
+    }
+    return (
+      <ContainerDataContext.Provider value={container}>
+        <RightPanelDataContext.Provider value={rightPanel}>
+          <DriveLocationStoreContext.Provider value={reactDriveStore}>
+            {children}
+          </DriveLocationStoreContext.Provider>
+        </RightPanelDataContext.Provider>
+      </ContainerDataContext.Provider>
+    )
   },
   {
     useInjectPropsFromWrapper: () => {
       const result = {
-        value: useRightPanelDataVue(),
+        container: useContainerDataVue(),
+        rightPanel: useRightPanelDataVue(),
+        driveStore: useDriveStoreVue(),
       }
       // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
       return () => result
     },
   },
-)
+) as any
 
 /**
  * A hook to read currently focused asset for right panel, e.g. the currently selected asset
@@ -56,35 +86,20 @@ export function useRightPanelContextCategory() {
   return useVueValue(react.useCallback(() => rightPanel.context?.category, [rightPanel]))
 }
 
-/** Returns the launched projects context. */
-export function useLaunchedProjects() {
-  const container = useContainerData()
-  return useVueValue(react.useCallback(() => container.openedProjects, [container]))
+/** A hook reading current category displayed in drive. */
+export function useDriveCurrentCategory() {
+  const drive = useDriveLocation()
+  return drive.currentCategory
 }
 
-/** A function to update launched projects. */
-export function useUpdateLaunchedProjects() {
-  const { updateLaunchedProjects } = useContainerData()
-  return updateLaunchedProjects
+/** A hook reading backend associated with current category in drive. */
+export function useDriveCurrentBackend() {
+  const drive = useDriveLocation()
+  return drive.associatedBackend
 }
 
-/** A function to add a new launched project. */
-export function useAddLaunchedProject() {
-  const { addLaunchedProject } = useContainerData()
-  return addLaunchedProject
-}
-
-/** A function to remove a launched project. */
-export function useRemoveLaunchedProject() {
-  const { removeLaunchedProject } = useContainerData()
-  return removeLaunchedProject
-}
-
-/** A function to remove all launched projects. */
-export function useClearLaunchedProjects() {
-  const { updateLaunchedProjects } = useContainerData()
-
-  return useEventCallback(() => {
-    updateLaunchedProjects(() => [])
-  })
+/** A hook reading current directory id displayed in drive. */
+export function useDriveCurrentDirectory() {
+  const drive = useDriveLocation()
+  return drive.currentDirectory
 }

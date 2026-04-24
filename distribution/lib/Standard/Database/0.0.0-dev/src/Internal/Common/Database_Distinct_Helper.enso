@@ -14,7 +14,7 @@ make_distinct_expression text_case_sensitivity problem_builder key_column value_
     expr = key_column.expression
     if value_type.is_text.not then expr else case text_case_sensitivity of
         Case_Sensitivity.Insensitive locale ->
-            Helpers.assume_default_locale locale <|
-                SQL_IR_Expression.Operation "FOLD_CASE" [expr]
+            Helpers.check_default_locale locale
+            SQL_IR_Expression.Operation "FOLD_CASE" [expr]
         Case_Sensitivity.Sensitive -> SQL_IR_Expression.Operation "MAKE_CASE_SENSITIVE" [expr]
         Case_Sensitivity.Default -> expr

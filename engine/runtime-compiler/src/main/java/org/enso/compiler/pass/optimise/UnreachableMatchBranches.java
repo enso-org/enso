@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.stream.Stream;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
-import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Pattern;
@@ -14,7 +13,6 @@ import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
-import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
 import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.desugar.ComplexType$;
@@ -73,7 +71,6 @@ public final class UnreachableMatchBranches implements MiniPassFactory {
   public List<IRProcessingPass> invalidatedPasses() {
     java.util.List<IRProcessingPass> passes = new ArrayList<>();
     passes.add(AliasAnalysis$.MODULE$);
-    passes.add(DataflowAnalysis$.MODULE$);
     passes.add(DemandAnalysis$.MODULE$);
     passes.add(IgnoredBindings$.MODULE$);
     passes.add(NestedPatternMatch$.MODULE$);
@@ -148,9 +145,8 @@ public final class UnreachableMatchBranches implements MiniPassFactory {
           copiedExpr.getDiagnostics().add(diagnostic);
           return copiedExpr;
         }
-      } else {
-        throw new CompilerError("Unexpected case branch.");
       }
+      return cse;
     }
 
     /**

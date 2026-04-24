@@ -1,16 +1,16 @@
+import { type Node } from '$/providers/openedProjects/graph'
 import testCases from '@/components/GraphEditor/__tests__/clipboardTestCases.json' with { type: 'json' }
 import {
   isSpreadsheetTsv,
   nodesFromClipboardContent,
   nodesToClipboardData,
-} from '@/components/GraphEditor/clipboard'
-import { type Node } from '@/stores/graph'
+} from '@/components/GraphEditor/graphClipboard'
 import { Ast } from '@/util/ast'
 import { nodeDocumentationText, nodeFromAst } from '@/util/ast/node'
 import { Blob } from 'node:buffer'
 import { expect, test } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { type VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import type { VisualizationMetadata } from 'ydoc-shared/yjsModel'
 
 class MockClipboardItem {
   readonly types: ReadonlyArray<string>

@@ -1,14 +1,18 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Runtime.State
 from Standard.Base.Data.Json import render
 from Standard.Base.Logging import all
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Row.Row
 from Standard.Table import Column, Table
 
 import project.Id.Id
 import project.Table as Table_Visualization
 from project.Text import get_lazy_visualization_text_window
+
+polyglot java import org.enso.base.Text_Utils
 
 ## ---
    private: true
@@ -47,45 +51,6 @@ Any.to_default_visualization_data self =
 ## ---
    private: true
    ---
-   Returns the given value if this is not an error. Propagates error otherwise.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Any.when_valid : Any -> Any
-Any.when_valid self ~val = self.map_valid (_-> val)
-
-## ---
-   private: true
-   ---
-   Checks if the value is not an error.
-Any.is_valid : Any
-Any.is_valid self = self.is_error.not
-
-## ---
-   private: true
-   ---
-   Maps over non-error value.
-
-   ## Arguments
-    - `f`: a function that will be used to generate return value from a non-error
-      `self` value.
-Any.map_valid : Any -> Any
-Any.map_valid self f = f self
-
-## ---
-   private: true
-   ---
-   Recovers from the error by returning the parameter value.
-   The error contents will be ignored.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Any.catch_ : Any -> Any
-Any.catch_ self ~val = self.catch Any (_-> val)
-
-## ---
-   private: true
-   ---
    Returns a Text used to display this value in the IDE.
 Nothing.to_default_visualization_data : Text
 Nothing.to_default_visualization_data self =
@@ -106,46 +71,6 @@ Nothing.to_default_visualization_data self =
    ```
 Error.to_default_visualization_data : Text
 Error.to_default_visualization_data self = self.catch . to_default_visualization_data
-
-## ---
-   private: true
-   ---
-   Returns the given value if this is not an error. Propagates error otherwise.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Error.when_valid : Any -> Any
-Error.when_valid self ~val = self.map_valid (_-> val)
-
-## ---
-   private: true
-   ---
-   Checks if the value is not an error.
-Error.is_valid : Any
-Error.is_valid self = self.is_error.not
-
-## ---
-   private: true
-   ---
-   Maps over non-error value.
-
-   ## Arguments
-    - `f`: a function that will be used to generate return value from a non-error
-      `self` value.
-Error.map_valid : Any -> Any
-Error.map_valid self f =
-    const self f
-
-## ---
-   private: true
-   ---
-   Recovers from the error by returning the parameter value.
-   The error contents will be ignored.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Error.catch_ : Any -> Any
-Error.catch_ self ~val = self.catch Any (_-> val)
 
 ## ---
    private: true
@@ -206,41 +131,11 @@ Array.to_default_visualization_data self =
 ## ---
    private: true
    ---
-   Looks for a column by a given name.
-   Unlike `Table.at` looks into index columns and name comparison is
-   case-insensitive.
-
-   ## Arguments
-    - `text`: the case-insensitive name of the searched column.
-Table.lookup_ignore_case : Text -> Column ! Nothing
-Table.lookup_ignore_case self name =
-    self.columns.find if_missing=(Error.throw Nothing) <| col->
-        col.name.equals_ignore_case name
-
-## ---
-   private: true
-   ---
    Guides the visualization system to display the most suitable graphical
    representation for this table.
 Table.default_visualization : Id
-Table.default_visualization self = Id.table
-
-## ---
-   private: true
-   ---
-   Returns a Text used to display this table in the IDE by default.
-   Returns a JSON object containing useful metadata and previews of column
-   values.
-Table.to_default_visualization_data : Text
-Table.to_default_visualization_data self =
-    max_size = 10
-    row_count = ['number_of_rows', self.row_count]
-    cols = self.columns.map c->
-        name = c.name.to_json
-        items = c.to_json_data 0 max_size
-        '{"name":'+name+',"data":' + items + '}'
-    JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
-    '{"number_of_rows":' + self.row_count.to_text + ',"columns":[' + (cols.join ",") + ']}'
+Table.default_visualization self =
+    if self.is_a In_Memory_Table then Id.table else Id.sql_query
 
 ## ---
    private: true
@@ -249,14 +144,6 @@ Table.to_default_visualization_data self =
    representation for this Column.
 Column.default_visualization : Id
 Column.default_visualization self = Id.table
-
-## ---
-   private: true
-   ---
-   Checks if the column stores numbers.
-Column.is_numeric : Boolean
-Column.is_numeric self =
-    self.value_type.is_numeric
 
 ## ---
    private: true
@@ -306,7 +193,7 @@ Text.to_lazy_visualization_data self text_window_position text_window_size chunk
    benefit of visualization in the IDE.
 Column.to_default_visualization_data : Text
 Column.to_default_visualization_data self =
-    size = ['length', self.length]
+    size = ['length', self.row_count]
     name = ['name', self.name]
     max_data = 100
     data = ['data', self.to_vector.take (..First max_data)]
@@ -349,14 +236,68 @@ truncate message max_length=256 suffix='...' =
 ## ---
    private: true
    ---
+   Truncated display text for logging
+private short_display value = if value.is_error then "<ERROR>" else
+    case value of
+        Nothing -> "Nothing"
+        _ : Dictionary -> "Dictionary(" + value.length.to_text + ")"
+        _ : Vector -> "Vector(" + value.length.to_text + ")"
+        _ : Array -> "Array(" + value.length.to_text + ")"
+        _ : Text ->
+            sub = value.take 20
+            if sub != value then sub + "..." else sub
+        _ : File -> "File(" + value.name + ")"
+        _ : Enso_File -> "Enso_File(" + value.name + ")"
+        _ -> value.to_display_text
+
+## ---
+   private: true
+   ---
    If ENSO_TIME_VIZZES is set, then log the time it took to compute the function
 private time_visualization module ~name ~action =
-    level = case Environment.get "ENSO_TIME_VIZZES" of
-        Nothing -> Nothing
-        "warning" -> ..Warning
-        "info" -> ..Info
-        _ -> ..Trace
-    if level . is_nothing then action else
-        pair = Duration.time_execution action
-        module.log_message ("Execution time for " + name + ": " + pair.first.to_text) level
+    wrapped =
+        result = Panic.catch Any action handler=caught_panic->
+            module.log_message ("Visualization "+name+" failed (panic): " + caught_panic.payload.to_text) ..Severe
+            Panic.throw caught_panic
+        if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
+        result
+    # TBD: also need to replace this usage of Logging.Profile
+    _time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
+
+private _profile_suffix value = case value of
+    _:Text -> " length=" + (Text_Utils.char_length value).to_text
+    Nothing -> " result=Nothing"
+    _ -> " result=" + (Meta.meta value).qualified_name
+
+private _profile_level = State.get Helpers if_missing=_profile_level_from_env
+
+private _profile_level_from_env =
+    env_val = Environment.get "ENSO_PROFILE_VIZZES"
+    if env_val == Nothing then Nothing else
+        level = Log_Level.from env_val
+        if level.is_error then Nothing else level
+
+## ---
+   advanced: true
+   icon: time
+   ---
+   Time the evaluation of a function, log the duration and return the result.
+
+   ## Arguments
+    - `level`: Log level to log the duration at. If `Nothing`, the duration is not logged.
+    - `label`: Label to log with the duration.
+    - `function`: Function to execute.
+    - `suffix_callback`: Optional callback to generate a suffix for the log message based
+       on the result of the function. The callback is only called if `level` is not `Nothing`.
+    - `module`: Module to log the message to. Defaults to `Profile`.
+private _time_execution level:(Log_Level | Nothing) ~label:Text ~function suffix_callback=Nothing module =
+    if Nothing == level then @Tail_Call function else
+        pair = Duration.time_execution function
+
+        ## If the function threw an error, we just return the error
+        Error.return_if_error pair.second
+
+        duration = pair.first
+        suffix = if suffix_callback == Nothing then "" else suffix_callback pair.second
+        module.log_message ("Execution time for " + label + ": " + duration.to_text + suffix) level
         pair.second

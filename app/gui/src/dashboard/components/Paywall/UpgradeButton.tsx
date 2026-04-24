@@ -1,7 +1,12 @@
 /** @file A button that links to the upgrade page. */
 import { Button, type ButtonProps } from '#/components/Button'
-import * as billingHooks from '#/hooks/billing'
 import * as appUtils from '$/appUtils'
+import {
+  getFeatureConfiguration,
+  PAYWALL_LEVELS,
+  type PaywallFeatureName,
+  type PaywallLevelName,
+} from '$/composables/paywall/FeaturesConfiguration'
 import { useText } from '$/providers/react'
 import * as React from 'react'
 
@@ -10,7 +15,7 @@ export type UpgradeButtonProps<IconType extends string = string> = Omit<
   ButtonProps<IconType>,
   'variant'
 > & {
-  readonly feature: billingHooks.PaywallFeatureName
+  readonly feature: PaywallFeatureName
   readonly variant?: ButtonProps<IconType>['variant']
 }
 
@@ -29,12 +34,10 @@ export function UpgradeButton<IconType extends string>(
   } = props
   const { getText } = useText()
 
-  const { getFeature } = billingHooks.usePaywallFeatures()
-
-  const { level } = getFeature(feature)
+  const { level } = getFeatureConfiguration(feature)
   const levelLabel = getText(level.label)
 
-  const isEnterprise = level === billingHooks.PAYWALL_LEVELS.enterprise
+  const isEnterprise = level === PAYWALL_LEVELS.enterprise
   const child =
     children ?? (isEnterprise ? getText('contactSales') : getText('upgradeTo', levelLabel))
 
@@ -43,9 +46,7 @@ export function UpgradeButton<IconType extends string>(
       variant={variant ?? VARIANT_BY_LEVEL[level.name]}
       size={size}
       rounded={rounded}
-      href={
-        isEnterprise ? appUtils.getContactSalesURL() : (href ?? appUtils.getUpgradeURL(level.name))
-      }
+      href={isEnterprise ? appUtils.getContactPage() : (href ?? appUtils.getUpgradeURL(level.name))}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
@@ -55,7 +56,7 @@ export function UpgradeButton<IconType extends string>(
   )
 }
 
-const VARIANT_BY_LEVEL: Record<billingHooks.PaywallLevelName, ButtonProps<string>['variant']> = {
+const VARIANT_BY_LEVEL: Record<PaywallLevelName, ButtonProps<string>['variant']> = {
   free: 'primary',
   enterprise: 'primary',
   solo: 'accent',

@@ -6,13 +6,13 @@ import project.Data.Pair.Pair
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
-import project.Error.Error
+import project.Internal.Runtime_Helpers
 import project.Meta
-import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False
-from project.Function import flip
+from project.Error import all
+from project.Nothing import all
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -33,7 +33,8 @@ type Warning
        ---
        Attaches a new warning to the value.
     attach_multiple : Vector Any -> Any -> Any
-    attach_multiple warnings value = warnings.fold value (flip Warning.attach)
+    attach_multiple warnings value =
+        warnings.fold value (c-> w-> Warning.attach w c)
 
     ## ---
        private: true
@@ -42,7 +43,8 @@ type Warning
        Are any warnings attached to the value?
     has_warnings : Any -> Any -> Boolean
     has_warnings value warning_type=Any =
-        Warning.get_all value . any (w-> w.value.is_a warning_type)
+        Warning.get_all value . any w->
+            w.value.is_a warning_type
 
     ## ---
        private: true
@@ -96,7 +98,7 @@ type Warning
        Returns `True` if the maximal number of reported warnings for a value has
        been reached, `False` otherwise.
     limit_reached : Any -> Boolean
-    limit_reached value = @Builtin_Method "Warning.limit_reached"
+    limit_reached value -> Boolean = Runtime_Helpers.warn_limit_reached value
 
     ## ---
        private: true
@@ -108,7 +110,7 @@ type Warning
        ## Arguments
         - `value`: the value to which warnings should be set to.
         - `warnings`: vector of warnings to set to the value.
-    set value (warnings:Vector Warning) = set_array value warnings
+    set value (warnings:(Vector Warning)) = set_array value warnings
 
     ## ---
        private: true
@@ -296,6 +298,10 @@ type Warning
     origin : Vector Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
+    to_text self = self.value.to_text
+
+    to_display_text self = self.value.to_display_text
+
 
 ## ---
    private: true
@@ -307,7 +313,7 @@ type Warning
     - `origin`: stacktrace representing the location where the warning is being
       created at.
 create : Any -> Any -> Warning
-create payload origin = @Builtin_Method "Warning.create"
+create payload origin = Runtime_Helpers.warn_create payload origin
 
 ## ---
    private: true
@@ -316,14 +322,15 @@ create payload origin = @Builtin_Method "Warning.create"
    compared to `Warning.attach` requires an explicit stacktrace associated with
    it.
 attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
-attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
+attach_with_stacktrace value warning origin = 
+    Runtime_Helpers.warn_attach_with_stacktrace value warning origin
 
 ## ---
    private: true
    ---
    Builtin function that gets all the warnings attached to the given value.
-get_all_vector : Any -> Boolean -> Vector Warning
-get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
+get_all_vector value should_wrap:Boolean -> Vector Warning =
+    Runtime_Helpers.warn_get_all_vector value should_wrap
 
 ## ---
    private: true
@@ -335,7 +342,8 @@ get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
     - `value`: the value to which warnings should be set to.
     - `warnings`: array of warnings to set to the value.
 set_array : Any -> Array Warning -> Any
-set_array value warnings = @Builtin_Method "Warning.set_array"
+set_array value warnings = 
+    Runtime_Helpers.warn_set_array value warnings
 
 ## ---
    private: true
@@ -357,3 +365,46 @@ map_attached_warnings_helper mapper value frames_to_drop =
                original (unwrapped) warning instance.
             Nothing -> warning
     Warning.set value mapped_warnings
+
+
+## ---
+   group: Errors
+   icon: metadata
+   ---
+   Checks if any warnings (either all or of a specified type) are attached to
+   the value.
+
+   ## Arguments
+    - `warning_type`: The type to check if attached to the value. Defaults to
+      any warning.
+Any.has_warnings self warning_type=Any =
+    _ = warning_type
+    False
+
+## ---
+   group: Errors
+   icon: warning
+   ---
+   Remove the warnings (either all or of a specified type) attached to the
+   value.
+
+   ## Arguments
+    - `warning_type`: The type to remove if attached to the value. Defaults
+      to all warnings.
+Any.remove_warnings self warning_type=Any =
+    _ = warning_type
+    self
+
+## ---
+   group: Errors
+   icon: error
+   ---
+   Throws the first matching warning (either all or of a specified type) as a
+   data flow error.
+
+   ## Arguments
+    - `warning_type`: The type to throw if attached to the value. Defaults to
+      all warnings.
+Any.throw_on_warning self warning_type=Any =
+    _ = warning_type
+    self

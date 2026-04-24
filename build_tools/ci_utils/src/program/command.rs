@@ -13,14 +13,11 @@ use tokio::process::Child;
 use tokio::task::JoinHandle;
 use tracing::field;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod provider;
-
-
 
 #[macro_export]
 macro_rules! new_command_type {
@@ -71,8 +68,6 @@ macro_rules! new_command_type {
     };
 }
 
-
-
 pub trait MyCommand<P: Program>: BorrowMut<Command> + From<Command> + Into<Command> {
     fn new_program<S: AsRef<OsStr>>(program: S) -> Self {
         let inner = tokio::process::Command::new(program);
@@ -89,7 +84,9 @@ pub trait IsCommandWrapper {
     fn borrow_mut_command(&mut self) -> &mut tokio::process::Command;
 
     fn with_applied<M: Manipulator>(mut self, manipulator: &M) -> Self
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         manipulator.apply(&mut self);
         self
     }
@@ -131,11 +128,7 @@ pub trait IsCommandWrapper {
         variable: T,
         value: Option<&V>,
     ) -> Result<&mut Self> {
-        if let Some(value) = value {
-            self.set_env(variable, value)
-        } else {
-            Ok(self)
-        }
+        if let Some(value) = value { self.set_env(variable, value) } else { Ok(self) }
     }
 
     ///////////
@@ -154,7 +147,8 @@ pub trait IsCommandWrapper {
     fn args<I, S>(&mut self, args: I) -> &mut Self
     where
         I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>, {
+        S: AsRef<OsStr>,
+    {
         self.borrow_mut_command().args(args);
         self
     }
@@ -162,7 +156,8 @@ pub trait IsCommandWrapper {
     fn env<K, V>(&mut self, key: K, val: V) -> &mut Self
     where
         K: AsRef<OsStr>,
-        V: AsRef<OsStr>, {
+        V: AsRef<OsStr>,
+    {
         self.borrow_mut_command().env(key, val);
         self
     }
@@ -171,7 +166,8 @@ pub trait IsCommandWrapper {
     where
         I: IntoIterator<Item = (K, V)>,
         K: AsRef<OsStr>,
-        V: AsRef<OsStr>, {
+        V: AsRef<OsStr>,
+    {
         self.borrow_mut_command().envs(vars);
         self
     }
@@ -234,7 +230,9 @@ pub trait IsCommandWrapper {
 
     /// Value-based variant of [`Self::current_dir`], for convenience.
     fn with_current_dir(self, dir: impl AsRef<Path>) -> Self
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         let mut this = self;
         this.current_dir(dir);
         this
@@ -242,7 +240,9 @@ pub trait IsCommandWrapper {
 
     /// Value-based variant of [`Self::with_stdin`], for convenience.
     fn with_stdin(self, stdin: Stdio) -> Self
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         let mut this = self;
         this.stdin(stdin);
         this
@@ -272,9 +272,9 @@ pub trait CommandOption {
 }
 
 pub struct Command {
-    pub inner:          tokio::process::Command,
+    pub inner: tokio::process::Command,
     pub status_checker: Arc<dyn Fn(ExitStatus) -> Result + Send + Sync>,
-    pub pretty_name:    Option<String>,
+    pub pretty_name: Option<String>,
 }
 
 impl Borrow<tokio::process::Command> for Command {
@@ -296,11 +296,7 @@ impl Debug for Command {
 }
 
 pub fn default_status_checker(status: ExitStatus) -> Result {
-    if status.success() {
-        Ok(())
-    } else {
-        bail!("process exited unsuccessfully: {status}")
-    }
+    if status.success() { Ok(()) } else { bail!("process exited unsuccessfully: {status}") }
 }
 
 impl Command {

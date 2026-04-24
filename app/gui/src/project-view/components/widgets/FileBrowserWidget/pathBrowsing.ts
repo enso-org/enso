@@ -1,14 +1,14 @@
 /** @file APIs for navigating a cloud directory structure. */
-import { type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
+import type { EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import { findDifferenceIndex } from '@/util/data/array'
-import { Err, Ok, type Result } from '@/util/data/result'
 import {
-  type AnyAsset,
   assetIsDirectory,
   type DirectoryAsset,
   type DirectoryId,
+  type ListDirectoryResponseBody,
 } from 'enso-common/src/services/Backend'
-import { computed, reactive, ref, type Ref, toRaw } from 'vue'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
+import { computed, reactive, ref, toRaw, type Ref } from 'vue'
 
 /** A directory on browser's stack. */
 export interface Directory {
@@ -56,7 +56,7 @@ export interface PathBrowsing {
 export function usePathBrowsing({
   listDirectory,
 }: {
-  listDirectory: (dir: Directory) => Promise<readonly AnyAsset[] | null>
+  listDirectory: (dir: Directory) => Promise<ListDirectoryResponseBody | null>
 }): PathBrowsing {
   const enteredDirectories = reactive<Directory[]>([])
   const unenteredPathSuffix = ref('')
@@ -67,7 +67,7 @@ export function usePathBrowsing({
     name: string,
     parent: Directory,
   ): Promise<Result<DirectoryAsset, CannotEnterDir>> {
-    const content = (await listDirectory(parent)) ?? []
+    const content = (await listDirectory(parent))?.assets ?? []
     const nextAsset = content.find((asset) => asset.title === name)
     if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
     if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))
@@ -94,11 +94,8 @@ export function usePathBrowsing({
         const result = await getChildDirectory(title, prevDir)
         if (!result.ok) {
           const breakReason = result.error.payload.reason
-          if (
-            breakReason === 'notDir' ||
-            (breakReason === 'notFound' && i === path.segments.length - 1)
-          ) {
-            unenteredPathSuffix.value = title
+          if (breakReason === 'notDir' || breakReason === 'notFound') {
+            unenteredPathSuffix.value = path.segments.slice(i).join('/')
             break
           } else {
             return result

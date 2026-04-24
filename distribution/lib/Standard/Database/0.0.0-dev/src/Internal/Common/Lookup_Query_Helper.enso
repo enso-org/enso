@@ -46,7 +46,8 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
             Lookup_Column.Keep_Column _  -> subquery_setup.get_self_column ix
             Lookup_Column.Replace_Column _ _ expected_type ->
                 dialect = base_table.connection.dialect
-                subquery_setup.create_merged_column ix expected_type dialect infer_type_in_result allow_unmatched_rows
+                mapping = base_table.connection.type_mapping
+                subquery_setup.create_merged_column ix expected_type dialect infer_type_in_result allow_unmatched_rows mapping
             Lookup_Column.Add_Column _ -> subquery_setup.get_lookup_column ix
 
         ## Originally, I wanted to add invariant checks to all columns (or some of them),
@@ -91,12 +92,12 @@ check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_
    2. It allows us to find duplicate matches - if a row with counter >1 is found,
       that means that a single row has matched multiple rows in the lookup table
       and we should report an error.
-make_lookup_counter_column dialect lookup_columns unique_name_strategy =
+make_lookup_counter_column connection lookup_columns unique_name_strategy =
     grouping_expressions = lookup_columns.flat_map c-> case c of
         Lookup_Column.Key_Column _ lookup_column -> [(lookup_column:Internal_Column).expression]
         _ -> []
     row_number_expression = SQL_IR_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
-    sql_type = dialect.get_type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
+    sql_type = connection.type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
     Internal_Column.Value (unique_name_strategy.make_unique "lookup_counter") (SQL_Type_Reference.from_constant sql_type) row_number_expression
 
 ## ---
@@ -136,7 +137,7 @@ type Lookup_Subquery_Setup
        otherwise.
        This method also ensure that the column has the expected type, unifying
        types of the two sources.
-    create_merged_column self ix expected_type dialect infer_type_in_result allow_unmatched_rows =
+    create_merged_column self ix expected_type dialect infer_type_in_result allow_unmatched_rows mapping =
         self_col = self.get_self_column ix
         lookup_col = self.get_lookup_column ix
         is_lookup_found = SQL_IR_Expression.Operation "==" [self.lookup_counter.expression, SQL_IR_Expression.Literal "1"]
@@ -144,7 +145,7 @@ type Lookup_Subquery_Setup
             True  -> SQL_IR_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
             False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
         input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
-        adapted = dialect.adapt_unified_column input_column expected_type infer_type_in_result
+        adapted = dialect.adapt_unified_column input_column expected_type infer_type_in_result mapping
         Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
 
 ## ---
@@ -162,7 +163,7 @@ prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
     new_table_name = table_name_deduplicator.make_unique <|
         base_table.name + "_" + lookup_table.name
 
-    lookup_counter_base = make_lookup_counter_column lookup_table.connection.dialect lookup_columns unique_name_strategy
+    lookup_counter_base = make_lookup_counter_column lookup_table.connection lookup_columns unique_name_strategy
 
     vecs = Vector.build_multiple 2 builders->
         self_requested_columns = builders.at 0

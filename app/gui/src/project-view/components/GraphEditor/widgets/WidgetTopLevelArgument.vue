@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { provideTopLevelArgument } from '@/providers/topLevelArgument'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { useTemplateRef } from 'vue'
 
 defineProps(widgetProps(widgetDefinition))
 
-provideTopLevelArgument(useTemplateRef('element'))
+provideTopLevelArgument(useTemplateRef('content'))
 </script>
 
 <script lang="ts">
@@ -25,18 +25,19 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="element" class="WidgetTopLevelArgument widgetResetPadding">
-    <NodeWidget :input="input" />
+  <div class="WidgetTopLevelArgument widgetParent widgetExpanded widgetResetPadding">
+    <!-- 
+      Element used as a reference for `topLevelArgument` context provider, without vertical line.
+      (because we don't want it to be considered by subwidgets like WidgetSelection).
+    -->
+    <div ref="content" class="widgetParent">
+      <NodeWidget :input="input" />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .WidgetTopLevelArgument {
-  display: flex;
-  flex-direction: row;
-  place-items: center;
-  overflow-x: clip;
-
   &:before {
     content: '';
     display: block;

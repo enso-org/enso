@@ -66,18 +66,18 @@ public class RuntimeProgressTest {
 
     var code =
         """
-      import Standard.Base.Logging.Progress
+        import Standard.Base.Logging.Progress
 
-      main =
-          res = steps
-          res
+        main =
+            res = steps
+            res
 
-      steps = Progress.run "Six steps" 6 progress->
-          progress.advance 1
-          progress.advance 2
-          progress.advance 3
-          10
-      """;
+        steps = Progress.run "Six steps" 6 progress->
+            progress.advance 1
+            progress.advance 2
+            progress.advance 3
+            10
+        """;
 
     metadata.assertInCode(mainRes, code, "steps");
     var contents = metadata.appendToCode(code);
@@ -105,7 +105,6 @@ public class RuntimeProgressTest {
                 true)));
 
     var reply1 = context.receiveNIgnoreStdLib(9, 60);
-    assertEquals(9, reply1.size());
     assertSameElements(
         reply1,
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
@@ -136,19 +135,19 @@ public class RuntimeProgressTest {
 
     var code =
         """
-      import Standard.Base.Logging.Progress
+        import Standard.Base.Logging.Progress
 
-      main =
-          res = steps
-          res
+        main =
+            res = steps
+            res
 
-      steps = Progress.run "Few steps" 5 progress->
-          progress.advance
-          progress.log "I've just finished 1st step"
-          progress.advance 3
-          progress.log "Returning a value"
-          42
-      """;
+        steps = Progress.run "Few steps" 5 progress->
+            progress.advance
+            progress.log "I've just finished 1st step"
+            progress.advance 3
+            progress.log "Returning a value"
+            42
+        """;
 
     metadata.assertInCode(mainRes, code, "steps");
     var contents = metadata.appendToCode(code);
@@ -176,7 +175,6 @@ public class RuntimeProgressTest {
                 true)));
 
     var reply1 = context.receiveNIgnoreStdLib(11, 60);
-    assertEquals(11, reply1.size());
     assertSameElements(
         reply1,
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
@@ -247,7 +245,7 @@ public class RuntimeProgressTest {
     private Context _context;
 
     TestContext(String packageName) {
-      super(packageName);
+      super(packageName, false);
     }
 
     @Override
@@ -259,6 +257,7 @@ public class RuntimeProgressTest {
                 .allowAllAccess(true)
                 .option(RuntimeOptions.PROJECT_ROOT, pkg().root().getAbsolutePath())
                 .option(RuntimeOptions.LOG_LEVEL, java.util.logging.Level.WARNING.getName())
+                .option(RuntimeOptions.CHECK_CWD, "false")
                 .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
                 .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
                 .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "true")

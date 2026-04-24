@@ -16,8 +16,6 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-
-
 // ===================
 // === Entry Point ===
 // ===================
@@ -32,8 +30,6 @@ pub fn schema() -> impl serde::Serialize {
     Schema { types, serialization }
 }
 
-
-
 // ==============
 // === Schema ===
 // ==============
@@ -42,11 +38,10 @@ pub fn schema() -> impl serde::Serialize {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     /// The type definitions.
-    pub types:         BTreeMap<TypeId, Type>,
+    pub types: BTreeMap<TypeId, Type>,
     /// Serialization information for the types.
     pub serialization: BTreeMap<TypeId, Layout>,
 }
-
 
 // === Type graph ===
 
@@ -55,7 +50,7 @@ pub struct Schema {
 #[serde(rename_all = "camelCase")]
 pub struct Type {
     /// The type's name, in snake case.
-    pub name:   Rc<str>,
+    pub name: Rc<str>,
     /// The type's fields.
     pub fields: BTreeMap<FieldName, TypeRef>,
     /// The type's parent, if any.
@@ -126,7 +121,6 @@ pub enum Primitive {
     String,
 }
 
-
 // === Serialization ===
 
 /// Describes the serialized layout of a type.
@@ -134,20 +128,18 @@ pub enum Primitive {
 #[serde(rename_all = "camelCase")]
 pub struct Layout<Id = TypeId> {
     /// The fields, in order. Names are references to the fields defined in the [`Type`].
-    pub fields:        Vec<(FieldName, usize)>,
+    pub fields: Vec<(FieldName, usize)>,
     /// Values that encode the possible child types of this type.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminants: Option<BTreeMap<Discriminant, Id>>,
     /// The number of bytes this type's encoding takes as a field of a containing struct, element
     /// of a sequence, or parent of another type.
-    pub size:          usize,
+    pub size: usize,
 }
 
 /// Number distinguishing different possible child types.
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub struct Discriminant(u32);
-
-
 
 // ==================
 // === Type Graph ===
@@ -155,7 +147,7 @@ pub struct Discriminant(u32);
 
 struct Types {
     types: BTreeMap<TypeId, Type>,
-    ids:   HashMap<meta::TypeId, TypeId>,
+    ids: HashMap<meta::TypeId, TypeId>,
 }
 
 fn types(graph: &meta::TypeGraph) -> Types {
@@ -192,10 +184,12 @@ fn types(graph: &meta::TypeGraph) -> Types {
                 meta::Primitive::I64 => Some(TypeRef::Primitive { r#type: Primitive::I64 }),
                 meta::Primitive::Char => Some(TypeRef::Primitive { r#type: Primitive::Char }),
                 meta::Primitive::String => Some(TypeRef::Primitive { r#type: Primitive::String }),
-                meta::Primitive::Sequence(id) =>
-                    type_refs.get(id).cloned().map(|ty| TypeRef::Sequence { r#type: Box::new(ty) }),
-                meta::Primitive::Option(id) =>
-                    type_refs.get(id).cloned().map(|ty| TypeRef::Option { r#type: Box::new(ty) }),
+                meta::Primitive::Sequence(id) => {
+                    type_refs.get(id).cloned().map(|ty| TypeRef::Sequence { r#type: Box::new(ty) })
+                }
+                meta::Primitive::Option(id) => {
+                    type_refs.get(id).cloned().map(|ty| TypeRef::Option { r#type: Box::new(ty) })
+                }
                 meta::Primitive::Result(id0, id1) => type_refs.get(id0).cloned().and_then(|ty0| {
                     type_refs.get(id1).cloned().map(|ty1| TypeRef::Result {
                         r#type0: Box::new(ty0),
@@ -217,25 +211,26 @@ fn types(graph: &meta::TypeGraph) -> Types {
         .filter_map(|(key, ty)| {
             ty.data.fields().map(|fields| {
                 let key_to_id = |id| ids[id].clone();
-                (key_to_id(&key), Type {
-                    name:   ty.name.to_snake_case().into(),
-                    fields: fields
-                        .iter()
-                        .map(|f| {
-                            let name = f.name.to_snake_case().expect("Tuples not supported.");
-                            let r#type = type_refs[&f.type_].clone();
-                            (FieldName(name.into()), r#type)
-                        })
-                        .collect(),
-                    parent: ty.parent.as_ref().map(key_to_id),
-                })
+                (
+                    key_to_id(&key),
+                    Type {
+                        name: ty.name.to_snake_case().into(),
+                        fields: fields
+                            .iter()
+                            .map(|f| {
+                                let name = f.name.to_snake_case().expect("Tuples not supported.");
+                                let r#type = type_refs[&f.type_].clone();
+                                (FieldName(name.into()), r#type)
+                            })
+                            .collect(),
+                        parent: ty.parent.as_ref().map(key_to_id),
+                    },
+                )
             })
         })
         .collect();
     Types { types, ids }
 }
-
-
 
 // =====================
 // === Serialization ===
@@ -265,8 +260,9 @@ fn compute_size(
         Data::Primitive(Primitive::U32 | Primitive::I32 | Primitive::Char) => 4,
         Data::Primitive(Primitive::U64 | Primitive::I64) => 8,
         Data::Primitive(Primitive::Option(_)) => 1 + POINTER,
-        Data::Primitive(Primitive::String | Primitive::Sequence(_) | Primitive::Result(_, _)) =>
-            POINTER,
+        Data::Primitive(Primitive::String | Primitive::Sequence(_) | Primitive::Result(_, _)) => {
+            POINTER
+        }
         Data::Struct(fields) => {
             let inherited_size =
                 if let Some(parent) = ty.parent { *sizes.get(&parent)? } else { 0 };

@@ -4,158 +4,18 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
-import type { FeatureFlags } from '$/providers/featureFlags'
-import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
-import type { FileFilter } from './src/project-view/util/fileFilter'
-import type { MenuItem, MenuItemHandler } from './src/project-view/util/menuItems'
-
-/** Nested configuration options with `string` values. */
-interface StringConfig {
-  [key: string]: StringConfig | string
-}
-
-/** The public interface exposed to `window` by the IDE. */
-interface Enso {
-  readonly main: (inputConfig?: StringConfig) => Promise<void>
-}
-
-/**
- * `window.backendApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains non-authentication-related functionality.
- */
-interface BackendApi {
-  /** Return the ID of the new project. */
-  readonly importProjectFromPath: (
-    openedPath: string,
-    directory: string | null,
-    name: string,
-  ) => Promise<ProjectInfo>
-}
-
-/**
- * `window.authenticationApi` is a context bridge to the main process, when we're running in an
- * Electron context.
- *
- * # Safety
- *
- * We're assuming that the main process has exposed the `authenticationApi` context bridge (see
- * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
- * interface. Our app can't function if these assumptions are not met, so we're disabling the
- * TypeScript checks for this interface when we use it.
- */
-interface AuthenticationApi {
-  /** Open a URL in the system browser. */
-  readonly openUrlInSystemBrowser: (url: string) => void
-  /**
-   * Set the callback to be called when the system browser redirects back to a URL in the app,
-   * via a deep link. See `setDeepLinkHandler` for details.
-   */
-  readonly setDeepLinkHandler: (callback: (url: string) => void) => void
-  /** Saves the access token to a file. */
-  readonly saveAccessToken: (accessToken: saveAccessToken.AccessToken | null) => void
-}
-
-/**
- * `window.navigationApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains navigation-related functionality.
- */
-interface NavigationApi {
-  /** Go back in the navigation history. */
-  readonly goBack: () => void
-  /** Go forward in the navigation history. */
-  readonly goForward: () => void
-}
-
-/** `window.menuApi` exposes functionality related to the system menu. */
-interface MenuApi {
-  /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
-}
-
-/** Options for downloading a URL. */
-interface DownloadUrlOptions {
-  readonly url: string
-  readonly path?: Path | null | undefined
-  readonly name?: string | null | undefined
-  readonly shouldUnpackProject?: boolean
-  readonly showFileDialog?: boolean
-}
-
-/** `window.systemApi` exposes functionality related to the operating system. */
-interface SystemApi {
-  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
-  readonly showItemInFolder: (fullPath: string) => void
-  readonly getFilePath: (item: File) => string
-}
-
-/** Metadata for a newly imported project. */
-export interface ProjectInfo {
-  readonly id: string
-  readonly name: string
-  readonly projectRoot: string
-  readonly parentDirectory: string
-}
-
-/**
- * `window.projectManagementApi` exposes functionality related to system events related to
- * project management.
- */
-interface ProjectManagementApi {
-  readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
-}
-
-/**
- * `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
- * Electron context.
- *
- * # Safety
- *
- * We're assuming that the main process has exposed the `fileBrowserApi` context bridge (see
- * `app/client/src/preload.ts` for details), and that it contains the functions defined in this
- * interface.
- */
-interface FileBrowserApi {
-  /**
-   * Select path for local file or directory using the system file browser.
-   * 'filePath' is same as 'file', but allows picking non-existing files.
-   */
-  readonly openFileBrowser: (
-    kind: 'default' | 'directory' | 'file' | 'filePath',
-    defaultPath?: string,
-    fileTypes?: FileFilter[],
-  ) => Promise<string[] | undefined>
-}
-
-/** Versions of the app, and selected software bundled with Electron. */
-interface VersionInfo {
-  readonly version: string
-  readonly build: string
-  readonly electron: string
-  readonly chrome: string
-}
+import type { ElectronApi } from './src/electronApi'
+import type { FeatureFlags } from './src/providers/featureFlags'
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
   const $config: $Config
 
   interface Window {
-    readonly backendApi?: BackendApi
-    readonly authenticationApi: AuthenticationApi
-    readonly navigationApi: NavigationApi
-    readonly menuApi?: MenuApi
-    readonly systemApi?: SystemApi
-    readonly projectManagementApi?: ProjectManagementApi
-    readonly fileBrowserApi?: FileBrowserApi
-    readonly versionInfo?: VersionInfo
-    readonly mapBoxApiToken?: () => string
-    /**
-     * If set to `true`, animations will be disabled.
-     * Used by playwright tests to speed up execution.
-     *
-     * ATM only affects the framer-motion animations.
-     */
-    readonly DISABLE_ANIMATIONS?: boolean
+    readonly $config: $Config
+    readonly api?: ElectronApi
+    // Keep feature flags globals separate from Electron API bundle.
     readonly featureFlags: FeatureFlags
     readonly setFeatureFlags: (flags: Partial<FeatureFlags>) => void
     /**
@@ -163,10 +23,6 @@ declare global {
      * This is used by integration tests to set feature flags.
      */
     readonly overrideFeatureFlags?: Partial<FeatureFlags>
-  }
-
-  interface Document {
-    caretPositionFromPoint(x: number, y: number): { offsetNode: Node; offset: number } | null
   }
 
   interface LogEvent {

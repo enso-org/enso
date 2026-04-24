@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
@@ -26,8 +27,7 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
         _ : Duration ->
             Error.throw (Time_Error.Error error_msg)
         x ->
-            Error.throw Illegal_Argument.Error <|
-                "Expected Period type, got: " + (x.to Meta.Type . qualified_name)
+            Error.throw (Illegal_Argument.Error ("Expected Period type, got: " + (x.to Meta.Type . qualified_name)))
 
 ## A date-based amount of time in the ISO-8601 calendar system, such as '2 years,
    3 months and 4 days'.
@@ -191,6 +191,38 @@ type Period
     * self factor =
         catch_java_exceptions "Period.*" <|
             Period.Value (self.internal_period.multipliedBy factor)
+
+    ## ---
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
+    > self that = Comparable.> self=self that
+
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than or equal to `that`.
+    >= self that = Comparable.>= self=self that
+
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than `that`.
+    < self that = Comparable.< self=self that
+
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than or equal to `that`.
+    <= self that = Comparable.<= self=self that
 
     ## ---
        group: Operators

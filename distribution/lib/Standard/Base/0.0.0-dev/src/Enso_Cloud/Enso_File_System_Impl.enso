@@ -1,0 +1,10 @@
+private
+
+import project.Enso_Cloud.Enso_File.Enso_File
+import project.System.File.File_System_SPI
+
+type Enso_File_System_Impl
+
+File_System_SPI.from (that:Enso_File_System_Impl) =
+    _ = that
+    File_System_SPI.new "enso" Enso_File

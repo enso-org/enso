@@ -14,9 +14,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(
     type = "Integer",
     name = "parse",
-    description = """
-Parse integer number""",
-    autoRegister = false)
+    description =
+"""
+Parse integer number\
+""")
 public final class ParseIntegerNode extends Node {
   @Child ToJavaStringNode toJavaString = ToJavaStringNode.build();
   private final BranchProfile noEx1 = BranchProfile.create();

@@ -1,4 +1,4 @@
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { getVueHost, vueHostChanged } from '@/util/codemirror/vueHostExt'
 import { syntaxTree } from '@codemirror/language'
 import {
@@ -8,9 +8,9 @@ import {
   StateField,
   Text,
 } from '@codemirror/state'
-import { Decoration, DecorationSet, EditorView } from '@codemirror/view'
+import { Decoration, type DecorationSet, EditorView } from '@codemirror/view'
 import type { SyntaxNodeRef, Tree } from '@lezer/common'
-import { type Range } from 'ydoc-shared/util/data/range'
+import type { Range } from 'ydoc-shared/util/data/range'
 
 /** @returns a CodeMirror extension that maintains a set of decorations based on the syntax tree. */
 export function treeStateDecorator(nodeDecorators: NodeDecorator[]): Extension {

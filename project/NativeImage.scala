@@ -1,3 +1,4 @@
+import JPMSPlugin.autoImport.modulePath
 import sbt._
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
@@ -94,11 +95,18 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    verbose: Boolean                         = false
+    mainModule: Option[String]               = None,
+    modulePath: Seq[String]                  = Seq.empty,
+    addModules: Seq[String]                  = Seq.empty,
+    verbose: Boolean                         = false,
+    symlink: Boolean                         = true,
+    shared: Boolean                          = false,
+    useCp: Boolean                           = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
-      val log       = state.value.log
-      val targetLoc = artifactFile(targetDir, name, withExtension = false)
+      val log = state.value.log
+      val targetLoc =
+        artifactFile(targetDir, name, withExtension = false, shared = shared)
 
       def nativeImagePath(prefix: Path)(path: Path): Path = {
         val base = path.resolve(prefix)
@@ -190,8 +198,30 @@ object NativeImage {
       val ourCp  = (Runtime / fullClasspath).value
       val auxCp  = additionalCp.value
       val fullCp = ourCp.map(_.data.getAbsolutePath) ++ auxCp
-      val cpStr  = fullCp.mkString(File.pathSeparator)
-      log.debug("Class-path: " + cpStr)
+
+      val mp = if (modulePath.nonEmpty) {
+        val mpStr = modulePath.mkString(File.pathSeparator)
+        log.debug("Module-path: " + mpStr)
+        Seq("--module-path", mpStr)
+      } else {
+        Seq()
+      }
+
+      val cpOpt = if (useCp) {
+        val cpStr = fullCp.mkString(File.pathSeparator)
+        log.debug("Class-path: " + cpStr)
+        Seq("-cp", cpStr)
+      } else {
+        Seq()
+      }
+      val sharedOpt = if (shared) {
+        Seq("--shared")
+      } else {
+        Seq()
+      }
+      val addModulesOpt =
+        if (addModules.nonEmpty) Seq("--add-modules", addModules.mkString(","))
+        else Seq.empty
 
       val isCi       = sys.env.contains("CI")
       val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
@@ -211,7 +241,10 @@ object NativeImage {
 
       var args: Seq[String] =
         excludeConfigsOpt ++
-        Seq("-cp", cpStr) ++
+        mp ++
+        addModulesOpt ++
+        sharedOpt ++
+        cpOpt ++
         staticParameters ++
         configs ++
         Seq("--no-fallback") ++
@@ -226,15 +259,14 @@ object NativeImage {
         compilationTimeoutOpt ++
         Seq("-o", targetLoc.toString)
 
-      args = mainClass match {
-        case Some(main) =>
-          args ++
-          Seq(main)
-        case None =>
-          val pathToJAR =
-            (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
-          args ++
-          Seq("-jar", pathToJAR.toString)
+      val pathToJAR =
+        (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
+      if (mainModule.isDefined && mainClass.isDefined) {
+        args ++= Seq("--module", mainModule.get + "/" + mainClass.get)
+      } else if (mainClass.isDefined) {
+        args ++= Seq(mainClass.get)
+      } else {
+        args ++= Seq("-jar", pathToJAR.toString)
       }
 
       val targetDirValue = (Compile / target).value
@@ -266,14 +298,16 @@ object NativeImage {
         s"Started building $targetLoc native image. The output is captured."
       )
       val retCode    = process.!(processLogger)
-      val targetFile = artifactFile(targetDir, name)
+      val targetFile = artifactFile(targetDir, name, shared = shared)
       if (retCode != 0 || !targetFile.exists()) {
         log.error(s"Native Image build of $targetFile failed, with output: ")
         println(sb.toString())
-        throw new RuntimeException("Native Image build failed")
+        throw new RuntimeException(
+          s"Native Image build failed to generate $targetFile"
+        )
       }
       var msg = s"$targetLoc native image build successful."
-      if (targetDir != null) {
+      if (targetDir != null && symlink) {
         val symlinkTargetFile = artifactFile(null, name)
         if (symlinkTargetFile.exists()) {
           symlinkTargetFile.delete()
@@ -308,7 +342,9 @@ object NativeImage {
   def incrementalNativeImageBuild(
     actualBuild: TaskKey[Unit],
     name: String,
-    targetDir: File = null
+    targetDir: File           = null,
+    shared: Boolean           = false,
+    useTestClassPath: Boolean = false
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       def rebuild(reason: String) = {
@@ -324,8 +360,12 @@ object NativeImage {
         }
       }
 
-      val classpath = (Compile / fullClasspath).value
-      val filesSet  = classpath.flatMap(f => f.data.allPaths.get()).toSet
+      val classpath = if (useTestClassPath) {
+        (Test / fullClasspath).value
+      } else {
+        (Compile / fullClasspath).value
+      }
+      val filesSet = classpath.flatMap(f => f.data.allPaths.get()).toSet
 
       val store =
         streams.value.cacheStoreFactory.make("incremental_native_image")
@@ -333,7 +373,7 @@ object NativeImage {
         sourcesDiff: ChangeReport[File] =>
           if (sourcesDiff.modified.nonEmpty)
             rebuild("Native Image is not up to date")
-          else if (!artifactFile(targetDir, name).exists())
+          else if (!artifactFile(targetDir, name, shared = shared).exists())
             rebuild("Native Image does not exist")
           else
             Def.task {
@@ -381,11 +421,31 @@ object NativeImage {
   def artifactFile(
     targetDir: File,
     name: String,
-    withExtension: Boolean = true
+    withExtension: Boolean = true,
+    shared: Boolean        = false
   ): File = {
     val artifactName =
-      if (withExtension && Platform.isWindows) name + ".exe"
-      else name
+      if (withExtension) {
+        if (shared) {
+          if (Platform.isWindows) {
+            name + ".dll"
+          } else {
+            if (Platform.isLinux) {
+              name + ".so"
+            } else {
+              name + ".dylib"
+            }
+          }
+        } else {
+          if (Platform.isWindows) {
+            name + ".exe"
+          } else {
+            name
+          }
+        }
+      } else {
+        name
+      }
     if (targetDir == null) {
       new File(artifactName).getAbsoluteFile()
     } else {

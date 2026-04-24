@@ -12,7 +12,6 @@ import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
-import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
@@ -28,13 +27,11 @@ import org.enso.pkg.QualifiedName;
  * Compiler} and the information it needs from the runtime. The ultimate state is to compile the
  * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
-public interface CompilerContext extends CompilerStub {
+public interface CompilerContext {
 
   boolean isIrCachingDisabled();
 
   boolean isPrivateCheckDisabled();
-
-  boolean isUseGlobalCacheLocations();
 
   boolean isInteractiveMode();
 
@@ -61,10 +58,11 @@ public interface CompilerContext extends CompilerStub {
    * @param diagnostic an IR node representing diagnostic information
    * @param isOutputRedirected true if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
+   * @param source a special source for the module
    * @return exception with a message to display or to throw
    */
   RuntimeException formatDiagnostic(
-      Module module, Diagnostic diagnostic, boolean isOutputRedirected);
+      Module module, Diagnostic diagnostic, boolean isOutputRedirected, Object source);
 
   // threads
   boolean isCreateThreadAllowed();
@@ -95,13 +93,11 @@ public interface CompilerContext extends CompilerStub {
 
   boolean wasLoadedFromCache(Module module);
 
-  Future<Boolean> serializeLibrary(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+  Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName);
 
   scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
-  Future<Boolean> serializeModule(
-      Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
+  Future<Boolean> serializeModule(Compiler compiler, Module module, boolean usePool);
 
   boolean deserializeModule(Compiler compiler, Module module);
 

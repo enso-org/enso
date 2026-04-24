@@ -22,10 +22,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
@@ -38,6 +40,7 @@ import org.enso.interpreter.instrument.execution.ErrorResolver;
 import org.enso.interpreter.instrument.execution.LocationResolver;
 import org.enso.interpreter.instrument.job.VisualizationResult;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
@@ -181,20 +184,23 @@ public final class ExecutionService {
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
       Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
-    return submitExecution(
-        () -> {
+    return submitExecutionWithCacheAccess(
+        cache,
+        (cacheMut) -> {
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
-                  cache,
+                  cacheMut,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
+                  progressTimingCollector,
                   onCachedCallback,
                   onComputedCallback,
                   funCallCallback,
@@ -245,6 +251,7 @@ public final class ExecutionService {
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -270,6 +277,7 @@ public final class ExecutionService {
                 syncState,
                 nextExecutionItem,
                 expressionExecutionState,
+                progressTimingCollector,
                 funCallCallback,
                 onComputedCallback,
                 onCachedCallback,
@@ -308,10 +316,12 @@ public final class ExecutionService {
    *
    * @param module the module providing a scope for the expression
    * @param expression the expression to evaluate
+   * @param context human-readable explanation for triggering evaluation
    * @return a computation representing the evaluation of an expression
    */
-  public CompletionStage<Object> evaluateExpression(Module module, String expression) {
-    LOGGER.trace("evaluateExpression in {} code: {}", module.getName(), expression);
+  public CompletionStage<Object> evaluateExpression(
+      Module module, String expression, String context) {
+    LOGGER.trace("evaluateExpression in {} code ({}): {}", module.getName(), context, expression);
     return submitExecution(() -> invoke.getCallTarget().call(module, expression));
   }
 
@@ -365,10 +375,12 @@ public final class ExecutionService {
       RuntimeCache executionCache,
       Module module,
       Object function,
+      ProgressTimingCollector progressTimingCollector,
       Object... arguments) {
 
-    return submitExecution(
-        () -> {
+    return submitExecutionWithCacheAccess(
+        cache,
+        (cacheMut) -> {
           var fn = function;
           UUID nextExecutionItem = null;
           CallTarget entryCallTarget =
@@ -389,10 +401,11 @@ public final class ExecutionService {
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
-                  cache,
+                  cacheMut,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
+                  progressTimingCollector,
                   onCachedCallback,
                   onComputedCallback,
                   funCallCallback,
@@ -542,11 +555,13 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
+                module.setLiteralSource(rope, simpleUpdate);
                 logger.trace(
-                    "Applied edits. Source has {} lines, last line has {} characters.",
+                    "Applied {} for {}. Source has {} lines, last line has {} characters.",
+                    simpleUpdate != null ? "simple update" : "edits",
+                    module.getName(),
                     rope.lines().length(),
                     rope.lines().drop(rope.lines().length() - 1).characters().length());
-                module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
     }
@@ -626,8 +641,8 @@ public final class ExecutionService {
       // contrary to what is
       // expected from the documentation, throw an `UnsupportedMessageException`.
       // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
-      if (iop.isMemberInvocable(payload, "to_display_text")) {
-        return iop.asString(iop.invokeMember(payload, "to_display_text"));
+      if (iop.isMemberInvocable(payload, ConstantsNames.TO_DISPLAY_TEXT)) {
+        return iop.asString(iop.invokeMember(payload, ConstantsNames.TO_DISPLAY_TEXT));
       } else throw UnsupportedMessageException.create();
     } catch (UnsupportedMessageException
         | ArityException
@@ -648,8 +663,28 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
-    return context.getThreadManager().submit(c);
+  private <T> CompletionStage<T> submitExecutionWithCacheAccess(
+      RuntimeCache cache, java.util.function.Function<RuntimeCache.Mutable, T> action) {
+    // let's assume the submitException knows how to "upgrade" access to cache to a mutable one
+    var cacheMut = (RuntimeCache.Mutable) cache;
+    return submitExecution(() -> action.apply(cacheMut));
+  }
+
+  /**
+   * Performs an operation on a cache with privileged access.
+   *
+   * @param cache runtime cache on which to perform a privileged operation
+   * @param v an additional value to provide to the operation
+   * @param fun a generic operation involving a mutable cache
+   * @return result of the operation
+   */
+  public <T, S> CompletionStage<S> submitExecutionWithCacheAccess(
+      RuntimeCache cache, T v, BiFunction<RuntimeCache.Mutable, T, S> fun) {
+    return submitExecutionWithCacheAccess(cache, (cacheMut) -> fun.apply(cacheMut, v));
+  }
+
+  private <T> CompletionStage<T> submitExecution(Supplier<T> action) {
+    return context.getThreadManager().submit(action);
   }
 
   private static final class ExecuteRootNode extends RootNode {
@@ -1003,7 +1038,10 @@ public final class ExecutionService {
   }
 
   /** Information about the function call. */
-  public record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
+  public record FunctionCallInfo(
+      FunctionPointer functionPointer,
+      int[] notAppliedArguments,
+      FunctionCallInstrumentationNode.FunctionCall ref) {
 
     @Override
     public boolean equals(Object o) {
@@ -1034,7 +1072,7 @@ public final class ExecutionService {
       FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
       int[] notAppliedArguments = collectNotAppliedArguments(call);
 
-      return new FunctionCallInfo(functionPointer, notAppliedArguments);
+      return new FunctionCallInfo(functionPointer, notAppliedArguments, call);
     }
 
     private static int[] collectNotAppliedArguments(

@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -67,15 +68,16 @@ public abstract class EvalNode extends BaseNode {
     LocalScope localScope =
         scope == LocalScope.empty() ? LocalScope.createEmpty() : scope.createChild();
     var compiler = context.getCompiler();
+    var src = Source.newBuilder(LanguageInfo.ID, expression, "<interactive_source>").build();
     InlineContext inlineContext =
         InlineContext.fromJava(
             localScope,
             moduleScope.getModule().asCompilerModule(),
             scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
             context.getCompilerConfig(),
-            scala.Option.apply(compiler.packageRepository()));
+            scala.Option.apply(compiler.packageRepository()),
+            src);
 
-    var src = Source.newBuilder(LanguageInfo.ID, expression, "<interactive_source>").build();
     var tuppleOption = compiler.runInline(src.getCharacters(), inlineContext);
     if (tuppleOption.isEmpty()) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
@@ -85,8 +87,9 @@ public abstract class EvalNode extends BaseNode {
 
     var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
     var mod = newInlineContext.getModule();
-    var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
-    var toTruffle = new IrToTruffle(context, src, m.getScopeBuilder(), compiler.getConfig());
+    var toTruffle =
+        new IrToTruffle(
+            context, mod.getPackage(), CachingSupplier.forValue(src), mod, compiler.getConfig());
     var expr = toTruffle.runInline(ir, sco, "<inline_source>");
 
     if (shouldCaptureResultScope) {
@@ -94,7 +97,15 @@ public abstract class EvalNode extends BaseNode {
     }
     ClosureRootNode framedNode =
         ClosureRootNode.build(
-            context.getLanguage(), localScope, moduleScope, expr, null, "<eval>", false, false);
+            context.getLanguage(),
+            localScope,
+            moduleScope,
+            expr,
+            null,
+            null,
+            "<eval>",
+            false,
+            false);
     return framedNode.getCallTarget();
   }
 

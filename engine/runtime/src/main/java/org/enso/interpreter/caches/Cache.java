@@ -6,13 +6,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
@@ -43,6 +46,18 @@ public final class Cache<T, M> {
   private final boolean needsSourceDigestVerification;
 
   /**
+   * Large cache files will be {@link FileChannel#map(MapMode, long, long, Arena) mmapped} using a
+   * newly created arena via this supplier. Whenever a cache is loaded or saved, the previous arena
+   * will be closed, which will invalidate all byte buffers associated with that arena.
+   *
+   * <p>Note that currently, it is not possible to use {@link Arena#ofConfined()} here. See <a
+   * href="https://github.com/enso-org/enso/pull/13872#discussion_r2313983664">GH discussion</a>.
+   */
+  private final Supplier<Arena> memoryArenaSupplier;
+
+  private Arena memoryArena;
+
+  /**
    * Flag indicating if the de-serialization process should compute the hash of the stored cache and
    * compare it with the stored metadata entry.
    */
@@ -60,16 +75,18 @@ public final class Cache<T, M> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   private Cache(
-      Cache.Spi<T, M> spi,
+      Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
-      boolean needsDataDigestVerification) {
+      boolean needsDataDigestVerification,
+      Supplier<Arena> memoryArenaSupplier) {
     this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
+    this.memoryArenaSupplier = memoryArenaSupplier;
   }
 
   /**
@@ -85,13 +102,34 @@ public final class Cache<T, M> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   static <T, M> Cache<T, M> create(
-      Cache.Spi<T, M> spi,
+      Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
     return new Cache<>(
-        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification);
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        Arena::ofShared);
+  }
+
+  static <T, M> Cache<T, M> create(
+      Spi<T, M> spi,
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification,
+      Supplier<Arena> memoryArenaSupplier) {
+    return new Cache<>(
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        memoryArenaSupplier);
   }
 
   /**
@@ -99,26 +137,14 @@ public final class Cache<T, M> {
    *
    * @param entry data to save
    * @param context the language context in which loading is taking place
-   * @param useGlobalCacheLocations if true, will use global cache location, local one otherwise
    * @return the location of the successfully saved location of the cached data
    * @throws IOException if something goes wrong
    */
-  public final TruffleFile save(T entry, EnsoContext context, boolean useGlobalCacheLocations)
-      throws IOException {
+  public final TruffleFile save(T entry, EnsoContext context) throws IOException {
     TruffleLogger logger = context.getLogger(this.getClass());
-    var rootsOption = spi.getCacheRoots(context);
-    if (rootsOption.isPresent()) {
-      var roots = rootsOption.get();
-      if (useGlobalCacheLocations) {
-        if (saveCacheTo(context, roots.globalCacheRoot, entry, logger)) {
-          return roots.globalCacheRoot;
-        }
-      } else {
-        logger.log(logLevel, "Skipping use of global cache locations for " + logName + ".");
-      }
-
-      if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
-        return roots.localCacheRoot;
+    for (var root : spi.getCacheRoots(context)) {
+      if (saveCacheTo(context, root, entry, logger)) {
+        return root;
       }
     }
     throw new IOException("Unable to write cache data for " + logName + ".");
@@ -150,14 +176,12 @@ public final class Cache<T, M> {
       TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
       TruffleFile parentPath = cacheDataFile.getParent();
 
+      closeMemoryArena();
       if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
         logger.log(
             logLevel,
-            "Written cache data ["
-                + logName
-                + "] to ["
-                + toMaskedPath(parentPath).applyMasking()
-                + "].");
+            "Written cache data [{0}] to [{1}] of size [{2}].",
+            new Object[] {logName, toMaskedPath(parentPath).applyMasking(), bytesToWrite.length});
         return true;
       } else {
         // Clean up after ourselves if it fails.
@@ -187,43 +211,29 @@ public final class Cache<T, M> {
    * @return the cached data if possible, and [[None]] if it could not load a valid cache
    */
   public final Optional<T> load(EnsoContext context) {
+    var logger = context.getLogger(this.getClass());
+    var collected = new ArrayList<IOException>();
     synchronized (LOCK) {
-      TruffleLogger logger = context.getLogger(this.getClass());
-      return spi.getCacheRoots(context)
-          .flatMap(
-              roots -> {
-                // Load from the global root as a priority.
-                try {
-                  var globalCache = loadCacheFrom(roots.globalCacheRoot(), context, logger);
-                  logger.log(
-                      logLevel,
-                      "Using cache for ["
-                          + logName
-                          + " at location ["
-                          + toMaskedPath(roots.globalCacheRoot()).applyMasking()
-                          + "].");
-                  return Optional.of(globalCache);
-                } catch (IOException globalEx) {
-                  try {
-                    var localCache = loadCacheFrom(roots.localCacheRoot(), context, logger);
-                    logger.log(
-                        logLevel,
-                        "Using cache for ["
-                            + logName
-                            + " at location ["
-                            + toMaskedPath(roots.localCacheRoot()).applyMasking()
-                            + "].");
-                    return Optional.of(localCache);
-                  } catch (IOException localEx) {
-                    logCacheLoadFailure(
-                        logger, "Unable to load a global cache [" + logName + "]: ", globalEx);
-                    logCacheLoadFailure(
-                        logger, "Unable to load a local cache [" + logName + "]: ", localEx);
-                  }
-                  return Optional.empty();
-                }
-              });
+      for (var root : spi.getCacheRoots(context)) {
+        try {
+          var cache = loadCacheFrom(root, context, logger);
+          logger.log(
+              logLevel,
+              "Using cache for ["
+                  + logName
+                  + "] at location ["
+                  + toMaskedPath(root).applyMasking()
+                  + "].");
+          return Optional.of(cache);
+        } catch (IOException ex) {
+          collected.add(ex);
+        }
+      }
     }
+    for (var ex : collected) {
+      logCacheLoadFailure(logger, "Unable to load a cache [" + logName + "]: ", ex);
+    }
+    return Optional.empty();
   }
 
   private void logCacheLoadFailure(TruffleLogger logger, String prefix, IOException ex) {
@@ -259,9 +269,21 @@ public final class Cache<T, M> {
       ByteBuffer blobBytes;
       var threeMbs = 3 * 1024 * 1024;
       if (file.exists() && file.length() > threeMbs) {
-        logger.log(Level.FINEST, "Cache file " + file + " mmapped with " + file.length() + " size");
-        var raf = new RandomAccessFile(file, "r");
-        blobBytes = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length());
+        logger.log(
+            Level.FINEST,
+            "Cache file {0} mmapped with {1} size",
+            new Object[] {file, file.length()});
+        closeMemoryArena();
+        memoryArena = memoryArenaSupplier.get();
+        try (var chan = FileChannel.open(file.toPath())) {
+          assert memoryArena.scope().isAlive();
+          var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
+          assert memSegment.isReadOnly();
+          blobBytes = memSegment.asByteBuffer();
+        } catch (IOException e) {
+          logger.log(Level.SEVERE, "Failed to mmap cache file " + file, e);
+          throw e;
+        }
       } else {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
       }
@@ -300,6 +322,16 @@ public final class Cache<T, M> {
           "Could not load the cache metadata at ["
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
+    }
+  }
+
+  /**
+   * Close any previous arena and creates a new one. Closing the previous arena invalidates all byte
+   * buffers associated with it.
+   */
+  private void closeMemoryArena() {
+    if (memoryArena != null && memoryArena.scope().isAlive()) {
+      memoryArena.close();
     }
   }
 
@@ -388,26 +420,16 @@ public final class Cache<T, M> {
   public final void invalidate(EnsoContext context) {
     synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
-      spi.getCacheRoots(context)
-          .ifPresent(
-              roots -> {
-                invalidateCache(roots.globalCacheRoot, logger);
-                invalidateCache(roots.localCacheRoot, logger);
-              });
+      for (var root : spi.getCacheRoots(context)) {
+        invalidateCache(root, logger);
+      }
+      closeMemoryArena();
     }
   }
 
   final <T> T asSpi(Class<T> type) {
     return type.cast(spi);
   }
-
-  /**
-   * Roots encapsulates two possible locations where caches can be stored.
-   *
-   * @param localCacheRoot project's local location of the cache
-   * @param globalCacheRoot system's global location of the cache
-   */
-  record Roots(TruffleFile localCacheRoot, TruffleFile globalCacheRoot) {}
 
   private static boolean writeBytesTo(TruffleFile file, byte[] bytes) {
     try (OutputStream stream =
@@ -507,7 +529,7 @@ public final class Cache<T, M> {
      * @param context the language context in which loading is taking place
      * @return non-empty if the locations have been inferred successfully, empty otherwise
      */
-    public abstract Optional<Roots> getCacheRoots(EnsoContext context);
+    public abstract Iterable<TruffleFile> getCacheRoots(EnsoContext context);
 
     public abstract String entryName();
 

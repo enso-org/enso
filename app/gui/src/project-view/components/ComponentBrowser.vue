@@ -4,9 +4,13 @@ import {
   useProjectNames,
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
+import type { RequiredImport } from '$/providers/openedProjects/module/imports'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { debouncedGetter } from '$/utils/reactivity'
 import { componentBrowserBindings, listBindings } from '@/bindings'
 import ActionButton from '@/components/ActionButton.vue'
-import { type Component } from '@/components/ComponentBrowser/component'
+import type { Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
@@ -14,11 +18,9 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { Action, registerHandlers, toggledAction } from '@/providers/action'
+import { registerHandlers, toggledAction, type Action } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import type { RequiredImport } from '@/stores/graph/imports'
-import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -26,13 +28,12 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
-import { debouncedGetter } from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import type { ComponentInstance } from 'vue'
 import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Range } from 'ydoc-shared/util/data/range'
-import { Ok } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 import { NODE_CONTENT_PADDING } from './GraphEditor/GraphNode.vue'
 
@@ -243,7 +244,7 @@ const nodeColor = computed(() => {
 
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
-const previewedSuggestionReturnType = computed(() => {
+const previewedSuggestionTypeInfo = computed(() => {
   const appliedEntry = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
@@ -252,7 +253,7 @@ const previewedSuggestionReturnType = computed(() => {
   const returnType = entry?.returnType(projectNames)
   if (returnType == null) return undefined
   const parsed = parseAbsoluteProjectPathRaw(returnType)
-  if (parsed.ok) return parsed.value
+  if (parsed.ok) return TypeInfo.fromParsedTypes([parsed.value], [])
   return undefined
 })
 
@@ -406,7 +407,7 @@ const listsHandler = listBindings.handler({
       :width="null"
       :height="null"
       :dataSource="previewDataSource"
-      :typename="previewedSuggestionReturnType"
+      :typeinfo="previewedSuggestionTypeInfo"
       :currentType="visualizationSelection"
       @update:id="visualizationSelection = $event"
       @update:enabled="isVisualizationVisible = $event"

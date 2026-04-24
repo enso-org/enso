@@ -1,6 +1,6 @@
 import * as react from 'react'
-import { LocationQueryValue } from 'vue-router'
-import { QueryParams } from '../queryParams'
+import type { LocationQueryValue } from 'vue-router'
+import type { QueryParams } from '../queryParams'
 import { useInReactFunction, useVueValue } from './common'
 
 export const QueryParamsContext = react.createContext<QueryParams | null>(null)

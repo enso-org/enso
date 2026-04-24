@@ -6,22 +6,19 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record AnyObjectType() implements StorageType<Object> {
+public final class AnyObjectType implements StorageType<Object> {
   public static final AnyObjectType INSTANCE = new AnyObjectType();
 
+  private AnyObjectType() {}
+
   @Override
-  public boolean isNumeric() {
-    return false;
+  public char typeChar() {
+    return 'A';
   }
 
   @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
+  public String ensoConstructorName() {
+    return "Mixed";
   }
 
   @Override
@@ -42,7 +39,7 @@ public record AnyObjectType() implements StorageType<Object> {
 
   @Override
   public ColumnStorage<Object> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof AnyObjectType) {
+    if (StorageType.ofStorage(storage) instanceof AnyObjectType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<Object>) storage;
       return output;

@@ -1,6 +1,6 @@
 /** @file */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { type StoreApi, createStore } from '#/utilities/zustand'
+import { createStore, type StoreApi } from '#/utilities/zustand'
 import type { PropsWithChildren } from 'react'
 import { createContext, useContext, useState } from 'react'
 import type { TSchema, UseFormRegisterReturn } from '../Form'

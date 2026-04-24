@@ -25,7 +25,8 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class BuiltinTypesExposeMethodsTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
 
   private final Value type;
 

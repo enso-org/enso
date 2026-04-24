@@ -1,5 +1,6 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -12,10 +13,9 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
 /** Handles classloading in the "slave" JVM. */
-@ExportLibrary(value = InteropLibrary.class)
-final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
+final class OtherJvmLoader extends URLClassLoader {
   final Context ctx;
-  private Object value;
+  private TruffleObject findLibraries;
 
   OtherJvmLoader() {
     super(new URL[0]);
@@ -26,7 +26,7 @@ final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
             .build();
   }
 
-  void addToClassPath(String file) {
+  final void addToClassPath(String file) {
     try {
       addURL(new File(file).toURI().toURL());
     } catch (MalformedURLException ex) {
@@ -34,22 +34,50 @@ final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
     }
   }
 
+  final void findLibraries(TruffleObject obj) {
+    this.findLibraries = obj;
+  }
+
+  @Override
+  protected String findLibrary(String libName) {
+    var find = this.findLibraries;
+    if (find != null) {
+      try {
+        var iop = InteropLibrary.getUncached();
+        var mayBePath = iop.execute(find, libName);
+        if (iop.isString(mayBePath)) {
+          return iop.asString(mayBePath);
+        }
+      } catch (InteropException ex) {
+        var logger = System.getLogger("org.enso.jvm.interop");
+        logger.log(System.Logger.Level.WARNING, ex);
+      }
+    }
+    return null;
+  }
+
   final TruffleObject loadClassObject(String className) throws ClassNotFoundException {
     var clazz = loadClass(className);
     var clazzValue1 = ctx.asValue(clazz);
     var clazzValue2 = clazzValue1.getMember("static");
-    ctx.asValue(this).execute(clazzValue2);
-    return (TruffleObject) value;
+    var unwrap = new Unwrap();
+    ctx.asValue(unwrap).execute(clazzValue2);
+    return (TruffleObject) unwrap.value;
   }
 
-  @ExportMessage
-  final Object execute(Object[] values) {
-    this.value = values[0];
-    return this;
-  }
+  @ExportLibrary(value = InteropLibrary.class)
+  static final class Unwrap implements TruffleObject {
+    TruffleObject value;
 
-  @ExportMessage
-  final boolean isExecutable() {
-    return true;
+    @ExportMessage
+    final Object execute(Object[] values) {
+      this.value = (TruffleObject) values[0];
+      return this;
+    }
+
+    @ExportMessage
+    final boolean isExecutable() {
+      return true;
+    }
   }
 }

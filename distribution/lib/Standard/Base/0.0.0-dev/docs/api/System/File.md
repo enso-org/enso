@@ -3,6 +3,7 @@
 - type File
     - / self subpath:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - absolute self -> Standard.Base.Any.Any
+    - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
     - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_directory self -> Standard.Base.Any.Any
     - create_dry_run_file self copy_original:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -22,8 +23,7 @@
     - is_writable self -> Standard.Base.Any.Any
     - join self subpaths:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - last_modified_time self -> Standard.Base.Any.Any
-    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - list_immediate_children self -> Standard.Base.Any.Any
+    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Base.System.File.File)
     - move_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - new path:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -36,22 +36,21 @@
     - read_first_bytes self n:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - read_last_bytes self n:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - read_text self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
-    - relativize self child:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - relativize self child:Standard.Base.System.File.File -> Standard.Base.System.File.File
     - resolve self subpath:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - resolve_single_part self part:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - size self -> Standard.Base.Any.Any
-    - starts_with self parent:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - starts_with self parent:Standard.Base.System.File.File -> Standard.Base.Data.Boolean.Boolean
     - to_display_text self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- file_as_java file:Standard.Base.System.File.File -> Standard.Base.Any.Any
-- file_types -> Standard.Base.Any.Any
+- type File_System_SPI
+    - new protocol:Standard.Base.Data.Text.Text typ:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - find_extension_from_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_child_widget file:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - list_descendants file:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- resolve_local_file path:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
 - Standard.Base.System.File.File.from that:Standard.Base.Data.Text.Text -> Standard.Base.System.File.File
 - Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Base.System.File.File -> Standard.Base.System.File.Generic.File_Like.File_Like
 - Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.System.File.File -> Standard.Base.System.File.Generic.Writable_File.Writable_File

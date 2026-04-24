@@ -19,6 +19,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return success exit code (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -33,6 +34,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return success exit code (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -47,6 +49,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error when creating nonexistent command" in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |main = System.create_process "nonexistentcommandxyz" [] "" False False False
           |""".stripMargin
@@ -61,6 +64,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error exit code (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -76,6 +80,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error exit code (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -91,6 +96,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -107,6 +113,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -124,6 +131,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -158,6 +166,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin unused (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -174,6 +183,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin empty (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -189,6 +199,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin empty (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -204,6 +215,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -219,6 +231,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -234,6 +247,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout chars (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -249,6 +263,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -264,6 +279,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -279,6 +295,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stdout string (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -295,6 +312,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stdout string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -311,6 +329,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -326,6 +345,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -341,6 +361,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr binary (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -356,6 +377,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -371,6 +393,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =

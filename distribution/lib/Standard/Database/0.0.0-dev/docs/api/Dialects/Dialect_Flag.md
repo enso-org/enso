@@ -26,10 +26,13 @@
     - Supports_Nanoseconds_In_Time
     - Supports_Negative_Decimal_Places
     - Supports_Nested_With_Clause
+    - Supports_Proper_Casing
     - Supports_Regex_Match
     - Supports_Separate_NaN
     - Supports_Sort_Digits_As_Numbers
     - Supports_Time_Duration
+    - Supports_Unicode_Casing
     - Supports_Unicode_Normalization
     - Text_Length_Limited_Columns
     - Use_Builtin_Bankers
+    - Use_SQL_Type_Hints_For_Null_Values

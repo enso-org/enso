@@ -7,14 +7,11 @@ use reqwest::IntoUrl;
 use tokio::io::AsyncRead;
 use web::client;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod web;
-
-
 
 /// Read the whole input and return its length.
 ///
@@ -22,11 +19,6 @@ pub mod web;
 pub async fn read_length(mut read: impl AsyncRead + Unpin) -> Result<u64> {
     let mut sink = tokio::io::sink();
     Ok(tokio::io::copy(&mut read, &mut sink).await?)
-}
-
-/// Get the the response body as a byte stream.
-pub async fn download(url: impl IntoUrl) -> Result<impl Stream<Item = reqwest::Result<Bytes>>> {
-    client::download(&default(), url).await
 }
 
 pub async fn download_to_dir(url: impl IntoUrl, dir: impl AsRef<Path>) -> Result<PathBuf> {
@@ -60,10 +52,9 @@ pub async fn download_all(url: impl IntoUrl) -> anyhow::Result<Bytes> {
 pub fn filename_from_url(url: &Url) -> anyhow::Result<PathBuf> {
     url.path_segments()
         .ok_or_else(|| anyhow!("Cannot split URL '{}' into path segments!", url))?
-        .last()
+        .next_back()
         .ok_or_else(|| anyhow!("No segments in path for URL '{}'", url))
         .map(PathBuf::from)
-        .map_err(Into::into)
 }
 
 /// Downloads archive from URL and extracts it into an output path.
@@ -78,7 +69,8 @@ pub async fn download_and_extract(
 pub async fn retry<Fn, Fut, Ret>(mut action: Fn) -> Result<Ret>
 where
     Fn: FnMut() -> Fut,
-    Fut: Future<Output = Result<Ret>>, {
+    Fut: Future<Output = Result<Ret>>,
+{
     let growth_factor = 1.5;
     let mut attempts = 5;
     let mut delay = std::time::Duration::from_millis(500);
@@ -101,7 +93,6 @@ where
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -142,11 +133,13 @@ mod tests {
         mirror_directory(foo.parent().unwrap(), foo.parent().unwrap().with_file_name("dest2"))
             .await?;
 
-        assert!(tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
-            .arg("-laR")
-            .status()
-            .await?
-            .success());
+        assert!(
+            tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
+                .arg("-laR")
+                .status()
+                .await?
+                .success()
+        );
 
         Ok(())
     }

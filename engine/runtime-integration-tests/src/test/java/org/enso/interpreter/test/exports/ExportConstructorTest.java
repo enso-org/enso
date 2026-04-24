@@ -27,17 +27,17 @@ public class ExportConstructorTest {
         new SourceModule(
             QualifiedName.fromString("Boolean"),
             """
-        type Boolean
-            True
-            False
-        """);
+            type Boolean
+                True
+                False
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Boolean.Boolean.True
-        export project.Boolean.Boolean.False
-        """);
+            export project.Boolean.Boolean.True
+            export project.Boolean.Boolean.False
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(booleanMod, mainMod), projDir);
 
@@ -56,19 +56,19 @@ public class ExportConstructorTest {
         new SourceModule(
             QualifiedName.fromString("Boolean"),
             """
-        export project.Boolean.Boolean.True
-        export project.Boolean.Boolean.False
-        type Boolean
-            True
-            False
-        """);
+            export project.Boolean.Boolean.True
+            export project.Boolean.Boolean.False
+            type Boolean
+                True
+                False
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        # Import just the module on purpose
-        import project.Boolean
-        """);
+            # Import just the module on purpose
+            import project.Boolean
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(booleanMod, mainMod), projDir);
 

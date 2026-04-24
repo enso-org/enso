@@ -1,0 +1,132 @@
+from Standard.Base import all
+from Standard.AWS import all
+import Standard.Base.Network.Email.Email_Address.Email_Address
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    # Test provider for Amazon SES
+    test_provider = (..Amazon_SES (..Region 'ADD REGION') credentials=(..Key "ADD KEY" "ADD SECRET"))
+    
+    # Test email addresses - replace with valid addresses for real tests
+    plain_from_address = 'from@enso.org'
+    from_address = ..Address 'from@enso.org' 'From User'
+    to_address_base = 'to.address'
+    to_address_1 = to_address_base + '@gmail.com'
+    to_address_2 = Email_Address.Address (to_address_base + '+user2@gmail.com') 'Test User 2'
+    cc_address = Email_Address.Address (to_address_base + '+ccuser@gmail.com') 'CC User'
+    cc_address2 = Email_Address.Address (to_address_base + '+ccuser2@gmail.com') 'CC User 2'
+    bcc_address = Email_Address.Address (to_address_base + '+bccuser@gmail.com') 'BCC User'
+    bcc_address2 = Email_Address.Address (to_address_base + '+bccuser2@gmail.com') 'BCC User 2'
+    
+    suite_builder.group "Email Sending - Basic" group_builder->
+        group_builder.specify "should send a simple plain text email to one recipient" <|
+            response = Email.send from_address [to_address_1] subject="Simple Test" body=(..Plain_Text 'This is a plain text email.') provider=test_provider
+            response.email.from_address.address . should_equal from_address.address
+            response.email.to.length . should_equal 1
+            response.email.subject . should_equal "Simple Test"
+        
+        group_builder.specify "should send an email with named sender and recipient" <|
+            response = Email.send from_address [to_address_2] subject="Named Test" body=(..Plain_Text 'Email with names') provider=test_provider
+            response.email.from_address.name . should_equal from_address.name
+            response.email.to.first.name . should_equal to_address_2.name
+        
+        group_builder.specify "should send an email to multiple recipients" <|
+            response = Email.send from_address [to_address_1, to_address_2] subject="Multiple Recipients" body=(..Plain_Text 'Email to multiple people') provider=test_provider
+            response.email.to.length . should_equal 2
+            
+        group_builder.specify "should send an email with empty body" <|
+            response = Email.send from_address [to_address_1] subject="Empty Body Test" body=..No_Body provider=test_provider
+            response.email.subject . should_equal "Empty Body Test"
+    
+    suite_builder.group "Email Sending - Body Types" group_builder->
+        group_builder.specify "should send a plain text email" <|
+            body_text = "This is plain text content.\nWith multiple lines.\nAnd formatting."
+            Email.send from_address [to_address_1] subject="Plain Text" body=(..Plain_Text body_text) provider=test_provider
+        
+        group_builder.specify "should send an HTML email with plain text fallback" <|
+            html_content = "<html><body><h1>Hello</h1><p>This is <strong>HTML</strong> content.</p></body></html>"
+            plain_fallback = "Hello\n\nThis is HTML content."
+            Email.send from_address [to_address_1] subject="HTML Email" body=(..HTML html_content plain_fallback) provider=test_provider
+        
+        group_builder.specify "should send an HTML email without plain text fallback" <|
+            html_content = "<html><body><p>HTML only content</p></body></html>"
+            Email.send from_address [to_address_1] subject="HTML Only" body=(..HTML html_content) provider=test_provider
+    
+    suite_builder.group "Email Sending - CC and BCC" group_builder->
+        group_builder.specify "should send an email with CC recipient" <|
+            response = Email.send from_address [to_address_1] cc=[cc_address] subject="CC Test" body=(..Plain_Text 'Email with CC') provider=test_provider
+            response.email.cc.length . should_equal 1
+            response.email.cc.first.address . should_equal cc_address.address
+        
+        group_builder.specify "should send an email with BCC recipient" <|
+            response = Email.send from_address [to_address_1] bcc=[bcc_address] subject="BCC Test" body=(..Plain_Text 'Email with BCC') provider=test_provider
+            response.email.bcc.length . should_equal 1
+            response.email.bcc.first.address . should_equal bcc_address.address
+        
+        group_builder.specify "should send an email with both CC and BCC recipients" <|
+            response = Email.send from_address [to_address_1] cc=[cc_address] bcc=[bcc_address] subject="CC and BCC Test" body=(..Plain_Text 'Email with CC and BCC') provider=test_provider
+            response.email.cc.length . should_equal 1
+            response.email.bcc.length . should_equal 1
+        
+        group_builder.specify "should send an email with multiple CC recipients" <|
+            response = Email.send from_address [to_address_1] cc=[cc_address, cc_address2] subject="Multiple CC Test" body=(..Plain_Text 'Email with multiple CC') provider=test_provider
+            response.email.cc.length . should_equal 2
+        
+        group_builder.specify "should send an email with multiple BCC recipients" <|
+            response = Email.send from_address [to_address_1] bcc=[bcc_address, bcc_address2] subject="Multiple BCC Test" body=(..Plain_Text 'Email with multiple BCC') provider=test_provider
+            response.email.bcc.length . should_equal 2
+    
+    suite_builder.group "Email Sending - Complex Combinations" group_builder->
+        group_builder.specify "should send an email with all fields populated" <|
+            response = Email.send from_address [to_address_1, to_address_2] cc=[cc_address] bcc=[bcc_address] subject="Full Email Test" body=(..HTML "<h1>Complete</h1>" "Complete") provider=test_provider
+            response.email.to.length . should_equal 2
+            response.email.cc.length . should_equal 1
+            response.email.bcc.length . should_equal 1
+            response.email.subject . should_equal "Full Email Test"
+        
+        group_builder.specify "should send an email with long subject line" <|
+            long_subject = "This is a very long subject line that contains many characters to test how the email system handles lengthy subject lines"
+            response = Email.send from_address [to_address_1] subject=long_subject body=(..Plain_Text 'Test') provider=test_provider
+            response.email.subject . should_equal long_subject
+        
+        group_builder.specify "should send an email with special characters in subject" <|
+            special_subject = "Test: Special chars & symbols! @#$%^&*() 你好"
+            response = Email.send from_address [to_address_1] subject=special_subject body=(..Plain_Text 'Test') provider=test_provider
+            response.email.subject . should_equal special_subject
+        
+        group_builder.specify "should send an email with unicode content" <|
+            unicode_body = "Hello 世界! Привет мир! مرحبا بالعالم! 🎉🚀✨"
+            Email.send from_address [to_address_1] subject="Unicode Test" body=(..Plain_Text unicode_body) provider=test_provider
+    
+    suite_builder.group "Email Sending - Using Email.new" group_builder->
+        group_builder.specify "should create and send an email using Email.new" <|
+            email = Email.new from_address [to_address_1] subject="New Method Test" body=(..Plain_Text 'Created with new')
+            response = email.send_message provider=test_provider
+            response.email.subject . should_equal "New Method Test"
+        
+        group_builder.specify "should create an email with all fields using Email.new" <|
+            email = Email.new from_address [to_address_1, to_address_2] cc=[cc_address] bcc=[bcc_address] subject="Full New Test" body=(..HTML "<p>HTML</p>" "Plain")
+            response = email.send_message provider=test_provider
+            response.email.to.length . should_equal 2
+            response.email.cc.length . should_equal 1
+            response.email.bcc.length . should_equal 1
+        
+    suite_builder.group "Email Sending - Edge Cases" group_builder->
+        group_builder.specify "should handle email with empty subject" <|
+            response = Email.send from_address [to_address_1] subject="" body=(..Plain_Text 'No subject') provider=test_provider
+            response.email.subject . should_equal ""
+        
+        group_builder.specify "should handle email with only To address (no CC or BCC)" <|
+            response = Email.send from_address [to_address_1] subject="To Only" body=(..Plain_Text 'Only To field') provider=test_provider
+            response.email.cc.length . should_equal 0
+            response.email.bcc.length . should_equal 0
+        
+        group_builder.specify "should handle email addresses without display names" <|
+            response = Email.send plain_from_address [to_address_1] subject="No Names" body=(..Plain_Text 'Plain addresses') provider=test_provider
+            response.email.from_address.name . should_equal ""
+        
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

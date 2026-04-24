@@ -2,11 +2,6 @@ import * as iter from 'enso-common/src/utilities/data/iter'
 import * as map from 'lib0/map'
 import { assert, assertDefined } from '../util/assert'
 import {
-  type SourceRange,
-  type SourceRangeEdit,
-  type SourceRangeEditDesc,
-  type SourceRangeKey,
-  type SpanTree,
   applyTextEdits,
   applyTextEditsToSpans,
   enclosingSpans,
@@ -14,9 +9,14 @@ import {
   sourceRangeKey,
   textChangeToEdits,
   trimEnd,
+  type SourceRange,
+  type SourceRangeEdit,
+  type SourceRangeEditDesc,
+  type SourceRangeKey,
+  type SpanTree,
 } from '../util/data/text'
 import { xxHash128 } from './ffi'
-import { type NodeKey, type NodeSpanMap, newExternalId } from './idMap'
+import { newExternalId, type NodeKey, type NodeSpanMap } from './idMap'
 import type { Module, MutableModule } from './mutableModule'
 import { parseInSameContext } from './parse'
 import { printWithSpans } from './print'
@@ -24,12 +24,13 @@ import { isTokenId } from './token'
 import {
   Assignment,
   Ast,
-  type AstId,
   MutableAssignment,
-  type MutableAst,
   rewriteRefs,
   syncFields,
   syncNodeMetadata,
+  visitRecursive,
+  type AstId,
+  type MutableAst,
 } from './tree'
 
 /**
@@ -220,7 +221,7 @@ function syncTree(
     newRoot.fields.set('metadata', target.fields.get('metadata').clone())
     target.fields.get('metadata').set('externalId', newExternalId())
   }
-  newRoot.visitRecursive((ast) => {
+  visitRecursive(newRoot, (ast) => {
     const syncFieldsFrom = toSync.get(ast.id)
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {

@@ -12,13 +12,11 @@
 use enso_prelude::*;
 
 use enso_parser::macros::resolver::RootContext;
+use jni::JNIEnv;
 use jni::objects::JByteBuffer;
 use jni::objects::JClass;
 use jni::sys::jobject;
 use jni::sys::jstring;
-use jni::JNIEnv;
-
-
 
 // ======================
 // === Java Interface ===
@@ -36,7 +34,7 @@ static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 /// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
 /// a call to `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseModule(
     env: JNIEnv,
     class: JClass,
@@ -55,7 +53,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseModule(
 /// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
 /// a call to `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseBlock(
     env: JNIEnv,
     class: JClass,
@@ -111,7 +109,7 @@ fn parse(
 /// The contents of the returned buffer MUST NOT be accessed after another call to `parseInput`, or
 /// a call to `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseModuleLazy(
     mut env: JNIEnv,
     _class: JClass,
@@ -138,7 +136,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseModuleLazy(
 /// The contents of the returned buffer MUST NOT be accessed after another call to `parseInput`, or
 /// a call to `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseBlockLazy(
     mut env: JNIEnv,
     _class: JClass,
@@ -158,7 +156,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseBlockLazy(
 
 /// Determine the token variant of the provided input.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
     env: JNIEnv,
     _class: JClass,
@@ -189,7 +187,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
 /// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
 /// `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
     _env: JNIEnv,
     _class: JClass,
@@ -206,7 +204,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
 /// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
 /// `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
     _env: JNIEnv,
     _class: JClass,
@@ -225,7 +223,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
 /// Allocate a new parser state object. The returned value should be passed to `freeState` when no
 /// longer needed.
 #[allow(unsafe_code, clippy::box_default)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
     _env: JNIEnv,
     _class: JClass,
@@ -240,7 +238,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
 /// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
 /// `freeState`.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
     _env: JNIEnv,
     _class: JClass,
@@ -254,7 +252,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
 
 /// Returns the string template corresponding to the given warning ID.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getWarningTemplate(
     env: JNIEnv,
     _class: JClass,
@@ -273,7 +271,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getWarningTemplate(
 /// latter, `parser.parseInput` MUST NOT have been called since the call to `getMetadata` that
 /// returned the value.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidHigh(
     _env: JNIEnv,
     _class: JClass,
@@ -292,7 +290,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidHigh(
 /// latter, `parser.parseInput` MUST NOT have been called since the call to `getMetadata` that
 /// returned the value.
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidLow(
     _env: JNIEnv,
     _class: JClass,
@@ -321,10 +319,12 @@ fn get_uuid(metadata: u64, code_offset: u64, code_length: u64) -> (u64, u64) {
 /// The input MUST be valid UTF-8.
 #[allow(unsafe_code)]
 unsafe fn decode_utf8_unchecked(input: &[u8]) -> &str {
-    if cfg!(debug_assertions) {
-        std::str::from_utf8(input).unwrap()
-    } else {
-        std::str::from_utf8_unchecked(input)
+    unsafe {
+        if cfg!(debug_assertions) {
+            std::str::from_utf8(input).unwrap()
+        } else {
+            std::str::from_utf8_unchecked(input)
+        }
     }
 }
 
@@ -333,13 +333,13 @@ unsafe fn decode_utf8_unchecked(input: &[u8]) -> &str {
 /// The input buffer contents MUST be valid UTF-8.
 #[allow(unsafe_code)]
 unsafe fn decode_utf8_buffer<'a>(env: &JNIEnv, buffer: &'a JByteBuffer) -> &'a str {
-    let ptr = env.get_direct_buffer_address(buffer).expect(DIRECT_ALLOCATED);
-    let len = env.get_direct_buffer_capacity(buffer).expect(DIRECT_ALLOCATED);
-    let bytes = slice::from_raw_parts(ptr, len);
-    decode_utf8_unchecked(bytes)
+    unsafe {
+        let ptr = env.get_direct_buffer_address(buffer).expect(DIRECT_ALLOCATED);
+        let len = env.get_direct_buffer_capacity(buffer).expect(DIRECT_ALLOCATED);
+        let bytes = slice::from_raw_parts(ptr, len);
+        decode_utf8_unchecked(bytes)
+    }
 }
-
-
 
 // ====================
 // === Parser state ===
@@ -347,8 +347,8 @@ unsafe fn decode_utf8_buffer<'a>(env: &JNIEnv, buffer: &'a JByteBuffer) -> &'a s
 
 #[derive(Default, Debug)]
 struct State {
-    base:     u64,
-    output:   Vec<u8>,
+    base: u64,
+    output: Vec<u8>,
     metadata: Option<enso_parser::metadata::Metadata>,
 }
 

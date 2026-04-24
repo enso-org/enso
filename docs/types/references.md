@@ -14,17 +14,9 @@ This file contains a variety of useful references for those wanting to
 understand the concepts and research that underlie Enso's type system and type
 theory.
 
-<!-- MarkdownTOC levels="2,3" autolink="true" -->
+## Intersection Types
 
-- [Gradual Typing](#gradual-typing)
-- [Maximum Inference Power](#maximum-inference-power)
-- [Monadic Contexts](#monadic-contexts)
-- [Refinement Typing and Compiler Assistance](#refinement-typing-and-compiler-assistance)
-- [Rows](#rows)
-- [Types and Performance](#types-and-performance)
-- [Usability](#usability)
-
-<!-- /MarkdownTOC -->
+- [Taming the Merge Operator](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/taming-the-merge-operator/B8A3A5D16B7AB175D44DB6F980450863)
 
 ## Gradual Typing
 

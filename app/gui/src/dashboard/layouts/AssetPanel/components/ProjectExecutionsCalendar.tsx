@@ -22,14 +22,8 @@ import { useLocalStorageState } from '#/hooks/localStoreState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
-import type Backend from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  type ProjectExecution as BackendProjectExecution,
-  type ProjectAsset,
-} from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
@@ -43,9 +37,16 @@ import {
   toCalendarDate,
   today,
   toZoned,
-  type ZonedDateTime,
+  ZonedDateTime,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  type ProjectExecution as BackendProjectExecution,
+  type ProjectAsset,
+} from 'enso-common/src/services/Backend'
 import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
@@ -62,6 +63,8 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
       'text-center px-1 rounded border border-transparent hover:bg-primary/10 outside-visible-range:text-primary/30 disabled:text-primary/30 selected:border-primary/40 h-16 overflow-clip',
   },
 })
+/** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
+const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 90_000
 
 /** A calendar showing executions of a project. */
 export function ProjectExecutionsCalendar() {
@@ -70,7 +73,7 @@ export function ProjectExecutionsCalendar() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category == null || CATEGORY_BACKEND[category.type] !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
   if (focusedAsset == null) {
@@ -101,21 +104,37 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
 
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
-  const form = Form.useForm({
-    schema: (z) => z.object({ date: z.instanceof(CalendarDate) }),
-    onSubmit: () => {},
-  })
   const timeZone = preferredTimeZone ?? getLocalTimeZone()
   const [focusedMonth, setFocusedMonth] = useState(() => startOfMonth(today(timeZone)))
   const todayDate = today(timeZone)
-  const selectedDate = Form.useWatch({
-    control: form.control,
-    name: 'date',
-    defaultValue: todayDate,
+  const form = Form.useForm({
+    schema: (z) =>
+      z.object({
+        date: z.instanceof(CalendarDate),
+        defaultStartDateTime: z.instanceof(ZonedDateTime).optional(),
+      }),
+    defaultValues: { date: todayDate, defaultStartDateTime: now(timeZone) },
+    onSubmit: () => {},
+    onChange: (field, _value, theForm) => {
+      if (field !== 'date') return
+      const { date, defaultStartDateTime } = theForm.getValues()
+      if (defaultStartDateTime && toCalendarDate(defaultStartDateTime).compare(date) !== 0) {
+        // Unset the override away from *now* if the date part is changed.
+        theForm.setValue('defaultStartDateTime', undefined)
+      }
+    },
   })
+  const selectedDate = Form.useWatch({ control: form.control, name: 'date' })
+  const originalDateTime = Form.useWatch({ control: form.control, name: 'defaultStartDateTime' })
 
   const projectExecutionsQuery = useSuspenseQuery(
-    listProjectExecutionsQueryOptions(backend, item.id, item.title),
+    listProjectExecutionsQueryOptions(
+      backend,
+      item.id,
+      item.title,
+      focusedMonth.year,
+      focusedMonth.month,
+    ),
   )
   const projectExecutions = projectExecutionsQuery.data
 
@@ -148,9 +167,16 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         projectExecution,
         toZoned(selectedDate, projectExecution.timeZone),
         toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
-      ).flatMap((date) => ({ date, projectExecution })),
+      ).flatMap((date) => {
+        const session = projectExecution.projectSessions?.find(
+          (otherSession) =>
+            Math.abs(Number(new Date(otherSession.createdAt)) - Number(date.toDate())) <
+            EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
+        )
+        return { date, projectExecution, session }
+      }),
     )
-    .sort((a, b) => Number(a.date) - Number(b.date))
+    .sort((a, b) => Number(a.date.toDate()) - Number(b.date.toDate()))
 
   const styles = PROJECT_EXECUTIONS_CALENDAR_STYLES({})
 
@@ -226,13 +252,19 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDate={toZoned(selectedDate, timeZone).set({ hour: now(timeZone).hour })}
+          defaultDate={toZoned(originalDateTime ?? selectedDate, timeZone).set({
+            hour: now(timeZone).hour,
+            minute: now(timeZone).minute,
+          })}
         />
       </Dialog.Trigger>
-      <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
-      {projectExecutionsForToday.length === 0 ?
+      <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDate).toString())}</Text>
+      {projectExecutionsForToday.length === 0 && (
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
-      : projectExecutionsForToday.map(({ projectExecution, date }) => (
+      )}
+      {projectExecutionsForToday
+        .filter(({ session }) => session !== undefined)
+        .map(({ projectExecution, date, session }) => (
           <ProjectExecution
             key={projectExecution.executionId}
             compact
@@ -240,9 +272,22 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
             item={item}
             projectExecution={projectExecution}
             date={date}
+            session={session}
           />
-        ))
-      }
+        ))}
+      {projectExecutionsForToday
+        .filter(({ session }) => session === undefined)
+        .map(({ projectExecution, date, session }) => (
+          <ProjectExecution
+            key={projectExecution.executionId}
+            compact
+            backend={backend}
+            item={item}
+            projectExecution={projectExecution}
+            date={date}
+            session={session}
+          />
+        ))}
     </Form>
   )
 }

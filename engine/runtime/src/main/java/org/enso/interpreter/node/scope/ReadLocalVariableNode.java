@@ -6,6 +6,8 @@ import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.pass.analyse.FramePointer;
@@ -19,20 +21,24 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * {@link Frame}. The {@code framePointer} field may point to the parent frame.
  */
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
+@NodeField(name = "name", type = String.class)
 @NodeField(name = "framePointer", type = FramePointer.class)
 public abstract class ReadLocalVariableNode extends ExpressionNode {
-  public abstract FramePointer getFramePointer();
+  abstract FramePointer getFramePointer();
+
+  abstract String getName();
 
   ReadLocalVariableNode() {}
 
   /**
    * Creates an instance of this node.
    *
+   * @param name the name of variable to read
    * @param pointer the pointer to the local target
    * @return a node that reads from {@code pointer}
    */
-  public static ReadLocalVariableNode build(FramePointer pointer) {
-    return ReadLocalVariableNodeGen.create(pointer);
+  public static ReadLocalVariableNode build(String name, FramePointer pointer) {
+    return ReadLocalVariableNodeGen.create(name, pointer);
   }
 
   /**
@@ -101,5 +107,19 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
       currentFrame = getParentFrame(currentFrame);
     }
     return currentFrame;
+  }
+
+  @Override
+  public Object getNodeObject() {
+    return new VariableNodeObject(StandardTags.ReadVariableTag.NAME, getName());
+  }
+
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    if (super.hasTag(tag)) {
+      return true;
+    } else {
+      return getSourceSectionBounds() != null && StandardTags.ReadVariableTag.class == tag;
+    }
   }
 }

@@ -19,6 +19,16 @@ public interface Locking {
   <T> T withWriteCompilationLock(Class<?> where, Callable<T> callable);
 
   /**
+   * Executes `callable` while holding a compilation write lock
+   *
+   * @param where the class requesting the lock
+   * @param callable code to be executed while holding the lock
+   * @param context human-readable explanation for triggering evaluation
+   * @return the result of calling `callable` or null, if no result is expected
+   */
+  <T> T withWriteCompilationLock(Class<?> where, String context, Callable<T> callable);
+
+  /**
    * Executes `callable` while holding a compilation read lock
    *
    * @param where the class requesting the lock
@@ -57,9 +67,21 @@ public interface Locking {
   <T> T withWriteContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
 
   /**
+   * Executes `callable` while holding a write context lock
+   *
+   * @param contextLock lock used to ensure exclusive access
+   * @param where the class requesting the lock
+   * @param context human-readable explanation for lock
+   * @param callable code to be executed while holding the lock
+   * @return the result of calling `callable` or null, if no result is expected
+   */
+  <T> T withWriteContextLock(
+      ContextLock contextLock, Class<?> where, String context, Callable<T> callable);
+
+  /**
    * Removes a context lock.
    *
-   * @param a context lock to remove
+   * @param contextLock a context lock to remove
    */
   void removeContextLock(ContextLock contextLock);
 
@@ -80,4 +102,27 @@ public interface Locking {
    * @return lock wrapper
    */
   ContextLock getOrCreateContextLock(UUID contextId);
+
+  /**
+   * If one can enter write compilation lock without blocking, then invokes {@code action.run()}
+   * while holding the lock and releasing it then. In such case this method returns {@code true}.
+   * Otherwise it performs no action and returns {@code false}.
+   *
+   * @param where the class requesting the lock
+   * @param action code to be executed while holding the lock
+   * @return {@code true} if {@code action} was executed or {@code false} otherwise
+   */
+  boolean tryWithWriteCompilationLock(Class<?> where, Runnable action);
+
+  /**
+   * If one can enter read context lock without blocking, then invokes {@code action.run()} while
+   * holding the lock and releasing it then. In such case this method returns {@code true}.
+   * Otherwise it performs no action and returns {@code false}.
+   *
+   * @param contextLock lock used to ensure exclusive access
+   * @param where the class requesting the lock
+   * @param action code to be executed while holding the lock
+   * @return {@code true} if {@code action} was executed or {@code false} otherwise
+   */
+  boolean tryWithReadContextLock(ContextLock contextLock, Class<?> where, Runnable action);
 }

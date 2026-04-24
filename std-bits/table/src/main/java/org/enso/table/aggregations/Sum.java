@@ -27,7 +27,7 @@ public class Sum extends Aggregator {
   public Sum(String name, Column column) {
     super(name);
     inputStorage = ColumnStorageWithInferredStorage.resolveStorage(column.getStorage());
-    inputType = inputStorage.getType();
+    inputType = StorageType.ofStorage(inputStorage);
   }
 
   @Override
@@ -37,8 +37,8 @@ public class Sum extends Aggregator {
       case BigIntegerType bigIntegerType -> Builder.getForBigInteger(size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
       case NullType nullType -> Builder.getForType(nullType, size, problemAggregator);
-      default -> throw new IllegalStateException(
-          "Unexpected input type for Sum aggregate: " + inputType);
+      default ->
+          throw new IllegalStateException("Unexpected input type for Sum aggregate: " + inputType);
     };
   }
 
@@ -57,8 +57,8 @@ public class Sum extends Aggregator {
       case BigIntegerType bigIntegerType -> new IntegerSumAccumulator();
       case FloatType floatType -> new FloatSumAccumulator();
       case NullType nullType -> new NullAccumulator();
-      default -> throw new IllegalStateException(
-          "Unexpected input type for Sum aggregate: " + inputType);
+      default ->
+          throw new IllegalStateException("Unexpected input type for Sum aggregate: " + inputType);
     };
   }
 
@@ -96,7 +96,7 @@ public class Sum extends Aggregator {
           }
           context.safepoint();
         }
-      } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
+      } else if (StorageType.ofStorage(storage) instanceof BigIntegerType bigIntegerType) {
         var typedStorage = bigIntegerType.asTypedStorage(storage);
         for (int row : indexes) {
           BigInteger value = typedStorage.getItemBoxed(row);
@@ -128,20 +128,22 @@ public class Sum extends Aggregator {
         case null -> {
           accumulator = value;
         }
-        default -> throw new IllegalStateException(
-            "Unexpected accumulator type: " + accumulator.getClass());
+        default ->
+            throw new IllegalStateException(
+                "Unexpected accumulator type: " + accumulator.getClass());
       }
     }
 
     private void addBigInteger(BigInteger value) {
       assert value != null;
       switch (accumulator) {
-        case Long accumulatorAsLong -> accumulator =
-            BigInteger.valueOf(accumulatorAsLong).add(value);
+        case Long accumulatorAsLong ->
+            accumulator = BigInteger.valueOf(accumulatorAsLong).add(value);
         case BigInteger accumulatorAsBigInteger -> accumulator = accumulatorAsBigInteger.add(value);
         case null -> accumulator = value;
-        default -> throw new IllegalStateException(
-            "Unexpected accumulator type: " + accumulator.getClass());
+        default ->
+            throw new IllegalStateException(
+                "Unexpected accumulator type: " + accumulator.getClass());
       }
     }
 
@@ -200,7 +202,7 @@ public class Sum extends Aggregator {
   private static final class NullAccumulator extends SumAccumulator {
     @Override
     void accumulate(List<Integer> indexes, ColumnStorage<?> storage) {
-      assert storage.getType() instanceof NullType;
+      assert StorageType.ofStorage(storage) instanceof NullType;
     }
 
     @Override

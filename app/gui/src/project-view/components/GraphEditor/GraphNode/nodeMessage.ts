@@ -1,3 +1,7 @@
+import { type NodeId } from '$/providers/openedProjects/graph'
+import { type GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import { type ProjectStore } from '$/providers/openedProjects/project'
+import { type ToValue } from '$/utils/reactivity'
 import type GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import {
   colorForMessageType,
@@ -5,31 +9,20 @@ import {
   type MessageType,
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import type SvgIcon from '@/components/SvgIcon.vue'
-import { type NodeId } from '@/stores/graph'
-import { type GraphDb } from '@/stores/graph/graphDatabase'
-import { type ProjectStore } from '@/stores/project'
 import { type Opt } from '@/util/data/opt'
-import { type ToValue } from '@/util/reactivity'
 import { computed, toValue } from 'vue'
-import { type ComponentProps } from 'vue-component-type-helpers'
-import { type ExternalId } from 'ydoc-shared/yjsModel'
+import type { ComponentProps } from 'vue-component-type-helpers'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 interface NodeMessageOptions {
   projectStore: ProjectStore
   graphDb: GraphDb
   expand: ToValue<boolean>
-  passEvents: ToValue<boolean>
   nodeId: ToValue<NodeId>
 }
 
 /** Composable managing messages (warnings, errors, etc.) associated with a node. */
-export function useNodeMessage({
-  projectStore,
-  graphDb,
-  expand,
-  passEvents,
-  nodeId,
-}: NodeMessageOptions) {
+export function useNodeMessage({ projectStore, graphDb, expand, nodeId }: NodeMessageOptions) {
   const inputExternalIds = computed(() => {
     const externalIds = new Array<ExternalId>()
     for (const inputId of graphDb.nodeDependents.reverseLookup(toValue(nodeId))) {
@@ -92,7 +85,6 @@ export function useNodeMessage({
     return {
       type: availableMessage.value.type,
       message: availableMessage.value.text,
-      passEvents: toValue(passEvents),
     }
   })
 

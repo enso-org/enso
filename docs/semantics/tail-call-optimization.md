@@ -45,16 +45,17 @@ resulting in a stack overflow error), while `sum_2` is an allocation-free loop.
 
 ## Usage
 
-Enso does not currently perform automatic tail call detection and defers the
-optimization decisions to the user. To mark a function call as a tail call, the
-`@Tail_Call` annotation must be used. Note that if the annotation is placed
-incorrectly, it may either be reported as a warning by the compiler, or silently
-ignored if such analysis is impossible to perform due to the compiler's limited
-static analysis capabilities. However, it is _guaranteed_ that a wrongly placed
-`@Tail_Call` annotation will not lead to incorrect runtime behavior.
-
-If the `@Tail_Call` annotation is not placed, the call will be treated as a
-standard on-stack function call.
+Enso can detect tail call locations automatically while executing the code. A
+deeply recursive function at _tail call position_ is profiled by Enso runtime
+and _tail call optimizations_ get automatically enabled after few nested
+invocations of the function. Should there be a need to enable such _tail call
+optimizations_ immediatelly users (especially library providers) can explicitly
+mark a function invocation as a tail call by adding the `@Tail_Call` annotation.
+Then the _tail call optimization_ is enabled immediatelly without speculative
+profiling. Should the `@Tail_Call` annotation be placed incorrectly, it may
+either be reported as a warning by the compiler, or silently ignored.
+Incorrectly placed `@Tail_Call` annotation however never leads to incorrect
+runtime behavior.
 
 For example, the following code reverses a list in a tail recursive fashion:
 
@@ -71,9 +72,8 @@ Note the placement of `@Tail_Call` in the recursive branch of `go`. It is placed
 correctly, marking the last operation in a function, and therefore `go` will be
 interpreted as a loop rather than a chain of function calls.
 
-> #### Debugging Tail Calls
->
-> The way `go` is wrapped in the example above is recommended for most uses.
-> Using the assignment and return of a variable, rather than a direct call,
-> guarantees that calls to `reverse` won't themselves be removed from the call
-> stack and therefore greatly aids debugging.
+The same example can be written without the `@Tail_Call` annotation. In such a
+case few first invocations of the `go` function are performed as function calls.
+Once the system detects the `go` invocation is eligible for _tail call
+optimization_ it switches the function _tail status_ and interprets further
+invocations as loop calls.

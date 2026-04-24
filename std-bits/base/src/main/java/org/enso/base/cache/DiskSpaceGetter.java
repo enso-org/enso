@@ -10,6 +10,11 @@ public class DiskSpaceGetter extends Mockable<Long> {
   }
 
   private static File getRootPath() {
+    var currentEnsoProject = CurrentEnsoProject.get();
+    if (currentEnsoProject == null) {
+      // If there is no current Enso project, use the current working directory.
+      return new File(System.getProperty("user.dir"));
+    }
     return new File(CurrentEnsoProject.get().getRootPath());
   }
 }

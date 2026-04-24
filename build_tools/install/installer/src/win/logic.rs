@@ -2,13 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::win::config::Config;
 use crate::Payload;
+use crate::win::config::Config;
 
 use enso_install_config::UNINSTALLER_NAME;
 use flate2::read::GzDecoder;
-
-
 
 /// Register file extensions and their associations in the Windows registry.
 pub fn register_file_associations(
@@ -146,7 +144,9 @@ pub fn install_with_updates(
         let bytes_ratio = (bytes_extracted as f64 / total_bytes as f64).min(1.0);
         let extraction_progresss = (files_ratio + bytes_ratio) / 2.0;
         let progress = extraction_progress_start + extraction_progress_step * extraction_progresss;
-        trace!("files_extracted: {files_extracted}/{total_files}, bytes_extracted: {bytes_extracted}/{total_bytes}, extraction_progresss: {extraction_progresss}, progress: {progress}");
+        trace!(
+            "files_extracted: {files_extracted}/{total_files}, bytes_extracted: {bytes_extracted}/{total_bytes}, extraction_progresss: {extraction_progresss}, progress: {progress}"
+        );
         report_progress(progress);
         Some(install_location.join(entry.path().ok()?))
     };
@@ -155,7 +155,6 @@ pub fn install_with_updates(
     // As we've been incrementing this values when extracting the next file, we need to cover the
     // last file.
     bytes_extracted += bytes_being_extracted;
-
 
     let post_extraction_progress = extraction_progress_start + extraction_progress_step;
 
@@ -186,7 +185,6 @@ pub fn install_with_updates(
     stage_at!(0.98, "Creating Desktop shortcut.");
     enso_install::win::shortcut::Location::Desktop
         .create_shortcut(&config.shortcut_name, &executable_location)?;
-
 
     stage_at!(1.0, "Installation complete.");
     send(crate::InstallerUpdate::Finished(Ok(())));

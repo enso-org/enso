@@ -17,7 +17,6 @@ import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
-import scala.jdk.javaapi.CollectionConverters;
 
 public class UnusedImportsTest {
   @Rule
@@ -34,9 +33,9 @@ public class UnusedImportsTest {
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
             """
-        import project.Module.My_Type
-        main = My_Type
-        """);
+            import project.Module.My_Type
+            main = My_Type
+            """);
     compilerCtx.getCompiler().run(mainMod);
     var modIr = mainMod.getIr();
     var bm = getBindingsMap(modIr);
@@ -68,9 +67,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -90,9 +89,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -110,9 +109,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -130,9 +129,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -148,9 +147,10 @@ public class UnusedImportsTest {
   @Test
   public void unusedSymbols_InlineSignature_ReturnType() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type A
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type A
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -167,9 +167,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type_1
-            type My_Type_2
-            """);
+        type My_Type_1
+        type My_Type_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -187,9 +187,10 @@ public class UnusedImportsTest {
   @Test
   public void unusedSymbols_InTypeAscription_ReturnType() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -207,9 +208,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-            type Error
-            """);
+        type T
+        type Error
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -227,10 +228,10 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-            type Error_1
-            type Error_2
-            """);
+        type T
+        type Error_1
+        type Error_2
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -248,11 +249,11 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type A
-            type B
-            type C
-            type D
-            """);
+        type A
+        type B
+        type C
+        type D
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -270,9 +271,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type S
-            type T
-            """);
+        type S
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -293,9 +294,10 @@ public class UnusedImportsTest {
   @Test
   public void unusedSymbols_ExtensionMethod() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -310,9 +312,10 @@ public class UnusedImportsTest {
   @Test
   public void unusedSymbols_ExtensionMethod_OnModule() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -329,9 +332,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-            type U
-            """);
+        type T
+        type U
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -348,13 +351,13 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            export project.Other_Module.My_Type
-            """);
+        export project.Other_Module.My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -371,8 +374,8 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -389,8 +392,8 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -407,8 +410,8 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -425,8 +428,8 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type My_Type
-            """);
+        type My_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -446,13 +449,13 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Boolean"),
         """
-            export project.Boolean.Boolean.False
-            export project.Boolean.Boolean.True
+        export project.Boolean.Boolean.False
+        export project.Boolean.Boolean.True
 
-            type Boolean
-                False
-                True
-            """);
+        type Boolean
+            False
+            True
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -469,8 +472,8 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            method x = x + 1
-            """);
+        method x = x + 1
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -487,9 +490,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                method self = 42
-            """);
+        type T
+            method self = 42
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -520,10 +523,10 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type A
-            type B
-            A.extension_method self = 42
-            """);
+        type A
+        type B
+        A.extension_method self = 42
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -538,9 +541,10 @@ public class UnusedImportsTest {
   @Test
   public void usedSymbol_InCaseBranch_TypePattern() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -559,9 +563,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons
-            """);
+        type T
+            Cons
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -580,9 +584,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons
-            """);
+        type T
+            Cons
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -601,11 +605,11 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons data
-            type S
-                Value data
-            """);
+        type T
+            Cons data
+        type S
+            Value data
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -625,10 +629,10 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons data
-            type S
-            """);
+        type T
+            Cons data
+        type S
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -648,11 +652,11 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons data
-            type S
-            type U
-            """);
+        type T
+            Cons data
+        type S
+        type U
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -672,14 +676,14 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
         """
-            type X
-                Cons
-            """);
+        type X
+            Cons
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            export project.Other_Module.X as T
-            """);
+        export project.Other_Module.X as T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -696,9 +700,10 @@ public class UnusedImportsTest {
   @Test
   public void usedSymbol_InAnnotation_MethodCall() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+        type T
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -716,9 +721,9 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
-            type T
-                Cons
-            """);
+        type T
+            Cons
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -739,13 +744,13 @@ public class UnusedImportsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib.A.A"),
         """
-            static_method x = x
-            """);
+        static_method x = x
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib.Main"),
         """
-            export project.A.A
-            """);
+        export project.A.A
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
@@ -760,7 +765,7 @@ public class UnusedImportsTest {
 
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
-    var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
+    var actualUnusedSymbols = warn.unusedSymbols();
     assertThat("Unused symbols do not match", actualUnusedSymbols, is(expectedUnusedSymbols));
   }
 

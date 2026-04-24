@@ -18,9 +18,11 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.TableVizOperation;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
@@ -36,12 +38,13 @@ import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 /** A representation of a table structure. */
-public class Table {
+public final class Table {
   private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
-  private String versionId;
+  private final String versionId;
 
   /**
    * Creates a new table from a single column.
@@ -100,6 +103,16 @@ public class Table {
    */
   public int rowCount() {
     return columns[0].getSize();
+  }
+
+  /**
+   * Get the row in this table.
+   *
+   * @param index value from 0 to {@link #rowCount()} (exclusive)
+   * @return a row representing given index
+   */
+  public Row row(int index) {
+    return new Row(this, index);
   }
 
   /**
@@ -189,7 +202,7 @@ public class Table {
     var maskBuilder = new LongArrayList((int) Math.min(storage.getSize(), 100000));
     StorageIterators.forEachOverBooleanStorage(
         storage,
-        false,
+        "filter",
         (index, value, isNothing) -> {
           if (value) {
             maskBuilder.add(index);
@@ -284,17 +297,21 @@ public class Table {
   /**
    * Creates a new table with the rows sorted
    *
+   * @param where value identifying context where to execute the code
    * @param columns set of columns to use as an index
    * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table indexed by the proper column
    */
-  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
-    int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
-    int n = rowCount();
-    Context context = Context.getCurrent();
-    final var storages =
-        Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
-    OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
+  public Table orderBy(
+      Value where,
+      ColumnStorage[] columns,
+      Long[] directions,
+      Comparator<Object> objectComparator) {
+    var directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
+    var n = rowCount();
+    var context = where.getContext();
+    var storages = Arrays.stream(columns).toArray(ColumnStorage[]::new);
+    var keys = new OrderedMultiValueKey[n];
     for (int i = 0; i < n; i++) {
       keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);
       context.safepoint();
@@ -523,7 +540,8 @@ public class Table {
     }
 
     var storage = input.getStorage();
-    var builder = storage.getType().makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
+    var builder =
+        StorageType.ofStorage(storage).makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
     builder.appendBulkStorage(storage);
     builder.appendNulls(newSize - inputSize);
     return new Column(input.getName(), builder.seal());
@@ -563,13 +581,12 @@ public class Table {
     int new_count = size * to_transpose.length;
 
     // Create Storage
-    Builder[] storage = new Builder[id_columns.length + 2];
+    var storage = new Builder[id_columns.length + 2];
     IntStream.range(0, id_columns.length)
         .forEach(
             i ->
                 storage[i] =
-                    Builder.getForType(
-                        id_columns[i].getStorage().getType(), new_count, problemAggregator));
+                    id_columns[i].getStorageType().makeBuilder(new_count, problemAggregator));
     storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
     storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 
@@ -649,5 +666,11 @@ public class Table {
       newColumns[i] = columns[i].mask(indexMapper);
     }
     return new Table(newColumns);
+  }
+
+  public String tableVizJSON(
+      List<String> valueTypeDisplay, long allRowsCount, boolean useServerMode) {
+    return TableVizOperation.makeJSON(
+        versionId, columns, allRowsCount, useServerMode, valueTypeDisplay, "get_row");
   }
 }

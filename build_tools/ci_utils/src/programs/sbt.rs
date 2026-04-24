@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::define_env_var;
 use crate::program::command::Manipulator;
 
-
-
 define_env_var! {
     /// Force the SBT server to start, avoiding `ServerAlreadyBootingException`.
     /// See: https://github.com/sbt/sbt/issues/6777#issuecomment-1613316167
@@ -52,7 +50,7 @@ impl Sbt {
 
 #[derive(Clone, Debug)]
 pub struct SystemProperty {
-    pub name:  String,
+    pub name: String,
     pub value: String,
 }
 
@@ -62,7 +60,7 @@ impl SystemProperty {
     }
 }
 
-impl<'a> IntoIterator for &'a SystemProperty {
+impl IntoIterator for &SystemProperty {
     type Item = String;
     type IntoIter = std::iter::Once<Self::Item>;
     fn into_iter(self) -> Self::IntoIter {

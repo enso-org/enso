@@ -4,7 +4,6 @@ import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
-import org.enso.logger.masking.MaskedString
 import org.slf4j.event.Level
 
 import java.net.URI
@@ -132,15 +131,16 @@ class Runner(
         options.interface,
         "--rpc-port",
         options.rpcPort.toString,
-        "--data-port",
-        options.dataPort.toString,
         "--log-level",
         logLevel.name
-      ) ++ options.secureRpcPort
-        .map(port => Seq("--secure-rpc-port", port.toString))
+      ) ++ options.projectCloudId
+        .map(id => Seq("--cloud-project-id", id))
         .getOrElse(Seq.empty) ++
-        options.secureDataPort
-          .map(port => Seq("--secure-data-port", port.toString))
+        options.projectCloudSessionId
+          .map(id => Seq("--cloud-project-session-id", id))
+          .getOrElse(Seq.empty) ++
+        options.secureRpcPort
+          .map(port => Seq("--secure-rpc-port", port.toString))
           .getOrElse(Seq.empty) ++
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
 
@@ -155,8 +155,7 @@ class Runner(
       )
     }
 
-  final private val JVM_PATH_ENV_VAR    = "ENSO_JVM_PATH"
-  final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
+  final private val JVM_PATH_ENV_VAR = "ENSO_JVM_PATH"
 
   /** Runs an action giving it a command that can be used to launch the
     * component.
@@ -172,20 +171,7 @@ class Runner(
     action: RawCommand => R
   ): R = {
     def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
-      val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
-      jvmOptsFromEnvironment.foreach { opts =>
-        logger.info(
-          "Additional JVM options [{}] from the {} environment variable.",
-          MaskedString(opts),
-          JVM_OPTIONS_ENV_VAR
-        )
-      }
-
-      val environmentOptions =
-        jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-
-      val jvmArguments =
-        environmentOptions ++ cmd.cmdArguments(engine, jvmSettings)
+      val jvmArguments = cmd.cmdArguments(engine, jvmSettings)
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)

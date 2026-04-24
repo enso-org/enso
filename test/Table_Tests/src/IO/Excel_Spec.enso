@@ -3,7 +3,6 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
@@ -12,6 +11,8 @@ from Standard.Table import Table, Match_Columns, Excel_Range, Excel_Workbook, Va
 from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet, No_Rows, No_Common_Type
 from Standard.Table.Extensions.Excel_Extensions import all
 import Standard.Table.Excel.Excel_Workbook.Return_As as Old_Return_As
+from Standard.Table.Extensions.Column_Vector_Extensions import all
+import Standard.Table.Internal.Excel_Test_Helper
 
 from Standard.Test import all
 
@@ -22,9 +23,7 @@ import project.Util
 from project.Common_Table_Operations.Util import within_table
 from project.IO.Read_Many_Spec import with_temp_dir
 
-polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
-polyglot java import org.enso.table.excel.ExcelConnectionPool
 
 spec_fmt suite_builder header file =
     suite_builder.group header group_builder->
@@ -243,7 +242,6 @@ spec_write suite_builder suffix test_sheet_name =
             t1.write alltypes (..Sheet "AllTypes") . should_succeed
             t2 = alltypes.read (..Sheet "AllTypes")
             t2.should_equal t1
-
 
         group_builder.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
             out = data.create_out
@@ -517,7 +515,8 @@ spec_write suite_builder suffix test_sheet_name =
                (which was empty in this example), so we still only get one sheet.
                Different example is tested in the test below, if the subsequent file happens to the returned
                dry-run object - then both updates are visible - see below.
-            opened_temp.sheet_names . should_equal ['Another']
+            opened_temp2 = temp.read
+            opened_temp2.sheet_names . should_equal ['Another']
 
             opened_temp.close
             temp.delete_if_exists
@@ -544,7 +543,8 @@ spec_write suite_builder suffix test_sheet_name =
             temp2.absolute.normalize.path . should_equal temp1.absolute.normalize.path
 
             # The write operation replaces the dry run file, basing off of the dry-run file itself - so both changes are visible.
-            opened_temp.sheet_names . should_equal ['EnsoSheet', 'Another']
+            opened_temp2 = temp1.read
+            opened_temp2.sheet_names . should_equal ['EnsoSheet', 'Another']
 
             opened_temp.close
             temp1.delete_if_exists
@@ -724,6 +724,8 @@ spec_write suite_builder suffix test_sheet_name =
             Test.with_clue "("+r1.catch.to_display_text+") " <|
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Not_Found
+                ## We want the Not found error to point to the nonexistent directory, not some file that is just being written.
+                r1.catch.file.path . should_equal parent.path
 
         group_builder.specify "should allow to write and read-back Unicode characters" <|
             encodings = enso_project.data / "transient" / ("encodings."+suffix)
@@ -900,6 +902,9 @@ add_specs suite_builder =
     xls_sheet = enso_project.data / "TestSheetOld.xls"
     xls_path = xls_sheet.path
 
+    xlsb_sheet = enso_project.data / "TestSheet.xlsb"
+    xlsb_path = xlsb_sheet.path
+
     sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]
     range_names = ["myData"]
 
@@ -910,9 +915,9 @@ add_specs suite_builder =
     col_e = [Date_Time.new 2022 06 12 12 34 56, Date_Time.new 2022 10 20 1 23 45, Date_Time.new 2022 07 30 2 46, Date_Time.new 2022 10 15 9]
 
     check_column col expected =
-        start = col.length - expected.length
+        start = col.row_count - expected.length
         0.up_to start . map i->(col.at i . should_equal Nothing)
-        start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
+        start.up_to col.row_count . map i->(col.at i . should_equal (expected.at (i - start)))
 
     check_table table count=5 =
         table.column_count . should_equal count
@@ -927,6 +932,10 @@ add_specs suite_builder =
         workbook.sheet_count . should_equal sheets
         workbook.named_ranges_count . should_equal ranges
 
+    check_workbook_no_ranges workbook sheets=sheet_names.length =
+        workbook.is_a Excel_Workbook . should_be_true
+        workbook.sheet_count . should_equal sheets
+
     suite_builder.group "Read XLSX / XLS Files" group_builder->
         group_builder.specify "should let you read the workbook with Auto_Detect" <|
             check_workbook <| xlsx_sheet.read
@@ -937,6 +946,10 @@ add_specs suite_builder =
             check_workbook <| Data.read xls_sheet
             check_workbook <| Data.read xls_path
 
+            check_workbook_no_ranges <| xlsb_sheet.read
+            check_workbook_no_ranges <| Data.read xlsb_sheet
+            check_workbook_no_ranges <| Data.read xlsb_path
+
         group_builder.specify "should let you read the workbook with Excel" <|
             check_workbook <| xlsx_sheet.read ..Workbook
             check_workbook <| Data.read xlsx_sheet ..Workbook
@@ -945,6 +958,10 @@ add_specs suite_builder =
             check_workbook <| xls_sheet.read ..Workbook
             check_workbook <| Data.read xls_sheet ..Workbook
             check_workbook <| Data.read xls_path ..Workbook
+            
+            check_workbook_no_ranges <| xlsb_sheet.read ..Workbook
+            check_workbook_no_ranges <| Data.read xlsb_sheet ..Workbook
+            check_workbook_no_ranges <| Data.read xlsb_path ..Workbook
 
         group_builder.specify "workbook should look like a database connection" <|
             workbook = xlsx_sheet.read
@@ -967,10 +984,13 @@ add_specs suite_builder =
         group_builder.specify "should let you read the sheet names" <|
             xlsx_sheet.read . sheet_names . should_equal sheet_names
             xls_sheet.read . sheet_names . should_equal sheet_names
+            xlsb_sheet.read . sheet_names . should_equal sheet_names
 
         group_builder.specify "should let you read the range names" <|
             xlsx_sheet.read . named_ranges . should_equal range_names
             xls_sheet.read . named_ranges . should_equal range_names
+            # Not supported in XLSB files:
+            # xlsb_sheet.read . named_ranges . should_equal range_names
 
         group_builder.specify "should let you read by sheet index" <|
             table = xlsx_sheet.read (..Sheet 1)
@@ -1207,27 +1227,27 @@ add_specs suite_builder =
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
-        group_builder.specify "should clear cache on simulated reload" pending="https://github.com/enso-org/enso/issues/12166" <|
-            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+        group_builder.specify "should clear cache on simulated reload" <|
+            Excel_Test_Helper.simulate_reload_test_only
             w0 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w1 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w2 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             w3 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             [w0, w1, w2, w3].each check_workbook
 
-            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+            Excel_Test_Helper.simulate_reload_test_only
             w4 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w5 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w6 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             w7 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             [w4, w5, w6, w7].each check_workbook
 
     suite_builder.group "Problems" group_builder->
@@ -1247,7 +1267,12 @@ add_specs suite_builder =
             xlsx_sheet_copy.delete_if_exists . should_succeed
             xlsx_sheet.copy_to xlsx_sheet_copy
 
-            # At first, it fails with File_Error
+            # At first, it fails with File_Error (new xls_format api of enum)
+            r0 = xlsx_sheet.read (..Range "Sheet1!A:C" xls_format=..XLS)
+            r0.should_fail_with File_Error
+            r0.catch.should_be_a File_Error.Corrupted_Format
+
+            # At first, it fails with File_Error (old xls_format api of boolean)
             r1 = xlsx_sheet.read (..Range "Sheet1!A:C" xls_format=True)
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Corrupted_Format
@@ -1262,9 +1287,15 @@ add_specs suite_builder =
             r1_3.should_fail_with File_Error
             r1_3.catch.should_be_a File_Error.Corrupted_Format
 
-            r2 = xls_sheet.read (..Range "Sheet1!A:C" xls_format=False)
+            ## (new xls_format api of enum)
+            r2 = xls_sheet.read (..Range "Sheet1!A:C" xls_format=..XLSX)
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Corrupted_Format
+
+            ## (old xls_format api of boolean)
+            r3 = xls_sheet.read (..Range "Sheet1!A:C" xls_format=False)
+            r3.should_fail_with File_Error
+            r3.catch.should_be_a File_Error.Corrupted_Format
             xlsx_sheet_copy.delete
 
         group_builder.specify "should handle malformed XLS files gracefully" <|
@@ -1287,15 +1318,13 @@ add_specs suite_builder =
 
             bad_file.delete
 
-        group_builder.specify "will fail if an operation is performed on a closed workbook" <|
+        group_builder.specify "can still use a file after closing it" <|
             workbook = xlsx_sheet.read
+            workbook.close . should_equal Nothing
             workbook.sheet_count . should_equal 4
-
             workbook.close . should_equal Nothing
-
-            workbook.sheet_count . should_fail_with Illegal_State
-            workbook.close . should_equal Nothing
-            workbook.read "Sheet1" . should_fail_with Illegal_State
+            table = workbook.read "Sheet1"
+            check_table table
 
         group_builder.specify "should be able to read a XLSX with inline strings" <|
             workbook = (enso_project.data / "Sales_Sample_Data.xlsx") . read
@@ -1360,6 +1389,13 @@ add_specs suite_builder =
             table.at "Times" . to_vector . should_equal [Time_Of_Day.new 14 55 52, Time_Of_Day.new 10 30 2, Time_Of_Day.new 23 6 58, Time_Of_Day.new 15 39, Time_Of_Day.new 1 37 21, Time_Of_Day.new 17 16 34, Time_Of_Day.new 10 21 53, Time_Of_Day.new 2 29 9, Time_Of_Day.new 10 20 55, Time_Of_Day.new 2 10 52, Time_Of_Day.new 7 50 24, Time_Of_Day.new 5 46 13, Time_Of_Day.new 18 36 38, Time_Of_Day.new 15 34 42, Time_Of_Day.new 8 25 35]
 
         group_builder.specify "should remove blank rows from the end of a worksheet" <|
+            ## This worksheet has a header row, a data row and a third blank row. We should not read the blank row from the end.
+            table = (enso_project.data / "empty_last_column.xlsx") . read ..Sheet
+            table.row_count . should_equal 2
+            table.column_names . should_equal ["Name", "Address", "Purchase", "Notes"]
+            table.at "Notes" . to_vector . should_equal [Nothing, Nothing]
+
+        group_builder.specify "should not remove empty column if header in a worksheet" <|
             ## This worksheet has a header row, a data row and a third blank row. We should not read the blank row from the end.
             table = (enso_project.data / "WorkbookWithEmptyLastRow.xlsx") . read ..Sheet
             table.row_count . should_equal 1
@@ -1470,9 +1506,47 @@ add_specs suite_builder =
             workbook.close
             big_file.delete_if_exists . should_succeed
 
-    spec_fmt suite_builder 'XLSX reading' Examples.xlsx
+        group_builder.specify 'write integers 1 to 1M to xlsx' pending=ci_pending <|
+            oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
+            oneMInts.delete_if_exists . should_succeed
+            range1 = 0.up_to 1000000
+            column1 = range1.to_column "C1"
+            column2 = range1.to_column "C2"
+            column3 = range1.to_column "C3"
+            column4 = range1.to_column "C4"
+            column5 = range1.to_column "C5"
+            column6 = range1.to_column "C7"
+            column7 = range1.to_column "C10"
+            column8 = range1.to_column "C9"
+            column9 = range1.to_column "C8"
+            column10 = range1.to_column "C6"
+            t1 = Table.new [column1,column2,column3,column4,column5,column10,column6,column9,column8,column7]
+            t1.write oneMInts (..Sheet "AllTypes") . should_succeed
+
+        
+        group_builder.specify 'write integers 1 to 1M to xlsx to multiple sheets' pending="TODO" <|
+            oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
+            oneMInts.delete_if_exists . should_succeed
+            range1 = 0.up_to 1000000
+            column1 = range1.to_column "C1"
+            column2 = range1.to_column "C2"
+            column3 = range1.to_column "C3"
+            column4 = range1.to_column "C4"
+            column5 = range1.to_column "C5"
+            column6 = range1.to_column "C7"
+            column7 = range1.to_column "C10"
+            column8 = range1.to_column "C9"
+            column9 = range1.to_column "C8"
+            column10 = range1.to_column "C6"
+            t1 = Table.new [column1,column2,column3,column4,column5,column10,column6,column9,column8,column7]
+            t1.write oneMInts (..Sheet "1MillionA") . should_succeed
+            t1.write oneMInts (..Sheet "1MillionB") . should_succeed
 
     spec_fmt suite_builder 'XLS reading' Examples.xls
+
+    spec_fmt suite_builder 'XLSX reading' Examples.xlsx
+
+    spec_fmt suite_builder 'XLSB reading' Examples.xlsb
 
     suite_builder.group "Reading single cells correctly" group_builder->
         file = enso_project.data / "RangeTests.xlsx"

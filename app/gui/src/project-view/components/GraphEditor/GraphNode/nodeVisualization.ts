@@ -1,19 +1,19 @@
+import type { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { type ToValue } from '$/utils/reactivity'
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import { type RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
+import type { RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { injectBubblingKeyboard } from '@/providers/keyboard'
-import type { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
-import { type Rect } from '@/util/data/rect'
-import { type ToValue } from '@/util/reactivity'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
-import { type ComponentProps } from 'vue-component-type-helpers'
-import { type VisualizationIdentifier, type VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import type { ComponentProps } from 'vue-component-type-helpers'
+import type { VisualizationIdentifier, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 
 interface Emit {
   (event: 'update:visualizationWidth', width: number): void
   (event: 'update:visualizationEnabled', enabled: boolean): void
-  (event: 'update:visualizationRect', rect: Rect | undefined): void
   (event: 'update:visualizationId', id: Opt<VisualizationIdentifier>): void
   (event: 'update:visualizationEnabled', enabled: boolean): void
   (event: 'update:visualizationHeight', height: number): void
@@ -54,23 +54,52 @@ export function useNodeVisualization({
     get: () => metadata.value?.visible ?? false,
     set: (value) => emit('update:visualizationEnabled', value),
   })
+
+  function hoverWithLease(baseHover: ToValue<boolean>) {
+    const hoverWithLease = ref(toValue(baseHover))
+    watch(
+      () => toValue(baseHover),
+      (immediateHovered) => {
+        if (immediateHovered) hoverWithLease.value = true
+        else {
+          requestAnimationFrame(() => {
+            hoverWithLease.value = toValue(baseHover)
+          })
+        }
+      },
+      { flush: 'post' },
+    )
+    return hoverWithLease
+  }
+
   const visualizationHovered = ref(false)
+  const visHoveredWithLease = hoverWithLease(visualizationHovered)
+  const nodeHoveredWithLease = hoverWithLease(nodeHovered)
 
   const isVisualizationPreviewed = computed(
     () =>
       !isVisualizationEnabled.value &&
       keyboard.mod &&
-      (visualizationHovered.value || toValue(nodeHovered)),
+      (visHoveredWithLease.value || nodeHoveredWithLease.value),
   )
+
   const isVisualizationVisible = computed(
     () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
   )
 
-  const visRect = shallowRef<Rect>()
-  const visibleVisRect = computed(
-    (): Opt<Rect> => (isVisualizationVisible.value && !toValue(hidden) ? visRect.value : null),
-  )
-  watch(visibleVisRect, (rect) => emit('update:visualizationRect', rect ?? undefined))
+  watch(isVisualizationVisible, (visible) => {
+    if (!visible && visualizationHovered.value) visualizationHovered.value = false
+  })
+
+  const visSize = shallowRef<Vec2>()
+  const visibleVisRect = computed((): Opt<Rect> => {
+    if (!isVisualizationVisible.value || toValue(hidden) || !visSize.value) return null
+    const nodeRectValue = toValue(nodeRect)
+    return new Rect(
+      nodeRectValue.pos,
+      new Vec2(visSize.value.x, nodeRectValue.size.y + visSize.value.y),
+    )
+  })
 
   const visualization = computed((): ComponentProps<typeof GraphVisualization> => {
     const { size: nodeSize, pos: nodePosition } = toValue(nodeRect)
@@ -82,7 +111,6 @@ export function useNodeVisualization({
       nodePosition,
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
-      typename: toValue(typeinfo)?.primaryType ?? undefined,
       typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),
@@ -90,7 +118,7 @@ export function useNodeVisualization({
       isFullscreenAllowed: true,
       isResizable: true,
       'onUpdate:hovered': (event) => (visualizationHovered.value = event),
-      'onUpdate:rect': (event) => (visRect.value = event),
+      'onUpdate:effectiveSize': (event) => (visSize.value = event),
       'onUpdate:id': (event) => emit('update:visualizationId', event),
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),

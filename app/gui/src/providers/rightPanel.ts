@@ -1,15 +1,18 @@
-import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import { type AnyAsset, AssetType, type ProjectId } from '#/services/Backend'
+import { useIsFeatureUnderPaywall } from '$/composables/paywall'
+import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND, isCloudCategory, type Category } from '$/providers/category'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
-import { Err, Ok, type Result } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
-import { useLocalStorage } from '@vueuse/core'
-import { computed, reactive, readonly, type Ref, ref, toRef, toValue } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { AssetType, ProjectId, type AnyAsset } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
+import { encoding } from 'lib0'
+import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { type TabId } from './container'
-import { type TextStore, useText } from './text'
+import { panelKey, type Panel } from './container'
+import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */
 export interface DisplayedHelp {
@@ -44,37 +47,36 @@ interface RightPanelTabInfo {
   title: ToValue<string>
 }
 
-/** Right Panel Data kept in local storage. */
-interface RightPanelStore {
-  tab: RightPanelTabId | undefined
-  width: number | undefined
-}
-
 function useRightPanelTabs(
-  currentTab: ToValue<TabId>,
+  focusedPanel: ToValue<Panel>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
-  isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   { textRef, getText }: TextStore,
 ) {
-  const isDriveView = computed(() => toValue(currentTab) === 'drive')
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
   const isCloudDirectoryView = computed(
     () =>
-      isDriveView.value &&
       rightPanelContext.value?.category != null &&
       isCloudCategory(rightPanelContext.value.category),
   )
   const enabledInCloudOnly = computed(() =>
-    isCloudDirectoryView.value ? Ok()
-    : isDriveView.value ? Err('Exclusive to Cloud')
-    : Err('Exclusive to Cloud category in Drive'),
+    isCloudDirectoryView.value ? Ok() : Err('Exclusive to Cloud'),
   )
   return new Map([
     [
       'description',
       {
-        icon: 'text',
+        icon: 'info',
         enabled: enabledInCloudOnly,
         title: 'Description',
+      },
+    ],
+    [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        hidden: true,
+        title: 'Contents',
       },
     ],
     [
@@ -88,7 +90,7 @@ function useRightPanelTabs(
     [
       'versions',
       {
-        icon: 'versions',
+        icon: 'history',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
       },
@@ -96,8 +98,8 @@ function useRightPanelTabs(
     [
       'sessions',
       {
-        icon: 'sessions',
-        enabled: enabledInCloudOnly,
+        icon: 'activity',
+        enabled: Ok(),
         title: textRef('projectSessions'),
       },
     ],
@@ -118,7 +120,12 @@ function useRightPanelTabs(
       'documentation',
       {
         icon: 'docs',
-        enabled: Ok(),
+        enabled: computed(() => {
+          const panelType = toValue(focusedPanel).type
+          return panelType === 'project' || panelType === 'drive' ?
+              Ok()
+            : Err('Exclusive to Project and Drive panels')
+        }),
         title: textRef('docs'),
       },
     ],
@@ -126,10 +133,9 @@ function useRightPanelTabs(
       'help',
       {
         icon: 'help',
-        enabled: computed(() => {
-          const tab = toValue(currentTab)
-          return tab !== 'drive' && tab !== 'settings' ? Ok() : Err('Exclusive to Project view')
-        }),
+        enabled: computed(() =>
+          toValue(focusedPanel).type === 'project' ? Ok() : Err('Exclusive to Project'),
+        ),
         title: 'Component help',
       },
     ],
@@ -141,26 +147,37 @@ export type RightPanelTabId =
 
 export type RightPanelData = ReturnType<typeof useRightPanel>
 
-function useRightPanel(
-  containerTab: ToValue<TabId>,
-  isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
-  textStore: TextStore = useText(),
-) {
-  const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
-  const context = computed(() => contextPerTab.get(toValue(containerTab)))
-  const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
+function useRightPanel(focusedPanel: ToValue<Panel>, textStore: TextStore = useText()) {
+  const { backendForType } = useBackends()
+  const contextPerPanel = reactive(new Map<ReturnType<typeof panelKey>, RightPanelContext>())
+  const context = computed(() => contextPerPanel.get(panelKey(toValue(focusedPanel))))
+  const allTabs = useRightPanelTabs(focusedPanel, context, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
+  const tab = ref<RightPanelTabId>()
 
-  const store = useLocalStorage<RightPanelStore>('rightPanel', {
-    tab: undefined,
-    width: undefined,
+  useSyncLocalStorage({
+    storageKey: 'rightPanel',
+    mapKeyEncoder: (enc) => encoding.writeVarString(enc, panelKey(toValue(focusedPanel))),
+    debounce: 200,
+    captureState: () => ({
+      tab: tab.value,
+    }),
+    restoreState: (state) => {
+      if (state) {
+        tab.value = state.tab
+      } else {
+        tab.value = toValue(focusedPanel).type === 'project' ? 'documentation' : undefined
+      }
+    },
   })
 
   const displayedTab = computed(() => {
-    const markedTab = temporaryTab.value ?? store.value.tab
+    const markedTab = temporaryTab.value ?? tab.value
     if (markedTab == null) return undefined
-    if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
+    const tabInfo = allTabs.get(markedTab)
+    if (!tabInfo || toValue(tabInfo.hidden)) return undefined
+    if (!toValue(tabInfo.enabled)?.ok) return undefined
     return markedTab
   })
 
@@ -170,8 +187,8 @@ function useRightPanel(
    * Every tab may register and update the context assigned to it, which will be active when the
    * tab is selected.
    */
-  function setContext(tab: TabId, ctx: RightPanelContext) {
-    contextPerTab.set(tab, ctx)
+  function setContext(panel: Panel, ctx: RightPanelContext) {
+    contextPerPanel.set(panelKey(panel), ctx)
   }
 
   /**
@@ -179,11 +196,12 @@ function useRightPanel(
    *
    * If the tab didn't set any context, this method does nothing.
    */
-  function updateContext(tab: TabId, f: (ctx: RightPanelContext) => RightPanelContext) {
-    const ctx = contextPerTab.get(tab)
+  function updateContext(panel: Panel, f: (ctx: RightPanelContext) => RightPanelContext) {
+    const key = panelKey(panel)
+    const ctx = contextPerPanel.get(key)
     if (ctx == null) return
     const newCtx = f(ctx)
-    contextPerTab.set(tab, newCtx)
+    contextPerPanel.set(key, newCtx)
   }
 
   const focusedProject = computed(() => {
@@ -201,13 +219,29 @@ function useRightPanel(
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
-  function setTab(tab: RightPanelTabId | undefined) {
-    store.value.tab = tab
+  const backendType = computed(
+    () => context.value?.category && CATEGORY_BACKEND[context.value.category.type],
+  )
+
+  const focusedAssetDetailsQuery = useQuery({
+    queryKey: [backendType, 'getAssetDetails', focusedAsset] as const,
+    queryFn: async (query) => {
+      const [backendType, , currentItem] = query.queryKey
+      if (!backendType || !currentItem) return null
+      return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
+    },
+    enabled: () => backendType.value != null && focusedAsset.value != null,
+    meta: { persist: false },
+  })
+  const focusedAssetDetails = focusedAssetDetailsQuery.data
+
+  function setTab(newTab: RightPanelTabId | undefined) {
+    tab.value = newTab
     temporaryTab.value = undefined
   }
 
   function toggleTab(specificTab?: RightPanelTabId | undefined) {
-    if (specificTab == null || store.value.tab == specificTab) {
+    if (specificTab == null || tab.value == specificTab) {
       setTab(undefined)
     } else {
       setTab(specificTab)
@@ -216,7 +250,7 @@ function useRightPanel(
 
   return proxyRefs({
     allTabs,
-    tab: readonly(toRef(store.value, 'tab')),
+    tab: readonly(tab),
     /** Tab which should be displayed (taking temporary tab into consideration). */
     displayedTab,
     setTab,
@@ -229,7 +263,6 @@ function useRightPanel(
      */
     temporaryTab,
     setTemporaryTab: (tab: RightPanelTabId | undefined) => (temporaryTab.value = tab),
-    width: toRef(store.value, 'width'),
     fullscreen,
     context,
     setContext,
@@ -243,6 +276,8 @@ function useRightPanel(
      * The asset being a focus of the right panel, e.g. the currently selected asset in Drive View.
      */
     focusedAsset,
+    /** The details for `focusedAsset`. */
+    focusedAssetDetails,
   })
 }
 

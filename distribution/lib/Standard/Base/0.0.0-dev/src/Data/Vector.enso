@@ -8,8 +8,8 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Report_Unmatched
-import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
@@ -21,13 +21,14 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Internal.Array_Like_Helpers
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
+from project.Error import all
 from project.Metadata import Display, Widget
+from project.Nothing import all
 from project.Runtime import assert
 from project.Widget_Helpers import make_separator_selector
 
@@ -124,8 +125,7 @@ type Vector a
 
        ## Arguments
         - `array`: The array with content to copy into the new vector.
-    from_array : Array -> Vector
-    from_array array = @Builtin_Method "Vector.from_array"
+    from_array array:Array -> Vector = Array_Like_Helpers.from_array array
 
     ## ---
        private: true
@@ -210,7 +210,9 @@ type Vector a
     build (function : Builder -> Any) (initial_capacity : Integer = 10) (propagate_warnings : Boolean = True) -> Vector =
         # Delegate to .build_multiple
         results_multiple = Vector.build_multiple 1 (builders-> function (builders.at 0)) initial_capacity propagate_warnings
-        results_multiple.if_not_error (results_multiple.at 0)
+        res = results_multiple.if_not_error (results_multiple.at 0)
+        if propagate_warnings then res else
+            Warning.remove_warnings res
 
     ## ---
        private: true
@@ -277,8 +279,7 @@ type Vector a
 
        ## Arguments
         - `arr`: The polyglot array value to wrap into a vector.
-    from_polyglot_array : Any -> Vector Any
-    from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
+    from_polyglot_array array -> Vector Any = Array_Like_Helpers.from_polyglot_array array
 
     ## ---
        private: true
@@ -1643,8 +1644,11 @@ type Builder
        `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not added
        to the builder.
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Nothing ! Error
-    append_vector_range self vector (start : Integer = 0) end=vector.length -> Nothing ! Error =
-        subrange = vector.slice start end
+    append_vector_range self vector (start : Integer = 0) end=vector.raw_size -> Nothing ! Error =
+        slice = vector.slice start end
+        subrange = if self.propagate_warnings then slice else
+            Warning.remove_warnings slice
+
         first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
         Panic.rethrow_wrapped_if_error <|
             first_dataflow_error.if_not_error <|
@@ -1798,7 +1802,6 @@ type Builder
    the sub-`Vector` within the outermost `Vector`, and so on.
    An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
    as itself. In the latter case, the `Map_Error` wrapper is stripped off.
-@Builtin_Type
 type Map_Error
     ## ---
        private: true
@@ -1816,7 +1819,6 @@ type Map_Error
    private: true
    ---
    Indicates that a method should not wrap thrown errors in `Map_Error`.
-@Builtin_Type
 type No_Wrap
     ## ---
        private: true

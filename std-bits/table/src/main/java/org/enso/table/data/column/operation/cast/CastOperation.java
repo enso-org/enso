@@ -36,7 +36,7 @@ public class CastOperation {
 
   public static Column apply(
       Column source, StorageType<?> targetType, ProblemAggregator problemAggregator) {
-    if (source.getStorage().getType().equals(targetType)) {
+    if (StorageType.ofStorage(source.getStorage()).equals(targetType)) {
       return source;
     }
 
@@ -51,17 +51,17 @@ public class CastOperation {
   /** Construct a StorageConverter for the given target type. */
   private static StorageConverter<?> fromStorageType(StorageType<?> storageType) {
     return switch (storageType) {
-      case AnyObjectType anyObjectType -> new ToMixedStorageConverter();
-      case BooleanType booleanType -> new ToBooleanStorageConverter();
-      case DateType dateType -> new ToDateStorageConverter();
-      case DateTimeType dateTimeType -> new ToDateTimeStorageConverter();
+      case AnyObjectType _ -> new ToMixedStorageConverter();
+      case BooleanType _ -> new ToBooleanStorageConverter();
+      case DateType _ -> new ToDateStorageConverter();
+      case DateTimeType _ -> new ToDateTimeStorageConverter();
       case FloatType floatType -> new ToFloatStorageConverter(floatType);
       case IntegerType integerType -> new ToIntegerStorageConverter(integerType);
       case TextType textType -> new ToTextStorageConverter(textType);
-      case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
-      case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
-      case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
-      case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
+      case TimeOfDayType _ -> new ToTimeOfDayStorageConverter();
+      case BigIntegerType _ -> new ToBigIntegerConverter();
+      case BigDecimalType _ -> new ToBigDecimalConverter();
+      case NullType _ -> throw new IllegalArgumentException("Cannot cast to Null type.");
     };
   }
 
@@ -73,13 +73,14 @@ public class CastOperation {
     var columnStorage = column.getStorage();
     var storage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
 
-    return switch (storage.getType()) {
-      case TextType textType -> inferTextType(storage, options);
-      case IntegerType integerType -> inferIntegerType(storage, options);
-      case FloatType floatType -> inferFloatType(storage, options);
-      case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, options);
-      case BigDecimalType bigDecimalType -> inferBigDecimalType(storage, options);
-      default -> storage.getType();
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case TextType textType -> inferTextType(storage, textType, options);
+      case IntegerType integerType -> inferIntegerType(storage, integerType, options);
+      case FloatType floatType -> inferFloatType(storage, floatType, options);
+      case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, bigIntegerType, options);
+      case BigDecimalType bigDecimalType -> inferBigDecimalType(storage, bigDecimalType, options);
+      default -> storageType;
     };
   }
 
@@ -112,17 +113,8 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferTextType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
-    if (!options.shrinkText()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof TextType textType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer text type from non-text storage: " + columnStorage.getType());
-    }
-
-    if (textType.fixedLength()) {
+      ColumnStorage<?> columnStorage, TextType textType, PreciseTypeOptions options) {
+    if (!options.shrinkText() || textType.fixedLength()) {
       return textType;
     }
 
@@ -130,7 +122,7 @@ public class CastOperation {
     var accumulator = new TextAccumulator();
     StorageIterators.forEachOverStorage(
         textType.asTypedStorage(columnStorage),
-        false,
+        "inferTextType",
         (index, item) -> accumulator.accumulate(item));
 
     // Everything is null or empty, so return the original type.
@@ -146,7 +138,7 @@ public class CastOperation {
     // If the strings are of varying lengths, we can return a variable-length type.
     // We will shrink it to a maximum of 255 characters if the original type was unbounded or larger
     // than 255 characters and all the strings fit into that bound.
-    final long SHORT_LENGTH_THRESHOLD = 255;
+    final int SHORT_LENGTH_THRESHOLD = 255;
     if ((accumulator.getMaxLength() <= SHORT_LENGTH_THRESHOLD)
         && (textType.maxLength() < 0 || textType.maxLength() > SHORT_LENGTH_THRESHOLD)) {
       return TextType.variableLengthWithLimit(SHORT_LENGTH_THRESHOLD);
@@ -188,17 +180,12 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferIntegerType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+      ColumnStorage<?> columnStorage, IntegerType integerType, PreciseTypeOptions options) {
     if (!options.shrinkIntegers()) {
-      return columnStorage.getType();
+      return integerType;
     }
 
-    if (!(columnStorage.getType() instanceof IntegerType integerType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer integer type from non-integer storage: " + columnStorage.getType());
-    }
-
-    if (integerType.bits().toInteger() <= 16) {
+    if (integerType.size() <= 16) {
       // If the type is already the smallest possible, we return it unchanged.
       return integerType;
     }
@@ -207,25 +194,20 @@ public class CastOperation {
     var accumulator = new LongAccumulator();
     StorageIterators.forEachOverLongStorage(
         integerType.asTypedStorage(columnStorage),
-        false,
+        "inferIntegerType",
         (index, item, isNothing) -> accumulator.accumulate(item));
 
     return accumulator.resolveType();
   }
 
   private static StorageType<?> inferBigIntegerType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
-    if (!(columnStorage.getType() instanceof BigIntegerType bigIntegerType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer integer type from non-integer storage: " + columnStorage.getType());
-    }
-
+      ColumnStorage<?> columnStorage, BigIntegerType bigIntegerType, PreciseTypeOptions options) {
     // Build the min and max of values in the column.
     var accumulator = new LongAccumulator();
     var endedEarly =
         StorageIterators.forEachOverStorage(
             bigIntegerType.asTypedStorage(columnStorage),
-            false,
+            "inferBigIntegerType",
             (index, item) -> {
               try {
                 return accumulator.accumulate(item.longValueExact());
@@ -247,14 +229,9 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferFloatType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+      ColumnStorage<?> columnStorage, FloatType floatType, PreciseTypeOptions options) {
     if (!options.wholeFloatsBecomeIntegers()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof FloatType floatType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer float type from non-integer storage: " + columnStorage.getType());
+      return floatType;
     }
 
     // Build the min and max of values in the column.
@@ -262,7 +239,7 @@ public class CastOperation {
     var endedEarly =
         StorageIterators.forEachOverDoubleStorage(
             floatType.asTypedStorage(columnStorage),
-            false,
+            "inferFloatType",
             (index, item, isNothing) -> {
               if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
                 // If the value is not a whole number or does not fit in a long, we end early.
@@ -309,21 +286,16 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferBigDecimalType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+      ColumnStorage<?> columnStorage, BigDecimalType bigDecimalType, PreciseTypeOptions options) {
     if (!options.wholeFloatsBecomeIntegers()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof BigDecimalType bigDecimalType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer decimal type from non-decimal storage: " + columnStorage.getType());
+      return bigDecimalType;
     }
 
     // Build the min and max of values in the column.
     var accumulator = new BigDecimalAccumulator();
     StorageIterators.forEachOverStorage(
         bigDecimalType.asTypedStorage(columnStorage),
-        false,
+        "inferBigDecimalType",
         (index, item) -> accumulator.accumulate(item));
 
     if (accumulator.getOverflowed() || accumulator.getCount() == 0) {
@@ -395,15 +367,16 @@ public class CastOperation {
   }
 
   public static StorageType<?> reconcileObjectStorage(ColumnStorage<?> columnStorage) {
-    if (!(columnStorage.getType() instanceof AnyObjectType)) {
-      return columnStorage.getType();
+    var columnStorageType = StorageType.ofStorage(columnStorage);
+    if (!(columnStorageType instanceof AnyObjectType)) {
+      return columnStorageType;
     }
 
     // Need to scan the column to determine the most appropriate type.
     var accumulator = new ObjectTypeAccumulator();
     StorageIterators.forEachOverStorage(
         AnyObjectType.INSTANCE.asTypedStorage(columnStorage),
-        false,
+        "reconcileObjectStorage",
         (index, item) -> accumulator.accumulate(item));
     return accumulator.getCurrentType();
   }
@@ -432,19 +405,23 @@ public class CastOperation {
    */
   public static long maxPrecisionStored(Column column) {
     var storage = column.getStorage();
+    var storageType = StorageType.ofStorage(storage);
 
     var accumulator = new PrecisionAccumulator();
-    switch (storage.getType()) {
-      case BigDecimalType bigDecimalType -> StorageIterators.forEachOverStorage(
-          bigDecimalType.asTypedStorage(storage),
-          false,
-          (index, item) -> accumulator.accumulate(item));
-      case BigIntegerType bigIntegerType -> StorageIterators.forEachOverStorage(
-          bigIntegerType.asTypedStorage(storage),
-          false,
-          (index, item) -> accumulator.accumulate(new BigDecimal(item)));
-      default -> throw new IllegalArgumentException(
-          "Cannot compute max precision for storage type: " + storage.getType());
+    switch (storageType) {
+      case BigDecimalType bigDecimalType ->
+          StorageIterators.forEachOverStorage(
+              bigDecimalType.asTypedStorage(storage),
+              "maxPrecisionStored:BigDecimal",
+              (index, item) -> accumulator.accumulate(item));
+      case BigIntegerType bigIntegerType ->
+          StorageIterators.forEachOverStorage(
+              bigIntegerType.asTypedStorage(storage),
+              "maxPrecisionStored:BigInteger",
+              (index, item) -> accumulator.accumulate(new BigDecimal(item)));
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot compute max precision for storage type: " + storageType);
     }
 
     return accumulator.getMaxPrecision();

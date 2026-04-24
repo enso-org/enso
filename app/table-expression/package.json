@@ -11,14 +11,15 @@
     }
   },
   "devDependencies": {
-    "@lezer/generator": "^1.0.0",
+    "@lezer/generator": "^1.8.0",
     "vitest": "catalog:"
   },
   "dependencies": {
-    "@codemirror/language": "^6.11.0",
+    "@codemirror/language": "catalog:",
+    "@codemirror/state": "catalog:",
     "@lezer/lr": "^1.3.0",
-    "@lezer/common": "^1.2.3",
-    "@lezer/highlight": "^1.2.1"
+    "@lezer/common": "catalog:",
+    "@lezer/highlight": "catalog:"
   },
   "scripts": {
     "test:unit": "vitest run",

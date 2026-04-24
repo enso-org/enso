@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsDiagnostics
+import org.enso.compiler.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -36,22 +36,18 @@ case object ModuleNameConflicts extends IRPass {
   ): Module = {
     if (moduleContext.compilerConfig.warningsEnabled) {
       val syntheticExports = ir.exports.flatMap {
-        case mod @ Export.Module(
-              _,
-              _,
-              None,
-              loc,
-              true,
-              _
-            ) if loc eq null =>
+        case mod: Export.Module
+            if mod.onlyNames().isEmpty
+            && mod.isSynthetic
+            && mod.location().isEmpty =>
           Some(mod)
         case mod: Export.Module if moduleContext.isSynthetic() =>
           Some(mod)
         case _ =>
           None
       }
-      ir.copy(
-        bindings = ir.bindings.map(lintBinding(_, syntheticExports))
+      ir.copyWithBindings(
+        ir.bindings.map(lintBinding(_, syntheticExports))
       )
     } else {
       ir
@@ -90,7 +86,7 @@ case object ModuleNameConflicts extends IRPass {
         val atomName = cons.name.name
         val `export` = exports(atomName)
         binding.addDiagnostic(
-          warnings.Shadowed.SyntheticModule(
+          new warnings.Shadowed.SyntheticModule(
             atomName,
             `export`.name,
             `export`,

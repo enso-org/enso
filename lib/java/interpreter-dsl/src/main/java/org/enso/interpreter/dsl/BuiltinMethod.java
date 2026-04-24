@@ -36,11 +36,6 @@ public @interface BuiltinMethod {
   String aliases() default "";
 
   /**
-   * @return whether a method should be registered automatically with a type
-   */
-  boolean autoRegister() default true;
-
-  /**
    * Allow aggressive inlining or not. This argument doesn't need to be specified. If it is missing,
    * its <em>effective value</em> is derived from the arguments of the annotated method. When the
    * {@code execute} method requires {@code VirtualFrame} as one of its arguments the value of

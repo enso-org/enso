@@ -60,7 +60,7 @@ Convertible_To_Rows.from that:Table =
 ## ---
    private: true
    ---
-Convertible_To_Rows.from that:Column = Convertible_To_Rows.Value that that.length (that.get _)
+Convertible_To_Rows.from that:Column = Convertible_To_Rows.Value that that.row_count (that.get _)
 
 ## ---
    private: true

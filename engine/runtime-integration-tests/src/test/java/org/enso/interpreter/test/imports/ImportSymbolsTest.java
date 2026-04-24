@@ -28,17 +28,18 @@ public class ImportSymbolsTest {
   public void importAllFromModuleDoesNotImportModuleItself() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_module"), """
-        a_mod_method x = x
-        """);
+            QualifiedName.fromString("A_module"),
+            """
+            a_mod_method x = x
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_module import all
-        main =
-            A_Module.a_mod_method 42
-        """);
+            from project.A_module import all
+            main =
+                A_Module.a_mod_method 42
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -58,17 +59,17 @@ public class ImportSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("A_module"),
             """
-        type A_Type
-            Cons
-        """);
+            type A_Type
+                Cons
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_module.A_Type import all
-        main =
-            A_Type.Cons
-        """);
+            from project.A_module.A_Type import all
+            main =
+                A_Type.Cons
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -82,26 +83,69 @@ public class ImportSymbolsTest {
     }
   }
 
+  /** Regression test for <a href="https://github.com/enso-org/enso/issues/14856">#14856</a>. */
+  @Test
+  public void callMethodFromSubModuleOfAnotherProject() throws IOException {
+    var libXyzMod =
+        new SourceModule(
+            QualifiedName.fromString("Xyz"),
+            """
+            foo = 'world'
+            """);
+    var libMainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            main =
+                text1 = 'hello'
+                text1
+            """);
+    var projMainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            import local.Lib
+            main =
+                any1 = Lib.Xyz.foo
+                any1
+            """);
+    var tmpDir = tempFolder.newFolder().toPath();
+    var libDir = tmpDir.resolve("Lib");
+    var projDir = tmpDir.resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject("Lib", Set.of(libMainMod, libXyzMod), libDir);
+    ProjectUtils.createProject("Proj", Set.of(projMainMod), projDir);
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isString(), is(true));
+          assertThat(res.asString(), is("world"));
+        });
+  }
+
   // TODO: Tracked by https://github.com/enso-org/enso/issues/10504
   @Ignore
   @Test
   public void importEntityFromModuleThatExportsItFromOtherModule() throws IOException {
     var aMod =
-        new SourceModule(QualifiedName.fromString("A_Module"), """
-        type A_Type
-        """);
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+            type A_Type
+            """);
     var bMod =
         new SourceModule(
             QualifiedName.fromString("B_Module"),
             """
-        export project.A_Module.A_Type
-        """);
+            export project.A_Module.A_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        import project.B_Module.A_Type
-        """);
+            import project.B_Module.A_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {

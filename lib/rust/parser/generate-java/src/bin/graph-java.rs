@@ -11,8 +11,6 @@ use enso_metamodel::java;
 use enso_metamodel::rust;
 use enso_reflect::Reflect;
 
-
-
 // ===========================
 // === Graphing Java types ===
 // ===========================

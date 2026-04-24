@@ -25,14 +25,14 @@ public class UtilsTest {
     var f = folder.newFile("p.enso");
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    a = b
-    b = c
-    c = Panic.throw "foo"
+        a = b
+        b = c
+        c = Panic.throw "foo"
 
-    main = a
-    """;
+        main = a
+        """;
     Files.writeString(f.toPath(), code);
 
     var lines = new ArrayList<String>();
@@ -55,10 +55,11 @@ public class UtilsTest {
 
     assertEquals(
         """
-      Execution finished with an error: foo
-              at <enso> throw(Internal)
-              at <enso> c(Internal)
-              at <enso> main(Internal)""",
+        Execution finished with an error: foo
+                at <enso> throw(Internal)
+                at <enso> c(Internal)
+                at <enso> main(Internal)\
+        """,
         lines.stream().collect(Collectors.joining("\n")));
   }
 

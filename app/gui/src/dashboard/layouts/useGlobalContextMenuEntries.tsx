@@ -3,25 +3,25 @@ import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/bac
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { defineMenuEntries } from '#/hooks/menuHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
+import type { CategoryType } from '$/providers/category'
+import type { Backend } from 'enso-common/src/services/Backend'
+import { BackendType, type DirectoryId } from 'enso-common/src/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenuEntries}. */
 export interface GlobalContextMenuEntriesOptions {
   readonly backend: Backend
-  readonly category: Category
+  readonly category: CategoryType
   readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
+  readonly doPaste: (newParentId: DirectoryId) => void
 }
 
 /** Context menu entries available everywhere in the directory. */
@@ -44,27 +44,25 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
-  const newProject = useEventCallback(
-    async (templateId: string | null | undefined, templateName: string | null | undefined) => {
-      return await newProjectRaw({ templateName, templateId }, directoryId ?? currentDirectoryId)
-    },
-  )
+  const newProject = useEventCallback(() => newProjectRaw({}, directoryId ?? currentDirectoryId))
   const uploadFilesRaw = useUploadFiles(backend, category)
-  const uploadFiles = useEventCallback(async (files: readonly File[]) => {
-    await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
-  })
+  const uploadFiles = useEventCallback((files: readonly File[]) =>
+    uploadFilesRaw(files, directoryId ?? currentDirectoryId),
+  )
 
   return defineMenuEntries([
     {
       action: 'uploadFiles',
       doAction: () => {
-        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
+        void readUserSelectedFile({ multiple: true }).then((files) =>
+          uploadFiles(Array.from(files)),
+        )
       },
     },
     {
       action: 'newProject',
       doAction: () => {
-        void newProject(null, null)
+        void newProject()
       },
     },
     {
@@ -124,7 +122,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
       directoryId == null && {
         action: 'paste',
         doAction: () => {
-          doPaste(currentDirectoryId, currentDirectoryId)
+          doPaste(currentDirectoryId)
         },
       },
   ])

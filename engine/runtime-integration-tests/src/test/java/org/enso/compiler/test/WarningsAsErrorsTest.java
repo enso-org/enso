@@ -21,20 +21,24 @@ public class WarningsAsErrorsTest {
   @Test
   public void warningCausesCompilerFailure() {
     try {
-      var module = ctxRule.eval("enso", """
-      foo =
-          unused = 1
-          2
-      """);
+      var module =
+          ctxRule.eval(
+              "enso",
+              """
+              foo =
+                  unused = 1
+                  2
+              """);
       fail("Expecting an error but got: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
       assertEquals(
           """
-              Unnamed:2:5: warning: Unused variable unused.
-                  2 |     unused = 1
-                    |     ^~~~~~""",
+          Unnamed:2:5: warning: Unused variable unused.
+              2 |     unused = 1
+                |     ^~~~~~\
+          """,
           ex.getMessage());
     }
   }

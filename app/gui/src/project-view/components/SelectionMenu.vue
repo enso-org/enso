@@ -1,33 +1,105 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
+import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuPanel from '@/components/MenuPanel.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import type { DisplayableActionName } from '@/providers/action'
 import { resolveAction } from '@/providers/action'
-import { injectGraphSelection } from '@/providers/graphSelection'
-import { toValue } from 'vue'
+import { useGraphSelection } from '@/providers/graphSelection'
+import { flip, offset, shift, useFloating } from '@floating-ui/vue'
+import { nextTick, ref, toValue, watch } from 'vue'
 
-const selection = injectGraphSelection()
+const selection = useGraphSelection()
 const pickColorMulti = resolveAction('components.pickColorMulti')
+
+const colorButtonRef = ref<HTMLElement>()
+const colorMenuRef = ref<HTMLElement>()
+const { floatingStyles, update } = useFloating(colorButtonRef, colorMenuRef, {
+  placement: 'bottom-start',
+  strategy: 'fixed',
+  middleware: [offset(6), flip(), shift({ padding: 8 })],
+})
+
+watch(
+  () => toValue(pickColorMulti.toggled),
+  (opened) => {
+    if (opened) nextTick(update)
+  },
+)
+
+const alignmentMenuOpen = ref(false)
+const spacingMenuOpen = ref(false)
+const spacingActions: DisplayableActionName[] = [
+  'components.spaceVertical',
+  'components.spaceVerticalTight',
+  'components.spaceVerticalZero',
+  'components.spaceVerticalWide',
+]
 </script>
 
 <template>
   <div class="SelectionMenu">
     <span v-text="`${selection.selected.size} components selected`" />
     <ActionButton action="components.collapse" />
-    <ActionButton
-      action="components.pickColorMulti"
-      :class="{
-        // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
-        // picker is open, so that it isn't toggled back open.
-        disableInput: toValue(pickColorMulti.toggled),
-      }"
-    />
+    <span ref="colorButtonRef">
+      <ActionButton
+        action="components.pickColorMulti"
+        :class="{
+          // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
+          // picker is open, so that it isn't toggled back open.
+          disableInput: toValue(pickColorMulti.toggled),
+        }"
+      />
+    </span>
+    <DropdownMenu
+      v-model:open="alignmentMenuOpen"
+      placement="bottom-start"
+      title="Align"
+      alwaysShowArrow
+    >
+      <template #button>
+        <SvgIcon name="align_left" />
+      </template>
+      <template #menu>
+        <MenuPanel class="alignmentMenu">
+          <div class="alignmentMenuRow horizontal">
+            <ActionButton action="components.alignLeft" @click="alignmentMenuOpen = false" />
+            <ActionButton action="components.alignCenter" @click="alignmentMenuOpen = false" />
+            <ActionButton action="components.alignRight" @click="alignmentMenuOpen = false" />
+          </div>
+          <div class="alignmentMenuRow vertical">
+            <ActionButton action="components.alignTop" @click="alignmentMenuOpen = false" />
+            <ActionButton action="components.alignBottom" @click="alignmentMenuOpen = false" />
+          </div>
+        </MenuPanel>
+      </template>
+    </DropdownMenu>
+    <DropdownMenu
+      v-model:open="spacingMenuOpen"
+      placement="bottom-start"
+      title="Spacing"
+      alwaysShowArrow
+    >
+      <template #button>
+        <SvgIcon name="space_default" />
+      </template>
+      <template #menu>
+        <ActionMenu :actions="spacingActions" @close="spacingMenuOpen = false" />
+      </template>
+    </DropdownMenu>
     <ActionButton action="components.copy" />
     <ActionButton action="components.deleteSelected" />
-    <ColorPickerMenu
-      v-if="toValue(pickColorMulti.toggled)"
-      class="submenu"
-      @close="pickColorMulti.action?.()"
-    />
+    <Teleport to="body">
+      <ColorPickerMenu
+        v-if="toValue(pickColorMulti.toggled)"
+        ref="colorMenuRef"
+        class="submenu"
+        :style="floatingStyles"
+        @close="pickColorMulti.action?.()"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -44,12 +116,22 @@ const pickColorMulti = resolveAction('components.pickColorMulti')
 }
 
 .submenu {
-  position: absolute;
-  top: 36px;
-  left: 0;
   border-radius: var(--radius-default);
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
+}
+
+.alignmentMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+/* Rows for horizontal and vertical alignment buttons */
+.alignmentMenuRow {
+  display: flex;
+  gap: 10px;
 }
 
 .disableInput {

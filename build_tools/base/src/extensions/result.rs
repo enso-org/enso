@@ -5,8 +5,6 @@ use crate::prelude::*;
 use futures::future::Either;
 use std::future::Ready;
 
-
-
 /// Extension methods for [`Result`].
 pub trait ResultExt<T, E>: Sized {
     /// Maps the `Ok` value to a [`Future`] value. If the result is `Err`, the error is returned
@@ -24,7 +22,8 @@ pub trait ResultExt<T, E>: Sized {
 
     /// Checks if the result is `Ok` and contains the given value.
     fn contains<U>(&self, x: &U) -> bool
-    where U: PartialEq<T>;
+    where
+        U: PartialEq<T>;
 }
 
 impl<T, E> ResultExt<T, E> for std::result::Result<T, E> {
@@ -46,7 +45,9 @@ impl<T, E> ResultExt<T, E> for std::result::Result<T, E> {
     }
 
     fn contains<U>(&self, x: &U) -> bool
-    where U: PartialEq<T> {
+    where
+        U: PartialEq<T>,
+    {
         match self {
             Ok(y) => x == y,
             Err(_) => false,

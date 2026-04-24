@@ -1,12 +1,12 @@
 import {
   SourceRange,
-  type SourceRangeKey,
   sourceRangeFromKey,
   sourceRangeKey,
+  type SourceRangeKey,
 } from '../util/data/text'
-import { type ExternalId, IdMap } from '../yjsModel'
-import { type Token, type TokenId } from './token'
-import { type Ast, type AstId, ExpressionStatement } from './tree'
+import { IdMap, type ExternalId } from '../yjsModel'
+import type { Token, TokenId } from './token'
+import { ExpressionStatement, type Ast, type AstId } from './tree'
 
 declare const nodeKeyBrand: unique symbol
 /** A source-range key for an `Ast`. */

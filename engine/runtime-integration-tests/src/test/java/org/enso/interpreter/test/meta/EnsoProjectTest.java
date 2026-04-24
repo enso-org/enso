@@ -29,12 +29,12 @@ public class EnsoProjectTest {
       var res =
           ctx.evalModule(
               """
-          from Standard.Base import all
-          from Standard.Base.Errors.Common import Module_Not_In_Package_Error
+              from Standard.Base import all
+              from Standard.Base.Errors.Common import Module_Not_In_Package_Error
 
-          main =
-              enso_project.is_error
-          """);
+              main =
+                  enso_project.is_error
+              """);
       assertThat(res, notNullValue());
       assertThat(res.asBoolean(), is(true));
     }
@@ -46,10 +46,10 @@ public class EnsoProjectTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from Standard.Base import all
-        main =
-            enso_project.name
-        """);
+            from Standard.Base import all
+            main =
+                enso_project.name
+            """);
     var projDir = temporaryFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     ProjectUtils.testProjectRun(
@@ -65,19 +65,19 @@ public class EnsoProjectTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from Standard.Base import all
+            from Standard.Base import all
 
-        get_enso_project_name =
-            enso_project.name
-        """);
+            get_enso_project_name =
+                enso_project.name
+            """);
     var mainMod2 =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from local.Proj1 import get_enso_project_name
-        main =
-            get_enso_project_name
-        """);
+            from local.Proj1 import get_enso_project_name
+            main =
+                get_enso_project_name
+            """);
     var projDir1 = temporaryFolder.newFolder().toPath();
     var projDir2 = temporaryFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj1", Set.of(mainMod1), projDir1);
@@ -95,10 +95,10 @@ public class EnsoProjectTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from Standard.Base import all
-        main =
-            42
-        """);
+            from Standard.Base import all
+            main =
+                42
+            """);
     var projDir = temporaryFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     var mainModFile = projDir.resolve("src").resolve("Main.enso");

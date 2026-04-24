@@ -16,8 +16,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 @BuiltinMethod(
     type = "Meta",
     name = "find_atom_constructor",
-    description = "Checks if the argument is a constructor.",
-    autoRegister = false)
+    description = "Checks if the argument is a constructor.")
 final class FindAtomConstructorNode extends Node {
   Object execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
     return findAtomConstructor(this, value, frame);

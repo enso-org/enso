@@ -1,26 +1,15 @@
 use crate::prelude::*;
 
 use crate::ci::input;
-use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::ci_gen::job::prepare_packaging_steps;
 use crate::engine;
 use crate::engine::env;
-use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
 use crate::version::ENSO_RELEASE_MODE;
 use crate::version::ENSO_VERSION;
+use crate::version::promote::Designation;
 
-use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::get_input;
-use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::run;
-use ide_ci::actions::workflow::definition::setup_artifact_api;
-use ide_ci::actions::workflow::definition::setup_bazel;
-use ide_ci::actions::workflow::definition::setup_bazel_env;
-use ide_ci::actions::workflow::definition::setup_corepack;
-use ide_ci::actions::workflow::definition::setup_node;
-use ide_ci::actions::workflow::definition::shell;
-use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
@@ -42,8 +31,17 @@ use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
+use ide_ci::actions::workflow::definition::get_input_expression;
+use ide_ci::actions::workflow::definition::run;
+use ide_ci::actions::workflow::definition::setup_artifact_api;
+use ide_ci::actions::workflow::definition::setup_bazel;
+use ide_ci::actions::workflow::definition::setup_bazel_env;
+use ide_ci::actions::workflow::definition::setup_corepack;
+use ide_ci::actions::workflow::definition::setup_node;
+use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::cache::goodie::graalvm;
-
 
 // ==============
 // === Export ===
@@ -51,8 +49,6 @@ use ide_ci::cache::goodie::graalvm;
 
 pub mod job;
 pub mod step;
-
-
 
 /// Whether a runner is self-hosted or GitHub-hosted.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord)]
@@ -69,23 +65,11 @@ pub const PRIMARY_TARGET: Target = (OS::Linux, Arch::X86_64);
 
 const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 
-pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
-    (OS::Windows, Arch::X86_64),
-    (OS::Linux, Arch::X86_64),
-    (OS::MacOS, Arch::X86_64),
-    (OS::MacOS, Arch::AArch64),
-];
-
-/// Targets for which we run PR checks.
-///
-/// The macOS AArch64 is intentionally omitted, as the runner availability is limited.
-pub const PR_CHECKED_TARGETS: [(OS, Arch); 3] =
-    [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::X86_64)];
+pub const RELEASE_TARGETS: [(OS, Arch); 3] =
+    [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
 pub const PR_REQUIRED_TARGETS: [(OS, Arch); 2] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64)];
-
-pub const PR_OPTIONAL_TARGETS: [(OS, Arch); 1] = [(OS::MacOS, Arch::X86_64)];
 
 pub const DEFAULT_BRANCH_NAME: &str = "develop";
 
@@ -103,12 +87,10 @@ pub mod secret {
     pub const ARTEFACT_S3_ACCESS_KEY_ID: &str = "ARTEFACT_S3_ACCESS_KEY_ID";
     pub const ARTEFACT_S3_SECRET_ACCESS_KEY: &str = "ARTEFACT_S3_SECRET_ACCESS_KEY";
 
-
     // === AWS S3 Standard Library Tests ===
     pub const ENSO_LIB_S3_AWS_ACCESS_KEY_ID: &str = "ENSO_LIB_S3_AWS_ACCESS_KEY_ID";
     pub const ENSO_LIB_S3_AWS_REGION: &str = "ENSO_LIB_S3_AWS_REGION";
     pub const ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: &str = "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY";
-
 
     // === AWS ECR deployment (runtime release to cloud) ===
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
@@ -124,7 +106,7 @@ pub mod secret {
     pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
     pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
     pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
-    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASS";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -161,13 +143,16 @@ pub mod secret {
     // === OAuth Integrations ===
     /// The client ID for the Google OAuth integration used for Google Credentials.
     pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
-
-    // === OAuth Integrations ===
     /// The client ID for the Strava OAuth integration used for Strava Credentials.
     pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
+    /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
+    pub const ENSO_IDE_MS365_OAUTH_CLIENT_ID: &str = "ENSO_IDE_MS365_OAUTH_CLIENT_ID";
+    /// The client ID for the Salesforce OAuth integration used for Salesforce Credentials.
+    pub const ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
+    pub const ENSO_HOST: &str = "ENSO_HOST";
     pub const ENSO_CLOUD_ENVIRONMENT: &str = "ENSO_CLOUD_ENVIRONMENT";
     pub const ENSO_CLOUD_API_URL: &str = "ENSO_CLOUD_API_URL";
     pub const ENSO_CLOUD_CHAT_URL: &str = "ENSO_CLOUD_CHAT_URL";
@@ -217,7 +202,6 @@ impl RunsOn for BenchmarkRunner {
     }
 }
 
-
 /// Condition under which the runner should be cleaned.
 #[derive(Clone, Copy, Debug, Default, PartialOrd, Ord, PartialEq, Eq)]
 pub enum CleaningCondition {
@@ -265,13 +249,12 @@ impl CleaningCondition {
     }
 }
 
-
 /// Create a step that cleans the runner if the conditions are met.
 pub fn cleaning_step(
     name: impl Into<String>,
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
-    let mut ret = run("git-clean").with_name(name);
+    let mut ret = shell("corepack pnpm run git-clean --verbose --clean-bazel").with_name(name);
     ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
@@ -282,14 +265,14 @@ pub struct RunStepsBuilder {
     /// The command passed to `./run` script.
     pub run_command: String,
     /// Condition under which the runner should be cleaned before and after the run.
-    pub cleaning:    CleaningCondition,
+    pub cleaning: CleaningCondition,
     /// Custom fetch depth of repo checkout action.
     pub fetch_depth: Option<u32>,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
     #[derive_where(skip)]
-    pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
+    pub customize: Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
 }
 
 impl RunStepsBuilder {
@@ -297,8 +280,8 @@ impl RunStepsBuilder {
     pub fn new(run_command: impl Into<String>) -> Self {
         Self {
             run_command: run_command.into(),
-            cleaning:    default(),
-            customize:   default(),
+            cleaning: default(),
+            customize: default(),
             fetch_depth: default(),
         }
     }
@@ -350,9 +333,9 @@ impl RunStepsBuilder {
 #[derive(Debug)]
 pub struct RunJobBuilder {
     /// Data to generate the steps.
-    pub inner:   RunStepsBuilder,
+    pub inner: RunStepsBuilder,
     /// Name of the job. Might be modified to include the runner info.
-    pub name:    String,
+    pub name: String,
     /// The runners on which the job should run.
     pub runs_on: Box<dyn RunsOn>,
 }
@@ -386,8 +369,9 @@ pub fn on_default_branch_push() -> Push {
 
 pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
     match (os, runner_type) {
-        (OS::Windows, RunnerType::SelfHosted) =>
-            vec![RunnerLabel::SelfHosted, RunnerLabel::Windows],
+        (OS::Windows, RunnerType::SelfHosted) => {
+            vec![RunnerLabel::SelfHosted, RunnerLabel::Windows]
+        }
         (OS::Windows, RunnerType::GitHubHosted) => vec![RunnerLabel::WindowsLatest],
         (OS::Linux, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::Linux],
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
@@ -437,10 +421,10 @@ impl JobArchetype for DraftRelease {
 
     fn outputs(&self) -> BTreeMap<String, Vec<String>> {
         let mut ret = BTreeMap::new();
-        ret.insert(Self::PREPARE_STEP_ID.into(), vec![
-            "ENSO_VERSION".into(),
-            "ENSO_RELEASE_ID".into(),
-        ]);
+        ret.insert(
+            Self::PREPARE_STEP_ID.into(),
+            vec!["ENSO_VERSION".into(), "ENSO_RELEASE_ID".into()],
+        );
         ret
     }
 }
@@ -521,11 +505,14 @@ impl JobArchetype for PromoteReleaseJob {
 
     fn outputs(&self) -> BTreeMap<String, Vec<String>> {
         let mut ret = BTreeMap::new();
-        ret.insert(Self::PROMOTE_STEP_ID.into(), vec![
-            ENSO_VERSION.name.to_string(),
-            ENSO_EDITION.name.to_string(),
-            ENSO_RELEASE_MODE.name.to_string(),
-        ]);
+        ret.insert(
+            Self::PROMOTE_STEP_ID.into(),
+            vec![
+                ENSO_VERSION.name.to_string(),
+                ENSO_EDITION.name.to_string(),
+                ENSO_RELEASE_MODE.name.to_string(),
+            ],
+        );
         ret
     }
 }
@@ -539,7 +526,7 @@ fn concurrency(group: impl AsRef<str>) -> Concurrency {
     let github_ref = wrap_expression("github.ref");
     let group_ref = group.as_ref();
     Concurrency::Map {
-        group:              format!("{github_workflow}-{github_ref}-{group_ref}"),
+        group: format!("{github_workflow}-{github_ref}-{group_ref}"),
         cancel_in_progress: wrap_expression(not_default_branch()),
     }
 }
@@ -563,9 +550,7 @@ pub fn changelog() -> Result<Workflow> {
 }
 
 pub fn nightly() -> Result<Workflow> {
-    let input_ydoc = input::ydoc();
-    let input_ydoc_default = input_ydoc.r#type.default().expect("Default Ydoc input is expected.");
-    let workflow_dispatch = WorkflowDispatch::default().with_input(input::name::YDOC, input_ydoc);
+    let workflow_dispatch = WorkflowDispatch::default();
     let on = Event {
         workflow_dispatch: Some(workflow_dispatch),
         // 2am (UTC) every day.
@@ -576,11 +561,9 @@ pub fn nightly() -> Result<Workflow> {
     let mut workflow = Workflow { on, name: "Nightly Release".into(), ..default() };
     // Scheduled workflows do not support input parameters. We need to provide an explicit default
     // value. Feature request is tracked by https://github.com/orgs/community/discussions/74698
-    let input_ydoc = format!("{} || '{}'", get_input(input::name::YDOC), input_ydoc_default);
 
     let job = workflow_call_job("Promote nightly", PROMOTE_WORKFLOW_PATH)
-        .with_with(input::name::DESIGNATOR, Designation::Nightly.as_ref())
-        .with_with(input::name::YDOC, wrap_expression(input_ydoc));
+        .with_with(input::name::DESIGNATOR, Designation::Nightly.as_ref());
     workflow.add_job(job);
     Ok(workflow)
 }
@@ -603,13 +586,8 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
             let runtime_requirements = [&prepare_job_id, &backend_job_id];
             let upload_runtime_job_id =
                 workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
-            let upload_ydoc_job_id =
-                workflow.add_dependent(target, job::DeployYdoc, runtime_requirements);
             let dispatch_build_image_job_id =
-                workflow.add_dependent(target, job::DispatchBuildImage, [
-                    &upload_runtime_job_id,
-                    &upload_ydoc_job_id,
-                ]);
+                workflow.add_dependent(target, job::DispatchBuildImage, [&upload_runtime_job_id]);
             packaging_job_ids.push(dispatch_build_image_job_id);
         }
     }
@@ -618,7 +596,6 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         packaging_job_ids.push(prepare_job_id);
         packaging_job_ids
     };
-
 
     let _publish_job_id = workflow.add_dependent(PRIMARY_TARGET, PublishRelease, publish_deps);
     workflow.env("RUST_BACKTRACE", "full");
@@ -649,9 +626,11 @@ pub fn add_backend_checks(
     }
 
     // Engine distribution is required to run project manager tests.
-    workflow.add_dependent(target, job::JvmTests { graal_edition, engine_launcher }, &[
-        &build_engine_distribution_id,
-    ]);
+    workflow.add_dependent(
+        target,
+        job::JvmTests { graal_edition, engine_launcher },
+        &[&build_engine_distribution_id],
+    );
     workflow.add_dependent(
         target,
         job::StandardLibraryTests {
@@ -670,15 +649,19 @@ pub fn add_backend_checks(
         },
         &[&build_engine_distribution_id],
     );
-    workflow.add_dependent(
-        target,
-        job::StandardLibraryTests {
-            graal_edition,
-            engine_launcher,
-            scope: job::StandardLibraryTestsScope::Microsoft,
-        },
-        &[&build_engine_distribution_id],
-    );
+    // Microsoft-specific standard library tests are run only on Linux, as they require SQL Server
+    // which is served from a docker image that only runs on Linux hosts.
+    if target.0 == OS::Linux {
+        workflow.add_dependent(
+            target,
+            job::StandardLibraryTests {
+                graal_edition,
+                engine_launcher,
+                scope: job::StandardLibraryTestsScope::Microsoft,
+            },
+            &[&build_engine_distribution_id],
+        );
+    }
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -696,9 +679,7 @@ pub fn release() -> Result<Workflow> {
         true,
         None::<String>,
     );
-    let workflow_dispatch = WorkflowDispatch::default()
-        .with_input("version", version_input)
-        .with_input("ydoc", input::ydoc());
+    let workflow_dispatch = WorkflowDispatch::default().with_input("version", version_input);
     let workflow_call = WorkflowCall::try_from(workflow_dispatch.clone())?;
     let on = Event {
         workflow_dispatch: Some(workflow_dispatch),
@@ -721,9 +702,8 @@ pub fn release() -> Result<Workflow> {
 }
 
 pub fn promote() -> Result<Workflow> {
-    let workflow_dispatch = WorkflowDispatch::default()
-        .with_input(input::name::DESIGNATOR, input::designator())
-        .with_input(input::name::YDOC, input::ydoc());
+    let workflow_dispatch =
+        WorkflowDispatch::default().with_input(input::name::DESIGNATOR, input::designator());
     let on = Event {
         workflow_call: Some(WorkflowCall::try_from(workflow_dispatch.clone())?),
         workflow_dispatch: Some(workflow_dispatch),
@@ -732,11 +712,9 @@ pub fn promote() -> Result<Workflow> {
     let mut workflow = Workflow { on, name: "Generate a new version".into(), ..default() };
     let promote_job_id = workflow.add(PRIMARY_TARGET, PromoteReleaseJob);
 
-
     let version_input = format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}");
     let mut release_job = workflow_call_job("Release", RELEASE_WORKFLOW_PATH)
-        .with_with("version", wrap_expression(version_input))
-        .with_with(input::name::YDOC, get_input_expression(input::name::YDOC));
+        .with_with("version", wrap_expression(version_input));
     release_job.needs(&promote_job_id);
     workflow.add_job(release_job);
 
@@ -781,61 +759,12 @@ pub fn ide_packaging() -> Result<Workflow> {
 
     let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_REQUIRED_TARGETS {
-        let project_manager_job = workflow.add(target, job::BuildBackend { engine_launcher });
+        let backend_job = workflow.add(target, job::BuildBackend { engine_launcher });
         workflow.add_customized(target, job::PackageIde, |job| {
-            job.needs.insert(project_manager_job.clone());
+            job.needs.insert(backend_job.clone());
         });
         workflow.add(target, job::GuiBuild);
     }
-    Ok(workflow)
-}
-
-pub fn ide_packaging_optional() -> Result<Workflow> {
-    let on = Event {
-        workflow_dispatch: Some(manual_workflow_dispatch()),
-        workflow_call: Some(default()),
-        ..default()
-    };
-    let mut workflow = Workflow {
-        name: "IDE Packaging (Optional)".into(),
-        concurrency: Some(concurrency("ide-packaging-optional")),
-        on,
-        ..default()
-    };
-
-    let engine_launcher = engine::EngineLauncher::Native;
-    for target in PR_OPTIONAL_TARGETS {
-        let continue_on_error = Some(true);
-        let project_manager_job =
-            workflow.add_customized(target, job::BuildBackend { engine_launcher }, |job| {
-                job.continue_on_error = continue_on_error;
-            });
-        workflow.add_customized(target, job::PackageIde, |job| {
-            job.needs.insert(project_manager_job.clone());
-            job.continue_on_error = continue_on_error;
-        });
-        workflow.add_customized(target, job::GuiBuild, |job| {
-            job.continue_on_error = continue_on_error;
-        });
-    }
-    Ok(workflow)
-}
-
-pub fn wasm_checks() -> Result<Workflow> {
-    let on = Event {
-        workflow_dispatch: Some(manual_workflow_dispatch()),
-        workflow_call: Some(default()),
-        ..default()
-    };
-    let mut workflow = Workflow {
-        name: "WASM Checks".into(),
-        concurrency: Some(concurrency("wasm-checks")),
-        on,
-        ..default()
-    };
-    workflow.add(PRIMARY_TARGET, job::WasmLint);
-    workflow.add(PRIMARY_TARGET, job::WasmTest);
-    workflow.add(PRIMARY_TARGET, job::NativeTest);
     Ok(workflow)
 }
 
@@ -859,25 +788,6 @@ pub fn engine_checks() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn engine_checks_optional() -> Result<Workflow> {
-    let on = Event {
-        workflow_dispatch: Some(manual_workflow_dispatch()),
-        workflow_call: Some(default()),
-        ..default()
-    };
-    let mut workflow = Workflow {
-        name: "Engine Checks (Optional)".into(),
-        concurrency: Some(concurrency("engine-checks-optional")),
-        on,
-        ..default()
-    };
-    let engine_launcher = engine::EngineLauncher::TestNative;
-    for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
-    }
-    Ok(workflow)
-}
-
 pub fn engine_checks_nightly() -> Result<Workflow> {
     let on = Event {
         schedule: vec![Schedule::new("0 3 * * *")?],
@@ -896,7 +806,7 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
     );
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
-    for target in PR_CHECKED_TARGETS {
+    for target in PR_REQUIRED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     add_backend_checks(
@@ -955,6 +865,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "AWS",
         "Base",
         "Database",
+        "DuckDB",
         "Generic_JDBC",
         "Google",
         "Image",
@@ -967,11 +878,11 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Visualization",
     ];
     let on = Event {
-        push:              Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
-        pull_request:      Some(PullRequest::default()),
+        push: Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
+        pull_request: Some(PullRequest::default()),
         workflow_dispatch: Some(WorkflowDispatch::default()),
-        workflow_call:     Some(WorkflowCall::default()),
-        schedule:          vec![],
+        workflow_call: Some(WorkflowCall::default()),
+        schedule: vec![],
     };
     let mut permissions: BTreeMap<Permission, Access> = BTreeMap::new();
     permissions.insert(Permission::Checks, Access::Write);
@@ -989,7 +900,6 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
     }
     Ok(workflow)
 }
-
 
 pub fn engine_benchmark() -> Result<Workflow> {
     let report_path = "engine/runtime-benchmarks/bench-report.xml";
@@ -1019,7 +929,10 @@ fn benchmark_workflow(
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
-        ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
+        ..WorkflowDispatchInput::new(
+            "If set, benchmarks will be only checked to run correctly, not to measure actual performance.",
+            true,
+        )
     };
     let bench_name_input_name = "bench-name";
     let bench_name_input = WorkflowDispatchInput {
@@ -1076,7 +989,6 @@ fn benchmark_job(
     job
 }
 
-
 /// Generate workflows for the CI.
 pub fn generate(
     repo_root: &crate::paths::generated::RepoRootGithubWorkflows,
@@ -1085,12 +997,9 @@ pub fn generate(
         (repo_root.changelog_yml.to_path_buf(), changelog()?),
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.engine_checks_yml.to_path_buf(), engine_checks()?),
-        (repo_root.engine_checks_optional_yml.to_path_buf(), engine_checks_optional()?),
         (repo_root.engine_checks_nightly_yml.to_path_buf(), engine_checks_nightly()?),
         (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
         (repo_root.ide_packaging_yml.to_path_buf(), ide_packaging()?),
-        (repo_root.ide_packaging_optional_yml.to_path_buf(), ide_packaging_optional()?),
-        (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),

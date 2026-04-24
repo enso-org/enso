@@ -7,7 +7,6 @@ use crate::env::accessor::TypedVariable;
 use anyhow::Context;
 use unicase::UniCase;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -15,8 +14,6 @@ use unicase::UniCase;
 pub mod accessor;
 pub mod consts;
 pub mod known;
-
-
 
 /// Like [`std::env::current_dir`], but with nicer error message.
 pub fn current_dir() -> Result<PathBuf> {
@@ -54,13 +51,21 @@ pub fn set_var<K: AsRef<OsStr>, V: AsRef<OsStr>>(key: K, value: V) {
         key.as_ref().as_str(),
         value.as_ref().as_str()
     );
-    std::env::set_var(key, value)
+    // See API docs, this is safe on Windows but inherently unsafe on other operating systems.
+    #[allow(unsafe_code)]
+    unsafe {
+        std::env::set_var(key, value)
+    }
 }
 
 /// Like [`std::env::remove_var`], but with log.
 pub fn remove_var<K: AsRef<OsStr>>(key: K) {
     debug!("Removing environment variable {}.", key.as_ref().as_str());
-    std::env::remove_var(key)
+    // See API docs, this is safe on Windows but inherently unsafe on other operating systems.
+    #[allow(unsafe_code)]
+    unsafe {
+        std::env::remove_var(key)
+    }
 }
 
 /// Define typed accessors for environment variables. Supported types include `String`, `PathBuf`,
@@ -152,7 +157,7 @@ pub struct Modification {
     /// Well, bugs somehow do not happen that way.
     pub variable_name: UniCase<String>,
     /// The action to perform on the variable.
-    pub action:        Action,
+    pub action: Action,
 }
 
 impl Modification {
@@ -165,7 +170,9 @@ impl Modification {
     }
 
     pub fn set<V>(variable: &V, value: &V::Borrowed) -> Result<Self>
-    where V: TypedVariable {
+    where
+        V: TypedVariable,
+    {
         Ok(Self::new(variable, Action::Set(variable.generate(value)?)))
     }
 
@@ -176,7 +183,7 @@ impl Modification {
             Action::Set(value) => {
                 set_var(normalized_name, value);
             }
-            Action::PrependPaths(paths_to_prepend) =>
+            Action::PrependPaths(paths_to_prepend) => {
                 if let Ok(old_value) = std::env::var(normalized_name) {
                     debug!(
                         "Prepending to {} the following paths: {:?}",
@@ -193,7 +200,8 @@ impl Modification {
                 } else {
                     let new_value = std::env::join_paths(paths_to_prepend)?;
                     set_var(&*self.variable_name, new_value);
-                },
+                }
+            }
         };
         Ok(())
     }

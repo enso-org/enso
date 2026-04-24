@@ -161,7 +161,7 @@ public final class UnusedImports implements IRPass {
         var isTypeUsed = usedSymbolsForImp.contains(typeName);
         yield isTypeUsed;
       }
-        // If any of the Type's constructor is used, the whole type is used.
+      // If any of the Type's constructor is used, the whole type is used.
       case ResolvedType type -> {
         var constructors = asJava(type.tp().members());
         var typeName = type.qualifiedName();
@@ -283,8 +283,7 @@ public final class UnusedImports implements IRPass {
   private static UnusedSymbolsFromImport createWarning(
       Import impIr, Set<QualifiedName> unusedSymbols) {
     var list = unusedSymbols.stream().map(QualifiedName::toString).sorted().toList();
-    return new UnusedSymbolsFromImport(
-        impIr.identifiedLocation(), CollectionConverters.asScala(list).toList());
+    return new UnusedSymbolsFromImport(impIr.identifiedLocation(), list);
   }
 
   private static UnusedImport createWarning(Import impIr) {

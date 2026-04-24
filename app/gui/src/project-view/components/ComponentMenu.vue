@@ -4,12 +4,14 @@ import ActionMenu from '@/components/ActionMenu.vue'
 import ColorRing from '@/components/ColorRing.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import type { DisplayableActionName } from '@/providers/action'
 import { ref } from 'vue'
 
 const _props = defineProps<{
   colorPickerOpened: boolean
   currentNodeColor: string | undefined
   matchableColors: ReadonlySet<string>
+  actions: DisplayableActionName[]
 }>()
 const emit = defineEmits<{
   closeColorPicker: []
@@ -42,18 +44,7 @@ const isDropdownOpened = ref(false)
         <template #menu>
           <ActionMenu
             data-testid="component-menu-more-entries"
-            :actions="[
-              'component.toggleDocPanel',
-              'component.toggleVisualization',
-              'component.createNewNode',
-              'component.editingComment',
-              'component.recompute',
-              'component.pickColor',
-              'component.enterNode',
-              'component.startEditing',
-              'components.copy',
-              'components.deleteSelected',
-            ]"
+            :actions="actions"
             @close="isDropdownOpened = false"
           />
         </template>

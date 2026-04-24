@@ -93,8 +93,6 @@
 //!
 //! See the definitions and macros below to learn more.
 
-
-
 mod collect;
 mod operator;
 
@@ -105,8 +103,6 @@ pub use operator::Associativity;
 pub use operator::OperatorProperties;
 pub use operator::Precedence;
 pub use operator::TokenOperatorProperties;
-
-
 
 // =============
 // === Token ===
@@ -119,11 +115,11 @@ pub struct Token<'s, T = Variant> {
     #[reflect(flatten, hide)]
     pub left_offset: Offset<'s>,
     #[reflect(flatten)]
-    pub code:        Code<'s>,
+    pub code: Code<'s>,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
-    pub variant:     T,
+    pub variant: T,
 }
 
 /// Constructor.
@@ -189,8 +185,8 @@ impl<'s, V: Clone> Token<'s, V> {
     pub fn without_offsets(&self) -> Self {
         Self {
             left_offset: self.left_offset.without_offset(),
-            code:        self.code.without_location(),
-            variant:     self.variant.clone(),
+            code: self.code.without_location(),
+            variant: self.variant.clone(),
         }
     }
 }
@@ -210,8 +206,6 @@ impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     }
 }
 
-
-
 // ===========
 // === Ref ===
 // ===========
@@ -228,20 +222,17 @@ impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
 pub struct Ref<'s, 'a, T = Variant> {
     #[deref]
     #[deref_mut]
-    pub data:        T,
+    pub data: T,
     pub left_offset: &'a Offset<'s>,
-    pub code:        &'a Code<'s>,
+    pub code: &'a Code<'s>,
 }
 
 impl<'s, 'a, T, S> From<&'a Token<'s, T>> for Ref<'s, 'a, S>
-where T: Copy + Into<S>
+where
+    T: Copy + Into<S>,
 {
     fn from(token: &'a Token<'s, T>) -> Self {
-        Ref {
-            data:        token.variant.into(),
-            left_offset: &token.left_offset,
-            code:        &token.code,
-        }
+        Ref { data: token.variant.into(), left_offset: &token.left_offset, code: &token.code }
     }
 }
 
@@ -251,8 +242,6 @@ impl<'s, 'a, T: Debug> Debug for Ref<'s, 'a, T> {
         Debug::fmt(&self.data, f)
     }
 }
-
-
 
 // ===============
 // === Variant ===
@@ -355,7 +344,6 @@ impl Default for Variant {
     }
 }
 
-
 // === Numbers ===
 
 /// Alternate numeric bases (decimal is the default).
@@ -368,7 +356,6 @@ pub enum Base {
     /// Base 16.
     Hexadecimal,
 }
-
 
 // === Text literals ===
 
@@ -429,7 +416,6 @@ impl Codepoint {
         char::from_u32(self.0)
     }
 }
-
 
 // === Macro-based implementation ===
 

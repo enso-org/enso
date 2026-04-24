@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,
@@ -12,7 +11,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core._
 import org.enso.compiler.core.ir.expression.Application
-import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.text.editing.model.{IdMap, TextEdit}
@@ -107,8 +106,22 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           EnsoParser
             .compileInline(source.getCharacters())
             .flatMap(_ match {
-              case ir: Literal => Some(ir.setLocation(oldIr.location))
-              case _           => None
+              case ir: Literal.Number =>
+                Some(
+                  ir.copyBuilder()
+                    .location(oldIr.location.orNull)
+                    .id(oldIr.getId)
+                    .build()
+                )
+              case ir: Literal.Text =>
+                Some(
+                  ir.copyBuilder()
+                    .location(oldIr.location.orNull)
+                    .id(oldIr.getId)
+                    .build()
+                )
+              case _ =>
+                None
             })
         }
 
@@ -125,7 +138,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
-    * using the [[DataflowAnalysis]] information.
+    * using the `DataflowAnalysis` information.
     *
     * @param edits the text edits
     * @throws CompilerError if the IR is missing DataflowAnalysis metadata
@@ -133,16 +146,12 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     */
   @throws[CompilerError]
   def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata(
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during changeset calculation."
-      )
+    val metadata = DependencyInfo.find(ir)
 
     @scala.annotation.tailrec
     def go(
-      queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
-      visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
+      queue: mutable.Queue[DependencyInfo.Type],
+      visited: mutable.Set[DependencyInfo.Type]
     ): Set[UUID @ExternalID] =
       if (queue.isEmpty) visited.flatMap(_.externalId).toSet
       else {
@@ -150,18 +159,26 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         val transitive = metadata.dependents.get(elem).getOrElse(Set())
         val dynamic = transitive
           .flatMap {
-            case DataflowAnalysis.DependencyInfo.Type.Static(int, _) =>
+            case s: DependencyInfo.Type.Static =>
               ChangesetBuilder
-                .getExpressionName(ir, int)
-                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, None))
-            case dyn: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
+                .getExpressionName(ir, s.id)
+                .map(new DependencyInfo.Type.Dynamic(_, None))
+            case dyn: DependencyInfo.Type.Dynamic =>
               Some(dyn)
             case _ =>
               None
           }
-          .flatMap(metadata.dependents.get)
+          .flatMap(metadata.dependents.get(_))
           .flatten
-        val combined = transitive.union(dynamic)
+        val combined = transitive
+          .asInstanceOf[scala.collection.Set[
+            org.enso.compiler.pass.analyse.DependencyInfo.Type
+          ]]
+          .union(
+            dynamic.asInstanceOf[scala.collection.Set[
+              org.enso.compiler.pass.analyse.DependencyInfo.Type
+            ]]
+          )
 
         go(
           queue ++= combined.diff(visited),
@@ -170,7 +187,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       }
 
     val nodeIds = invalidated(edits)
-    val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    val direct = nodeIds.flatMap(node =>
+      ChangesetBuilder.toDataflowDependencyTypes(node, metadata)
+    )
     val transitive =
       go(
         mutable.Queue().addAll(direct),
@@ -418,8 +437,13 @@ object ChangesetBuilder {
     * @return the tree representation of the IR
     */
   private def buildTree(ir: IR): Tree = {
+    // `Name.MethodReference` is the IR representation of autoscope construtors
+    // and its children has no DataflowAnalysis dependents and threfore should
+    // not be analyzed. Otherwise the algorithm will fallback to dynamic search
+    // in `toDataflowDependencyTypes` invalidating all expressions with this symbol
+    def isAtomicName(ir: IR): Boolean = ir.isInstanceOf[Name.MethodReference]
     def depthFirstSearch(currentIr: IR, acc: Tree, isBinding: Boolean): Unit = {
-      if (currentIr.children.isEmpty) {
+      if (currentIr.children.isEmpty || isAtomicName(currentIr)) {
         Node.fromIr(currentIr, isBinding).foreach(acc.add)
       } else {
         val hasImportantId = currentIr.getExternalId.nonEmpty
@@ -661,14 +685,22 @@ object ChangesetBuilder {
     * @return the dataflow dependency type
     */
   private def toDataflowDependencyTypes(
-    node: NodeId
-  ): Seq[DataflowAnalysis.DependencyInfo.Type] = {
-    val static = DataflowAnalysis.DependencyInfo.Type
-      .Static(node.internalId, node.externalId)
-    val dynamic = node.name.map { name =>
-      DataflowAnalysis.DependencyInfo.Type.Dynamic(name, node.externalId)
+    node: NodeId,
+    metadata: DependencyInfo
+  ): Seq[DependencyInfo.Type] = {
+    val static =
+      new DependencyInfo.Type.Static(node.internalId, node.externalId)
+    // Autoscope constructors have no entries in the DataflowAnalysis dependents map for their
+    // Static ID. For these nodes, the Dynamic dependency is the only way to find dependents.
+    val hasDependents = metadata.dependents.getDirect(static).exists(_.nonEmpty)
+    if (hasDependents) {
+      Seq(static)
+    } else {
+      val dynamic = node.name.map { name =>
+        new DependencyInfo.Type.Dynamic(name, node.externalId)
+      }
+      static +: dynamic.toSeq
     }
-    static +: dynamic.toSeq
   }
 
   /** Get expression name by the given id.
@@ -686,8 +718,6 @@ object ChangesetBuilder {
       { ir =>
         if (ir.getId == id)
           ir match {
-            case name: Name =>
-              return Some(name.name)
             case method: definition.Method =>
               return Some(method.methodName.name)
             case _ =>

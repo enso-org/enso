@@ -1,5 +1,5 @@
-import assert from 'assert'
-import { expect, type Locator, type Page } from 'playwright/test'
+import { expect, type Locator, type Page } from 'integration-test/base'
+import assert from 'node:assert'
 
 // ================
 // === Locators ===
@@ -42,13 +42,20 @@ declare const nodeLocatorBrand: unique symbol
 /** A locator which resolves to graph nodes only */
 export type Node = Locator & { [nodeLocatorBrand]: never }
 
+/** Filter selector that only matches input nodes. */
+export const INPUT_NODE_FILTER = '.inputNode'
+/** Filter selector that only matches output nodes. */
+export const OUTPUT_NODE_FILTER = '.outputNode'
+
 /** All nodes in graph */
 export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node
 }
 /** Node with given binding (name) */
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
-  return graphNode(page).filter({ has: page.locator('.binding', { hasText: binding }) }) as Node
+  return graphNode(page).filter({
+    has: page.locator('.binding').getByText(binding, { exact: true }),
+  }) as Node
 }
 /** Icon inside the node */
 export function graphNodeIcon(node: Node) {
@@ -160,8 +167,7 @@ export function visualisationNodeType(page: Page) {
 
 /** All edges going from a node with given binding that are connected to another node. */
 export async function connectedEdgesFromNodeWithBinding(page: Page, binding: string) {
-  const fromNode = await edgesFromNode(page, graphNodeByBinding(page, binding).first())
-  return fromNode.and(page.locator('[data-target-node-id]'))
+  return edgesFromNode(page, graphNodeByBinding(page, binding).first())
 }
 
 /** All edges going from a node. */
@@ -189,10 +195,12 @@ export async function edgesToNode(page: Page, node: Locator) {
  */
 export async function outputPortCoordinates(page: Page, node: Locator) {
   const nodeId = await node.getAttribute('data-node-id')
-  const outputPortArea = await page
-    .locator(`.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`)
-    .boundingBox()
-  expect(outputPortArea).not.toBeNull()
+  const outputPort = page.locator(
+    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`,
+  )
+  await outputPort.elementHandle().then((element) => element?.waitForElementState('stable'))
+  const outputPortArea = await outputPort.boundingBox()
+  await expect(outputPortArea).toBeTruthy()
   assert(outputPortArea)
   const centerX = outputPortArea.x + outputPortArea.width / 2
   const bottom = outputPortArea.y + outputPortArea.height
@@ -203,7 +211,7 @@ export async function outputPortCoordinates(page: Page, node: Locator) {
 export async function createNodeFromPortButton(page: Page, node: Locator) {
   const nodeId = await node.getAttribute('data-node-id')
   const button = page.locator(
-    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton`,
+    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton:not([data-transitioning])`,
   )
   // Ensure the animation is complete.
   await button.elementHandle().then((el) => el!.waitForElementState('stable'))

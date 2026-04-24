@@ -60,11 +60,11 @@ public class MetaTypeMethodsTest {
       var interopMembers = interopGetMembers(type);
       var errMsg =
           """
-      Methods returned from `Meta.get_type_methods` and `InteropLibrary.getMembers` must be the same.
-      Type: %s
-      Return value of `Meta.get_type_methods`: %s
-      Return value of `InteropLibrary.getMembers`: %s
-      """
+          Methods returned from `Meta.get_type_methods` and `InteropLibrary.getMembers` must be the same.
+          Type: %s
+          Return value of `Meta.get_type_methods`: %s
+          Return value of `InteropLibrary.getMembers`: %s
+          """
               .formatted(type, typeMethods, interopMembers);
       assertThat(errMsg, typeMethods, containsInAnyOrder(interopMembers.toArray(String[]::new)));
     }
@@ -76,12 +76,12 @@ public class MetaTypeMethodsTest {
     var integerType =
         ctxRule.evalModule(
             """
-        import Standard.Base.Any.Any
-        import Standard.Base.Data.Numbers.Number
-        import Standard.Base.Data.Numbers.Integer
+            import Standard.Base.Any.Any
+            import Standard.Base.Data.Numbers.Number
+            import Standard.Base.Data.Numbers.Integer
 
-        main = Integer
-        """);
+            main = Integer
+            """);
     var anyMethods = methodsFrom("Standard.Base.Any", "Any");
     var numberMethods = methodsFrom("Standard.Base.Data.Numbers", "Number");
     var integerMethods = methodsFrom("Standard.Base.Data.Numbers", "Integer");

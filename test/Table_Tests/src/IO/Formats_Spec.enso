@@ -63,6 +63,32 @@ add_specs suite_builder =
             simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
             out.delete_if_exists
 
+        group_builder.specify "should be able to be written as JSON Lines using Table.write" <|
+            f1 = transient / "test1.jsonl"
+            f1.delete_if_exists
+            t1.write f1 . should_succeed
+            f1.exists.should_be_true
+            f1.delete
+
+        group_builder.specify 'should write JSON Lines tables' <|
+            simple_empty = enso_project.data/'simple_empty.csv' . read
+            out = transient / 'out.jsonl'
+            out.delete_if_exists
+            simple_empty.write out . should_equal out
+            json_text = out.read_text
+            json_text.should_equal '{"a":"1","b":2,"c":null}\n{"a":"4","b":null,"c":6}\n{"a":"7","b":8,"c":9}\n{"a":"10","b":11,"c":12}'
+            out.read.to_table . should_equal simple_empty
+            out.delete_if_exists
+
+        group_builder.specify 'should append to JSON Lines tables' <|
+            out = transient / 'out.jsonl'
+            out.delete_if_exists
+            simple_empty.write out . should_equal out
+            simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_equal out
+            json_text = out.read_text
+            json_text.should_equal '{"a":"1","b":2,"c":null}\n{"a":"4","b":null,"c":6}\n{"a":"7","b":8,"c":9}\n{"a":"10","b":11,"c":12}\n{"a":"1","b":2,"c":null}\n{"a":"4","b":null,"c":6}\n{"a":"7","b":8,"c":9}\n{"a":"10","b":11,"c":12}'
+            out.delete_if_exists
+
         group_builder.specify "should fail gracefully when provided with an unsupported format" <|
             f1 = (transient / "test4.unknown-format")
             f1.delete_if_exists

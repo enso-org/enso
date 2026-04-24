@@ -13,23 +13,12 @@ import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.expression.builtin.text.InvokeToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
-@BuiltinMethod(
-    type = "IO",
-    name = "println",
-    description = "Prints its argument to standard out.",
-    autoRegister = false)
+@BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
 public abstract class PrintlnNode extends Node {
-  private @Child InvokeCallableNode invokeCallableNode =
-      InvokeCallableNode.build(
-          new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
   abstract Object execute(VirtualFrame frame, @AcceptsError Object message, Object nl);
 
@@ -56,11 +45,9 @@ public abstract class PrintlnNode extends Node {
       Object nl,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached("buildSymbol()") UnresolvedSymbol symbol,
-      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
+      @Cached InvokeToTextNode invokeToText) {
     var ctx = EnsoContext.get(this);
-    var state = ctx.currentState();
-    var probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+    var probablyStr = invokeToText.executeToText(frame, message);
     if (warnings.hasWarnings(probablyStr)) {
       try {
         probablyStr = warnings.removeWarnings(probablyStr);
@@ -95,19 +82,6 @@ public abstract class PrintlnNode extends Node {
       case "" -> out.print(str);
       default -> out.print(str + nl);
     }
-  }
-
-  @NeverDefault
-  UnresolvedSymbol buildSymbol() {
-    return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScope());
-  }
-
-  @NeverDefault
-  InvokeCallableNode buildInvokeCallableNode() {
-    return InvokeCallableNode.build(
-        new CallArgumentInfo[] {new CallArgumentInfo()},
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   @NeverDefault

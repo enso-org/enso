@@ -1,10 +1,6 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
-import LocalBackend from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { getMessageOrToString } from '#/utilities/error'
 import {
   useMutationState,
   type Mutation,
@@ -16,10 +12,13 @@ import {
   FilterBy,
   type AnyAsset,
   type AssetId,
-  type default as Backend,
+  type Backend,
   type BackendType,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
+import { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { getMessageOrToString } from 'enso-common/src/utilities/errors'
 
 /** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
 export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
@@ -32,15 +31,16 @@ export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
 export const DELETE_ASSETS_MUTATION_METHOD = 'deleteAssets'
 
 /** A key for {@link deleteAssetsMutationOptions}. */
-export function deleteAssetsMutationKey(backendType: BackendType) {
+export function deleteAssetsMutationKey(backendType: BackendType | null) {
   return [backendType, DELETE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "delete" mutations for a list of assets. */
-export function deleteAssetsMutationOptions(backend: Backend) {
+export function deleteAssetsMutationOptions(backend: Backend | null) {
   return mutationOptions({
-    mutationKey: deleteAssetsMutationKey(backend.type),
+    mutationKey: deleteAssetsMutationKey(backend?.type ?? null),
     mutationFn: async ([ids, force]: readonly [ids: readonly AssetId[], force: boolean]) => {
+      if (backend == null) throw Error('Backend unavailable')
       const results = await Promise.allSettled(
         ids.map((id) => backend.deleteAsset(id, { force }, '(unknown)')),
       )
@@ -60,9 +60,9 @@ export function deleteAssetsMutationOptions(backend: Backend) {
     },
     meta: {
       invalidates: [
-        [backend.type, 'listDirectory'],
-        [backend.type, 'getAssetDetails'],
-        [backend.type, 'listAssetVersions'],
+        [backend?.type, 'listDirectory'],
+        [backend?.type, 'getAssetDetails'],
+        [backend?.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
       refetchType: 'all',
@@ -89,8 +89,12 @@ export function useDeleteAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...deleteAssetsMutationOptions(backend),
-      predicate: (mutation: DeleteAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: DeleteAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -165,8 +169,12 @@ export function useRestoreAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...restoreAssetsMutationOptions(backend),
-      predicate: (mutation: RestoreAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: RestoreAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -178,19 +186,19 @@ export function useRestoreAssetsMutationState<Result>(
 export const COPY_ASSETS_MUTATION_METHOD = 'copyAssets'
 
 /** A key for {@link copyAssetsMutationOptions}. */
-export function copyAssetsMutationKey(backendType: BackendType) {
+export function copyAssetsMutationKey(backendType: BackendType | null) {
   return [backendType, COPY_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "copy" mutations for a list of assets. */
-export function copyAssetsMutationOptions(backend: Backend) {
+export function copyAssetsMutationOptions(backend: Backend | null) {
   return mutationOptions({
-    mutationKey: copyAssetsMutationKey(backend.type),
+    mutationKey: copyAssetsMutationKey(backend?.type ?? null),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       /**
        * Copy an asset and return a promise that resolves to the asset or an error.
        */
-      const copyAsset = async (id: AssetId) => backend.copyAsset(id, parentId)
+      const copyAsset = async (id: AssetId) => backend?.copyAsset(id, parentId)
 
       const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
 
@@ -210,8 +218,8 @@ export function copyAssetsMutationOptions(backend: Backend) {
     },
     meta: {
       invalidates: [
-        [backend.type, 'listDirectory'],
-        [backend.type, 'getAssetDetails'],
+        [backend?.type, 'listDirectory'],
+        [backend?.type, 'getAssetDetails'],
       ],
       awaitInvalidates: true,
       refetchType: 'all',
@@ -238,8 +246,12 @@ export function useCopyAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...copyAssetsMutationOptions(backend),
-      predicate: (mutation: CopyAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: CopyAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -251,21 +263,22 @@ export function useCopyAssetsMutationState<Result>(
 export const MOVE_ASSETS_MUTATION_METHOD = 'moveAssets'
 
 /** A key for {@link moveAssetsMutationOptions}. */
-export function moveAssetsMutationKey(backendType: BackendType) {
+export function moveAssetsMutationKey(backendType: BackendType | null) {
   return [backendType, MOVE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "move" mutations for a list of assets. */
-export function moveAssetsMutationOptions(backend: Backend) {
+export function moveAssetsMutationOptions(backend: Backend | null) {
   return mutationOptions({
-    mutationKey: moveAssetsMutationKey(backend.type),
+    mutationKey: moveAssetsMutationKey(backend?.type ?? null),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
+      if (backend == null) throw Error('No backend available')
       const results = await Promise.allSettled(
         ids.map((id) =>
           backend
             .updateAsset(
               id,
-              { description: null, parentDirectoryId: parentId, title: null },
+              { description: null, parentDirectoryId: parentId, title: null, metadataId: null },
               '(unknown)',
             )
             .catch((error) => {
@@ -304,6 +317,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
                 parentDirectoryId: parentId,
                 description: null,
                 title: resolution.newName,
+                metadataId: null,
               },
               resolution.newName,
             ),
@@ -323,8 +337,8 @@ export function moveAssetsMutationOptions(backend: Backend) {
     },
     meta: {
       invalidates: [
-        [backend.type, 'listDirectory'],
-        [backend.type, 'listAssetVersions'],
+        [backend?.type, 'listDirectory'],
+        [backend?.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
     },
@@ -350,8 +364,12 @@ export function useMoveAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...moveAssetsMutationOptions(backend),
-      predicate: (mutation: MoveAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: MoveAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -364,24 +382,28 @@ export function useMoveAssetsMutationState<Result>(
 export async function getAllTrashedItems(
   queryClient: QueryClient,
   backend: Backend,
-  category: TrashCategory,
-) {
-  return await queryClient.ensureQueryData(
-    backendQueryOptions(backend, 'listDirectory', [
-      {
-        parentId: category.homeDirectoryId,
-        labels: null,
-        filterBy: FilterBy.trashed,
-        recentProjects: false,
-      },
-      '(unknown)',
-    ]),
-  )
+  parentId: DirectoryId | null,
+): Promise<readonly AnyAsset[]> {
+  return (
+    await queryClient.ensureQueryData(
+      backendQueryOptions(backend, 'listDirectory', [
+        {
+          parentId,
+          labels: null,
+          filterBy: FilterBy.trashed,
+          recentProjects: false,
+          from: null,
+          pageSize: null,
+          sortExpression: null,
+          sortDirection: null,
+        },
+        '(unknown)',
+      ]),
+    )
+  ).assets
 }
 
-/**
- * Options for the "download" mutation.
- */
+/** Options for the "download" mutation. */
 export interface DownloadAssetsMutationOptions {
   readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
   readonly targetDirectoryId: DirectoryId | null

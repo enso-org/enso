@@ -18,8 +18,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(
     type = "Meta",
     name = "get_type_constructors",
-    description = "Gets the constructors of a type.",
-    autoRegister = false)
+    description = "Gets the constructors of a type.")
 public abstract class GetTypeConstructorsNode extends Node {
   static GetTypeConstructorsNode build() {
     return GetTypeConstructorsNodeGen.create();

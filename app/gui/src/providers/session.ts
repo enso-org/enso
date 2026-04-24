@@ -1,30 +1,35 @@
 import { unsetModal } from '#/providers/ModalProvider'
-import { NotAuthorizedError } from '#/services/Backend'
-import { unreachable } from '#/utilities/error'
-import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
-import { AuthEvent, ListenFunction } from '$/authentication/listen'
+import { AuthEvent, type ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
-import { Err } from '@/util/data/result'
-import { proxyRefs } from '@/util/reactivity'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
+import type { SignInOutput } from 'aws-amplify/auth'
+import type { HttpClient } from 'enso-common/src/services/HttpClient'
+import { unreachable } from 'enso-common/src/utilities/errors'
+import { computed, onScopeDispose, ref, toRaw, toValue, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
+import { useUnauthorizedRecovery } from './session/useUnauthorizedRecovery'
 import { useText } from './text'
 
+export const USER_SESSION_QUERY_KEY = ['userSession'] as const
+
 /** Create a query for the user session. */
-export function createSessionQuery(authService: cognito.ISessionProvider) {
+export function createSessionQuery(authService: ToValue<cognito.ISessionProvider | undefined>) {
   return vueQuery.queryOptions({
-    queryKey: ['userSession'],
-    queryFn: async () => authService.userSession().catch(() => null),
+    queryKey: USER_SESSION_QUERY_KEY,
+    queryFn: async () =>
+      toValue(authService)
+        ?.userSession()
+        .catch(() => null) ?? null,
   })
 }
 
@@ -36,9 +41,10 @@ function getMainPageUrl() {
 }
 
 export type SessionStore = ReturnType<typeof createSessionStore>
+
 /** Create a store maintaining session information. */
 export function createSessionStore(
-  authService: cognito.ISessionProvider,
+  authService: ToValue<cognito.ISessionProvider | undefined>,
   registerAuthEventListener: ListenFunction,
   httpClient: HttpClient = useHttpClient(),
   { getText } = useText(),
@@ -54,19 +60,19 @@ export function createSessionStore(
   const sessionQueryOptions = createSessionQuery(authService)
   const session = vueQuery.useQuery(sessionQueryOptions)
 
+  const assertAuthService = (): cognito.ISessionProvider => {
+    const auth = toValue(authService)
+    if (auth == null) throw Error('Cognito not initialized')
+    return auth
+  }
+
   const refreshUserSessionMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['refreshUserSession', { expireAt: session.data.value?.expireAt }]),
-    mutationFn: async () => authService.refreshUserSession(),
+    mutationFn: async () => assertAuthService().refreshUserSession(),
     onSuccess: (data) => {
       if (data) {
         httpClient.setSessionToken(data.accessToken)
       }
-    },
-    onError: (error) => {
-      // Something went wrong with the refresh token, so we need to sign the user out.
-      errorToast.reportError(Err(error).error, getText('sessionExpiredError'))
-      queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      return logoutMutation.mutate()
     },
     meta: {
       invalidates: [sessionQueryOptions.queryKey],
@@ -77,15 +83,20 @@ export function createSessionStore(
   const logoutMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['session', 'logout', session.data.value?.clientId] as const),
     mutationFn: async () => {
+      const auth = assertAuthService()
       isLoggingOut.value = true
       document.dispatchEvent(new Event(LOGOUT_EVENT))
-      await authService.signOut()
+      try {
+        await auth.signOut()
 
-      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+        const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+        document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
 
-      authService.saveAccessToken(null)
-      isLoggingOut.value = false
+        auth.saveAccessToken(null)
+        httpClient.clearSessionToken()
+      } finally {
+        isLoggingOut.value = false
+      }
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
@@ -93,15 +104,31 @@ export function createSessionStore(
       analytics.cloudSignOut.after()
       localStorage.clearUserSpecificEntries()
       sentry.setUser(null)
+      resetUnauthorizedRecoveryState()
       successToast.show(getText('signOutSuccess'))
     },
     onError: () => errorToast.show(getText('signOutError')),
     meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
   })
 
+  const { isReconnectingSession, resetUnauthorizedRecoveryState } = useUnauthorizedRecovery({
+    queryClient,
+    isLoggingOut,
+    refreshUserSession: () => refreshUserSessionMutation.mutateAsync(),
+    logout: () => logoutMutation.mutateAsync(),
+    clearSessionToken: () => httpClient.clearSessionToken(),
+    cancelSessionQuery: () =>
+      queryClient.cancelQueries({ queryKey: USER_SESSION_QUERY_KEY, exact: true }),
+    clearSessionQuery: () => queryClient.setQueryData(sessionQueryOptions.queryKey, null),
+    reportSessionExpiredError: (error) =>
+      errorToast.reportError(error, getText('sessionExpiredError')),
+    reportRepeatedUnauthorizedError: (error) => errorToast.reportError(error),
+  })
+
   const signUp = async (username: string, password: string, organizationId: string | null) => {
+    const auth = assertAuthService()
     analytics.cloudSignUp.before()
-    const result = await authService.signUp(username, password, organizationId)
+    const result = await auth.signUp(username, password, organizationId)
 
     if (result.err) {
       throw new Error(result.val.message)
@@ -109,10 +136,10 @@ export function createSessionStore(
       return
     }
   }
-
   const confirmSignUp = async (email: string, code: string): Promise<void> => {
+    const auth = assertAuthService()
     analytics.cloudSignUp.confirm.before()
-    const result = await authService.confirmSignUp(email, code)
+    const result = await auth.confirmSignUp(email, code)
 
     if (result.err) {
       switch (result.val.type) {
@@ -128,19 +155,21 @@ export function createSessionStore(
     analytics.cloudSignUp.confirm.after()
   }
 
-  function challengeStepRequired(
-    user: cognito.CognitoUser,
-  ): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
-    switch (user.challengeName) {
-      case 'SMS_MFA':
-      case 'SOFTWARE_TOKEN_MFA': {
-        return user.challengeName
-      }
-      case undefined:
-      case 'CUSTOM_CHALLENGE':
-      case 'MFA_SETUP':
-      case 'NEW_PASSWORD_REQUIRED':
-      case 'SELECT_MFA_TYPE':
+  const resendSignUp = async (username: string): Promise<void> => {
+    await assertAuthService().resendSignUp(username)
+  }
+
+  /**
+   * Return an identifier of required challenge step, if any.
+   *
+   * This function is used for analytics log, so it returns "old" SOFTWARE_TOKEN_MFA identifier.
+   */
+  function challengeStepRequired(user: SignInOutput): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
+    switch (user.nextStep.signInStep) {
+      case 'CONFIRM_SIGN_IN_WITH_SMS_CODE':
+        return 'SMS_MFA'
+      case 'CONFIRM_SIGN_IN_WITH_TOTP_CODE':
+        return 'SOFTWARE_TOKEN_MFA'
       default: {
         return null
       }
@@ -150,9 +179,10 @@ export function createSessionStore(
   const signInWithPassword = async (
     email: string,
     password: string,
-  ): Promise<{ user: cognito.CognitoUser; challenge: boolean }> => {
+  ): Promise<{ challenge: boolean }> => {
+    const auth = assertAuthService()
     analytics.signIn.before('Email')
-    const result = await authService.signInWithPassword(email, password)
+    const result = await auth.signInWithPassword(email, password)
     if (!result.ok) {
       throw new Error(result.val.message)
     }
@@ -164,37 +194,32 @@ export function createSessionStore(
     } else {
       await queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     }
-    return { user, challenge: challengeType != null }
+    return { challenge: challengeType != null }
   }
 
-  function useSignIn(
-    signIn: () => Promise<void>,
-    provider: analytics.AuthProvider,
-  ): () => Promise<boolean> {
-    analytics.signIn.before(provider)
-
-    return () =>
-      signIn().then(
-        () => true,
-        () => false,
-      )
+  function useSignIn(signIn: () => Promise<void>, provider: analytics.AuthProvider) {
+    return async () => {
+      analytics.signIn.before(provider)
+      await signIn()
+    }
   }
 
-  const signInWithApple = useSignIn(() => authService.signInWithApple(), 'Apple')
-  const signInWithGoogle = useSignIn(() => authService.signInWithGoogle(), 'Google')
-  const signInWithGitHub = useSignIn(() => authService.signInWithGitHub(), 'GitHub')
-  const signInWithMicrosoft = useSignIn(() => authService.signInWithMicrosoft(), 'Microsoft')
+  const signInWithApple = useSignIn(() => assertAuthService().signInWithApple(), 'Apple')
+  const signInWithGoogle = useSignIn(() => assertAuthService().signInWithGoogle(), 'Google')
+  const signInWithGitHub = useSignIn(() => assertAuthService().signInWithGitHub(), 'GitHub')
+  const signInWithMicrosoft = useSignIn(
+    () => assertAuthService().signInWithMicrosoft(),
+    'Microsoft',
+  )
 
-  const confirmSignIn = async (
-    user: cognito.CognitoUser,
-    otp: string,
-  ): cognito.ConfirmSignInReturn => {
+  const confirmSignIn = async (challengeResponse: string): cognito.ConfirmSignInReturn => {
+    const auth = assertAuthService()
     analytics.signIn.confirm.before()
-    return authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+    return auth.confirmSignIn(challengeResponse)
   }
 
   const forgotPassword = async (email: string) => {
-    const result = await authService.forgotPassword(email)
+    const result = await assertAuthService().forgotPassword(email)
     if (result.ok) {
       return null
     } else {
@@ -203,7 +228,7 @@ export function createSessionStore(
   }
 
   const resetPassword = async (email: string, code: string, password: string) => {
-    const result = await authService.forgotPasswordSubmit(email, code, password)
+    const result = await assertAuthService().forgotPasswordSubmit(email, code, password)
 
     if (result.ok) {
       return null
@@ -213,7 +238,7 @@ export function createSessionStore(
   }
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
-    const result = await authService.changePassword(oldPassword, newPassword)
+    const result = await assertAuthService().changePassword(oldPassword, newPassword)
 
     if (result.err) {
       throw new Error(result.val.message)
@@ -238,15 +263,17 @@ export function createSessionStore(
   // means the login screen (which is a child of this provider) should render.
   const unregister = registerAuthEventListener((event) => {
     switch (event) {
-      case AuthEvent.signIn: {
+      case AuthEvent.signedIn: {
         analytics.signIn.after()
+        resetUnauthorizedRecoveryState()
         break
       }
-      case AuthEvent.signOut: {
+      case AuthEvent.signedOut: {
+        resetUnauthorizedRecoveryState()
         break
       }
       case AuthEvent.customOAuthState:
-      case AuthEvent.cognitoHostedUi: {
+      case AuthEvent.signInWithRedirect: {
         // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
         // we have to hack it by replacing the URL in the browser's history. This is done
         // because otherwise the user will be redirected to a URL like `enso://auth`, which
@@ -263,10 +290,10 @@ export function createSessionStore(
   })
   onScopeDispose(unregister)
 
-  const organizationId = authService.organizationId
+  const organizationId = () => toValue(authService)?.organizationId()
 
   const getMFAPreference = async () => {
-    const result = await authService.getMFAPreference()
+    const result = await assertAuthService().getMFAPreference()
     if (result.err) {
       throw result.val
     } else {
@@ -275,7 +302,7 @@ export function createSessionStore(
   }
 
   const updateMFAPreference = async (mfaType: cognito.MfaType) => {
-    const result = await authService.updateMFAPreference(mfaType)
+    const result = await assertAuthService().updateMFAPreference(mfaType)
 
     if (result.err) {
       throw result.val
@@ -283,7 +310,7 @@ export function createSessionStore(
   }
 
   const verifyTotpToken = async (otp: string) => {
-    const result = await authService.verifyTotpToken(otp)
+    const result = await assertAuthService().verifyTotpToken(otp)
     if (result.err) {
       throw result.val
     } else {
@@ -292,7 +319,7 @@ export function createSessionStore(
   }
 
   const setupTOTP = async () => {
-    const result = await authService.setupTOTP()
+    const result = await assertAuthService().setupTOTP()
     if (result.err) {
       throw result.val
     } else {
@@ -306,29 +333,18 @@ export function createSessionStore(
       // `saveAccessToken` passes its argument through Electron IPC.
       // `toRaw` is required because `session.data.value` is a reactive `Proxy`,
       // which cannot be `structuredClone`d (and therefore cannot be sent over IPC).
-      authService.saveAccessToken(toRaw(session.data.value))
+      assertAuthService().saveAccessToken(toRaw(session.data.value))
     }
   })
-
-  queryClient.getQueryCache().config.onError = (error, query) => {
-    if (error instanceof NotAuthorizedError) {
-      void refreshUserSessionMutation
-        .mutateAsync()
-        .then(() => queryClient.refetchQueries({ queryKey: query.queryKey }))
-    }
-  }
-  queryClient.getMutationCache().config.onError = (error, variables, _context, mutation) => {
-    if (error instanceof NotAuthorizedError) {
-      void refreshUserSessionMutation.mutateAsync().then(() => mutation.execute(variables))
-    }
-  }
 
   return proxyRefs({
     signUp,
     session: session.data,
     waitForSession: () => waitForData(session),
     isLoggingOut,
+    isReconnectingSession,
     confirmSignUp,
+    resendSignUp,
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,

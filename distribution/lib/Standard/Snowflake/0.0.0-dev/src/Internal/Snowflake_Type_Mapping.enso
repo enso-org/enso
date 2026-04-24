@@ -4,20 +4,21 @@ from Standard.Base import all
 import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Internal.Java_Exports
 from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
-import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
 
+import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
+
 polyglot java import java.sql.Types
-polyglot java import org.enso.snowflake.SnowflakeIntegerColumnMaterializer
+polyglot java import org.enso.snowflake.SnowflakeColumnFetcherFactory
+polyglot java import org.enso.snowflake.SnowflakeJDBCValueSetter
 
 ## ---
    private: true
@@ -82,8 +83,9 @@ type Snowflake_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = json_as_text
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
@@ -92,6 +94,15 @@ type Snowflake_Type_Mapping
             case complex_types_map.get sql_type.typeid Nothing of
                 Nothing -> on_unknown_type sql_type
                 builder -> builder sql_type
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for Snowflake.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        SnowflakeColumnFetcherFactory.INSTANCE
 
     ## ---
        private: true
@@ -131,22 +142,6 @@ type Snowflake_Type_Mapping
     ## ---
        private: true
        ---
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher : SQL_Type -> Column_Fetcher
-    make_column_fetcher self sql_type =
-        value_type = self.sql_type_to_value_type sql_type
-        case value_type of
-            Value_Type.Time -> time_fetcher
-            Value_Type.Date_Time _ -> date_time_fetcher
-            # If we encounter a Decimal column with scale 0 we will try to fetch it as Integer if the values fit.
-            Value_Type.Decimal _ 0 -> smart_integer_fetcher
-            # Other Decimal columns get the default behaviour - fetched as BigInteger or BigDecimal.
-            _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
-
-    ## ---
-       private: true
-       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently only implicit conversion is Integer -> Decimal
         case source_type of
@@ -179,6 +174,26 @@ type Snowflake_Type_Mapping
         # Types are considered the same by original semantics, or additionally if both of them are an integer-like type as denoted by `is_integer_type`.
         (value_type1.is_same_type value_type2) || (Snowflake_Type_Mapping.is_integer_type value_type1 && Snowflake_Type_Mapping.is_integer_type value_type2)
 
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for Snowflake.
+    statement_setter =
+        fill_hole = Statement_Setter.create_fill_hole Snowflake_Type_Mapping.value_setter
+        Statement_Setter.for_fill_hole fill_hole
+
+    ## ---
+       private: true
+       ---
+    value_setter =
+        SnowflakeJDBCValueSetter.new
+
+    ## ---
+       private: true
+       ---
+    error_mapper : Snowflake_Error_Mapper
+    error_mapper self = Snowflake_Error_Mapper
+
 ## ---
    private: true
    ---
@@ -194,7 +209,7 @@ complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =
-        effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
+        effective_size = if sql_type.precision==Nothing || sql_type.precision>=max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
         Value_Type.Char size=effective_size variable_length=True
     make_char sql_type =
         # Even the CHAR type in Snowflake is still variable length - it is just an alias for VARCHAR.
@@ -234,52 +249,6 @@ on_unknown_type sql_type =
    This is the maximum size that JDBC driver reports for 'unbounded' types in
    Snowflake.
 max_length = 16777216
-
-## ---
-   private: true
-   ---
-time_fetcher =
-    fetch_value rs i =
-        ## Read the time as a string to get the nanosecond precision.
-        sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else Time_Of_Day.parse sf_string
-    make_builder initial_size java_problem_aggregator =
-        java_builder = Java_Exports.make_builder_for_type Value_Type.Time initial_size java_problem_aggregator
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
-
-## ---
-   private: true
-   ---
-date_time_fetcher =
-    fetch_value rs i =
-        ## Read the time as a string to get the nanosecond precision.
-        sf_string = rs.getString i
-        if sf_string == Nothing then Nothing else
-            normalized = if sf_string.at 10 != 'T' then sf_string else
-                (sf_string.take 10) + ' ' + (sf_string.drop 11)
-            # The offset is optional - if we were fetching TIMESTAMP_NTZ it could be missing.
-            # The two variants of offset are needed - to handle both `+0200` and `+02:00` formats.
-            Date_Time.parse normalized "yyyy-MM-dd HH:mm:ss.f[ ZZ][ ZZZZZ]"
-    make_builder initial_size java_problem_aggregator =
-        java_builder = Java_Exports.make_builder_for_type Value_Type.Date_Time initial_size java_problem_aggregator
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
-
-## ---
-   private: true
-   ---
-   A fetcher for Snowflake Decimal integer columns.
-   Integer columns in Snowflake are represented as `NUMBER(38, 0)`, meaning there
-   is no separate Integer type.
-   In Enso, using `Decimal` values incurs a significant overhead. Thus, when
-   fetching such an integer column from Snowflake, we try to first fetch it as
-   lightweight `Integer` and only fall back to `Decimal` if needed.
-smart_integer_fetcher =
-    make_builder initial_size _ =
-        java_builder = SnowflakeIntegerColumnMaterializer.new initial_size
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value Column_Fetcher_Module.fetch_big_integer make_builder
 
 ## ---
    private: true

@@ -8,6 +8,8 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Metadata.File_Type
+import Standard.Base.Metadata.Widget
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Add_Row_Number
@@ -46,10 +48,7 @@ import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
-import project.SQL_Query.SQL_Query
-
-polyglot java import java.sql.JDBCType
-polyglot java import java.util.UUID
+from project.SQL_Query import make_table_for_name
 
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table
@@ -134,7 +133,7 @@ type DB_Table
             case self.get_primary_key of
                 Nothing -> Nothing
                 primary_key_column_names : Vector -> case self.context.from_spec of
-                    SQL_IR_From_Part.Table _ alias _ ->
+                    SQL_IR_From_Part.Table _ _ alias _ ->
                         primary_key_column_names.map column_name->
                             column_expression = SQL_IR_Expression.Column alias column_name
                             Order_Descriptor.Value column_expression Sort_Direction.Ascending
@@ -146,11 +145,11 @@ type DB_Table
        Returns the primary key defined for the table, if applicable.
     get_primary_key : Vector Text | Nothing
     get_primary_key self = case self.context.from_spec of
-        SQL_IR_From_Part.Table table_name _ _ ->
+        SQL_IR_From_Part.Table table_name schema_name _ _ ->
             # The primary key may not be valid anymore after grouping!
             is_primary_key_still_valid = self.context.groups.is_empty
             if is_primary_key_still_valid.not then Nothing else
-                result = self.connection.dialect.fetch_primary_key self.connection table_name
+                result = self.connection.fetch_primary_key table_name schema_name
                 result.catch Any _->Nothing
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
@@ -253,9 +252,9 @@ type DB_Table
           returned.
     is_trivial_query self (fail_if_not_found : Boolean = True) -> Boolean ! Table_Not_Found =
         case self.context.from_spec of
-            SQL_IR_From_Part.Table internal_table_name _ _ ->
+            SQL_IR_From_Part.Table internal_table_name schema_name _ _ ->
                 if self.name != internal_table_name then False else
-                    trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
+                    trivial_counterpart = make_table_for_name self.connection internal_table_name schema_name ""
                     # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
                     check_context_and_columns =
                         if self.context != trivial_counterpart.context then False else
@@ -268,14 +267,36 @@ type DB_Table
             _ -> False
 
     ## ---
+       private: true
+       ---
+    table_name_schema self =
+        case self.context.from_spec of
+            SQL_IR_From_Part.Table table_name schema_name _ _ -> if self.name != table_name then Nothing else
+                trivial_counterpart = make_table_for_name self.connection table_name schema_name ""
+
+                # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
+                check_context_and_columns =
+                    if self.context != trivial_counterpart.context then False else
+                       column_descriptor internal_column = [internal_column.name, internal_column.expression]
+                       my_columns = self.internal_columns.map column_descriptor
+                       trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
+                       my_columns == trivial_columns
+
+                if trivial_counterpart.is_error || check_context_and_columns.not then Nothing else
+                    if schema_name.is_nothing || schema_name == "" then [table_name] else [schema_name, table_name]
+            _ -> Nothing
+
+    ## ---
        group: Standard.Base.Output
        icon: data_output
        ---
        Creates a Data Link that will act as a view into the query represented by
        this table.
+    @path (Widget.File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination on_existing_file:Existing_File_Behavior=..Error =
-        DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
+    save_as_data_link self path:Enso_File on_existing_file:Existing_File_Behavior=..Error =
+        if path.is_data_link then DB_Data_Link_Helpers.save_table_as_data_link self path on_existing_file else
+            self.save_as_data_link (Enso_File.new path.path+".datalink") on_existing_file
 
 ## ---
    private: true
@@ -326,7 +347,7 @@ make_literal_table connection column_vectors column_names alias =
 
     if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
         if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
-            type_mapping = connection.dialect.get_type_mapping
+            mapping = connection.type_mapping
             from_spec = SQL_IR_From_Part.Literal_Values column_vectors column_names alias
             context = SQL_IR_Source.for_subquery from_spec
 
@@ -340,13 +361,13 @@ make_literal_table connection column_vectors column_names alias =
                 value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector.to_vector
                 sql_type = case value_type of
                    Nothing -> SQL_Type.null
-                   _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+                   _ -> mapping.value_type_to_sql value_type Problem_Behavior.Ignore
                 type_ref = SQL_Type_Reference.from_constant sql_type
                 sql_expression = SQL_IR_Expression.Column alias column_name
                 base_column = Internal_Column.Value column_name type_ref sql_expression
 
                 needs_cast = value_type.is_nothing.not && connection.dialect.needs_literal_table_cast value_type
                 if needs_cast.not then base_column else
-                    connection.dialect.make_cast base_column sql_type infer_type_from_database
+                    connection.dialect.make_cast base_column mapping sql_type infer_type_from_database
 
             DB_Table.new alias connection internal_columns context

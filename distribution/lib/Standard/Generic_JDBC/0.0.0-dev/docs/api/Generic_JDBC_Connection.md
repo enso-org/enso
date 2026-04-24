@@ -1,0 +1,22 @@
+## Enso Signatures 1.0
+## module Standard.Generic_JDBC.Generic_JDBC_Connection
+- type Generic_JDBC_Connection
+    - close self -> Standard.Base.Nothing.Nothing
+    - connect url:Standard.Base.Data.Text.Text= properties:Standard.Base.Data.Vector.Vector= quote_char:Standard.Base.Data.Text.Text= -> Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+    - database self -> (Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
+    - database_product self -> Standard.Base.Data.Text.Text
+    - databases self -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - driver self -> Standard.Base.Data.Text.Text
+    - execute self sql:Standard.Base.Data.Text.Text= -> Standard.Base.Data.Numbers.Integer
+    - quote_identifier self identifier:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
+    - quote_literal self literal:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
+    - read self sql_query:Standard.Database.SQL_Query.SQL_Query= limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Table.Table
+    - schema self -> Standard.Base.Any.Any
+    - schemas self -> Standard.Base.Data.Vector.Vector
+    - table_types self -> Standard.Base.Any.Any
+    - tables self name_like:Standard.Base.Data.Text.Text= database:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= schema:Standard.Base.Data.Text.Text= table_types:Standard.Base.Data.Vector.Vector= -> Standard.Table.Table.Table
+    - to_js_object self -> Standard.Base.Any.Any
+- type Generic_JDBC_Details
+    - JDBC url:Standard.Base.Data.Text.Text=
+    - connect self options:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any

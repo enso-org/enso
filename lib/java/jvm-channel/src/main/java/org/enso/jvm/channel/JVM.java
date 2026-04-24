@@ -14,7 +14,12 @@ import org.graalvm.word.WordFactory;
 public final class JVM {
   private final JNIBoot.JNICreateJavaVMPointer createJvmFn;
   private final String[] options;
-  private JNI.JNIEnv env = WordFactory.nullPointer();
+  private final ThreadLocal<Long> threadEnvs = new ThreadLocal<>();
+
+  /**
+   * @GuardedBy("this")
+   */
+  private JNI.JavaVM javaVM = WordFactory.nullPointer();
 
   JVM(JNIBoot.JNICreateJavaVMPointer factory, String[] options) {
     this.createJvmFn = factory;
@@ -22,23 +27,37 @@ public final class JVM {
   }
 
   /**
-   * Create new JVM.Use {@link #env()} to obtain reference to JNI interface and make calls into the
-   * JVM.
+   * Create new JVM. Either HotSpot JVM or natively compiled JVM. Use {@link #executeMain} to launch
+   * a main method inside of the JVM. Use {@link Channel#create} to establish a channel to send more
+   * intricate messages to the JVM.
    *
-   * @param javaHome path where the JDK is installed
+   * @param path path where the JDK is installed - either path to the HotSpot JVM directory or
+   *     direct path to the dynamic library that contains the {@code JNI_CreateJavaVM} entry point
    * @param options parameters to pass to the JVM
    * @return new instance of the JVM
    */
-  public static JVM create(File javaHome, String... options) {
-    var createJvmFn =
+  public static JVM create(File path, String... options) {
+    JNIBoot.JNICreateJavaVMPointer createJvmFn;
+    File libPath;
+    if (path.isDirectory()) {
+      // assume it is a root of `System.getProperty("java.home")`
+      libPath =
+          Platform.includedIn(Platform.WINDOWS.class)
+              ? WindowsJVM.findDynamicLibrary(path)
+              : PosixJVM.findDynamicLibrary(path);
+    } else {
+      libPath = path;
+    }
+    assert libPath.isFile();
+    createJvmFn =
         Platform.includedIn(Platform.WINDOWS.class)
-            ? WindowsJVM.createImpl(javaHome)
-            : PosixJVM.createImpl(javaHome);
+            ? WindowsJVM.loadImpl(libPath.getAbsolutePath())
+            : PosixJVM.loadImpl(libPath.getAbsolutePath());
 
     var jvmArgs = new ArrayList<String>();
 
     // java.home
-    jvmArgs.add("-Djava.home=" + javaHome);
+    jvmArgs.add("-Djava.home=" + path);
 
     jvmArgs.addAll(Arrays.asList(options));
     return new JVM(createJvmFn, jvmArgs.toArray(new String[0]));
@@ -83,13 +102,34 @@ public final class JVM {
    * @return JNI environment to make calls into the JVM
    */
   final JNI.JNIEnv env() {
-    if (env.isNull()) {
-      env = initializeEnv();
+    if (javaVM.isNull()) {
+      var env = initializeEnv();
+      if (env.isNonNull()) {
+        threadEnvs.set(env.rawValue());
+        return env;
+      }
+    }
+    var rawEnv = threadEnvs.get();
+    JNI.JNIEnv env;
+    if (rawEnv == null) {
+      var envOut = StackValue.get(JNI.JNIEnvPointer.class);
+      var attachThreadFn = javaVM.getFunctions().getAttachCurrentThread();
+      var res = attachThreadFn.call(javaVM, envOut, WordFactory.nullPointer());
+      if (res != JNI.JNI_OK()) {
+        throw new AssertionError("Error attaching thread: " + res);
+      }
+      env = envOut.readJNIEnv();
+      threadEnvs.set(env.rawValue());
+    } else {
+      env = WordFactory.pointer(rawEnv);
     }
     return env;
   }
 
   private synchronized JNI.JNIEnv initializeEnv() {
+    if (javaVM.isNonNull()) {
+      return WordFactory.nullPointer();
+    }
     var jvmArgs = StackValue.get(JNIBoot.Args.class);
     var optionsCount = options.length;
     jvmArgs.nOptions(optionsCount);
@@ -110,7 +150,7 @@ public final class JVM {
     var envPtr = StackValue.get(JNI.JNIEnvPointer.class);
 
     int res = createJvmFn.call(jvmPtr, envPtr, jvmArgs);
-    if (res != 0) {
+    if (res != JNI.JNI_OK()) {
       throw new AssertionError("Error creating JVM: " + res);
     }
 
@@ -119,6 +159,7 @@ public final class JVM {
     }
     UnmanagedMemory.free(jvmOpts);
 
+    javaVM = jvmPtr.readJavaVM();
     return envPtr.readJNIEnv();
   }
 }

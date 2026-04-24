@@ -1,5 +1,6 @@
 package org.enso.compiler.dump.test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
@@ -312,8 +313,8 @@ public class DocsGenerateTest {
     assertEquals("values", m.methodName().name());
     assertEquals(
         "Generates vector with argument type as return type",
-        "values a:Standard.Base.Data.Text.Text -> (Standard.Base.Data.Vector.Vector"
-            + " Standard.Base.Data.Text.Text)",
+        "values a:Standard.Base.Data.Text.Text -> "
+            + "(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)",
         DocsVisit.toSignature(m));
   }
 
@@ -343,6 +344,67 @@ public class DocsGenerateTest {
         "Generates vector with argument type as return type",
         "one a:local.Union.Main.A -> (local.Union.Main.A|local.Union.Main.B|local.Union.Main.C)",
         DocsVisit.toSignature(m));
+  }
+
+  @Test
+  public void functionalUnionTypes() throws Exception {
+    var code =
+        """
+        type A
+        type B
+
+        one a:((A -> B) | B) -> B = B
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("UnionFn", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("one", m.methodName().name());
+    var sig = DocsVisit.toSignature(m);
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "one a:((local.UnionFn.Main.A -> local.UnionFn.Main.B)|local.UnionFn.Main.B)"
+            + " -> local.UnionFn.Main.B",
+        sig);
+  }
+
+  @Test
+  public void vectorWithUnionTypes() throws Exception {
+    var code =
+        """
+        from Standard.Base import Vector, Text
+
+        type A
+        type B
+
+        one a:A -> Vector A | Vector B = [a]
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("UnionVector", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("one", m.methodName().name());
+    var methodSignature = DocsVisit.toSignature(m);
+    assertEquals(
+        "Generates union of vectors with argument type as return type",
+        "one a:local.UnionVector.Main.A -> ("
+            + "(Standard.Base.Data.Vector.Vector local.UnionVector.Main.A)"
+            + "|(Standard.Base.Data.Vector.Vector local.UnionVector.Main.B))",
+        methodSignature);
   }
 
   @Test
@@ -401,6 +463,73 @@ public class DocsGenerateTest {
         "Generates thrown dataflow errors in the signature",
         "one a:local.Error.Main.A -> (local.Error.Main.A&local.Error.Main.B)!local.Error.Main.C",
         sig);
+  }
+
+  @Test
+  public void blankArgument_ConsolidatedLambda() throws Exception {
+    // This will get consolidated into:
+    // foo _ = 42
+    // See `LambdaConsolidate` compiler pass
+    var code =
+        """
+        foo =
+            _ -> 42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    assertSingleBlankArgument("foo", sig);
+  }
+
+  @Test
+  public void blankArgument_DefinedBlank() throws Exception {
+    var code =
+        """
+        foo _ =
+            42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    assertSingleBlankArgument("foo", sig);
+  }
+
+  @Test
+  public void moreBlankArguments() throws Exception {
+    var code =
+        """
+        foo _ x _ y =
+            42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    var sigLine = lastLine(sig);
+    var any = "Standard.Base.Any.Any";
+    var regex = ".*foo _:${any} x:${any} _:${any} y:${any} ->.*".replace("${any}", any);
+    assertThat("Two blank (underscore) arguments: " + sigLine, sigLine.matches(regex), is(true));
+  }
+
+  @Test
+  public void conversionBlank() throws Exception {
+    var code =
+        """
+        type Source
+        type Target
+        Target.from (_:Source) = 42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    var sigLine = lastLine(sig);
+    assertThat(
+        "Single blank argument in conversion: " + sigLine,
+        sigLine,
+        containsString("Main.Target.from _:Main.Source -> Main.Target"));
+  }
+
+  private static void assertSingleBlankArgument(String methodName, String sig) {
+    var sigLine = lastLine(sig);
+    var regex = ".*" + methodName + " _:Standard.Base.Any.Any ->.*";
+    assertThat("Single blank (underscore) argument: " + sigLine, sigLine.matches(regex), is(true));
+  }
+
+  private static String lastLine(String text) {
+    var lines = text.lines().toList();
+    assert !lines.isEmpty();
+    return lines.get(lines.size() - 1);
   }
 
   private static void generateDocumentation(String projectName, String code, DocsVisit v)

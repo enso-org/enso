@@ -1,12 +1,41 @@
 package org.enso.base.net;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /** Utilities for building and transforming URIs. */
 public class URITransformer {
+  /**
+   * Parses a URI from a string. Replaces spaces with %20 to ensure valid encoding.
+   *
+   * @param uri the URI string to parse
+   * @return the parsed URI
+   */
+  public static URI parse(String uri) throws URISyntaxException {
+    int index = uri.indexOf('?');
+    if (index >= 0) {
+      String uriWithoutQuery = uri.substring(0, index + 1).replaceAll(" ", "%20");
+      uri = uriWithoutQuery + uri.substring(index + 1);
+    } else {
+      uri = uri.replaceAll(" ", "%20");
+    }
+    var url = new URI(uri);
+    // URI class does not encode the path if single argument constructor is used.
+    if (url.getPath().equals(url.getRawPath())) {
+      return url;
+    }
+
+    index = uri.indexOf(url.getRawPath());
+    var newUriString =
+        uri.substring(0, index)
+            + url.getPath().replace(" ", "%20")
+            + uri.substring(index + url.getRawPath().length());
+    return new URI(newUriString);
+  }
+
   /** Removes query parameters from the given URI. */
   public static URI removeQueryParameters(URI uri) {
     return buildUriFromParts(

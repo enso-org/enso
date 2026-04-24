@@ -2,180 +2,170 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
+import { Dialog } from '#/components/Dialog'
 import Page from '#/components/Page'
-import { usePaywall } from '#/hooks/billing'
-import * as projectHooks from '#/hooks/projectHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import { setDriveLocation } from '#/providers/DriveProvider'
+import { Text } from '#/components/Text'
+import { backendQueryOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useBindGlobalActions } from '#/hooks/menuHooks'
+import { useTransferBetweenCategories } from '#/layouts/Drive/Categories'
+import SettingsTabType from '#/layouts/Settings/TabType'
+import ConfirmDeleteModal, { type ConfirmDeleteModalProps } from '#/modals/ConfirmDeleteModal'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
-import { baseName } from '#/utilities/fileInfo'
-import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import AppContainerInnerVue from '$/components/AppContainer/AppContainerInner.vue'
-import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
+import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
+import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useLaunchedProjects } from '$/providers/react/container'
-import { usePrefetchQuery } from '@tanstack/react-query'
-import * as detect from 'enso-common/src/detect'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { useQuery } from '@tanstack/react-query'
+import * as backendModule from 'enso-common/src/services/Backend'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as React from 'react'
-
-/** Dashboard properties */
-export interface DashboardProps {
-  readonly projectToOpen?:
-    | { readonly asset: backendModule.ProjectAsset; readonly backend: backendModule.BackendType }
-    | undefined
-}
+import type { Router } from 'vue-router'
+// eslint-disable-next-line no-restricted-syntax
+import AppContainerVue from '$/components/AppContainer'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
-const AppContainerInner = vueComponent(AppContainerInnerVue).default
+const AppContainerInner = vueComponent(AppContainerVue).default
 
-/** Extract proper path from `file://` URL. */
-function fileURLToPath(url: string): string | null {
-  if (URL.canParse(url)) {
-    const parsed = new URL(url)
-    if (parsed.protocol === 'file:') {
-      return decodeURIComponent(
-        detect.platform() === detect.Platform.windows ?
-          // On Windows, we must remove leading `/` from URL.
-          parsed.pathname.slice(1)
-        : parsed.pathname,
-      )
-    } else {
-      return null
-    }
-  } else {
-    return null
-  }
+/** Navigate to a specific settings tab. */
+function goToSettingsTab(router: Router, tab: SettingsTabType) {
+  void router.push({
+    path: '/settings',
+    query: { [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify(tab) },
+  })
 }
 
 /** The component that contains the entire UI. */
-export function Dashboard(props: DashboardProps) {
-  const { localBackend } = useBackends()
+export function Dashboard() {
+  const [isTransitioning, startTransition] = React.useTransition()
+  // isTransitioning must be passed to vue as a separate state updated in effect.
+  // if passed directly, the update never reach vue, probably because veaury doesn't handle this
+  // case of background rendering well.
+  const [isTransitioningState, setTransitioningState] = React.useState(false)
+  React.useEffect(() => {
+    setTransitioningState(isTransitioning)
+  }, [isTransitioning])
+  const { remoteBackend, localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const config = useConfig()
-  const initialProjectNameRaw = useVueValue(
-    React.useCallback(() => config.params.startup.project, [config]),
+  const { router } = useRouter()
+  const { data: organization = null } = useQuery(
+    backendQueryOptions(remoteBackend, 'getOrganization', []),
   )
-  const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
-  const launchedProjects = useLaunchedProjects()
-  const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const initialAlreadyLaunchedProject = launchedProjects.find(
-    (lp) => lp.id === props.projectToOpen?.asset.id,
+  const { user } = useFullUserSession()
+  const openedProjects = useOpenedProjects()
+  const closingOnAppExit = useVueValue(
+    React.useCallback(() => openedProjects.closingOnAppExit.value, [openedProjects]),
   )
-  const initialAlreadyLaunchedHybridProject = launchedProjects.find(
-    (lp) => lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
-  )
-
-  usePrefetchQuery({
-    queryKey: ['loadInitialProject'],
-    networkMode: 'always',
-    ...STATIC_QUERY_OPTIONS,
-    queryFn: async () => {
-      if (props.projectToOpen) {
-        if (
-          // If project is already on launched list, then the Editor.tsx will handle opening it.
-          !initialAlreadyLaunchedProject &&
-          !initialAlreadyLaunchedHybridProject &&
-          !projectHooks.BUSY_PROJECT_STATES.has(props.projectToOpen.asset.projectState.type)
-        ) {
-          await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
-        }
-      } else if (initialLocalProjectPath != null && window.backendApi && localBackend) {
-        const projectName = baseName(initialLocalProjectPath)
-        const { id, projectRoot } = await window.backendApi.importProjectFromPath(
-          initialLocalProjectPath,
-          localBackend.rootPath(),
-          projectName,
-        )
-        await openProjectLocally(
-          {
-            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
-            title: projectName,
-            parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-            ensoPath: backendModule.EnsoPath(projectRoot),
-          },
-          backendModule.BackendType.local,
-        )
-      }
-      return null
-    },
+  const transferBetweenCategories = useTransferBetweenCategories()
+  const confirmDelete = useEventCallback((properties: ConfirmDeleteModalProps) => {
+    modalProvider.setModal(<ConfirmDeleteModal {...properties} />)
   })
 
-  React.useEffect(() => {
-    window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setDriveLocation(null, 'local')
+  const inputBindingHandlers = React.useMemo(() => {
+    const hasOrganization = backendModule.isUserOnPlanWithMultipleSeats(user)
 
-      const projectId = localBackendModule.newProjectId(
-        projectManager.UUID(project.id),
-        projectManager.Path(project.parentDirectory),
-      )
-
-      void openProjectLocally(
-        {
-          id: projectId,
-          title: project.name,
-          parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-          ensoPath: backendModule.EnsoPath(project.projectRoot),
-        },
-        backendModule.BackendType.local,
-      )
-    })
-
-    return () => {
-      window.projectManagementApi?.setOpenProjectHandler(() => {})
-    }
-  }, [openProjectLocally])
-
-  React.useEffect(() => {
-    if (detect.isOnElectron()) {
+    return inputBindings.defineHandlers({
       // We want to handle the back and forward buttons in electron the same way as in the browser.
-      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+      ...(detect.isOnElectron() && {
         goBack: () => {
-          window.navigationApi.goBack()
+          window.api?.navigation.goBack()
         },
         goForward: () => {
-          window.navigationApi.goForward()
+          window.api?.navigation.goForward()
         },
-      })
-    }
-  }, [inputBindings])
+        goToAccountSettings: () => {
+          goToSettingsTab(router, SettingsTabType.account)
+        },
+        ...(hasOrganization && {
+          goToOrganizationSettings: () => {
+            goToSettingsTab(router, SettingsTabType.organization)
+          },
+        }),
+        ...(localBackend && {
+          goToLocalSettings: () => {
+            goToSettingsTab(router, SettingsTabType.local)
+          },
+        }),
+        ...(user.isOrganizationAdmin &&
+          organization?.subscription != null && {
+            goToBillingAndPlansSettings: () => {
+              goToSettingsTab(router, SettingsTabType.billingAndPlans)
+            },
+          }),
+        ...(hasOrganization && {
+          goToMembersSettings: () => {
+            goToSettingsTab(router, SettingsTabType.members)
+          },
+        }),
+        ...(hasOrganization && {
+          goToUserGroupsSettings: () => {
+            goToSettingsTab(router, SettingsTabType.userGroups)
+          },
+        }),
+        goToKeyboardShortcutsSettings: () => {
+          goToSettingsTab(router, SettingsTabType.keyboardShortcuts)
+        },
+        ...(hasOrganization && {
+          goToActivityLogSettings: () => {
+            goToSettingsTab(router, SettingsTabType.activityLog)
+          },
+        }),
+      }),
+      closeModal: () => modalProvider.unsetModal(),
+    })
+  }, [inputBindings, localBackend, organization?.subscription, router, user])
+
+  useBindGlobalActions(inputBindingHandlers)
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => modalProvider.unsetModal(),
-      }),
-    [inputBindings],
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', inputBindingHandlers),
+    [inputBindings, inputBindingHandlers],
   )
 
-  const closeProject = projectHooks.useCloseProject()
-  const closeAllProjects = projectHooks.useCloseAllProjects()
-  const { user } = useFullUserSession()
-  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  React.useEffect(() => {
+    if (closingOnAppExit) {
+      modalProvider.setModal(<SyncingProjectsDialog />)
+    } else {
+      modalProvider.unsetModal()
+    }
+  }, [closingOnAppExit])
 
   return (
-    <CategoriesProvider>
-      <Page hideInfoBar>
-        <div
-          className="flex min-h-full flex-col text-xs text-primary"
-          onContextMenu={(event) => {
-            event.preventDefault()
-            modalProvider.unsetModal()
-          }}
-        >
-          <AppContainerInner
-            onCloseProject={closeProject}
-            onCloseAllProjects={closeAllProjects}
-            isFeatureUnderPaywall={isFeatureUnderPaywall}
-          />
-        </div>
-      </Page>
-    </CategoriesProvider>
+    <Page hideInfoBar hideModalWrapper>
+      <div
+        className="flex h-full flex-col text-xs text-primary"
+        onContextMenu={(event) => {
+          event.preventDefault()
+          modalProvider.unsetModal()
+        }}
+      >
+        <AppContainerInner
+          startReactTransition={startTransition}
+          isReactTransitioning={isTransitioningState}
+          transferBetweenCategories={transferBetweenCategories}
+          confirmDelete={confirmDelete}
+        />
+      </div>
+    </Page>
+  )
+}
+
+/** A dialog informing user that some hybrid projects are uploaded after closing app. */
+function SyncingProjectsDialog() {
+  const { getText } = useText()
+  return (
+    <Dialog
+      title={getText('syncingProjectsTitle')}
+      isDismissable={false}
+      hideCloseButton={true}
+      modalProps={{ defaultOpen: true }}
+    >
+      <Text>{getText('syncingProjectsMessage')}</Text>
+    </Dialog>
   )
 }

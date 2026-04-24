@@ -4,11 +4,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.logging.Logger;
 import org.enso.base.enso_cloud.audit.AuditLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CloudAuditedConnection extends AuditedConnection {
-  private static final Logger logger = Logger.getLogger(CloudAuditedConnection.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(CloudAuditedConnection.class);
   private final ObjectNode metadata;
 
   /**
@@ -28,7 +29,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
       metadata.put("connectionUri", underlying.getMetaData().getURL());
     } catch (SQLException e) {
       // We ignore the exception, only logging it
-      logger.warning("Failed to get connection URI for " + underlying + ": " + e.getMessage());
+      LOGGER.warn("Failed to get connection URI for {} : {}", underlying, e.getMessage(), e);
     }
   }
 

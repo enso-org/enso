@@ -1,0 +1,17 @@
+private
+
+from Standard.Base import all
+
+import Standard.Table.Internal.Naming_Properties.Enso_Length_Limited_Naming_Properties
+import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
+
+import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+
+## ---
+   private: true
+   ---
+new : Entity_Naming_Properties
+new =
+    default = Unlimited_Naming_Properties.Instance is_case_sensitive=False
+    limited = Enso_Length_Limited_Naming_Properties.Instance limit=255 is_case_sensitive=False
+    Entity_Naming_Properties.Value for_table_names=default for_column_names=default for_generated_column_names=limited

@@ -8,10 +8,8 @@ import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Column, Table, Value_Type
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialects.Dialect
@@ -24,7 +22,6 @@ import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Common.Row_Number_Helpers
-import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -37,20 +34,12 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
-import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
-from Standard.Database.Internal.Statement_Setter import fill_hole_default
-
-import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
-import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
-
-polyglot java import org.enso.database.JDBCUtils
-polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
 
 ## ---
    private: true
@@ -167,17 +156,18 @@ type Snowflake_Dialect
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
+        table_connection = Internals_Access.get_connection table
+        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        type_mapping = self.get_type_mapping
+        mapping = table_connection.type_mapping
         # TODO simpler distinct if distinct_expressions are all columns?
         distinct_expressions = new_key_columns.map column->
-            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = SQL_IR_Source.for_subquery setup.subquery
             . add_extension (make_distinct_extension distinct_expressions)
@@ -186,34 +176,8 @@ type Snowflake_Dialect
     ## ---
        private: true
        ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Snowflake_Type_Mapping
-
-    ## ---
-       private: true
-       ---
-    get_statement_setter : Statement_Setter
-    get_statement_setter self =
-        custom_fill_hole stmt i type_hint value = case value of
-            _ : Date_Time ->
-                keep_offset = case type_hint of
-                    Value_Type.Date_Time with_timezone -> with_timezone
-                    _ -> True
-                SnowflakeJDBCUtils.setDateTime stmt i value keep_offset
-            _ : Time_Of_Day -> SnowflakeJDBCUtils.setTimeOfDay stmt i value
-            _ : Date        -> SnowflakeJDBCUtils.setDate stmt i value
-            # Fallback to default logic for everything else
-            _ -> fill_hole_default stmt i type_hint value
-        Statement_Setter.Value custom_fill_hole
-
-    ## ---
-       private: true
-       ---
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        mapping = self.get_type_mapping
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column mapping target_type infer_result_type_from_database_callback =
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
 
@@ -248,9 +212,9 @@ type Snowflake_Dialect
     ## ---
        private: true
        ---
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        _ = [approximate_result_type, infer_result_type_from_database_callback]
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
         column
 
     ## ---
@@ -311,6 +275,7 @@ type Snowflake_Dialect
         case feature of
             Feature.Generate_Rows -> False
             Feature.Add_Group_Number -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -323,6 +288,7 @@ type Snowflake_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> True
             Dialect_Flag.Use_Builtin_Bankers -> True
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Use_SQL_Type_Hints_For_Null_Values -> False
             Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Nested_With_Clause -> True
             Dialect_Flag.Supports_Case_Sensitive_Columns -> True
@@ -335,6 +301,8 @@ type Snowflake_Dialect
             Dialect_Flag.Case_Insensitive_Ordering_By_Default -> False
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> True
+            Dialect_Flag.Supports_Proper_Casing -> True
             Dialect_Flag.NaN_Non_Comparable -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> False
             Dialect_Flag.Date_Time -> True
@@ -363,26 +331,20 @@ type Snowflake_Dialect
     ## ---
        private: true
        ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = Snowflake_Error_Mapper
-
-    ## ---
-       private: true
-       ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name =
-        Dialect.default_fetch_primary_key connection table_name
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true
@@ -490,9 +452,9 @@ type Snowflake_Dialect
    private: true
    ---
 make_dialect_operations =
-    arith = [round_bankers]
-    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
+    arith = [sqrt, ln, log10, power, round_bankers]
+    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match, index_of, last_index_of, ["REVERSE", Base_Generator.make_function "REVERSE"], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT"]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST_IGNORE_NULLS"], ["ROW_MAX", Base_Generator.make_function "GREATEST_IGNORE_NULLS"]]
     bool = [bool_or]
@@ -506,7 +468,8 @@ make_dialect_operations =
         fractional = [extract_just_milliseconds, extract_just_microseconds, extract_just_nanoseconds]
         other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
-        trivial + fractional + other + operations
+        month = [["first_of_month", make_first_of_month], ["end_of_month", make_end_of_month]]
+        trivial + fractional + other + operations + month
     other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     my_mappings = arith + text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
@@ -688,12 +651,16 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
 
     ordering_part = if ordering.length == 0 then "" else
         SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    count = SQL_Builder.code "(count(*) over ())"
     row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
-    group_size_f = SQL_Builder.code "(((count(*) over ()) + (" ++ group_count.paren ++ " - 1)) / " ++ group_count.paren ++ ")"
-    group_size = SQL_Builder.code "FLOOR(" ++ group_size_f.paren ++ ")"
-    base_value_f = SQL_Builder.code "(" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1)"
-    base_value = SQL_Builder.code "FLOOR(" ++ base_value_f.paren ++ ")"
-    SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+    small_group_size = SQL_Builder.code "(floor(" ++ count ++ " / " ++ group_count.paren ++ "))"
+    extra = SQL_Builder.code "(" ++ count ++ " % " ++ group_count.paren ++ ")"
+    is_in_large_groups = SQL_Builder.code "(" ++ row_number_minus_1 ++ " < (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1)))"
+    gn_large_groups = SQL_Builder.code "(floor(" ++ row_number_minus_1 ++ " / (" ++ small_group_size.paren ++ " + 1)))"
+    gn_small_groups = SQL_Builder.code "(floor(((" ++ row_number_minus_1 ++ " - (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1))) / " ++ small_group_size.paren ++ ") + " ++ extra.paren ++ "))"
+    base_group_number = SQL_Builder.code "(case when " ++ is_in_large_groups.paren ++ " then " ++ gn_large_groups.paren ++ " else " ++ gn_small_groups.paren ++ " end)"
+
+    SQL_Builder.code "((" ++ base_group_number.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## ---
    private: true
@@ -724,8 +691,44 @@ make_contains_expr expr substring = contains.second [expr, substring]
 ## ---
    private: true
    ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "CHARINDEX(" ++ substr ++ ", " ++ str ++ ") - 1"
+
+## ---
+   private: true
+   ---
+last_index_of = Base_Generator.lift_binary_op "LAST_INDEX_OF" str-> substr->
+    SQL_Builder.code "CASE WHEN " ++ substr ++ " = '' THEN LENGTH(" ++ str ++ ") ELSE IFF(CHARINDEX(" ++ substr ++ ", " ++ str ++ ") = 0, -1, LENGTH(" ++ str ++ ") - CHARINDEX(REVERSE(" ++ substr ++ "), REVERSE(" ++ str ++ ")) - LENGTH(" ++ substr ++ ") + 1) END"
+
+## ---
+   private: true
+   ---
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ") COLLATE 'ucs_basic')"
+
+private _make_pad name =
+    generator arguments =
+        if arguments.length != 3 then Error.throw (Illegal_Argument.Error (name + " requires 3 arguments.")) else
+            str = arguments.at 0
+            target = arguments.at 1
+            fill = arguments.at 2
+
+            str_len = SQL_Builder.code "LENGTH(" ++ str ++ ")"
+            fill_len = SQL_Builder.code "LENGTH(" ++ fill ++ ")"
+            target_int = SQL_Builder.code "CAST(" ++ target ++ " AS INT)"
+            pad_size = SQL_Builder.code "(" ++ target_int ++ " - " ++ str_len ++ ")"
+            repetitions = SQL_Builder.code "FLOOR((" ++ pad_size ++ " * 1.0) / " ++ fill_len ++ ")"
+            remainder = SQL_Builder.code "(" ++ pad_size ++ " % " ++ fill_len ++ ")"
+            repeated_fill = SQL_Builder.code "REPEAT(" ++ fill ++ ", " ++ repetitions ++ ")"
+            truncated_fill = case name of
+                "PAD_LEFT" -> SQL_Builder.code "RIGHT(" ++ fill ++ ", " ++ remainder ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "LEFT(" ++ fill ++ ", " ++ remainder ++ ")"
+            padded = case name of
+                "PAD_LEFT" -> SQL_Builder.code "(" ++ truncated_fill ++ " || " ++ repeated_fill ++ " || " ++ str ++ ")"
+                "PAD_RIGHT" -> SQL_Builder.code "(" ++ str ++ " || " ++ repeated_fill ++ " || " ++ truncated_fill ++ ")"
+
+            SQL_Builder.code "CASE WHEN " ++ str ++ " IS NULL OR " ++ target ++ " IS NULL OR " ++ fill ++ " IS NULL THEN NULL WHEN " ++ target_int ++ " <= " ++ str_len ++ " THEN " ++ str ++ " ELSE " ++ padded ++ " END"
+    [name, generator]
 
 ## ---
    private: true
@@ -762,6 +765,30 @@ make_order_descriptor internal_column sort_direction text_ordering =
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="en-ci"
+
+## ---
+   private: true
+   ---
+sqrt = Base_Generator.lift_unary_op "SQRT" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ "< 0 THEN ('NaN'::float) ELSE SQRT(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+ln = Base_Generator.lift_unary_op "LN" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN ('NaN'::float) WHEN " ++ arg ++ " = 0 THEN ('-Infinity'::float) ELSE LN(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+log10 = Base_Generator.lift_unary_op "LOG10" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN ('NaN'::float) WHEN " ++ arg ++ " = 0 THEN ('-Infinity'::float) ELSE LOG(10, " ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+power = Base_Generator.lift_binary_op "^" x-> y->
+    (SQL_Builder.code "CASE WHEN " ++ x ++ " < 0 AND " ++ y ++ " != FLOOR(" ++ y ++ ") THEN ('NaN'::float) WHEN " ++ x ++ " = 0 AND " ++ y ++ " < 0 THEN ('Infinity'::float) ELSE POWER(" ++ x ++ ", " ++ y ++ ") END").paren
 
 ## ---
    private: true
@@ -871,7 +898,7 @@ replace args metadata =
     pattern = args.at 1
     replacement = args.at 2
 
-    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+    ## `raw_pattern` is a `Text` or `Regex`; it's the same value as `input`, but not
        embedded in IR.
     raw_pattern = metadata.at 0
     replace_params = metadata.at 1
@@ -1007,6 +1034,22 @@ sql_type_string_for_date_time value_type = case value_type of
     Value_Type.Date_Time with_tz -> if with_tz then "TIMESTAMP_TZ" else "TIMESTAMP_NTZ"
     Value_Type.Time -> "TIME"
     _ -> Panic.throw (Illegal_State.Error "Expects a date or time type. This is a bug in Database library.")
+
+## ---
+   private: true
+   ---
+make_first_of_month arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "first_of_month expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "(date_trunc('MONTH'," ++ expr ++ "))"
+
+## ---
+   private: true
+   ---
+make_end_of_month arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "end_of_month expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "(last_day(" ++ expr ++ "))"
 
 ## ---
    private: true

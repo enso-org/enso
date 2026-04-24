@@ -68,6 +68,7 @@ class RuntimeExecutionEnvironmentTest
           distributionHome.toString
         )
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -105,10 +106,6 @@ class RuntimeExecutionEnvironmentTest
       out.reset()
       result.linesIterator.toList
     }
-
-    def analyzeJobFinished: Api.Response =
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
-
   }
 
   override protected def beforeEach(): Unit = {

@@ -2,6 +2,7 @@ import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import debug from 'debug'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { ObservableV2 } from 'lib0/observable'
 import { z } from 'zod'
 import { walkFs } from './languageServer/files'
@@ -24,9 +25,9 @@ import type {
   TextFileContents,
   VisualizationConfiguration,
 } from './languageServerTypes'
-import { Err, Ok, type Result } from './util/data/result'
-import type { ReconnectingWebSocketTransport } from './util/net'
 import { AbortScope, exponentialBackoff } from './util/net'
+import type { YjsTransport } from './util/net/YjsTransport'
+import { isHeadless } from './util/types'
 import type { Uuid } from './yjsModel'
 
 const debugLog = debug('ydoc-shared:languageServer')
@@ -148,7 +149,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   /** Create a {@link LanguageServer}. */
   constructor(
     private clientID: Uuid,
-    private transport: ReconnectingWebSocketTransport,
+    private transport: YjsTransport,
   ) {
     super()
     this.initialized = this.scheduleInitializationAfterConnect()
@@ -158,11 +159,19 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
     this.client.onError((error) => {
-      console.error('Unexpected Language Server connection error:', error)
+      console.error(
+        'Unexpected Language Server connection error:',
+        isHeadless() ? JSON.stringify(error) : error,
+      )
     })
     transport.on('error', (error) => {
       if (this.shouldReconnect) {
-        console.error('Language Server transport error:', error.message, '\n', error)
+        console.error(
+          'Language Server transport error:',
+          error.message,
+          '\n',
+          isHeadless() ? JSON.stringify(error) : error,
+        )
       }
     })
     const onTransportClosed = () => {
@@ -224,7 +233,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
 
   /** Reconnect the underlying network transport. */
   reconnect() {
-    this.transport.reconnect()
+    this.transport.close()
+    this.transport.connect()
   }
 
   // The "magic bag of holding" generic that is only present in the return type is UNSOUND.

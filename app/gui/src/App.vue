@@ -1,60 +1,36 @@
 <script setup lang="ts">
-import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
-import { EnsoPath } from '#/services/Backend'
-import RightPanel from '$/components/AppContainer/RightPanel.vue'
-import { useAppTitle } from '$/composables/appTitle'
-import { useAuth } from '$/providers/auth'
-import { provideContainerData } from '$/providers/container'
-import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
-import { provideRightPanelData } from '$/providers/rightPanel'
-import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
 import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import { useEvent, useMounted } from '@/composables/events'
-import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideAsyncResources } from '@/providers/asyncResources'
-import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
-import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideBubblingKeyboard, provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
-import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { computed, onMounted, shallowRef } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
+import { Platform, platform } from 'enso-common/src/utilities/detect'
+import LoadingScreen from './components/LoadingScreen.vue'
 
-const { projectViewOnly } = defineProps<{
-  // Used in Project View integration tests. Once both test projects will be merged, this should be
-  // removed
-  projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
-}>()
+// import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+// const LoadingScreen = reactComponent(LoadingScreenReact)
 
-const LoadingScreen = reactComponent(LoadingScreenReact)
-
-const config = injectGuiConfig()
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
 
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
-const auth = useAuth()
-const userSession = computed(() => auth.session)
-
-useAppTitle(userSession)
-
-provideKeyboard()
-provideBubblingKeyboard()
+const globalEvents = provideGlobalEventRegistry()
+provideKeyboard(globalEvents)
+provideBubblingKeyboard(globalEvents)
 const interaction = provideInteractionHandler()
 const actions = initializeActions()
 registerAutoBlurHandler()
@@ -72,67 +48,39 @@ const bindingsHandlers = appBindings.handler(
   objects.mapEntries(appBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
 
-const { globalEventRegistry } = provideGlobalEventRegistry()
+const { globalEventRegistry } = globalEvents
+useEvent(globalEventRegistry, 'keydown', (event) => bindingsHandlers(event), { capture: true })
 
-useEvent(window, 'keydown', bindingsHandlers)
-useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
-
-const platformClass = (() => {
-  switch (platform()) {
-    case Platform.windows:
-      return 'onWindows'
-    case Platform.macOS:
-      return 'onMacOs'
-    case Platform.linux:
-      return 'onLinux'
-    case Platform.windowsPhone:
-      return 'onWindowsPhone'
-    case Platform.iPhoneOS:
-      return 'onIPhoneOs'
-    case Platform.android:
-      return 'onAndroid'
-    default:
-      return undefined
-  }
-})()
-
-onMounted(() => {
-  if (config.params.window.vibrancy) {
-    document.body.classList.add('vibrancy')
-  }
+useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e), {
+  capture: true,
 })
-const fullscreenRoot = shallowRef<HTMLElement>()
+
+const platformClass = {
+  [Platform.windows]: 'onWindows',
+  [Platform.macOS]: 'onMacOs',
+  [Platform.linux]: 'onLinux',
+  [Platform.windowsPhone]: 'onWindowsPhone',
+  [Platform.iPhoneOS]: 'onIPhoneOs',
+  [Platform.android]: 'onAndroid',
+  [Platform.unknown]: undefined,
+}[platform()]
 
 useMounted(appOpenCloseCallback)
-
-// Mock external context in Project View integration tests. Once both test projects will be merged,
-// this should be removed
-if (projectViewOnly) {
-  const openedProjects = provideOpenedProjects()
-  provideAsyncResources(openedProjects)
-  provideContainerData(EnsoPath(projectViewOnly.options.projectPath))
-  provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
-  provideFullscreenRoot(fullscreenRoot)
-}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
-      <ProjectView v-bind="projectViewOnly.options" />
-      <RightPanel />
-    </div>
-    <ContextsForReactProvider v-else>
-      <ReactRootWrapper :queryClient="queryClient">
-        <RouterView v-slot="{ Component }">
-          <component :is="Component" v-if="Component" />
-          <LoadingScreen v-else />
-        </RouterView>
-      </ReactRootWrapper>
-    </ContextsForReactProvider>
+    <RouterView v-slot="{ Component }">
+      <ContextsForReactProvider v-if="Component">
+        <ReactRootWrapper :queryClient="queryClient">
+          <component :is="Component" />
+          <div id="floatingLayer" />
+          <TooltipDisplayer :registry="appTooltips" />
+        </ReactRootWrapper>
+      </ContextsForReactProvider>
+      <LoadingScreen v-else />
+    </RouterView>
   </div>
-  <div id="floatingLayer" />
-  <TooltipDisplayer :registry="appTooltips" />
 </template>
 
 <style>
@@ -182,5 +130,13 @@ See https://github.com/gloriasoft/veaury/issues/158
 [__use_react_component_wrap],
 [data-use-vue-component-wrap] {
   display: contents !important;
+}
+
+.mousePointer {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  background-color: red;
 }
 </style>

@@ -27,20 +27,20 @@ public class ExportModuleTest {
         new SourceModule(
             QualifiedName.fromString("Module.SubModule"),
             """
-        # Blank on purpose
-        """);
+            # Blank on purpose
+            """);
     var module =
         new SourceModule(
             QualifiedName.fromString("Module"),
             """
-        # Blank on purpose - ensures that `Module` is not just synthetic
-        """);
+            # Blank on purpose - ensures that `Module` is not just synthetic
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Module.SubModule
-        """);
+            export project.Module.SubModule
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(subModule, module, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -61,14 +61,14 @@ public class ExportModuleTest {
         new SourceModule(
             QualifiedName.fromString("Module.SubModule"),
             """
-        # Blank on purpose
-        """);
+            # Blank on purpose
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Module.SubModule
-        """);
+            export project.Module.SubModule
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(subModule, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {

@@ -198,3 +198,11 @@ type Aggregate_Column
           group longest value.
         - `as`: name of new column.
     Longest (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Custom SQL aggregate function for database backends.
+
+       ## Arguments
+        - `function`: the SQL function to use for aggregation.
+        - `arguments`: arguments to the SQL function.
+        - `as`: name of new column.
+    SQL (function:Text=(Missing_Argument.throw "function")) (arguments:(Vector (Text | Sort_Column))=[]) (as:Text="")

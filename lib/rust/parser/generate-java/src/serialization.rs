@@ -5,8 +5,6 @@ use enso_metamodel::java::*;
 use enso_metamodel::java::bincode::MapperInput;
 use enso_metamodel::java::bincode::MaterializerInput;
 
-
-
 // ==============================
 // === Derive Deserialization ===
 // ==============================
@@ -32,7 +30,6 @@ pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
     graph[tree].methods.push(impl_getter(CODE_GETTER));
     graph[tree].methods.push(impl_whitespace_getter(WHITESPACE_GETTER));
 }
-
 
 // === Deserialization Methods ===
 
@@ -165,7 +162,6 @@ fn start_code_token() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'sta
 fn end_code_token() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
     |MaterializerInput { message }| format!("{message}.advance({TOKEN_CODE_LENGTH})")
 }
-
 
 // === Source Code Getters ===
 

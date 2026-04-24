@@ -1,1 +1,0 @@
-with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"

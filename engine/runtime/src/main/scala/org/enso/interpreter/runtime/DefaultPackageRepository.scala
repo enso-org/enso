@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{Module => IRModule}
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.StringUtils
+import org.enso.common.MethodNames
 import org.enso.editions.LibraryVersion
 import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.runtime.util.TruffleFileSystem
@@ -81,8 +82,14 @@ private class DefaultPackageRepository(
     */
   private val loadedPackages
     : collection.mutable.Map[LibraryName, Option[Package[TruffleFile]]] = {
-    val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
     collection.mutable.LinkedHashMap(builtinsName -> None)
+  }
+
+  private def builtinsName: LibraryName = {
+    LibraryName(
+      MethodNames.Builtins.NAMESPACE,
+      MethodNames.Builtins.PACKAGE_NAME
+    )
   }
 
   /** The mapping containing loaded modules.
@@ -96,7 +103,7 @@ private class DefaultPackageRepository(
   private val loadedModules
     : collection.concurrent.Map[String, CompilerContext.Module] =
     collection.concurrent.TrieMap(
-      Builtins.MODULE_NAME -> builtins.getModule.asCompilerModule()
+      MethodNames.Builtins.MODULE_NAME -> builtins.getModule.asCompilerModule()
     )
 
   /** The mapping containing loaded component groups.
@@ -107,11 +114,10 @@ private class DefaultPackageRepository(
     */
   private val loadedComponents
     : collection.mutable.Map[LibraryName, ComponentGroups] = {
-    val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
     collection.mutable.LinkedHashMap(builtinsName -> ComponentGroups.empty)
   }
 
-  /** The mapping between the library and its cached bindings, if already laoded. */
+  /** The mapping between the library and its cached bindings, if already loaded. */
   private val loadedLibraryBindings: collection.mutable.Map[
     LibraryName,
     Option[ImportExportCache.CachedBindings]
@@ -179,12 +185,14 @@ private class DefaultPackageRepository(
     pkg: Package[TruffleFile]
   ): Unit = {
     projectPackage = Some(pkg)
-    registerPackageInternal(
-      libraryName    = libraryName,
-      pkg            = pkg,
-      libraryVersion = LibraryVersion.Local,
-      isLibrary      = false
-    )
+    if (!loadedPackages.contains(libraryName)) {
+      registerPackageInternal(
+        libraryName    = libraryName,
+        pkg            = pkg,
+        libraryVersion = LibraryVersion.Local,
+        isLibrary      = false
+      )
+    }
   }
 
   /** @inheritdoc */
@@ -206,7 +214,7 @@ private class DefaultPackageRepository(
     isLibrary: Boolean
   ): Unit = {
     val extensions = pkg.listPolyglotExtensions("java")
-    extensions.foreach(context.addToClassPath)
+    extensions.foreach(context.addToClassPath(pkg, _))
 
     val (regularModules, syntheticModulesMetadata) = pkg
       .listSources()

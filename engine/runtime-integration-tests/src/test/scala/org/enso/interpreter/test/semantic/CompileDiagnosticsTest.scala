@@ -16,7 +16,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main =
           |    x = Panic.catch Any () .convert_to_dataflow_error
-          |    x.catch_primitive err->
+          |    x.catch Any err->
           |        case err of
           |            Syntax_Error.Error msg -> "Oopsie, it's a syntax error: " + msg
           |""".stripMargin
@@ -28,19 +28,19 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface parsing errors in the language" in {
       val code =
         """from Standard.Base.Errors.Common import all
-          |import Standard.Base.Panic.Panic
+          |from Standard.Base import Panic, to_text
           |
           |main =
-          |    x = Panic.catch_primitive ` caught_panic-> caught_panic.payload
+          |    x = Panic.catch Syntax_Error ` caught_panic-> caught_panic.payload
           |    x.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected expression')"
+      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected token')"
     }
 
     "surface redefinition errors in the language" in {
       val code =
         """from Standard.Base.Errors.Common import all
-          |import Standard.Base.Panic.Panic
+          |from Standard.Base import Panic, to_text
           |import Standard.Base.Any.Any
           |
           |foo =
@@ -57,7 +57,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface non-existent variable errors in the language" in {
       val code =
         """from Standard.Base.Errors.Common import all
-          |import Standard.Base.Panic.Panic
+          |from Standard.Base import Panic, to_text
           |import Standard.Base.Any.Any
           |
           |foo =

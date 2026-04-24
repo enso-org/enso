@@ -1,56 +1,58 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import {
+  rewritePortValueUpdate,
+  WidgetInput,
+  type UpdateHandler,
+  type WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
-  type ArgumentDefaultKind,
   createDefaultExpressionOfKind,
   getArgumentDefaultKind,
+  type ArgumentDefaultKind,
 } from '@/components/GraphEditor/widgets/WidgetFunctionDef/argumentAst'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { PortId, syntheticPortId } from '@/providers/portInfo'
-import {
-  rewritePortValueUpdate,
-  type UpdateHandler,
-  WidgetInput,
-  type WidgetUpdate,
-} from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
-import { Err, Ok } from '@/util/data/result'
-import { proxyRefs } from '@/util/reactivity'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
+import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
-const { definition, updateCallback, portIdBase } = defineProps<{
+const { definition, updateCallback, portIdBase, preprocessName } = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   updateCallback: UpdateHandler
   portIdBase: PortId
+  preprocessName: (input: string) => string
 }>()
+
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
-type WidgetProps = ComponentProps<typeof NodeWidget>
-const openedProject = useCurrentProject().ref
+type TreeProps = ComponentProps<typeof WidgetTreeRoot>
+const openedProject = useCurrentProject()
 
-function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
-  return { input: WidgetInput.FromAst(ast) }
+function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
+  return { input: WidgetInput.FromAst(ast), updateCallback }
 }
 
-function patternWidget(pattern: Ast.Expression): WidgetProps {
+function patternWidget(pattern: Ast.Expression): TreeProps {
   return {
     input: {
       portId: pattern.id,
       value: pattern,
-      [EnsoExpression]: {},
+      [EnsoExpression]: { preprocess: preprocessName },
     },
     updateCallback(update: WidgetUpdate) {
       return rewritePortValueUpdate(update, updateCallback, pattern.id, (value) => {
@@ -67,14 +69,14 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
 
 function mkWidget<T extends Ast.Ast | Ast.Token>(
   child: () => Ast.NodeChild<T> | undefined,
-  toProps: (ast: T) => WidgetProps = defaultWidget,
+  toProps: (ast: T) => TreeProps = defaultWidget,
 ) {
   return computed(() => mapOrUndefined(child()?.node, toProps))
 }
 
 const nodeSuspension = mkWidget(() => definition.suspension)
 const nodePattern = mkWidget(() => definition.pattern, patternWidget)
-const nodeType = computed((): WidgetProps => {
+const nodeType = computed((): TreeProps => {
   const ty = definition.type?.type?.node
   const syntheticId = syntheticPortId(portIdBase, 'type')
   return {
@@ -100,16 +102,16 @@ function resolveType(typeExpr: Ast.Ast) {
   const tyCode = typeExpr.code()
   // Hack: We have to resolve the fully qualified type name ourselves based on present imports.
   // To avoid implementing that for now, we only look up types selectable from dropdown.
-  const matchingTypeEntry = openedProject.value?.suggestionDb.entries.selectableTypes.value.find(
+  const matchingTypeEntry = openedProject.suggestionDb.value.entries.selectableTypes.value.find(
     (ty) => ty.name === tyCode,
   )
   return matchingTypeEntry ?
-      openedProject.value?.names.printProjectPath(matchingTypeEntry.definitionPath)
+      openedProject.projectNames.value.printProjectPath(matchingTypeEntry.definitionPath)
     : undefined
 }
 
 const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
-const nodeDefault = computed((): WidgetProps | undefined => {
+const nodeDefault = computed((): TreeProps | undefined => {
   if (defaultKind.value !== 'explicit') return
 
   let expr = Ast.unwrapGroups(definition.defaultValue?.expression?.node)
@@ -185,11 +187,11 @@ const defaultEntries = [
 </script>
 
 <template>
-  <div class="ArgumentRow pad-right">
-    <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
-    <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
+  <div class="ArgumentRow">
+    <WidgetTreeRoot v-if="nodeSuspension" v-bind="nodeSuspension" />
+    <WidgetTreeRoot v-if="nodePattern" v-bind="nodePattern" />
     <span class="tokenText">&nbsp;:&nbsp;</span>
-    <NodeWidget v-bind="nodeType" />
+    <WidgetTreeRoot v-bind="nodeType" />
     <span class="tokenText">&nbsp;=&nbsp;</span>
     <div
       ref="defaultValueRoot"
@@ -208,12 +210,11 @@ const defaultEntries = [
         :show="defaultValueDropdownInteraction.isActive()"
         :entries="defaultEntries"
         :topLevel="true"
-        :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
       <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
-    <NodeWidget
+    <WidgetTreeRoot
       v-if="nodeDefault"
       v-bind="nodeDefault"
       class="pad-left"

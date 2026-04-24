@@ -39,8 +39,8 @@ public abstract class StaticAnalysisTest {
           (builder) ->
               builder
                   .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-                  .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
                   .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
+                  .option(RuntimeOptions.CHECK_CWD, "false")
                   .out(OutputStream.nullOutputStream())
                   .err(OutputStream.nullOutputStream()));
 
@@ -108,6 +108,7 @@ public abstract class StaticAnalysisTest {
                     Option.empty(),
                     true,
                     Option.empty(),
+                    CollectionConverters.asScala(List.<org.enso.pkg.ProvidesWith>of()).toList(),
                     Option.empty());
             return new Package<>(root, initialConfig, TruffleFileSystem.INSTANCE);
           } catch (IOException e) {

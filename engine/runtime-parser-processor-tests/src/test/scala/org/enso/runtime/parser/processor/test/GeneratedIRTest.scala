@@ -1,6 +1,6 @@
 package org.enso.runtime.parser.processor.test
 
-import org.enso.compiler.core.ir.{Literal, MetadataStorage}
+import org.enso.compiler.core.ir.Literal
 import org.enso.runtime.parser.processor.test.gen.ir.core.JCallArgument.JSpecified
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
   */
 class GeneratedIRTest extends AnyFlatSpec with Matchers {
   "JSpecifiedGen" should "be duplicated correctly" in {
-    val lit     = Literal.Text("foo", null, new MetadataStorage())
+    val lit     = Literal.Text.fromString("foo")
     val callArg = new JSpecified(true, None, lit)
     callArg should not be null
 
@@ -18,13 +18,13 @@ class GeneratedIRTest extends AnyFlatSpec with Matchers {
   }
 
   "JSpecifiedGen" should "have generated parameter names with javac compiler" in {
-    val lit     = Literal.Text("foo", null, new MetadataStorage())
+    val lit     = Literal.Text.fromString("foo")
     val callArg = new JSpecified(isSynthetic = true, value = lit, name = None)
     callArg should not be null
   }
 
   "JSpecifiedGen" should "have overridden toString method" in {
-    val lit     = Literal.Text("foo", null, new MetadataStorage())
+    val lit     = Literal.Text.fromString("foo")
     val callArg = new JSpecified(true, None, lit)
     val str     = callArg.toString
     withClue(s"String representation: " + str) {

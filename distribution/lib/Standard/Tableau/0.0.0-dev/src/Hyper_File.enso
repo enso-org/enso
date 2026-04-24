@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -8,6 +7,7 @@ from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
+import project.Hyper_Errors
 import project.Hyper_Errors.Hyper_Table_Not_Found
 import project.Hyper_Table.Hyper_Table
 import project.Internal.Telemetry
@@ -41,7 +41,7 @@ type Hyper_File
        Returns the list of schemas for the connection within the current database
        (or catalog).
     schemas : Vector Text
-    schemas self = File_Error.handle_java_exceptions self.file <|
+    schemas self =
         array = HyperFormat.readSchemas self.file.path
         Vector.from_polyglot_array array
 
@@ -76,11 +76,10 @@ type Hyper_File
     @schema (hyper -> make_schema_selector hyper True)
     tables : Text -> Vector Hyper_Table
     tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
-        File_Error.handle_java_exceptions self.file <|
-            array = case schema of
-                "*" -> HyperFormat.listTablesAllSchemas self.file.path
-                _ -> HyperFormat.listTables self.file.path schema
-            array.map t-> Hyper_Table.Value self t.schema t.name
+        array = case schema of
+            "*" -> HyperFormat.listTablesAllSchemas self.file.path
+            _ -> HyperFormat.listTables self.file.path schema
+        array.map t-> Hyper_Table.Value self t.schema t.name
 
     ## ---
        aliases: [get, import, load, open, sheet]

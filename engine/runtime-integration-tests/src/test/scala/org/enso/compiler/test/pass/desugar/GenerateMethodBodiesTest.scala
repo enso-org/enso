@@ -171,15 +171,15 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irMethodSelfArg =
       irMethod.body.asInstanceOf[Function.Lambda].arguments.head
     val irFoo =
-      ir.bindings(1).asInstanceOf[definition.Method]
+      ir.bindings()(1).asInstanceOf[definition.Method]
     val irFooFirstArg =
       irFoo.body.asInstanceOf[Function.Lambda].arguments.head
     val irBar =
-      ir.bindings(2).asInstanceOf[definition.Method]
+      ir.bindings()(2).asInstanceOf[definition.Method]
     val irBarFirstArg =
       irBar.body.asInstanceOf[Function.Lambda].arguments.head
     val irBaz =
-      ir.bindings(3).asInstanceOf[definition.Method]
+      ir.bindings()(3).asInstanceOf[definition.Method]
     val irBazSndArg = irBaz.body
       .asInstanceOf[Function.Lambda]
       .body
@@ -189,11 +189,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
-    val irResultFoo    = irResult.bindings(1).asInstanceOf[definition.Method]
-    val irResultBar    = irResult.bindings(2).asInstanceOf[definition.Method]
-    val irResultBaz    = irResult.bindings(3).asInstanceOf[definition.Method]
-    val irResultQux    = irResult.bindings(4).asInstanceOf[definition.Method]
-    val irResultQuux   = irResult.bindings(5).asInstanceOf[definition.Method]
+    val irResultFoo    = irResult.bindings()(1).asInstanceOf[definition.Method]
+    val irResultBar    = irResult.bindings()(2).asInstanceOf[definition.Method]
+    val irResultBaz    = irResult.bindings()(3).asInstanceOf[definition.Method]
+    val irResultQux    = irResult.bindings()(4).asInstanceOf[definition.Method]
+    val irResultQuux   = irResult.bindings()(5).asInstanceOf[definition.Method]
 
     "not generate an auxiliary self parameter" in {
       val resultArgs = irResultMethod.body
@@ -202,10 +202,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldEqual Name.Self(
-        identifiedLocation = irMethodSelfArg.name.identifiedLocation(),
-        synthetic          = false
-      )
+      selfArg shouldEqual Name.Self
+        .builder()
+        .location(irMethodSelfArg.name.identifiedLocation())
+        .synthetic(false)
+        .build()
     }
 
     "generate a warning about self parameter not being in the first position" in {
@@ -228,9 +229,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val selfArg = resultArgs.head.name
       selfArg shouldBe an[Name.Self]
       resultLambda.body shouldBe an[Operator.Binary]
-      selfArg shouldEqual Name.Self(identifiedLocation =
-        irBarFirstArg.identifiedLocation()
-      )
+      selfArg shouldEqual Name.Self
+        .builder()
+        .location(irBarFirstArg.identifiedLocation())
+        .build()
     }
 
     "not generate an auxiliary self parameter for the already present one but in a wrong position" in {
@@ -245,9 +247,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val bodyLambda = resultLambda.body.asInstanceOf[Function.Lambda]
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
-      selfArg shouldEqual Name.Self(identifiedLocation =
-        irBazSndArg.identifiedLocation()
-      )
+      selfArg shouldEqual Name.Self
+        .builder()
+        .location(irBazSndArg.identifiedLocation())
+        .build()
       resultLambda.diagnosticsList.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
@@ -279,14 +282,16 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     val irMethodAdd =
-      ir.bindings(2).asInstanceOf[definition.Method]
+      ir.bindings()(2).asInstanceOf[definition.Method]
     val irMethodAddSelfArg =
       irMethodAdd.body.asInstanceOf[Function.Lambda].arguments
 
-    val irResult          = ir.desugar
-    val irResultMethodAdd = irResult.bindings(2).asInstanceOf[definition.Method]
+    val irResult = ir.desugar
+    val irResultMethodAdd =
+      irResult.bindings()(2).asInstanceOf[definition.Method]
 
-    val irResultMethodSum = irResult.bindings(3).asInstanceOf[definition.Method]
+    val irResultMethodSum =
+      irResult.bindings()(3).asInstanceOf[definition.Method]
 
     "not add new argument" in {
       val resultLambda = irResultMethodAdd.body
@@ -316,7 +321,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val nestedLambda = resultLambda.body.asInstanceOf[Function.Lambda]
       nestedLambda.arguments.size shouldEqual 1
-      nestedLambda.arguments(0).name shouldBe an[Name.Self]
+      nestedLambda.arguments().apply(0).name shouldBe an[Name.Self]
     }
   }
 

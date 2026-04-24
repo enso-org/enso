@@ -1,0 +1,101 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+from Standard.Base.Metadata.Widget import Text_Input, Vector_Editor
+
+import Standard.Database.Connection.Connection_Options.Connection_Options
+from Standard.Database import DB_Table
+
+import project.DuckDB_Connection.DuckDB_Connection
+
+polyglot java import org.duckdb.DuckDBDriver
+
+type DuckDB
+    ## Connect to a DuckDB database file.
+
+       ## Arguments:
+        - 'location': The file path to the DuckDB database file.
+        - 'schema': The schema to use within the database. Default is 'main'.
+        - 'read_only': Whether to open the database in read-only mode. Default is false.
+    From_File (location : File = (Missing_Argument.throw "location")) (schema : Text = "") (read_only : Boolean = False)
+
+    ## Connect to a DuckDB In Memory.
+
+       ## Arguments:
+        - 'schema': The schema to use within the database. Default is 'main'.
+        - 'read_only': Whether to open the database in read-only mode. Default is false.
+    In_Memory (schema : Text = "") (read_only : Boolean = False)
+
+    ## ---
+       private: true
+       ---
+       Attempt to resolve the constructor.
+    resolve : Function -> DuckDB | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:DuckDB) _->Nothing
+
+    ## ---
+       private: true
+       ---
+       Build the Connection resource.
+
+       ## Arguments
+        - `options`: Overrides for the connection properties.
+    connect : Connection_Options -> DuckDB_Connection
+    connect self options=Connection_Options.Value =
+        properties = options.merge self.jdbc_properties
+
+        make_new schema =
+            used_schema = (if schema.is_nothing then "" else schema).trim
+
+            new_settings = case self of
+                DuckDB.From_File f _ r -> DuckDB.From_File f used_schema r
+                DuckDB.In_Memory _ r -> DuckDB.In_Memory used_schema r
+            new_settings.connect options
+
+        DuckDB_Connection.create self.jdbc_url properties make_new self.schema
+
+    ## ---
+       private: true
+       ---
+       Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url self = case self of
+        DuckDB.From_File _ _ _ -> "jdbc:duckdb:" + (self.location.absolute.path.replace '\\' '/')
+        DuckDB.In_Memory _ _ -> "jdbc:duckdb::memory:"
+
+    ## ---
+       private: true
+       ---
+       Provides the properties for the connection.
+    jdbc_properties : Vector
+    jdbc_properties self = case self of
+        DuckDB.From_File _ _ True -> [Pair.new "duckdb.read_only" "true"]
+        DuckDB.In_Memory _ True -> [Pair.new "duckdb.read_only" "true"]
+        _ -> []
+
+    ## ---
+       group: Standard.Base.Input
+       icon: spatial
+       ---
+       ToDo: Hidden until we do a shared in memory instance.
+       Reads a spatial file into a new In-Memory DuckDB database.
+
+       ## Arguments
+        - `path`: the path to the file to read. Can be a `Text`, `URI` or
+          `File` object.
+        - `as`: the name of the table to create. Defaults to "NewTable".
+        - `key_columns`: the names of the columns to use as the primary key. If
+          not provided, no primary key will be created.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+
+       ## Table.load_to_duckdb -> bulk load from DuckDB to the share memory instance
+       ## Table.export_as_duckdb -> bulk load to DuckDB and then write as a file
+    @path Text_Input display=..Always
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    open_spatial_file : Text | URI | File -> Text -> Vector Text -> DB_Table
+    private open_spatial_file path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] =
+        connect = DuckDB.In_Memory.connect
+        connect.read_spatial_file path as key_columns

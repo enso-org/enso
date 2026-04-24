@@ -1,35 +1,63 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigDecimal;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
-public record FloatType(Bits bits) implements StorageType<Double>, NumericType {
+public final class FloatType implements StorageType<Double>, NumericType {
   public static final FloatType FLOAT_64 = new FloatType(Bits.BITS_64);
 
-  public FloatType {
+  private final Bits bits;
+
+  private FloatType(Bits bits) {
     if (bits != Bits.BITS_64) {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
+
+    this.bits = bits;
+  }
+
+  @Override
+  public char typeChar() {
+    return 'F';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    var ensoBits = Bits.asEnsoValue(bits());
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), ensoBits);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Float";
+  }
+
+  @Override
+  public long size() {
+    return switch (bits) {
+      case BITS_64 -> 64;
+      case BITS_32 -> 32;
+      case BITS_16 -> 16;
+      case BITS_8 -> 8;
+    };
+  }
+
+  /** Returns the number of bits of this integer type. */
+  public Bits bits() {
+    return bits;
   }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   @Override
@@ -39,9 +67,18 @@ public record FloatType(Bits bits) implements StorageType<Double>, NumericType {
 
   @Override
   public Double valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToDouble(value) || value instanceof BigDecimal) {
       return NumericConverter.coerceToDouble(value);
     }
+
+    if (value instanceof Value polyValue && polyValue.isNumber() && polyValue.fitsInDouble()) {
+      return polyValue.asDouble();
+    }
+
     return null;
   }
 
@@ -52,7 +89,7 @@ public record FloatType(Bits bits) implements StorageType<Double>, NumericType {
 
   @Override
   public ColumnDoubleStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof FloatType) {
+    if (StorageType.ofStorage(storage) instanceof FloatType) {
       var output = (ColumnDoubleStorage) storage;
       return output;
     }

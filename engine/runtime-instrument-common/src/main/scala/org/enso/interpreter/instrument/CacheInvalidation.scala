@@ -5,6 +5,7 @@ import org.enso.common.CachePreferences
 import java.util.UUID
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.polyglot.runtime.Runtime.Api
+import org.slf4j.LoggerFactory
 
 import scala.jdk.CollectionConverters._
 
@@ -25,6 +26,8 @@ case class CacheInvalidation(
 )
 
 object CacheInvalidation {
+
+  private val logger = LoggerFactory.getLogger(classOf[CacheInvalidation])
 
   /** Selector of the cache index. */
   sealed trait IndexSelector
@@ -55,8 +58,10 @@ object CacheInvalidation {
     /** A command to invalidate provided cache keys.
       *
       * @param keys a list of keys that should be invalidated
+      * @param reason human-readable explanation for invalidation
       */
-    case class InvalidateKeys(keys: Iterable[UUID]) extends Command
+    case class InvalidateKeys(keys: Iterable[UUID], reason: String)
+        extends Command
 
     /** A command to invalidate cache entries by preference kinds.
       *
@@ -87,8 +92,8 @@ object CacheInvalidation {
       expressions match {
         case Api.InvalidatedExpressions.All() =>
           InvalidateAll
-        case Api.InvalidatedExpressions.Expressions(ids) =>
-          InvalidateKeys(ids)
+        case Api.InvalidatedExpressions.Expressions(ids, reason) =>
+          InvalidateKeys(ids, reason)
       }
   }
 
@@ -203,22 +208,30 @@ object CacheInvalidation {
 
   /** Run cache invalidation of a single instrument frame.
     *
-    * @param cache the cache to invalidate
+    * @param cacheApi the cache to invalidate
     * @param syncState the synchronization state of runtime updates
     * @param command the invalidation instruction
     * @param indexes the list of indexes to invalidate
     */
   private def run(
-    cache: RuntimeCache,
+    cacheApi: RuntimeCache,
     syncState: Option[UpdatesSynchronizationState],
     command: Command,
     indexes: Set[IndexSelector]
-  ): Unit =
+  ): Unit = {
+    val cache = cacheApi.asInstanceOf[RuntimeCacheImpl]
     command match {
       case Command.InvalidateAll =>
+        logger.trace("Cache - clear all, indexes: {}", indexes)
         cache.clear()
         indexes.foreach(clearIndex(_, cache))
-      case Command.InvalidateKeys(keys) =>
+      case Command.InvalidateKeys(keys, reason) =>
+        logger.trace(
+          "Cache - clear keys: {}, indexes: {}, reason: {}",
+          keys,
+          indexes,
+          reason
+        )
         keys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
@@ -226,12 +239,23 @@ object CacheInvalidation {
       case Command.InvalidateByKind(kinds) =>
         kinds.foreach { kind =>
           val keys = cache.clear(kind)
+          logger.trace(
+            "Cache - clear keys: {} in kind: {}, indexes: {}",
+            keys,
+            kind,
+            indexes
+          )
           keys.forEach { key =>
             indexes.foreach(clearIndexKey(key, _, cache))
           }
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
+        logger.trace(
+          "Cache - clear stale keys: {}, indexes: {}",
+          staleKeys,
+          indexes
+        )
         staleKeys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
@@ -239,14 +263,19 @@ object CacheInvalidation {
         }
       case Command.SetMetadata(metadata) =>
         cache.setPreferences(metadata.preferences)
+        logger.trace("Cache - clear set preferences: {}", metadata)
     }
+  }
 
   /** Clear the selected index.
     *
     * @param selector the selected index
     * @param cache the cache to invalidate
     */
-  private def clearIndex(selector: IndexSelector, cache: RuntimeCache): Unit =
+  private def clearIndex(
+    selector: IndexSelector,
+    cache: RuntimeCacheImpl
+  ): Unit =
     selector match {
       case IndexSelector.All =>
         cache.clearTypes()
@@ -269,7 +298,7 @@ object CacheInvalidation {
   private def clearIndexKey(
     key: UUID,
     selector: IndexSelector,
-    cache: RuntimeCache
+    cache: RuntimeCacheImpl
   ): Unit =
     selector match {
       case IndexSelector.All =>

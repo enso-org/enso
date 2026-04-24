@@ -1,21 +1,19 @@
 <script setup lang="ts">
+import { proxyRefs } from '$/utils/reactivity'
 import { visualizationBindings } from '@/bindings'
 import type { RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { useVisualizationData } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import VisualizationToolbar from '@/components/GraphEditor/GraphVisualization/VisualizationToolbar.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
-import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
-import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { ProjectPath } from '@/util/projectPath'
-import { proxyRefs } from '@/util/reactivity'
-import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, nextTick, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**
@@ -39,13 +37,11 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  /** @deprecated use typeinfo instead */
-  typename?: ProjectPath | undefined
   typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
-  'update:rect': [rect: Rect | undefined]
+  'update:effectiveSize': [size: Vec2]
   'update:id': [id: VisualizationIdentifier]
   'update:enabled': [visible: boolean]
   'update:width': [width: number]
@@ -72,7 +68,6 @@ const {
 } = useVisualizationData({
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
-  typename: toRef(props, 'typename'),
   typeinfo: toRef(props, 'typeinfo'),
 })
 
@@ -134,62 +129,49 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+// TODO[ao]: we use `globalEventRegistryPre` to make sure it takes precedence before GraphEditor handlers
 //  (deselectAllNodes in particular). But this is quick workaround, the proper solution
-//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13002
-useEvent(document, 'keydown', keydownHandler)
+//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13695
+const { globalEventRegistryPre } = useGlobalEventRegistry()
+useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 
 // =============================
 // === Sizing and Fullscreen ===
 // =============================
 
-const rect = computed(
-  () =>
-    new Rect(
-      props.nodePosition,
-      new Vec2(
-        Math.max(props.width ?? MIN_WIDTH_PX, props.nodeSize.x),
-        Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX) +
-          props.nodeSize.y,
-      ),
-    ),
+function clampSize(x: Opt<number>, y: Opt<number>) {
+  return new Vec2(
+    Math.max(x ?? 0, MIN_WIDTH_PX),
+    Math.max(y ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX),
+  )
+}
+
+const vizSize = computed<Vec2>(() =>
+  clampSize(Math.max(props.width ?? 0, props.nodeSize.x), props.height),
 )
 
-watchEffect(() => emit('update:rect', rect.value))
-onUnmounted(() => emit('update:rect', undefined))
+watchEffect(() => emit('update:effectiveSize', vizSize.value))
 
-const containerContentSize = computed<Vec2>(
-  () => new Vec2(rect.value.width, rect.value.height - props.nodeSize.y),
-)
-
-// Because ResizeHandles are applying the screen mouse movements, the bounds must be in `screen`
-// space.
-const clientBounds = computed({
-  get() {
-    return new Rect(Vec2.Zero, containerContentSize.value.scale(props.scale))
-  },
-  set(value) {
-    if (resizing.left || resizing.right) emit('update:width', value.width / props.scale)
-    if (resizing.bottom) emit('update:height', value.height / props.scale)
-  },
+const requestedSize = ref<Vec2>()
+watch(requestedSize, (size, oldSize) => {
+  if (size && size.x !== oldSize?.x) emit('update:width', size.x)
+  if (size && size.y !== oldSize?.y) emit('update:height', size.y)
 })
 
-// It's not const, because it's assigned in an event handler in template.
-// eslint-disable-next-line prefer-const
-let resizing: BoundsSet = {}
-
-watch(containerContentSize, (newVal, oldVal) => {
-  if (!resizing.left) return
-  const delta = newVal.x - oldVal.x
-  if (delta !== 0)
-    emit('update:nodePosition', new Vec2(props.nodePosition.x - delta, props.nodePosition.y))
+const resizeHandles = useResizeHandles({
+  size: vizSize,
+  position: toRef(props, 'nodePosition'),
+  scale: toRef(props, 'scale'),
 })
+resizeHandles.onResizeWidth((value) => emit('update:width', value))
+resizeHandles.onResizeHeight((value) => emit('update:height', value))
+resizeHandles.onMove((position) => emit('update:nodePosition', position))
 
 const style = computed(() => {
   return {
     'padding-top': `${props.nodeSize.y}px`,
-    width: `${rect.value.width}px`,
-    height: `${rect.value.height}px`,
+    width: `${vizSize.value.x}px`,
+    height: `${vizSize.value.y + props.nodeSize.y}px`,
   }
 })
 
@@ -200,21 +182,23 @@ watch(
   (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 
+const nodeType = computed(() => props.typeinfo?.primaryType ?? undefined)
 // Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
-const visParams = proxyRefs({
+const visParams: VisualizationHostParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
   size: contentElementSize,
-  nodeType: toRef(props, 'typename'),
+  nodeType,
   executeExpression,
 })
-
-const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
-import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import VisualizationHost, {
+  type VisualizationHostParams,
+} from '@/components/visualizations/VisualizationHost.vue'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -259,7 +243,6 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
           :isFocused="isFocused"
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
-          :typename="typename"
           :typeinfo="typeinfo"
           :class="{ overlay: toolbarOverlay }"
           @update:currentVis="emit('update:id', $event)"
@@ -278,15 +261,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
         </div>
       </div>
     </WithFullscreenMode>
-    <ResizeHandles
-      v-if="!isPreview && isResizable"
-      v-model="clientBounds"
-      left
-      right
-      bottom
-      v-on="resizableWidgets?.visResizeHandleEventHandlers"
-      @update:resizing="resizing = $event"
-    />
+    <ResizeHandles v-if="!isPreview && isResizable" left right bottom v-on="resizeHandles.events" />
   </div>
 </template>
 
@@ -331,5 +306,6 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 .overlay {
   position: absolute;
+  z-index: 1;
 }
 </style>

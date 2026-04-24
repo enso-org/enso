@@ -13,7 +13,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.util.UUID
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -36,6 +36,7 @@ class RuntimeInstrumentTest
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -47,13 +48,6 @@ class RuntimeInstrumentTest
         )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
         .logHandler(System.err)
@@ -562,7 +556,7 @@ class RuntimeInstrumentTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
       TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
       context.executionComplete(contextId)

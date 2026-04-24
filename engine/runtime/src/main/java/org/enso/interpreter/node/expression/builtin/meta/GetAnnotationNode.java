@@ -21,8 +21,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 @BuiltinMethod(
     type = "Meta",
     name = "get_annotation",
-    description = "Get annotation associated with an object",
-    autoRegister = false)
+    description = "Get annotation associated with an object")
 @SuppressWarnings("truffle-splitting")
 public abstract class GetAnnotationNode extends BaseNode {
 
@@ -37,16 +36,45 @@ public abstract class GetAnnotationNode extends BaseNode {
       @Cached ThunkExecutorNode thunkExecutorNode,
       @Cached ExpectStringNode expectStringNode,
       @Cached TypeOfNode typeOfNode) {
-    Object targetTypeResult = typeOfNode.findTypeOrError(target);
-    if (targetTypeResult instanceof DataflowError error) {
-      return error;
+    var targetTypes = typeOfNode.findAllTypesOrNull(target, false);
+
+    if (targetTypes == null) {
+      if (typeOfNode.findTypeOrError(target) instanceof DataflowError err) {
+        return err;
+      }
+      targetTypes = new Type[0];
     }
+    for (var targetTypeResult : targetTypes) {
+      var res =
+          findAnnotationOrNull(
+              frame,
+              targetTypeResult,
+              target,
+              method,
+              parameter,
+              thunkExecutorNode,
+              expectStringNode);
+      if (res != null) {
+        return res;
+      }
+    }
+    return EnsoContext.get(this).getNothing();
+  }
+
+  private Object findAnnotationOrNull(
+      VirtualFrame frame,
+      Type targetTypeResult,
+      Object target,
+      Object method,
+      Object parameter,
+      ThunkExecutorNode thunkExecutorNode,
+      ExpectStringNode expectStringNode) {
 
     if (targetTypeResult instanceof Type targetType) {
       Function methodFunction;
       if (method instanceof UnresolvedSymbol symbol) {
         var pair = symbol.resolveFor(this, targetType);
-        methodFunction = pair == null ? null : pair.getLeft();
+        methodFunction = pair == null ? null : pair.function();
       } else {
         CompilerDirectives.transferToInterpreter();
         var ctx = EnsoContext.get(this);
@@ -76,8 +104,7 @@ public abstract class GetAnnotationNode extends BaseNode {
         }
       }
     }
-
-    return EnsoContext.get(this).getNothing();
+    return null;
   }
 
   private Object executeAnnotation(

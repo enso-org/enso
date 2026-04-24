@@ -7,47 +7,61 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
+import { backendMutationOptions, useNewProject } from '#/hooks/backendHooks'
 import {
   isUploadableAsset,
-  useUploadFileToCloudMutation,
+  useUploadFileToCloud,
   useUploadFileToLocal,
 } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import * as projectHooks from '#/hooks/projectHooks'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategories } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import type * as assetRow from '#/pages/dashboard/components/AssetRow'
-import { usePasteData } from '#/providers/DriveProvider'
+import { useExportArchive } from '#/pages/useExportArchive'
+import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import * as authProvider from '$/providers/react'
-import { useBackends, useText } from '$/providers/react'
+import { isCloudCategory } from '$/providers/category'
+import type { Tab } from '$/providers/container'
+import {
+  useBackends,
+  useCategories,
+  useFullUserSession,
+  useIsFeatureUnderPaywall,
+  useText,
+} from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import {
+  useContainerData,
+  useDriveCurrentBackend,
+  useDriveCurrentCategory,
+  useRightPanelData,
+} from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
-import type { RightPanelData } from '$/providers/rightPanel'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { getLocalTimeZone, now } from '@internationalized/date'
+import * as backendModule from 'enso-common/src/services/Backend'
+import {
+  TEAMS_DIRECTORY_ID,
+  USERS_DIRECTORY_ID,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { IanaTimeZone, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import * as permissions from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
+
+const MAX_DURATION_MAXIMUM_MINUTES = 180
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
-  readonly innerProps: assetRow.AssetRowInnerProps
+  readonly asset: backendModule.AnyAsset
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-  ) => void
-  readonly rightPanel: RightPanelData
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
@@ -56,39 +70,62 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   props: AssetContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { innerProps, triggerRef, currentDirectoryId, rightPanel, initialPosition } = props
-  const { doCopy, doCut, doPaste } = props
-  const { asset, state, setRowState } = innerProps
-  const { backend, category } = state
+  const { asset, triggerRef, currentDirectoryId, initialPosition, doCopy, doCut, doPaste } = props
 
-  const isCloud = categoryModule.isCloudCategory(category)
-
-  const { localCategories } = useCategories()
+  const { categoryDirectoryId } = useCategories()
+  const [category] = useDriveCurrentCategory()
+  const backend = useDriveCurrentBackend()
+  const isCloud = isCloudCategory(category)
+  const rightPanel = useRightPanelData()
+  const driveStore = useDriveStore()
+  const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
+  const timeZone = IanaTimeZone(preferredTimeZone ?? getLocalTimeZone())
 
   const getAsset = useGetAsset()
-  const canRunProjects = useCanRunProjects()
-  const { user } = authProvider.useFullUserSession()
+  const { user } = useFullUserSession()
+  const isFeatureUnderPaywall = useIsFeatureUnderPaywall()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const openProjectNatively = projectHooks.useOpenProjectNatively()
-  const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const closeProject = projectHooks.useCloseProject()
-  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
-  const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
-  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
+  const {
+    isTabOpened,
+    openProjectLocally,
+    openProjectNatively,
+    canOpenProjectLocally,
+    canOpenProjectNatively,
+    closeTab,
+  } = useContainerData()
+  const { closeProject } = useOpenedProjects()
+  const canOpenLocally = useVueValue(
+    React.useCallback(
+      () => canOpenProjectLocally(backend.type),
+      [canOpenProjectLocally, backend.type],
+    ),
+  )
+  const canOpenNatively = useVueValue(
+    React.useCallback(
+      () => canOpenProjectNatively(backend.type),
+      [canOpenProjectNatively, backend.type],
+    ),
+  )
+  const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
+  const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
+  const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
+  const downloadAssets = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
+  const encodedEnsoPath = encodeURI(asset.ensoPath)
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToCloud = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
-  const disabledTooltip =
-    !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
+  const exportArchive = useExportArchive({ backend })
+  const disabledTooltip = !canOpenLocally ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
+  const createProjectExecution = useMutationCallback(
+    backendMutationOptions(backend, 'createProjectExecution'),
+  )
 
-  const newProject = useNewProject(backend, category)
+  const newProject = useNewProject(backend, category.type)
 
-  const systemApi = window.systemApi
+  const systemApi = window.api?.system
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const canManageThisAsset = asset.id !== USERS_DIRECTORY_ID && asset.id !== TEAMS_DIRECTORY_ID
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -108,19 +145,14 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
 
   const globalContextMenuEntries = useGlobalContextMenuEntries({
     backend,
-    category,
+    category: category.type,
     currentDirectoryId,
     directoryId: canAddToThisDirectory ? asset.id : null,
     doPaste,
   })
 
   const canPaste =
-    (
-      !pasteDataParent ||
-      !pasteData ||
-      !isCloud ||
-      permissions.isTeamPath(pasteDataParent.virtualParentsPath)
-    ) ?
+    !pasteDataParent || !pasteData || !isCloud || permissions.isTeamPath(pasteDataParent.ensoPath) ?
       true
     : pasteData.data.assets.every((pasteAsset) => {
         const otherAsset = getAsset(pasteAsset.id)
@@ -156,7 +188,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
         doAction: () => {
           const directoryId =
             asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
-          doPaste(directoryId, directoryId)
+          doPaste(directoryId)
         },
       },
   )
@@ -177,12 +209,12 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     category.type === 'trash' ?
       !ownsThisAsset ? []
       : [
-          copyIdEntry,
+          pasteMenuEntry,
           {
             action: 'undelete',
             label: getText('restoreFromTrashShortcut'),
             doAction: () => {
-              void restoreAssetsMutation({
+              void restoreAssets({
                 ids: [asset.id],
                 parentId: null,
               })
@@ -198,17 +230,16 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                   cannotUndo
                   actionText={getText('deleteTheAssetTypeTitleForever', asset.type, asset.title)}
                   onConfirm={async () => {
-                    await deleteAssetsMutation([[asset.id], true])
+                    await deleteAssets([[asset.id], true])
                   }}
                 />,
               )
             },
           },
-          pasteMenuEntry,
+          copyIdEntry,
         ]
     : !canManageThisAsset ? []
     : [
-        copyIdEntry,
         (asset.type === backendModule.AssetType.datalink ||
           asset.type === backendModule.AssetType.file) && {
           action: 'useInNewProject',
@@ -221,28 +252,41 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           !isRunningProject &&
           !isOtherUserUsingProject && {
             action: 'open',
-            isDisabled: !canRunProjects.locally[backend.type],
+            isDisabled: !canOpenLocally,
             tooltip: disabledTooltip,
             doAction: () => {
-              void openProjectLocally(asset, backend.type)
+              openProjectLocally(asset, backend.type)
             },
           },
         asset.type === backendModule.AssetType.project &&
           isCloud &&
           localBackend != null && {
             action: 'run',
-            isDisabled: !canRunProjects.natively[backend.type],
+            isDisabled: !canOpenNatively,
             tooltip: disabledTooltip,
             doAction: () => {
-              void openProjectNatively(asset, backend.type)
+              openProjectNatively(asset, backend.type)
             },
           },
-        !isCloud &&
-          encodedEnsoPath != null &&
-          systemApi && {
-            action: 'openInFileBrowser',
+        asset.type === backendModule.AssetType.project &&
+          isCloud && {
+            action: 'runAsTask',
+            isDisabled: isFeatureUnderPaywall('scheduler'),
             doAction: () => {
-              systemApi.showItemInFolder(encodedEnsoPath)
+              const startDateTime = toRfc3339(new Date(now(timeZone).toAbsoluteString()))
+              void createProjectExecution([
+                {
+                  startDate: startDateTime,
+                  endDate: null,
+                  parallelMode: 'ignore',
+                  maxDurationMinutes: MAX_DURATION_MAXIMUM_MINUTES,
+                  repeat: { type: 'none' },
+                  projectId: asset.id,
+                  timeZone,
+                  tag: undefined,
+                },
+                asset.title,
+              ])
             },
           },
         asset.type === backendModule.AssetType.project &&
@@ -251,14 +295,20 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           !isOtherUserUsingProject && {
             action: 'close',
             doAction: () => {
-              void closeProject({
-                id: asset.id,
-                title: asset.title,
-                parentId: asset.parentId,
-                type: state.backend.type,
-              })
+              const tab: Tab = { type: 'project', id: asset.id }
+              if (isTabOpened(tab)) closeTab(tab)
+              // If we have no tab opened, we try to close it in backend.
+              else closeProject(asset.id, { asset, backendType: backend.type })
             },
           },
+        isCloud && {
+          action: 'label',
+          doAction: () => {
+            setModal(
+              <ManageLabelsModal backend={backend} items={[asset]} triggerRef={triggerRef} />,
+            )
+          },
+        },
         isUploadableAsset(asset) &&
           !isCloud &&
           localBackend != null && {
@@ -266,7 +316,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'uploadToCloud',
             feature: 'uploadToCloud',
             doAction: () => {
-              void uploadFileToCloudMutation(localBackend, {
+              void uploadFileToCloud(localBackend, {
                 assets: [asset],
                 targetDirectoryId: user.rootDirectoryId,
               })
@@ -280,12 +330,39 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               void uploadFileToLocal([asset])
             },
           },
+        {
+          action: 'copy',
+          doAction: () => {
+            doCopy()
+          },
+        },
+        !isRunningProject &&
+          !isOtherUserUsingProject && {
+            action: 'cut',
+            doAction: () => {
+              doCut()
+            },
+          },
+        pasteMenuEntry,
+        (isCloud ?
+          asset.type !== backendModule.AssetType.directory
+        : asset.type === backendModule.AssetType.project) && {
+          isDisabled: asset.type === backendModule.AssetType.secret,
+          action: 'download',
+          doAction: () => {
+            void downloadAssets({
+              ids: [{ id: asset.id, title: asset.title }],
+              targetDirectoryId: !isCloud ? categoryDirectoryId({ type: 'local' }) : null,
+              shouldUnpackProject: false,
+            })
+          },
+        },
         canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && {
             action: 'rename',
             doAction: () => {
-              setRowState(object.merger({ isEditingName: true }))
+              driveStore.setState({ assetToRename: asset.id })
             },
           },
         (asset.type === backendModule.AssetType.secret ||
@@ -294,7 +371,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'edit',
             doAction: () => {
               rightPanel.setTemporaryTab('settings')
-              rightPanel.updateContext('drive', (ctx) => {
+              rightPanel.updateContext({ type: 'drive' }, (ctx) => {
                 ctx.category = category
                 ctx.item = asset
                 switch (asset.type) {
@@ -307,6 +384,19 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               })
             },
           },
+        asset.type === backendModule.AssetType.project && {
+          action: 'duplicate',
+          doAction: () => {
+            void copyAssets([[asset.id], asset.parentId])
+          },
+        },
+        {
+          action: 'exportArchive',
+          doAction: () => {
+            void exportArchive()
+          },
+        },
+        ...(canAddToThisDirectory ? globalContextMenuEntries : []),
         ownsThisAsset &&
           !isRunningProject &&
           !isOtherUserUsingProject && {
@@ -323,48 +413,26 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                     asset.title,
                   )}
                   onConfirm={async () => {
-                    await deleteAssetsMutation([[asset.id], false])
+                    await deleteAssets([[asset.id], false])
                   }}
                 />,
               )
             },
           },
-        isCloud && {
-          action: 'label',
-          doAction: () => {
-            setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
+        !isCloud &&
+          systemApi && {
+            action: 'openInFileBrowser',
+            doAction: () => {
+              systemApi.showItemInFolder(encodedEnsoPath)
+            },
           },
-        },
-        asset.type === backendModule.AssetType.project && {
-          action: 'duplicate',
-          doAction: () => {
-            void copyAssetsMutation([[asset.id], asset.parentId])
-          },
-        },
-        { action: 'copy', doAction: doCopy },
-        encodedEnsoPath != null && {
+        {
           action: 'copyAsPath',
           doAction: () => {
             void copyMutation.mutateAsync(encodedEnsoPath)
           },
         },
-        !isRunningProject && !isOtherUserUsingProject && { action: 'cut', doAction: doCut },
-        (isCloud ?
-          asset.type !== backendModule.AssetType.directory
-        : asset.type === backendModule.AssetType.project) && {
-          isDisabled: asset.type === backendModule.AssetType.secret,
-          action: 'download',
-          doAction: () => {
-            void downloadAssetsMutation({
-              ids: [{ id: asset.id, title: asset.title }],
-              targetDirectoryId:
-                !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
-              shouldUnpackProject: false,
-            })
-          },
-        },
-        pasteMenuEntry,
-        ...(canAddToThisDirectory ? globalContextMenuEntries : []),
+        copyIdEntry,
       ],
   )
 
@@ -374,6 +442,9 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       aria-label={getText('assetContextMenuLabel')}
       entries={entries}
       initialPosition={initialPosition}
+      onClose={() => {
+        driveStore.setState({ contextMenuData: null })
+      }}
     />
   )
 })

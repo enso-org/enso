@@ -1,16 +1,15 @@
-import * as backendModule from '#/services/Backend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
-import { Opt } from '@/util/data/opt'
-import { proxyRefs, ToValue } from '@/util/reactivity'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
+import type { Opt } from '@/util/data/opt'
 import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
+import * as backendModule from 'enso-common/src/services/Backend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
@@ -22,16 +21,40 @@ export interface UserSession extends cognitoModule.UserSession {
   readonly user: backendModule.User
 }
 
+const UsersMe = 'usersMe'
 /** Query to fetch the user's session data from the backend. */
+export type UsersMeQueryKey = ReturnType<typeof createUsersMeQueryKey>
+
+/** Create users/me query key */
 export function createUsersMeQueryKey(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
 ) {
-  return [
-    remoteBackend.type,
-    'usersMe',
-    computed(() => toValue(session)?.clientId ?? null),
-  ] as const
+  return [remoteBackend.type, UsersMe, computed(() => toValue(session)?.clientId ?? null)] as const
+}
+
+/** Check if the query key belongs to usersMe query. */
+export function isUsersMeQueryKey(queryKey: vueQuery.QueryKey): queryKey is UsersMeQueryKey {
+  return (
+    queryKey.length === 3 &&
+    typeof queryKey[0] === 'string' &&
+    queryKey[1] === UsersMe &&
+    (queryKey[2] === null ||
+      toValue(queryKey[2]) === null ||
+      typeof toValue(queryKey[2]) === 'string')
+  )
+}
+
+const ACCOUNT_FRESHNESS_THRESHOLD_MS = 1000 * 60 * 30 // 30 minutes
+
+function extractTimestampFromKsuid(ksuid: string): Date {
+  const decoded = [...ksuid].reduce(
+    (p, c) =>
+      p * 62n + BigInt('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.indexOf(c)),
+    0n,
+  )
+  const timestamp = Number(decoded >> 128n) * 1000
+  return new Date(1.4e12 + timestamp)
 }
 
 /** Query to fetch the user's session data from the backend. */
@@ -40,6 +63,7 @@ export function createUsersMeQuery(
   remoteBackend: RemoteBackend,
   setUsername: (username: string) => Promise<boolean>,
 ) {
+  let refetchCount = 0
   return vueQuery.queryOptions({
     queryKey: createUsersMeQueryKey(session, remoteBackend),
     queryFn: async () => {
@@ -47,11 +71,21 @@ export function createUsersMeQuery(
       if (!sessionVal) {
         return null
       }
+
       const user = await remoteBackend.usersMe()
       if (user == null) {
         void setUsername(sessionVal.email)
         return null
       }
+      if (user.plan === backendModule.Plan.free && refetchCount < 10) {
+        const date = extractTimestampFromKsuid(user.organizationId.replace(/^organization-/, ''))
+        if (Number(new Date()) - Number(date) < ACCOUNT_FRESHNESS_THRESHOLD_MS) {
+          refetchCount += 1
+          return null
+        }
+      }
+
+      refetchCount = 0
       return { user, ...sessionVal }
     },
   })
@@ -73,7 +107,6 @@ function createAuthStore(
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
   const planOverride = useFeatureFlag('developerPlanOverride')
-  const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -204,18 +237,11 @@ function createAuthStore(
     }
   })
 
-  const effectiveUserData = computed(() => {
-    const intermediate =
-      userData.value && planOverride.value != null ?
-        { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
-      : userData.value
-    return intermediate && overrideProfilePicture.value ?
-        {
-          ...intermediate,
-          user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
-        }
-      : intermediate
-  })
+  const effectiveUserData = computed(() =>
+    userData.value && planOverride.value != null ?
+      { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
+    : userData.value,
+  )
 
   return proxyRefs({
     refetchSession,
@@ -231,5 +257,5 @@ function createAuthStore(
   })
 }
 
-/** A React provider for the Cognito API. */
+/** A provider of currently logged in user. */
 export const useAuth = createGlobalState(createAuthStore)

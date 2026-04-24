@@ -2,8 +2,6 @@
 
 use ide_ci::define_env_var;
 
-
-
 define_env_var! {
     /// The AWS region to use.
     AWS_REGION, String;

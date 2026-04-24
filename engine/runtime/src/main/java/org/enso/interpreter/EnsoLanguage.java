@@ -15,9 +15,9 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
@@ -70,12 +70,14 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
+import org.enso.scala.wrapper.ScalaConversions;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Tree;
 import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
+import scala.collection.immutable.Seq;
 
 /**
  * The root of the Enso implementation.
@@ -110,6 +112,8 @@ import org.graalvm.options.OptionType;
   StandardTags.RootTag.class,
   StandardTags.RootBodyTag.class,
   StandardTags.TryBlockTag.class,
+  StandardTags.ReadVariableTag.class,
+  StandardTags.WriteVariableTag.class,
   IdentifiedTag.class,
   AvoidIdInstrumentationTag.class,
   Patchable.Tag.class
@@ -150,8 +154,20 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
     TruffleLogger logger = env.getLogger(EnsoLanguage.class);
 
+    var editionsDir = env.getOptions().get(RuntimeOptions.EDITIONS_DIRECTORY_KEY);
     var environment = new Environment() {};
-    var distributionManager = new DistributionManager(environment);
+    DistributionManager distributionManager;
+    if (!editionsDir.isEmpty()) {
+      distributionManager =
+          new DistributionManager(environment) {
+            @Override
+            public Seq<Path> detectCustomEditionPaths(Path ensoHome) {
+              return ScalaConversions.seq(List.of(Path.of(editionsDir)));
+            }
+          };
+    } else {
+      distributionManager = new DistributionManager(environment);
+    }
 
     LockManager lockManager;
     ConnectedLockManager connectedLockManager = null;
@@ -226,8 +242,14 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    RootNode root = ProgramRootNode.build(this, request.getSource());
-    return root.getCallTarget();
+    if (request.getArgumentNames().isEmpty()) {
+      var root = ProgramRootNode.build(this, request.getSource());
+      return root.getCallTarget();
+    } else {
+      var root =
+          ProgramRootNode.buildWithArgs(this, request.getSource(), request.getArgumentNames());
+      return root.getCallTarget();
+    }
   }
 
   /**
@@ -284,6 +306,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           new InlineContext(
               moduleContext,
               redirectConfigWithStrictErrors,
+              null,
               scala.Some.apply(localScope),
               scala.Some.apply(false),
               scala.Option.empty(),
@@ -300,12 +323,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var ir = optionTupple.get()._2();
           var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
           var mod = newInlineContext.getModule();
-          var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
               new IrToTruffle(
                   context,
-                  request.getSource(),
-                  m.getScopeBuilder(),
+                  module.getPackage(),
+                  request::getSource,
+                  mod,
                   redirectConfigWithStrictErrors);
           exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
         } else {

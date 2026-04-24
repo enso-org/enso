@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.enso.logging.service.ApiMessage;
-import org.enso.logging.service.LogMessage;
+import org.enso.logging.service.common.ApiMessage;
+import org.enso.logging.service.common.LogMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +55,11 @@ public final class TelemetryLogFormatter {
       LOGGER.warn("Incorrect arguments format: {}", logEventToString(logMessage));
       return null;
     }
-    if (arguments.size() != logMessage.arguments().length) {
+    var logArgs = logMessage.arguments();
+    if (logArgs == null) {
+      logArgs = new Object[0];
+    }
+    if (arguments.size() != logArgs.length) {
       LOGGER.warn("Incorrect number of arguments: {}", logEventToString(logMessage));
       return null;
     }
@@ -63,7 +67,7 @@ public final class TelemetryLogFormatter {
       LOGGER.warn("Restricted metadata in arguments: {}", logEventToString(logMessage));
       return null;
     }
-    var metadata = constructMetadata(logMessage.arguments(), arguments, logMessage);
+    var metadata = constructMetadata(logArgs, arguments, logMessage);
     return ApiMessage.createTelemetryLog(msg, metadata);
   }
 

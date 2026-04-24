@@ -3,7 +3,6 @@ package org.enso.table.excel;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
-import org.graalvm.polyglot.Context;
 
 public class ExcelHeaders {
   private final NameDeduplicator deduplicator;
@@ -23,8 +22,8 @@ public class ExcelHeaders {
     names =
         switch (headers) {
           case EXCEL_COLUMN_NAMES -> null;
-          case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(
-              startRow, startCol, endCol, deduplicator);
+          case USE_FIRST_ROW_AS_HEADERS ->
+              readRowAsHeaders(startRow, startCol, endCol, deduplicator);
           case INFER -> inferHeaders(startRow, nextRow, startCol, endCol, deduplicator);
         };
   }
@@ -42,13 +41,16 @@ public class ExcelHeaders {
     return name;
   }
 
+  public int count() {
+    return names == null ? 0 : names.length;
+  }
+
   public int getRowsUsed() {
     return this.names == null ? 0 : 1;
   }
 
   private static String[] readRowAsHeaders(
       ExcelRow row, int startCol, int endCol, NameDeduplicator deduplicator) {
-    Context context = Context.getCurrent();
     if (row == null) {
       return null;
     }
@@ -61,16 +63,14 @@ public class ExcelHeaders {
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;
-
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
 
     for (int i = 0; i < output.length; i++) {
       if (output[i] == null || output[i].isEmpty()) {
         output[i] = CellReference.convertNumToColString(i + startCol - 1);
       }
-
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
 
     return output;

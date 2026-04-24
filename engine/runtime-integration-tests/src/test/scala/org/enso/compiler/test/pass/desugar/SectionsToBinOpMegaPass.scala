@@ -15,6 +15,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.persist.Persistance.Reference
 
 /** This pass converts operator sections to applications of binary operators.
   *
@@ -34,7 +35,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE,
     UnusedBindings
@@ -102,125 +102,122 @@ case object SectionsToBinOpMegaPass extends IRPass {
     inlineContext: InlineContext
   ): Expression = {
     section match {
-      case sectionLeft @ Section.Left(arg, op, loc, passData) =>
+      case sectionLeft: Section.Left =>
+        val arg          = sectionLeft.arg()
+        val op           = sectionLeft.operator()
+        val passData     = sectionLeft.passData()
+        val loc          = sectionLeft.identifiedLocation()
         val rightArgName = freshNameSupply.newName()
-        val rightCallArg =
-          new CallArgument.Specified(
-            None,
-            rightArgName,
-            true,
-            identifiedLocation = null
-          )
-        val rightDefArg = new DefinitionArgument.Specified(
-          rightArgName.duplicate(),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val rightCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(rightArgName)
+          .isSynthetic(true)
+          .build()
+        val rightDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(rightArgName.duplicate())
+          .suspended(false)
+          .build()
 
         if (arg.value.isInstanceOf[Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
-          val leftCallArg =
-            new CallArgument.Specified(
-              None,
-              leftArgName,
-              true,
-              identifiedLocation = null
-            )
-          val leftDefArg = new DefinitionArgument.Specified(
-            leftArgName.duplicate(),
-            None,
-            None,
-            suspended = false,
-            null
-          )
-          val opCall = new Application.Prefix(
-            function             = op,
-            arguments            = List(leftCallArg, rightCallArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = null,
-            passData             = passData,
-            diagnostics          = sectionLeft.diagnostics
-          )
-
-          val rightLam = new Function.Lambda(
-            List(rightDefArg),
-            opCall,
-            identifiedLocation = null
-          )
-
-          new Function.Lambda(
-            List(leftDefArg),
-            rightLam,
-            loc
-          )
+          val leftCallArg = CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(leftArgName)
+            .isSynthetic(true)
+            .build()
+          val leftDefArg = DefinitionArgument.Specified
+            .builder()
+            .name(leftArgName.duplicate())
+            .suspended(false)
+            .build()
+          val opCall = Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(leftCallArg, rightCallArg))
+            .hasDefaultsSuspended(false)
+            .passData(passData)
+            .diagnostics(sectionLeft.diagnostics)
+            .build()
+          val rightLam = Function.Lambda
+            .builder()
+            .arguments(List(rightDefArg))
+            .bodyReference(Reference.of(opCall))
+            .canBeTCO(true)
+            .build()
+          Function.Lambda
+            .builder()
+            .arguments(List(leftDefArg))
+            .bodyReference(Reference.of(rightLam))
+            .location(loc)
+            .canBeTCO(true)
+            .build()
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          new Application.Prefix(
-            function             = op,
-            arguments            = List(newArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = loc,
-            passData             = passData,
-            diagnostics          = sectionLeft.diagnostics
-          )
+          Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(newArg))
+            .hasDefaultsSuspended(false)
+            .location(loc)
+            .passData(passData)
+            .diagnostics(sectionLeft.diagnostics)
+            .build()
         }
 
-      case sectionSides @ Section.Sides(op, loc, passData) =>
+      case sectionSides: Section.Sides =>
         val leftArgName = freshNameSupply.newName()
-        val leftCallArg =
-          new CallArgument.Specified(
-            None,
-            leftArgName,
-            true,
-            identifiedLocation = null
-          )
-        val leftDefArg = new DefinitionArgument.Specified(
-          leftArgName.duplicate(),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val leftCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(leftArgName)
+          .isSynthetic(true)
+          .build()
+        val leftDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(leftArgName.duplicate())
+          .suspended(false)
+          .build()
 
         val rightArgName = freshNameSupply.newName()
-        val rightCallArg =
-          new CallArgument.Specified(
-            None,
-            rightArgName,
-            true,
-            identifiedLocation = null
-          )
-        val rightDefArg = new DefinitionArgument.Specified(
-          rightArgName.duplicate(),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val rightCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(rightArgName)
+          .isSynthetic(true)
+          .build()
+        val rightDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(rightArgName.duplicate())
+          .suspended(false)
+          .build()
 
-        val opCall = new Application.Prefix(
-          function             = op,
-          arguments            = List(leftCallArg, rightCallArg),
-          hasDefaultsSuspended = false,
-          identifiedLocation   = null,
-          passData             = passData,
-          diagnostics          = sectionSides.diagnostics
-        )
+        val opCall = Application.Prefix
+          .builder()
+          .function(sectionSides.operator())
+          .arguments(List(leftCallArg, rightCallArg))
+          .hasDefaultsSuspended(false)
+          .passData(sectionSides.passData())
+          .diagnostics(sectionSides.diagnostics)
+          .build()
 
-        val rightLambda = new Function.Lambda(
-          List(rightDefArg),
-          opCall,
-          identifiedLocation = null
-        )
+        val rightLambda = Function.Lambda
+          .builder()
+          .arguments(List(rightDefArg))
+          .bodyReference(Reference.of(opCall))
+          .canBeTCO(true)
+          .build()
 
-        new Function.Lambda(
-          List(leftDefArg),
-          rightLambda,
-          loc
-        )
+        Function.Lambda
+          .builder()
+          .arguments(List(leftDefArg))
+          .bodyReference(Reference.of(rightLambda))
+          .location(sectionSides.identifiedLocation())
+          .canBeTCO(true)
+          .build()
 
       /* Note [Blanks in Sections]
        * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -241,79 +238,81 @@ case object SectionsToBinOpMegaPass extends IRPass {
        * The same is true of left sections.
        */
 
-      case sectionRight @ Section.Right(op, arg, loc, passData) =>
+      case sectionRight: Section.Right =>
+        val arg         = sectionRight.arg()
+        val op          = sectionRight.operator()
+        val passData    = sectionRight.passData()
+        val loc         = sectionRight.identifiedLocation()
         val leftArgName = freshNameSupply.newName()
-        val leftCallArg =
-          new CallArgument.Specified(
-            None,
-            leftArgName,
-            true,
-            identifiedLocation = null
-          )
-        val leftDefArg =
-          new DefinitionArgument.Specified(
-            leftArgName.duplicate(),
-            None,
-            None,
-            suspended = false,
-            null
-          )
+        val leftCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(leftArgName)
+          .isSynthetic(true)
+          .build()
+        val leftDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(leftArgName.duplicate())
+          .suspended(false)
+          .build()
 
         if (arg.value.isInstanceOf[Name.Blank]) {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
-          val rightCallArg =
-            new CallArgument.Specified(
-              None,
-              rightArgName,
-              true,
-              identifiedLocation = null
-            )
-          val rightDefArg = new DefinitionArgument.Specified(
-            rightArgName.duplicate(),
-            None,
-            None,
-            suspended = false,
-            null
-          )
+          val rightCallArg = CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(rightArgName)
+            .isSynthetic(true)
+            .build()
+          val rightDefArg = DefinitionArgument.Specified
+            .builder()
+            .name(rightArgName.duplicate())
+            .suspended(false)
+            .build()
 
-          val opCall = new Application.Prefix(
-            function             = op,
-            arguments            = List(leftCallArg, rightCallArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = null,
-            passData             = passData,
-            diagnostics          = sectionRight.diagnostics
-          )
+          val opCall = Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(leftCallArg, rightCallArg))
+            .hasDefaultsSuspended(false)
+            .passData(passData)
+            .diagnostics(sectionRight.diagnostics)
+            .build()
 
-          val leftLam = new Function.Lambda(
-            List(leftDefArg),
-            opCall,
-            identifiedLocation = null
-          )
+          val leftLam = Function.Lambda
+            .builder()
+            .arguments(List(leftDefArg))
+            .bodyReference(Reference.of(opCall))
+            .canBeTCO(true)
+            .build()
 
-          new Function.Lambda(
-            List(rightDefArg),
-            leftLam,
-            loc
-          )
+          Function.Lambda
+            .builder()
+            .arguments(List(rightDefArg))
+            .bodyReference(Reference.of(leftLam))
+            .location(loc)
+            .canBeTCO(true)
+            .build()
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          val opCall = new Application.Prefix(
-            function             = op,
-            arguments            = List(leftCallArg, newArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = null,
-            passData             = passData,
-            diagnostics          = sectionRight.diagnostics
-          )
+          val opCall = Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(leftCallArg, newArg))
+            .hasDefaultsSuspended(false)
+            .passData(passData)
+            .diagnostics(sectionRight.diagnostics)
+            .build()
 
-          new Function.Lambda(
-            List(leftDefArg),
-            opCall,
-            loc
-          )
+          Function.Lambda
+            .builder()
+            .arguments(List(leftDefArg))
+            .bodyReference(Reference.of(opCall))
+            .location(loc)
+            .canBeTCO(true)
+            .build()
         }
     }
   }

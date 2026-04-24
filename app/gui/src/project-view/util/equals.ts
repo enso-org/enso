@@ -11,8 +11,8 @@ export function defaultEquality(a: unknown, b: unknown): boolean {
  * @returns true if arrays are equal.
  */
 export function arrayEquals<T>(
-  a: Array<T>,
-  b: Array<T>,
+  a: readonly T[],
+  b: readonly T[],
   eq: (a: T, b: T) => boolean = defaultEquality,
 ) {
   if (a === b) return true
@@ -24,4 +24,17 @@ export function arrayEquals<T>(
     if (aVal != undefined && bVal != undefined && !eq(aVal, bVal)) return false
   }
   return true
+}
+
+/**
+ * Equal function accepting only primitive values.
+ *
+ * Used in places where we want to raise typecheck error after changing some field's type
+ * to one with nontrivial definition of equality.
+ */
+export function primitiveEquals(
+  a: string | number | boolean | bigint | symbol | undefined | null,
+  b: string | number | boolean | bigint | symbol | undefined | null,
+): boolean {
+  return defaultEquality(a, b)
 }

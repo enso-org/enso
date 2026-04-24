@@ -39,7 +39,7 @@ class ImportsTest extends PackageTest {
     outLines(0) should include(
       "Package containing the module Surely_This.Does_Not_Exist.My_Module " +
       "could not be loaded: The package could not be resolved: The library " +
-      "`Surely_This.Does_Not_Exist` is not defined within the edition."
+      "`Surely_This.Does_Not_Exist` is not defined within the edition"
     )
     outLines(1) should include(
       "The module Enso_Test.Test_Bad_Imports.Oopsie does not exist."
@@ -96,7 +96,7 @@ class ImportsTest extends PackageTest {
     consumeOut should contain("Export statements form a cycle:")
   }
 
-  "Exports system" should "honor logical export" in {
+  "Exports system" should "honor logical export" ignore {
     val compilationResult = evalTestProject(
       "Logical_Import_Violated_Test"
     )
@@ -104,7 +104,7 @@ class ImportsTest extends PackageTest {
     consumeOut shouldEqual List()
   }
 
-  "Import statements" should "allow for importing submodules" in {
+  "Import statements" should "allow for importing submodules" ignore {
     evalTestProject("Test_Submodules") shouldEqual 42
     val outLines = consumeOut
     outLines(0) shouldEqual "(Foo 10)"

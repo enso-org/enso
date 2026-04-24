@@ -5,16 +5,17 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Type
 from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
-
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.database.JDBCValueSetter
 ## ---
    private: true
    ---
@@ -84,16 +85,25 @@ type Postgres_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
                continue with the more complex mappings that take stuff like
                precision into account.
             case complex_types_map.get sql_type.typeid Nothing of
-                Nothing -> on_unknown_type sql_type
+                Nothing -> _on_unknown_type sql_type json_as_text
                 builder -> builder sql_type
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for Postgres.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        ColumnFetcherFactory.DEFAULT
 
     ## ---
        private: true
@@ -134,16 +144,6 @@ type Postgres_Type_Mapping
     ## ---
        private: true
        ---
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher : SQL_Type -> Column_Fetcher
-    make_column_fetcher self sql_type =
-        value_type = self.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
-
-    ## ---
-       private: true
-       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently, we do not have any implicit conversions.
         _ = [source_type, target_type]
@@ -165,6 +165,28 @@ type Postgres_Type_Mapping
        ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for Postgres.
+    statement_setter =
+        fill_home = Statement_Setter.create_fill_hole Postgres_Type_Mapping.value_setter
+        Statement_Setter.for_fill_hole fill_home
+
+    ## ---
+       private: true
+       ---
+    value_setter =
+        JDBCValueSetter.create "Postgres"
+
+    ## ---
+       private: true
+       ---
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    error_mapper : Postgres_Error_Mapper
+    error_mapper self = Postgres_Error_Mapper
 
 ## ---
    private: true
@@ -191,11 +213,11 @@ complex_types_map = Dictionary.from_vector <|
     handle_bit sql_type =
         if sql_type.name == "bool" then Value_Type.Boolean else
             # We currently do not support bit types.
-            on_unknown_type sql_type
+            _on_unknown_type sql_type
     handle_timestamp sql_type = case sql_type.name of
         "timestamptz" -> Value_Type.Date_Time with_timezone=True
         "timestamp"   -> Value_Type.Date_Time with_timezone=False
-        _             -> on_unknown_type sql_type
+        _             -> _on_unknown_type sql_type
 
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
@@ -206,8 +228,15 @@ complex_types_map = Dictionary.from_vector <|
 ## ---
    private: true
    ---
-on_unknown_type sql_type =
-    Value_Type.Unsupported_Data_Type sql_type.name sql_type
+private _on_unknown_type sql_type json_as_text:Boolean=False = if json_as_text.not then Value_Type.Unsupported_Data_Type sql_type.name sql_type else
+    case sql_type.name of
+        "json" ->
+            result = Value_Type.Char size=Nothing variable_length=True
+            Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
+        "jsonb" ->
+            result = Value_Type.Char size=Nothing variable_length=True
+            Warning.attach (Inexact_Type_Coercion.Warning (Value_Type.Unsupported_Data_Type sql_type.name sql_type) result) result
+        _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
 ## ---
    private: true

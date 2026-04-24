@@ -1,12 +1,14 @@
 import project.Any.Any
-import project.Data.Array.Array
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
-import project.Error.Error
+import project.Internal.Error_Builtins
 import project.Meta
-import project.Nothing.Nothing
 import project.Runtime
 from project.Data.Boolean import False, True
+from project.Error import all
+from project.Internal.Error_Builtins import panic_rethrow
+from project.Nothing import all
 
 polyglot java import java.lang.Throwable
 
@@ -56,15 +58,6 @@ type Panic
 
     ## ---
        private: true
-       ---
-       Returns a raw representation of the stack trace attached to the provided
-       throwable. It can be a dataflow error, a panic or a native Java exception.
-       You probably want `Panic.get_attached_stack_trace` instead.
-    primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
-
-    ## ---
-       private: true
        advanced: true
        ---
        Returns the attached stack trace of the given throwable. Can be used to
@@ -76,7 +69,7 @@ type Panic
         throwable = case error of
             Caught_Panic.Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
-        prim_stack = Panic.primitive_get_attached_stack_trace throwable
+        prim_stack = Error_Builtins.primitive_get_attached_stack_trace throwable
         stack_with_prims = Vector.from_polyglot_array prim_stack
         stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
@@ -99,7 +92,7 @@ type Panic
              example_rethrow = Panic.rethrow Examples.throw_error
        ```
     rethrow : (Any ! Any) -> Any
-    rethrow value = value.catch Any Panic.throw
+    rethrow value = panic_rethrow value
 
     ## ---
        advanced: true
@@ -296,7 +289,6 @@ type Panic
 ## ---
    private: true
    ---
-@Builtin_Type
 type Caught_Panic
     ## ---
        private: true
@@ -307,15 +299,14 @@ type Caught_Panic
         - `payload`: the payload carried by the error.
         - `internal_original_exception (private)`: the original Java exception
           that is the source of this panic. Only for internal use.
-    Panic payload internal_original_exception
+    private Panic internal_payload internal_original_exception
 
     ## ---
        icon: panic
        ---
        Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
-    convert_to_dataflow_error : Error
-    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+    convert_to_dataflow_error self -> Error = Error_Builtins.convert_to_dataflow_error self
 
     ## ---
        icon: metadata
@@ -324,6 +315,13 @@ type Caught_Panic
     stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
+
+    ## ---
+       private: true
+       ---
+       Getter for the payload
+
+    payload self = self.internal_payload
 
 ## ---
    private: true

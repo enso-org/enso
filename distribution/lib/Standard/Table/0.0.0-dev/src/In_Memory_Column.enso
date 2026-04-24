@@ -5,12 +5,10 @@ import Standard.Base.Runtime.Context
 
 import project.Column.Column
 import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
-import project.Internal.In_Memory_Visualization_Helpers.In_Memory_Visualization_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Storage
 import project.Internal.Type_Refinements.In_Memory_Column_Refinements
 import project.Internal.Value_Type_Helpers
-import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
@@ -19,7 +17,7 @@ from project.Internal.Storage import enso_to_java
 
 polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
-polyglot java import org.enso.table.data.column.operation.JsonOperation
+polyglot java import org.enso.table.data.column.operation.TableVizOperation
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
@@ -34,6 +32,29 @@ type In_Memory_Column
        ## Arguments
         - `internal_java_column`: The internal representation of the column.
     private Value internal_java_column
+
+    ## ---
+       private: true
+       ---
+       Gets the Table Visualization for an In_Memory_Column.
+       This method implements caching to allow for quicker rendering of the same table.
+    to_table_viz_json self all_row_count:Integer=-1 use_server_mode:Boolean=True -> Text =
+        display_type = [(self:Column).value_type.to_display_text]
+        self.internal_java_column.tableVizJSON display_type all_row_count use_server_mode
+
+    ## ---
+       private: true
+       ---
+       Awaits completion of the metrics computation.
+    await_metrics self -> Dictionary =
+        DataQualityMetrics.join (self:In_Memory_Column).java_column
+
+    ## ---
+       private: true
+       ---
+       Gets the JSON of distinct values.
+    distinct_values_json self -> Text | Nothing =
+        DataQualityMetrics.get (self:In_Memory_Column).java_column . get DataQualityMetrics.DISTINCT_JSON Nothing
 
     ## ---
        private: true
@@ -61,9 +82,9 @@ type In_Memory_Column
     ## ---
        private: true
        ---
-       Specialised implementation of to_json for a Column.
-    to_json_data self start:Integer=0 (length:Integer=(self:Column).length) fallback=(v->v.to_json) -> Text =
-        JsonOperation.apply self.java_column start length fallback
+       Specialised implementation of to_json for a Column for use in visualization.
+    to_json_data self start:Integer=0 (row_count:Integer=(self:Column).row_count) -> Text =
+        TableVizOperation.makeJSONForColumn self.java_column start row_count
 
     ## ---
        private: true
@@ -78,7 +99,16 @@ type In_Memory_Column
        private: true
        ---
        Creates a new column given a Java Column object.
-    private from_java_column java_column:Java_Column =
+    private from_java_column raw_column =
+        java_column = case raw_column of
+            j : Java_Column -> j
+            _ ->
+                name = raw_column.getName
+                storage = raw_column.getStorage
+                # ColumnStorage is an interface and will get proxied
+                # to the other JVM automatically
+                Java_Column.new name storage
+
         ## Trigger data quality metrics computation (conditionally on Output context).
         if Context.Output.is_enabled.not then DataQualityMetrics.triggerColumn java_column
 
@@ -88,7 +118,7 @@ type In_Memory_Column
     ## ---
        private: true
        ---
-       Implementation fro `Column.from_vector`.
+       Implementation for `Column.from_vector`.
     private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
@@ -150,10 +180,3 @@ type In_Memory_Column
    Creates the Column type class instance for the In_Memory_Column.
 Column.from (that : In_Memory_Column) =
     column_from_implementation that In_Memory_Column_Implementation
-
-## ---
-   private: true
-   ---
-   Gets the Visualization helpers for the column.
-Visualization_Helpers.from (that : In_Memory_Column) =
-    Visualization_Helpers.Value that In_Memory_Visualization_Helpers

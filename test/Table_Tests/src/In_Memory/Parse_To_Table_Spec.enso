@@ -70,7 +70,7 @@ add_specs suite_builder =
         group_builder.specify "Regex_Syntax_Error" <|
             "abc".parse_to_table "(a)(?<<" . should_fail_with Regex_Syntax_Error
 
-        group_builder.specify "enpty pattern" <|
+        group_builder.specify "empty pattern" <|
             "abc".parse_to_table "" . should_fail_with Illegal_Argument
 
         group_builder.specify "bad arg" <|

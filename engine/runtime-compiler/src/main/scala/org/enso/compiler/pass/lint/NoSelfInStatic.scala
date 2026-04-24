@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
+import org.enso.persist.Persistance
 
 /** This linting pass ensures that `self` argument is not used in static methods.
   *
@@ -32,12 +33,17 @@ object NoSelfInStatic extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(
-      bindings = ir.bindings.map {
+    ir.copyWithBindings(
+      ir.bindings.map {
         case method: definition.Method.Explicit if isStaticMethod(method) =>
-          method.copy(
-            body = method.body.transformExpressions(transformSelfToError)
-          )
+          method
+            .copyBuilder()
+            .bodyReference(
+              Persistance.Reference.of(
+                method.body.transformExpressions(transformSelfToError)
+              )
+            )
+            .build()
         case method: definition.Method.Binding =>
           throw new CompilerError(
             s"unexpected Method.Binding $method present in pass NoSelfInStatic"
@@ -48,13 +54,14 @@ object NoSelfInStatic extends IRPass {
   }
 
   private def transformSelfToError: PartialFunction[Expression, Expression] = {
-    case nameSelf @ Name.Self(location, false, passData) =>
-      new errors.Syntax(
-        location,
-        errors.Syntax.InvalidSelfArgUsage,
-        passData,
-        nameSelf.diagnostics
-      )
+    case nameSelf: Name.Self if !nameSelf.isMethod =>
+      errors.Syntax
+        .builder()
+        .location(nameSelf.identifiedLocation())
+        .reason(errors.Syntax.InvalidSelfArgUsage.INSTANCE)
+        .passData(nameSelf.passData())
+        .diagnostics(nameSelf.diagnostics)
+        .build()
   }
 
   private def isSelfName(name: Name): Boolean = {
@@ -82,15 +89,8 @@ object NoSelfInStatic extends IRPass {
     method.typeName match {
       case Some(_) =>
         method.body match {
-          case Function.Lambda(
-                arguments,
-                _,
-                _,
-                _,
-                _,
-                _
-              ) =>
-            findSelfArgument(arguments).isEmpty
+          case lam: Function.Lambda =>
+            findSelfArgument(lam.arguments()).isEmpty
           case body =>
             throw new CompilerError(
               s"Method body is not a lambda: $body - should have been transformed to lambda by GenerateMethodBodies pass"

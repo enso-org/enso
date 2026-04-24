@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.TopScope;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
@@ -41,7 +39,8 @@ public class ExtensionMethodResolutionTest {
 
   @Test
   public void twoExtensionMethodsWithSameNameInOneModuleShouldFail() throws IOException {
-    var src = """
+    var src =
+        """
         type T
         T.foo x = x
         T.foo x y = x + y
@@ -51,7 +50,8 @@ public class ExtensionMethodResolutionTest {
 
   @Test
   public void extensionMethodAndNormalMethodConflictInOneModule() throws IOException {
-    var src = """
+    var src =
+        """
         type T
             foo x = x
         T.foo x y = x + y
@@ -97,7 +97,9 @@ public class ExtensionMethodResolutionTest {
   @Test
   public void secondResolutionIsInCurrentModuleScope() throws IOException {
     var xMod =
-        new SourceModule(QualifiedName.fromString("X"), """
+        new SourceModule(
+            QualifiedName.fromString("X"),
+            """
             type T
             """);
     var yMod =
@@ -131,7 +133,9 @@ public class ExtensionMethodResolutionTest {
   @Test
   public void resolutionFromImportedModulesIsDeterministic1() throws IOException {
     var xMod =
-        new SourceModule(QualifiedName.fromString("X"), """
+        new SourceModule(
+            QualifiedName.fromString("X"),
+            """
             type T
             """);
     var yMod =
@@ -173,7 +177,9 @@ public class ExtensionMethodResolutionTest {
   @Test
   public void resolutionFromImportedModulesIsDeterministic2() throws IOException {
     var xMod =
-        new SourceModule(QualifiedName.fromString("X"), """
+        new SourceModule(
+            QualifiedName.fromString("X"),
+            """
             type T
             """);
     var yMod =
@@ -276,7 +282,8 @@ public class ExtensionMethodResolutionTest {
   public void sameExtensionMethodInDifferentTypesInThreeModules() throws IOException {
     var mod2 =
         new SourceModule(
-            QualifiedName.fromString("Mod2"), """
+            QualifiedName.fromString("Mod2"),
+            """
             # An empty module
             """);
     // The type T defined in mod1 and mainMod have exactly the same location on purpose.
@@ -319,10 +326,8 @@ public class ExtensionMethodResolutionTest {
   private void testProjectCompilationFailure(
       Path mainProjDir, Matcher<String> errorMessageMatcher) {
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(mainProjDir).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      TopScope topScope = polyCtx.getTopScope();
       try {
-        topScope.compile(true);
+        ctx.topScope().compile(true);
         fail("Expected compilation error: " + ctx.getOut());
       } catch (PolyglotException e) {
         assertThat(

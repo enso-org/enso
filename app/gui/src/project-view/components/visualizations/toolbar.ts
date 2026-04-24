@@ -1,13 +1,12 @@
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
-import type { ToValue } from '@/util/reactivity'
+import type { ToValue } from '$/utils/reactivity'
+import type { AnyIcon } from '@/util/icons'
 import type { Ref } from 'vue'
 
 export interface Button {
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
-  icon: Icon | URLString
+  icon: AnyIcon | undefined
 }
 
 export interface ActionButton extends Button {

@@ -6,10 +6,10 @@ import org.enso.base.time.EnsoDateTimeFormatter;
 import org.graalvm.polyglot.Value;
 
 public class DateTimeFormatter implements DataFormatter {
-  private final java.time.format.DateTimeFormatter formatter;
+  private final EnsoDateTimeFormatter formatter;
 
   public DateTimeFormatter(EnsoDateTimeFormatter ensoFormatter) {
-    formatter = ensoFormatter.getRawJavaFormatter();
+    formatter = ensoFormatter;
   }
 
   @Override
@@ -26,11 +26,11 @@ public class DateTimeFormatter implements DataFormatter {
     }
 
     if (value instanceof LocalDateTime date) {
-      return date.format(formatter);
+      return formatter.formatLocalDateTime(date);
     }
 
     if (value instanceof ZonedDateTime date) {
-      return date.format(formatter);
+      return formatter.formatZonedDateTime(date);
     }
 
     throw new IllegalArgumentException("Unsupported type for DateTimeFormatter.");

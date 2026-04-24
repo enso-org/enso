@@ -1,4 +1,5 @@
 import { useNavigator } from '@/composables/navigator'
+import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { withSetup } from '@/util/testing'
@@ -12,7 +13,8 @@ describe('useNavigator', () => {
       const node = document.createElement('div')
       vi.spyOn(node, 'getBoundingClientRect').mockReturnValue(new DOMRect(150, 150, 800, 400))
       const viewportNode = ref(node)
-      const keyboard = useGlobalKeyboard()
+      const globalEventRegistry = provideGlobalEventRegistry()
+      const keyboard = useGlobalKeyboard(globalEventRegistry)
       return useNavigator(viewportNode, keyboard)
     })
   }

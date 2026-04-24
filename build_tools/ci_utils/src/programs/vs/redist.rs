@@ -8,8 +8,6 @@ use crate::prelude::*;
 use crate::programs::vs;
 use crate::programs::vs::VCToolsRedistDir;
 
-
-
 /// Get the directory with MSVC redistributable files for a given platform.
 ///
 /// This requires [`VCToolsRedistDir`] environment variable to be set, e.g. by having invoked

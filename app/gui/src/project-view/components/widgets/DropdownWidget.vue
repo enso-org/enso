@@ -4,19 +4,15 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
-enum SortDirection {
-  none = 'none',
-  ascending = 'ascending',
-  descending = 'descending',
-}
+type SortDirection = 'none' | 'ascending' | 'descending'
 
-const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
+const props = defineProps<{ entries: Entry[] }>()
 const emit = defineEmits<{
   clickEntry: [entry: Entry, keepOpen: boolean, htmlElement: HTMLElement]
   scroll: []
 }>()
 
-const sortDirection = ref<SortDirection>(SortDirection.none)
+const sortDirection = ref<SortDirection>('none')
 const graphNavigator = injectGraphNavigator(true)
 
 function lexicalCmp(a: string, b: string) {
@@ -29,13 +25,13 @@ function lexicalCmp(a: string, b: string) {
 
 const sortedValues = computed<Entry[]>(() => {
   switch (sortDirection.value) {
-    case SortDirection.ascending: {
+    case 'ascending': {
       return [...props.entries].sort((a, b) => lexicalCmp(a.value, b.value))
     }
-    case SortDirection.descending: {
+    case 'descending': {
       return [...props.entries].sort((a, b) => lexicalCmp(b.value, a.value))
     }
-    case SortDirection.none:
+    case 'none':
     default: {
       return props.entries
     }
@@ -44,8 +40,6 @@ const sortedValues = computed<Entry[]>(() => {
 
 const styleVars = computed(() => {
   return {
-    '--dropdown-fg': props.color,
-    '--dropdown-bg': props.backgroundColor,
     // Slightly shift the top border of drawn dropdown away from node's top border by a fraction of
     // a pixel, to prevent it from poking through and disturbing node's siluette.
     '--extend-margin': `${0.2 / (graphNavigator?.scale ?? 1)}px`,
@@ -101,6 +95,8 @@ export interface DropdownEntry {
   background-color: var(--dropdown-bg);
   border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
   color: var(--dropdown-fg);
+  /* Clip content, including selection highlight and scrollbar */
+  overflow: clip;
 }
 
 /** 
@@ -110,6 +106,7 @@ export interface DropdownEntry {
 .ExtendUpwards {
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
+
   &:before {
     content: '';
     display: block;
@@ -139,13 +136,14 @@ export interface DropdownEntry {
   border-radius: calc(var(--item-height) / 2);
   height: var(--item-height);
   text-align: left;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
   display: flex;
   align-items: center;
 
   &:hover {
-    background-color: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
+    background-color: var(--dropdown-item-hover-bg);
     .itemContent {
       --text-scroll-max: calc(var(--dropdown-max-width) - 28px);
       will-change: transform;
@@ -154,7 +152,7 @@ export interface DropdownEntry {
   }
 
   &.selected {
-    background-color: var(--color-port-connected);
+    background-color: var(--dropdown-item-selected-bg);
 
     & + .selected {
       border-top-left-radius: 0;
@@ -172,7 +170,7 @@ export interface DropdownEntry {
   display: inline-block;
   max-width: 100%;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: clip;
   vertical-align: middle;
   margin: 3px 0;
   text-wrap: nowrap;
@@ -191,6 +189,7 @@ export interface DropdownEntry {
     max-width: unset;
     transform: translateX(0);
   }
+
   50%,
   70% {
     max-width: unset;

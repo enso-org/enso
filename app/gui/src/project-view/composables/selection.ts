@@ -1,17 +1,17 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
+import { type NodeId } from '$/providers/openedProjects/graph'
+import { dataAttribute, selectorHierarchy } from '$/utils/dom'
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
-import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import { Vec2 } from '@/util/data/vec2'
-import { dataAttribute, selectorHierarchy } from '@/util/dom'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { NavigatorComposable } from './navigator'
 
 interface BaseSelectionOptions<T> {
@@ -268,9 +268,7 @@ function useSelectionImpl<T, PackedT>(
   }
 }
 
-// === Hover tracking for nodes and ports ===
-
-/** TODO: Add docs */
+/** Hover tracking for nodes and ports */
 export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
   const hoveredElement = shallowRef<Element>()
 
@@ -280,9 +278,11 @@ export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
 
   const hoveredPort = computed<PortId | undefined>(() => {
     if (!hoveredElement.value) return undefined
-    for (const element of selectorHierarchy(hoveredElement.value, '.WidgetPort')) {
+    for (const element of selectorHierarchy(hoveredElement.value, '[data-port]')) {
       const portId = dataAttribute<PortId>(element, 'port')
-      if (portId && isPortEnabled(portId)) return portId
+      if (portId && isPortEnabled(portId)) {
+        return portId
+      }
     }
     return undefined
   })

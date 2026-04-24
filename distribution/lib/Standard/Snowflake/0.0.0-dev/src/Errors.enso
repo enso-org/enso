@@ -1,0 +1,76 @@
+from Standard.Base import all
+
+import Standard.Database.Errors.SQL_Error
+
+## An unexpected result was returned from a Snowflake query.
+type Snowflake_Error
+    private Unexpected_Result message:Text internal_payload:Any=Nothing
+
+    ## Access the payload of the unexpected result error.
+    payload self -> Any = self.internal_payload
+
+    ## Access the message of the unexpected result error.
+    error_message self -> Text = self.message
+
+    ## ---
+       private: true
+       ---
+    to_display_text self -> Text =
+        "Snowflake_Error: " + self.message
+
+    ## ---
+       private: true
+       ---
+    to_js_object self -> JS_Object =
+        values = [["type", "Snowflake_Error"], ["Constructor", "Unexpected_Result"], ["message", self.message], ["payload", self.internal_payload.to_js_object]]
+        JS_Object.from_pairs values
+
+## An error when a stage was not found in the database or not accessible.
+type Stage_Not_Found
+    ## ---
+       private: true
+       ---
+       Indicates that a stage was not found in the database.
+
+       ## Arguments
+        - `name`: The name of the stage that was not found.
+    Error name:Text
+
+    ## ---
+       private: true
+       ---
+       Pretty print the stage not found error.
+    to_display_text : Text
+    to_display_text self = "Stage " + self.name + " was not found in the database."
+
+    private rethrow identifier ~action =
+        result = action
+        result.catch SQL_Error error->
+            java_message = error.java_exception.getMessage
+            if (java_message.match ".*Stage .* does not exist or not authorized.") == False then Error.throw result else
+                Error.throw (Stage_Not_Found.Error identifier)
+
+## An error when a file format was not found in the database or not accessible.
+type File_Format_Not_Found
+    ## ---
+       private: true
+       ---
+       Indicates that a file format was not found in the database.
+
+       ## Arguments
+        - `name`: The name of the file format that was not found.
+    Error name:Text
+
+    ## ---
+       private: true
+       ---
+       Pretty print the stage not found error.
+    to_display_text : Text
+    to_display_text self = "File Format " + self.name + " was not found in the database."
+
+    private rethrow identifier ~action =
+        result = action
+        result.catch SQL_Error error->
+            java_message = error.java_exception.getMessage
+            if (java_message.match ".*File format .* does not exist or not authorized.") == False then Error.throw result else
+                Error.throw (File_Format_Not_Found.Error identifier)

@@ -115,3 +115,4 @@ private _enhance_connection_errors (details:Snowflake_Details) ~action =
             Error.throw (Illegal_State.Error "The provided private key file is not supported by the Snowflake driver. We recommend generating the key using `generate_key_pair` method and storing it as a Secret in Enso Cloud. The original error was: "+message cause=error)
 
         result
+

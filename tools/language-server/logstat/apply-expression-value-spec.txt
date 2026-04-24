@@ -1,7 +1,0 @@
-[org.enso.jsonrpc.JsonRpcServer] Received text message: { "jsonrpc": "2.0", "method": "text/applyExpressionValue"
-[org.enso.languageserver.protocol.json.JsonConnectionController] received handled Request(ApplyExpressionValue
-[org.enso.languageserver.runtime.RuntimeConnector] received handled Request(None,SetExpressionValueNotification
-[enso] Executing command: SetExpressionValueCmd
-[enso] Job EnsureCompiledJob finished
-[enso] Visualization computed
-[org.enso.languageserver.runtime.ContextRegistry] received handled VisualizationUpdate

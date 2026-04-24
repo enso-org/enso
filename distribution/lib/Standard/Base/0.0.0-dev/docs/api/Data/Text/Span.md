@@ -11,6 +11,7 @@
 - type Utf_16_Span
     - Value range:Standard.Base.Data.Range.Range parent:Standard.Base.Data.Text.Text
     - end self -> Standard.Base.Any.Any
+    - extended_text self -> Standard.Base.Any.Any
     - length self -> Standard.Base.Any.Any
     - start self -> Standard.Base.Any.Any
     - text self -> Standard.Base.Any.Any

@@ -7,10 +7,34 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.graalvm.polyglot.Context;
 
-public class ExcelUtils {
+public final class ExcelUtils {
+  private static Boolean noContext = false;
+  private static Context context;
+
+  static void safepoint() {
+    if (noContext) {
+      return;
+    }
+
+    if (context != null) {
+      context.safepoint();
+      return;
+    }
+
+    try {
+      context = Context.getCurrent();
+      context.safepoint();
+    } catch (IllegalStateException e) {
+      noContext = true;
+    }
+  }
+
   // The epoch for Excel date-time values. Due to 1900-02-29 being a valid date
   // in Excel, it is actually 1899-12-30. Excel dates are counted from 1 being
   // 1900-01-01.
@@ -19,6 +43,45 @@ public class ExcelUtils {
   // mode. Times and 1-Jan-1904 are the same.
   private static final LocalDate EPOCH_1904 = LocalDate.of(1904, 1, 1);
   private static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000L;
+
+  public static Object formatNumericValue(
+      double dblValue, ExcelNumberFormat nf, boolean use1904Format) {
+    if (nf != null && DateUtil.isADateFormat(nf.getIdx(), nf.getFormat())) {
+      var temporal =
+          use1904Format
+              ? ExcelUtils.fromExcelDateTime1904(dblValue)
+              : ExcelUtils.fromExcelDateTime(dblValue);
+
+      if (temporal == null) {
+        return null;
+      }
+
+      return switch (temporal) {
+        case LocalDate date -> {
+          var dateFormat = nf.getFormat();
+          yield (dateFormat.contains("h") || dateFormat.contains("H"))
+              ? date.atStartOfDay(ZoneId.systemDefault())
+              : date;
+        }
+        case ZonedDateTime zdt -> {
+          if (!use1904Format || zdt.getYear() != 1904 || zdt.getDayOfYear() != 1) {
+            yield temporal;
+          }
+          var dateFormat = nf.getFormat();
+          yield (dateFormat.contains("y") || dateFormat.contains("M") || dateFormat.contains("d"))
+              ? zdt
+              : zdt.toLocalTime();
+        }
+        default -> temporal;
+      };
+    } else {
+      if (dblValue == (long) dblValue) {
+        return (long) dblValue;
+      } else {
+        return dblValue;
+      }
+    }
+  }
 
   public static boolean is1904DateSystem(Workbook workbook) {
     boolean use1904Dates = false;
@@ -98,8 +161,8 @@ public class ExcelUtils {
   public static double toExcelDateTime(Temporal temporal) {
     return switch (temporal) {
       case ZonedDateTime zonedDateTime -> toExcelDateTime(zonedDateTime.toLocalDateTime());
-      case LocalDateTime dateTime -> toExcelDateTime(dateTime.toLocalDate())
-          + toExcelDateTime(dateTime.toLocalTime());
+      case LocalDateTime dateTime ->
+          toExcelDateTime(dateTime.toLocalDate()) + toExcelDateTime(dateTime.toLocalTime());
       case LocalDate date -> {
         long days = ChronoUnit.DAYS.between(EPOCH_1900, date);
 
@@ -119,8 +182,8 @@ public class ExcelUtils {
         yield days;
       }
       case LocalTime time -> time.toNanoOfDay() / 1000000.0 / MILLIS_PER_DAY;
-      default -> throw new IllegalArgumentException(
-          "Unsupported Temporal type: " + temporal.getClass());
+      default ->
+          throw new IllegalArgumentException("Unsupported Temporal type: " + temporal.getClass());
     };
   }
 
@@ -128,12 +191,12 @@ public class ExcelUtils {
   public static double toExcelDateTime1904(Temporal temporal) {
     return switch (temporal) {
       case ZonedDateTime zonedDateTime -> toExcelDateTime1904(zonedDateTime.toLocalDateTime());
-      case LocalDateTime dateTime -> toExcelDateTime1904(dateTime.toLocalDate())
-          + toExcelDateTime1904(dateTime.toLocalTime());
+      case LocalDateTime dateTime ->
+          toExcelDateTime1904(dateTime.toLocalDate()) + toExcelDateTime1904(dateTime.toLocalTime());
       case LocalDate date -> ChronoUnit.DAYS.between(EPOCH_1904, date);
       case LocalTime time -> time.toNanoOfDay() / 1000000.0 / MILLIS_PER_DAY;
-      default -> throw new IllegalArgumentException(
-          "Unsupported Temporal type: " + temporal.getClass());
+      default ->
+          throw new IllegalArgumentException("Unsupported Temporal type: " + temporal.getClass());
     };
   }
 }

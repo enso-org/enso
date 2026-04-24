@@ -8,6 +8,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Report_Unmatched
 import project.Data.Vector.Vector

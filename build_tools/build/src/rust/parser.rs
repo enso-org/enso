@@ -2,16 +2,14 @@ use super::*;
 
 use crate::paths::generated::RepoRoot;
 
-use ide_ci::programs::cargo;
-use ide_ci::programs::java;
-use ide_ci::programs::javac;
 use ide_ci::programs::Cargo;
 use ide_ci::programs::Java;
 use ide_ci::programs::Javac;
+use ide_ci::programs::cargo;
+use ide_ci::programs::java;
+use ide_ci::programs::javac;
 use std::fs;
 use std::path::Path;
-
-
 
 const GENERATOR_CRATE_NAME: &str = "enso-parser-generate-java";
 const GENERATOR_BIN_NAME: &str = GENERATOR_CRATE_NAME;

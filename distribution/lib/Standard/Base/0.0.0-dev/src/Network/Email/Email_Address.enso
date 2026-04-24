@@ -1,0 +1,31 @@
+import project.Data.Text.Text
+import project.Errors.Common.Missing_Argument
+import project.Metadata.Display
+import project.Metadata.Widget
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+
+## The email address of a sender or recipient.
+type Email_Address
+    ## An email address with an optional display name.
+    Address address:Text=(Missing_Argument.throw "address") name:Text=""
+
+    ## ---
+       private: true
+       ---
+    to_text self -> Text = 
+        if self.name == "" then self.address else self.name + ' <' + self.address + '>'
+
+    ## ---
+       private: true
+       ---
+    default_widget (display : Display = ..Always) -> Widget =
+        name = [Option "Address" "'name@domain.com'"]
+        name_address = [Option "Name And Address" "(..Address 'name@domain.com' 'Name')"]
+        values = name + name_address
+        Single_Choice values=values display=display
+
+## ---
+   private: true
+   ---
+Email_Address.from (that:Text) = Email_Address.Address that

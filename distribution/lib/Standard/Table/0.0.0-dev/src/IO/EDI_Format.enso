@@ -1,0 +1,155 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Name_Pattern
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Logging import all
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Text_Input
+
+import project.Table.Table
+
+polyglot java import org.enso.table.read.EDIReader
+
+## Read ANSI X12 Electronic Data Interchange (EDI) Format
+type EDI_Format
+    ## Read EDI Format into an In-Memory Table
+
+       ## Arguments
+       - `segment_end`: The segment terminator character(s). If empty will
+          auto-detect by looking for the character before `GS*` in the file.
+       - `definition`: The EDI format specification.
+       - `map_fields`: If true, map fields to human-readable names where possible.
+    EDI (segment_end:Text="") (definition:EDI_Definition=..EDI_822) (map_fields:Boolean=True)
+
+    ## ---
+       private: true
+       ---
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> EDI_Format | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:EDI_Format) _->Nothing
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
+    for_read : File_Format_Metadata -> EDI_Format | Nothing
+    for_read file:File_Format_Metadata =
+        case file.guess_extension of
+            ".edi" -> EDI_Format.EDI
+            ".822" -> EDI_Format.EDI
+            _      -> Nothing
+
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
+    for_file_write : Writable_File -> EDI_Format | Nothing
+    for_file_write file =
+        _ = file
+        Nothing
+
+    ## ---
+       private: true
+       ---
+    get_dropdown_options : Vector Option
+    get_dropdown_options =
+        [Option "EDI X12" "..EDI"]
+
+    ## ---
+       private: true
+       ---
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value "EDI X12" ["*.edi", "*.822"]]
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems:Problem_Behavior =
+        raw_text = Plain_Text_Format.Plain_Text.read file on_problems
+        parse_text_to_table raw_text self.segment_end self.definition self.map_fields
+
+    ## ---
+       private: true
+       ---
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        raw_text = Plain_Text_Format.Plain_Text.read_stream stream metadata
+        parse_text_to_table raw_text self.segment_end self.definition self.map_fields
+
+## EDI Definitions
+   The definition specifies the structure of the EDI document.
+   The default is ANSI X12 822 (Account Analysis).
+type EDI_Definition
+    ## Return as raw segements (no structure or field mapping)
+    Raw_Segments
+
+    ## Predefined EDI 822 (Account Analysis)
+       Based on EdiNation.X12.ASC.007040 [https://edination.com/edi-formats.html]
+    EDI_822
+
+    ## Load a custom EDI definition from a JSON string
+
+       For example:
+       ```json
+       {
+         "structure": "[ISA,GS,ST,ORI,[REF],[OOI],BDE,SE,GE,IEA]",
+         "field_map": {
+            "ISA": ["Authorization Information Qualifier", "Authorization Information", "Security Information Qualifier", "Security Information", "Interchange ID Qualifier 1", "Interchange Sender ID", "Interchange ID Qualifier 2", "Interchange Receiver ID", "Interchange Date", "Interchange Time", "Interchange Control Standards", "Interchange Control Version Number", "Interchange Control Number", "Acknowledgment Requested", "Test Indicator", "Sub-element Separator"],
+            "GS": ["Segment Identifier", "Functional Identifier Code", "Application Sender's Code", "Application Receiver's Code", "Date", "Time", "Group Control Number", "Responsible Agency Code", "Version / Release / Industry Identifier Code"],
+            "ST": ["Transaction Set Identifier Code", "Transaction Set Control Number", "Implementation Convention Preference"],
+            "ORI": ["Associated Object Reference Identification"],
+            "REF": ["Reference Identification Qualifier", "Reference Identification", "Description"],
+            "OOI": ["Object Identification Group"],
+            "BDE": ["Beginning Segment for Order Status Inquiry", "Reference Identification", "Date", "Time", "Time Code"],
+            "SE": ["Number of Included Segments", "Transaction Set Control Number"],
+            "GE": ["Number of Transaction Sets Included", "Group Control Number"],
+            "IEA": ["Number of Included Functional Groups", "Interchange Control Number"]
+         }
+       }
+       ```
+    @path (Text_Input display=..Always)
+    From_Json path
+
+    ## Structure is a definition of the loops within the document.
+       Use square brackets `[]` for arrays, curly braces `{}` for objects.
+    Custom structure:Text (field_map:(Dictionary Text (Vector Text))=Dictionary.empty)
+
+    ## ---
+       private: true
+       ---
+    as_custom self = case self of
+        EDI_Definition.Custom _ _ -> self
+        EDI_Definition.EDI_822 ->
+            this_proj = Project_Description.new Standard.Table.Main
+            EDI_Definition.From_Json (this_proj.data / "EDI_822.json") . as_custom
+        EDI_Definition.From_Json json ->
+            parsed = Data.read json format=JSON_Format
+            structure = parsed.at "structure"
+            field_js = parsed.get "field_map"
+            field_map = case field_js of
+                Nothing -> Dictionary.empty
+                _ -> Dictionary.from_vector field_js.to_vector
+            EDI_Definition.Custom structure field_map
+
+private parse_text_to_table input:Text separator:Text definition:EDI_Definition map_fields:Boolean -> Any = Illegal_Argument.handle_java_exception <|
+    case definition of
+        EDI_Definition.Raw_Segments ->
+            java_list = EDIReader.parseSegments input separator
+            structure = java_list.map a-> [a.first, a.drop 1 . to_vector]
+            Table.from_rows ["Segment", "Elements"] structure
+        _ ->
+            custom_def = definition.as_custom
+            field_map = if map_fields then custom_def.field_map else Dictionary.empty
+            array = EDIReader.parse input separator custom_def.structure field_map
+            Table.new [["ISA", Vector.from_polyglot_array array]] . expand_column "ISA" prefix=..None

@@ -1,11 +1,6 @@
-/**
- * @file
- *
- * Close button for a dialog.
- */
-
+/** @file Close button for a dialog. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { type ButtonProps, Button } from '../Button'
+import { Button, type ButtonProps } from '../Button'
 import * as dialogProvider from './DialogProvider'
 
 /** Props for {@link Close} component. */

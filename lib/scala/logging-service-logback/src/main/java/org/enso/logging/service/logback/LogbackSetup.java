@@ -18,15 +18,16 @@ import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.enso.logging.config.*;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.slf4j.event.Level;
 
-@org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
 
   private static final String CONSOLE_APPENDER_NAME = "enso-console";
@@ -182,34 +183,73 @@ public final class LogbackSetup extends LoggerSetup {
         fileAppender = rollingFileAppender;
         fileAppender.setContext(
             env.ctx); // Context needs to be set prior to rolling policy initialization
-        String filePattern;
-        if (logRoot == null || logPrefix == null) {
-          filePattern = "enso-%d{yyyy-MM-dd}";
-        } else {
-          filePattern =
-              logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + "%d{yyyy-MM-dd}";
+        if (logPrefix == null) {
+          logPrefix = "enso";
+        }
+        var projectId = MDC.get("projectLocalId");
+        var now = LocalDateTime.now();
+        var dateStr = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        var timeStr = now.format(DateTimeFormatter.ofPattern("HH-mm-ss"));
+
+        String nameCore = logPrefix + "-" + dateStr + "-" + timeStr;
+
+        Path effectiveLogRoot = logRoot;
+        if (projectId != null && effectiveLogRoot != null) {
+          effectiveLogRoot = effectiveLogRoot.resolve(projectId);
+          effectiveLogRoot.toFile().mkdirs();
         }
 
-        org.enso.logging.config.FileAppender.RollingPolicy rollingPolicy =
-            appenderConfig.getRollingPolicy();
-        SizeAndTimeBasedRollingPolicy logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy();
+        String basePath;
+        if (effectiveLogRoot == null) {
+          basePath = nameCore;
+        } else {
+          basePath = effectiveLogRoot.toAbsolutePath() + File.separator + nameCore;
+        }
+
+        rollingFileAppender.setFile(basePath + ".log");
+
+        // Archive pattern: %d{yyyy-MM-dd} resolves to same date on same day,
+        // time literal ensures per-execution uniqueness, %i for size rollover index
+        String archiveNameCore = logPrefix + "-%d{yyyy-MM-dd}-" + timeStr;
+
+        String archivePattern;
+        if (effectiveLogRoot == null) {
+          archivePattern = archiveNameCore + ".%i.log.gz";
+        } else {
+          archivePattern =
+              effectiveLogRoot.toAbsolutePath() + File.separator + archiveNameCore + ".%i.log.gz";
+        }
+
+        var rollingPolicy = appenderConfig.getRollingPolicy();
+        var logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy<ILoggingEvent>();
         logbackRollingPolicy.setContext(env.ctx);
         logbackRollingPolicy.setParent(fileAppender);
         logbackRollingPolicy.setMaxFileSize(FileSize.valueOf(rollingPolicy.maxFileSize()));
         logbackRollingPolicy.setMaxHistory(rollingPolicy.maxHistory());
         logbackRollingPolicy.setTotalSizeCap(FileSize.valueOf(rollingPolicy.totalSizeCap()));
-        logbackRollingPolicy.setFileNamePattern(filePattern + ".%i.log.gz");
+        logbackRollingPolicy.setFileNamePattern(archivePattern);
         logbackRollingPolicy.start();
 
         rollingFileAppender.setRollingPolicy(logbackRollingPolicy);
       } else {
         fileAppender = new FileAppender<>();
         fileAppender.setName("enso-file");
+        var projectId = MDC.get("projectLocalId");
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String currentDate = LocalDate.now().format(dtf);
         String fullFilePath;
         if (logRoot == null || logPrefix == null) {
           fullFilePath = "enso-" + currentDate + ".log";
+        } else if (projectId != null) {
+          var projectLogDir = logRoot.resolve(projectId);
+          projectLogDir.toFile().mkdirs();
+          fullFilePath =
+              projectLogDir.toAbsolutePath()
+                  + File.separator
+                  + logPrefix
+                  + "-"
+                  + currentDate
+                  + ".log";
         } else {
           fullFilePath =
               logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + currentDate + ".log";

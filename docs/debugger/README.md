@@ -20,3 +20,10 @@ Various documents related to Enso debugging facilities are collected herein:
   DAP.
 - [**Enso own Debug Protocol:**](./protocol.md) describes protocol of the REPL
   Debugger.
+- [**Debugging Ydoc Server**](../infrastructure/ydoc.md#debugging) inside of the
+  `enso` engine
+
+# Related
+
+- [**Profiling the engine:**](../profiler/engine.md) provides hints on profiling
+  the Enso engine

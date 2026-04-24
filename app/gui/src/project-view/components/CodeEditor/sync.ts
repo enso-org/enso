@@ -1,5 +1,4 @@
-import { type GraphStore } from '@/stores/graph'
-import { type ProjectStore } from '@/stores/project'
+import type { ModuleStore } from '$/providers/openedProjects/module'
 import { changeSetToTextEdits } from '@/util/codemirror/text'
 import { useToast } from '@/util/toast'
 import {
@@ -10,8 +9,9 @@ import {
   type Text,
 } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { createDebouncer } from 'lib0/eventloop'
-import { onUnmounted, watch } from 'vue'
+import { onUnmounted, type Ref, watch } from 'vue'
 import { type SourceRangeEdit, textChangeToEdits } from 'ydoc-shared/util/data/text'
 import { type Origin } from 'ydoc-shared/yjsModel'
 
@@ -20,11 +20,7 @@ const synchronizedModule = Annotation.define<true>()
 
 /** @returns A CodeMirror Extension that synchronizes the editor state with the AST of an Enso module. */
 export function useEnsoSourceSync(
-  projectStore: Pick<ProjectStore, 'module'>,
-  graphStore: Pick<
-    GraphStore,
-    'moduleSource' | 'viewModule' | 'startEdit' | 'commitEdit' | 'onBeforeEdit'
-  >,
+  moduleStore: Ref<Pick<ModuleStore, 'source' | 'ast' | 'edit' | 'onBeforeEdit'>>,
   editorView: EditorView,
 ) {
   let pendingChanges:
@@ -60,7 +56,7 @@ export function useEnsoSourceSync(
   function resetView() {
     pendingChanges = undefined
     const viewText = editorView.state.doc.toString()
-    const code = graphStore.moduleSource.text
+    const code = moduleStore.value.source.text
     const changes = textChangeToEdits(viewText, code)
     console.info('Resetting the editor to the module code.', changes)
     editorView.dispatch({
@@ -76,16 +72,24 @@ export function useEnsoSourceSync(
     pendingChanges = undefined
     const edits = changeSetToTextEdits(changes)
     try {
-      const editedModule = graphStore.startEdit()
-      editedModule.applyTextEdits(edits, graphStore.viewModule)
-      if (editedModule.root()?.code() === editorView.state.doc.toString()) {
-        graphStore.commitEdit(editedModule, undefined, 'local:userAction:CodeEditor')
-        return
+      const result = moduleStore.value.edit(
+        (editedModule) => {
+          editedModule.applyTextEdits(edits, moduleStore.value.ast ?? undefined)
+          if (editedModule.root()?.code() === editorView.state.doc.toString()) {
+            return Ok()
+          } else
+            return Err({
+              expected: editorView.state.doc.toString(),
+              got: editedModule.root()?.code(),
+            })
+        },
+        { origin: 'local:userAction:CodeEditor' },
+      )
+
+      if (result.ok) return
+      else {
+        console.error(`Unable to apply source code edit.`, result.error.payload)
       }
-      console.error(`Unable to apply source code edit.`, {
-        expected: editorView.state.doc.toString(),
-        got: editedModule.root()?.code(),
-      })
     } catch (error) {
       console.error(`Code Editor failed to modify module`, error)
     }
@@ -95,7 +99,7 @@ export function useEnsoSourceSync(
       selection: selectionBefore,
       annotations: synchronizedModule.of(true),
     })
-    if (graphStore.moduleSource.text !== editorView.state.doc.toString()) {
+    if (moduleStore.value.source.text !== editorView.state.doc.toString()) {
       console.warn('Unexpected: Applying inverted edit did not yield original module source')
       resetView()
     }
@@ -121,14 +125,13 @@ export function useEnsoSourceSync(
   function connectModuleListener() {
     let cleanup: (() => void) | undefined = undefined
     watch(
-      () => projectStore.module,
+      moduleStore,
       (module, _oldValue, onCleanup) => {
-        if (!module) return
-        const beforeEditHandler = graphStore.onBeforeEdit(beforeSourceChange)
-        graphStore.moduleSource.observe(observeSourceChange)
+        const beforeEditHandler = module.onBeforeEdit(beforeSourceChange)
+        module.source.observe(observeSourceChange)
         cleanup = () => {
           beforeEditHandler?.unregister()
-          graphStore.moduleSource.unobserve(observeSourceChange)
+          module.source.unobserve(observeSourceChange)
           cleanup = undefined
         }
         onCleanup(cleanup)

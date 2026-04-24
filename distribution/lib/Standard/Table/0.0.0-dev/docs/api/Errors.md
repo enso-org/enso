@@ -7,7 +7,7 @@
     - Error column_name:Standard.Base.Data.Text.Text new_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
     - to_display_text self -> Standard.Base.Any.Any
 - type Arithmetic_Overflow
-    - Warning target_type:Standard.Table.Value_Type.Value_Type affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_operands:(Standard.Base.Nothing.Nothing|Standard.Base.Any.Any)
+    - Warning target_type:Standard.Table.Value_Type.Value_Type affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_operands:(Standard.Base.Nothing.Nothing|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)|(Standard.Base.Data.Array.Array Standard.Base.Any.Any))
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Clashing_Column_Name
@@ -28,15 +28,15 @@
     - Error column_name:Standard.Base.Data.Text.Text expected_type:(Standard.Base.Data.Text.Text|Standard.Table.Value_Type.Value_Type) got_type:(Standard.Base.Data.Text.Text|Standard.Table.Value_Type.Value_Type)
     - to_display_text self -> Standard.Base.Any.Any
 - type Conversion_Failure
-    - Error target_type:Standard.Table.Value_Type.Value_Type related_column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_values:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
-    - Out_Of_Range target_type:Standard.Table.Value_Type.Value_Type related_column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_values:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
-    - Text_Too_Long target_type:Standard.Table.Value_Type.Value_Type related_column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_values:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - Error target_type:Standard.Table.Value_Type.Value_Type related_column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_values:((Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)|(Standard.Base.Data.Array.Array Standard.Base.Any.Any))
+    - Out_Of_Range target_type:Standard.Table.Value_Type.Value_Type related_column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_values:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|(Standard.Base.Data.Array.Array Standard.Base.Data.Numbers.Integer))
+    - Text_Too_Long target_type:Standard.Table.Value_Type.Value_Type related_column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) affected_rows_count:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) example_values:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|(Standard.Base.Data.Array.Array Standard.Base.Data.Text.Text))
     - to_display_text self -> Standard.Base.Any.Any
 - type Cross_Join_Row_Limit_Exceeded
     - Error limit:Standard.Base.Data.Numbers.Integer existing_rows:Standard.Base.Data.Numbers.Integer
     - to_display_text self -> Standard.Base.Any.Any
 - type Duplicate_Output_Column_Names
-    - Error column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - Error column_names:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|(Standard.Base.Data.Array.Array Standard.Base.Data.Text.Text))
     - to_display_text self -> Standard.Base.Any.Any
 - type Empty_File_Error
     - handle_java_exception -> Standard.Base.Any.Any
@@ -54,34 +54,35 @@
 - type Fixed_Width_Line_Too_Long
     - handle_java_exception -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_js_object self -> Standard.Base.Any.Any
 - type Ignored_NaN_Values
-    - Warning column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
+    - Warning column:Standard.Base.Data.Text.Text rows:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|(Standard.Base.Data.Array.Array Standard.Base.Data.Numbers.Integer))
     - to_display_text self -> Standard.Base.Any.Any
 - type Ignored_Nothing_Values
-    - Warning column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
+    - Warning column:Standard.Base.Data.Text.Text rows:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|(Standard.Base.Data.Array.Array Standard.Base.Data.Numbers.Integer))
     - to_display_text self -> Standard.Base.Any.Any
 - type Inconsistent_Fixed_Width_Lengths
     - Error
     - to_display_text self -> Standard.Base.Any.Any
 - type Inexact_Type_Coercion
-    - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean=
+    - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean= extra_message:Standard.Base.Data.Text.Text=
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Invalid_Aggregate_Column
     - Error name:Standard.Base.Data.Text.Text expression_error:(Standard.Table.Expression.Expression_Error|Standard.Table.Errors.No_Such_Column|Standard.Base.Nothing.Nothing)
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Aggregation
-    - Error column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer) message:Standard.Base.Data.Text.Text
+    - Error column:Standard.Base.Data.Text.Text rows:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|(Standard.Base.Data.Array.Array Standard.Base.Data.Numbers.Integer)) message:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Column_Names
-    - Error column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) extra_message:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - Error column_names:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|(Standard.Base.Data.Array.Array Standard.Base.Data.Text.Text)) extra_message:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
     - handle_java_exception ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Fixed_Width_Row
     - Error source_line_number:Standard.Base.Data.Numbers.Integer table_row_number:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) line_length:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) minimum_line_length:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Format
-    - Error column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) value_type:(Standard.Table.Value_Type.Value_Type|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Number|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day|Standard.Base.Data.Boolean.Boolean|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer cells:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - Error column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) value_type:(Standard.Table.Value_Type.Value_Type|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Number|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day|Standard.Base.Data.Boolean.Boolean|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer cells:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|(Standard.Base.Data.Array.Array Standard.Base.Data.Text.Text))
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_JSON_Format
     - Error input:Standard.Base.Any.Any message:Standard.Base.Any.Any
@@ -90,7 +91,7 @@
     - Error location:(Standard.Base.Data.Text.Text|Standard.Base.Any.Any) message:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Row
-    - Error source_file_line_number:Standard.Base.Data.Numbers.Integer index:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) row:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) expected_columns:Standard.Base.Data.Numbers.Integer
+    - Error source_file_line_number:Standard.Base.Data.Numbers.Integer index:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) row:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|(Standard.Base.Data.Array.Array Standard.Base.Data.Text.Text)) expected_columns:Standard.Base.Data.Numbers.Integer
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Value_For_Type
     - Error value:Standard.Base.Any.Any value_type:Standard.Table.Value_Type.Value_Type
@@ -129,6 +130,7 @@
 - type No_Column_Names_Found
     - handle_java_exception -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_js_object self -> Standard.Base.Any.Any
 - type No_Common_Type
     - Error types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)
     - Warning_Convert_To_Text types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:Standard.Base.Data.Text.Text
@@ -152,6 +154,9 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Not_All_Rows_Downloaded
     - Warning max_rows:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+- type Not_Enough_Groups
+    - Error expected_count:Standard.Base.Data.Numbers.Integer actual_count:Standard.Base.Data.Numbers.Integer
     - to_display_text self -> Standard.Base.Any.Any
 - type Nothing_Value_In_Filter_Condition
     - Error filter_condition:Standard.Base.Data.Filter_Condition.Filter_Condition
@@ -180,15 +185,15 @@
     - Warning columns:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
     - to_display_text self -> Standard.Base.Any.Any
 - type Unmatched_Columns
-    - Error column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - Error column_names:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|(Standard.Base.Data.Array.Array Standard.Base.Data.Text.Text))
     - to_display_text self -> Standard.Base.Any.Any
 - type Unmatched_Rows_In_Lookup
     - Error example_key_values:Standard.Base.Data.Vector.Vector
     - to_display_text self -> Standard.Base.Any.Any
 - type Unquoted_Characters_In_Output
-    - Warning column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
+    - Warning column:Standard.Base.Data.Text.Text rows:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|(Standard.Base.Data.Array.Array Standard.Base.Data.Numbers.Integer))
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Unquoted_Delimiter
-    - Error column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
+    - Error column:Standard.Base.Data.Text.Text rows:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)|(Standard.Base.Data.Array.Array Standard.Base.Data.Numbers.Integer))
     - to_display_text self -> Standard.Base.Any.Any

@@ -2,14 +2,11 @@ use crate::prelude::*;
 
 use sysinfo::Pid;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod hierarchy;
-
-
 
 /// Kills the process and all its descendants.
 ///

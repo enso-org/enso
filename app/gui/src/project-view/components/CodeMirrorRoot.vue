@@ -32,6 +32,10 @@ defineExpose({ highlightClasses })
   color: inherit;
   opacity: 0.6;
 }
+
+.CodeMirrorRoot :deep(.cm-tooltip-autocomplete) {
+  text-align: left;
+}
 </style>
 
 <!--suppress CssUnusedSymbol -->
@@ -53,7 +57,7 @@ defineExpose({ highlightClasses })
 
 .literal,
 .string {
-  color: #a11;
+  color: #650000;
 }
 .escape {
   color: #e40;

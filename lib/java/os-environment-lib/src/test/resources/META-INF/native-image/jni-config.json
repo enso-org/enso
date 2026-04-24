@@ -1,0 +1,11 @@
+[
+  {
+    "name": "org.enso.os.environment.lib.HelloTitle",
+    "methods": [
+      {
+        "name": "main",
+        "parameterTypes": ["java.lang.String[]"]
+      }
+    ]
+  }
+]

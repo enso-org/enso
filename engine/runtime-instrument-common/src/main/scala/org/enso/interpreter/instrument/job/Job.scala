@@ -71,3 +71,10 @@ trait UniqueJob[A] { self: Job[A] =>
     */
   def equalsTo(that: UniqueJob[_]): Boolean
 }
+
+/** A [[UniqueJob]] that skips scheduling if a duplicate job already exists
+  * in the queue, as decided by the `equalsTo` method. Unlike regular
+  * [[UniqueJob]] which cancels previous duplicates, this trait prevents
+  * the new job from being scheduled at all.
+  */
+trait SkipSchedulingUniqueJob { self: UniqueJob[java.lang.Void] => }

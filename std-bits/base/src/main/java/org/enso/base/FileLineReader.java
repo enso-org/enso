@@ -13,10 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
 import org.graalvm.polyglot.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A reader for reading lines from a file one at a time. */
 public class FileLineReader {
@@ -97,7 +97,7 @@ public class FileLineReader {
     }
   }
 
-  private static final Logger LOGGER = Logger.getLogger("enso-file-line-reader");
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileLineReader.class);
 
   /** Amount of data to read at a time for a single line (4KB). */
   private static final int LINE_BUFFER = 4 * 1024;
@@ -262,6 +262,8 @@ public class FileLineReader {
     }
     int index = action == null ? rowMap.getSize() - 1 : startAt;
 
+    String path = file.getAbsolutePath();
+
     long position = rowMap.get(index);
     if (position >= length) {
       return null;
@@ -306,7 +308,7 @@ public class FileLineReader {
             }
 
             if (index % 100000 == 0) {
-              LOGGER.log(Level.INFO, "Scanned Lines: {0}", index);
+              LOGGER.info("Scanned Lines: {} of {}", index, path);
             }
             index++;
 

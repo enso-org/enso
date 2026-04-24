@@ -1,11 +1,12 @@
 /** @file Hooks for computing temporary notifications. */
-import { uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '$/providers/react'
-import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
+import { useVueValue } from '$/providers/react/common'
+import { useUploadsToCloudStore } from '$/providers/react/upload'
+import { useIsMutating, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
 import { omit } from 'enso-common/src/utilities/data/object'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'react-toastify'
 import { NotificationItem } from './NotificationItem'
 import type { NotificationInfo } from './types'
@@ -113,20 +114,23 @@ export function useComputedNotifications(options: UseComputedNotificationsOption
   const { getComputedNotification, upsertComputedNotification } = options
   const { getText } = useText()
 
-  const { data: uploadingFiles } = useQuery(uploadingFileQueryOptions())
+  const uploadsStore = useUploadsToCloudStore()
+  const uploadingFiles = useVueValue(
+    useCallback(() => [...uploadsStore.uploads.entries()], [uploadsStore.uploads]),
+  )
+  const uploadingFilesEntries = uploadingFiles.filter(([, data]) => data.kind === 'requestedByUser')
 
-  const uploadingFilesEntries = Object.entries(uploadingFiles)
   if (uploadingFilesEntries[0]) {
     const totalFiles = uploadingFilesEntries.length
     let sentFiles = 0
     let sentBytes = 0
     let totalBytes = 0
-    for (const [, progress] of uploadingFilesEntries) {
-      if (progress.sentBytes === progress.totalBytes) {
+    for (const [, data] of uploadingFilesEntries) {
+      if (data.sentBytes === data.totalBytes) {
         sentFiles += 1
       }
-      sentBytes += progress.sentBytes
-      totalBytes += progress.totalBytes
+      sentBytes += data.sentBytes
+      totalBytes += data.totalBytes
     }
     const sentMb = sentBytes / MB_BYTES
     const totalMb = totalBytes / MB_BYTES

@@ -8,8 +8,6 @@ use crate::syntax;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-
-
 // ==============
 // === VarMap ===
 // ==============
@@ -125,13 +123,13 @@ use std::collections::HashSet;
 #[derive(Clone, Debug, Default)]
 pub struct VarMap<'s, V> {
     nested: Option<Box<VarMap<'s, V>>>,
-    map:    HashMap<String, VarMapEntry<'s, V>>,
+    map: HashMap<String, VarMapEntry<'s, V>>,
 }
 
 /// Entry of the [`VarMap`] map.
 #[derive(Clone, Debug, Default)]
 struct VarMapEntry<'s, V> {
-    pub tokens:    Vec<Vec<syntax::Item<'s>>>,
+    pub tokens: Vec<Vec<syntax::Item<'s>>>,
     pub validator: V,
 }
 
@@ -193,7 +191,6 @@ impl<'s> Match<'s> {
         }
     }
 }
-
 
 // =================
 // === Validator ===
@@ -271,7 +268,6 @@ impl Validator for DisabledValidator {
     #[inline(always)]
     fn insert_local_var(&self, _var: &str) {}
 }
-
 
 // ==================
 // === VarMapView ===

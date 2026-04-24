@@ -2,10 +2,12 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.Implicits.AsMetadata
+import org.enso.compiler.core.ir.Function.Lambda
+import org.enso.compiler.core.ir.{DefinitionArgument, Module}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Type
 import org.enso.compiler.pass.resolve.MethodDefinitions
@@ -80,7 +82,7 @@ class MethodDefinitionsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     "attach resolved atoms to the method definitions" in {
-      ir.bindings(2)
+      ir.bindings()(2)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
@@ -96,12 +98,12 @@ class MethodDefinitionsTest extends CompilerTest {
           )
         )
       )
-      ir.bindings(3)
+      ir.bindings()(3)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer shouldBe None
 
-      ir.bindings(4)
+      ir.bindings()(4)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
@@ -115,14 +117,14 @@ class MethodDefinitionsTest extends CompilerTest {
         )
       )
 
-      ir.bindings(5)
+      ir.bindings()(5)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get shouldBe a[errors.Resolution]
 
       val conv1 = ir
-        .bindings(6)
+        .bindings()(6)
         .asInstanceOf[definition.Method.Conversion]
       conv1.methodReference.typePointer.get.getMetadata(
         MethodDefinitions.INSTANCE,
@@ -148,7 +150,7 @@ class MethodDefinitionsTest extends CompilerTest {
       )
 
       val conv2 = ir
-        .bindings(7)
+        .bindings()(7)
         .asInstanceOf[definition.Method.Conversion]
       conv2.methodReference.typePointer.get.getMetadata(
         MethodDefinitions.INSTANCE,
@@ -164,7 +166,7 @@ class MethodDefinitionsTest extends CompilerTest {
       conv2.sourceTypeName shouldBe an[errors.Resolution]
 
       val conv3 = ir
-        .bindings(8)
+        .bindings()(8)
         .asInstanceOf[definition.Method.Conversion]
       conv3.methodReference.typePointer.get shouldBe an[errors.Resolution]
       conv3.sourceTypeName.getMetadata(
@@ -178,6 +180,56 @@ class MethodDefinitionsTest extends CompilerTest {
           )
         )
       )
+    }
+  }
+
+  "Method definitions pass" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    "Attach ascribedType to DefinitionArgument of an instance method" in {
+      val ir =
+        """
+          |type My_Type
+          |    Value x
+          |    f self = self
+          |""".stripMargin.preprocessModule.analyse
+      val method = ir.bindings.find {
+        case _: Method.Explicit => true
+        case _                  => false
+      }
+      method.isDefined shouldBe true
+      val explicitMethod = method.get.asInstanceOf[Method.Explicit]
+      val lambdaArg = explicitMethod.body
+        .asInstanceOf[Lambda]
+        .arguments
+        .head
+        .asInstanceOf[DefinitionArgument.Specified]
+      lambdaArg.ascribedType().isDefined shouldBe true
+    }
+
+    "No Method.Explicit duplication for singleton type" in {
+      val ir =
+        """
+          |type My_Type
+          |    f self = 42
+          |""".stripMargin.preprocessModule.analyse
+      val methods = ir.bindings.collect {
+        case m: Method.Explicit if m.methodReference.methodName.name == "f" => m
+      }
+      methods.size shouldBe 1
+    }
+
+    "No Method.Explicit duplication for non-singleton type" in {
+      val ir =
+        """
+          |type My_Type
+          |    Value x
+          |    f self = 42
+          |""".stripMargin.preprocessModule.analyse
+      val methods = ir.bindings.collect {
+        case m: Method.Explicit if m.methodReference.methodName.name == "f" => m
+      }
+      methods.size shouldBe 1
     }
   }
 }

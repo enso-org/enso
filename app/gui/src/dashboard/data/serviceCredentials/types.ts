@@ -25,7 +25,5 @@ export interface CredentialInfo {
   readonly nameId: TextId & `${string}CredentialType`
   /** The type of the credential, sent to the backend. */
   readonly credentialType: string
-  /** A SVG data url. */
-  readonly icon: string | undefined
   readonly form: React.ComponentType<CredentialFormProps>
 }

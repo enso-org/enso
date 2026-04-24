@@ -23,6 +23,10 @@ type C
 
 C.from (that:B) = C.C_Ctor that
 
+type Wrapper
+    Wrapper_Ctor x
+
+
 add_specs suite_builder =
     suite_builder.group "Multi Value as type refinement" group_builder->
         group_builder.specify "conversion A -> B should not be available" <|
@@ -185,19 +189,64 @@ add_specs suite_builder =
             (c:A).to_text . should_equal "(A_Ctor 1)"
             (c:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
 
-        group_builder.specify "structural pattern matching should be able to match the primary type" pending="Pattern matching: #12142" <|
+        group_builder.specify "structural pattern matching should be able to match the primary type" <|
             ab = make_a_and_b
             r = case ab of
                 A.A_Ctor x -> "matched: "+x.to_text
                 _ -> "structural matching of A.A_Ctor failed"
             r.should_equal "matched: 1"
 
-        group_builder.specify "should structural matching match other types?" pending="Pattern matching: decide if we keep this test in #12142" <|
+        group_builder.specify "should structural matching match other visible type" <|
             ab = make_a_and_b
             r = case ab of
                 B.B_Ctor x -> "matched: "+x.to_text
                 _ -> "structural matching of B.B_Ctor failed"
             r.should_equal "matched: (A_Ctor 1)"
+
+        group_builder.specify "structural pattern matchings match on open intersection type" <|
+            a = A.A_Ctor 1
+            a_any = (a : A & Any)
+            case a_any of
+                A.A_Ctor _ -> Nothing
+                _ -> Test.fail "should match A.A_Ctor"
+
+        group_builder.specify "structural pattern matchings match on open type" <|
+            a = A.A_Ctor 1
+            any = (a : Any)
+            case any of
+                A.A_Ctor _ -> Nothing
+                _ -> Test.fail "should match A.A_Ctor"
+
+        group_builder.specify "structural pattern matching on hidden type should fail" <|
+            ab = make_a_and_b
+            a_only = (ab : A)
+            case a_only of
+                B.B_Ctor _ -> Test.fail "should not match B.B_Ctor"
+                _ -> Nothing
+
+        group_builder.specify "structural destruct pattern matching on hidden type should fail" <|
+            ab = make_a_and_b
+            a_only = (ab : A)
+            case a_only of
+                B.B_Ctor (A.A_Ctor _) -> Test.fail "should not match B.B_Ctor"
+                _ -> Nothing
+
+        group_builder.specify "nested structural pattern matching on primary type" <|
+            ab = make_a_and_b
+            wrapper = Wrapper.Wrapper_Ctor ab
+            case wrapper of
+                Wrapper.Wrapper_Ctor (A.A_Ctor _) -> Nothing
+                _ -> Test.fail "should match A.A_Ctor inside Wrapper"
+
+        # See test "constructor pattern match does not preserve warning on a field"
+        # In Warnings_Spec.enso
+        group_builder.specify "structural pattern match drops warning from field" <|
+            field_with_warn = Warning.attach "warn" 42
+            ab = make_a_and_b field=field_with_warn
+            case ab of
+                A.A_Ctor x ->
+                    Warning.has_warnings x . should_be_false
+                _ -> Test.fail "should match A.A_Ctor"
 
         group_builder.specify "calling a method on one of the types should not lose the intersection type" <|
             ab = make_a_and_b

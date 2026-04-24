@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-polyglot java import software.amazon.awssdk.core.exception.SdkClientException
-
 ## An invalid URI was provided.
 type Invalid_AWS_URI
     ## ---
@@ -27,14 +25,6 @@ type AWS_SDK_Error
        ---
     to_display_text : Text
     to_display_text self = "AWS SDK Error: " + self.message
-
-    ## ---
-       private: true
-       ---
-    handle_java_errors : Any -> Any ! AWS_SDK_Error
-    handle_java_errors ~action =
-        Panic.catch SdkClientException action caught_panic->
-            Error.throw (AWS_SDK_Error.Error caught_panic.payload.getMessage)
 
 ## An error accessing S3
 type S3_Error
@@ -106,3 +96,10 @@ type S3_Warning
        private: true
        ---
     to_text self = self.message
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "S3_Warning"], ["message", self.message]]

@@ -1,7 +1,5 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from 'playwright/test'
-
-import { mockAllAndLogin } from './actions'
+import { expect, test, type Page } from 'integration-test/base'
 
 /** Find an editor container. */
 function locateEditor(page: Page) {
@@ -10,28 +8,30 @@ function locateEditor(page: Page) {
 }
 
 /** Find a drive view. */
-function locateDriveView(page: Page) {
+function locateSettings(page: Page) {
   // This has no identifying features.
-  return page.getByTestId('drive-view')
+  return page.getByTestId('settings-panel')
 }
 
-test('page switcher', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }),
+test.describe(() => {
+  test.use({ featureFlags: { enableCloudExecution: true } })
+  test('page switcher', async ({ drivePage }) => {
+    await drivePage.goToCategory
+      .cloud()
+      .newEmptyProject()
+      .do(async (thePage) => {
+        await expect(locateSettings(thePage)).toBeHidden()
+        await expect(locateEditor(thePage)).toBeVisible()
+      })
+      .goToPage.settings()
+      .do(async (thePage) => {
+        await expect(locateSettings(thePage)).toBeVisible()
+        await expect(locateEditor(thePage)).toBeHidden()
+      })
+      .goToPage.projectView()
+      .do(async (thePage) => {
+        await expect(locateSettings(thePage)).toBeHidden()
+        await expect(locateEditor(thePage)).toBeVisible()
+      })
   })
-    .newEmptyProject()
-    .do(async (thePage) => {
-      await expect(locateDriveView(thePage)).not.toBeVisible()
-      await expect(locateEditor(thePage)).toBeVisible()
-    })
-    .goToPage.drive()
-    .do(async (thePage) => {
-      await expect(locateDriveView(thePage)).toBeVisible()
-      await expect(locateEditor(thePage)).not.toBeVisible()
-    })
-    .goToPage.editor()
-    .do(async (thePage) => {
-      await expect(locateDriveView(thePage)).not.toBeVisible()
-      await expect(locateEditor(thePage)).toBeVisible()
-    }))
+})

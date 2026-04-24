@@ -15,18 +15,29 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class InstrumentTestContext(packageName: String) {
+abstract class InstrumentTestContext(
+  packageName: String,
+  preferLocalLibraries: Boolean = false
+) {
   protected val messageQueue: LinkedBlockingQueue[Api.Response] =
     new LinkedBlockingQueue()
 
-  protected val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
+  protected val packagesTmpDir: Path =
+    Files.createTempDirectory("enso-test-packages-")
+  protected val tmpDir: Path =
+    Files.createTempDirectory(packagesTmpDir, s"${packageName}_")
 
   private val lockManager = new ThreadSafeFileLockManager(
     tmpDir.resolve("locks")
   )
 
   val pkg: Package[File] =
-    PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
+    PackageManager.Default.create(
+      tmpDir.toFile,
+      packageName,
+      "Enso_Test",
+      preferLocalLibraries = preferLocalLibraries
+    )
 
   protected def context(): Context
 
@@ -56,7 +67,10 @@ abstract class InstrumentTestContext(packageName: String) {
     Option(messageQueue.poll(timeoutSeconds, TimeUnit.SECONDS))
   }
 
-  def receiveN(n: Int, timeoutSeconds: Long = 60): List[Api.Response] = {
+  def receiveN(
+    n: Int,
+    timeoutSeconds: Long = InstrumentTestContext.DEFAULT_TIMEOUT
+  ): List[Api.Response] = {
     Iterator
       .continually(receiveWithTimeout(timeoutSeconds))
       .take(n)
@@ -66,7 +80,7 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def receiveNIgnoreExpressionUpdates(
     n: Int,
-    timeoutSeconds: Long = 60
+    timeoutSeconds: Long = InstrumentTestContext.DEFAULT_TIMEOUT
   ): List[Api.Response] = {
     receiveNWithFilter(
       n,
@@ -82,7 +96,7 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def receiveNIgnorePendingExpressionUpdates(
     n: Int,
-    timeoutSeconds: Long                  = 60,
+    timeoutSeconds: Long                  = InstrumentTestContext.DEFAULT_TIMEOUT,
     updatesOnlyFor: Set[Api.ExpressionId] = Set()
   ): List[Api.Response] = {
     receiveNWithFilter(
@@ -108,7 +122,7 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def receiveNIgnoreStdLib(
     n: Int,
-    timeoutSeconds: Long = 60
+    timeoutSeconds: Long = InstrumentTestContext.DEFAULT_TIMEOUT
   ): List[Api.Response] = {
     receiveNWithFilter(
       n,
@@ -181,7 +195,7 @@ abstract class InstrumentTestContext(packageName: String) {
     }
     Await.ready(runtimeServerEmulator.terminate(), 5.seconds)
     lockManager.reset()
-    FileUtils.deleteQuietly(tmpDir.toFile)
+    FileUtils.deleteQuietly(packagesTmpDir.toFile)
     messageQueue.clear()
   }
 
@@ -190,4 +204,5 @@ abstract class InstrumentTestContext(packageName: String) {
 object InstrumentTestContext {
   val DISABLE_IR_CACHE =
     Option(System.getenv("ENSO_TEST_DISABLE_IR_CACHE")).getOrElse("true")
+  private val DEFAULT_TIMEOUT: Long = 60
 }

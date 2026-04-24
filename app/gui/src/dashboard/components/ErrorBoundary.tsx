@@ -9,12 +9,11 @@ import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import type { SvgUseIcon } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as errorUtils from '#/utilities/error'
-import { OfflineError } from '#/utilities/HttpClient'
 import { useText } from '$/providers/react'
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/utilities/detect'
+import * as errorUtils from 'enso-common/src/utilities/errors'
 import * as React from 'react'
 import type { FallbackProps } from 'react-error-boundary'
 import * as errorBoundary from 'react-error-boundary'
@@ -125,7 +124,7 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
     resetQueries = () => {},
   } = props
 
-  const isOfflineError = error instanceof OfflineError
+  const isOfflineError = error instanceof errorUtils.OfflineError
 
   const message = errorUtils.getMessageOrToString(error)
   const stack = errorUtils.tryGetStack(error)

@@ -4,10 +4,10 @@ import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.Common.Missing_Argument
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
+import project.Internal.Array_Like_Helpers
 import project.Meta
 import project.Metadata.Widget
 import project.Nothing.Nothing
@@ -15,6 +15,7 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Errors.Common import Floating_Point_Equality
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Vector_Editor
@@ -41,8 +42,7 @@ type Dictionary key value
        icon: array_new2
        ---
        Returns an empty dictionary.
-    empty : Dictionary
-    empty = @Builtin_Method "Dictionary.empty"
+    empty -> Dictionary = Array_Like_Helpers.dict_empty
 
     ## ---
        icon: array_new2
@@ -145,7 +145,7 @@ type Dictionary key value
        ---
        Returns the number of entries in this dictionary.
     size : Integer
-    size self = @Builtin_Method "Dictionary.size"
+    size self = Array_Like_Helpers.dict_size self
 
     ## ---
        group: Metadata
@@ -165,7 +165,7 @@ type Dictionary key value
        calls can be chained, e.g., `dictionary.insert "A" 1 . insert "B" 2`.
        Due to the limitation of the current implementation, inserts with a key
        that is already contained in the dictionary, or insert on a dictionary
-       instance that is re-used in other computations, have a linear time
+       instance that is reused in other computations, have a linear time
        complexity. For all the other cases, the time complexity of this method is
        constant.
 
@@ -189,7 +189,7 @@ type Dictionary key value
     @value (make_all_selector ..Always)
     insert : Any -> Any -> Boolean -> Dictionary
     insert self key=(Missing_Argument.throw "key") value=(Missing_Argument.throw "value") no_warning:Boolean=False =
-        new_dict = self.insert_builtin key value
+        new_dict = Array_Like_Helpers.dict_insert self key value
         case key of
             key_as_float : Float ->
                 if no_warning then new_dict else
@@ -218,7 +218,7 @@ type Dictionary key value
     @key key_widget
     remove : Any -> Dictionary ! No_Such_Key
     remove self key=(Missing_Argument.throw "key") =
-        Panic.catch Any (self.remove_builtin key) _->
+        Panic.catch Any (Array_Like_Helpers.dict_remove self key) _->
             Error.throw (No_Such_Key.Error self key)
 
     ## ---
@@ -266,7 +266,7 @@ type Dictionary key value
        ```
     @key key_widget
     get : Any -> Any -> Any
-    get self key ~if_missing=Nothing = self.get_builtin key if_missing
+    get self key ~if_missing=Nothing = Array_Like_Helpers.dict_get_builtin self key if_missing
 
     ## ---
        group: Logical
@@ -275,7 +275,7 @@ type Dictionary key value
        Returns True iff the Dictionary contains the given `key`.
     @key (make_all_selector ..Always)
     contains_key : Any -> Boolean
-    contains_key self key = @Builtin_Method "Dictionary.contains_key"
+    contains_key self key = Array_Like_Helpers.dict_contains_key self key
 
     ## ---
        group: Selections
@@ -392,11 +392,10 @@ type Dictionary key value
         vec_transformed = self.to_vector.map func_pairs
         new_dictionary = Dictionary.from_vector vec_transformed error_on_duplicates=True
         new_dictionary.catch Illegal_Argument error->
-            case error.message.starts_with "`Dictionary.from_vector` encountered duplicate key" of
-                True ->
-                    new_message = error.message.replace "from_vector" "transform"
-                    Error.throw (Illegal_Argument.Error new_message error.cause)
-                False -> new_dictionary
+            if error.message.starts_with "`Dictionary.from_vector` encountered duplicate key" then
+                new_message = error.message.replace "from_vector" "transform"
+                Error.throw (Illegal_Argument.Error new_message error.cause)
+            else new_dictionary
 
     ## ---
        icon: transform4
@@ -507,20 +506,30 @@ type Dictionary key value
        expression is true for all dictionaries:
        `Dictionary.from_vector dictionary.to_vector == dictionary`.
     to_vector : Vector Any
-    to_vector self = @Builtin_Method "Dictionary.to_vector"
+    to_vector self = Array_Like_Helpers.dict_to_vector self
 
     ## ---
        private: true
        ---
        Returns a text representation of this Dictionary.
-    to_text : Text
-    to_text self = @Builtin_Method "Dictionary.to_text"
+    to_text self -> Text = Array_Like_Helpers.dict_to_text self
 
     ## ---
        private: true
        ---
-    get_builtin : Any -> Any -> Any
-    get_builtin self key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
+    to_display_text : Text
+    to_display_text self =
+        texts = self.keys.take (..First 40) . map k-> k.to_display_text + "=" + (self.get k . to_display_text)
+        suffix = if self.length > 40 then " and " + (self.length - 40).to_text + " more elements}" else "}"
+        "{" + (texts.join ", ") + suffix
+
+    ## ---
+       private: true
+       ---
+    pretty : Text
+    pretty self =
+        "Dictionary.from_vector " + self.to_vector.pretty
+
 
 ## ---
    private: true
@@ -539,7 +548,9 @@ key_value_widget -> Widget =
     item_editor = Single_Choice display=..Always values=[pair]
     Vector_Editor item_editor=item_editor display=..Always item_default=default
 
-## ---
-   private: true
-   ---
-Dictionary.from (that:Vector) = Dictionary.from_vector that
+## Convert a Vector of key-value pairs to a Dictionary.
+Dictionary.from (that:Vector) (error_on_duplicates:Boolean=True) =
+    Dictionary.from_vector that error_on_duplicates
+
+## Convert Dictionary to a Vector.
+Vector.from (that:Dictionary) = that.to_vector

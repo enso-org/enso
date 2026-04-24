@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// Extension methods for [`PathBuf`].
 pub trait PathBufExt {
     /// Replace the [parent][std::path::Path::parent] directory of the path, maintaining the

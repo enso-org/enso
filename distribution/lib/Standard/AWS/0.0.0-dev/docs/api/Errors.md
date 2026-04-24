@@ -2,7 +2,6 @@
 ## module Standard.AWS.Errors
 - type AWS_SDK_Error
     - Error message:Standard.Base.Data.Text.Text
-    - handle_java_errors ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_AWS_URI
     - Error uri:Standard.Base.Data.Text.Text
@@ -21,4 +20,5 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type S3_Warning
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any

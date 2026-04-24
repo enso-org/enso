@@ -6,10 +6,11 @@ export default {
 
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
+import type { FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
 import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
-import { mapPath, useEnsoPaths } from '@/components/widgets/FileBrowserWidget/ensoPath'
+import { useEnsoPaths } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import {
   listDirectoryArgs,
   useCurrentPath,
@@ -26,14 +27,15 @@ import {
   usePathBrowsing,
   type Directory,
 } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import { useAcceptCurrentFile } from '@/components/widgets/FileBrowserWidget/useAcceptCurrentFile'
+import { useFileBrowserSync } from '@/components/widgets/FileBrowserWidget/useFileBrowserSync'
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
-import { computed, ref, toValue, useTemplateRef, watch, watchEffect } from 'vue'
+import { computed, ref, toValue, useTemplateRef, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -86,7 +88,7 @@ type AssetExists = { exists: true; type: AssetType } | { exists: false }
 async function assetExists(name: string): Promise<AssetExists> {
   const currentDir = currentDirectory.value
   if (currentDir == null) return { exists: false }
-  const content = await listDirectory(currentDir)
+  const content = (await listDirectory(currentDir))?.assets
   const asset = content?.find((asset) => asset.title === name)
   if (!asset) return { exists: false }
   return { exists: true, type: asset.type }
@@ -95,8 +97,8 @@ async function assetExists(name: string): Promise<AssetExists> {
 // Prefetch directories to avoid lag when the user navigates, but only if we don't already have
 // stale data. When the user opens a directory with stale data, it will refresh and the animation
 // will show what files have changed since they last viewed.
-watch(data, (assets) => {
-  for (const asset of assets ?? [])
+watch(data, (response) => {
+  for (const asset of response?.assets ?? [])
     if (assetIsDirectory(asset)) ensureQueryData('listDirectory', listDirectoryArgs(asset))
 })
 
@@ -109,23 +111,25 @@ const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = use
   home: () => ensoPath(toValue(userFiles.value?.home ?? [])),
   enteredPath,
 })
-watchEffect(() => setPath(parseEnsoPath(props.choosenPath)))
-watchEffect(() => currentDirPath.value && setBrowsingPath(currentDirPath.value))
-watchEffect(() => {
-  if (props.writeMode && unenteredPathSuffix.value) setFilename(unenteredPathSuffix.value)
+useFileBrowserSync({
+  writeMode: () => props.writeMode,
+  choosenPath: () => props.choosenPath,
+  parseEnsoPath,
+  currentDirPath,
+  chosenFilename,
+  setPath,
+  setBrowsingPath,
+  append,
+  setFilename,
+  unenteredPathSuffix,
 })
 
-watchEffect(() => {
-  if (chosenFilename.value) setFilename(chosenFilename.value)
-})
 const highlightedFilename = computed(
   () => (props.writeMode && fullFilePath.value) || chosenFilename.value,
 )
 
 // === Status ===
 
-const overwriteFilename = ref<string | null>(null)
-const warningText = ref<string | null>(null)
 const isBusy = computed(
   () => isBrowsingPending.value || isPending.value || commitSecretPending.value,
 )
@@ -145,52 +149,28 @@ async function createSecret(value: string, name: string) {
 
 // === Accepting Chosen File ===
 
-async function tryAcceptCurrentFile() {
-  if (!enteredPath.value) {
-    // We can only reach this if there was a root previously, but there isn't now. This might be
-    // possible if the session is lost.
-    warningText.value = 'Unable to access files'
-    return
-  }
-  const path = mapPath(enteredPath.value, append(...fullFilePath.value.split('/')))
-  const enteringResult = await setBrowsingPath(path)
-  currentDirPath.value = path
-  if (!enteringResult.ok) {
-    warningText.value = `${enteringResult.error.payload.toString()}`
-    return
-  }
-  setFilename(unenteredPathSuffix.value)
-  const assetInfo = await assetExists(fullFilePath.value)
-  if (
-    assetInfo.exists &&
-    assetInfo.type === AssetType.file &&
-    props.writeMode &&
-    !props.allowOverride
-  ) {
-    overwriteFilename.value = fullFilePath.value
-  } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
-    warningText.value = `'${fullFilePath.value}' is a directory, not a file`
-  } else {
-    acceptCurrentFile()
-    return
-  }
-}
-
-function acceptCurrentFile() {
-  acceptFile(fullFilePath.value)
-}
-
-function acceptFile(name: string) {
-  if (!enteredPath.value) return
-  const currentFilePath = printEnsoPath(mapPath(enteredPath.value, append(...name.split('/'))))
-  emit('pathAccepted', currentFilePath)
-}
+const { overwriteFilename, warningText, tryAcceptCurrentFile, acceptCurrentFile, acceptFile } =
+  useAcceptCurrentFile({
+    enteredPath,
+    fullFilePath,
+    currentDirPath,
+    setBrowsingPath,
+    append,
+    setFilename,
+    unenteredPathSuffix,
+    assetExists,
+    writeMode: () => props.writeMode,
+    allowOverride: () => props.allowOverride,
+    printEnsoPath,
+    pathAcceptedCallback: (p) => emit('pathAccepted', p),
+  })
 
 function chooseEntry(asset: AnyAsset, close: boolean) {
+  const name = asset.type === AssetType.datalink ? `${asset.title}.datalink` : asset.title
   if (props.writeMode) {
-    setFilename(asset.title)
+    setFilename(name)
   } else {
-    acceptFile(asset.title)
+    acceptFile(name)
     if (close) emit('close')
   }
 }
@@ -249,7 +229,7 @@ registerHandlers({
         ref="browserContent"
         :key="currentDirectory?.id ?? 'root'"
         class="browserContents"
-        :assets="data ?? []"
+        :assets="data?.assets ?? []"
         :chosenFilename="highlightedFilename"
         :targetType="type ?? 'file'"
         :matchesFilter="fileExtensionFilter.matches"
@@ -277,18 +257,27 @@ registerHandlers({
 .FileBrowserWidgetWrapper {
   --z-index: var(--z-index-file-browser, 0);
   --z-index-selection-submenu: calc(var(--z-index) - 1);
+  --background-color: var(--file-browser-background-color, var(--color-panel-accent));
+  --dropdown-bg: var(--background-color);
+  --dropdown-fg: var(--file-browser-text-color, white);
+  --dropdown-item-hover-bg: color-mix(in oklab, var(--dropdown-bg) 70%, white 30%);
+  --dropdown-item-selected-bg: color-mix(
+    in oklab,
+    var(--dropdown-bg) 80%,
+    var(--color-node-background) 20%
+  );
 }
 
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--file-browser-background-color, var(--color-panel-accent));
   --corner-radius: var(--file-browser-corner-radius, var(--radius-default));
+  background-color: var(--background-color);
   padding: var(--border-width);
-  border-radius: 0 0 var(--corner-radius) var(--corner-radius);
+  border-radius: var(--corner-radius);
   min-width: var(--file-browser-min-width, 400px);
   min-height: 200px;
-  max-height: 600px;
+  max-height: 412px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

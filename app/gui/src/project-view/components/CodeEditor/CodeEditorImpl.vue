@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  useGraphStore,
-  useProjectStore,
-  useSuggestionDbStore,
-} from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useEnsoDiagnostics } from '@/components/CodeEditor/diagnostics'
 import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import { useEnsoSourceSync } from '@/components/CodeEditor/sync'
@@ -13,7 +9,6 @@ import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useAutoBlur } from '@/util/autoBlur'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
-import { useCompartment } from '@/util/codemirror/reactivity'
 import { testSupport } from '@/util/codemirror/testSupport'
 import { indentWithTab, insertNewlineKeepIndent } from '@codemirror/commands'
 import {
@@ -27,9 +22,7 @@ import { highlightSelectionMatches } from '@codemirror/search'
 import { drawSelection, keymap } from '@codemirror/view'
 import { onMounted, toRef, useTemplateRef, type ComponentInstance } from 'vue'
 
-const projectStore = useProjectStore()
-const graphStore = useGraphStore()
-const suggestionDbStore = useSuggestionDbStore()
+const { store: project, module, graph } = useCurrentProject()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
@@ -48,27 +41,18 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     foldGutter(),
     lintGutter(),
     highlightSelectionMatches(),
-    ensoSyntax(toRef(graphStore, 'moduleRoot')),
-    ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
+    () => (module.value.root ? ensoSyntax(toRef(module.value, 'root')) : []),
+    ensoHoverTooltip(graph, vueHost),
+    () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
   ],
   vueHost: () => vueHost,
   lineMode: 'multi',
 })
 ;(window as any).__codeEditorApi = testSupport(editorView)
 useAutoBlur(editorView.dom)
-const { updateListener, connectModuleListener } = useEnsoSourceSync(
-  projectStore,
-  graphStore,
-  editorView,
-)
-const ensoDiagnostics = useEnsoDiagnostics(projectStore, graphStore, editorView)
-setExtraExtensions([
-  updateListener,
-  ensoDiagnostics,
-  useCompartment(editorView, () =>
-    editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : [],
-  ),
-])
+const { updateListener, connectModuleListener } = useEnsoSourceSync(module, editorView)
+const ensoDiagnostics = useEnsoDiagnostics(project, module, graph, editorView)
+setExtraExtensions([updateListener, ensoDiagnostics])
 connectModuleListener()
 
 onMounted(() => {

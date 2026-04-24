@@ -4,10 +4,12 @@ from Standard.Test import Test
 
 import project.Snowflake_Spec
 import project.Snowflake_Bulk_Spec
+import project.Snowflake_Stage_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
         Snowflake_Spec.add_specs suite_builder
         Snowflake_Bulk_Spec.add_specs suite_builder
+        Snowflake_Stage_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

@@ -1,32 +1,33 @@
 /** @file Metadata for rendering each settings section. */
-import ComputerIcon from '#/assets/computer.svg'
 import { Button } from '#/components/Button'
 import type { TSchema } from '#/components/Form'
 import type { ComboBoxProps } from '#/components/Inputs/ComboBox'
-import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import { actionToTextId } from '#/components/MenuEntry'
 import { Text } from '#/components/Text'
-import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
-import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
+import { setDownloadDirectory, setLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { ApiKeySettingsSection } from '#/layouts/Settings/ApiKeysSettingsSection'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import type Backend from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { PASSWORD_REGEX } from '#/utilities/validation'
+import type { PaywallFeatureName } from '$/composables/paywall'
+import type { GetText } from '$/providers/text'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { getLocalTimeZone, now } from '@internationalized/date'
+import type { QueryClient } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
 import {
   EmailAddress,
   HttpsUrl,
-  isUserOnPlanWithOrganization,
+  isUserOnPlanWithMultipleSeats,
+  Path,
   Plan,
   type OrganizationInfo,
   type User,
-} from '#/services/Backend'
-import type LocalBackend from '#/services/LocalBackend'
-import type RemoteBackend from '#/services/RemoteBackend'
-import { normalizePath } from '#/utilities/fileInfo'
-import { pick, unsafeEntries } from '#/utilities/object'
-import { PASSWORD_REGEX } from '#/utilities/validation'
-import type { GetText } from '$/providers/text'
-import { getLocalTimeZone, now } from '@internationalized/date'
-import type { QueryClient } from '@tanstack/react-query'
+} from 'enso-common/src/services/Backend'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import type { TextId } from 'enso-common/src/text'
 import {
   getTimeZoneFromDescription,
@@ -36,6 +37,8 @@ import {
   tryGetTimeZoneFromDescription,
   WHITELISTED_TIME_ZONE_DESCRIPTIONS,
 } from 'enso-common/src/utilities/data/dateTime'
+import { pick, unsafeEntries } from 'enso-common/src/utilities/data/object'
+import { normalizePath } from 'enso-common/src/utilities/file'
 import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
 import * as z from 'zod'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
@@ -246,7 +249,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: 'people_settings',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -319,7 +322,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.local]: {
     nameId: 'localSettingsTab',
     settingsTab: SettingsTabType.local,
-    icon: ComputerIcon,
+    icon: 'system',
     visible: ({ localBackend }) => localBackend != null,
     sections: [
       {
@@ -328,28 +331,30 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              localRootPath: z.string(),
+              localRootDirectory: z.string(),
             }),
-            getValue: ({ localBackend }) => ({ localRootPath: localBackend?.rootPath() ?? '' }),
-            onSubmit: ({ updateLocalRootPath }, { localRootPath }) => {
-              updateLocalRootPath(localRootPath)
+            getValue: ({ localRootDirectory }) => ({
+              localRootDirectory: String(localRootDirectory ?? ''),
+            }),
+            onSubmit: (_, { localRootDirectory }) => {
+              setLocalRootDirectory(Path(localRootDirectory))
             },
-            inputs: [{ nameId: 'localRootPathSettingsInput', name: 'localRootPath' }],
+            inputs: [{ nameId: 'localRootPathSettingsInput', name: 'localRootDirectory' }],
           }),
           {
             type: 'custom',
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
-              <Button.Group>
-                {window.fileBrowserApi && (
+              <Button.Group className="grow-0">
+                {window.api && (
                   <Button
                     size="small"
                     variant="outline"
                     onPress={async () => {
                       const [newDirectory] =
-                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                        (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
                       if (newDirectory != null) {
-                        context.updateLocalRootPath(normalizePath(newDirectory))
+                        setLocalRootDirectory(Path(normalizePath(newDirectory)))
                       }
                     }}
                   >
@@ -360,9 +365,57 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                   size="small"
                   variant="outline"
                   className="self-start"
-                  onPress={context.resetLocalRootPath}
+                  onPress={() => {
+                    setLocalRootDirectory(null)
+                  }}
                 >
                   {context.getText('resetLocalRootDirectory')}
+                </Button>
+              </Button.Group>
+            ),
+          },
+          settingsFormEntryData({
+            type: 'form',
+            schema: z.object({
+              downloadDirectory: z.string(),
+            }),
+            getValue: ({ downloadDirectory }) => ({
+              downloadDirectory: String(downloadDirectory ?? ''),
+            }),
+            onSubmit: (_, { downloadDirectory }) => {
+              setDownloadDirectory(Path(downloadDirectory))
+            },
+            inputs: [{ nameId: 'downloadDirectorySettingsInput', name: 'downloadDirectory' }],
+          }),
+          {
+            type: 'custom',
+            aliasesId: 'downloadDirectoryButtonSettingsCustomEntryAliases',
+            render: (context) => (
+              <Button.Group className="grow-0">
+                {window.api && (
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onPress={async () => {
+                      const [newDirectory] =
+                        (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
+                      if (newDirectory != null) {
+                        setDownloadDirectory(Path(normalizePath(newDirectory)))
+                      }
+                    }}
+                  >
+                    {context.getText('browseForNewDownloadDirectory')}
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  className="self-start"
+                  onPress={() => {
+                    setDownloadDirectory(null)
+                  }}
+                >
+                  {context.getText('resetDownloadDirectory')}
                 </Button>
               </Button.Group>
             ),
@@ -378,33 +431,56 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     organizationOnly: true,
     visible: ({ user, organization }) =>
       user.isOrganizationAdmin && organization?.subscription != null,
-    sections: [],
-    onPress: (context) =>
-      context.queryClient
-        .getMutationCache()
-        .build(context.queryClient, {
-          mutationKey: ['billing', 'customerPortalSession'],
-          mutationFn: () =>
-            context.backend
-              .createCustomerPortalSession()
-              .then((url) => {
-                if (url != null) {
-                  window.open(url, '_blank')?.focus()
-                }
+    sections: [
+      {
+        nameId: 'billingAndPlansSettingsSection',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'billingAndPlansSettingsCustomEntryAliases',
+            render: (context) => {
+              // This is a React component, so we can use hooks.
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const openCustomerPortalSession = useMutationCallback({
+                mutationKey: ['billing', 'customerPortalSession'],
+                mutationFn: () =>
+                  context.backend.createCustomerPortalSession().then(
+                    (url) => {
+                      if (url != null) {
+                        window.open(url, '_blank')?.focus()
+                      }
+                    },
+                    (error) => {
+                      context.toastAndLog('arbitraryErrorTitle', error)
+                      throw error
+                    },
+                  ),
               })
-              .catch((err) => {
-                context.toastAndLog('arbitraryErrorTitle', err)
-                throw err
-              }),
-        })
-        .execute({} satisfies unknown),
+
+              return (
+                <Button.Group className="grow-0">
+                  <Button
+                    size="small"
+                    variant="outline"
+                    className="self-start"
+                    onPress={() => openCustomerPortalSession()}
+                  >
+                    {context.getText('openBillingPage')}
+                  </Button>
+                </Button.Group>
+              )
+            },
+          },
+        ],
+      },
+    ],
   },
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
     settingsTab: SettingsTabType.members,
     icon: 'people',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user) && user.isOrganizationAdmin,
     feature: 'inviteUser',
     sections: [
       {
@@ -419,7 +495,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: 'people_settings',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user) && user.isOrganizationAdmin,
     feature: 'userGroups',
     sections: [
       {
@@ -447,7 +523,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return [ACTION_TO_TEXT_ID[k]]
+                  return [actionToTextId(k)]
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))
@@ -463,7 +539,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: 'log',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',
@@ -472,6 +548,24 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             render: (context) => <ActivityLogSettingsSection backend={context.backend} />,
+          },
+        ],
+      },
+    ],
+  },
+  [SettingsTabType.apiKeys]: {
+    nameId: 'apiKeysSettingsTab',
+    settingsTab: SettingsTabType.apiKeys,
+    icon: 'key',
+    sections: [
+      {
+        nameId: 'apiKeysSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'apiKeysSettingsCustomEntryAliases',
+            render: () => <ApiKeySettingsSection />,
           },
         ],
       },
@@ -502,7 +596,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.activityLog],
+      SETTINGS_TAB_DATA[SettingsTabType.apiKeys],
+    ],
   },
 ]
 
@@ -521,8 +618,8 @@ export interface SettingsContext {
   readonly updateOrganization: (
     variables: Parameters<Backend['updateOrganization']>,
   ) => Promise<OrganizationInfo | null | undefined>
-  readonly updateLocalRootPath: (rootPath: string) => void
-  readonly resetLocalRootPath: () => void
+  readonly localRootDirectory: Path | null
+  readonly downloadDirectory: Path | null
   readonly toastAndLog: ToastAndLogCallback
   readonly getText: GetText
   readonly queryClient: QueryClient
@@ -578,8 +675,8 @@ export type SettingsInputData<T> = SettingsComboBoxInputData<T> | SettingsNative
 export interface SettingsFormEntryData<T> {
   readonly type: 'form'
   readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
-  readonly getValue: (context: SettingsContext) => T
-  readonly onSubmit: (context: SettingsContext, value: T) => Promise<void> | void
+  readonly getValue: (context: SettingsContext) => NoInfer<T>
+  readonly onSubmit: (context: SettingsContext, value: NoInfer<T>) => Promise<void> | void
   readonly inputs: readonly SettingsInputData<NoInfer<T>>[]
   readonly getVisible?: (context: SettingsContext) => boolean
 }
@@ -618,7 +715,7 @@ export interface SettingsSectionData {
 export interface SettingsTabData {
   readonly nameId: TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
-  readonly icon: SvgUseIcon | (string & {})
+  readonly icon: Icon
   readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
   /**
@@ -627,7 +724,6 @@ export interface SettingsTabData {
    */
   readonly feature?: PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
-  readonly onPress?: (context: SettingsContext) => Promise<void> | void
 }
 
 /** Metadata describing a settings tab section. */

@@ -1,0 +1,32 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+
+import Standard.Test.Frame_Hider
+import Standard.Test.Spec_Result.Spec_Result
+from Standard.Test import Test
+from Standard.Test.Extensions import all
+
+## Test class for checking if a certain point in the code has been reached.
+type Should_Reach
+    ## ---
+       private: true
+       ---
+    private Value (reached_ref : Ref Boolean)
+
+    ## Creates a new Should_Reach test object.
+    new : Should_Reach
+    new = Should_Reach.Value (Ref.new False)
+
+    ## Records that a point has been reached.
+    reached : Nothing
+    reached self -> Nothing =
+        self.reached_ref.put True
+        Nothing
+
+    ## Checks if a point was reached in execution.
+    should_have_reached : Spec_Result
+    should_have_reached self -> Spec_Result = Frame_Hider.hide <|
+        if self.reached_ref.get then Spec_Result.Success else
+            Test.fail ("Did not reach Should_Reach (at "+Frame_Hider.get_top_stack_frame+").")

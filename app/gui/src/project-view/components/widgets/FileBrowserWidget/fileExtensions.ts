@@ -1,21 +1,21 @@
+import {
+  type FileType,
+  isExtensions,
+  isFileTypes,
+  isGlobAll,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { ToValue } from '$/utils/reactivity'
 import type SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import type { SubmenuComponent } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import type AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import type { Filter } from '@/components/widgets/FileBrowserWidget/fileExtensionFilter'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import {
-  type FileType,
-  isExtensions,
-  isFileTypes,
-  isGlobAll,
-} from '@/providers/widgetRegistry/configuration'
 import { endOnClick, targetIsOutside } from '@/util/autoBlur'
-import type { ToValue } from '@/util/reactivity'
 import type { HTMLElementEventHandler } from '@/util/vueDom'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, type Ref, ref, toValue } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   extensions: 'all' | string[]
@@ -165,8 +165,6 @@ export function useFileExtensions({
       show: toValue(fileExtensionDropdownOpened),
       entries: toValue(fileExtensionEntries),
       topLevel: true,
-      color: 'var(--selection-submenu-color, white)',
-      backgroundColor: 'var(--file-browser-background-color, var(--color-panel-accent))',
       onClickedEntry: extensionSelected,
       floatReference: toValue(fileExtensionInputRoot),
     }),

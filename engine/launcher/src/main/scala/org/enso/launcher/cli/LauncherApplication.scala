@@ -201,6 +201,16 @@ object LauncherApplication {
     ) {
       val rootId    = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
       val projectId = Opts.parameter[UUID]("project-id", "UUID", "Project id.")
+      val projectCloudId = Opts.optionalParameter[String](
+        "cloud-project-id",
+        "ID",
+        "Cloud project id (hybrid)."
+      )
+      val projectSessionId = Opts.optionalParameter[String](
+        "cloud-project-session-id",
+        "ID",
+        "Cloud project session id (hybrid)."
+      )
       val path =
         Opts.parameter[Path]("path", "PATH", "Path to the content root.")
       val interface =
@@ -227,31 +237,16 @@ object LauncherApplication {
             "SECURE_RPC_PORT",
             "Secure RPC port for processing all incoming connections."
           )
-      val dataPort =
-        Opts
-          .optionalParameter[Int](
-            "data-port",
-            "PORT",
-            "Data port for visualization protocol. Defaults to 8081."
-          )
-          .withDefault(8081)
-      val secureDataPort =
-        Opts
-          .optionalParameter[Int](
-            "secure-data-port",
-            "SECURE_DATA_PORT",
-            "Secure data port for visualization protocol."
-          )
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
         projectId,
+        projectCloudId,
+        projectSessionId,
         path,
         interface,
         rpcPort,
         secureRpcPort,
-        dataPort,
-        secureDataPort,
         versionOverride,
         engineLogLevel,
         systemJVMOverride,
@@ -262,12 +257,12 @@ object LauncherApplication {
         (
           rootId,
           projectId,
+          projectCloudId,
+          projectSessionId,
           path,
           interface,
           rpcPort,
           secureRpcPort,
-          dataPort,
-          secureDataPort,
           versionOverride,
           engineLogLevel,
           systemJVMOverride,
@@ -277,14 +272,14 @@ object LauncherApplication {
         ) => (config: Config) =>
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
-              rootId         = rootId,
-              projectId      = projectId,
-              interface      = interface,
-              rpcPort        = rpcPort,
-              secureRpcPort  = secureRpcPort,
-              dataPort       = dataPort,
-              secureDataPort = secureDataPort,
-              jvm            = Option(jvm)
+              rootId                = rootId,
+              projectId             = projectId,
+              projectCloudId        = projectCloudId,
+              projectCloudSessionId = projectSessionId,
+              interface             = interface,
+              rpcPort               = rpcPort,
+              secureRpcPort         = secureRpcPort,
+              jvm                   = Option(jvm)
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,

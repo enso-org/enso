@@ -6,7 +6,6 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
@@ -76,15 +75,8 @@ public final class ImportSymbolAnalysis implements MiniPassFactory {
         }
         newImports.add(imp);
       }
-      return moduleIr.copy(
-          CollectionConverters.asScala(newImports).toList(),
-          moduleIr.exports(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      return moduleIr.copyWithImportsAndExports(
+          CollectionConverters.asScala(newImports).toList(), moduleIr.exports());
     }
 
     @Override
@@ -176,35 +168,35 @@ public final class ImportSymbolAnalysis implements MiniPassFactory {
         Import imp, BindingsMap.ImportTarget importTarget, Name.Literal unresolvedSymbol) {
       ImportExport.Reason errorReason =
           switch (importTarget) {
-            case BindingsMap.ResolvedModule resMod -> new ImportExport.SymbolDoesNotExist(
-                unresolvedSymbol.name(), resMod.module().getName().toString());
-            case BindingsMap.ResolvedType resType -> new ImportExport.NoSuchConstructor(
-                resType.tp().name(), unresolvedSymbol.name());
-            case BindingsMap.ResolvedConstructor resCons -> new ImportExport.NoSuchConstructor(
-                resCons.cons().name(), unresolvedSymbol.name());
-            case BindingsMap.ResolvedModuleMethod resMethod -> new ImportExport.NoSuchModuleMethod(
-                resMethod.method().name(), unresolvedSymbol.name());
-            case BindingsMap.ResolvedExtensionMethod extMethod -> new ImportExport
-                .NoSuchStaticMethod(
-                extMethod.module().getName().toString(),
-                extMethod.staticMethod().tpName(),
-                unresolvedSymbol.name());
-            case BindingsMap.ResolvedConversionMethod convMethod -> new ImportExport
-                .NoSuchConversionMethod(
-                convMethod.module().getName().toString(),
-                convMethod.conversionMethod().targetTpName(),
-                convMethod.conversionMethod().sourceTpName());
+            case BindingsMap.ResolvedModule resMod ->
+                new ImportExport.SymbolDoesNotExist(
+                    unresolvedSymbol.name(), resMod.module().getName().toString());
+            case BindingsMap.ResolvedType resType ->
+                new ImportExport.NoSuchConstructor(resType.tp().name(), unresolvedSymbol.name());
+            case BindingsMap.ResolvedConstructor resCons ->
+                new ImportExport.NoSuchConstructor(resCons.cons().name(), unresolvedSymbol.name());
+            case BindingsMap.ResolvedModuleMethod resMethod ->
+                new ImportExport.NoSuchModuleMethod(
+                    resMethod.method().name(), unresolvedSymbol.name());
+            case BindingsMap.ResolvedExtensionMethod extMethod ->
+                new ImportExport.NoSuchStaticMethod(
+                    extMethod.module().getName().toString(),
+                    extMethod.staticMethod().tpName(),
+                    unresolvedSymbol.name());
+            case BindingsMap.ResolvedConversionMethod convMethod ->
+                new ImportExport.NoSuchConversionMethod(
+                    convMethod.module().getName().toString(),
+                    convMethod.conversionMethod().targetTpName(),
+                    convMethod.conversionMethod().sourceTpName());
             default -> throw new IllegalStateException("Unexpected value: " + importTarget);
           };
-      return new ImportExport(imp, errorReason, new MetadataStorage());
+      return ImportExport.create(imp, errorReason);
     }
 
     private static ImportExport createImportFromMethodError(
         Import imp, String moduleName, String methodName) {
-      return new ImportExport(
-          imp,
-          new ImportExport.IllegalImportFromMethod(moduleName, methodName),
-          new MetadataStorage());
+      return ImportExport.create(
+          imp, new ImportExport.IllegalImportFromMethod(moduleName, methodName));
     }
   }
 }

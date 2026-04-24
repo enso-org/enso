@@ -1,5 +1,5 @@
 import * as gtag from '$/utils/analytics/gtag'
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/utilities/detect'
 
 export const createUser = {
   /** Log successful user creation. */
@@ -73,7 +73,12 @@ export function appOpenCloseCallback(): () => void {
   return gtag.openCloseCallback('open_app', 'close_app')
 }
 
-/** Log when a graph editor instance is opened and closed. */
-export function editorOpenCloseCallback(): () => void {
-  return gtag.openCloseCallback('open_workflow', 'close_workflow')
+/** Log when a workflow tab is opened. */
+export function workflowOpened(): void {
+  gtag.event('open_workflow')
+}
+
+/** Log when a workflow tab is closed. */
+export function workflowClosed(): void {
+  gtag.event('close_workflow')
 }

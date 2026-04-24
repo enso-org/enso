@@ -17,7 +17,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.util.UUID
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -45,6 +45,7 @@ class RuntimeTypesTest
           RuntimeOptions.LOG_LEVEL,
           java.util.logging.Level.WARNING.getName
         )
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -57,13 +58,6 @@ class RuntimeTypesTest
         )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(new TeeOutputStream(logOut, System.err))
         .out(new TeeOutputStream(out, System.err))
@@ -364,14 +358,16 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
-        builtin = true
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
         id_y,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
-        builtin = true
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -403,7 +399,7 @@ class RuntimeTypesTest
           Api.MethodPointer(moduleName, s"$moduleName.T", "C")
         )
       ),
-      TestMessages.update(contextId, id_y, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, id_y, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -499,8 +495,9 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
-        builtin = true
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -527,7 +524,7 @@ class RuntimeTypesTest
       TestMessages.update(
         contextId,
         id_x,
-        ConstantsGen.INTEGER_BUILTIN
+        ConstantsGen.INTEGER
       ),
       context.executionComplete(contextId)
     )

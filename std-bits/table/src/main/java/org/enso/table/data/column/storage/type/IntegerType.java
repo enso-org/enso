@@ -1,41 +1,67 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
-public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
+public final class IntegerType implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
   public static final IntegerType INT_8 = new IntegerType(Bits.BITS_8);
 
-  public static IntegerType create(Bits bits) {
+  private final Bits bits;
+
+  private IntegerType(Bits bits) {
+    this.bits = bits;
+  }
+
+  @Override
+  public char typeChar() {
+    return 'I';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return bits.equals(Bits.BITS_8)
+        ? EnsoMeta.makeInstance(
+            StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName())
+        : EnsoMeta.makeInstance(
+            StorageType.ENSO_MODULE,
+            StorageType.ENSO_TYPE_NAME,
+            ensoConstructorName(),
+            Bits.asEnsoValue(bits()));
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return bits.equals(Bits.BITS_8) ? "Byte" : "Integer";
+  }
+
+  @Override
+  public long size() {
     return switch (bits) {
-      case BITS_8 -> INT_8;
-      case BITS_16 -> INT_16;
-      case BITS_32 -> INT_32;
-      case BITS_64 -> INT_64;
+      case BITS_64 -> 64;
+      case BITS_32 -> 32;
+      case BITS_16 -> 16;
+      case BITS_8 -> 8;
     };
+  }
+
+  /** Returns the number of bits of this integer type. */
+  public Bits bits() {
+    return bits;
   }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   public long getMaxValue() {
@@ -80,7 +106,7 @@ public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
    * number of bits.
    */
   public boolean fits(IntegerType otherType) {
-    return bits.toInteger() >= otherType.bits.toInteger();
+    return size() >= otherType.size();
   }
 
   public static IntegerType smallestFitting(long value, boolean allow8bit) {
@@ -95,7 +121,7 @@ public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
    * two).
    */
   public static IntegerType commonType(IntegerType type1, IntegerType type2) {
-    return type1.bits.toInteger() >= type2.bits.toInteger() ? type1 : type2;
+    return type1.size() >= type2.size() ? type1 : type2;
   }
 
   @Override
@@ -105,9 +131,18 @@ public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
 
   @Override
   public Long valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToLong(value)) {
       return NumericConverter.coerceToLong(value);
     }
+
+    if (value instanceof Value polyValue && polyValue.isNumber() && polyValue.fitsInLong()) {
+      return polyValue.asLong();
+    }
+
     return null;
   }
 
@@ -118,7 +153,7 @@ public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
 
   @Override
   public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
+    if (StorageType.ofStorage(storage) instanceof IntegerType) {
       var output = (ColumnLongStorage) storage;
       return output;
     }

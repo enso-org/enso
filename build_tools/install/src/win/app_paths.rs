@@ -8,11 +8,8 @@
 use crate::prelude::*;
 use winreg::enums::*;
 
-
-
 /// The registry key path for the `App Paths` in Windows, relative to `HKEY_CURRENT_USER`.
 pub const APP_PATHS: &str = r"Software\Microsoft\Windows\CurrentVersion\App Paths";
-
 
 /// Information stored in the `App Paths` registry key for an application.
 #[derive(Clone, Debug)]
@@ -34,7 +31,7 @@ impl AppPathInfo {
     /// Create a new `AppPathInfo` instance.
     pub fn new(executable_path: impl Into<PathBuf>) -> Self {
         Self {
-            executable_path:        executable_path.into(),
+            executable_path: executable_path.into(),
             // By default don't add anything to path, as we don't want to rely on any
             // Windows shell-specific behavior.
             additional_directories: vec![],

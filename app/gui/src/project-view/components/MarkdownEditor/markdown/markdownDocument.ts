@@ -16,9 +16,9 @@ import {
   nodeMarkToken,
   type NormalizedRange,
 } from '@/components/MarkdownEditor/markdown/types'
-import { type Text } from '@codemirror/state'
-import { type Tree } from '@lezer/common'
-import { type DeepReadonly } from 'vue'
+import type { Text } from '@codemirror/state'
+import type { Tree } from '@lezer/common'
+import type { DeepReadonly } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 function sides<T>(f: (fromOrTo: 'from' | 'to') => T): { from: T; to: T } {

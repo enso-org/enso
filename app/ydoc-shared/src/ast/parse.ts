@@ -1,4 +1,5 @@
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import * as map from 'lib0/map'
 import { assert } from '../util/assert'
 import type { IdMap } from '../yjsModel'
@@ -19,8 +20,10 @@ import type {
   NodeChild,
   Owned,
   OwnedRefs,
+  ReturnSpecification,
   TextElement,
   TextToken,
+  TypeSignature,
 } from './tree'
 import {
   App,
@@ -35,18 +38,16 @@ import {
   Ident,
   Import,
   Invalid,
-  MutableExpressionStatement,
-  MutableIdent,
   MutableInvalid,
   NegationApp,
   NumericLiteral,
   OprApp,
-  parentId,
   PropertyAccess,
   TextLiteral,
   TypeAnnotated,
   UnaryOprApp,
   Vector,
+  visitRecursive,
   Wildcard,
 } from './tree'
 
@@ -172,6 +173,10 @@ class Abstractor {
         node = Assignment.concrete(this.module, docLine, pattern, equals, value)
         break
       }
+      case RawAst.Tree.Type.Call: {
+        node = this.abstractTree(tree.value).node
+        break
+      }
       case RawAst.Tree.Type.App: {
         const func = this.abstractExpression(tree.func)
         const arg = this.abstractExpression(tree.arg)
@@ -213,14 +218,14 @@ class Abstractor {
             [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractExpression(tree.rhs) : undefined
-        const soleOpr = iter.tryGetSoleValue(opr)
-        if (soleOpr?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
-          // Propagate type.
-          const rhs_ = { ...rhs, node: rhs.node }
-          node = PropertyAccess.concrete(this.module, lhs, soleOpr, rhs_)
-        } else {
-          node = OprApp.concrete(this.module, lhs, opr, rhs)
-        }
+        node = OprApp.concrete(this.module, lhs, opr, rhs)
+        break
+      }
+      case RawAst.Tree.Type.PropertyAccess: {
+        const lhs = tree.lhs ? this.abstractExpression(tree.lhs) : undefined
+        const opr = this.abstractToken(tree.opr)
+        const rhs = this.abstractToken(tree.rhs)
+        node = PropertyAccess.concrete(this.module, lhs, opr, rhs)
         break
       }
       case RawAst.Tree.Type.Number: {
@@ -239,10 +244,9 @@ class Abstractor {
         node = Wildcard.concrete(this.module, token)
         break
       }
-      // These expression types are (or will be) used for backend analysis.
-      // The frontend can ignore them, avoiding some problems with expressions sharing spans
-      // (which makes it impossible to give them unique IDs in the current IdMap format).
-      case RawAst.Tree.Type.OprSectionBoundary:
+      // This expression type is not yet consistent with the backend's semantics.
+      // The frontend can ignore it, avoiding some problems with expressions sharing spans
+      // (which makes it impossible to give assign unique IDs in the current IdMap format).
       case RawAst.Tree.Type.TemplateFunction:
         return { whitespace, node: this.abstractExpression(tree.ast).node }
       case RawAst.Tree.Type.Invalid: {
@@ -355,6 +359,7 @@ class Abstractor {
       },
       close: arg.close && this.abstractToken(arg.close),
     }))
+    const returns = tree.returns && this.abstractReturnSpecification(tree.returns)
     const equals = this.abstractToken(tree.equals)
     const body = tree.body !== undefined ? this.abstractExpression(tree.body) : undefined
     return FunctionDef.concrete(this.module, {
@@ -366,6 +371,7 @@ class Abstractor {
       private_,
       name,
       argumentDefinitions,
+      returns,
       equals,
       body,
     } satisfies FunctionDefFields<OwnedRefs>)
@@ -436,11 +442,20 @@ class Abstractor {
     }
   }
 
-  private abstractTypeSignature(signature: RawAst.TypeSignature) {
+  private abstractTypeSignature(signature: RawAst.TypeSignature): TypeSignature<OwnedRefs> {
     return {
       name: this.abstractExpression(signature.name),
       operator: this.abstractToken(signature.operator),
       type: this.abstractExpression(signature.typeNode),
+    }
+  }
+
+  private abstractReturnSpecification(
+    spec: RawAst.ReturnSpecification,
+  ): ReturnSpecification<OwnedRefs> {
+    return {
+      arrow: this.abstractToken(spec.arrow),
+      type: this.abstractExpression(spec.typeNode),
     }
   }
 
@@ -463,25 +478,41 @@ export function parseModule(code: string, module?: MutableModule): Owned<Mutable
 /** Parse the input as a body block, not the top level of a module. */
 export function parseBlock(code: string, module?: MutableModule): Owned<MutableBodyBlock> {
   const tree = rawParseBlock(code)
-  return abstract(module ?? MutableModule.Transient(), tree, code).root
+  const root = abstract(module ?? MutableModule.Transient(), tree, code).root
+  if (!module) root.module.setRoot(root)
+  return root
 }
 
 /**
- * Parse the input as a statement. If it cannot be parsed as a statement (e.g. it is invalid or a block), returns
- * `undefined`.
+ * Parse the input as a block statement. If it cannot be parsed as a statement (e.g. it is invalid
+ * or a block), returns `undefined`.
  */
-export function parseStatement(
+export function parseBlockStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
-  const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, module)
-  const soleStatement = iter.tryGetSoleValue(ast.statements())
-  if (!soleStatement) return
-  const parent = parentId(soleStatement)
-  if (parent) module_.delete(parent)
-  soleStatement.fields.set('parent', undefined)
-  return asOwned(soleStatement)
+  code = code.trim()
+  const rawParsed = tryRawParseInContext(code, 'blockStatement')
+  if (!rawParsed.ok) return
+  const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
+  if (!module) root.module.setRoot(root)
+  return asOwned(root as MutableStatement)
+}
+
+/**
+ * Parse the input as a module statement. If it cannot be parsed as a statement (e.g. it is invalid
+ * or a block), returns `undefined`.
+ */
+export function parseModuleStatement(
+  code: string,
+  module?: MutableModule,
+): Owned<MutableStatement> | undefined {
+  code = code.trim()
+  const rawParsed = tryRawParseInContext(code, 'moduleStatement')
+  if (!rawParsed.ok) return
+  const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
+  if (!module) root.module.setRoot(root)
+  return asOwned(root as MutableStatement)
 }
 
 /**
@@ -492,16 +523,12 @@ export function parseExpression(
   code: string,
   module?: MutableModule,
 ): Owned<MutableExpression> | undefined {
-  const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, module)
-  const soleStatement = iter.tryGetSoleValue(ast.statements())
-  if (!(soleStatement instanceof MutableExpressionStatement)) return undefined
-  const expression = soleStatement.expression
-  module_.delete(soleStatement.id)
-  const parent = parentId(expression)
-  if (parent) module_.delete(parent)
-  expression.fields.set('parent', undefined)
-  return asOwned(expression)
+  code = code.trim()
+  const rawParsed = tryRawParseInContext(code, 'expression')
+  if (!rawParsed.ok) return
+  const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
+  if (!module) root.module.setRoot(root)
+  return asOwned(root as MutableExpression)
 }
 
 /** Parse a module, and return it along with a mapping from source locations to parsed objects. */
@@ -510,13 +537,15 @@ export function parseModuleWithSpans(
   module?: MutableModule | undefined,
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
   const tree = rawParseModule(code)
-  return abstract(module ?? MutableModule.Transient(), tree, code)
+  const parsed = abstract(module ?? MutableModule.Transient(), tree, code)
+  if (!module) parsed.root.module.setRoot(parsed.root)
+  return parsed
 }
 
 /** Return the number of `Ast`s in the tree, including the provided root. */
 export function astCount(ast: Ast): number {
   let count = 0
-  ast.visitRecursive((_subtree) => {
+  visitRecursive(ast, (_subtree) => {
     count += 1
   })
   return count
@@ -554,24 +583,40 @@ export function parseInSameContext(
   return abstract(module ?? MutableModule.Transient(), rawParsed, code)
 }
 
-type ParseContext = 'module' | 'block' | 'expression' | 'statement'
+type ParseContext = 'module' | 'block' | 'expression' | 'blockStatement' | 'moduleStatement'
 
+// FIXME: Should identify 'moduleStatement' context
 function getParseContext(ast: Ast): ParseContext {
   const astModuleRoot = ast.module.root()
   if (ast instanceof BodyBlock) return astModuleRoot && ast.is(astModuleRoot) ? 'module' : 'block'
-  return ast.isExpression() ? 'expression' : 'statement'
+  return ast.isExpression() ? 'expression' : 'blockStatement'
 }
 
 function rawParseInContext(code: string, context: ParseContext): RawAst.Tree {
-  if (context === 'module') return rawParseModule(code)
+  const parsed = tryRawParseInContext(code, context)
+  return parsed.ok ? parsed.value : parsed.error.payload
+}
+
+function tryRawParseInContext(
+  code: string,
+  context: ParseContext,
+): Result<RawAst.Tree, RawAst.Tree> {
+  if (context === 'module' || context === 'moduleStatement') {
+    const block = rawParseModule(code)
+    if (context === 'module') return Ok(block)
+    const statement = iter.tryGetSoleValue(block.statements)?.expression
+    if (!statement) return Err(block)
+    if (context === 'moduleStatement') return Ok(statement)
+    return context satisfies never
+  }
   const block = rawParseBlock(code)
-  if (context === 'block') return block
+  if (context === 'block') return Ok(block)
   const statement = iter.tryGetSoleValue(block.statements)?.expression
-  if (!statement) return block
-  if (context === 'statement') return statement
-  if (context === 'expression')
-    return statement.type === RawAst.Tree.Type.ExpressionStatement ?
-        statement.expression
-      : statement
+  if (!statement) return Err(block)
+  if (context === 'blockStatement') return Ok(statement)
+  if (context === 'expression') {
+    if (statement.type !== RawAst.Tree.Type.ExpressionStatement) return Err(statement)
+    return Ok(statement.expression)
+  }
   return context satisfies never
 }

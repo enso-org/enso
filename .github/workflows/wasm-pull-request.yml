@@ -37,15 +37,14 @@ jobs:
 
           any_changed='${{ needs.wasm-changed-files.outputs.any_changed }}'
 
-          case '${{ needs.wasm-checks.result }}' in
-            'failure')
+          # Fail fast on any failures.
+          case '${{ needs.wasm-checks.result }}' in 'failure') exit 1 ;; esac
+
+          # If relevant files changed, then skipped/cancelled jobs should fail the summary.
+          if [[ "$any_changed" == 'true' ]]; then
+            if [[ '${{ needs.wasm-checks.result }}' == 'skipped' || '${{ needs.wasm-checks.result }}' == 'cancelled' ]]; then
               exit 1
-              ;;
-            'skipped' | 'cancelled')
-              if [[ "$any_changed" == 'true' ]]; then
-                exit 1
-              fi
-              ;;
-          esac
+            fi
+          fi
 
           echo "Success!"

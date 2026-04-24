@@ -1,0 +1,47 @@
+
+from Standard.Base import all
+from Standard.Test import all
+
+polyglot java import java.lang.ProcessHandle as J_ProcessHandle
+
+
+## Returns True if current process runs in AOT mode (Native Image).
+runs_in_aot =
+    info = J_ProcessHandle.current.info
+    cmd = info.command
+    if cmd.isPresent && (cmd.get.ends_with "java" || cmd.get.ends_with "java.exe") then False else
+        args = info.arguments
+        if args.isPresent && args.get.contains "--jvm" then False else
+            # running in AOT mode
+            True
+
+## Create temporary directory
+create_tmp_dir -> File =
+    tmp_file = File.create_temporary_file
+    tmp_path = tmp_file.path
+    tmp_file.delete
+    d = File.new tmp_path
+    d.create_directory
+    d
+
+## Runs an Enso subprocess.
+enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
+    proc_bldr = Process.new_builder "enso"
+        . set_arguments args
+        . set_env "JAVA_TOOL_OPTIONS" "-ea"
+        . set_directory (File.new cwd)
+    proc = proc_bldr.create
+    if proc.exit_code != Exit_Code.Success then
+        Test.fail proc.stdout+proc.stderr
+    proc.stdout
+
+create_new_project parent_dir:File proj_name:Text main_src:Text -> File =
+    Runtime.assert parent_dir.exists
+    Runtime.assert parent_dir.is_directory
+    proj_dir = parent_dir / proj_name
+    args = ["--new", proj_dir.path, "--new-project-name", proj_name]
+    enso_run args
+    main = proj_dir / "src" / "Main.enso"
+    Runtime.assert main.exists
+    main_src.write main
+    proj_dir

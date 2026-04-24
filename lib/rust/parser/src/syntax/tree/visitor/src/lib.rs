@@ -9,8 +9,6 @@
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
 
-
-
 extern crate proc_macro;
 
 use enso_macro_utils::field_names;
@@ -24,8 +22,6 @@ use syn::DataStruct;
 use syn::DeriveInput;
 use syn::Fields;
 use syn::Variant;
-
-
 
 /// ======================
 /// === Derive Visitor ===

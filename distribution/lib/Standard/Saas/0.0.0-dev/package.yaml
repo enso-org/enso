@@ -8,3 +8,9 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  # Email_Provider_SPI definitions
+
+  - provides: Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
+    with: Standard.Saas.Internal.Services.Email_Provider_SMTP_Service

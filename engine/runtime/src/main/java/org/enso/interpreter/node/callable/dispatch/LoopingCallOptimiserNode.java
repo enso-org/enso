@@ -65,7 +65,8 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       EnsoHashMap warnings,
-      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      @Shared("loopNode") @Cached(value = "createLoopNode()", uncached = "createUncachedLoopNode()")
+          LoopNode loopNode) {
     return dispatch(function, callerInfo, state, arguments, loopNode);
   }
 
@@ -76,7 +77,8 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       EnsoHashMap warnings,
-      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
+      @Shared("loopNode") @Cached(value = "createLoopNode()", uncached = "createUncachedLoopNode()")
+          LoopNode loopNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
     return appendWarningNode.executeAppend(null, result, warnings);
@@ -150,7 +152,12 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    */
   @NeverDefault
   static LoopNode createLoopNode() {
-    return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
+    return Truffle.getRuntime().createLoopNode(RepeatedCallNode.create());
+  }
+
+  @NeverDefault
+  static LoopNode createUncachedLoopNode() {
+    return Truffle.getRuntime().createLoopNode(RepeatedCallNode.getUncached());
   }
 
   /**
@@ -168,7 +175,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
     @Child private ExecuteCallNode dispatchNode;
 
     /** Creates a new node used for repeating a call. */
-    public RepeatedCallNode() {
+    private RepeatedCallNode(ExecuteCallNode dispatchNode) {
       var descrBuilder = FrameDescriptor.newBuilder();
       functionSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Function>", null);
       resultSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Result>", null);
@@ -176,7 +183,15 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       stateSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO State>", null);
       callerInfoSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Caller Info>", null);
       descriptor = descrBuilder.build();
-      dispatchNode = ExecuteCallNodeGen.create();
+      this.dispatchNode = dispatchNode;
+    }
+
+    static RepeatedCallNode getUncached() {
+      return new RepeatedCallNode(ExecuteCallNodeGen.getUncached());
+    }
+
+    static RepeatedCallNode create() {
+      return new RepeatedCallNode(ExecuteCallNodeGen.create());
     }
 
     private VirtualFrame createFrame() {

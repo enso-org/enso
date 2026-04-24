@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
+import org.enso.compiler.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.{
   errors,
@@ -33,6 +33,7 @@ import org.enso.compiler.pass.analyse.TailCall
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
+import org.enso.persist.Persistance.Reference
 
 /** Original implementation of [[org.enso.compiler.pass.analyse.TailCall]].
   * Now server as the test verification of the new [[org.enso.compiler.pass.analyse.TailCallMini]].
@@ -80,7 +81,7 @@ case object TailCallMegaPass extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleBinding))
+    ir.copyWithBindings(ir.bindings.map(analyseModuleBinding))
   }
 
   /** Analyses tail call state for an arbitrary expression.
@@ -116,16 +117,19 @@ case object TailCallMegaPass extends IRPass {
     moduleDefinition match {
       case method: definition.Method.Conversion =>
         method
-          .copy(
-            body = analyseExpression(method.body, isInTailPosition = true)
-          )
+          .copyBuilder()
+          .body(analyseExpression(method.body, isInTailPosition = true))
+          .build()
           .updateMetadata(TAIL_META)
-      case method @ definition.Method
-            .Explicit(_, body, _, _, _) =>
+      case method: definition.Method.Explicit =>
         method
-          .copy(
-            body = analyseExpression(body, isInTailPosition = true)
+          .copyBuilder()
+          .bodyReference(
+            Reference.of(
+              analyseExpression(method.body, isInTailPosition = true)
+            )
           )
+          .build()
           .updateMetadata(TAIL_META)
       case _: definition.Method.Binding =>
         throw new CompilerError(
@@ -157,9 +161,11 @@ case object TailCallMegaPass extends IRPass {
         )
       case ann: Name.GenericAnnotation =>
         ann
-          .copy(expression =
+          .copyBuilder()
+          .expression(
             analyseExpression(ann.expression, isInTailPosition = true)
           )
+          .build()
           .updateMetadata(TAIL_META)
       case err: Error => err
     }
@@ -179,7 +185,7 @@ case object TailCallMegaPass extends IRPass {
     val expressionWithWarning =
       if (isTailAnnotated(expression) && !isInTailPosition)
         expression.addDiagnostic(
-          Warning.WrongTco(expression.identifiedLocation())
+          new Warning.WrongTco(expression.identifiedLocation())
         )
       else expression
     expressionWithWarning match {
@@ -194,25 +200,32 @@ case object TailCallMegaPass extends IRPass {
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
         )
-      case block @ Expression.Block(expressions, returnValue, _, _, _) =>
+      case block: Expression.Block =>
         updateMetaIfInTailPosition(
           isInTailPosition,
           block
-            .copy(
-              expressions = expressions.map(
-                analyseExpression(_, isInTailPosition = false)
-              ),
-              returnValue = analyseExpression(returnValue, isInTailPosition)
+            .copyBuilder()
+            .expressions(
+              block
+                .expressions()
+                .map(
+                  analyseExpression(_, isInTailPosition = false)
+                )
             )
+            .returnValue(
+              analyseExpression(block.returnValue(), isInTailPosition)
+            )
+            .build()
         )
-      case binding @ Expression.Binding(_, expression, _, _) =>
+      case binding: Expression.Binding =>
         updateMetaIfInTailPosition(
           isInTailPosition,
           binding
-            .copy(
-              expression =
-                analyseExpression(expression, isInTailPosition = false)
+            .copyBuilder()
+            .expression(
+              analyseExpression(binding.expression, isInTailPosition = false)
             )
+            .build()
         )
       case err: Diagnostic => updateMetaIfInTailPosition(isInTailPosition, err)
       case _               => expressionWithWarning
@@ -269,9 +282,8 @@ case object TailCallMegaPass extends IRPass {
       case app: Application.Prefix =>
         app
           .copy(
-            function =
-              analyseExpression(app.function, isInTailPosition = false),
-            arguments = app.arguments.map(analyseCallArg)
+            analyseExpression(app.function, isInTailPosition = false),
+            app.arguments.map(analyseCallArg)
           )
       case force: Application.Force =>
         force
@@ -361,11 +373,9 @@ case object TailCallMegaPass extends IRPass {
       case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee =
-              analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
+            analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
             // Note [Analysing Branches in Case Expressions]
-            branches =
-              caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
+            caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
           )
       case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
@@ -418,24 +428,24 @@ case object TailCallMegaPass extends IRPass {
     pattern: Pattern
   ): Pattern = {
     pattern match {
-      case namePat @ Pattern.Name(name, _, _) =>
-        namePat
-          .copy(
-            name = analyseName(name, isInTailPosition = false)
-          )
-      case cons @ Pattern.Constructor(constructor, fields, _, _) =>
+      case namePat: Pattern.Name =>
+        namePat.copyWithName(
+          analyseName(namePat.name, isInTailPosition = false)
+        )
+      case cons: Pattern.Constructor =>
         cons
-          .copy(
-            constructor = analyseName(constructor, isInTailPosition = false),
-            fields      = fields.map(analysePattern)
-          )
+          .copyBuilder()
+          .constructor(analyseName(cons.constructor, isInTailPosition = false))
+          .fields(cons.fields.map(analysePattern))
+          .build()
       case literal: Pattern.Literal => literal
-      case tpePattern @ Pattern.Type(name, tpe, _, _) =>
+      case bool: Pattern.Bool       => bool
+      case tpePattern: Pattern.Type =>
         tpePattern
-          .copy(
-            name = analyseName(name, isInTailPosition = false),
-            tpe  = analyseName(tpe, isInTailPosition = false)
-          )
+          .copyBuilder()
+          .name(analyseName(tpePattern.name, isInTailPosition = false))
+          .tpe(analyseName(tpePattern.tpe, isInTailPosition = false))
+          .build()
       case err: errors.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
@@ -459,11 +469,15 @@ case object TailCallMegaPass extends IRPass {
     val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
 
     val resultFunction = function match {
-      case lambda @ Function.Lambda(args, body, _, _, _, _) =>
-        lambda.copy(
-          arguments = args.map(analyseDefArgument),
-          body      = analyseExpression(body, isInTailPosition = markAsTail)
-        )
+      case lambda: Function.Lambda =>
+        val newArgs = lambda.arguments().map(analyseDefArgument)
+        val newBody =
+          analyseExpression(lambda.body(), isInTailPosition = markAsTail)
+        Function.Lambda
+          .builder(lambda)
+          .arguments(newArgs)
+          .bodyReference(Reference.of(newBody))
+          .build()
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during tail call analysis."
@@ -499,7 +513,10 @@ case object TailCallMegaPass extends IRPass {
     */
   def isTailAnnotated(expression: Expression): Boolean = {
     expression
-      .getMetadata(ExpressionAnnotations)
+      .getMetadata(
+        ExpressionAnnotations,
+        classOf[ExpressionAnnotations.Metadata]
+      )
       .exists(anns =>
         anns.annotations.exists(a =>
           a.name == ExpressionAnnotations.tailCallName

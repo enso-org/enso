@@ -17,9 +17,10 @@ public class SyntheticModulesTest {
   @Test
   public void testCompilationOfSyntheticModules() {
     compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.A.B"), """
-            type B_Type
-            """);
+        QualifiedName.fromString("local.Proj.A.B"),
+        """
+        type B_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),

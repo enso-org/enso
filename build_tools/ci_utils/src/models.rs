@@ -1,6 +1,5 @@
 //! Structures defined primarily for the purposes of representing serializable data.
 
-
 // ==============
 // === Export ===
 // ==============

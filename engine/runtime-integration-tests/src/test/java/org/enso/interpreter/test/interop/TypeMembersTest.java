@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -33,27 +34,27 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base.Data.Boolean import True, False
+                from Standard.Base.Data.Boolean import True, False
 
-    type IntList
-        End
-        Head h t
+                type IntList
+                    End
+                    Head h t
 
-        is_empty self = case self of
-            IntList.End -> True
-            _ -> False
+                    is_empty self = case self of
+                        IntList.End -> True
+                        _ -> False
 
-        tail self = case self of
-            IntList.Head _ t -> t
-            _ -> IntList.End
+                    tail self = case self of
+                        IntList.Head _ t -> t
+                        _ -> IntList.End
 
-        head self = case self of
-            IntList.Head h _ -> h
-            _ -> -1
+                    head self = case self of
+                        IntList.Head h _ -> h
+                        _ -> -1
 
-    list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
+                list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
 
-    """,
+                """,
                 "compare.enso")
             .uri(uri)
             .buildLiteral();
@@ -85,14 +86,15 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-    @Builtin_Type
-    type Compile_Error
-        Error message
+                from Standard.Base import all
 
-        to_display_text self = "Compile error: "+self.message
+                type Compile_Error
+                    Error message
 
-    v = Compile_Error.Error "foo"
-    """,
+                    to_display_text self = "Compile error: "+self.message
+
+                v = Compile_Error.Error "foo"
+                """,
                 "to_display_text.enso")
             .uri(uri)
             .buildLiteral();
@@ -101,7 +103,7 @@ public class TypeMembersTest {
     var compileError = module.invokeMember("eval_expression", "v");
     assertEquals(
         "all members",
-        Set.of("to_display_text", "message", "to_text", "==", "catch_primitive", "pretty"),
+        Set.of(ConstantsNames.TO_DISPLAY_TEXT, "message", "to", "==", "!="),
         compileError.getMemberKeys());
   }
 
@@ -110,9 +112,9 @@ public class TypeMembersTest {
     var refType =
         ctxRule.evalModule(
             """
-        import Standard.Base.Runtime.Ref.Ref
-        main = Ref
-        """);
+            import Standard.Base.Runtime.Ref.Ref
+            main = Ref
+            """);
     assertThat(refType.hasMember("new"), is(true));
   }
 
@@ -122,13 +124,13 @@ public class TypeMembersTest {
     var type =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     var typeUnwrapped = ctxRule.unwrapValue(type);
     var memberNames = getAllMemberNames(typeUnwrapped);
     var anyMethods = ctxRule.allMethodsFromAny();
@@ -143,13 +145,13 @@ public class TypeMembersTest {
     var type =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     var typeUnwrapped = ctxRule.unwrapValue(type);
     var memberNames = getAllMemberNames(typeUnwrapped);
     assertThat("Member names are not qualified", memberNames, not(hasItem(containsString("."))));
@@ -160,16 +162,33 @@ public class TypeMembersTest {
     var myType =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
-    var displayTextRes = myType.invokeMember("to_display_text");
-    assertThat("Has correct result type", displayTextRes.isString(), is(true));
-    assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
+            main = My_Type
+            """);
+    var compareResult = myType.invokeMember("==", 0);
+    assertTrue("Result of == is boolean", compareResult.isBoolean());
+    assertFalse("Not equal", compareResult.asBoolean());
+  }
+
+  @Test
+  public void canInvokeInstanceMethod() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+
+            main = My_Type.Cons
+            """);
+    assertTrue(atom.hasMember("method"));
+    assertTrue(atom.canInvokeMember("method"));
+    var res = atom.invokeMember("method");
+    assertThat("Method invocation returns correct result", res.asInt(), is(42));
   }
 
   /**

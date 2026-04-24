@@ -52,8 +52,6 @@
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
 
-
-
 mod data_structures;
 #[cfg(feature = "graphviz")]
 pub mod graphviz;

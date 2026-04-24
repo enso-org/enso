@@ -24,20 +24,20 @@ public class DataflowErrorPropagationTest {
     var ctx = ctxRule.context();
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    private yield_error yes:Boolean -> Text =
-        if yes then Error.throw "Yielding an error" else
-            "OK"
+        private yield_error yes:Boolean -> Text =
+            if yes then Error.throw "Yielding an error" else
+                "OK"
 
-    suppress_error yes:Boolean value =
-        yield_error yes
-        value
+        suppress_error yes:Boolean value =
+            yield_error yes
+            value
 
-    suppress_error_with_assign yes:Boolean value =
-        _ = yield_error yes
-        value
-    """;
+        suppress_error_with_assign yes:Boolean value =
+            _ = yield_error yes
+            value
+        """;
     suppressError =
         ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "suppress_error");
     suppressErrorWithAssign =

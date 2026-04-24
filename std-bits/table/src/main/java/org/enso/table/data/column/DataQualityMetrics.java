@@ -13,13 +13,11 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.JsonOperation;
+import org.enso.table.data.column.operation.unary.JsonOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -30,6 +28,7 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -37,21 +36,12 @@ import org.enso.table.data.table.Table;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
-  // A thread pool for executing data quality metrics computations asynchronously.
-  private static ExecutorService _threadFactory;
-
-  private static ExecutorService threadFactory() {
-    if (_threadFactory == null) {
-      _threadFactory =
-          Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
-    }
-    return _threadFactory;
-  }
-
   public static final String IS_INCOMPLETE = "_Is Incomplete";
+  public static final String IS_INCOMPLETE_TEXT = "_Is Incomplete Text";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
-  public static final String DISTINCT_JSON = "Distinct JSON";
+  public static final String USE_MULTI_FILTER = "_Use Multi-Filter";
+  public static final String DISTINCT_JSON = "_Distinct JSON";
   public static final String SINGLE_VALUE = "_Single Value";
   public static final String MINIMUM = "Minimum";
   public static final String MAXIMUM = "Maximum";
@@ -62,6 +52,12 @@ public abstract class DataQualityMetrics {
   public static final String NEEDS_FORMATTING = "_Needs Formatting";
   public static final String TYPE_RECORD = "Types and Counts";
 
+  // Default threshold for checking distinct values count.
+  private static final int DISTINCT_THRESHOLD = 100;
+
+  // Value for when the computation is incomplete.
+  private static final String IS_INCOMPLETE_TEXT_VALUE = "Still computing indicators...";
+
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
   public static final long RANDOM_SEED = 677280131;
@@ -69,14 +65,11 @@ public abstract class DataQualityMetrics {
   // Default sample size for counting untrimmed cells.
   public static final long DEFAULT_SAMPLE_SIZE = 10000;
 
-  private static Map<Long, DataQualityMetrics> _cachedMetrics;
-
-  private static Map<Long, DataQualityMetrics> cachedMetrics() {
-    if (_cachedMetrics == null) {
-      _cachedMetrics = new LeastRecentlyUsedCache<>(1000);
-    }
-    return _cachedMetrics;
-  }
+  /**
+   * @GuardedBy("cachedMetrics")
+   */
+  private static final Map<Long, DataQualityMetrics> cachedMetrics =
+      new LeastRecentlyUsedCache<>(1000);
 
   /**
    * Triggers the computation of data quality metrics for the given table. This method is a no-op if
@@ -130,32 +123,45 @@ public abstract class DataQualityMetrics {
    * @return a DataQualityMetrics instance
    */
   public static DataQualityMetrics get(ColumnStorage<?> columnStorage) {
-    return cachedMetrics()
-        .computeIfAbsent(
-            columnStorage.uniqueKey(), k -> DataQualityMetrics.createMetrics(columnStorage));
+    var key = columnStorage.uniqueKey();
+    synchronized (cachedMetrics) {
+      var previousResult = cachedMetrics.get(key);
+      if (previousResult != null) {
+        return previousResult;
+      }
+    }
+    var newResult = DataQualityMetrics.createMetrics(columnStorage);
+    synchronized (cachedMetrics) {
+      var previousResult = cachedMetrics.putIfAbsent(key, newResult);
+      return previousResult == null ? newResult : previousResult;
+    }
   }
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
     var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
-    return switch (resolvedStorage.getType()) {
-      case NullType nullType -> new NullQualityMetrics(resolvedStorage);
+    var resolvedType = StorageType.ofStorage(resolvedStorage);
+    return switch (resolvedType) {
+      case NullType _ -> new NullQualityMetrics(resolvedStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(resolvedStorage));
-      case FloatType floatType -> NumericQualityMetrics.forDouble(
-          floatType.asTypedStorage(resolvedStorage));
-      case IntegerType integerType -> NumericQualityMetrics.forLong(
-          integerType.asTypedStorage(resolvedStorage));
-      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(
-          bigIntegerType.asTypedStorage(resolvedStorage));
-      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(
-          bigDecimalType.asTypedStorage(resolvedStorage));
-      case DateType dateType -> new MinMaxQualityMetrics<>(
-          dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
-      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(
-          timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
-      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(
-          dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
-      case AnyObjectType anyObjectType -> new AnyObjectQualityMetric(
-          anyObjectType.asTypedStorage(resolvedStorage));
+      case FloatType floatType ->
+          NumericQualityMetrics.forDouble(floatType.asTypedStorage(resolvedStorage));
+      case IntegerType integerType ->
+          NumericQualityMetrics.forLong(integerType.asTypedStorage(resolvedStorage));
+      case BigIntegerType bigIntegerType ->
+          NumericQualityMetrics.forBigInteger(bigIntegerType.asTypedStorage(resolvedStorage));
+      case BigDecimalType bigDecimalType ->
+          NumericQualityMetrics.forBigDecimal(bigDecimalType.asTypedStorage(resolvedStorage));
+      case DateType dateType ->
+          new MinMaxQualityMetrics<>(
+              dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
+      case TimeOfDayType timeType ->
+          new MinMaxQualityMetrics<>(
+              timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
+      case DateTimeType dateTimeType ->
+          new MinMaxQualityMetrics<>(
+              dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
+      case AnyObjectType anyObjectType ->
+          new AnyObjectQualityMetric(anyObjectType.asTypedStorage(resolvedStorage));
       default -> new BaseQualityMetrics(resolvedStorage);
     };
   }
@@ -181,6 +187,7 @@ public abstract class DataQualityMetrics {
       var current = super.getMetrics();
       current.put(NOTHING_COUNT, nothingCount);
       current.put(DISTINCT_COUNT, 0L);
+      current.put(USE_MULTI_FILTER, false);
       return current;
     }
   }
@@ -200,12 +207,13 @@ public abstract class DataQualityMetrics {
 
       public Result getResult() {
         String distinctJson = null;
-        if (distinct.size() < 100) {
+        if (distinct.size() < DISTINCT_THRESHOLD) {
           distinctJson =
               "["
                   + distinct.stream()
-                      .map(v -> JsonOperation.objectToJson(v, o -> null))
+                      .filter(JsonOperation::nativeSupport)
                       .filter(Objects::nonNull)
+                      .map(o -> JsonOperation.INSTANCE.objectToJson(o))
                       .sorted()
                       .collect(Collectors.joining())
                   + "]";
@@ -219,17 +227,16 @@ public abstract class DataQualityMetrics {
     private final CompletableFuture<Result> result;
 
     public BaseQualityMetrics(ColumnStorage<?> storage) {
-      if (storage.getType() instanceof NullType) {
+      if (StorageType.ofStorage(storage) instanceof NullType) {
         result = CompletableFuture.completedFuture(new Result(0, 0, ""));
       } else {
         result =
-            CompletableFuture.supplyAsync(
+            DataQualityExecutor.supplyAsync(
                 () -> {
                   Accumulator accumulator = new Accumulator();
                   DataQualityMetrics.loopOverAll(storage, accumulator::process);
                   return accumulator.getResult();
-                },
-                threadFactory());
+                });
       }
     }
 
@@ -247,11 +254,13 @@ public abstract class DataQualityMetrics {
       if (currentResult != null) {
         current.put(NOTHING_COUNT, currentResult.nothingCount);
         current.put(DISTINCT_COUNT, currentResult.distinctCount);
+        current.put(USE_MULTI_FILTER, currentResult.distinctCount <= DISTINCT_THRESHOLD);
         if (currentResult.distinctJson != null) {
           current.put(DISTINCT_JSON, currentResult.distinctJson);
         }
       } else if (!result.isDone()) {
         current.put(IS_INCOMPLETE, true);
+        current.put(IS_INCOMPLETE_TEXT, IS_INCOMPLETE_TEXT_VALUE);
       }
 
       return current;
@@ -292,13 +301,12 @@ public abstract class DataQualityMetrics {
     public MinMaxQualityMetrics(ColumnStorage<T> storage, Comparator<T> comparator) {
       super(storage);
       result =
-          CompletableFuture.supplyAsync(
+          DataQualityExecutor.supplyAsync(
               () -> {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              },
-              threadFactory());
+              });
     }
 
     @Override
@@ -308,13 +316,11 @@ public abstract class DataQualityMetrics {
     }
 
     public T getMinimum() {
-      var current = result.getNow(null);
-      return current != null ? current.minimum : null;
+      return result.thenApply(Result::minimum).getNow(null);
     }
 
     public T getMaximum() {
-      var current = result.getNow(null);
-      return current != null ? current.maximum : null;
+      return result.thenApply(Result::maximum).getNow(null);
     }
 
     @Override
@@ -369,13 +375,12 @@ public abstract class DataQualityMetrics {
     public StringQualityMetrics(ColumnStorage<String> storage) {
       super(storage, String::compareTo);
       result =
-          CompletableFuture.supplyAsync(
+          DataQualityExecutor.supplyAsync(
               () -> {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
-              },
-              threadFactory());
+              });
     }
 
     @Override
@@ -523,13 +528,12 @@ public abstract class DataQualityMetrics {
     public AnyObjectQualityMetric(ColumnStorage<Object> storage) {
       super(storage);
       result =
-          CompletableFuture.supplyAsync(
+          DataQualityExecutor.supplyAsync(
               () -> {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              },
-              threadFactory());
+              });
     }
 
     @Override

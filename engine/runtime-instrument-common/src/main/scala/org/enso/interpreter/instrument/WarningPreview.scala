@@ -19,10 +19,13 @@ object WarningPreview {
   def execute(
     value: AnyRef
   )(implicit ctx: RuntimeContext): CompletionStage[String] = {
+    val textExtensions =
+      ctx.executionService.getContext.getBuiltins.textExtensions.getDefinitionScope.getModule
     val visualizationExpressionFuture: CompletionStage[AnyRef] =
       ctx.executionService.evaluateExpression(
-        ctx.executionService.getContext.getBuiltins.getModule,
-        METHOD
+        textExtensions,
+        METHOD,
+        "warning preview"
       )
     val visualizationResultFuture =
       visualizationExpressionFuture.thenCompose(visualizationExpression =>

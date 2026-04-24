@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Function, Pattern, Warning}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Application
@@ -19,6 +19,7 @@ import org.enso.compiler.pass.{
 }
 import org.enso.compiler.test.MiniPassTest
 import org.enso.compiler.context.LocalScope
+import org.enso.compiler.core.ir.module.scope.definition.Method
 
 class TailCallTest extends MiniPassTest {
   override def testName: String = "Tail call"
@@ -95,7 +96,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -107,7 +108,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -204,8 +205,8 @@ class TailCallTest extends MiniPassTest {
         ir => {
           val lambda = ir.asInstanceOf[Function.Lambda]
           val fnBody = lambda.body.asInstanceOf[Expression.Block]
-          fnBody
-            .expressions(0)
+          fnBody.expressions
+            .apply(0)
             .asInstanceOf[Expression.Binding]
             .expression
             .diagnosticsList
@@ -235,13 +236,18 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Function.Lambda]
             .body
-          fnBody
+          val inBlock = fnBody
             .asInstanceOf[Expression.Block]
             .returnValue
-            .asInstanceOf[Application.Prefix]
-            .arguments
-            .apply(2)
-            .value
+          val caseExpr = inBlock
+            .asInstanceOf[Expression.Block]
+            .returnValue
+          val elseBranch = caseExpr
+            .asInstanceOf[Case.Expr]
+            .branches
+            .apply(1)
+            .expression
+          elseBranch
             .asInstanceOf[Expression.Block]
             .returnValue
             .asInstanceOf[Application.Prefix]
@@ -363,6 +369,131 @@ class TailCallTest extends MiniPassTest {
         }
       )
     }
+
+    "no warning when annotated in tail branch" in {
+      val code =
+        """
+          |func x =
+          |    case x of
+          |        Cons_1 -> x
+          |        Cons_2 -> @Tail_Call func x
+          |""".stripMargin
+
+      assertInlineCompilation(
+        code,
+        () => mkTailContext,
+        ir => {
+          val caseExpr = ir
+            .asInstanceOf[Expression.Binding]
+            .expression
+            .asInstanceOf[Function.Lambda]
+            .body()
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Case.Expr]
+          val caseBranch = caseExpr.branches.apply(1)
+          val branchExpression =
+            caseBranch.expression.asInstanceOf[Application.Prefix]
+
+          branchExpression.getMetadata(TailCall.INSTANCE) shouldEqual Some(
+            TailPosition.Tail
+          )
+          branchExpression.function.diagnosticsList
+            .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+        },
+        compareIR = true
+      )
+    }
+
+    "all Function.Lambda should be marked as canBeTCO" in {
+      val code =
+        """
+          |type List
+          |    Nil
+          |    Cons x xs
+          |
+          |    fold self init f =
+          |        go acc list = case list of
+          |            Nil -> acc
+          |            Cons h t -> @Tail_Call go (f acc h) t
+          |        res = go init self
+          |        res
+          |""".stripMargin
+
+      assertModuleCompilation(
+        code,
+        () => mkModuleContext,
+        ir => {
+          val lambdas = ir.preorder().collect { case lam: Function.Lambda =>
+            lam
+          }
+          lambdas.zipWithIndex.foreach { case (lam, idx) =>
+            withClue(s"Function.Lambda ${idx} should be marked as canBeTCO") {
+              lam.canBeTCO shouldBe true
+            }
+          }
+        },
+        compareIR = true
+      )
+    }
+
+    "no warning when annotated in nested tail branch" in {
+      val code =
+        """
+          |type List
+          |    Nil
+          |    Cons x xs
+          |
+          |    fold self init f =
+          |        go acc list = case list of
+          |            Nil -> acc
+          |            Cons h t -> @Tail_Call go (f acc h) t
+          |        res = go init self
+          |        res
+          |""".stripMargin
+
+      assertModuleCompilation(
+        code,
+        () => mkModuleContext,
+        ir => {
+          val foldMethod = ir.bindings
+            .apply(1)
+            .asInstanceOf[Method.Explicit]
+          val goMethod = foldMethod.body
+            .asInstanceOf[Function.Lambda]
+            .body()
+            .asInstanceOf[Expression.Block]
+            .expressions
+            .head
+            .asInstanceOf[Expression.Binding]
+            .expression
+            .asInstanceOf[Function.Lambda]
+          goMethod.canBeTCO shouldBe true
+          val caseExpr = goMethod
+            .body()
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Case.Expr]
+          val caseBranch = caseExpr
+            .branches()
+            .apply(1)
+          caseBranch.terminalBranch() shouldBe true
+          val exprAnnotatedWithTail = caseBranch
+            .expression()
+            .asInstanceOf[Application.Prefix]
+
+          withClue(
+            "No warning on `@Tail_Call go (f acc h) t` in the tail branch"
+          ) {
+            exprAnnotatedWithTail.diagnosticsList
+              .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+          }
+        },
+        compareIR = true
+      )
+    }
   }
 
   "Tail call analysis on function calls" should {
@@ -420,8 +551,8 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Expression.Block]
 
           withClue("Mark the arguments as tail") {
-            nonTailCallBody
-              .expressions(0)
+            nonTailCallBody.expressions
+              .apply(0)
               .asInstanceOf[Expression.Binding]
               .expression
               .asInstanceOf[Application.Prefix]
@@ -488,8 +619,8 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Expression.Block]
 
-          block
-            .expressions(1)
+          block.expressions
+            .apply(1)
             .asInstanceOf[Expression.Binding]
             .expression
             .asInstanceOf[Function.Lambda]
@@ -545,6 +676,9 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Function.Lambda]
             .body
             .asInstanceOf[Expression.Block]
+          val metaOnMethodRef =
+            method.methodReference().getMetadata(TailCall.INSTANCE)
+          metaOnMethodRef shouldEqual None
 
           block.getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail

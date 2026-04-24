@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::engine::artifact::IsArtifact;
 use crate::engine::sbt::SbtCommandProvider;
 
-
-
 /// Package is a minimal artifact with some backend component.
 pub trait IsPackage: IsArtifact {
     /// Get the package name that is recognized by the SBT build scripts.
@@ -32,12 +30,6 @@ pub trait IsPackage: IsArtifact {
 impl IsPackage for crate::paths::generated::EnginePackage {
     fn sbt_package_name(&self) -> &str {
         "engine"
-    }
-}
-
-impl IsPackage for crate::paths::generated::ProjectManagerPackage {
-    fn sbt_package_name(&self) -> &str {
-        "project-manager"
     }
 }
 

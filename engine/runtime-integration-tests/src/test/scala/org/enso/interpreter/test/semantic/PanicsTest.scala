@@ -82,7 +82,7 @@ class PanicsTest extends InterpreterTest {
           |
           |    to_display_text self =
           |        res = LM.V (self.txt + "Ex")
-          |        res.to_display_text
+          |        "" + res.to_display_text
           |
           |main = Panic.throw (LM.V "Hi")
           |""".stripMargin
@@ -107,7 +107,7 @@ class PanicsTest extends InterpreterTest {
           |main =
           |    caught = Panic.catch Any (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
-          |    cause = caught.catch_primitive e-> case e of
+          |    cause = caught.catch Any e-> case e of
           |        _ : NumberFormatException -> e
           |        _ -> "fail"
           |    IO.println cause

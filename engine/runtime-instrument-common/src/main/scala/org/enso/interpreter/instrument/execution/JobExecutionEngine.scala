@@ -2,7 +2,14 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.common.Asserts.assertInJvm
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
+import org.enso.interpreter.instrument.job.{
+  BackgroundJob,
+  ExecuteJob,
+  Job,
+  SkipSchedulingUniqueJob,
+  UniqueJob
+}
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector
 import org.enso.text.Sha3_224VersionCalculator
 import org.enso.runtime.utils.ThreadUtils
 import org.slf4j.Logger
@@ -11,7 +18,12 @@ import org.slf4j.LoggerFactory
 import java.util
 import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{CancellationException, ExecutorService, TimeUnit}
+import java.util.concurrent.{
+  CancellationException,
+  ExecutorService,
+  ScheduledExecutorService,
+  TimeUnit
+}
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.control.NonFatal
 
@@ -48,8 +60,11 @@ final class JobExecutionEngine(
   private val delayedBackgroundJobsQueue =
     new util.ArrayList[BackgroundJob[_]](4096)
 
-  val jobExecutor: ExecutorService =
+  val jobExecutor: ScheduledExecutorService =
     context.getThreadManager.newFixedThreadPool(jobParallelism, "job-pool")
+
+  val progressTimingCollector: ProgressTimingCollector =
+    new ProgressTimingCollector(jobExecutor)
 
   private val MaxJobLimit =
     Integer.MAX_VALUE // Temporary solution to avoid jobs being dropped
@@ -72,15 +87,16 @@ final class JobExecutionEngine(
 
   private val runtimeContext =
     RuntimeContext(
-      executionService  = interpreterContext.executionService,
-      contextManager    = interpreterContext.contextManager,
-      endpoint          = interpreterContext.endpoint,
-      truffleContext    = interpreterContext.truffleContext,
-      jobProcessor      = this,
-      jobControlPlane   = this,
-      locking           = locking,
-      state             = executionState,
-      versionCalculator = Sha3_224VersionCalculator
+      executionService        = interpreterContext.executionService,
+      contextManager          = interpreterContext.contextManager,
+      endpoint                = interpreterContext.endpoint,
+      truffleContext          = interpreterContext.truffleContext,
+      jobProcessor            = this,
+      jobControlPlane         = this,
+      locking                 = locking,
+      state                   = executionState,
+      versionCalculator       = Sha3_224VersionCalculator,
+      progressTimingCollector = progressTimingCollector
     )
 
   private lazy val logger: Logger =
@@ -113,10 +129,16 @@ final class JobExecutionEngine(
             )
           } catch {
             case _: TimeoutException =>
-              val msg = ThreadUtils.dumpAllStacktraces(
-                "Thread dump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
-                  .threadNameExecutingJob() + " to cancel:"
-              )
+              val msg = runningJob.job match {
+                case _: ExecuteJob =>
+                  "Timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
+                    .threadNameExecutingJob() + " to cancel."
+                case _ =>
+                  ThreadUtils.dumpAllStacktraces(
+                    "Thread dump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
+                      .threadNameExecutingJob() + " to cancel:"
+                  )
+              }
               logger.warn(msg)
               runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
             case _: CancellationException =>
@@ -153,10 +175,21 @@ final class JobExecutionEngine(
   override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
       if (isBackgroundJobsStarted) {
-        cancelDuplicateJobs(job, backgroundJobsRef)
-        runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+        if (handleDuplicateJobs(job, backgroundJobsRef)) {
+          logger.trace("Skipping duplicate background job [{}].", job)
+          return
+        }
+        runInternal(job, backgroundJobExecutor, backgroundJobsRef, "background")
       } else {
         job match {
+          case _: SkipSchedulingUniqueJob =>
+            if (hasDuplicateInDelayedQueue(job.asInstanceOf[UniqueJob[_]])) {
+              logger.trace(
+                "Skipping duplicate delayed background job [{}].",
+                job
+              )
+              return
+            }
           case job: UniqueJob[_] =>
             delayedBackgroundJobsQueue.removeIf {
               case that: UniqueJob[_] => that.equalsTo(job)
@@ -169,11 +202,32 @@ final class JobExecutionEngine(
     }
 
   /** @inheritdoc */
-  override def run[A](job: Job[A]): Future[A] = {
-    cancelDuplicateJobs(job, runningJobsRef)
-    val executor =
-      if (job.highPriority) highPriorityJobExecutor else jobExecutor
-    runInternal(job, executor, runningJobsRef)
+  override def run[A](job: Job[A]): Future[A] =
+    synchronized {
+      if (handleDuplicateJobs(job, runningJobsRef)) {
+        logger.trace("Skipping duplicate job [{}].", job)
+        return Future.successful(null.asInstanceOf[A])
+      }
+      val executor =
+        if (job.highPriority) highPriorityJobExecutor else jobExecutor
+      runInternal(job, executor, runningJobsRef, "regular")
+    }
+
+  /** Returns `true` if the job should be skipped (not scheduled).
+    * For [[SkipSchedulingUniqueJob]], checks if a duplicate exists.
+    * For regular [[UniqueJob]], cancels existing duplicates.
+    */
+  private def handleDuplicateJobs[A](
+    job: Job[A],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Boolean = {
+    job match {
+      case _: SkipSchedulingUniqueJob =>
+        hasDuplicateJob(job.asInstanceOf[UniqueJob[_]], runningJobsRef)
+      case _ =>
+        cancelDuplicateJobs(job, runningJobsRef)
+        false
+    }
   }
 
   private def cancelDuplicateJobs[A](
@@ -201,6 +255,31 @@ final class JobExecutionEngine(
     }
   }
 
+  private def hasDuplicateJob(
+    job: UniqueJob[_],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Boolean = {
+    val allJobs =
+      runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    allJobs.exists { runningJob =>
+      runningJob.job match {
+        case jobRef: UniqueJob[_] => jobRef.equalsTo(job)
+        case _                    => false
+      }
+    }
+  }
+
+  private def hasDuplicateInDelayedQueue(job: UniqueJob[_]): Boolean = {
+    val iter = delayedBackgroundJobsQueue.iterator()
+    while (iter.hasNext) {
+      iter.next() match {
+        case that: UniqueJob[_] if that.equalsTo(job) => return true
+        case _                                        =>
+      }
+    }
+    false
+  }
+
   private def updatePendingCancellations(
     jobsToCancel: Seq[RunningJob]
   ): Unit = {
@@ -220,7 +299,8 @@ final class JobExecutionEngine(
   private def runInternal[A](
     job: Job[A],
     executorService: ExecutorService,
-    runningJobsRef: AtomicReference[Vector[RunningJob]]
+    runningJobsRef: AtomicReference[Vector[RunningJob]],
+    queueName: String
   ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
@@ -254,7 +334,8 @@ final class JobExecutionEngine(
       } finally {
         val remaining = runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
         logger.trace(
-          "Number of remaining pending jobs: {}",
+          "Number of remaining pending {} jobs: {}",
+          queueName,
           remaining.size
         )
       }
@@ -309,7 +390,7 @@ final class JobExecutionEngine(
       .flatMap { runningJob =>
         if (
           runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
-            .contains(runningJob.getClass))
+            .contains(runningJob.job.getClass))
         ) {
           logger.debug(
             "Aborting job {} because {}",

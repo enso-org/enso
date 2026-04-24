@@ -1,7 +1,9 @@
 package org.enso.aws;
 
-import java.net.URI;
+import java.net.ProxySelector;
 import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.aws.regions.AWSRegion;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
@@ -14,8 +16,9 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.ses.SesClient;
 
 public class ClientBuilder {
   private static AwsCredential defaultCredentialOverride = null;
@@ -54,38 +57,50 @@ public class ClientBuilder {
     return previous;
   }
 
-  public S3ClientWrapper buildS3Client() {
-    return S3ClientWrapper.from(
-        S3Client.builder()
-            .credentialsProvider(unsafeBuildCredentialProvider())
-            .region(AWSRegion.underlying(awsRegion)));
+  S3Client buildS3Client() {
+    return S3Client.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
+  }
+
+  S3Presigner buildS3Presigner() {
+    return S3Presigner.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
+  }
+
+  public SesClient buildSESClient() {
+    return SesClient.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
   }
 
   /**
    * Builds an HttpClient that will sign requests and payloads using the AWSv4 Signature algorithm.
    */
-  public HttpClient createSignedClient(
-      String regionName, String serviceName, HttpClient baseClient, String bodySHA256) {
+  public HttpClient createSignedClient(String regionName, String serviceName, String bodySHA256) {
+    var baseClient =
+        HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .proxy(ProxySelector.getDefault())
+            .version(HttpClient.Version.HTTP_2)
+            .build();
+
     return new SignedHttpClient(
         regionName, serviceName, unsafeBuildCredentialProvider(), baseClient, bodySHA256);
   }
 
-  public static String getSHA256(byte[] rawData) {
-    return SignedHttpClient.getSHA256(rawData);
-  }
-
   /**
-   * Instantiates an S3Client configured in such a way that it can query buckets regardless of their
-   * region.
+   * Gets a Function for hashing a byte[] to a String
    *
-   * <p>It is used by {@link BucketLocator} to find out the region of buckets.
+   * @return Hashing Function
    */
-  S3ClientWrapper buildGlobalS3Client() {
-    return S3ClientWrapper.from(
-        S3Client.builder()
-            .credentialsProvider(unsafeBuildCredentialProvider())
-            .region(Region.US_EAST_1)
-            .endpointOverride(URI.create("https://s3.us-east-1.amazonaws.com")));
+  public static Function<byte[], String> getSHA256Function() {
+    return SignedHttpClient::getSHA256;
   }
 
   /**

@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-from Standard.Base.Data.Decimal import from_big_decimal, get_big_decimal
+from Standard.Base.Data.Decimal import from_big_decimal, value_with_scale
 
 import project.Internal.Value_Type_Helpers
 import project.Value_Type.Bits
@@ -14,7 +14,6 @@ polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
 polyglot java import org.enso.table.data.column.storage.type.BigIntegerType
-polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BooleanType
 polyglot java import org.enso.table.data.column.storage.type.DateTimeType
 polyglot java import org.enso.table.data.column.storage.type.DateType
@@ -32,11 +31,11 @@ polyglot java import org.enso.table.problems.ProblemAggregator
    Gets the value type represented by this Java Storage.
 to_value_type : StorageType -> Value_Type
 to_value_type storage_type = case storage_type of
-    i : IntegerType -> case i.bits.toInteger of
+    i : IntegerType -> case i.size of
         8 -> Value_Type.Byte
         b -> Value_Type.Integer (Bits.from_integer b)
     f : FloatType ->
-        bits = Bits.from_integer f.bits.toInteger
+        bits = Bits.from_integer f.size
         Value_Type.Float bits
     _ : BooleanType -> Value_Type.Boolean
     s : TextType ->
@@ -56,17 +55,17 @@ to_value_type storage_type = case storage_type of
    ---
 closest_storage_type value_type = case value_type of
     Value_Type.Byte -> IntegerType.INT_8
-    Value_Type.Integer bits ->
-        java_bits = Java_Bits.fromInteger bits.to_integer
-        IntegerType.create java_bits
+    Value_Type.Integer bits -> case bits of
+        Bits.Bits_16 -> IntegerType.INT_16
+        Bits.Bits_32 -> IntegerType.INT_32
+        Bits.Bits_64 -> IntegerType.INT_64
     Value_Type.Float _ -> FloatType.FLOAT_64
     Value_Type.Boolean -> BooleanType.INSTANCE
     Value_Type.Char Nothing True -> TextType.VARIABLE_LENGTH
     Value_Type.Char Nothing False ->
         Error.throw (Illegal_Argument.Error "Value_Type.Char with fixed length must have a non-nothing size")
-    Value_Type.Char max_length variable_length ->
-        fixed_length = variable_length.not
-        TextType.new (max_length : Integer) fixed_length
+    Value_Type.Char max_length True -> TextType.variableLengthWithLimit (max_length : Integer)
+    Value_Type.Char max_length False -> TextType.fixedLength (max_length : Integer)
     Value_Type.Date -> DateType.INSTANCE
     # We currently will not support storing dates without timezones in in-memory mode.
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
@@ -85,7 +84,9 @@ closest_storage_type value_type = case value_type of
    This step is unnecessary for primitive and builtin values, but necessary for
    values such as `Decimal`/`BigDecimal`.
 enso_to_java x = case x of
-    _ : Decimal -> get_big_decimal x
+    _ : Decimal ->
+        pair = value_with_scale x
+        BigDecimal.new pair.first pair.second
     _ -> x
 
 ## ---
@@ -94,10 +95,20 @@ enso_to_java x = case x of
    Convert a Java value to an Enso value before returning it to Enso from a Java
    `Column`.  This step is unnecessary for primitive and builtin values, but
    necessary for values such as `Decimal`/`BigDecimal`.
-java_to_enso x = case x of
-    _ : Nothing -> Nothing
-    _ : BigDecimal -> from_big_decimal x
-    _ -> x
+java_to_enso x =
+    case x of
+        _ : Nothing -> Nothing
+        _ : Integer -> x
+        _ : Float -> x
+        _ : Text -> x
+        _ : BigDecimal -> from_big_decimal x
+        _ ->
+            type_name = (Meta.type_of x).to_text
+            case type_name of
+                "java.math.BigDecimal" ->
+                    big = BigDecimal.new x.unscaledValue x.scale
+                    from_big_decimal big
+                _ -> x
 
 ## ---
    private: true
@@ -129,5 +140,5 @@ from_value_type_strict value_type =
    ---
    Creates a column storage builder for the given storage type.
 make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
-make_builder storage initial_size java_problem_aggregator =
+private make_builder storage initial_size java_problem_aggregator =
     Java_Builder.getForType storage initial_size java_problem_aggregator

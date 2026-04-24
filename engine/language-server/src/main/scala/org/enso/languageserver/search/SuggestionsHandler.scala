@@ -157,6 +157,25 @@ final class SuggestionsHandler(
     case _ => stash()
   }
 
+  private def invalidatingModules(
+    projectName: String,
+    graph: TypeGraph,
+    clients: Set[ClientId],
+    state: State
+  ): Receive = {
+    case SearchProtocol.InvalidateSuggestionsDatabaseResult =>
+      unstashAll()
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state
+        )
+      )
+    case _ => stash()
+  }
+
   private def initialized(
     projectName: String,
     graph: TypeGraph,
@@ -315,7 +334,7 @@ final class SuggestionsHandler(
       sender() ! GetSuggestionsDatabaseResult(0, Seq())
 
       context.become(
-        initialized(
+        invalidatingModules(
           projectName,
           graph,
           clients,
@@ -374,7 +393,7 @@ final class SuggestionsHandler(
         )
       )
       action.pipeTo(handler)(sender())
-      context.become(initialized(projectName, graph, clients, state))
+      context.become(invalidatingModules(projectName, graph, clients, state))
 
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)

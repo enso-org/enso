@@ -3,7 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ir, CompilerError}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -59,7 +59,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     def ensureConvertedToConcrete(
       state: BindingsMapBase.State
     ): BindingsMapBase.State = {
-      toConcrete(state, repo, repo.getModuleMap).flatMap { s =>
+      val opt = toConcrete(state, repo, repo.getModuleMap).flatMap { s =>
         val cm = s.currentModule
         val es = s.exportedSymbols
         val ri = s.resolvedImports
@@ -71,7 +71,12 @@ final class BindingsMap private (initial: BindingsMapBase.State)
             es
           )
         )
-      }.get
+      }
+      if (opt.isEmpty) {
+        throw new java.io.IOException("Cannot deserialize " + this)
+      } else {
+        opt.get
+      }
     }
     // lazily update state
     this.updateState(ensureConvertedToConcrete, true)
@@ -159,16 +164,10 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     name: String
   ): List[ResolvedName] = {
     resolvedImports
-      .filter(i => importMatchesName(i, name) && !i.isSynthetic())
-      .flatMap(_.targets)
-  }
-
-  private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
-    imp.importDef.onlyNames
-      .map(_ => imp.importDef.rename.exists(_.name == name))
-      .getOrElse(
-        !imp.importDef.isAll && imp.importDef.getSimpleName.name == name
+      .filter(i =>
+        BindingsMapUtil.importMatchesName(i, name) && !i.isSynthetic()
       )
+      .flatMap(_.targets)
   }
 
   private def findExportedCandidatesInImports(
@@ -947,7 +946,7 @@ object BindingsMap {
       module
         .unsafeAsModule("must be a module to run resolution")
         .getIr
-        .unsafeGetMetadata(
+        .unsafeGetMetadata[BindingAnalysis.Metadata](
           BindingAnalysis,
           "Wrong pass ordering. Running resolution on an unparsed module."
         )

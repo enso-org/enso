@@ -2,10 +2,9 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
-polyglot java import java.nio.CharBuffer
-
 from Standard.Test import all
 
+polyglot java import java.lang.Character
 
 add_specs suite_builder =
     windows_file = enso_project.data / "windows.txt"
@@ -123,17 +122,19 @@ read_file_one_by_one file encoding expected_size on_problems=..Report_Error =
             Text.from_codepoints codepoints
 
 read_characters decoder n =
-    buffer = CharBuffer.allocate n
-    chars_read = decoder.read buffer
-    if chars_read == -1 then Nothing else
-        buffer.flip
-        Vector.build builder->
-            transfer_codepoints _ =
-                if buffer.hasRemaining.not then Nothing else
-                    char = buffer.get
+    v = Vector.build builder->
+        read_next at =
+            if at >= n then Nothing else
+                ch = decoder.read
+                if ch != -1 then
+                    char = Character.valueOf ch
                     builder.append char.codepoints.first
-                    @Tail_Call transfer_codepoints Nothing
-            transfer_codepoints Nothing
+                    @Tail_Call read_next at+1
+
+        read_next 0
+
+    if v.is_empty then Nothing else
+        v
 
 main filter=Nothing =
     suite = Test.build suite_builder->

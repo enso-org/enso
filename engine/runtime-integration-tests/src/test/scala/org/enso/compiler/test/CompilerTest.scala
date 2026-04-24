@@ -2,11 +2,12 @@ package org.enso.compiler.test
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{EnsoParser, IR, Identifier}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Diagnostic,
   Expression,
+  MetadataStorage,
   Module,
   Name
 }
@@ -183,35 +184,37 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: definition.Method = {
-      new definition.Method.Explicit(
-        definition.Method.Binding(
-          Name.MethodReference(
-            Some(
-              Name.Qualified(
-                List(
-                  Name.Literal(
-                    "TestType",
-                    isMethod           = false,
-                    identifiedLocation = null
+      val methBinding = definition.Method.Binding
+        .builder()
+        .methodReference(
+          Name.MethodReference
+            .builder()
+            .typePointer(
+              Some(
+                Name.Qualified
+                  .builder()
+                  .parts(
+                    List(
+                      Name.Literal
+                        .builder()
+                        .name("TestType")
+                        .isMethod(false)
+                        .build()
+                    )
                   )
-                ),
-                identifiedLocation = null
+                  .build()
               )
-            ),
-            Name.Literal(
-              "testMethod",
-              isMethod           = false,
-              identifiedLocation = null
-            ),
-            identifiedLocation = null
-          ),
-          Nil,
-          false,
-          ir,
-          identifiedLocation = null
-        ),
-        ir
-      )
+            )
+            .methodName(
+              Name.Literal.builder().name("testMethod").isMethod(false).build()
+            )
+            .build()
+        )
+        .arguments(Nil)
+        .isPrivate(false)
+        .body(ir)
+        .build()
+      definition.Method.Explicit.fromMethodBinding(methBinding, ir)
     }
 
     /** Hoists the provided expression as the default value of an atom argument.
@@ -219,22 +222,22 @@ trait CompilerRunner {
       * @return an atom with one argument `arg` with default value `ir`
       */
     def asAtomDefaultArg: Definition.Data = {
-      Definition.Data(
-        Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
-        List(
-          new DefinitionArgument.Specified(
-            Name
-              .Literal("arg", isMethod = false, identifiedLocation = null),
-            None,
-            Some(ir),
-            suspended          = false,
-            identifiedLocation = null
+      Definition.Data
+        .builder()
+        .name(
+          Name.Literal.builder().name("TestAtom").isMethod(false).build()
+        )
+        .arguments(
+          List(
+            DefinitionArgument.Specified
+              .builder()
+              .name(Name.Literal.builder().name("arg").isMethod(false).build())
+              .defaultValue(Some(ir))
+              .suspended(false)
+              .build()
           )
-        ),
-        List(),
-        false,
-        identifiedLocation = null
-      )
+        )
+        .build()
     }
   }
 
@@ -301,10 +304,21 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod =
-      runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
+      runtime.Module.empty(
+        QualifiedName.simpleName("Test_Module"),
+        null
+      )
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, identifiedLocation = null)
+      new Module(
+        List(),
+        List(),
+        List(),
+        false,
+        null,
+        new MetadataStorage(),
+        null
+      )
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

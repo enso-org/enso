@@ -12,9 +12,6 @@
         "name": "org.enso.base.Encoding_Utils"
     },
     {
-        "name": "org.enso.base.Environment_Utils"
-    },
-    {
         "name": "org.enso.base.FileLineReader"
     },
     {
@@ -101,9 +98,6 @@
         "name": "org.enso.base.enso_cloud.CloudRequestCache"
     },
     {
-        "name": "org.enso.base.enso_cloud.DataLinkSPI"
-    },
-    {
         "name": "org.enso.base.enso_cloud.EnsoHTTPResponseCache",
         "methods": [
             {
@@ -131,33 +125,6 @@
         ]
     },
     {
-        "name": "org.enso.base.enso_cloud.HideableValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$Base64EncodeValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$ConcatValues"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$PlainValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$SecretValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.Base64EncodeValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.ConcatValues"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.PlainValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.SecretValue"
-    },
-    {
         "name": "org.enso.base.enso_cloud.audit.AuditLog"
     },
     {
@@ -174,12 +141,6 @@
             }
         ],
         "allPublicMethods": true
-    },
-    {
-        "name": "org.enso.base.file_format.FileFormatSPI"
-    },
-    {
-        "name": "org.enso.base.file_system.FileSystemSPI"
     },
     {
         "name": "org.enso.base.file_system.File_Utils"

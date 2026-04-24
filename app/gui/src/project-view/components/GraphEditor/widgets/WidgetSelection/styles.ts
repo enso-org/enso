@@ -1,4 +1,4 @@
-import { type Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import {
   autoUpdate,
   offset,
@@ -14,10 +14,6 @@ import { computed, type Ref } from 'vue'
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
 const MAX_DROPDOWN_OVERSIZE_PX = 390
 
-function getMaxWidth(portWidth: number, limitWidth: boolean) {
-  return limitWidth ? `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px` : null
-}
-
 /** Limit the width of the dropdown to the width of the port. */
 function sizeOptions(limitWidth: boolean): () => SizeOptions {
   return () => ({
@@ -31,25 +27,24 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
       const portWidth = rects.reference.width + PORT_PADDING_X * 2
 
       const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
-      const maxWidth = getMaxWidth(portWidth, limitWidth)
+      const maxWidth = limitWidth ? `${MAX_DROPDOWN_OVERSIZE_PX}px` : null
 
-      Object.assign(elements.floating.style, { minWidth, maxWidth })
-      elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+      // Delay changing styles to avoid "ResizeObserver loop completed with undelivered notifications" error.
+      requestAnimationFrame(() => {
+        Object.assign(elements.floating.style, { minWidth, maxWidth })
+        elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+      })
     },
   })
 }
 
-const NODE_HEIGHT = 32
+const TOP_MENU_PADDING = 6
 const SUBMENU_PADDING = 10
 
 /** Offset the dropdown below the port or by SUBMENU_PADDING pixels. */
 function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
-  return (state) => {
-    const offsetTopLevel = (NODE_HEIGHT - state.rects.reference.height) / 2
-    const offset = isTopLevel ? offsetTopLevel : SUBMENU_PADDING
-    return {
-      mainAxis: offset,
-    }
+  return {
+    mainAxis: isTopLevel ? TOP_MENU_PADDING : SUBMENU_PADDING,
   }
 }
 

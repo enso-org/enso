@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.enso.interpreter.runtime.EnsoContext;
 
@@ -19,8 +20,8 @@ import org.enso.interpreter.runtime.EnsoContext;
  * <p>Think twice before opening this type to public!
  */
 final class EnsoMultiType {
-  private static final ConcurrentHashMap<EnsoMultiType, EnsoMultiType> ALL_TYPES =
-      new ConcurrentHashMap<>();
+  private static final EnsoContext.Extra<Map> ALL_TYPES =
+      new EnsoContext.Extra<>(Map.class, (_) -> new ConcurrentHashMap());
 
   @CompilerDirectives.CompilationFinal(dimensions = 1)
   private final Type[] types;
@@ -41,9 +42,11 @@ final class EnsoMultiType {
   }
 
   @CompilerDirectives.TruffleBoundary
-  static EnsoMultiType findOrCreateSlow(Type[] types, int from, int to) {
+  @SuppressWarnings("unchecked")
+  static EnsoMultiType findOrCreateSlow(EnsoContext ctx, Type[] types, int from, int to) {
     var mt = new EnsoMultiType(Arrays.copyOfRange(types, from, to));
-    return ALL_TYPES.computeIfAbsent(mt, java.util.function.Function.identity());
+    var registry = ALL_TYPES.get(ctx);
+    return (EnsoMultiType) registry.computeIfAbsent(mt, java.util.function.Function.identity());
   }
 
   final int typesLength() {

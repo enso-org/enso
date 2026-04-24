@@ -16,6 +16,7 @@ import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Tooltip, TooltipTrigger } from '#/components/Tooltip'
 import { useVisualTooltip } from '#/components/VisualTooltip'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { isExternalLink } from '#/utilities/url'
 import { useDialogContext } from '../Dialog/DialogProvider'
 import { useContextProps } from '../hooks/useContextProps'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
@@ -83,7 +84,12 @@ export const Button = Object.assign(
       const Tag = isLink ? aria.Link : aria.Button
 
       const goodDefaults = {
-        ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
+        ...(isLink ?
+          {
+            rel: 'noopener noreferrer',
+            ...(isExternalLink(ariaProps.href) ? { target: '_blank' } : {}),
+          }
+        : { type: 'button' as const }),
         'data-testid': testId,
       }
 

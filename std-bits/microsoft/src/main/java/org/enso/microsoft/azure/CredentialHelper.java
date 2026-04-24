@@ -12,8 +12,8 @@ import org.enso.base.enso_cloud.HideableValue;
 /**
  * A helper class to convert {@link AzureCredential} to {@link TokenCredential}.
  *
- * <p>This class is allowed access to secrets. Extra care should be taken to ensure its result is not
- * leaked.
+ * <p>This class is allowed access to secrets. Extra care should be taken to ensure its result is
+ * not leaked.
  */
 final class CredentialHelper {
   static TokenCredential toTokenCredential(AzureCredential credential) {
@@ -24,13 +24,17 @@ final class CredentialHelper {
             || !isPresent(System.getenv("AZURE_CLIENT_SECRET"))
             || !isPresent(System.getenv("AZURE_TENANT_ID"))) {
           throw new ClientAuthenticationException(
-              "Environment variables AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID are not all set.",
+              "Environment variables AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID are"
+                  + " not all set.",
               null);
         }
         yield new EnvironmentCredentialBuilder().build();
       }
       case AzureCredential.CLI() -> new AzureCliCredentialBuilder().build();
-      case AzureCredential.ClientSecret(HideableValue tenantId, HideableValue clientId, HideableValue clientSecret) -> {
+      case AzureCredential.ClientSecret(
+              HideableValue tenantId,
+              HideableValue clientId,
+              HideableValue clientSecret) -> {
         var resolvedTenantId = unsafeResolveSecrets(tenantId);
         var resolvedClientId = unsafeResolveSecrets(clientId);
         var resolvedClientSecret = unsafeResolveSecrets(clientSecret);
@@ -47,8 +51,8 @@ final class CredentialHelper {
             .build();
       }
       case AzureCredential.BlobStorageSASToken(HideableValue token) ->
-        throw new ClientAuthenticationException(
-            "Blob Storage SAS Token is not supported for authentication.", null);
+          throw new ClientAuthenticationException(
+              "Blob Storage SAS Token is not supported for authentication.", null);
     };
   }
 
@@ -56,7 +60,8 @@ final class CredentialHelper {
     return switch (credential) {
       case AzureCredential.BlobStorageSASToken(HideableValue token) -> unsafeResolveSecrets(token);
       default ->
-        throw new IllegalArgumentException("Only BlobStorageSASToken credentials can provide a SAS token.");
+          throw new IllegalArgumentException(
+              "Only BlobStorageSASToken credentials can provide a SAS token.");
     };
   }
 

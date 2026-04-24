@@ -1,17 +1,14 @@
 package org.enso.table.excel;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import static org.enso.table.excel.ExcelUtils.formatNumericValue;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.graalvm.polyglot.Context;
 
 /** Wrapper class to handle Excel rows. */
 public interface ExcelRow {
@@ -49,7 +46,6 @@ public interface ExcelRow {
   }
 
   static boolean isEmptyHelper(ExcelRow row, int start, int end) {
-    Context context = Context.getCurrent();
     int currentEnd = end == -1 ? row.getLastColumn() : end;
     for (int column = Math.max(row.getFirstColumn(), start);
         column <= Math.min(row.getLastColumn(), currentEnd);
@@ -58,7 +54,7 @@ public interface ExcelRow {
         return false;
       }
 
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
     return true;
   }
@@ -86,43 +82,7 @@ public interface ExcelRow {
         case NUMERIC:
           double dblValue = cell.getNumericCellValue();
           var nf = ExcelNumberFormat.from(cell, null);
-          if (nf != null && DateUtil.isADateFormat(nf.getIdx(), nf.getFormat())) {
-            var temporal =
-                use1904Format
-                    ? ExcelUtils.fromExcelDateTime1904(dblValue)
-                    : ExcelUtils.fromExcelDateTime(dblValue);
-
-            if (temporal == null) {
-              return null;
-            }
-
-            return switch (temporal) {
-              case LocalDate date -> {
-                var dateFormat = cell.getCellStyle().getDataFormatString();
-                yield (dateFormat.contains("h") || dateFormat.contains("H"))
-                    ? date.atStartOfDay(ZoneId.systemDefault())
-                    : date;
-              }
-              case ZonedDateTime zdt -> {
-                if (!use1904Format || zdt.getYear() != 1904 || zdt.getDayOfYear() != 1) {
-                  yield temporal;
-                }
-                var dateFormat = cell.getCellStyle().getDataFormatString();
-                yield (dateFormat.contains("y")
-                        || dateFormat.contains("M")
-                        || dateFormat.contains("d"))
-                    ? zdt
-                    : zdt.toLocalTime();
-              }
-              default -> temporal;
-            };
-          } else {
-            if (dblValue == (long) dblValue) {
-              return (long) dblValue;
-            } else {
-              return dblValue;
-            }
-          }
+          return formatNumericValue(dblValue, nf, use1904Format);
         case STRING:
           return cell.getStringCellValue();
         case BOOLEAN:
@@ -144,8 +104,8 @@ public interface ExcelRow {
 
       return switch (cellType) {
         case ERROR ->
-        // Want to show the error message rather than empty.
-        FormulaError.forInt(cell.getErrorCellValue()).getString();
+            // Want to show the error message rather than empty.
+            FormulaError.forInt(cell.getErrorCellValue()).getString();
         case NUMERIC -> {
           // Special handling for Number or Date cells as want to keep formatting.
           var format = ExcelNumberFormat.from(cell, null);
@@ -172,7 +132,6 @@ public interface ExcelRow {
     }
 
     public String[] getCellsAsText(int startCol, int endCol) {
-      Context context = Context.getCurrent();
       int currentEndCol = endCol == -1 ? getLastColumn() : endCol;
 
       String[] output = new String[currentEndCol - startCol + 1];
@@ -184,7 +143,7 @@ public interface ExcelRow {
         }
         output[col - startCol] =
             type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
-        context.safepoint();
+        ExcelUtils.safepoint();
       }
 
       return output;

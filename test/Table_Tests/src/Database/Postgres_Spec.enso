@@ -5,14 +5,14 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
-from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, expr
+from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 from Standard.Database import all
+import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Postgres.Pgpass
-import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Postgres.Helpers import parse_postgres_encoding
 
@@ -24,7 +24,6 @@ import project.Database.Common.Common_Spec
 import project.Database.Common.IR_Spec
 import project.Database.Common.Save_Connection_Data_Link
 import project.Database.Helpers.Name_Generator
-import project.Database.JDBC.Generic_JDBC_Postgres_Spec
 import project.Database.Transaction_Spec
 import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Database.Upload_Spec
@@ -32,11 +31,10 @@ import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 import enso_dev.Table_Tests
-
 
 type Basic_Test_Data
     Value ~connection
@@ -47,6 +45,28 @@ type Basic_Test_Data
     teardown self =
         self.connection.close
 
+type JSON_Table_Data
+    Value ~connection
+
+    expected self =
+        _ = self
+        ['{"defaultMargin": 22}', 'null', 'true', 'false', '123', '"string value"', '{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}', '[1, 2, 3, 4, 5]', '["string1", "string2", "string3"]', '[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]', '3.14159267', Nothing]
+
+    expected_objects self =
+        self.expected.map e-> if e.is_nothing then e else e.parse_json
+
+    setup create_connection_fn types =
+        make_connection =
+            connection = create_connection_fn Nothing
+            types.each type_name->
+                table_name = 'tbl_' + type_name + '_test'
+                make_table_sql = 'DROP TABLE IF EXISTS ' + table_name + '; CREATE TEMPORARY TABLE ' + table_name + '(id INTEGER PRIMARY KEY, payload ' + type_name + '); INSERT INTO ' + table_name + ' VALUES (0, \'{"defaultMargin": 22}\'), (1, \'null\'), (2, \'true\'), (3, \'false\'), (4, \'123\'), (5, \'"string value"\'), (6, \'{"defaultMargin": 22, "otherValue": "test", "nestedObject": {"nestedKey": "nestedValue"}}\'), (7, \'[1, 2, 3, 4, 5]\'), (8, \'["string1", "string2", "string3"]\'), (9, \'[{"key1": "value1"}, {"key2": "value2"}, {"key3": "value3"}]\'), (10, \'3.14159267\'), (11, null);'
+                connection.execute_update make_table_sql
+            connection
+        JSON_Table_Data.Value make_connection
+
+    teardown self =
+        self.connection.close
 
 type Postgres_Tables_Data
     Value ~data
@@ -253,7 +273,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal 1000 0, Value_Type.Integer]
+            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal 37 0, Value_Type.Integer]
 
         ## Input/Output
         group_builder.specify "should infer standard types correctly" <|
@@ -317,7 +337,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             r = data.t.aggregate columns=[Aggregate_Column.Sum "i1", Aggregate_Column.Sum "i2", Aggregate_Column.Sum "i3", Aggregate_Column.Sum "i4", Aggregate_Column.Sum "r1", Aggregate_Column.Sum "r2"]
             r.columns.at 0 . value_type . should_equal Value_Type.Integer
             r.columns.at 1 . value_type . should_equal Value_Type.Integer
-            r.columns.at 2 . value_type . should_equal (Value_Type.Decimal 1000 0)
+            r.columns.at 2 . value_type . should_equal (Value_Type.Decimal 37 0)
             r.columns.at 3 . value_type . should_equal Value_Type.Decimal
             r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
@@ -406,6 +426,51 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
 
             r4 = data.connection.query (..Raw_SQL 'SELECT 1 AS ""')
             r4.should_fail_with SQL_Error
+
+    suite_builder.group "[PostgreSQL] JSON Support" group_builder->
+        json_connection = JSON_Table_Data.setup create_connection_fn ["json", "jsonb"]
+
+        group_builder.teardown <|
+            json_connection.teardown
+
+        group_builder.specify "query a table with JSON" <|
+            db_table = json_connection.connection.query "tbl_json_test"
+            Problems.assume_no_problems db_table
+            db_table.column_names.should_equal ["id", "payload"]
+            db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            json_type = db_table.at "payload" . value_type
+            json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+            json_type.type_name.should_equal "json"
+            db_table.row_count.should_equal 12
+
+        group_builder.specify "query a table with JSONB" <|
+            db_table = json_connection.connection.query "tbl_jsonb_test"
+            Problems.assume_no_problems db_table
+            db_table.column_names.should_equal ["id", "payload"]
+            db_table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            json_type = db_table.at "payload" . value_type
+            json_type.should_be_a (Value_Type.Unsupported_Data_Type ...)
+            json_type.type_name.should_equal "jsonb"
+            db_table.row_count.should_equal 12
+
+        group_builder.specify "read a table with JSON as text with warning" <|
+            table = json_connection.connection.read "tbl_json_test"
+            Problems.expect_only_warning Inexact_Type_Coercion table
+            table.column_names.should_equal ["id", "payload"]
+            table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            table.at "payload" . value_type . should_equal Value_Type.Char
+            table.row_count . should_equal 12
+            table.at "payload" . to_vector . should_equal json_connection.expected
+
+        group_builder.specify "read a table with JSONB as text with warning" <|
+            table = json_connection.connection.read "tbl_jsonb_test"
+            Problems.expect_only_warning Inexact_Type_Coercion table
+            table.column_names.should_equal ["id", "payload"]
+            table.at "id" . value_type . should_equal (Value_Type.Integer ..Bits_32)
+            table.at "payload" . value_type . should_equal Value_Type.Char
+            table.row_count . should_equal 12
+            objects = table.at "payload" . to_vector . map e-> if e.is_nothing then e else e.parse_json
+            objects.should_equal json_connection.expected_objects
 
     suite_builder.group "[PostgreSQL] Edge Cases" group_builder->
         data = Basic_Test_Data.setup create_connection_fn
@@ -521,7 +586,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             more_than_max_long = max_long + 50
             t = table_builder [["x", [max_long, max_long]], ["y", [more_than_max_long, more_than_max_long]]]
             tsum = t.aggregate [] [Aggregate_Column.Sum "x" "xs", Aggregate_Column.Sum "y" "ys"]
-            tsum.at "xs" . value_type . should_equal (Value_Type.Decimal 1000 0)
+            tsum.at "xs" . value_type . should_equal (Value_Type.Decimal 37 0)
             tsum.at "ys" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
             tsum.at "xs" . to_vector . should_equal [max_long + max_long]
             tsum.at "ys" . to_vector . should_equal [more_than_max_long + more_than_max_long]
@@ -541,7 +606,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
 
             tz_zero = Time_Zone.parse "Z"
-            v_at_z = v.map dt-> dt.at_zone tz_zero
+            v_at_z = v.map dt-> dt.at_time_zone tz_zero
             table.at "A" . to_vector . should_equal v_at_z
             table.at "A" . to_vector . should_equal_tz_agnostic v
 
@@ -550,7 +615,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             v.each my_dt-> Test.with_clue my_dt.to_text+" " <|
                 # Checks if the two date-times represent the same instant in time.
                 is_same_time_instant dt1 dt2 =
-                    dt1.at_zone tz_zero == dt2.at_zone tz_zero
+                    dt1.at_time_zone tz_zero == dt2.at_time_zone tz_zero
                 local_equals = v.filter (is_same_time_instant my_dt)
                 # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
                 [1, 2].should_contain local_equals.length
@@ -578,7 +643,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 table.update_rows source_table update_action=Update_Action.Insert
             w.requested_type . should_equal (source_table.at "A" . value_type)
             w.actual_type . should_equal (table.at "A" . value_type)
-            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost. Consider using .at_time_zone or .set_time_zone to explicitly convert Date_Time values before upload."
 
             # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
             # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
@@ -595,7 +660,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             # We also check how the timestamp column behaves with interpolations:
             v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
                 t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                is_in_system_tz = my_dt.at_zone Time_Zone.system . time_of_day == my_dt.time_of_day
+                is_in_system_tz = my_dt.at_time_zone Time_Zone.system . time_of_day == my_dt.time_of_day
                 ## Unfortunately, this will work in the following way:
                    - if the date-time represented as local time in the current system default timezone is 15:30,
                      then it will match _all_ entries (as they do not have a timezone).
@@ -615,11 +680,11 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                    second operand.
                 case is_in_system_tz of
                     True ->
-                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
+                        my_dt.at_time_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
                         t2.row_count . should_equal 4
                         t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
                     False ->
-                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
+                        my_dt.at_time_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
                         t2.row_count . should_equal 0
                         t2.at "A" . to_vector . should_equal []
 
@@ -717,13 +782,11 @@ add_postgres_specs suite_builder create_connection_fn db_name =
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
     light_table_builder columns =
-        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+        default_connection.get.create_literal_table (Table.new columns) "literal_table"
 
     materialize = .read
 
-    
-
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Postgres_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
 
@@ -744,16 +807,6 @@ add_postgres_specs suite_builder create_connection_fn db_name =
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_fn
     IR_Spec.add_specs suite_builder setup prefix default_connection.get
-
-## PRIVATE
-supported_replace_params : Hashset Replace_Params
-supported_replace_params =
-    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
-    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
-    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
-    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
     db_name = Environment.get "ENSO_POSTGRES_DATABASE"
@@ -804,8 +857,6 @@ add_table_specs suite_builder =
         connection_builder ->
             add_postgres_specs suite_builder connection_builder db_name
             Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
-            Generic_JDBC_Postgres_Spec.add_specs suite_builder get_configured_connection_details
-
             Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
             suite_builder.group "[PostgreSQL] Secrets in connection settings" group_builder->

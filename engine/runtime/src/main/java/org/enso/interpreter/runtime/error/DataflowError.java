@@ -38,7 +38,7 @@ import org.enso.interpreter.runtime.state.State;
 @ImportStatic(PanicException.class)
 public final class DataflowError extends AbstractTruffleException {
   /** Signals (local) values that haven't yet been initialized */
-  public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
+  public static final DataflowError UNINITIALIZED = new DataflowError();
 
   private final EnsoContext ctx;
   private final Object payload;
@@ -58,7 +58,6 @@ public final class DataflowError extends AbstractTruffleException {
     assert payload != null;
     var ensoCtx = EnsoContext.get(location);
     var dataflowStacktraceCtx = ensoCtx.getBuiltins().context().getDataflowStackTrace();
-    var state = ensoCtx.currentState();
     boolean attachFullStackTrace =
         hasContextEnabledNode.executeHasContextEnabled(
             ensoCtx.getExecutionEnvironment(), dataflowStacktraceCtx);
@@ -84,15 +83,25 @@ public final class DataflowError extends AbstractTruffleException {
    * <p>This is useful for when the dataflow error is created from the recovery of a panic, and we
    * want to point to the original location of the panic.
    *
+   * @param ctx Enso context to operate in
    * @param payload the user-provided value carried by the error
    * @param prototype the exception to derive the stacktrace from
    * @return a new dataflow error
    */
-  public static DataflowError withTrace(Object payload, AbstractTruffleException prototype) {
+  public static DataflowError withTrace(
+      EnsoContext ctx, Object payload, AbstractTruffleException prototype) {
     assert payload != null;
-    var result = new DataflowError(payload, prototype);
+    var result = new DataflowError(ctx, payload, prototype);
     TruffleStackTrace.fillIn(result);
     return result;
+  }
+
+  /** Constructor for {@link #UNINITIALIZED} value. */
+  private DataflowError() {
+    super(null, null, 1, null);
+    this.payload = null;
+    this.ownTrace = false;
+    this.ctx = null;
   }
 
   private DataflowError(Object payload, Node location) {
@@ -102,11 +111,11 @@ public final class DataflowError extends AbstractTruffleException {
     this.ctx = EnsoContext.get(location);
   }
 
-  private DataflowError(Object payload, AbstractTruffleException prototype) {
+  private DataflowError(EnsoContext ctx, Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
     this.ownTrace = false;
-    this.ctx = prototype instanceof PanicException panic ? panic.ctx() : null;
+    this.ctx = ctx;
   }
 
   private DataflowError(Object payload, int stackTraceElementLimit, Node location) {
@@ -209,7 +218,7 @@ public final class DataflowError extends AbstractTruffleException {
 
   @ExportMessage
   RuntimeException throwException() throws UnsupportedMessageException {
-    return this;
+    return new PanicException(this);
   }
 
   @ExportMessage
@@ -225,5 +234,13 @@ public final class DataflowError extends AbstractTruffleException {
   @ExportMessage
   Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().dataflowError();
+  }
+
+  public PanicException rethrow() throws PanicException {
+    if (getStackTraceElementLimit() == 1) {
+      throw new PanicException(ctx(), getPayload(), this, getLocation());
+    } else {
+      throw new PanicException(this);
+    }
   }
 }

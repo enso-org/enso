@@ -12,15 +12,12 @@ import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
-from project.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Metadata import make_single_choice
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Vector_Editor
-
-polyglot java import org.graalvm.collections.Pair as Java_Pair
+from project.Nothing import all
 
 type Header
     ## ---
@@ -46,6 +43,15 @@ type Header
         - `name`: The header name.
         - `value`: The header value.
     Value name:Text value:(Text|Enso_Secret|Derived_Secret_Value)
+
+    ## ---
+       private: true
+       ---
+       The value as a Derived_Secret_Value
+    hideable_value self = case self.value of
+        _ : Text -> Derived_Secret_Value.from self.value
+        _ : Enso_Secret -> Derived_Secret_Value.from self.value
+        _ : Derived_Secret_Value -> self.value
 
     ## ---
        aliases: [build a header]
@@ -284,13 +290,6 @@ type Header
        Gets the name for content_type
     content_type_header_name : Text
     content_type_header_name = "Content-Type"
-
-    ## ---
-       private: true
-       ---
-    to_java_pair : Java_Pair
-    to_java_pair self =
-        Java_Pair.create self.name (as_hideable_value self.value)
 
     ## ---
        private: true

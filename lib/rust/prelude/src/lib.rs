@@ -3,8 +3,6 @@
 //! defines several aliases and utils which may find their place in new
 //! libraries in the future.
 
-
-
 mod data;
 mod std_reexports;
 mod vec;

@@ -11,7 +11,8 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
-    "compile": "tsc"
+    "typecheck": "tsc -b tsconfig.json --noEmit",
+    "compile": "tsc -p tsconfig.build.json"
   },
   "exports": {
     "./ast": {
@@ -26,9 +27,9 @@
     }
   },
   "dependencies": {
-    "@lezer/common": "^1.2.3",
+    "@lezer/common": "catalog:",
     "@lezer/markdown": "workspace:*",
-    "@lezer/highlight": "^1.2.1",
+    "@lezer/highlight": "catalog:",
     "@noble/hashes": "^1.6.1",
     "@open-rpc/client-js": "^1.8.1",
     "@types/debug": "^4.1.12",
@@ -42,16 +43,17 @@
     "partysocket": "^1.0.3",
     "rust-ffi": "workspace:*",
     "yjs": "^13.6.21",
-    "zod": "^3.24.1"
+    "ydoc-channel": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@fast-check/vitest": "catalog:",
     "@tsconfig/node20": "^20.1.4",
-    "@types/node": "^22.10.4",
+    "@types/node": "catalog:",
     "@types/ws": "^8.5.13",
     "typescript": "catalog:",
     "vite-node": "3.0.3",
-    "vite-plugin-wasm": "^3.4.1",
+    "vite-plugin-wasm": "^3.5.0",
     "vitest": "catalog:"
   }
 }

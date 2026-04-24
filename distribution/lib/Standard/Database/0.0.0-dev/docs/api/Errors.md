@@ -1,6 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Errors
-- type Aggregagtion_Requires_Order
+- type Aggregation_Requires_Order
     - Error op_name:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_text self -> Standard.Base.Data.Text.Text
@@ -10,6 +10,7 @@
     - to_text self -> Standard.Base.Data.Text.Text
 - type Implicit_DB_Table_Read
     - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_js_object self -> Standard.Base.Any.Any
 - type Integrity_Error
     - Error object_description:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any

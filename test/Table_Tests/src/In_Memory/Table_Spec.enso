@@ -161,9 +161,6 @@ add_specs suite_builder =
             r4.pretty . should_equal "Table.new [['foo', [1, 2, 3]], ['bar', [False, True, False]], ['date', [Date.new 2022 8 27, Date.new 1999 1 1, Date.new 2012 1 23]], ['time', [Time_Of_Day.new 18, Time_Of_Day.new 1 2 34, Time_Of_Day.new 12]]]"
             Debug.eval r4.pretty . should_equal r4
 
-        group_builder.specify "allows setting the column type" <|
-
-
         group_builder.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
@@ -377,7 +374,7 @@ add_specs suite_builder =
     suite_builder.group "Counting Values" group_builder->
         group_builder.specify "should count missing and non-missing values" <|
             col = Column.from_vector 'x' [1, Nothing, 2]
-            col.length . should_equal 3
+            col.row_count . should_equal 3
             col.count . should_equal 2
             col.count_nothing . should_equal 1
 
@@ -916,16 +913,16 @@ add_specs suite_builder =
                 dts = ["dts", [Date_Time.new 2022 8 27 11 22 25, Nothing, Nothing, Date_Time.new 2030]]
                 dts_mixed = ["dts_mixed", [Date_Time.new 2022 8 27 11 22 25, Nothing, Date_Time.new 2030, Date.new 2000]]
                 tod = ["tod", [Time_Of_Day.new 18 00, Time_Of_Day.new 18 19, Nothing, Time_Of_Day.new 18 19]]
-                tod_mixed = ["tod_mixed", [Time_Of_Day.new 18 00, Time_Of_Day.new 18 19, Date_Time.new 2000 1 1, Time_Of_Day.new 18 19]]
+                time_mixed = ["time_mixed", [Time_Of_Day.new 18 00, Time_Of_Day.new 18 19, Date_Time.new 2000 1 1, Time_Of_Day.new 18 19]]
                 mix = ["mix", [42, Date_Time.new 2022 8 27, 1, 1]]
                 nulls = ["nulls", [Nothing, Nothing, Nothing, 0]]
                 custom = ["custom", [2, My.Data 2 1, Nothing, Nothing]]
-                [str, int, int2, dbl, dates, dts, dts_mixed, tod, tod_mixed, mix, nulls, custom]
+                [str, int, int2, dbl, dates, dts, dts_mixed, tod, time_mixed, mix, nulls, custom]
             ins.at "dates" . value_type . should_equal Value_Type.Date
             ins.at "dts" . value_type . is_date_time . should_be_true
             ins.at "dts_mixed" . value_type . should_equal Value_Type.Mixed
             ins.at "tod" . value_type . should_equal Value_Type.Time
-            ins.at "tod_mixed" . value_type . should_equal Value_Type.Mixed
+            ins.at "time_mixed" . value_type . should_equal Value_Type.Mixed
 
             data.varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str")) . at "strs" . to_vector . should_equal ["b", "c"]
             data.varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str" . to_vector)) . at "strs" . to_vector . should_equal ["b", "c"]
@@ -943,7 +940,7 @@ add_specs suite_builder =
             data.varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts_mixed")) . at "datetimes" . to_vector . should_equal [Date_Time.new 2022 8 27 11 22 25]
             data.varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dts_mixed")) . at "dates" . to_vector . should_equal [Date.new 2000]
             data.varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod")) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
-            data.varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod_mixed")) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
+            data.varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "time_mixed")) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
             data.varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod" . to_vector)) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
             data.varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, "a", 1, Nothing, Date.new 2022 8 27, Date_Time.new 2022 8 27]) . at "mixed" . to_vector . should_equal [1, "a", Date.new 2022 8 27]
             data.varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix")) . at "mixed" . to_vector . should_equal [1]

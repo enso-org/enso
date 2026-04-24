@@ -270,10 +270,6 @@ public class MethodDefinition {
         .orElseGet(() -> false);
   }
 
-  public boolean isAutoRegister() {
-    return annotation.autoRegister();
-  }
-
   public interface ArgumentDefinition {
 
     boolean validate(ProcessingEnvironment processingEnvironment);

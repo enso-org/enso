@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
@@ -18,6 +17,7 @@ import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
@@ -33,11 +33,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final VisualizationHolder visualizationHolder;
   private final UUID nextExecutionItem;
-  private final RuntimeCache cache;
+  private final RuntimeCache.Mutable cache;
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
   private final ExpressionExecutionState expressionExecutionState;
+  private final ProgressTimingCollector progressTimingCollector;
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
@@ -64,10 +65,11 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
       UUID nextExecutionItem,
-      RuntimeCache cache,
+      RuntimeCache.Mutable cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
@@ -79,6 +81,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
     this.expressionExecutionState = expressionExecutionState;
+    this.progressTimingCollector = progressTimingCollector;
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
@@ -96,24 +99,28 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       executeOneshotExpressions(nodeId, result, info);
     }
 
+    // Check if we need to force re-execution for nested visualization
+    var requiresReExecution = visualizationHolder.checkAndClearNestedVisualizations(nodeId);
+
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
-      return result;
+      // Return null to force re-execution if nested visualization is pending
+      return requiresReExecution ? null : result;
     } else {
       if (onProgressCallbackOrNull != null) {
         reportEvaluationProgress(nodeId);
       }
     }
 
-    return null;
+    return requiresReExecution ? null : result;
   }
 
   @CompilerDirectives.TruffleBoundary
   private void reportEvaluationProgress(UUID nodeId) {
-    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+    if (cache.isBindingExpression(nodeId)) {
       var newObserver =
           ExecutionProgressObserver.startComputation(
               nodeId,
@@ -121,7 +128,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
                 CompilerDirectives.transferToInterpreter();
                 var expressionValue = ExpressionValue.progress(nodeId, progress, msg);
                 onProgressCallbackOrNull.accept(expressionValue);
-              });
+              },
+              progressTimingCollector);
       refreshObserver(newObserver);
     }
   }
@@ -148,12 +156,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       refreshObserver(null);
     }
 
+    var call = functionCallInfoById(nodeId);
     TypeInfo cachedType = cache.getType(nodeId);
-    FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
-    ExpressionValue expressionValue =
+    var expressionValue =
         new ExpressionValue(
             nodeId,
             result,
@@ -165,25 +173,37 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             false,
             -1.0,
             null);
-    syncState.setExpressionUnsync(nodeId);
-    visualizationHolder
-        .find(nodeId)
-        .foreach(
-            visualization -> {
-              syncState.setVisualizationUnsync(visualization.id());
-              return null;
-            });
-
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
+    RuntimeCache.CacheOfferResult newValueCached;
     if (!isPanic) {
-      cache.offer(nodeId, result);
+      newValueCached = cache.offer(nodeId, result);
       cache.putCall(nodeId, call);
+    } else {
+      newValueCached = new RuntimeCache.CacheOfferResult(false, false);
     }
     cache.putType(nodeId, resultType);
 
+    if (newValueCached.updated() || !newValueCached.canCache()) {
+      // Ensure that we send updates only when we really modify cached expressions.
+      // This is important for RHS when we only re-execute for subexpressions.
+      // Without this condition, every time a subexpression would be executed, a visualization
+      // for parent expression would be executed as well, which is undesirable (or even expensive).
+      // Also send intermediate expression/visualizations updates for expressions that cannot be
+      // cached as GUI/unit tests
+      // appear to expect those.
+
+      syncState.setExpressionUnsync(nodeId);
+      visualizationHolder
+          .find(nodeId)
+          .foreach(
+              visualization -> {
+                syncState.setVisualizationUnsync(visualization.id());
+                return null;
+              });
+    }
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);
     if (isPanic) {

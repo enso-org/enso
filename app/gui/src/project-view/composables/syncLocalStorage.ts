@@ -1,7 +1,7 @@
 import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
-import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, ref, watch, withCtx } from 'vue'
 import { xxHash128 } from 'ydoc-shared/ast/ffi'
 import { AbortScope } from 'ydoc-shared/util/net'
 
@@ -55,7 +55,14 @@ export function useSyncLocalStorage<StoredState extends object>(
     getCurrentInstance(),
   ) as typeof options.restoreState
 
-  const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map())
+  const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map(), {
+    // The default (`pre`) cannot be used because state captured during `beforeMount` would never
+    // be flushed.
+    flush: 'sync',
+    // `deep: true` would traverse stored state recursively; keep it shallow to avoid stack
+    // overflows if something unexpectedly non-JSON leaks into view state.
+    deep: false,
+  })
 
   /**
    * Maximum number of graph states stored in localStorage. When it is exceeded, least recently used
@@ -102,18 +109,25 @@ export function useSyncLocalStorage<StoredState extends object>(
       debounce: options.debounce,
     },
   )
+  onBeforeUnmount(() => {
+    if (restoreIdInProgress.value == null)
+      saveState(graphViewportStorageKey.value, serializedState.value)
+  })
 
   function saveState(storageKey: string, state: StoredState) {
-    storageMap.value.set(storageKey, state)
+    const next = new Map(storageMap.value)
+    next.set(storageKey, state)
     // Ensure that the storage doesn't grow forever by periodically removing least recently
     // written half of entries when we reach a limit.
-    if (storageMap.value.size > MAX_STORED_GRAPH_STATES) {
-      let toRemove = storageMap.value.size - MAX_STORED_GRAPH_STATES / 2
-      for (const key of storageMap.value.keys()) {
+    if (next.size > MAX_STORED_GRAPH_STATES) {
+      let toRemove = next.size - MAX_STORED_GRAPH_STATES / 2
+      for (const key of next.keys()) {
         if (toRemove-- <= 0) break
-        storageMap.value.delete(key)
+        next.delete(key)
       }
     }
+    // storageMap is observed by a shallow watcher which would not pick up internal changes, so we replace the whole value.
+    storageMap.value = next
   }
 
   async function restoreState(storageKey: string) {
@@ -128,7 +142,9 @@ export function useSyncLocalStorage<StoredState extends object>(
       await restoreStateInCtx(restored, restoreAbort.signal)
     } catch (e) {
       // Ignore promise rejections caused by aborted scope. Those are expected to happen.
-      if (!restoreAbort.signal.aborted) throw e
+      if (!restoreAbort.signal.aborted) {
+        throw e
+      }
     } finally {
       if (restoreIdInProgress.value === thisRestoreId) restoreIdInProgress.value = undefined
     }
@@ -144,7 +160,10 @@ export function useSyncLocalStorage<StoredState extends object>(
       const stateBlob = storageMap.value.get(oldKey)
       if (stateBlob != null) {
         const newKey = encodeKey(newKeyEncoder)
-        storageMap.value.set(newKey, stateBlob)
+        const next = new Map(storageMap.value)
+        next.set(newKey, stateBlob)
+        // storageMap is observed by a shallow watcher which would not pick up internal changes, so we replace the whole value.
+        storageMap.value = next
       }
     },
   }

@@ -1,35 +1,33 @@
 use crate::prelude::*;
 
 use crate::engine;
-use crate::engine::env;
-use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::BenchmarkType;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
 use crate::engine::Operation;
+use crate::engine::PARALLEL_ENSO_TESTS;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
-use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::engine::sbt::SbtCommandProvider;
+use crate::engine::{edition, env};
 use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
-use crate::paths::cache_directory;
+use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
-use crate::paths::ENSO_TEST_JUNIT_DIR;
+use crate::paths::cache_directory;
 use crate::project::ProcessWrapper;
 
+use crate::engine::edition::PublishedLibrary;
 use ide_ci::actions::workflow::is_in_env;
-use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
-use ide_ci::github::release::IsReleaseExt;
+use ide_ci::github::release::{Handle, IsReleaseExt};
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
+use ide_ci::programs::sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
-
-
 
 pub type FutureEnginePackage = BoxFuture<'static, Result<crate::paths::generated::EnginePackage>>;
 
@@ -51,9 +49,9 @@ pub fn format_option_variant<T>(value: &Option<T>, f: &mut Formatter) -> std::fm
 pub struct RunContext {
     #[deref]
     #[deref_mut]
-    pub inner:            crate::project::Context,
-    pub config:           BuildConfigurationResolved,
-    pub paths:            Paths,
+    pub inner: crate::project::Context,
+    pub config: BuildConfigurationResolved,
+    pub paths: Paths,
     /// If set, the engine package (used for creating bundles) will be obtained through this
     /// provider rather than built from source along the other Engine components.
     #[derive_where(skip)]
@@ -74,28 +72,17 @@ impl RunContext {
 
     pub fn expected_artifacts(&self) -> BuiltArtifacts {
         BuiltArtifacts {
-            engine_package:          self.config.build_engine_package.then(|| {
+            engine_package: self.config.build_engine_package.then(|| {
                 self.repo_root.built_distribution.enso_engine_triple.engine_package.clone()
             }),
-            launcher_package:        self.config.build_launcher_package.then(|| {
+            launcher_package: self.config.build_launcher_package.then(|| {
                 self.repo_root.built_distribution.enso_launcher_triple.launcher_package.clone()
             }),
-            project_manager_package: self.config.build_project_manager_package.then(|| {
-                self.repo_root
-                    .built_distribution
-                    .enso_project_manager_triple
-                    .project_manager_package
-                    .clone()
+            engine_bundle: self.config.build_engine_bundle.then(|| {
+                self.repo_root.built_distribution.engine_bundle_triple.engine_bundle.clone()
             }),
-            launcher_bundle:         self.config.build_launcher_bundle.then(|| {
+            launcher_bundle: self.config.build_launcher_bundle.then(|| {
                 self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
-            }),
-            project_manager_bundle:  self.config.build_project_manager_bundle.then(|| {
-                self.repo_root
-                    .built_distribution
-                    .project_manager_bundle_triple
-                    .project_manager_bundle
-                    .clone()
             }),
         }
     }
@@ -118,18 +105,12 @@ impl RunContext {
         ide_ci::programs::Git.require_present().await?;
         ide_ci::programs::Cargo.require_present().await?;
         ide_ci::programs::Node.require_present().await?;
-        ide_ci::programs::Npm.require_present().await?;
+        ide_ci::programs::Pnpm.require_present().await?;
 
         let prepare_simple_library_server = {
             if self.config.test_jvm {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
-                ide_ci::programs::git::new(simple_server_path)
-                    .await?
-                    .cmd()?
-                    .clean()
-                    .run_ok()
-                    .await?;
-                ide_ci::programs::Npm
+                ide_ci::programs::Pnpm
                     .cmd()?
                     .current_dir(simple_server_path)
                     .install()
@@ -143,12 +124,10 @@ impl RunContext {
 
         // Setup flatc (FlatBuffers compiler), required for building the engine.
         let flatc_goodie = cache::goodie::flatc::Flatc {
-            version:  engine::deduce_flatbuffers(&self.repo_root.project.dependencies_scala)
-                .await?,
+            version: engine::deduce_flatbuffers(&self.repo_root.project.dependencies_scala).await?,
             platform: TARGET_OS,
         };
         flatc_goodie.install_if_missing(&self.cache).await?;
-
 
         self.paths.emit_env_to_actions().await?;
         debug!("Build configuration: {:#?}", self.config);
@@ -168,7 +147,6 @@ impl RunContext {
         //     goodies.require(&musl).await?;
         // }
 
-
         // Setup GraalVM
         let graalvm =
             engine::deduce_graal(self.octocrab.clone(), &self.repo_root.project.dependencies_scala)
@@ -182,10 +160,10 @@ impl RunContext {
         // GraalPy has a version that corresponds to the `graalMavenPackagesVersion` variable in
         // build.sbt
         let graalpy = cache::goodie::graalpy::GraalPy {
-            client:  self.octocrab.clone(),
+            client: self.octocrab.clone(),
             version: graalpy_version,
-            os:      self.paths.triple.os,
-            arch:    self.paths.triple.arch,
+            os: self.paths.triple.os,
+            arch: self.paths.triple.arch,
         };
         graalpy.install_if_missing(&self.cache).await?;
         ide_ci::programs::graalpy::GraalPy.require_present().await?;
@@ -194,7 +172,7 @@ impl RunContext {
             // Ensure all runtime dependencies are resolved and exported so that they can be
             // appended to classpath
             let sbt = engine::sbt::Context {
-                repo_root:         self.paths.repo_root.path.clone(),
+                repo_root: self.paths.repo_root.path.clone(),
                 system_properties: default(),
             };
             sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
@@ -270,7 +248,7 @@ impl RunContext {
         // Build packages.
         debug!("Bootstrapping Enso project.");
         let sbt = engine::sbt::Context {
-            repo_root:         self.paths.repo_root.path.clone(),
+            repo_root: self.paths.repo_root.path.clone(),
             system_properties: vec![sbt::SystemProperty::new(
                 "bench.compileOnly",
                 self.config.execute_benchmarks_once.to_string(),
@@ -287,7 +265,7 @@ impl RunContext {
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
 
-        // === Build project-manager distribution and native image ===
+        // === Build distributions and native images ===
         let mut tasks = vec![];
         let mut run_sbt_clean = false;
         if self.config.build_engine_package {
@@ -297,9 +275,7 @@ impl RunContext {
         if self.config.build_native_ydoc {
             tasks.push("ydoc-server/buildNativeImage");
         }
-        if self.config.build_project_manager_package() {
-            tasks.push("buildProjectManagerDistribution");
-        }
+
         if self.config.build_launcher_package() {
             tasks.push("buildLauncherDistribution");
         }
@@ -334,7 +310,12 @@ impl RunContext {
             sbt.call_arg(sbt_cmd).await?;
         }
 
-        // === End of Build project-manager distribution and native image ===
+        // === End of Build distributions and native images ===
+
+        if self.config.build_engine_package {
+            debug!("Checking IR cache sizes of std libs.");
+            sbt.call_arg("checkIRCacheSizes").await?;
+        }
 
         let ret = self.expected_artifacts();
 
@@ -378,19 +359,17 @@ impl RunContext {
             Ok(())
         };
 
-        match &self.config.test_standard_library {
-            Some(selection) => {
-                enso.run_tests(
-                    IrCaches::No,
-                    &sbt,
-                    PARALLEL_ENSO_TESTS,
-                    selection.clone(),
-                    self.config.extra_engine_runner_args.clone(),
-                    self.config.has_native_runner(),
-                )
-                .await?;
-            }
-            None => {}
+        if let Some(selection) = &self.config.test_standard_library {
+            enso.run_tests(
+                IrCaches::No,
+                &sbt,
+                PARALLEL_ENSO_TESTS,
+                selection.clone(),
+                self.config.extra_engine_runner_args.clone(),
+                self.config.extra_java_tool_opts.clone(),
+                self.config.has_native_runner(),
+            )
+            .await?;
         }
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
@@ -425,6 +404,7 @@ impl RunContext {
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
         if !benchmark_command.is_empty() {
             debug!("Running benchmarks.");
+            env::ENSO_TEST_JUNIT_DIR.remove();
             sbt.call_arg(benchmark_command).await?;
         } else {
             debug!("No SBT tasks to run.");
@@ -432,14 +412,15 @@ impl RunContext {
 
         match &self.config.execute_benchmarks {
             None => (),
-            Some(benchs) =>
+            Some(benchs) => {
                 if benchs.bench_type == BenchmarkType::Enso {
                     if self.config.check_enso_benchmarks {
                         enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
                     } else {
                         enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
                     }
-                },
+                }
+            }
         }
 
         if is_in_env() {
@@ -494,17 +475,17 @@ impl RunContext {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
                     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-                    let release = ide_ci::github::release::Handle::new(
-                        &self.inner.octocrab,
-                        repo,
-                        release_id,
-                    );
+                    let release = Handle::new(&self.inner.octocrab, repo, release_id);
+                    self.upload_libs(&release).await?;
+                    self.remove_uploaded_libs().await?;
                     for package in artifacts.packages() {
                         package.upload_as_asset(release.clone()).await?;
                     }
                     for bundle in artifacts.bundles() {
                         bundle.upload_as_asset(release.clone()).await?;
                     }
+                    // This condition ensures that the following assets are only uploaded from a single job.
+                    // Which is desirable because they are platform independent.
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
@@ -534,7 +515,7 @@ impl RunContext {
             Operation::Sbt(args) => {
                 self.prepare_build_env().await?;
                 let sbt = engine::sbt::Context {
-                    repo_root:         self.paths.repo_root.path.clone(),
+                    repo_root: self.paths.repo_root.path.clone(),
                     system_properties: default(),
                 };
                 sbt.call_args(args).await?;
@@ -613,7 +594,8 @@ impl RunContext {
         assert!(old_api_dir.exists());
         debug!(
             "Checking API for library Standard.{}, its API dir is in {:?}",
-            lib.name, old_api_dir
+            lib.name,
+            self.short_path(&old_api_dir)
         );
         // `lib_path_in_built_distribution` points to the lib in the `built-distribution`
         // directory, which is not under VCS. We will regenerate the API in this directory
@@ -638,22 +620,97 @@ impl RunContext {
         match diff {
             Ok(_) => Ok(()),
             Err(err) => {
-                let suggested_cmd = built_enso
-                    .cmd()?
-                    .with_arg("--docs")
-                    .with_arg("api")
-                    .with_arg("--in-project")
-                    .with_arg(lib.path.clone());
                 error!("API check failed for library Standard.{}", lib.name);
                 error!("Current API vs Old API: {}", err);
-                error!("If you wish to overwrite the current API in the directory {}, run the following command {},
+                error!("If you wish to overwrite the current API in the directory {}, run the following command
+                       sbt \"runEngineDistribution --no-ir-caches --docs=api --in-project {}\"
                        and commit the modified files",
-                  old_api_dir.display(),
-                  suggested_cmd.describe()
+                  self.short_path(&old_api_dir).display(),
+                  self.short_path(&lib.path).display()
                 );
                 bail!("API check failed for library Standard.{}", lib.name);
             }
         }
+    }
+
+    /// Uploads all the libraries that should be uploaded.
+    /// See [edition::libs_to_upload].
+    /// Note that the library asset is platform independent, so it should run only
+    /// in once job, hence the check for the current os.
+    async fn upload_libs(&self, release_handle: &Handle) -> Result {
+        if TARGET_OS == OS::Linux {
+            let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+            let libs_to_upload = edition.libs_to_upload();
+            debug!("Uploading libraries: {:?}", libs_to_upload);
+            for lib in libs_to_upload {
+                let lib_path = lib.find_in_repo_root(&self.repo_root);
+                debug!("Will upload library in {}", lib_path.to_string_lossy());
+                self.upload_as_zip(&lib, release_handle.clone()).await?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Uploads the given library as a zip asset. Name of the asset is
+    /// derived from the library's repository name.
+    async fn upload_as_zip(&self, lib: &PublishedLibrary, release_handle: Handle) -> Result {
+        let lib_path = lib.find_in_repo_root(&self.repo_root);
+        if !Path::is_dir(&lib_path) {
+            return Err(anyhow!("{:?} is not a directory.", lib_path));
+        }
+        debug!("Will upload library in {:?}", lib_path);
+        let asset_name = &lib.repository.name;
+        assert!(asset_name.ends_with(".zip"));
+        let tmp_dir = tempfile::tempdir()?;
+        let zip_file_path = tmp_dir.path().join(asset_name);
+        lib.create_zip(&self.repo_root, &zip_file_path).await?;
+        debug!("Will upload {:?} as asset", zip_file_path);
+        release_handle.upload_asset_file(zip_file_path).await?;
+        Ok(())
+    }
+
+    /// Remove the libraries that were just uploaded from the release. That is,
+    /// remove them from the `built-distribution` directory.
+    /// This is needed to ensure that the libraries that are uploaded as separate
+    /// assets are not part of any other uploaded asset.
+    ///
+    /// Note that there are multiple _distributions_ (e.g. subdirectories) under
+    /// `built-distribution`, and we have to remove the library from all of those
+    /// subdirectories.
+    async fn remove_uploaded_libs(&self) -> Result {
+        let lib_root_dirs = self.std_lib_root_dirs();
+        let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+        for lib in edition.libs_to_upload() {
+            debug!("Removing all copies of library {:?} from built-distribution", lib);
+            let (namespace, name) = lib.split_name();
+            for lib_root_dir in &lib_root_dirs {
+                let lib_dir = lib_root_dir.join(namespace).join(name);
+                ide_ci::fs::remove_dir_if_exists(&lib_dir)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Returns list of all library root directories that should be present after building.
+    /// All of these root directories are located in some subdirectory of `built-distribution`.
+    fn std_lib_root_dirs(&self) -> Vec<PathBuf> {
+        let artifacts = self.expected_artifacts();
+        let mut lib_root_dirs: Vec<PathBuf> = Vec::new();
+        if let Some(engine_package) = artifacts.engine_package {
+            lib_root_dirs.push(engine_package.lib.path);
+        }
+        if let Some(engine_bundle) = artifacts.engine_bundle {
+            lib_root_dirs.push(engine_bundle.dist.version.path.join("lib"));
+        }
+        if let Some(launcher_bundle) = artifacts.launcher_bundle {
+            lib_root_dirs.push(launcher_bundle.dist.version.path.join("lib"));
+        }
+        lib_root_dirs
+    }
+
+    fn short_path(&self, full: &Path) -> PathBuf {
+        let strip = full.strip_prefix(self.repo_root.path.clone());
+        if let Ok(relative) = strip { relative.to_path_buf() } else { full.to_path_buf() }
     }
 }
 
@@ -667,26 +724,4 @@ impl Display for StdLib {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Standard.{}", self.name)
     }
-}
-
-/// Upload the directory with Enso-generated test results.
-///
-/// This is meant to ease debugging, it does not really affect the build.
-#[context("Failed to upload test results.")]
-pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
-    // Each platform gets its own log results, so we need to generate unique
-    // names.
-    let name = format!("Test_Results_{TARGET_OS}");
-    let upload_result =
-        ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name).await;
-    if let Err(err) = &upload_result {
-        // We wouldn't want to fail the whole build if we can't upload the test
-        // results. Still, it should be somehow
-        // visible in the build summary.
-        ide_ci::actions::workflow::message(
-            MessageLevel::Warning,
-            format!("Failed to upload test results: {err}"),
-        );
-    }
-    upload_result
 }

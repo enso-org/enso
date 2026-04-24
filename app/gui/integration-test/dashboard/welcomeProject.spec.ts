@@ -1,14 +1,20 @@
 /** @file Test that welcome project is loaded on fresh install. */
-import { test } from 'playwright/test'
+import { test } from 'integration-test/base'
 
-import { mockAllAndLogin } from './actions'
-
-test('Welcome project opens', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      const samplesDir = api.addDirectory({ title: 'Samples' })
-      api.addProject({ parentId: samplesDir.id, title: 'Colorado COVID.project' })
+test.describe(() => {
+  test.use({
+    setupApi: {
+      addDefaultProject: false,
+      cloud: (cloudApi) => {
+        const samplesDir = cloudApi.addDirectory({ title: 'Samples' })
+        cloudApi.addProject({
+          parentId: samplesDir.id,
+          title: 'Getting Started.project',
+        })
+      },
     },
-    goToCloudFirst: false,
-  }).expectProjectEditorOpened('Colorado COVID'))
+  })
+  test('Welcome project opens', async ({ drivePage }) => {
+    await drivePage.expectProjectEditorOpened('Getting Started')
+  })
+})

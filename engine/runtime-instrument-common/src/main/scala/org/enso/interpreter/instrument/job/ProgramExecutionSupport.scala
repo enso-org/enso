@@ -8,13 +8,13 @@ import org.enso.interpreter.instrument.{
   MethodCallsCache,
   RuntimeCache,
   TypeInfo,
+  UnevaluatedVisualization,
   UpdatesSynchronizationState,
   Visualization,
   WarningPreview
 }
 import org.enso.interpreter.instrument.execution.{ErrorResolver, RuntimeContext}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
@@ -68,7 +68,6 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
 
     val methodCallsCache = new MethodCallsCache
-    var enterables       = Map[UUID, FunctionCall]()
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
       logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
@@ -113,12 +112,28 @@ object ProgramExecutionSupport {
           executionFrame.syncState,
           value
         )
+
+        processAllUnevaluatedVisualizations(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState
+        )
       }
     }
 
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
-        enterables += fun.getExpressionId -> fun.getCall
+        ctx.executionService
+          .submitExecutionWithCacheAccess(
+            executionFrame.cache,
+            fun,
+            (cache, call: ExpressionCall) => {
+              cache.updateEnterable(call.getExpressionId, call.getCall)
+              null;
+            }
+          )
+          .toCompletableFuture
+          .get()
       }
 
     val pendingResult = executionFrame match {
@@ -155,6 +170,7 @@ object ProgramExecutionSupport {
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
           ctx.state.expressionExecutionState,
+          ctx.progressTimingCollector,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -197,6 +213,7 @@ object ProgramExecutionSupport {
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
           ctx.state.expressionExecutionState,
+          ctx.progressTimingCollector,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -208,38 +225,55 @@ object ProgramExecutionSupport {
     pendingResult.toCompletableFuture.get()
     callStack match {
       case Nil =>
-        val notExecuted =
-          methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
-        notExecuted.forEach { expressionId =>
-          val expressionTypes = executionFrame.cache.getType(expressionId)
-          val expressionCall  = executionFrame.cache.getCall(expressionId)
-          onCachedMethodCallCallback.accept(
-            new ExpressionValue(
-              expressionId,
-              null,
-              expressionTypes,
-              expressionTypes,
-              expressionCall,
-              expressionCall,
-              Array(ExecutionTime.empty()),
-              true,
-              -1.0,
-              null
-            )
-          )
-        }
-      case item :: tail =>
-        enterables.get(item.expressionId) match {
-          case Some(call) =>
-            val executionFrame =
-              ExecutionFrame(
-                ExecutionItem.CallData(item.expressionId, call),
-                item.cache,
-                item.syncState
+        executionFrame.cache.runQuery(
+          null,
+          cache => {
+            val notExecuted =
+              methodCallsCache.getNotExecuted(
+                cache.findUUIDs(true, false)
               )
-            executeProgram(contextId, executionFrame, tail)
-          case None =>
-            ()
+            notExecuted.forEach { expressionId =>
+              val expressionTypes = cache.getType(expressionId)
+              val expressionCall  = cache.getCall(expressionId)
+              onCachedMethodCallCallback.accept(
+                new ExpressionValue(
+                  expressionId,
+                  null,
+                  expressionTypes,
+                  expressionTypes,
+                  expressionCall,
+                  expressionCall,
+                  Array(ExecutionTime.empty()),
+                  true,
+                  -1.0,
+                  null
+                )
+              )
+            }
+          }
+        )
+        // Process unevaluated visualizations once after the program finishes
+        processAllUnevaluatedVisualizations(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState
+        )
+      case item :: tail =>
+        val callInfo = executionFrame.cache
+          .asInstanceOf[RuntimeCache.Immutable]
+          .getCall(item.expressionId)
+        if (callInfo != null) {
+          logger.trace(
+            "Executing instrumented call in function {}",
+            callInfo.functionPointer().functionName()
+          )
+          val executionFrame =
+            ExecutionFrame(
+              ExecutionItem.CallData(item.expressionId, callInfo.ref()),
+              item.cache,
+              item.syncState
+            )
+          executeProgram(contextId, executionFrame, tail)
         }
     }
   }
@@ -653,7 +687,7 @@ object ProgramExecutionSupport {
         val v = if (visualization.expressionId == value.getExpressionId) {
           value.getValue
         } else {
-          runtimeCache.getAnyValue(visualization.expressionId)
+          runtimeCache.runQuery(null, _.getAnyValue(visualization.expressionId))
         }
         if (v != null && !VisualizationResult.isInterruptedException(v)) {
           executeAndSendVisualizationUpdate(
@@ -666,6 +700,190 @@ object ProgramExecutionSupport {
           )
         }
       }
+    }
+  }
+
+  /** Process all pending unevaluated visualizations.
+    * Called after each expression completes to check if any pending
+    * visualizations can now be processed (their expression value is in cache).
+    *
+    * @param contextId an identifier of an execution context
+    * @param runtimeCache runtime cache for this execution
+    * @param syncState reference to synchronization state
+    * @param ctx the runtime context
+    */
+  private def processAllUnevaluatedVisualizations(
+    contextId: Api.ContextId,
+    runtimeCache: RuntimeCache,
+    syncState: UpdatesSynchronizationState
+  )(implicit ctx: RuntimeContext): Unit = {
+    val holder     = ctx.contextManager.getVisualizationHolder(contextId)
+    val allPending = holder.getAllUnevaluated
+
+    val collected = runtimeCache.runQuery(
+      null,
+      { immutable =>
+        allPending.flatMap { unevaluated =>
+          val cachedValue = immutable.get(unevaluated.expressionId)
+          Option(cachedValue).map((unevaluated, _))
+        }
+      }
+    )
+
+    collected.foreach { case (unevaluated, cachedValue) =>
+      processUnevaluatedVisualization(
+        contextId,
+        runtimeCache,
+        syncState,
+        unevaluated,
+        cachedValue
+      )
+    }
+  }
+
+  /** Process a single unevaluated visualization.
+    *
+    * @param contextId an identifier of an execution context
+    * @param runtimeCache runtime cache for this execution
+    * @param syncState reference to synchronization state
+    * @param unevaluated the unevaluated visualization to process
+    * @param expressionValue the cached value of the expression
+    * @param ctx the runtime context
+    */
+  private def processUnevaluatedVisualization(
+    contextId: Api.ContextId,
+    runtimeCache: RuntimeCache,
+    syncState: UpdatesSynchronizationState,
+    unevaluated: UnevaluatedVisualization,
+    expressionValue: AnyRef
+  )(implicit ctx: RuntimeContext): Unit = {
+    logger.trace(
+      "Processing unevaluated visualization {} on expression {}",
+      unevaluated.id,
+      unevaluated.expressionId
+    )
+    val holder  = ctx.contextManager.getVisualizationHolder(contextId)
+    val context = ctx.executionService.getContext
+
+    try {
+      val visModuleName  = unevaluated.config.visualizationModule
+      val exprModuleName = unevaluated.config.expression.module
+
+      context.ensureModuleIsLoaded(visModuleName)
+      context.ensureModuleIsLoaded(exprModuleName)
+
+      val visModuleOpt  = context.findModule(visModuleName)
+      val exprModuleOpt = context.findModule(exprModuleName)
+
+      if (visModuleOpt.isEmpty) {
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(visModuleName))
+        )
+        return
+      }
+      if (exprModuleOpt.isEmpty) {
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(exprModuleName))
+        )
+        return
+      }
+
+      val visModule  = visModuleOpt.get()
+      val exprModule = exprModuleOpt.get()
+
+      visModule.compileScope(context)
+      exprModule.compileScope(context)
+
+      val maybeCallable =
+        UpsertVisualizationJob.evaluateVisualizationExpression(
+          unevaluated.config.visualizationModule,
+          unevaluated.config.expression,
+          hasWriteCompilationLock = true
+        )
+
+      maybeCallable match {
+        case Left(UpsertVisualizationJob.ModuleNotFound(moduleName)) =>
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ModuleNotFound(moduleName))
+          )
+
+        case Left(UpsertVisualizationJob.EvaluationFailed(message, result)) =>
+          ctx.endpoint.sendToClient(
+            Api.Response(
+              Api.VisualizationExpressionFailed(
+                Api.VisualizationContext(
+                  unevaluated.id,
+                  contextId,
+                  unevaluated.expressionId
+                ),
+                message,
+                result
+              )
+            )
+          )
+
+        case Left(UpsertVisualizationJob.RequiresCompilation) =>
+          // Should not happen since we pre-compiled, but handle gracefully
+          logger.warn(
+            "Unexpected RequiresCompilation after pre-compilation for visualization {}",
+            unevaluated.id
+          )
+
+        case Right(evaluatedExpression) =>
+          val visualization =
+            try {
+              UpsertVisualizationJob.updateAttachedVisualization(
+                unevaluated.id,
+                unevaluated.expressionId,
+                unevaluated.parentExpressionId,
+                evaluatedExpression.module,
+                unevaluated.config,
+                evaluatedExpression.callback,
+                evaluatedExpression.arguments
+              )
+            } finally {
+              val removed =
+                holder.removeUnevaluated(
+                  unevaluated.id,
+                  unevaluated.expressionId
+                )
+              if (removed.isEmpty) {
+                // The visualization was detached, cleanup
+                holder.remove(unevaluated.id, unevaluated.expressionId)
+                return
+              }
+            }
+
+          executeAndSendVisualizationUpdate(
+            contextId,
+            runtimeCache,
+            syncState,
+            visualization,
+            unevaluated.expressionId,
+            expressionValue
+          )
+      }
+    } catch {
+      case e: Exception =>
+        logger.error(
+          "Failed to process unevaluated visualization {}: {}",
+          unevaluated.id,
+          e.getMessage,
+          e
+        )
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.VisualizationExpressionFailed(
+              Api.VisualizationContext(
+                unevaluated.id,
+                contextId,
+                unevaluated.expressionId
+              ),
+              e.getMessage,
+              None
+            )
+          )
+        )
     }
   }
 
@@ -694,6 +912,7 @@ object ProgramExecutionSupport {
             runtimeCache,
             visualization.module,
             visualization.callback,
+            ctx.progressTimingCollector,
             expressionValue +: visualization.arguments: _*
           )
         }
@@ -710,7 +929,7 @@ object ProgramExecutionSupport {
             holder.upsert(visualization, id)
           }
         }
-        runtimeCache.runQuery(processUUID, makeCall)
+        runtimeCache.runQuery(processUUID, _ => makeCall.get())
       } else {
         makeCall.get()
       }
@@ -771,12 +990,10 @@ object ProgramExecutionSupport {
               p.getLocation().getEncapsulatingSourceSection() match {
                 case ss: SourceSection =>
                   logger.warn(
-                    "Error at {}-{} (e.g. `{}`) of {} with text:\n{}",
-                    ss.getCharIndex(),
-                    ss.getCharEndIndex(),
-                    ss.getCharacters(),
-                    visualizationId,
-                    ss.getSource().getCharacters()
+                    s"Error at ${ss.getCharIndex()}-${ss
+                      .getCharEndIndex()} in ${ss.getSource.getPath} (e.g. `${ss
+                      .getCharacters()}`) of visualization $visualizationId",
+                    p
                   )
                 case _ =>
               }
@@ -785,7 +1002,8 @@ object ProgramExecutionSupport {
           }
         }
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
+          true,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -806,11 +1024,13 @@ object ProgramExecutionSupport {
 
       case Right(data) =>
         logger.trace(
-          "Visualization executed [{}].",
+          "Visualization {} for expression {} executed.",
+          visualizationId,
           expressionId
         )
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
+          true,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(

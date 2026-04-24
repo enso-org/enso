@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type Component, reactive } from 'vue'
+import { reactive, type Component } from 'vue'
 
 const _props = defineProps<{
   host: VueHostInstance

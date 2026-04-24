@@ -58,9 +58,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
   "Runner" should {
     "create a command from settings" in {
-      val envOptions = "-Xfrom-env -Denv=env"
-      val runner =
-        makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
+      val runner = makeFakeRunner()
 
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
@@ -76,9 +74,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         val arguments     = command.command.tail
         val javaArguments = arguments.takeWhile(_ != "-jar")
         val appArguments  = arguments.dropWhile(_ != runnerEntryPoint).tail
-        javaArguments should contain("-Xfrom-env")
-        javaArguments should contain("-Denv=env")
-        javaArguments should contain("-Dlocally-added-options=value1")
         javaArguments should contain("-Dlocally-added-options=value1")
         javaArguments should contain("-Doptions-added-from-manifest=42")
         javaArguments should contain("-Xanother-one")
@@ -299,14 +294,14 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       newProject("test", projectPath, version)
 
       val options = LanguageServerOptions(
-        rootId         = UUID.randomUUID(),
-        projectId      = UUID.randomUUID(),
-        interface      = "127.0.0.2",
-        rpcPort        = 1234,
-        secureRpcPort  = None,
-        dataPort       = 4321,
-        secureDataPort = None,
-        jvm            = None
+        rootId                = UUID.randomUUID(),
+        projectId             = UUID.randomUUID(),
+        projectCloudId        = None,
+        projectCloudSessionId = None,
+        interface             = "127.0.0.2",
+        rpcPort               = 1234,
+        secureRpcPort         = None,
+        jvm                   = None
       )
       val runSettings = runner
         .languageServer(
@@ -324,7 +319,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val commandLine = runSettings.runnerArguments.mkString(" ")
       commandLine should include(s"--interface ${options.interface}")
       commandLine should include(s"--rpc-port ${options.rpcPort}")
-      commandLine should include(s"--data-port ${options.dataPort}")
       commandLine should include(s"--root-id ${options.rootId}")
       val normalizedPath = projectPath.toAbsolutePath.normalize.toString
       commandLine should include(s"--path $normalizedPath")

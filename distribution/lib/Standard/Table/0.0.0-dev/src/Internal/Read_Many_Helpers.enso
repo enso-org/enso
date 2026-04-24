@@ -82,8 +82,8 @@ _merge_input_and_tables (input_table : Table) (tables_for_rows : Vector Read_Man
         first_pass.zip unified_data right_prefix=""
 
 ## Unifies provided metadata tables, knowing that some tables may have no
-   metadata - in such case we want to insert as many Nothing rows for metadata
-   as there are rows in the corresponding data table.
+   metadata - in such case we want to insert as many Nothing rows for metadata as
+   there are rows in the corresponding data table.
 _unify_metadata (tables : Vector Read_Many_As_Table_Result) (on_problems : Problem_Behavior) -> Table | Nothing =
     has_no_metadata = tables.all r-> Nothing == r.metadata
     if has_no_metadata then Nothing else

@@ -1,0 +1,17 @@
+private
+
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+
+import project.Connection.Data_Link.Postgres_Data_Link.Postgres_Data_Link
+import project.Connection.Database.Database_Connection_Details_SPI
+import project.Connection.Postgres.Postgres
+
+type Impl
+
+Data_Link_SPI.from (that:Impl) =
+    _ = that
+    Data_Link_SPI.new Postgres_Data_Link "Postgres_Connection"
+
+Database_Connection_Details_SPI.from (that:Impl) =
+    _ = that
+    Database_Connection_Details_SPI.new Postgres "Postgres" "(Postgres.Server 'localhost' 5432)"

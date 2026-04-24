@@ -2,24 +2,24 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { subtreeRoots } from '.'
 import { assert, assertDefined } from '../util/assert'
-import { type SourceRangeEdit } from '../util/data/text'
-import { type Origin, defaultLocalOrigin, tryAsOrigin } from '../yjsModel'
+import type { SourceRangeEdit } from '../util/data/text'
+import { defaultLocalOrigin, tryAsOrigin, type Origin } from '../yjsModel'
 import { newExternalId } from './idMap'
 import { parseModule } from './parse'
-import { type SyncTokenId, Token, isTokenId } from './token'
+import { Token, isTokenId, type SyncTokenId } from './token'
+import type {
+  AstFields,
+  AstId,
+  AstType,
+  FixedMap,
+  Mutable,
+  MutableAst,
+  MutableInvalid,
+  NodeChild,
+  Owned,
+  RawNodeChild,
+} from './tree'
 import {
-  type AstFields,
-  type AstId,
-  type AstType,
-  type BodyBlock,
-  type FixedMap,
-  type Mutable,
-  type MutableAst,
-  type MutableBodyBlock,
-  type MutableInvalid,
-  type NodeChild,
-  type Owned,
-  type RawNodeChild,
   Ast,
   Wildcard,
   asOwned,
@@ -27,12 +27,14 @@ import {
   invalidFields,
   materializeMutable,
   setAll,
+  visitRecursive,
 } from './tree'
 
 export interface Module {
   edit(): MutableModule
-  root(): BodyBlock | undefined
+  root(): Ast | undefined
   tryGet(id: AstId | undefined): Ast | undefined
+  getVersion<T extends Ast>(ast: T): T
 
   /////////////////////////////////
 
@@ -75,9 +77,9 @@ export class MutableModule implements Module {
   }
 
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
-  getVersion<T extends Ast>(ast: T): Mutable<T> {
+  getVersion<T extends Ast>(ast: T): Mutable<T> & T {
     const instance = this.get(ast.id)
-    return instance as Mutable<T>
+    return instance as Mutable<T> & T
   }
 
   /** TODO: Add docs */
@@ -98,16 +100,17 @@ export class MutableModule implements Module {
   }
 
   /** Return the top-level block of the module. */
-  root(): MutableBodyBlock | undefined {
-    return this.rootPointer()?.expression as MutableBodyBlock | undefined
+  root(): MutableAst | undefined {
+    return this.rootPointer()?.expression as MutableAst | undefined
   }
 
-  /** Set the given block to be the top-level block of the module. */
-  setRoot(newRoot: Owned<MutableBodyBlock> | undefined) {
+  /** Set the given expression to be the root of the module. */
+  setRoot(newRoot: Owned | undefined) {
     if (newRoot) {
       const rootPointer = this.rootPointer()
       if (rootPointer) {
-        rootPointer.expression.replace(newRoot)
+        if (newRoot.module !== this || rootPointer.fields.get('expression').node !== newRoot.id)
+          rootPointer.expression.replace(newRoot)
       } else {
         invalidFields(this, this.baseObject('Invalid', ROOT_ID), {
           whitespace: '',
@@ -171,7 +174,9 @@ export class MutableModule implements Module {
   /** @internal */
   importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     assert(ast.module !== this)
-    ast.visitRecursive((ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
+    visitRecursive(ast, (ast) => {
+      this.nodes.set(ast.id, ast.fields.clone() as any)
+    })
     const fields = this.nodes.get(ast.id)
     assertDefined(fields)
     fields.set('parent', undefined)

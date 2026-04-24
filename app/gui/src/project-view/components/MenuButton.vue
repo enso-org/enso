@@ -15,7 +15,7 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
  * contents will have the `disabled` class.
  */
 
-const toggledOn = defineModel<boolean | undefined>()
+const toggledOn = defineModel<boolean | undefined>({ default: undefined })
 const props = defineProps<{
   disabled?: boolean | undefined
   title?: string | undefined
@@ -68,10 +68,13 @@ function onActivate() {
 <style scoped>
 .MenuButton {
   min-width: max-content;
+  height: var(--button-height);
   padding: var(--button-padding, 4px);
-  border-radius: var(--radius-full);
+  border-radius: var(--button-left-radius, var(--radius-full))
+    var(--button-right-radius, var(--radius-full)) var(--button-right-radius, var(--radius-full))
+    var(--button-left-radius, var(--radius-full));
   border: none;
-  transition: background-color 0.3s;
+  transition: background-color 0.1s;
   position: relative;
   display: flex;
   justify-content: center;

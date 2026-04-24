@@ -5,11 +5,9 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -20,16 +18,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeMethodNode;
-import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -46,11 +43,12 @@ import org.enso.pkg.QualifiedName;
 public final class Type extends EnsoObject {
 
   private final String name;
-  private @CompilerDirectives.CompilationFinal ModuleScope.Builder definitionScope;
+  private @CompilerDirectives.CompilationFinal ModuleScopeBuilder definitionScope;
   private final boolean builtin;
   private final Type supertype;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
+  private @CompilerDirectives.CompilationFinal AtomConstructor singleConstructor;
   private final boolean hasAllConstructorsPrivate;
 
   private boolean gettersGenerated;
@@ -58,7 +56,7 @@ public final class Type extends EnsoObject {
 
   private Type(
       String name,
-      ModuleScope.Builder definitionScope,
+      ModuleScopeBuilder definitionScope,
       Type supertype,
       Type eigentype,
       boolean builtin,
@@ -74,7 +72,7 @@ public final class Type extends EnsoObject {
 
   public static Type createSingleton(
       String name,
-      ModuleScope.Builder definitionScope,
+      ModuleScopeBuilder definitionScope,
       Type supertype,
       boolean builtin,
       boolean hasAllConstructorsPrivate) {
@@ -84,7 +82,7 @@ public final class Type extends EnsoObject {
   public static Type create(
       EnsoLanguage lang,
       String name,
-      ModuleScope.Builder definitionScope,
+      ModuleScopeBuilder definitionScope,
       Type supertype,
       Type any,
       boolean builtin,
@@ -103,22 +101,26 @@ public final class Type extends EnsoObject {
 
   private void generateQualifiedAccessor(EnsoLanguage lang) {
     assert lang != null;
-    var node = new ConstantNode(lang, getDefinitionScope(), this);
-    var schemaBldr =
-        FunctionSchema.newBuilder()
-            .argumentDefinitions(
-                new ArgumentDefinition(
-                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (isProjectPrivate()) {
-      schemaBldr.projectPrivate();
-    }
-    var function = new Function(node.getCallTarget(), null, schemaBldr.build());
-    definitionScope.registerMethod(
-        definitionScope.asModuleScope().getAssociatedType(), this.name, function);
+    Supplier<Function> futureFunction =
+        () -> {
+          var node = new ConstantNode(lang, getDefinitionScope(), this);
+          var schemaBldr =
+              FunctionSchema.newBuilder()
+                  .argumentDefinitions(
+                      new ArgumentDefinition(
+                          0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+          if (isProjectPrivate()) {
+            schemaBldr.projectPrivate();
+          }
+          var function = new Function(node.getCallTarget(), null, schemaBldr.build());
+          return function;
+        };
+    var assType = definitionScope.getAssociatedType();
+    definitionScope.registerMethod(assType, this.name, futureFunction);
   }
 
   public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScope().getAssociatedType()) {
+    if (this == definitionScope.getAssociatedType()) {
       return definitionScope.getModule().getName();
     } else {
       return definitionScope.getModule().getName().createChild(getName());
@@ -126,7 +128,7 @@ public final class Type extends EnsoObject {
   }
 
   public void setShadowDefinitions(
-      EnsoLanguage lang, ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
+      EnsoLanguage lang, ModuleScopeBuilder scope, boolean generateAccessorsInTarget) {
     if (builtin) {
       // Ensure that synthetic methods, such as getters for fields are in the scope.
       CompilerAsserts.neverPartOfCompilation();
@@ -149,6 +151,7 @@ public final class Type extends EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
+    definitionScope.finish();
     return definitionScope.asModuleScope();
   }
 
@@ -216,7 +219,7 @@ public final class Type extends EnsoObject {
     while (at < fill.length) {
       fill[at++] = self;
       if (self.supertype == null) {
-        if (self.builtin) {
+        if (self.builtin && self == ctx.getBuiltins().any()) {
           return at;
         }
         fill[at++] = ctx.getBuiltins().any();
@@ -261,7 +264,7 @@ public final class Type extends EnsoObject {
                       schemaBldr.projectPrivate();
                     }
                     var funcSchema = schemaBldr.build();
-                    return new Function(node.getCallTarget(), null, funcSchema);
+                    return new Function(node.get().getCallTarget(), null, funcSchema);
                   });
           definitionScope.registerMethod(this, name, functionSupplier);
         });
@@ -396,10 +399,13 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
+    if (methods().containsKey(member)) {
+      return true;
+    }
     if (hasAllConstructorsPrivate) {
       return false;
     } else {
-      return constructors.containsKey(member) || methods().containsKey(member);
+      return constructors.containsKey(member);
     }
   }
 
@@ -419,13 +425,10 @@ public final class Type extends EnsoObject {
         String member,
         Object[] args,
         @Cached("member") String cachedMember,
-        @Cached MethodResolverNode methodResolverNode,
-        @Cached("buildSymbol(receiver, member)") UnresolvedSymbol symbol,
-        @Cached("findMethod(eigenType(receiver), symbol, methodResolverNode)") Function func,
-        @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
-        throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
+        @Cached("findMethod(receiver, cachedMember)") Function func,
+        @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode) {
       Object[] finalArgs = args;
-      if (InvokeMethodNode.shouldPrependSyntheticSelfArg(func.getSchema(), args.length)) {
+      if (func.getSchema().shouldPrependSyntheticSelfArg(args.length)) {
         var argsWithReceiver = new Object[args.length + 1];
         argsWithReceiver[0] = receiver;
         System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
@@ -436,37 +439,18 @@ public final class Type extends EnsoObject {
 
     @Specialization(replaces = "doCached")
     @TruffleBoundary
-    static Object doUncached(
-        Type receiver,
-        String member,
-        Object[] args,
-        @CachedLibrary(limit = "3") InteropLibrary interop)
-        throws UnsupportedMessageException,
-            UnsupportedTypeException,
-            ArityException,
-            UnknownIdentifierException {
-      var symbol = buildSymbol(receiver, member);
-      var methodResolverNode = MethodResolverNode.getUncached();
-      var method = findMethod(receiver.getEigentype(), symbol, methodResolverNode);
+    static Object doUncached(Type receiver, String member, Object[] args)
+        throws UnknownIdentifierException {
+      var method = findMethod(receiver, member);
       if (method == null) {
         throw UnknownIdentifierException.create(member);
       }
       var invokeCallableNode = buildInvokeCallableNode(method);
-      return doCached(
-          receiver, member, args, member, methodResolverNode, symbol, method, invokeCallableNode);
+      return doCached(receiver, member, args, member, method, invokeCallableNode);
     }
 
-    static Type eigenType(Type receiver) {
-      return receiver.getEigentype();
-    }
-
-    static UnresolvedSymbol buildSymbol(Type receiver, String member) {
-      return UnresolvedSymbol.build(member, receiver.getDefinitionScope());
-    }
-
-    static Function findMethod(
-        Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
-      return InvokeMethodNode.resolveFunction(symbol, receiver, methodResolverNode);
+    static Function findMethod(Type self, String methodName) {
+      return self.methods().get(methodName);
     }
 
     static InvokeCallableNode buildInvokeCallableNode(Function func) {
@@ -486,12 +470,11 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
-    if (hasAllConstructorsPrivate) {
-      throw UnknownIdentifierException.create(member);
-    }
-    var cons = constructors.get(member);
-    if (cons != null) {
-      return cons;
+    if (!hasAllConstructorsPrivate) {
+      var cons = constructors.get(member);
+      if (cons != null) {
+        return cons;
+      }
     }
     var method = methods().get(member);
     if (method != null) {
@@ -524,12 +507,33 @@ public final class Type extends EnsoObject {
    * @param constructor The constructor to register in this type.
    */
   public void registerConstructor(AtomConstructor constructor) {
-    constructors.put(constructor.getName(), constructor);
+    var prev = constructors.put(constructor.getName(), constructor);
+    assert prev == null || prev != singleConstructor
+        : "Replacing singleConstructor should invalidate!";
     gettersGenerated = false;
   }
 
   public Map<String, AtomConstructor> getConstructors() {
     return constructors;
+  }
+
+  /**
+   * Helper getter for the single constructor associated with this type. Verifies size of {@link
+   * #getConstructors()} is <b>one</b>. This can be optimized in the future to be usable on <em>fast
+   * path</em>.
+   *
+   * @return the single constructor associated with this type
+   * @throws AssertionError if there is none or more of constructors
+   */
+  public AtomConstructor getSingleConstructor() {
+    if (singleConstructor == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      var it = getConstructors().values().iterator();
+      assert it.hasNext();
+      singleConstructor = it.next();
+      assert !it.hasNext();
+    }
+    return singleConstructor;
   }
 
   private boolean isNothing(Node lib) {

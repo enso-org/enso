@@ -7,11 +7,7 @@ import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{
-  LibraryComponentGroup,
-  LibraryComponentGroups,
-  LibraryEntry
-}
+import org.enso.languageserver.libraries.{LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.LibraryManifest
@@ -20,7 +16,7 @@ import org.enso.librarymanager.test.published.repository.{
   ExampleRepository
 }
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
-import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
 
@@ -28,10 +24,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest
-    extends BaseServerTest
-    with ReportLogsOnFailure
-    with FlakySpec {
+class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val libraryRepositoryPort: Int = 47308
   private val defaultTimeout             = 30.seconds
 
@@ -40,15 +33,22 @@ class LibrariesTest
   ) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
+        LibraryName("Baz", "Lib"),
+        SemVer.of(0, 0, 9),
+        """
+          |quuz = 23
+          |""".stripMargin
+      ),
+      DummyLibrary(
         LibraryName("Foo", "Bar"),
         SemVer.of(1, 0, 0),
-        """import Standard.Base
+        """import Baz.Lib
           |
           |baz = 42
           |
           |quux = "foobar"
           |""".stripMargin,
-        dependencies = Seq(LibraryName("Standard", "Base"))
+        dependencies = Seq(LibraryName("Baz", "Lib"))
       )
     )
   }
@@ -56,11 +56,17 @@ class LibrariesTest
   private val repositoryUrl = baseUrl + "libraries"
 
   override protected def customEdition: Option[Editions.RawEdition] = Some(
-    exampleRepo.createEdition(repositoryUrl)
+    exampleRepo.createEdition(
+      repositoryUrl,
+      parent = None,
+      engineVersion = Some(
+        SemVer.parse(BuildVersion.currentEdition()).get
+      )
+    )
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" taggedAs SkipOnFailure in {
+    "create a library project and include it on the list of local projects" in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 
@@ -328,7 +334,10 @@ class LibrariesTest
             componentGroups =
               Some(TestComponentGroups.testLibraryComponentGroups)
           )
-      Files.writeString(packageFile, packageConfig.toYaml)
+      Files.writeString(
+        packageFile,
+        packageConfig.toYaml(keepDevVersions = true)
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -674,7 +683,7 @@ class LibrariesTest
 
         assert(
           Files.exists(cachedLibraryRoot / LibraryManifest.filename),
-          "The manifest file of a downloaded library should be saved in the cache too."
+          "The manifest file of a downloaded library should be saved in the cache too"
         )
       }
     }
@@ -783,86 +792,11 @@ class LibrariesTest
       )
 
       published should contain(
-        PublishedLibrary("Standard", "Base", isCached = true)
+        PublishedLibrary("Baz", "Lib", isCached = false)
       )
       published should contain(
         PublishedLibrary("Foo", "Bar", isCached = false)
       )
-
-      val currentEditionName = BuildVersion.currentEdition
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedLibraries",
-            "id": 0,
-            "params": {
-              "edition": {
-                "type": "NamedEdition",
-                "editionName": $currentEditionName
-              }
-            }
-          }
-          """)
-      extractPublishedLibraries(
-        client.expectSomeJson(timeout = defaultTimeout)
-      ) should contain(
-        PublishedLibrary("Standard", "Base", isCached = true)
-      )
-    }
-  }
-
-  "editions/listDefinedComponents" should {
-    "include expected components in the list" in {
-      val client = getInitialisedWsClient()
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedComponents",
-            "id": 0,
-            "params": {
-              "edition": {
-                "type": "CurrentProjectEdition"
-              }
-            }
-          }
-          """)
-
-      val response = client.expectSomeJson(timeout = defaultTimeout)
-      val components = response.hcursor
-        .downField("result")
-        .downField("availableComponents")
-        .as[List[LibraryComponentGroup]]
-        .rightValue
-
-      components should not be empty
-      components.map(_.library).toSet should contain theSameElementsAs Seq(
-        LibraryName("Standard", "Base")
-      )
-
-      val currentEditionName = BuildVersion.currentEdition
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedComponents",
-            "id": 1,
-            "params": {
-              "edition": {
-                "type": "NamedEdition",
-                "editionName": $currentEditionName
-              }
-            }
-          }
-          """)
-
-      val response2 = client.expectSomeJson(timeout = defaultTimeout)
-      val components2 = response2.hcursor
-        .downField("result")
-        .downField("availableComponents")
-        .as[List[LibraryComponentGroup]]
-        .rightValue
-
-      components2 should not be empty
-      components2.map(_.library).toSet should contain theSameElementsAs Seq(
-        LibraryName("Standard", "Base")
-      )
-
     }
   }
 

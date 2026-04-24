@@ -1,14 +1,12 @@
 /** @file A LocalStorage data manager. */
-import * as z from 'zod'
-
-import * as common from 'enso-common'
-
-import * as object from '#/utilities/object'
 import { useVueValue } from '$/providers/react/common'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import * as common from 'enso-common/src/constants'
+import * as object from 'enso-common/src/utilities/data/object'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { useCallback } from 'react'
 import invariant from 'tiny-invariant'
-import { shallowReactive, toRaw } from 'vue'
+import { computed, shallowReactive, toRaw } from 'vue'
+import * as z from 'zod'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
@@ -32,6 +30,7 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
    * If this is not provided, the value will be parsed using the `tryParse` function.
    */
   readonly schema: z.ZodType<LocalStorageData[K]>
+  readonly default?: LocalStorageData[K]
 }
 
 /**
@@ -114,6 +113,7 @@ export default class LocalStorage {
     if (!(key in this.values)) {
       const value = this.readValueFromLocalStorage(key)
       if (value != null) this.values[key] = value
+      else return LocalStorage.keyMetadata[key]?.default
     }
 
     return this.values[key]
@@ -228,6 +228,14 @@ export default class LocalStorage {
     }
   }
 
+  /** Get a writable ref to stored vale. */
+  ref<K extends LocalStorageKey>(key: K) {
+    return computed({
+      get: () => this.get(key),
+      set: (value) => (value != null ? this.set(key, value) : this.delete(key)),
+    })
+  }
+
   /** Save the current value of the stored data.. */
   protected save(key: LocalStorageKey) {
     // Make values raw, so any watchEffect setting values will not be triggered unnecessarily.
@@ -290,7 +298,12 @@ export default class LocalStorage {
 /** React hook for viewing whole `LocalStorage` contents as a state variable. */
 export function useLocalStorageValues(storage: LocalStorage): Partial<LocalStorageData> {
   return useVueValue(
-    useCallback(() => storage['values'], [storage]),
-    true,
+    useCallback(() => {
+      // NOTE: `values` is shallowReactive. Create a shallow snapshot to:
+      // - avoid deep traversal (stack overflow risk),
+      // - provide a new reference so React re-renders.
+      const values = storage['values']
+      return { ...values }
+    }, [storage]),
   )
 }

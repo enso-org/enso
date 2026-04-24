@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 
 from Standard.Table import Column, Table
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors import Missing_Input_Columns
 
 from Standard.Test import all
 
@@ -25,7 +25,8 @@ type Data
         column8 = Column.from_vector "numeric_formats" ["#,##0.00", "#,##0"]
         column9 = Column.from_vector "date_formats" ["yyyyMMdd", "ddMMyyyy"]
         column10 = Column.from_vector "time_formats" ["hh:mm:ss", "ss:mm:hh"]
-        table = Table.new [column0, column1, column2, column3, column4, column5, column6, column7, column8, column9, column10]
+        column11 = Column.from_vector "mixed" [1, "A"]
+        table = Table.new [column0, column1, column2, column3, column4, column5, column6, column7, column8, column9, column10, column11]
         Data.Value table
 
 add_specs suite_builder =
@@ -195,7 +196,8 @@ add_specs suite_builder =
             expected_ints = Column.from_vector "ints" ["100000000", "2222"]
             expected_floats = Column.from_vector "floats" ['2.000000009E8', '4444.3']
             expected_bools = Column.from_vector "bools" ["True", "False"]
-            actual = data.table.format ["dates", "datetimes", "times", "bools", "ints", "floats"] ""
+            expected_mixed = Column.from_vector "mixed" ["1", "A"]
+            actual = data.table.format ["strings", "dates", "datetimes", "times", "bools", "ints", "floats", "mixed"] ""
             actual.column_names . should_equal data.table.column_names
             actual.at "dates" . should_equal expected_dates
             actual.at "datetimes" . should_equal expected_datetimes
@@ -203,6 +205,7 @@ add_specs suite_builder =
             actual.at "bools" . should_equal expected_bools
             actual.at "ints" . should_equal expected_ints
             actual.at "floats" . should_equal expected_floats
+            actual.at "mixed" . should_equal expected_mixed
             check_unchanged data.table actual ["strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
     suite_builder.group "Column selectors" group_builder->
@@ -256,11 +259,15 @@ add_specs suite_builder =
 
         group_builder.specify "Missing column" <|
             data.table.format ["abc", "dates"] . should_fail_with Missing_Input_Columns
-            Problems.expect_only_warning Missing_Input_Columns <|
-                data.table.format ["abc", "dates"] error_on_missing_columns=False . should_be_a Table
+
+            r1 = data.table.format ["abc", "dates"] error_on_missing_columns=False
+            r1.should_be_a Table
+            Problems.assume_no_problems r1
 
         group_builder.specify "No columns selected" <|
-            data.table.format [] . should_fail_with No_Input_Columns_Selected
+            r1 = data.table.format []
+            r1.should_equal data.table
+            Problems.assume_no_problems r1
 
 main filter=Nothing =
     suite = Test.build suite_builder->

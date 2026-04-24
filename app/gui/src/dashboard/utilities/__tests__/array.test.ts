@@ -2,7 +2,7 @@
 import * as fc from '@fast-check/vitest'
 import * as v from 'vitest'
 
-import * as arrayModule from '#/utilities/array'
+import * as arrayModule from '$/utils/data/array'
 
 fc.test.prop({ array: fc.fc.array(fc.fc.anything()) })('`array.shallowEqual`', ({ array }) => {
   v.expect(arrayModule.shallowEqual(array, [...array]))

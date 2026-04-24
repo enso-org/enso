@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+import project.Network.Enso_Cloud.Main as Enso_Cloud_Main
+
+import project.Network.Fetch_Spec
+import project.Network.File_Spec
+import project.Network.Http.Header_Spec as Http_Header_Spec
+import project.Network.Http.Request_Spec as Http_Request_Spec
+import project.Network.Http.Http_Auto_Parse_Spec
+import project.Network.Http.Http_Data_Link_Spec
+import project.Network.Http_Spec
+import project.Network.URI_Spec
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        Fetch_Spec.add_specs suite_builder
+        File_Spec.add_specs suite_builder
+        Http_Header_Spec.add_specs suite_builder
+        Http_Request_Spec.add_specs suite_builder
+        Http_Spec.add_specs suite_builder
+        Http_Auto_Parse_Spec.add_specs suite_builder
+        Http_Data_Link_Spec.add_specs suite_builder
+        Enso_Cloud_Main.add_specs suite_builder
+        URI_Spec.add_specs suite_builder
+
+    suite.run_with_filter filter

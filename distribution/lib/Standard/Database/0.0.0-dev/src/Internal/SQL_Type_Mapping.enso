@@ -9,6 +9,8 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL.SQL_Type
 
+polyglot java import org.enso.database.JDBCValueSetter
+
 ## ---
    private: true
    ---
@@ -37,9 +39,18 @@ type SQL_Type_Mapping
        advanced: true
        ---
        Converts the given SQL_Type to its corresponding Value_Type.
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
-        _ = sql_type
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = [sql_type, json_as_text]
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for this backend.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -144,6 +155,29 @@ type SQL_Type_Mapping
        interchangeable.
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         _ = [value_type1, value_type2]
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter.
+    statement_setter =
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Creates the JDBCValueSetter used by both statement setters and Java-side
+       batch insert handling for this backend.
+    value_setter : JDBCValueSetter
+    value_setter =
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Creates an Error_Mapper.
+    error_mapper self =
         Unimplemented.throw "This is an interface only."
 
 ## ---

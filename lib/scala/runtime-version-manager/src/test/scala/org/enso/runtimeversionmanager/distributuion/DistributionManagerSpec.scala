@@ -36,7 +36,7 @@ class DistributionManagerSpec
       distributionManager.paths.runtimes shouldEqual
       getTestDirectory / "runtime"
       distributionManager.paths.engines shouldEqual getTestDirectory / "dist"
-      distributionManager.paths.bundle shouldEqual None
+      distributionManager.paths.bundle.isDefined shouldEqual true
     }
 
     "detect installed distribution" in {

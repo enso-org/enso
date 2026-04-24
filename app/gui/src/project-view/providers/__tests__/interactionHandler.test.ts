@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { Interaction, InteractionHandler } from '../interactionHandler'
+import { InteractionHandler, type Interaction } from '../interactionHandler'
 
 function mockInteraction(interaction: Partial<Interaction>) {
   const onPointerDown = vi.fn(() => {})

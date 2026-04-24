@@ -19,9 +19,14 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
 
   @Override
   public Value createIdentityFunction(Context context) {
-    var id = context.eval("enso", """
-    id a = a
-    """).invokeMember("eval_expression", "id");
+    var id =
+        context
+            .eval(
+                "enso",
+                """
+                id a = a
+                """)
+            .invokeMember("eval_expression", "id");
     return id;
   }
 
@@ -34,17 +39,19 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
   public Collection<? extends Snippet> createExpressions(Context context) {
     var plus =
         context
-            .eval("enso", """
-    plus a b = a + b
-    """)
+            .eval(
+                "enso",
+                """
+                from Standard.Base import all
+
+                plus a:Text|Number b:Text|Number = a + b
+                """)
             .invokeMember("eval_expression", "plus");
 
     return List.of(
-        /* disabled until + is defined on Numbers again
         Snippet.newBuilder("plus:Number", plus, TypeDescriptor.NUMBER)
-          .parameterTypes(TypeDescriptor.NUMBER, TypeDescriptor.NUMBER)
-          .build(),
-          */
+            .parameterTypes(TypeDescriptor.NUMBER, TypeDescriptor.NUMBER)
+            .build(),
         Snippet.newBuilder("plus:Text", plus, TypeDescriptor.STRING)
             .parameterTypes(TypeDescriptor.STRING, TypeDescriptor.STRING)
             .build());
@@ -54,9 +61,11 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
   public Collection<? extends Snippet> createStatements(Context context) {
     var when =
         context
-            .eval("enso", """
-    when c = if c then 1 else -1
-    """)
+            .eval(
+                "enso",
+                """
+                when c = if c then 1 else -1
+                """)
             .invokeMember("eval_expression", "when");
     ;
     var which =
@@ -64,12 +73,12 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
             .eval(
                 "enso",
                 """
-    which c = case c of
-        0 -> "zero"
-        1 -> "one"
-        2 -> "two"
-        _ -> "a lot"
-    """)
+                which c = case c of
+                    0 -> "zero"
+                    1 -> "one"
+                    2 -> "two"
+                    _ -> "a lot"
+                """)
             .invokeMember("eval_expression", "which");
     return List.of(
         Snippet.newBuilder("if", when, TypeDescriptor.NUMBER)
@@ -88,9 +97,12 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
   @Override
   public Collection<? extends Source> createInvalidSyntaxScripts(Context context) {
     return List.of(
-        Source.newBuilder("enso", """
-      main = x + 2
-      """, "unknown_x.enso")
+        Source.newBuilder(
+                "enso",
+                """
+                main = x + 2
+                """,
+                "unknown_x.enso")
             .buildLiteral());
   }
 }

@@ -30,11 +30,13 @@ public class ModuleCacheTest {
 
     var v =
         ctxRule
-            .eval("enso", """
-    import Standard.Base.Data.List
+            .eval(
+                "enso",
+                """
+                import Standard.Base.Data.List
 
-    empty = List.List.Nil
-    """)
+                empty = List.List.Nil
+                """)
             .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "empty");
     assertEquals("List", v.getMetaObject().getMetaSimpleName());
 
@@ -58,9 +60,13 @@ public class ModuleCacheTest {
     var ensoCtx = ctxRule.ensoContext();
     var name = "TestWarning";
     var code =
-        Source.newBuilder("enso", """
-      empty x = 42
-      """, "TestWarning.enso").build();
+        Source.newBuilder(
+                "enso",
+                """
+                empty x = 42
+                """,
+                "TestWarning.enso")
+            .build();
 
     var v =
         ctxRule.eval(code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "empty").execute(-1);

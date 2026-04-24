@@ -1,19 +1,26 @@
+<script lang="ts">
+export const UseActionDescription: unique symbol = Symbol.for('ActionButton:UseActionDescription')
+</script>
+
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import { type DisplayableActionName, resolveAction } from '@/providers/action'
+import { resolveAction, type DisplayableActionName } from '@/providers/action'
 import { computed, toValue } from 'vue'
 
 const { action: actionName, label } = defineProps<{
   action: DisplayableActionName
-  label?: string
+  label?: string | typeof UseActionDescription
 }>()
 const action = computed(() => resolveAction(actionName))
-
-const descriptionWithShortcut = computed(() =>
-  action.value.shortcut ?
-    `${toValue(action.value.description)} (${toValue(action.value.shortcut?.humanReadable)})`
-  : toValue(action.value.description),
+const displayedLabel = computed(() =>
+  label === UseActionDescription ? toValue(action.value.description) : label,
 )
+
+const descriptionWithShortcut = computed(() => {
+  const description = toValue(action.value.description)
+  const shortcut = toValue(action.value.shortcut)
+  return shortcut ? `${description} (${shortcut.humanReadable})` : description
+})
 </script>
 
 <template>
@@ -23,7 +30,7 @@ const descriptionWithShortcut = computed(() =>
     :name="toValue(action.icon)"
     :disabled="!toValue(action.enabled)"
     :title="descriptionWithShortcut"
-    :label="label"
+    :label="displayedLabel"
     :data-testid="`action:${actionName}`"
     @activate="action.action"
   />

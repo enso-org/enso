@@ -1,34 +1,32 @@
 import createDebug from 'debug'
+import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as zlib from 'node:zlib'
+import { type YjsChannelServer } from 'ydoc-channel'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
-import { EnsoFileParts, combineFileParts, splitFileContents } from 'ydoc-shared/ensoFile'
-import { LanguageServer, computeTextChecksum } from 'ydoc-shared/languageServer'
-import {
+import { combineFileParts, splitFileContents, type EnsoFileParts } from 'ydoc-shared/ensoFile'
+import { LanguageServer, LsRpcError, computeTextChecksum } from 'ydoc-shared/languageServer'
+import type {
   Checksum,
   FileEdit,
   FileEventKind,
+  FileSystemObject,
   Path,
   TextEdit,
   response,
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
-import { Err, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
-import {
-  AbortScope,
-  ReconnectingWebSocketTransport,
-  exponentialBackoff,
-  printingCallbacks,
-} from 'ydoc-shared/util/net'
+import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
+import { YjsServerTransport } from 'ydoc-shared/util/net/YjsTransport'
 import {
   DistributedProject,
-  ExternalId,
   IdMap,
   ModuleDoc,
   visMetadataEquals,
+  type ExternalId,
   type Uuid,
 } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
@@ -50,29 +48,27 @@ const debugLog = createDebug('ydoc-server:session')
 
 /** TODO: Add docs */
 export class LanguageServerSession {
-  clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
   retainCount: number
-  url: string
   ls: LanguageServer
   connection: response.InitProtocolConnection | undefined
   model: DistributedProject
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
+  unregister: () => void
 
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(url: string) {
+  constructor(ls: LanguageServer, indexDoc: WSSharedDoc, unregister: () => void) {
     this.clientScope = new AbortScope()
-    this.clientId = crypto.randomUUID() as Uuid
     this.docs = new Map()
     this.retainCount = 0
-    this.url = url
-    console.log('new session with', url)
-    this.indexDoc = new WSSharedDoc()
+    this.ls = ls
+    this.unregister = unregister
+    this.indexDoc = indexDoc
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
     this.projectRootId = null
@@ -86,20 +82,22 @@ export class LanguageServerSession {
         if (!persistence) continue
       }
     })
-    this.ls = new LanguageServer(this.clientId, new ReconnectingWebSocketTransport(this.url))
     this.clientScope.onAbort(() => this.ls.release())
     this.setupClient()
   }
 
-  static sessions = new Map<string, LanguageServerSession>()
+  static sessions: Map<string, LanguageServerSession> = new Map<string, LanguageServerSession>()
 
   /** Get a {@link LanguageServerSession} by its URL. */
-  static get(url: string): LanguageServerSession {
-    const session = map.setIfUndefined(
-      LanguageServerSession.sessions,
-      url,
-      () => new LanguageServerSession(url),
-    )
+  static get(url: string, callbacks: YjsChannelServer): LanguageServerSession {
+    const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
+      const indexDoc = new WSSharedDoc()
+      const transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
+      const ls = new LanguageServer(crypto.randomUUID(), transport)
+      return new LanguageServerSession(ls, indexDoc, () =>
+        LanguageServerSession.sessions.delete(url),
+      )
+    })
     session.retain()
     return session
   }
@@ -110,6 +108,12 @@ export class LanguageServerSession {
   }
 
   private setupClient() {
+    this.ls.on('transport/closed', () => {
+      // Once we lose connection to Language Server, we cannot identify ourself by its URL anymore,
+      // because new Language Server of different project could start with same ports in the
+      // meantime.
+      this.unregister()
+    })
     this.ls.on('file/event', async (event) => {
       debugLog('file/event %O', event)
       const result = await this.handleFileEvent(event)
@@ -207,7 +211,7 @@ export class LanguageServerSession {
   }
 
   /** TODO: Add docs */
-  async scanSourceFiles() {
+  async scanSourceFiles(): Promise<Result<FileSystemObject[], LsRpcError>> {
     this.assertProjectRoot()
     const sourceDir: Path = { rootId: this.projectRootId, segments: [SOURCE_DIR] }
     const srcModules = await this.ls.listFiles(sourceDir)
@@ -244,7 +248,7 @@ export class LanguageServerSession {
   }
 
   /** TODO: Add docs */
-  retain() {
+  retain(): void {
     this.retainCount += 1
   }
 
@@ -252,12 +256,13 @@ export class LanguageServerSession {
   async release(): Promise<void> {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
+    this.unregister()
     const modules = this.authoritativeModules.values()
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
     this.clientScope.dispose('LangueServerSession disposed.')
-    LanguageServerSession.sessions.delete(this.url)
+
     await Promise.all(moduleDisposePromises)
   }
 
@@ -307,7 +312,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   path: Path
   doc: ModuleDoc = new ModuleDoc(new Y.Doc())
   readonly state: LsSyncState = LsSyncState.Closed
-  readonly lastAction = Promise.resolve()
+  readonly lastAction: Promise<void> = Promise.resolve()
   updateToApply: Uint8Array | null = null
   syncedCode: string | null = null
   syncedIdMap: string | null = null
@@ -316,7 +321,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   syncedVersion: Checksum | null = null
   syncedMeta: fileFormat.Metadata = fileFormat.tryParseMetadataOrFallback(null)
   queuedAction: LsAction | null = null
-  cleanup = () => {}
+  cleanup = (): void => {}
 
   constructor(ls: LanguageServer, path: Path, sharedDoc: Y.Doc) {
     super()
@@ -441,16 +446,16 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     )
   }
 
-  handleFileRemoved() {
+  handleFileRemoved(): void {
     if (this.inState(LsSyncState.Closed)) return
     this.close()
   }
 
-  handleFileModified() {
+  handleFileModified(): void {
     if (this.inState(LsSyncState.Closed)) return
   }
 
-  queueRemoteUpdate(update: Uint8Array, origin: unknown) {
+  queueRemoteUpdate(update: Uint8Array, origin: unknown): void {
     if (origin === this) return
     if (this.updateToApply != null) {
       this.updateToApply = Y.mergeUpdates([this.updateToApply, update])
@@ -460,7 +465,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     this.trySyncRemoteUpdates()
   }
 
-  trySyncRemoteUpdates() {
+  trySyncRemoteUpdates(): void {
     if (this.updateToApply == null) return
     // apply updates to the ls-representation doc if we are already in sync with the LS.
     if (!this.inState(LsSyncState.Synchronized)) return
@@ -655,7 +660,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         (nodeMeta.length !== 0 || widgetMeta.length !== 0)
       ) {
         const externalIdToAst = new Map<ExternalId, Ast.Ast>()
-        astRoot.visitRecursive((ast) => {
+        Ast.visitRecursive(astRoot, (ast) => {
           const ancestorEntry = externalIdToAst.get(ast.externalId)
           if (!ancestorEntry || ancestorEntry instanceof Ast.ExpressionStatement)
             externalIdToAst.set(ast.externalId, ast)
@@ -678,6 +683,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           const oldColorOverride = metadata.get('colorOverride')
           const newColorOverride = meta.colorOverride
           if (oldColorOverride !== newColorOverride) metadata.set('colorOverride', newColorOverride)
+          const oldDisplayMode = metadata.get('displayMode')
+          const newDisplayMode = meta.displayMode
+          if (oldDisplayMode !== newDisplayMode) metadata.set('displayMode', newDisplayMode)
         }
         for (const [id, meta] of widgetMeta) {
           if (typeof id !== 'string') continue
@@ -710,7 +718,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       )
   }
 
-  async close() {
+  async close(): Promise<void> {
     this.queuedAction = LsAction.Close
     switch (this.state) {
       case LsSyncState.Disposed:

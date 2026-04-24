@@ -22,25 +22,28 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
-import { canTransferBetweenCategories } from '#/layouts/CategorySwitcher/Category'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
+import { AssetSearchBar } from '#/layouts/AssetSearchBar'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useExportArchive } from '#/pages/useExportArchive'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
-import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+import { canTransferBetweenCategories } from '$/providers/category'
+import { useCategories, useText } from '$/providers/react'
+import { useDriveCurrentBackend, useDriveCurrentCategory } from '$/providers/react/container'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import {
+  BackendType,
+  isDirectoryId,
+  isProjectId,
+  type CredentialConfig,
+} from 'enso-common/src/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
 import * as React from 'react'
@@ -58,10 +61,10 @@ export interface DriveBarToolbarProps {
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { query, setQuery } = props
 
-  const { category, associatedBackend: backend } = useCategoriesAPI()
+  const [category] = useDriveCurrentCategory()
+  const backend = useDriveCurrentBackend()
   const { getText } = useText()
   const driveStore = useDriveStore()
-  const inputBindings = useInputBindings()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = backend.type === BackendType.remote
   const { isOffline } = useOffline()
@@ -90,46 +93,24 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     : null
 
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
-  const newFolder = useNewFolder(backend, category)
-  const uploadFilesRaw = useUploadFiles(backend, category)
+  const newFolder = useNewFolder(backend, category.type)
+  const uploadFilesRaw = useUploadFiles(backend, category.type)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, currentDirectoryId)
   })
   const newSecret = useMutationCallback(backendMutationOptions(backend, 'createSecret'))
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
-  const newProjectRaw = useNewProject(backend, category)
+  const newProjectRaw = useNewProject(backend, category.type)
+  const exportArchive = useExportArchive({ backend })
 
   const newProjectMutation = useMutationCallback({
     mutationKey: ['newProject'],
-    mutationFn: async ([templateId, templateName]: [
-      templateId: string | null | undefined,
-      templateName: string | null | undefined,
-    ]) => await newProjectRaw({ templateName, templateId }, currentDirectoryId),
+    mutationFn: async () => await newProjectRaw({}, currentDirectoryId),
   })
 
-  const attachEventListeners = useEventCallback(() =>
-    inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud ?
-        {
-          newFolder: () => {
-            void newFolder(currentDirectoryId)
-          },
-        }
-      : {}),
-      newProject: () => {
-        void newProjectMutation([null, null])
-      },
-      uploadFiles: () => {
-        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
-      },
-    }),
-  )
-
-  React.useEffect(() => attachEventListeners(), [attachEventListeners])
-
   const newProject = useEventCallback(async () => {
-    await newProjectMutation([null, null])
+    await newProjectMutation()
   })
 
   const newFolderCallback = useEventCallback(async () => {
@@ -160,13 +141,21 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     await uploadFiles(Array.from(files))
   })
 
-  const downloadFilesCallback = useEventCallback(async () => {
+  const downloadFilesCallback = useEventCallback(() => {
     unsetModal()
     const { selectedAssets } = driveStore.getState()
-    await downloadAssetsMutation({
-      ids: selectedAssets,
-      targetDirectoryId: null,
-    })
+    if (
+      selectedAssets.length === 1 &&
+      selectedAssets[0] != null &&
+      (isCloud ? !isDirectoryId(selectedAssets[0].id) : isProjectId(selectedAssets[0].id))
+    ) {
+      void downloadAssetsMutation({
+        ids: selectedAssets,
+        targetDirectoryId: null,
+      })
+    } else {
+      void exportArchive()
+    }
   })
 
   const searchBar = (
@@ -202,11 +191,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     case 'trash': {
       return (
         <ErrorBoundary FallbackComponent={InlineErrorDisplay}>
-          <TrashFolderToolbar
-            shouldBeDisabled={shouldBeDisabled}
-            backend={backend}
-            category={category}
-          >
+          <TrashFolderToolbar shouldBeDisabled={shouldBeDisabled} backend={backend}>
             {pasteDataStatus}
             {searchBar}
           </TrashFolderToolbar>
@@ -215,9 +200,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     }
     case 'cloud':
     case 'local':
-    case 'user':
     case 'team':
-    case 'local-directory': {
+    case 'localDirectory': {
       return (
         <div className="flex w-full flex-1 shrink-0 gap-2">
           <Button.Group
@@ -244,7 +228,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   variant="icon"
                   size="medium"
                   icon="key_add"
-                  aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
+                  aria-label={isCloud ? getText('newSecret') : getText('newSecret.cloudOnly')}
                 />
                 <UpsertSecretModal doCreate={newSecretCallback} />
               </Dialog.Trigger>
@@ -255,7 +239,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   size="medium"
                   icon="credential_add"
                   aria-label={
-                    isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
+                    isCloud ? getText('newCredential') : getText('newCredential.cloudOnly')
                   }
                 />
                 <CreateCredentialModal doCreate={newCredentialCallback} />
@@ -266,7 +250,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   variant="icon"
                   size="medium"
                   icon="connector_add"
-                  aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
+                  aria-label={isCloud ? getText('newDatalink') : getText('newDatalink.cloudOnly')}
                 />
                 <UpsertDatalinkModal doCreate={newDatalinkCallback} />
               </Dialog.Trigger>
@@ -305,33 +289,41 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 interface TrashFolderToolbarProps extends PropsWithChildren {
   readonly shouldBeDisabled: boolean
   readonly backend: Backend
-  readonly category: TrashCategory
 }
 
 /**
  * A toolbar for the trash folder.
  */
 function TrashFolderToolbar(props: TrashFolderToolbarProps) {
-  const { shouldBeDisabled, backend, category, children } = props
+  const { shouldBeDisabled, backend, children } = props
   const { getText } = useText()
+  const { categoryDirectoryId } = useCategories()
+  const category = { type: 'trash' as const }
 
   const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
-    parentId: category.homeDirectoryId,
+    parentId: categoryDirectoryId(category),
     refetchInterval: null,
+    labels: null,
+    sortDirection: null,
+    sortExpression: null,
   })
 
   const { data: isEmpty } = useSuspenseQuery({
     ...rootDirectoryQueryOptions,
-    select: (data) => data.length === 0,
+    select: (data) => data.assets.length === 0,
   })
 
   const queryClient = useQueryClient()
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
 
   const clearTrash = useEventCallback(async () => {
-    const allTrashedItems = await getAllTrashedItems(queryClient, backend, category)
+    const allTrashedItems = await getAllTrashedItems(
+      queryClient,
+      backend,
+      categoryDirectoryId(category),
+    )
     await deleteAssetsMutation([allTrashedItems.map((item) => item.id), true])
   })
 

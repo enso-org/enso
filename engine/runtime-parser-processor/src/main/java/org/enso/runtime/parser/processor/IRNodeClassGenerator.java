@@ -1,13 +1,9 @@
 package org.enso.runtime.parser.processor;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.FieldCollector;
@@ -48,16 +44,12 @@ final class IRNodeClassGenerator {
       Set.of(
           "java.util.UUID",
           "java.util.ArrayList",
-          "java.util.function.Function",
           "java.util.Objects",
           "java.util.stream.Collectors",
           "org.enso.compiler.core.Identifier",
           "org.enso.compiler.core.IR",
           "org.enso.compiler.core.ir.DiagnosticStorage",
-          "org.enso.compiler.core.ir.DiagnosticStorage$",
-          "org.enso.compiler.core.ir.Expression",
           "org.enso.compiler.core.ir.IdentifiedLocation",
-          "org.enso.compiler.core.ir.Name",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
 
@@ -101,58 +93,11 @@ final class IRNodeClassGenerator {
     return className;
   }
 
-  private boolean isInSameCompilationUnit(Field field) {
-    var elem = processingEnv.getTypeUtils().asElement(field.getType());
-    var enclosingElem = elem.getEnclosingElement();
-    var thisEnclosingElem = processedClass.getClazz().getEnclosingElement();
-    if (enclosingElem instanceof TypeElement enclosingTypeElem
-        && thisEnclosingElem instanceof TypeElement thisEnclosingTypeElem) {
-      return enclosingTypeElem.getQualifiedName().equals(thisEnclosingTypeElem.getQualifiedName());
-    }
-    return false;
-  }
-
   /** Returns set of import statements that should be included in the generated class. */
   Set<String> imports() {
-    var importsForFields =
-        generatedClassContext.getUserFields().stream()
-            .filter(field -> !field.isPrimitive())
-            .filter(field -> !isInSameCompilationUnit(field))
-            .flatMap(field -> field.getImportedTypes().stream())
-            .collect(Collectors.toUnmodifiableSet());
-    var allImports = new HashSet<String>();
-    allImports.addAll(defaultImportedTypes);
-    addImportForType(allImports, processedClass.getClazz());
-    for (var ifaceToImplement : processedClass.getInterfaces()) {
-      addImportForType(allImports, ifaceToImplement);
-    }
-    allImports.addAll(importsForFields);
-    return allImports.stream()
+    return defaultImportedTypes.stream()
         .map(importedType -> "import " + importedType + ";")
         .collect(Collectors.toUnmodifiableSet());
-  }
-
-  /**
-   * Adds import for a type that is not in an unnamed package.
-   *
-   * @param imports Set of imports to potentially add to
-   */
-  private void addImportForType(Set<String> imports, TypeElement type) {
-    if (!isInUnnamedPackage(type)) {
-      imports.add(type.getQualifiedName().toString());
-    }
-  }
-
-  private boolean isInUnnamedPackage(TypeElement type) {
-    Element enclosingElement = type.getEnclosingElement();
-    while (enclosingElement != null) {
-      if (enclosingElement.getKind() == ElementKind.PACKAGE) {
-        var pkg = (PackageElement) enclosingElement;
-        return pkg.isUnnamed();
-      }
-      enclosingElement = enclosingElement.getEnclosingElement();
-    }
-    return false;
   }
 
   /** Generates the body of the class - fields, field setters, method overrides, builder, etc. */
@@ -194,7 +139,7 @@ final class IRNodeClassGenerator {
             .replace("$fields", fieldsCode())
             .replace("$defaultCtor", defaultConstructor())
             .replace("$validateConstructor", validateConstructor())
-            .replace("$processedClassName", processedClass.getClazz().getSimpleName().toString())
+            .replace("$processedClassName", processedClass.getClazz().getQualifiedName().toString())
             .replace("$copyMethod", copyMethodGenerator.generateMethodCode())
             .replace("$userDefinedGetters", userDefinedGetters())
             .replace("$overrideIRMethods", overrideIRMethods())
@@ -227,11 +172,9 @@ final class IRNodeClassGenerator {
             .map(
                 field ->
                     """
-                ${comment}
-                private final ${type} ${name};
-                """
-                        .replace("${comment}", commentForField(field))
-                        .replace("${type}", field.getSimpleTypeName())
+                    private final ${type} ${name};
+                    """
+                        .replace("${type}", field.getQualifiedTypeName())
                         .replace("${name}", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
     var comment =
@@ -247,13 +190,10 @@ final class IRNodeClassGenerator {
         ${comment}
         ${userDefinedFields};
         // === End of user-defined fields ===
-        // The following meta fields cannot be private, as we are explicitly
-        // setting them in the `duplicate` method. Inheritor should not access
-        // these fields directly
-        protected DiagnosticStorage diagnostics;
-        protected MetadataStorage passData;
-        protected IdentifiedLocation location;
-        protected UUID id;
+        private DiagnosticStorage diagnostics;
+        private MetadataStorage passData;
+        private IdentifiedLocation location;
+        private UUID id;
         """
             .replace("${comment}", comment)
             .replace("${userDefinedFields}", userDefinedFields);
@@ -276,12 +216,12 @@ final class IRNodeClassGenerator {
     var isChild = "" + field.isChild();
     var isNullable = "" + field.isNullable();
     return """
-        /**
-         * Created from ${matchingCtorInfo}.
-         * <p> - isNullable: ${isNullable}.
-         * <p> - isChild: ${isChild}.
-         */
-        """
+    /**
+     * Created from ${matchingCtorInfo}.
+     * <p> - isNullable: ${isNullable}.
+     * <p> - isChild: ${isChild}.
+     */
+    """
         .replace("${isChild}", isChild)
         .replace("${isNullable}", isNullable)
         .replace("${matchingCtorInfo}", matchingCtorInfo)
@@ -328,7 +268,7 @@ final class IRNodeClassGenerator {
             .map(
                 consParam ->
                     "$consType $consName"
-                        .replace("$consType", consParam.getSimpleTypeName())
+                        .replace("$consType", consParam.getTypeName())
                         .replace("$consName", consParam.name()))
             .collect(Collectors.joining(", "));
     sb.append(inParens).append(") {").append(System.lineSeparator());
@@ -383,10 +323,10 @@ final class IRNodeClassGenerator {
             .map(
                 notNullField ->
                     """
-            if ($fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if ($fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", notNullField.name()))
             .collect(Collectors.joining(System.lineSeparator()));
     sb.append(Utils.indent(checkCode, 2));
@@ -443,7 +383,7 @@ final class IRNodeClassGenerator {
         @Override
         public DiagnosticStorage getDiagnostics() {
           if (diagnostics == null) {
-            diagnostics = DiagnosticStorage$.MODULE$.createEmpty();
+            diagnostics = DiagnosticStorage.createEmpty();
           }
           return diagnostics;
         }
@@ -469,26 +409,16 @@ final class IRNodeClassGenerator {
   private String userDefinedGetters() {
     var sb = new StringBuilder();
     for (var field : generatedClassContext.getUserFields()) {
-      String code;
-      if (field.isPersistanceReference()) {
-        code =
-            """
-            public ${returnType} ${fieldName}() {
-              return ${fieldName}.get(${returnType}.class);
-            }
-            """
-                .replace("${returnType}", field.getTypeParameter().getSimpleName())
-                .replace("${fieldName}", field.getName());
-      } else {
-        code =
-            """
-            public ${returnType} ${fieldName}() {
-              return ${fieldName};
-            }
-            """
-                .replace("${returnType}", field.getSimpleTypeName())
-                .replace("${fieldName}", field.getName());
-      }
+      var code =
+          """
+          ${comment}
+          public ${returnType} ${fieldName}() {
+            return ${fieldName};
+          }
+          """
+              .replace("${comment}", commentForField(field))
+              .replace("${returnType}", field.getQualifiedTypeName())
+              .replace("${fieldName}", field.getName());
       sb.append(code);
       sb.append(System.lineSeparator());
     }

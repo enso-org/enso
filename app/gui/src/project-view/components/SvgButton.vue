@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import type { AnyIcon } from '@/util/icons'
 
-const toggledOn = defineModel<boolean | undefined>()
+const toggledOn = defineModel<boolean | undefined>({ default: undefined })
 defineProps<{
-  name?: Icon | URLString | undefined
+  name?: AnyIcon | undefined
   label?: string | undefined
   disabled?: boolean | undefined
   title?: string | undefined
   extraClickZone?: number | undefined
+  variant?: 'submit' | undefined
 }>()
 const emit = defineEmits<{ activate: [] }>()
 </script>
@@ -20,11 +20,13 @@ const emit = defineEmits<{ activate: [] }>()
     v-model="toggledOn"
     :disabled="disabled"
     class="SvgButton"
+    :class="[variant && `variant-${variant}`]"
     :title="title"
     :extraClickZone="extraClickZone"
     @activate="emit('activate')"
   >
     <SvgIcon v-if="name" :name="name" />
+    <slot />
     <div v-if="label">{{ label }}</div>
   </MenuButton>
 </template>
@@ -37,5 +39,10 @@ const emit = defineEmits<{ activate: [] }>()
   &.disabled {
     opacity: 0.2;
   }
+}
+
+.variant-submit {
+  background-color: var(--color-submit);
+  color: var(--color-text-light);
 }
 </style>

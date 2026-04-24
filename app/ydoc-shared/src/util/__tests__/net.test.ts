@@ -1,5 +1,5 @@
+import { Err, Ok, ResultError } from 'enso-common/src/utilities/data/result'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { Err, Ok, ResultError } from '../data/result'
 import { exponentialBackoff } from '../net'
 
 beforeEach(() => {

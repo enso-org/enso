@@ -114,15 +114,10 @@ public class MethodProcessor
       }
       String fullClassName = def.getPackageName() + "." + def.getClassName();
       registerBuiltinMethod(
-          processingEnv.getFiler(),
-          def.getDeclaredName(),
-          fullClassName,
-          def.isStatic(),
-          def.isAutoRegister());
+          processingEnv.getFiler(), def.getDeclaredName(), fullClassName, def.isStatic());
       if (def.hasAliases()) {
         for (String alias : def.aliases()) {
-          registerBuiltinMethod(
-              processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.isAutoRegister());
+          registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName, def.isStatic());
         }
       }
     } else {
@@ -201,22 +196,11 @@ public class MethodProcessor
       out.println("  private @Children ArgNode[] argNodes = new ArgNode[] {");
       generateArguments(methodDefinition, out);
       out.println("    };");
-      out.println("  private static final class Internals {");
-      out.println("    Internals(boolean s) {");
-      out.println("      this.staticOrInstanceMethod = s;");
-      out.println("    }");
       out.println();
-      out.println("    private final boolean staticOrInstanceMethod;");
-      out.println("  }");
-      out.println("  private final Internals internals;");
 
-      out.println(
-          "  private "
-              + methodDefinition.getClassName()
-              + "(EnsoLanguage language, boolean staticOrInstanceMethod) {");
+      out.println("  private " + methodDefinition.getClassName() + "(EnsoLanguage language) {");
       out.println("    super(language);");
       out.println("    this.bodyNode = " + methodDefinition.getConstructorExpression() + ";");
-      out.println("    this.internals = new Internals(staticOrInstanceMethod);");
       out.println("  }");
 
       out.println();
@@ -227,32 +211,13 @@ public class MethodProcessor
               : "fromBuiltinRootNode";
 
       out.println("  public static Function makeFunction(EnsoLanguage language) {");
-      out.println("    return makeFunction(language, false);");
-      out.println("  }");
-      out.println();
-      out.println(
-          "  public static Function makeFunction(EnsoLanguage language, boolean"
-              + " staticOrInstanceMethod) {");
-      out.println("    if (staticOrInstanceMethod) {");
-      out.println("      return Function." + functionBuilderMethod + "(");
-      out.print(
-          "        new " + methodDefinition.getClassName() + "(language, staticOrInstanceMethod)");
-      List<String> argsStaticInstace =
-          generateMakeFunctionArgs(true, methodDefinition.getArguments());
-      if (!argsStaticInstace.isEmpty()) {
-        out.println(",");
-      }
-      out.println(String.join(",\n", argsStaticInstace) + ");");
-      out.println("    } else {");
-      out.println("      return Function." + functionBuilderMethod + "(");
-      out.print(
-          "        new " + methodDefinition.getClassName() + "(language, staticOrInstanceMethod)");
+      out.println("    return Function." + functionBuilderMethod + "(");
+      out.print("      new " + methodDefinition.getClassName() + "(language)");
       List<String> argsInstance = generateMakeFunctionArgs(false, methodDefinition.getArguments());
       if (!argsInstance.isEmpty()) {
         out.println(",");
       }
       out.println(String.join(",\n", argsInstance) + ");");
-      out.println("    }");
       out.println("  }");
 
       out.println();
@@ -260,9 +225,6 @@ public class MethodProcessor
         out.println("  @Override");
         out.println("  public final InlineableNode createInlineableNode() {");
         out.println("    class Inlineable extends InlineableNode {");
-        out.println(
-            "      private final Internals extra = new"
-                + " Internals(internals.staticOrInstanceMethod);");
         out.println(
             "      private @Child "
                 + methodDefinition.getOriginalClassName()
@@ -272,9 +234,10 @@ public class MethodProcessor
         out.println("      private @Children ArgNode[] argNodes = new ArgNode[] {");
         generateArguments(methodDefinition, out);
         out.println("      };");
+        out.println();
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
-        out.println("        return handleExecute(argNodes, frame, extra, body, args);");
+        out.println("        return handleExecute(argNodes, frame, body, args);");
         out.println("      }");
         out.println("    }");
         out.println();
@@ -290,16 +253,13 @@ public class MethodProcessor
         out.println("    var args = frame.getArguments();");
       } else {
         out.println(
-            "    return handleExecute(argNodes, frame, this.internals, bodyNode,"
-                + " frame.getArguments());");
+            "    return handleExecute(argNodes, frame, bodyNode," + " frame.getArguments());");
         out.println("  }");
         out.println(
-            "  private static Object handleExecute(ArgNode[] argNodes, VirtualFrame frame,"
-                + " Internals internals, "
+            "  private static Object handleExecute(ArgNode[] argNodes, VirtualFrame frame, "
                 + methodDefinition.getOriginalClassName()
                 + " bodyNode, Object[] args) {");
       }
-      out.println("    var prefix = internals.staticOrInstanceMethod ? 1 : 0;");
       if (methodDefinition.needsCallerInfo()) {
         out.println("    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(args);");
       }
@@ -308,8 +268,7 @@ public class MethodProcessor
       List<String> callArgNames = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (!(arg.isImplicit() || arg.isFrame() || arg.isCallerInfo() || arg.isNode())) {
-          out.println(
-              "    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + " + prefix;");
+          out.println("    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + ";");
         }
       }
       out.println("    var argCtx = new ArgContext();");
@@ -391,9 +350,7 @@ public class MethodProcessor
       out.println("  @Override");
       out.println("  protected RootNode cloneUninitialized() {");
       out.println(
-          "    return new "
-              + methodDefinition.getClassName()
-              + "(EnsoLanguage.get(this), internals.staticOrInstanceMethod);");
+          "    return new " + methodDefinition.getClassName() + "(EnsoLanguage.get(this));");
       out.println("  }");
 
       out.println();
@@ -517,15 +474,13 @@ public class MethodProcessor
     }
   }
 
-  protected void registerBuiltinMethod(
-      Filer f, String name, String clazzName, boolean isStatic, boolean isAutoRegister) {
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName, boolean isStatic) {
     Map<String, String[]> methods = builtinMethods.get(f);
     if (methods == null) {
       methods = new HashMap<>();
       builtinMethods.put(f, methods);
     }
-    methods.put(
-        name, new String[] {clazzName, String.valueOf(isStatic), String.valueOf(isAutoRegister)});
+    methods.put(name, new String[] {clazzName, String.valueOf(isStatic)});
   }
 
   @Override
@@ -550,13 +505,12 @@ public class MethodProcessor
     return SourceVersion.latest();
   }
 
-  public record MethodMetadataEntry(
-      String fullEnsoName, String clazzName, boolean isStatic, boolean isAutoRegister)
+  public record MethodMetadataEntry(String fullEnsoName, String clazzName, boolean isStatic)
       implements MetadataEntry {
 
     @Override
     public String toString() {
-      return fullEnsoName + ":" + clazzName + ":" + isStatic + ":" + isAutoRegister;
+      return fullEnsoName + ":" + clazzName + ":" + isStatic;
     }
 
     @Override
@@ -568,11 +522,7 @@ public class MethodProcessor
   @Override
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
-    if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    return new MethodMetadataEntry(
-        elements[0],
-        elements[1],
-        Boolean.parseBoolean(elements[2]),
-        Boolean.parseBoolean(elements[3]));
+    if (elements.length != 3) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.parseBoolean(elements[2]));
   }
 }

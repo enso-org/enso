@@ -12,6 +12,7 @@ class LambdaTest extends InterpreterTest {
     "take arguments and use them in their bodies" in {
       val code =
         """
+          |from Standard.Base import all
           |main = x -> x * x
           |""".stripMargin
 
@@ -76,13 +77,16 @@ class LambdaTest extends InterpreterTest {
 
     "be able to return atoms that are evaluated with oversaturated args" in {
       val code =
-        """import Standard.Base.Data.List.List
+        """
           |
           |main =
-          |    f = x -> List.Cons
+          |    f = x -> Mist.Cons
           |    myCons = f 1 2 3
           |    case myCons of
-          |        List.Cons h t -> h + t
+          |        Mist.Cons h t -> h + t
+          |
+          |type Mist
+          |    Cons h t
           |""".stripMargin
 
       eval(code) shouldEqual 5
@@ -143,7 +147,7 @@ class LambdaTest extends InterpreterTest {
           |
           |main =
           |    lam = (x = 10) -> x
-          |    fn = a -> if a then lam else fn (a-1)
+          |    fn = a -> a.if_then_else lam (fn (a-1))
           |
           |    fn 10
           |""".stripMargin

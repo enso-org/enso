@@ -30,9 +30,7 @@ export function useCopy(props: UseCopyProps = {}) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const copyQuery = reactQuery.useMutation({
-    mutationFn: (text: string) => {
-      return navigator.clipboard.writeText(text)
-    },
+    mutationFn: (text: string) => window.navigator.clipboard.writeText(text),
     onMutate: () => {
       // Clear the reset timeout.
       // This is necessary to prevent the button from resetting while the copy is in progress.

@@ -8,8 +8,6 @@ use crate::paths::TargetTriple;
 use crate::project;
 use crate::version::Versions;
 
-
-
 /// Name of the assets manifest file.
 ///
 /// The website uses this name to find the assets manifest, so it should be kept in sync.
@@ -18,9 +16,9 @@ pub const ASSETS_MANIFEST_FILENAME: &str = "assets.json";
 /// A platform-specific asset being part of the release, see [Assets] for the purpose.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Asset {
-    pub os:            OS,
-    pub arch:          Arch,
-    pub url:           Url,
+    pub os: OS,
+    pub arch: Arch,
+    pub url: Url,
     /// User-friendly description of the target platform.
     pub target_pretty: String,
 }
@@ -37,7 +35,7 @@ impl Asset {
         Self { os: triple.os, arch: triple.arch, url, target_pretty }
     }
 
-    /// Description od the asset with IDE image.
+    /// Description of the asset with IDE image.
     pub fn new_ide(repo: &impl IsRepo, triple: &TargetTriple) -> Self {
         let filename =
             project::ide::electron_image_filename(triple.os, triple.arch, &triple.versions.version);
@@ -45,7 +43,7 @@ impl Asset {
         Self::new(url, triple)
     }
 
-    /// Description od the asset with Engine bundle.
+    /// Description of the asset with Engine bundle.
     pub fn new_engine(repo: &impl IsRepo, triple: &TargetTriple) -> Self {
         use crate::paths::generated::RepoRootBuiltDistributionEnsoBundleTriple;
         let stem = RepoRootBuiltDistributionEnsoBundleTriple::segment_name(triple.to_string());
@@ -56,7 +54,6 @@ impl Asset {
     }
 }
 
-
 /// Describes the assets that are part of the release.
 ///
 /// The information is used to:
@@ -66,9 +63,9 @@ impl Asset {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Assets {
     /// IDE packages. The exact format (e.g. installer vs AppImage) depends on the platform.
-    pub ide:     Vec<Asset>,
+    pub ide: Vec<Asset>,
     /// Engine bundles.
-    pub engine:  Vec<Asset>,
+    pub engine: Vec<Asset>,
     /// Version of the release.
     pub version: Version,
 }

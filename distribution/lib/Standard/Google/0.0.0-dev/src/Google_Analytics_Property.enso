@@ -49,6 +49,13 @@ type Google_Analytics_Property
     to_display_text self = self.to_text
 
     ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Google_Analytics_Property"], ["name", self.name], ["id", self.id]]
+
+    ## ---
        group: Standard.Base.Metadata
        icon: data_input
        ---
@@ -103,9 +110,9 @@ Google_Analytics_Property.from (that:Text) =
    private: true
    ---
 Google_Analytics_Property.from (that:Vector) =
-    if that.length != 1 then Error.throw (Illegal_Argument.Error "Expected exactly one property ID.") else
-        first = that.first
-        case first of
-            _ : Text -> Google_Analytics_Property.from first
-            _ : Google_Analytics_Property -> first
-            _ -> Error.throw (Illegal_Argument.Error "Expected a property ID or a property.")
+    if that.length != 1 then Error.throw (Illegal_Argument.Error "Expected exactly one property ID.")
+    first = that.first
+    case first of
+        _ : Text -> Google_Analytics_Property.from first
+        _ : Google_Analytics_Property -> first
+        _ -> Error.throw (Illegal_Argument.Error "Expected a property ID or a property.")

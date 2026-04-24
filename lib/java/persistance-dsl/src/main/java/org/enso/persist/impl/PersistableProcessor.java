@@ -275,21 +275,19 @@ public class PersistableProcessor extends AbstractProcessor {
             }
           } else
             switch (v.asType().getKind()) {
-              case BOOLEAN -> w.append("    var ")
-                  .append(v.getSimpleName())
-                  .append(" = in.readBoolean();\n");
-              case BYTE -> w.append("    var ")
-                  .append(v.getSimpleName())
-                  .append(" = in.readByte();\n");
-              case INT -> w.append("    var ")
-                  .append(v.getSimpleName())
-                  .append(" = in.readInt();\n");
-              case LONG -> w.append("    var ")
-                  .append(v.getSimpleName())
-                  .append(" = in.readLong();\n");
-              default -> processingEnv
-                  .getMessager()
-                  .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+              case BOOLEAN ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readBoolean();\n");
+              case BYTE ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readByte();\n");
+              case INT ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readInt();\n");
+              case LONG ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readLong();\n");
+              default ->
+                  processingEnv
+                      .getMessager()
+                      .printMessage(
+                          Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
             }
         }
         w.append("    return new ").append(typeElemName).append("(\n");
@@ -357,21 +355,19 @@ public class PersistableProcessor extends AbstractProcessor {
             }
           } else
             switch (v.asType().getKind()) {
-              case BOOLEAN -> w.append("    out.writeBoolean(obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-              case BYTE -> w.append("    out.writeByte(obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-              case INT -> w.append("    out.writeInt(obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-              case LONG -> w.append("    out.writeLong(obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-              default -> processingEnv
-                  .getMessager()
-                  .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+              case BOOLEAN ->
+                  w.append("    out.writeBoolean(obj.").append(v.getSimpleName()).append("());\n");
+              case BYTE ->
+                  w.append("    out.writeByte(obj.").append(v.getSimpleName()).append("());\n");
+              case INT ->
+                  w.append("    out.writeInt(obj.").append(v.getSimpleName()).append("());\n");
+              case LONG ->
+                  w.append("    out.writeLong(obj.").append(v.getSimpleName()).append("());\n");
+              default ->
+                  processingEnv
+                      .getMessager()
+                      .printMessage(
+                          Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
             }
         }
       } else {

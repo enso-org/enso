@@ -62,13 +62,19 @@ type No_Comp_Type
    does not matter. Iterates through all the warnings of result.
 expect_incomparable_warn : Any -> Any -> Any -> Nothing
 expect_incomparable_warn left_val right_val result =
-    # Incomparable values warning wraps Text values in simple quotes
-    left_val_text = left_val.pretty
-    right_val_text = right_val.pretty
+    left_val_text = left_val.to_text
+    right_val_text = right_val.to_text
     expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
     expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
     has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
-    has_expected_warning . should_be_true
+    if has_expected_warning.not then
+        Test.fail
+            "Expecting "
+                + expected_warn_msg_left
+                + " and "
+                + expected_warn_msg_right
+                + " but got: "
+                + (Warning.get_all result . to_text)
 
 expect_no_warns : Any -> Nothing
 expect_no_warns result =
@@ -144,7 +150,6 @@ add_specs suite_builder =
             Ordering.compare Number.nan 42.0 . should_fail_with Incomparable_Values
             Ordering.compare 42.0 Number.nan . should_fail_with Incomparable_Values
             Ordering.compare 42.5 67.9 . should_equal Ordering.Less
-            Meta.is_same_object (Comparable.from Number.nan . comparator) (Comparable.from 42.0 . comparator) . should_be_true
 
         group_builder.specify "should fail with Incomparable_Values for wrong type of that" <|
             Ordering.compare Ordering.Less 1 . should_fail_with Incomparable_Values

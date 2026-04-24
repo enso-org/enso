@@ -4,8 +4,6 @@ use crate::meta::*;
 
 use derive_where::derive_where;
 
-
-
 // ===============
 // === Flatten ===
 // ===============
@@ -30,7 +28,7 @@ pub fn flatten(graph: &mut TypeGraph, ids: &mut BTreeSet<FieldId>) {
 /// For design notes, see [`flatten`].
 fn flatten_(graph: &mut TypeGraph, to_flatten: &mut BTreeSet<FieldId>, outer: TypeId) {
     let outer_fields = match &mut graph[outer].data {
-        Data::Struct(ref mut fields) => std::mem::take(fields),
+        Data::Struct(fields) => std::mem::take(fields),
         _ => return,
     };
     let child_field = graph[outer].child_field;
@@ -66,13 +64,13 @@ fn flatten_(graph: &mut TypeGraph, to_flatten: &mut BTreeSet<FieldId>, outer: Ty
     };
 }
 
-
 // === Topologic Sort ===
 
 fn toposort<T, V>(iter: impl IntoIterator<Item = T>, dependencies: V) -> Vec<T>
 where
     T: Copy + Ord,
-    V: DependencyVisitor<T>, {
+    V: DependencyVisitor<T>,
+{
     let mut sort = TopoSort::default();
     for id in iter {
         sort.visit(id, &dependencies);
@@ -80,16 +78,17 @@ where
     sort.order
 }
 
-
 #[derive_where(Default)]
 struct TopoSort<T> {
     visited: BTreeSet<T>,
-    order:   Vec<T>,
+    order: Vec<T>,
 }
 
 impl<T> TopoSort<T> {
     fn visit(&mut self, t: T, visitor: &impl DependencyVisitor<T>)
-    where T: Copy + Ord {
+    where
+        T: Copy + Ord,
+    {
         if self.visited.insert(t) {
             visitor.visit(self, t);
             self.order.push(t);
@@ -103,7 +102,7 @@ trait DependencyVisitor<T> {
 
 struct TypeGraphDependencyVisitor<'g, 'i> {
     graph: &'g TypeGraph,
-    ids:   &'i BTreeSet<FieldId>,
+    ids: &'i BTreeSet<FieldId>,
 }
 
 impl DependencyVisitor<TypeId> for TypeGraphDependencyVisitor<'_, '_> {

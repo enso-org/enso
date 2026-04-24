@@ -1,4 +1,4 @@
-import { Icon } from '@/util/iconMetadata/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { assert } from './assert'
 
 export type TabButton<T> = { tab: T; title: string; icon: Icon }

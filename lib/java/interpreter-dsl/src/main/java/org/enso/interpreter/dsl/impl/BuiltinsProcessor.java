@@ -131,19 +131,21 @@ public class BuiltinsProcessor extends AbstractProcessor {
       var fqn = processingEnv.getElementUtils().getBinaryName(forElement);
       out.println("    super(\"" + fqn + "\");");
       out.println("  }");
-      out.println("""
-          @Override
-          public boolean containsValues() {
-        """);
+      out.println(
+          """
+            @Override
+            public boolean containsValues() {
+          """);
       if (containsValues) {
         out.println("    return true;");
       } else {
         out.println("    return false;");
       }
-      out.println("""
-        }
-      }
-      """);
+      out.println(
+          """
+            }
+          }
+          """);
     }
   }
 
@@ -237,7 +239,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
                         methodName,
                         annotation.description(),
                         method.getSimpleName().toString(),
-                        annotation.autoRegister(),
                         needsFrame);
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
@@ -292,7 +293,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 builtinMethodName,
                 annotation.description(),
                 method.getSimpleName().toString(),
-                annotation.autoRegister(),
                 needsFrame);
           }
         } else {
@@ -304,7 +304,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
               builtinMethodName,
               annotation.description(),
               method.getSimpleName().toString(),
-              annotation.autoRegister(),
               needsFrame);
         }
       }

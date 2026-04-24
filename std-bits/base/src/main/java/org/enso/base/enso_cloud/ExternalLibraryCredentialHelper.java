@@ -92,9 +92,10 @@ public class ExternalLibraryCredentialHelper {
 
   public static AccessToken requestAccessToken(CredentialReference credentialReference)
       throws EnsoSecretAccessDenied {
+    var cloudAPI = CloudAPI.getInstance();
     RestrictedAccess.checkAccess(allowRefreshCredential);
     var apiUri =
-        CloudAPI.getAPIRootURI()
+        cloudAPI.getAPIRootURI()
             + "oauth/"
             + credentialReference.serviceName().toLowerCase()
             + "/refresh/"
@@ -165,11 +166,16 @@ public class ExternalLibraryCredentialHelper {
   private static final List<RestrictedAccess.AccessLocation> allowParseCredential =
       List.of(
           new RestrictedAccess.AccessLocation(
-              "org.enso.snowflake.SnowflakeCloudCredentials", "unsafeReadCredential"));
+              "org.enso.snowflake.SnowflakeCloudCredentials", "unsafeReadCredential"),
+          new RestrictedAccess.AccessLocation(
+              "org.enso.saas.salesforce.SalesforceCloudCredentials", "unsafeReadCredential"));
 
   private static final List<RestrictedAccess.AccessLocation> allowRefreshCredential =
       List.of(
           new RestrictedAccess.AccessLocation(
               "org.enso.google.GoogleOAuthHelper$CloudRenewableGoogleCredentials", "refresh"),
-          new RestrictedAccess.AccessLocation("org.enso.saas.strava.StravaService", "refresh"));
+          new RestrictedAccess.AccessLocation("org.enso.saas.strava.StravaService", "refresh"),
+          new RestrictedAccess.AccessLocation("org.enso.microsoft.ms365.MS365Service", "refresh"),
+          new RestrictedAccess.AccessLocation(
+              "org.enso.saas.salesforce.SalesforceService", "refresh"));
 }

@@ -3,12 +3,14 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
 
 import project.Column_Ref.Column_Ref
 import project.Expression.Expression
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Value_Type_Checks
 import project.Internal.Widget_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Value_Type
@@ -65,6 +67,10 @@ type Simple_Expression
             Simple_Calculation.Text_Left length -> input_column.text_left (table.resolve length)
             Simple_Calculation.Text_Right length -> input_column.text_right (table.resolve length)
             Simple_Calculation.Text_Length -> input_column.text_length
+            Simple_Calculation.First_Of_Month -> input_column.first_of_month
+            Simple_Calculation.End_Of_Month -> input_column.end_of_month
+            Simple_Calculation.At_Time_Zone -> input_column.at_time_zone
+            Simple_Calculation.Set_Time_Zone -> input_column.set_time_zone
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
                 condition_column = case condition of
@@ -99,9 +105,13 @@ type Simple_Expression
         constants = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True . values
         expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
 
+        ## SQL Function
+        sql_function = if table.underlying.is_a In_Memory_Table then [] else
+            [Option "<SQL Function>" "..SQL" [["arguments", Vector_Editor item_editor=with_everything item_default="(..Name "+table.underlying.column_names.first.pretty+")"]]]
+
         input_column = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True columns_first=True
         derived = Option "<Simple Expression>" "..Simple_Expr" [["input", input_column], ["operation", Single_Choice options]]
-        Single_Choice [derived, expression]+constants display=display
+        Single_Choice [derived, expression]+sql_function+constants display=display
 
 ## Defines a set of Text based operations.
 type Text_Operation
@@ -238,9 +248,11 @@ type Math_Operation
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
-            Math_Operation.Absolute -> Value_Type.expect_numeric column <|
+            Math_Operation.Absolute ->
+                Value_Type_Checks.is_numeric column
                 (column:Numeric_Column).abs
-            Math_Operation.Signum -> Value_Type.expect_numeric column <|
+            Math_Operation.Signum ->
+                Value_Type_Checks.is_numeric column
                 (column:Numeric_Column).signum
 
 ## Defines a set of Date based operations.
@@ -438,6 +450,21 @@ type Simple_Calculation
 
     ## Returns the character length of the input column.
     Text_Length
+
+    ## Returns the first day of the month for each date in the column.
+    First_Of_Month
+
+    ## Returns the last day of the month for each date in the column.
+    End_Of_Month
+
+    ## Change the time zone of eadh date-time in the column to the specified
+       time zone. This preserves the instant that the time represents.
+    At_Time_Zone
+
+    ## Constructs a new time instant by changing the time zone but not altering
+       the local date-time, which results in a value representing a different
+       instant.
+    Set_Time_Zone
 
     ## Formats a column with the specified format.
     Format (format : Text = "")

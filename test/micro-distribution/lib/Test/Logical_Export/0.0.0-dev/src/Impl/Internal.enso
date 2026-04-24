@@ -1,4 +1,0 @@
-type Internal
-    Impl
-
-    describe self = "Internal"

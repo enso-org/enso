@@ -11,7 +11,6 @@ import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
@@ -19,6 +18,7 @@ from project.Data.Index_Sub_Range import handle_unmatched_type, sort_and_merge_r
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils

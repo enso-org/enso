@@ -18,9 +18,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Array_Like_Helpers",
     name = "flatten",
-    description = "Flattens a vector of vectors into a single vector.",
-    autoRegister = false)
-public abstract class FlattenVectorNode extends Node {
+    description = "Flattens a vector of vectors into a single vector.")
+abstract class FlattenVectorNode extends Node {
   static FlattenVectorNode build() {
     return FlattenVectorNodeGen.create();
   }

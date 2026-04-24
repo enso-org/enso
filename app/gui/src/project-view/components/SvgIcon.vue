@@ -1,4 +1,6 @@
 <script lang="ts">
+import { svgUseHref, type AnyIcon } from '@/util/icons'
+// This export is to have this widely used component's docs displayed in IDE.
 /**
  * A component displaying a SVG icon.
  *
@@ -8,23 +10,17 @@ export default {}
 </script>
 
 <script setup lang="ts">
-import icons from '@/assets/icons.svg'
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
-
-const props = defineProps<{
-  name: Icon | URLString
-}>()
+const { name } = defineProps<{ name: AnyIcon | undefined }>()
 </script>
 
 <template>
   <svg class="SvgIcon" viewBox="0 0 16 16" preserveAspectRatio="xMidYMid slice">
-    <use :href="props.name.includes(':') ? props.name : `${icons}#${props.name}`"></use>
+    <use v-if="name" :href="svgUseHref(name)"></use>
   </svg>
 </template>
 
 <style scoped>
-svg.SvgIcon {
+.SvgIcon {
   overflow: visible; /* Prevent slight cutting off icons that are using all available space. */
   width: var(--icon-width, var(--icon-size, 16px));
   height: var(--icon-height, var(--icon-size, 16px));

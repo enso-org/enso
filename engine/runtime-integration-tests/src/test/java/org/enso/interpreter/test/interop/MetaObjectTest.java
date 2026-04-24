@@ -43,7 +43,8 @@ public class MetaObjectTest {
     var ctx = ctxRule.context();
     var code =
         """
-        from Standard.Base import Meta, Error
+        import Standard.Base.Meta
+        from Standard.Base.Error import all
 
         sn v = v.to Meta.Type . catch handler=(_-> Meta.meta Error) . name
         """;
@@ -90,13 +91,13 @@ public class MetaObjectTest {
         Source.newBuilder(
                 "enso",
                 """
-    type Atm
-        Data x
-        End
+                type Atm
+                    Data x
+                    End
 
-    data = Atm.Data 5
-    end = Atm.End
-    """,
+                data = Atm.Data 5
+                end = Atm.End
+                """,
                 "atom_test.enso")
             .uri(uri)
             .buildLiteral();
@@ -253,7 +254,7 @@ public class MetaObjectTest {
   @Test
   public void nothingWithWarningIsNotMeta() {
     var src =
-        """
+"""
 import Standard.Base.Warning.Warning
 import Standard.Base.Nothing.Nothing
 
@@ -265,7 +266,8 @@ main = Warning.attach "foo" Nothing
 
   @Test
   public void nothingShouldBeNull() {
-    var src = """
+    var src =
+"""
 import Standard.Base.Nothing.Nothing
 main = Nothing
 """;
@@ -450,11 +452,11 @@ main = Nothing
         continue;
       }
       switch (t.getMetaSimpleName()) {
-          // represented as primitive values without meta object
+        // represented as primitive values without meta object
         case "Float" -> {}
-          // has no instances
+        // has no instances
         case "Array_Proxy" -> {}
-          // Warning is transparent and invisible
+        // Warning is transparent and invisible
         case "Warning" -> {}
         default -> expecting.add(t);
       }

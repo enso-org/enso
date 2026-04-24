@@ -5,7 +5,7 @@ import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import RadioGroup from '#/components/styled/RadioGroup'
 
-import * as backend from '#/services/Backend'
+import * as backend from 'enso-common/src/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 

@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
+import AgGridTableView from '@/components/AgGridTableView.vue'
+import ResizableWidget from '@/components/GraphEditor/ResizableWidget.vue'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
+import TableHeader, {
+  type HeaderParams,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
+import { useTableEditHandler } from '@/components/GraphEditor/widgets/WidgetTableEditor/editHandler'
 import {
   CELLS_LIMIT,
+  type RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
-  type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import AgGridTableView from '@/components/shared/AgGridTableView.vue'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
-import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
+import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
@@ -23,16 +29,14 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, ComputedRef, ref, watch } from 'vue'
+import type { Result } from 'enso-common/src/utilities/data/result'
+import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
-import ResizableWidget from '../ResizableWidget.vue'
-import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
-import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module } = useCurrentProject()
+const tree = injectWidgetTree()
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>
@@ -44,7 +48,8 @@ const configSchema = z.object({
 })
 type Config = z.infer<typeof configSchema>
 
-const DEFAULT_CFG: Config = { size: { x: 200, y: 150 } }
+const PREFERRED_HEIGHT_PX = 150
+const DEFAULT_CFG: Config = { size: { x: 200, y: PREFERRED_HEIGHT_PX } }
 
 const config = computed(() => {
   const configObj = props.input.value.widgetMetadata('WidgetTableEditor')
@@ -59,10 +64,16 @@ const config = computed(() => {
 
 const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTableInputArgument(
   () => props.input,
-  graph,
-  suggestionDb.entries,
+  module,
+  () => suggestionDb.value.entries,
   props.updateCallback,
 )
+
+const collapsedText = computed(() => {
+  // One row is added only to allow adding new rows.
+  const rows = rowData.value.length - 1
+  return `Table (${rows} row${rows !== 1 ? 's' : ''})`
+})
 
 // Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
 const columnDefsTyped: ComputedRef<ColDef<RowData>[]> = columnDefs
@@ -95,8 +106,6 @@ watch(
   () => grid.value?.gridApi?.refreshCells(),
 )
 
-// === Resizing ===
-
 // === Column and Row Dragging ===
 
 function onColumnMoved(event: ColumnMovedEvent<RowData>) {
@@ -117,13 +126,20 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
   const focusedCell = api.getFocusedCell()
   if (focusedCell === null) console.warn('Pasting while no cell is focused!')
   else {
+    const checkAndWarn = (pasted: Result<{ rows: number; columns: number }>) => {
+      if (
+        pasted.ok &&
+        (pasted.value.rows < data.length || pasted.value.columns < (data[0]?.length ?? 0))
+      ) {
+        pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
+      }
+    }
     const pasted = pasteFromClipboard(data, {
       rowIndex: focusedCell.rowIndex,
       colId: focusedCell.column.getColId(),
     })
-    if (pasted.rows < data.length || pasted.columns < (data[0]?.length ?? 0)) {
-      pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
-    }
+    if (pasted instanceof Promise) pasted.then(checkAndWarn)
+    else checkAndWarn(pasted)
   }
   return []
 }
@@ -159,7 +175,7 @@ export const widgetDefinition = defineWidget(
       'Standard.Table' as QualifiedName,
       'Table.Table' as QualifiedName,
     ),
-    name: 'input' as IdentifierOrOperatorIdentifier,
+    name: 'input' as Identifier,
   }),
   {
     priority: 999,
@@ -173,57 +189,52 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor">
+  <div v-if="tree.expanded" class="WidgetTableEditor widgetExpanded">
     <ResizableWidget
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
       :updateCallback="updateCallback"
     >
-      <Suspense>
-        <AgGridTableView
-          ref="grid"
-          class="inner"
-          :defaultColDef="defaultColDef"
-          :columnDefs="columnDefsTyped"
-          :rowData="rowData"
-          :getRowId="(row) => `${row.data.index}`"
-          :components="{
-            agColumnHeader: TableHeader,
-          }"
-          :stopEditingWhenCellsLoseFocus="true"
-          :suppressDragLeaveHidesColumns="true"
-          :suppressMoveWhenColumnDragging="true"
-          :processDataFromClipboard="processDataFromClipboard"
-          v-on="gridEventHandlers"
-          @keydown.arrow-left.stop
-          @keydown.arrow-right.stop
-          @keydown.arrow-up.stop
-          @keydown.arrow-down.stop
-          @keydown.backspace.stop
-          @keydown.delete.stop
-          @pointerdown.stop
-          @click.stop
-          @columnMoved="onColumnMoved"
-          @rowDragEnd="onRowDragEnd"
-        />
-      </Suspense>
+      <AgGridTableView
+        ref="grid"
+        :defaultColDef="defaultColDef"
+        :columnDefs="columnDefsTyped"
+        :rowData="rowData"
+        :getRowId="(row) => `${row.data.index}`"
+        :components="{
+          agColumnHeader: TableHeader,
+        }"
+        :stopEditingWhenCellsLoseFocus="true"
+        :suppressDragLeaveHidesColumns="true"
+        :suppressMoveWhenColumnDragging="true"
+        :processDataFromClipboard="processDataFromClipboard"
+        v-on="gridEventHandlers"
+        @keydown.arrow-left.stop
+        @keydown.arrow-right.stop
+        @keydown.arrow-up.stop
+        @keydown.arrow-down.stop
+        @keydown.backspace.stop
+        @keydown.delete.stop
+        @pointerdown.stop
+        @click.stop
+        @columnMoved="onColumnMoved"
+        @rowDragEnd="onRowDragEnd"
+      />
     </ResizableWidget>
+  </div>
+  <div v-else class="WidgetTableEditor widgetSingleLine">
+    <span class="collapsed widgetApplyPadding" v-text="collapsedText" />
   </div>
 </template>
 
 <style scoped>
-.WidgetTableEditor {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.WidgetTableEditor.widgetExpanded {
   border-radius: var(--node-port-border-radius);
-  position: relative;
 }
 
-.inner {
-  width: 100%;
-  height: 100%;
+.collapsed {
+  opacity: 0.7;
 }
 
 :deep(.newColumnCell) {
@@ -234,34 +245,6 @@ export const widgetDefinition = defineWidget(
   color: rgba(0, 0, 0, 0.4);
 }
 
-/* Those two classes are copied from AgGridTableView component.
-For some reason, Vue cannot load them there, probably because it is used also as Custom Element. */
-:deep(.inner) {
-  width: 100%;
-  height: 100%;
-}
-
-/*
- * FIXME: This is a copy of the style defined within AgGridTableView, which has no effect here due to a bug.
- */
-:deep(.ag-theme-alpine) {
-  --ag-grid-size: 3px;
-  --ag-list-item-height: 20px;
-  --ag-background-color: var(--color-visualization-bg);
-  --ag-odd-row-background-color: color-mix(in srgb, var(--color-visualization-bg) 98%, black);
-  --ag-header-background-color: var(--color-visualization-bg);
-  font-family: var(--font-mono);
-
-  :deep(.ag-header) {
-    background: linear-gradient(
-      to top,
-      var(--ag-odd-row-background-color),
-      var(--ag-background-color)
-    );
-  }
-}
-
-/* Separate, actually widget-specific styling. */
 .WidgetTableEditor:deep(.ag-root-wrapper) {
   --ag-wrapper-border-radius: var(--node-port-border-radius);
   border: none;

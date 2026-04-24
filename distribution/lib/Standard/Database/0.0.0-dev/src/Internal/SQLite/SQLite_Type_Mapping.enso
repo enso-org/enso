@@ -6,17 +6,18 @@ import Standard.Table.Internal.Value_Type_Helpers
 from Standard.Table import Bits, Column, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
+import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Type
 from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
-
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.database.JDBCValueSetter
 ## ---
    private: true
    ---
@@ -80,13 +81,21 @@ type SQLite_Type_Mapping
     ## ---
        private: true
        ---
-    sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type sql_type =
-        on_not_found =
-            Value_Type.Unsupported_Data_Type sql_type.name sql_type
+    sql_type_to_value_type : SQL_Type -> Boolean -> Value_Type
+    sql_type_to_value_type sql_type json_as_text:Boolean=False =
+        _ = json_as_text
         do_simple_mapping =
-            simple_types_map.get sql_type.typeid if_missing=on_not_found
+            simple_types_map.get sql_type.typeid if_missing=(Value_Type.Unsupported_Data_Type sql_type.name sql_type)
         name_based_workarounds.get sql_type.name if_missing=do_simple_mapping
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for SQLite.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        ColumnFetcherFactory.DEFAULT
 
     ## ---
        private: true
@@ -112,22 +121,12 @@ type SQLite_Type_Mapping
        private: true
        ---
        SQLite `ResultSet` metadata may differ row-by-row, so we cannot rely on
-       this metadata. Instead, we get the types inferred for each colum,
+       this metadata. Instead, we get the types inferred for each column,
        regardless if it was initially overridden or not.
     prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .get
-
-    ## ---
-       private: true
-       ---
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher : SQL_Type -> Column_Fetcher
-    make_column_fetcher self sql_type =
-        value_type = self.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## ---
        private: true
@@ -153,6 +152,26 @@ type SQLite_Type_Mapping
        ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for SQLite.
+    statement_setter =
+        fill_home = Statement_Setter.create_fill_hole SQLite_Type_Mapping.value_setter
+        Statement_Setter.for_fill_hole fill_home
+
+    ## ---
+       private: true
+       ---
+    value_setter =
+        JDBCValueSetter.create "SQLite"
+
+    ## ---
+       private: true
+       ---
+    error_mapper : SQLite_Error_Mapper
+    error_mapper self = SQLite_Error_Mapper
 
 ## ---
    private: true
@@ -225,6 +244,9 @@ operations_dict =
         possible_results = case_results + [fallback]
         find_a_common_type possible_results
 
+    handle_custom_sql _ =
+        Panic.throw (Illegal_State.Error "Custom SQL cannot be used within SQLite expressions.")
+
     handle_cast _ =
         Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
 
@@ -232,13 +254,13 @@ operations_dict =
         Panic.throw (Illegal_State.Error "RUNTIME_ERROR should not be part of direct type inference, so this code should never be reached. This is a bug in the Database library.")
 
     always_boolean_ops = ["==", "!=", "EQUALS_IGNORE_CASE", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "STARTS_WITH", "ENDS_WITH", "CONTAINS", "BOOL_OR", "IS_INF", "IS_FINITE"]
-    always_floating_ops = ["/", "MOD", "AVG", "STDDEV_POP", "STDDEV_SAMP", "ROUND"]
-    always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM", "REPLACE", "LEFT", "RIGHT"]
-    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "COUNT_OVER_PARTITION", "ROW_NUMBER", "ROW_NUMBER_IN_GROUP", "GROUP_NUMBER", "GROUP_NUMBER_EQUAL_COUNT", "LENGTH", "SIGNUM"]
+    always_floating_ops = ["/", "MOD", "AVG", "STDDEV_POP", "STDDEV_SAMP", "ROUND", "SIN", "ASIN", "COS", "ACOS", "TAN", "ATAN", "SINH", "COSH", "TANH", "EXP", "LN", "LOG10", "SQRT"]
+    always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM", "REPLACE", "LEFT", "RIGHT", "PAD_LEFT", "PAD_RIGHT", "SUBSTR", "UPPER", "LOWER", "GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", "GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE"]
+    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "COUNT_OVER_PARTITION", "ROW_NUMBER", "ROW_NUMBER_IN_GROUP", "GROUP_NUMBER", "GROUP_NUMBER_EQUAL_COUNT", "GROUP_NUMBER_EQUAL_SUM", "LENGTH", "SIGNUM", "INDEX_OF"]
     same_as_first = ["TRUNCATE", "CEIL", "FLOOR", "FIRST", "LAST", "ABS"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE", "LEAD", "LAG", "LEAD_CLOSEST", "LAG_CLOSEST"]
-    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["RUNTIME_ERROR", handle_runtime_error]]
+    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["RUNTIME_ERROR", handle_runtime_error], ["CUSTOM_SQL", handle_custom_sql]]
     Dictionary.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]

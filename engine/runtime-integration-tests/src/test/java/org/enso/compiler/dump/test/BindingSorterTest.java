@@ -172,34 +172,41 @@ public final class BindingSorterTest {
     MethodReference methodRef;
     if (typeName != null) {
       methodRef =
-          new Name.MethodReference(
-              Option.apply(name(typeName, false)),
-              name(methodName, true),
-              null,
-              new MetadataStorage());
+          Name.MethodReference.builder()
+              .typePointer(Option.apply(name(typeName, false)))
+              .methodName(name(methodName, true))
+              .build();
     } else {
       methodRef =
-          new Name.MethodReference(
-              Option.empty(), name(methodName, true), null, new MetadataStorage());
+          Name.MethodReference.builder()
+              .typePointer(Option.empty())
+              .methodName(name(methodName, true))
+              .build();
     }
     Reference<Expression> bodyRef = Reference.of(empty());
-    return new Method.Explicit(
-        methodRef, bodyRef, isStatic, isPrivate, false, null, new MetadataStorage());
+    return Method.Explicit.builder()
+        .methodReference(methodRef)
+        .bodyReference(bodyRef)
+        .isStatic(isStatic)
+        .isPrivate(isPrivate)
+        .build();
   }
 
   private static Method.Conversion conversionMethod(String targetTypeName, String sourceTypeName) {
     var methodRef =
-        new Name.MethodReference(
-            Option.apply(name(targetTypeName, false)),
-            name("from", true),
-            null,
-            new MetadataStorage());
-    return new Method.Conversion(
-        methodRef, name(sourceTypeName, false), empty(), null, new MetadataStorage());
+        Name.MethodReference.builder()
+            .typePointer(Option.apply(name(targetTypeName, false)))
+            .methodName(name("from", true))
+            .build();
+    return Method.Conversion.builder()
+        .methodReference(methodRef)
+        .sourceTypeName(name(sourceTypeName, false))
+        .body(empty())
+        .build();
   }
 
   private static Name name(String nm, boolean isMethod) {
-    return new Name.Literal(nm, isMethod, null, Option.empty(), new MetadataStorage());
+    return Name.Literal.builder().name(nm).isMethod(isMethod).build();
   }
 
   private static Definition.Data constructor(String name) {

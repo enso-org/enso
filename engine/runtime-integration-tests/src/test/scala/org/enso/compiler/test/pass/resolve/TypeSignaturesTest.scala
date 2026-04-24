@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Function
@@ -96,7 +96,10 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
+      ir.bindings.head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
     }
 
     "allow dotted paths in type signatures" in {
@@ -107,7 +110,10 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
+      ir.bindings.head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
     }
 
     "raise an error if a signature is divorced from its definition" in {
@@ -124,11 +130,11 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 5
-      ir.bindings.head shouldBe an[errors.Unexpected.TypeSignature]
-      ir.bindings(1) shouldBe an[errors.Unexpected.TypeSignature]
-      ir.bindings(2) shouldBe an[definition.Method]
-      ir.bindings(3) shouldBe an[definition.Method]
-      ir.bindings(4) shouldBe an[errors.Unexpected.TypeSignature]
+      ir.bindings.head shouldBe an[errors.UnexpectedTypeSignature]
+      ir.bindings()(1) shouldBe an[errors.UnexpectedTypeSignature]
+      ir.bindings()(2) shouldBe an[definition.Method]
+      ir.bindings()(3) shouldBe an[definition.Method]
+      ir.bindings()(4) shouldBe an[errors.UnexpectedTypeSignature]
     }
 
     "reattach documentation to method definitions" in {
@@ -141,7 +147,10 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
+      ir.bindings.head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
       ir.bindings.head.getMetadata(DocumentationComments) shouldBe defined
     }
 
@@ -153,7 +162,10 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
+      ir.bindings.head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
       ir.bindings.head.getMetadata(ModuleAnnotations) shouldBe defined
     }
 
@@ -171,11 +183,15 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings(0) shouldBe an[Definition.Type]
-      ir.bindings(1) shouldBe an[definition.Method]
-      ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
-      ir.bindings(1).getMetadata(DocumentationComments) shouldBe defined
-      ir.bindings(2) shouldBe an[errors.Unexpected.TypeSignature]
+      ir.bindings()(0) shouldBe an[Definition.Type]
+      ir.bindings()(1) shouldBe an[definition.Method]
+      ir.bindings()(1)
+        .getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) shouldBe defined
+      ir.bindings()(1).getMetadata(DocumentationComments) shouldBe defined
+      ir.bindings()(2) shouldBe an[errors.UnexpectedTypeSignature]
     }
 
     "recurse into bodies" in {
@@ -200,11 +216,21 @@ class TypeSignaturesTest extends CompilerTest {
         .asInstanceOf[Expression.Block]
 
       block.expressions.length shouldEqual 2
-      block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
+      block.expressions.head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
       block.expressions.head.getMetadata(DocumentationComments) shouldBe defined
 
-      block.expressions(1).getMetadata(TypeSignatures) shouldBe defined
-      block.expressions(1).getMetadata(DocumentationComments) shouldBe defined
+      block.expressions
+        .apply(1)
+        .getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) shouldBe defined
+      block.expressions
+        .apply(1)
+        .getMetadata(DocumentationComments) shouldBe defined
     }
   }
 
@@ -234,7 +260,10 @@ class TypeSignaturesTest extends CompilerTest {
     "associate signatures with bindings" in {
       val head = block.expressions.head
       head shouldBe an[Expression.Binding]
-      head.getMetadata(TypeSignatures) shouldBe defined
+      head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
       head.getMetadata(DocumentationComments) shouldBe defined
     }
 
@@ -243,15 +272,18 @@ class TypeSignaturesTest extends CompilerTest {
     }
 
     "work recursively" in {
-      val nested = block
-        .expressions(1)
+      val nested = block.expressions
+        .apply(1)
         .asInstanceOf[Expression.Binding]
         .expression
         .asInstanceOf[Expression.Block]
 
       val head = nested.expressions.head
       head shouldBe an[Expression.Binding]
-      head.getMetadata(TypeSignatures) shouldBe defined
+      head.getMetadata(
+        TypeSignatures,
+        classOf[TypeSignatures.Metadata]
+      ) shouldBe defined
       head.getMetadata(DocumentationComments) shouldBe defined
     }
   }
@@ -266,7 +298,8 @@ class TypeSignaturesTest extends CompilerTest {
 
     "associate the signature with the typed expression" in {
       ir shouldBe an[Application.Prefix]
-      val outerSignature = ir.getMetadata(TypeSignatures)
+      val outerSignature =
+        ir.getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       outerSignature shouldBe defined
       outerSignature.get.signature.showCode() shouldEqual "Double"
     }
@@ -274,7 +307,8 @@ class TypeSignaturesTest extends CompilerTest {
     "work recursively" in {
       val arg2Value =
         ir.asInstanceOf[Application.Prefix].arguments.apply(1).value
-      val arg2Signature = arg2Value.getMetadata(TypeSignatures)
+      val arg2Signature =
+        arg2Value.getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       arg2Signature shouldBe defined
       arg2Signature.get.signature.showCode() shouldEqual "Int"
 
@@ -284,7 +318,7 @@ class TypeSignaturesTest extends CompilerTest {
         .arguments
         .apply(0)
         .value
-        .getMetadata(TypeSignatures)
+        .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       arg1Signature shouldBe empty
     }
   }
@@ -299,7 +333,8 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.resolve
 
       ir shouldBe an[Literal.Number]
-      val signature = ir.getMetadata(TypeSignatures)
+      val signature =
+        ir.getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       signature shouldBe defined
       signature.get.signature.showCode() shouldEqual "Number"
     }

@@ -1,0 +1,19 @@
+private
+
+import Standard.Base.System.File_Format.File_Format_SPI
+
+import project.Connection.Database.Database_Connection_Details_SPI
+import project.Connection.SQLite.SQLite
+import project.Connection.SQLite_Format.SQLite_Format
+
+type Impl
+
+File_Format_SPI.from (that:Impl) =
+    _ = that
+    File_Format_SPI.new SQLite_Format
+
+Database_Connection_Details_SPI.from (that:Impl) =
+    _ = that
+    file = Database_Connection_Details_SPI.new SQLite "SQLite" "SQLite.From_File"
+    memory = Database_Connection_Details_SPI.new SQLite "SQLite (In-Memory)" "SQLite.In_Memory"
+    file+memory

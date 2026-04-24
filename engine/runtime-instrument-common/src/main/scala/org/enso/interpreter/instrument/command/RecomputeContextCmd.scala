@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.command.RecomputeContextCmd.InvalidateExpressions
 import org.enso.interpreter.instrument.{
@@ -105,7 +104,8 @@ class RecomputeContextCmd(
           new ExecuteJob(
             request.contextId,
             stack.toList,
-            request.executionEnvironment
+            request.executionEnvironment,
+            "recompute context"
           )
         )
       } yield ()
@@ -165,15 +165,16 @@ object RecomputeContextCmd {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
-        module.getIr
-          .getMetadata(DataflowAnalysis)
+        Option(
+          DependencyInfo
+            .find(module.getIr)
+        )
           .foreach { metadata =>
             val dependents =
               IRUtils
                 .findByExternalId(module.getIr, expressionId)
                 .map { ir =>
-                  DataflowAnalysis.DependencyInfo.Type
-                    .Static(ir.getId, ir.getExternalId)
+                  new DependencyInfo.Type.Static(ir.getId, ir.getExternalId)
                 }
                 .flatMap { expressionKey =>
                   metadata.dependents.getExternal(expressionKey)
@@ -181,7 +182,10 @@ object RecomputeContextCmd {
                 .fold(Set(expressionId))(_ + expressionId)
             builder += CacheInvalidation(
               CacheInvalidation.StackSelector.All,
-              CacheInvalidation.Command.InvalidateKeys(dependents)
+              CacheInvalidation.Command.InvalidateKeys(
+                dependents,
+                "invalidate dependends of " + expressionId
+              )
             )
           }
       }
@@ -199,11 +203,13 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack.headOption
           .map { frame =>
-            frame.cache.getPreferences.preferences
-              .keySet()
-              .forEach(builder.addOne)
+            frame.cache.runQuery(
+              null,
+              _.findUUIDs(false, true)
+                .forEach(builder.addOne)
+            )
           }
-      case CacheInvalidation.Command.InvalidateKeys(expressionIds) =>
+      case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
         builder ++= expressionIds
       case _ =>
     }

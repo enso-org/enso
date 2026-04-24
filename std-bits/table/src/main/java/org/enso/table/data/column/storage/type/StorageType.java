@@ -6,11 +6,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /**
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
@@ -28,6 +30,16 @@ public sealed interface StorageType<T>
         NullType,
         TextType,
         TimeOfDayType {
+  String ENSO_MODULE = "Standard.Table.Value_Type";
+  String ENSO_TYPE_NAME = "Value_Type";
+
+  static <T> StorageType<T> ofStorage(ColumnStorage<T> storage) {
+    @SuppressWarnings("unchecked")
+    var result =
+        (StorageType<T>) StorageType.fromTypeCharAndSize(storage.typeChar(), storage.typeSize());
+    return result;
+  }
+
   /**
    * @param item the item whose type is to be determined.
    * @param options specifies details on how the precise type should be determined
@@ -92,17 +104,23 @@ public sealed interface StorageType<T>
   /**
    * @return true if the storage type is numeric.
    */
-  boolean isNumeric();
+  default boolean isNumeric() {
+    return false;
+  }
 
   /**
    * @return true if the storage type has a date part.
    */
-  boolean hasDate();
+  default boolean hasDate() {
+    return false;
+  }
 
   /**
    * @return true if the storage type has a time part.
    */
-  boolean hasTime();
+  default boolean hasTime() {
+    return false;
+  }
 
   /**
    * @return true if the storage type is of the same type as the other.
@@ -111,6 +129,17 @@ public sealed interface StorageType<T>
 
   /** Convert the value to the type if possible or return null if not. */
   T valueAsType(Object value);
+
+  /** Creates an Enso Value Type representation of the storage type. */
+  default Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName());
+  }
+
+  /**
+   * @return the name of the constructor for this type in Enso.
+   */
+  String ensoConstructorName();
 
   /**
    * Creates a builder for the StorageType.
@@ -128,4 +157,52 @@ public sealed interface StorageType<T>
    * @return the storage as a typed storage.
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
+
+  static StorageType<?> fromTypeCharAndSize(char typeChar, long size) {
+    return switch (typeChar) {
+      case 'A' -> AnyObjectType.INSTANCE;
+      case 'B' -> BooleanType.INSTANCE;
+      case 'D' -> BigDecimalType.INSTANCE;
+      case 'E' -> BigIntegerType.INSTANCE;
+      case 'F' -> {
+        if (size != 64) {
+          throw new IllegalArgumentException("Unknown float size: " + size);
+        }
+        yield FloatType.FLOAT_64;
+      }
+      case 'I' ->
+          switch ((int) size) {
+            case 8 -> IntegerType.INT_8;
+            case 16 -> IntegerType.INT_16;
+            case 32 -> IntegerType.INT_32;
+            case 64 -> IntegerType.INT_64;
+            default -> throw new IllegalArgumentException("Unknown integer size: " + size);
+          };
+      case 'N' -> NullType.INSTANCE;
+      case 'S' -> size == -1 ? TextType.VARIABLE_LENGTH : TextType.variableLengthWithLimit(size);
+      case 'T' -> TextType.fixedLength(size);
+      case 'W' -> TimeOfDayType.INSTANCE;
+      case 'X' -> DateType.INSTANCE;
+      case 'Y' -> DateTimeType.INSTANCE_NO_TZ;
+      case 'Z' -> DateTimeType.INSTANCE;
+      default -> throw new IllegalArgumentException("Unknown type char: " + typeChar);
+    };
+  }
+
+  /**
+   * @return a character representing the type, used for serialization.
+   */
+  char typeChar();
+
+  /**
+   * @return the maximum length of the type if applicable, or -1 if not applicable (e.g. for
+   *     variable-length)
+   */
+  default long size() {
+    return -1;
+  }
+
+  default String typeString() {
+    return typeChar() + (size() != -1 ? Long.toString(size()) : "");
+  }
 }

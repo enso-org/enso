@@ -11,6 +11,7 @@ import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,11 +57,17 @@ public class TypesExposeConstructorsTest {
     return collectedTypes;
   }
 
+  @After
+  public void closeGenerator() throws Exception {
+    typeWithWrapper.close();
+  }
+
   @Test
   public void typesExposeConstructorsAsMembers() {
     var type = typeWithWrapper.type;
     var typeValue = typeWithWrapper.typeValue;
     var consNames = type.getConstructors().keySet();
+    var isPrivate = type.hasAllConstructorsPrivate();
     for (var consName : consNames) {
       assertThat(
           "Constructor " + consName + " should be exposed as a member",
@@ -68,16 +75,36 @@ public class TypesExposeConstructorsTest {
           is(true));
       var consMember = typeValue.getMember(consName);
       assertThat(consMember, is(notNullValue()));
-      assertThat(
-          "Constructor " + consName + " should be instantiable",
-          consMember.canInstantiate(),
-          is(true));
+      if (!isPrivate) {
+        assertThat(
+            "Public constructor " + consName + " should be instantiable",
+            consMember.canInstantiate(),
+            is(true));
+      }
     }
   }
 
-  /**
-   * @param type
-   * @param typeValue The polyglot value of the type (not an object)
-   */
-  public record TypeWithWrapper(Type type, Value typeValue) {}
+  private static final class TypeWithWrapper implements AutoCloseable {
+    private Type type;
+    private Value typeValue;
+
+    /**
+     * @param tp The polyglot value of the type (not an object)
+     */
+    public TypeWithWrapper(Type type, Value tp) {
+      this.type = type;
+      this.typeValue = tp;
+    }
+
+    @Override
+    public void close() {
+      type = null;
+      typeValue = null;
+    }
+
+    @Override
+    public String toString() {
+      return "TypeWithWrapper(" + type.getQualifiedName() + "}";
+    }
+  }
 }

@@ -110,8 +110,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
-          |import Standard.Base.IO
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+          |from Standard.Base import IO, to_text
           |
           |type Mock_File
           |    Value i
@@ -142,10 +142,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual closure of other managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
-          |import Standard.Base.IO
-          |import Standard.Base.Nothing
-          |import Standard.Base.Data.Numbers.Number
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+          |from Standard.Base import IO, Nothing, Number, to_text
           |
           |type Mock_File
           |    Value i
@@ -177,10 +175,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual takeover of other managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
-          |import Standard.Base.IO
-          |import Standard.Base.Nothing
-          |import Standard.Base.Data.Numbers.Number
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+          |from Standard.Base import IO, Nothing, to_text, Number
           |
           |type Mock_File
           |    Value i
@@ -207,6 +203,46 @@ class RuntimeManagementTest extends InterpreterTest {
       def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File.Value $i)"
       def all                         = 0.to(4).map(mkAccessStr) ++ List(1, 3).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
+    }
+
+    "Allow for multithreaded polyglot class loading" in {
+      val langCtx = interpreterContext
+        .ctx()
+        .getBindings(LanguageInfo.ID)
+        .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+        .asHostObject[EnsoContext]()
+
+      val code =
+        """import Standard.Base.Data.Numbers
+          |polyglot java import org.enso.example.TestClass
+          |main =
+          |    instance = TestClass.new (x -> x * 2)
+          |    instance.callFunctionAndIncrement 10
+          |""".stripMargin
+
+      val main = getMain(code)
+
+      def runMain()
+        : java.util.concurrent.CompletableFuture[org.graalvm.polyglot.Value] =
+        langCtx.getThreadManager.submit(() => {
+          main.execute()
+        })
+
+      def runTest(): Unit = {
+        val futures = 0.until(parallelism).map(_ => runMain())
+        val combinedFuture = java.util.concurrent.CompletableFuture
+          .allOf(futures: _*)
+          .thenApply(_ => {
+            futures
+              .map(_.get(10, java.util.concurrent.TimeUnit.SECONDS).asInt())
+          })
+        val result =
+          combinedFuture.get(20, java.util.concurrent.TimeUnit.SECONDS)
+        result should equal(List(21, 21, 21, 21, 21))
+        futures.forall(_.isDone) shouldBe true
+      }
+
+      runTest()
     }
   }
 }

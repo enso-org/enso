@@ -44,7 +44,7 @@ Convertible_To_Columns.from (that:Pair) =
    private: true
    ---
 Convertible_To_Columns.from (that:Column) =
-    fields = 0.up_to that.length . map _.to_text
+    fields = 0.up_to that.row_count . map _.to_text
     Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
 
 ## ---

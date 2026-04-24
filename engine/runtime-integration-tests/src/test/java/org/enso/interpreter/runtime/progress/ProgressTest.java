@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.progress;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.stream.Collectors;
@@ -23,24 +24,24 @@ public class ProgressTest {
   public void advanceMultipleTimes() throws Exception {
     var code =
         """
-    from Standard.Base import Integer, Float
-    from Standard.Base.Logging import Progress
+        from Standard.Base import Integer, Float, to_text
+        from Standard.Base.Logging import Progress
 
-    geom n:Integer a1:Float q:Float =
-        Progress.run "geometric sequence" n progress->
-            loop i:Integer v:Float acc:Float =
-                if i == n then acc else
-                    progress.log "Step #"+i.to_text
-                    next = v*q
-                    sum = next+acc
-                    progress.advance
-                    @Tail_Call loop i+1 next sum
+        geom n:Integer a1:Float q:Float =
+            Progress.run "geometric sequence" n progress->
+                loop i:Integer v:Float acc:Float =
+                    if i == n then acc else
+                        progress.log "Step #"+i.to_text
+                        next = v*q
+                        sum = next+acc
+                        progress.advance
+                        @Tail_Call loop i+1 next sum
 
-            progress.log "About to compute geometric sequence for "+n.to_text
-            res = loop 1 a1 a1
-            progress.log "We have the result "+res.to_text
-            res
-    """;
+                progress.log "About to compute geometric sequence for "+n.to_text
+                res = loop 1 a1 a1
+                progress.log "We have the result "+res.to_text
+                res
+        """;
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 
     var geom = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "geom");
@@ -64,7 +65,7 @@ public class ProgressTest {
     assertEquals("LOG {}:{}", oneTimeLog.get(2).getMessage());
     assertEquals(progressHandle, oneTimeLog.get(2).getArguments().get(0));
     assertEquals("We have the result 2.0", oneTimeLog.get(2).getArguments().get(1));
-    assertEquals("ADVANCE {}+{}", oneTimeLog.get(3).getMessage());
+    assertEquals("ADVANCE {}+{}~{}ms", oneTimeLog.get(3).getMessage());
     assertEquals(progressHandle, oneTimeLog.get(0).getArguments().get(0));
     assertEquals(1L, oneTimeLog.get(3).getArguments().get(1));
 
@@ -100,18 +101,18 @@ public class ProgressTest {
   private void performExistingProgressFromJavaWith(Object acc) {
     var code =
         """
-    from Standard.Base import Integer, Float
-    from Standard.Base.Logging import Progress
+        from Standard.Base import Integer, Float, to_text
+        from Standard.Base.Logging import Progress
 
-    up_to n combine =
-        Progress.run "from 0 to "+n.to_text n progress->
-            loop count_down =
-                if count_down <= 0 then combine.result else
-                    combine.accumulate count_down progress
-                    @Tail_Call loop count_down-1
+        up_to n combine =
+            Progress.run "from 0 to "+n.to_text n progress->
+                loop count_down =
+                    if count_down <= 0 then combine.result else
+                        combine.accumulate count_down progress
+                        @Tail_Call loop count_down-1
 
-            loop n
-    """;
+                loop n
+        """;
     var upTo = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
 
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
@@ -130,7 +131,7 @@ public class ProgressTest {
 
     assertTrue("Initialization first", msgs.get(0).getMessage().startsWith("INIT "));
 
-    assertEquals(
+    assertProgressMessages(
         "Initialize five steps. Then five `advance` calls and finally advance to finish.",
         """
         INIT Progress:from 0 to 5@5
@@ -139,7 +140,8 @@ public class ProgressTest {
         ADVANCE Progress+1
         ADVANCE Progress+1
         ADVANCE Progress+1
-        ADVANCE Progress+5""",
+        ADVANCE Progress+5~*ms\
+        """,
         txt);
   }
 
@@ -219,12 +221,12 @@ public class ProgressTest {
   public void createNewProgressInJava() {
     var code =
         """
-    from Standard.Base import Integer, Float
-    from Standard.Base.Logging import Progress
+        from Standard.Base import Integer, Float
+        from Standard.Base.Logging import Progress
 
-    up_to n host =
-        host n
-    """;
+        up_to n host =
+            host n
+        """;
     var upTo = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
 
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
@@ -258,7 +260,20 @@ public class ProgressTest {
         ADVANCE JavaProgress+1
         ADVANCE JavaProgress+1
         ADVANCE JavaProgress+1
-        ADVANCE JavaProgress+5""",
+        ADVANCE JavaProgress+5\
+        """,
         txt);
+  }
+
+  private static void assertProgressMessages(String msg, String expectedGlob, String actual) {
+    var expSeg = expectedGlob.split("\\*");
+    var at = 0;
+    for (var seg : expSeg) {
+      var next = actual.indexOf(seg, at);
+      assertNotEquals(msg + "\nWhen looking for " + seg + " at " + at, -1, next);
+      at = next + seg.length();
+    }
+    assertEquals(
+        msg + "\nIs fully processed, but remains: " + actual.substring(at), at, actual.length());
   }
 }

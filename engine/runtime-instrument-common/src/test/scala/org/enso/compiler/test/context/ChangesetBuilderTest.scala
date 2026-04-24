@@ -446,12 +446,12 @@ class ChangesetBuilderTest
 
       val ir = code.preprocessModule
       val main =
-        ir.bindings(0).asInstanceOf[definition.Method.Explicit]
+        ir.bindings()(0).asInstanceOf[definition.Method.Explicit]
       val mainBody = main.body
         .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
-      val x     = mainBody.expressions(0).asInstanceOf[Expression.Binding]
+      val x     = mainBody.expressions.apply(0).asInstanceOf[Expression.Binding]
       val xExpr = x.expression.asInstanceOf[Application.Prefix]
       val undefinedName = xExpr.arguments
         .apply(1)

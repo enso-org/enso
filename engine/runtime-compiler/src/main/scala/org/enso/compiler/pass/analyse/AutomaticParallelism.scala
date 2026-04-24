@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -24,9 +24,9 @@ import org.enso.compiler.pass.resolve.{
   ModuleAnnotations,
   TypeSignatures
 }
+import org.enso.persist.Persistance
 
 import java.util.function.Consumer
-
 import scala.annotation.{tailrec, unused}
 
 /** This pass is responsible for discovering occurrences of automatically
@@ -50,8 +50,7 @@ object AutomaticParallelism extends IRPass {
     ComplexType
   )
   override lazy val invalidatedPasses: Seq[IRPass] = Seq(
-    AliasAnalysis,
-    DataflowAnalysis
+    AliasAnalysis
   )
 
   /** An assignment of a line to a given thread.
@@ -214,7 +213,7 @@ object AutomaticParallelism extends IRPass {
       line.ir match {
         case bind: Expression.Binding =>
           val aaInfo = bind
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Alias analysis left a binding behind"
             )
@@ -237,7 +236,9 @@ object AutomaticParallelism extends IRPass {
         {
           case n: Name.Literal =>
             for {
-              raw <- Option(n.getMetadata(AliasAnalysis))
+              raw <- Option(
+                n.getMetadata(AliasAnalysis, classOf[AliasAnalysis.Metadata])
+              )
               occ <- raw
                 .filter(_.isInstanceOf[alias.AliasMetadata.Occurrence])
                 .map(
@@ -303,15 +304,17 @@ object AutomaticParallelism extends IRPass {
       .toMap
 
     val refAllocations = refVars.values.map(
-      Expression
-        .Binding(
-          _,
-          new Application.Prefix(
-            Name.Special(Name.Special.NewRef, null),
-            List()
-          ),
-          null
+      Expression.Binding
+        .builder()
+        .name(_)
+        .expression(
+          Application.Prefix
+            .builder()
+            .function(Name.Special.create(Name.Special.Ident.NewRef))
+            .arguments(List())
+            .build()
         )
+        .build()
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -321,63 +324,97 @@ object AutomaticParallelism extends IRPass {
       val blockBody =
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
-            val refWrite = new Application.Prefix(
-              Name.Special(Name.Special.WriteRef, null),
-              List(
-                new CallArgument.Specified(
-                  None,
-                  refVars(bind.name).duplicate(),
-                  true,
-                  null
-                ),
-                new CallArgument.Specified(
-                  None,
-                  bind.name.duplicate(),
-                  true,
-                  null
+            val refWrite = Application.Prefix
+              .builder()
+              .function(Name.Special.create(Name.Special.Ident.WriteRef))
+              .arguments(
+                List(
+                  CallArgument.Specified
+                    .builder()
+                    .name(None)
+                    .value(refVars(bind.name).duplicate())
+                    .isSynthetic(true)
+                    .build(),
+                  CallArgument.Specified
+                    .builder()
+                    .name(None)
+                    .value(bind.name.duplicate(true, true, true, false))
+                    .isSynthetic(true)
+                    .build()
                 )
               )
-            )
+              .build()
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = new Application.Prefix(
-        Name.Special(Name.Special.RunThread, null),
-        List(
-          new CallArgument.Specified(
-            None,
-            Expression.Block(blockBody.init, blockBody.last, null),
-            true,
-            null
+      val spawn = Application.Prefix
+        .builder()
+        .function(Name.Special.create(Name.Special.Ident.RunThread))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(
+                Expression.Block
+                  .builder()
+                  .expressions(blockBody.init)
+                  .returnValue(blockBody.last)
+                  .build()
+              )
+              .isSynthetic(true)
+              .build()
           )
         )
-      )
-      Expression
-        .Binding(freshNameSupply.newName(), spawn, null)
+        .build()
+      Expression.Binding
+        .builder()
+        .name(freshNameSupply.newName())
+        .expression(spawn)
+        .build()
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      new Application.Prefix(
-        Name.Special(Name.Special.JoinThread, null),
-        List(
-          new CallArgument.Specified(None, bind.name.duplicate(), true, null)
+      Application.Prefix
+        .builder()
+        .function(Name.Special.create(Name.Special.Ident.JoinThread))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(bind.name.duplicate(true, true, true, false))
+              .isSynthetic(true)
+              .build()
+          )
         )
-      )
+        .build()
     }
 
     val varReads = refVars.map { case (name, ref) =>
-      Expression
-        .Binding(
-          name.duplicate(),
-          new Application.Prefix(
-            Name.Special(Name.Special.ReadRef, null),
-            List(new CallArgument.Specified(None, ref.duplicate(), true, null))
-          ),
-          null
+      Expression.Binding
+        .builder()
+        .name(name.duplicate(true, true, true, false))
+        .expression(
+          Application.Prefix
+            .builder()
+            .function(Name.Special.create(Name.Special.Ident.ReadRef))
+            .arguments(
+              List(
+                CallArgument.Specified
+                  .builder()
+                  .name(None)
+                  .value(ref.duplicate())
+                  .isSynthetic(true)
+                  .build()
+              )
+            )
+            .build()
         )
+        .build()
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -419,14 +456,20 @@ object AutomaticParallelism extends IRPass {
           val withBlocks = withDeps.map(assignBlocks)
           val newExprs =
             withBlocks.flatMap(codeGen(_, moduleContext.freshNameSupply.get))
-          val r =
-            block.copy(expressions = newExprs.init, returnValue = newExprs.last)
+          val r = block
+            .copyBuilder()
+            .expressions(newExprs.init)
+            .returnValue(newExprs.last)
+            .build()
           r
         }
-        method.copy(body = newBody)
+        method
+          .copyBuilder()
+          .bodyReference(Persistance.Reference.of(newBody))
+          .build()
       case other => other
     }
-    ir.copy(bindings = newBindings)
+    ir.copyWithBindings(newBindings)
   }
 
   /** A parallelization status for a given line.
@@ -499,14 +542,20 @@ object AutomaticParallelism extends IRPass {
         // The base status of an application is computed based on the type of
         // the called function. It is then sequenced with statuses of the
         // arguments.
-        app.function.getMetadata(MethodCalls) match {
+        app.function.getMetadata(
+          MethodCalls,
+          classOf[MethodCalls.Metadata]
+        ) match {
           case Some(Resolution(method: ResolvedModuleMethod)) =>
             val methodIr = method.unsafeGetIr("Invalid method call resolution.")
             val isParallelize = methodIr
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .exists(_.annotations.exists(_.name == "@Parallelize"))
             val monad = methodIr
-              .getMetadata(TypeSignatures)
+              .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
               .flatMap(sig => getMonad(sig.signature))
             val baseStatus: ParallelismStatus =
               if (isParallelize) Parallelize
@@ -531,9 +580,9 @@ object AutomaticParallelism extends IRPass {
   )(fn: Expression.Block => Expression.Block): Expression =
     expr match {
       case fun: Function.Binding =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case fun: Function.Lambda =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case block: Expression.Block if block.expressions.nonEmpty =>
         fn(block)
       case _ => expr

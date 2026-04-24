@@ -1,24 +1,23 @@
 package org.enso.ydoc.server;
 
-import java.util.concurrent.Semaphore;
+import java.io.IOException;
+import org.enso.ydoc.api.YjsChannel;
+import org.enso.ydoc.polyfill.web.WebEnvironment;
 
-public class Main {
-
-  private static final String ENSO_YDOC_HOST = "ENSO_YDOC_HOST";
-  private static final String ENSO_YDOC_PORT = "ENSO_YDOC_PORT";
-
-  private static final Semaphore lock = new Semaphore(0);
+public final class Main {
 
   private Main() {}
 
-  public static void main(String[] args) throws Exception {
-    System.setProperty(
-        "helidon.serialFilter.pattern",
-        "javax.management.**;java.lang.**;java.rmi.**;javax.security.auth.Subject;!*");
+  public static void main(String[] args) {
+    // main method declaration is required to build the native library
+  }
 
-    var ydocHost = System.getenv(ENSO_YDOC_HOST);
-    var ydocPort = System.getenv(ENSO_YDOC_PORT);
-
+  public static AutoCloseable launch(
+      String ydocHost,
+      String ydocPort,
+      YjsChannel.Server jsonChannelCallbacks,
+      YjsChannel.Server binaryChannelCallbacks)
+      throws IOException {
     var builder = Ydoc.builder();
     if (ydocHost != null) {
       builder.hostname(ydocHost);
@@ -27,10 +26,21 @@ public class Main {
       var port = Integer.parseInt(ydocPort);
       builder.port(port);
     }
-
-    try (var ydoc = builder.build()) {
-      ydoc.start();
-      lock.acquire();
+    if (jsonChannelCallbacks != null) {
+      builder.jsonChannelCallbacks(jsonChannelCallbacks);
     }
+    if (binaryChannelCallbacks != null) {
+      builder.binaryChannelCallbacks(binaryChannelCallbacks);
+    }
+    var hostAccess =
+        WebEnvironment.defaultHostAccess
+            // allowImplementations is required to call methods on JS objects from Java, i.e. to
+            // call methods on `YjsChannel` object returned from JS
+            .allowImplementations(YjsChannel.class)
+            .allowPublicAccess(true);
+    builder.hostAccess(hostAccess.build());
+    var ydoc = builder.build();
+    ydoc.start();
+    return ydoc;
   }
 }

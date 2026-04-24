@@ -3,7 +3,7 @@ import project.Data.Number_Utils
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Extensions
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
@@ -11,6 +11,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Input_Stream.Input_Stream
+from project.Error import all
 from project.System.Input_Stream import close_stream
 
 polyglot java import java.io.ByteArrayOutputStream

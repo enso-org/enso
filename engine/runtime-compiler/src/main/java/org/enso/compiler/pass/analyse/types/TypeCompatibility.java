@@ -56,6 +56,12 @@ class TypeCompatibility {
       }
     }
 
+    if (provided.equals(BuiltinTypes.NUMBER)) {
+      if (expected.equals(BuiltinTypes.INTEGER) || expected.equals(BuiltinTypes.FLOAT)) {
+        return Compatibility.UNKNOWN;
+      }
+    }
+
     // This is a proof of concept. There is not much sense in implementing these branches until we
     // can handle conversions anyway.
     // So these TODOs will be addressed in future iterations.
@@ -150,10 +156,10 @@ class TypeCompatibility {
 
     return switch (type) {
       case TypeRepresentation.TopType top -> true;
-      case TypeRepresentation.SumType sumType -> sumType.types().stream()
-          .anyMatch(this::mayBeFunctionLike);
-      case TypeRepresentation.IntersectionType intersectionType -> intersectionType.types().stream()
-          .anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.SumType sumType ->
+          sumType.types().stream().anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.IntersectionType intersectionType ->
+          intersectionType.types().stream().anyMatch(this::mayBeFunctionLike);
       default -> false;
     };
   }

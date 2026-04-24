@@ -1,0 +1,31 @@
+import project.Data.Text.Text
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Errors.Common.Missing_Argument
+import project.Errors.Common.Type_Error
+import project.Function.Function
+import project.Network.Email.Email_Provider.Email_Provider
+import project.Network.Email.Internal.Send_Grid.Send_Grid_Implementation
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Metadata.Choice import Option
+from project.Network.Email.Email_Provider import make_email_provider
+
+## An email provider that sends emails using the SendGrid REST API.
+type Send_Grid_Provider
+    ## An email provider that sends emails using the SendGrid REST API.
+       Get started with SendGrid here https://sendgrid.com/
+
+       ## Arguments
+        - `api_key`: SendGrid API key as plain text or an Enso_Secret.
+    Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
+
+    ## Gets the options for displaying in a dropdown.
+       As in same module can be private.
+    private get_dropdown_options = [Option "..Send_Grid" "..Send_Grid"]
+
+    ## Resolves a constructor into an Email_Provider instance.
+    private resolve that:Function -> Send_Grid_Provider | Nothing =
+        Panic.catch Type_Error (that:Send_Grid_Provider) _->Nothing
+
+Email_Provider.from (that:Send_Grid_Provider) =
+    make_email_provider "Send_Grid" (Send_Grid_Implementation.Value that)

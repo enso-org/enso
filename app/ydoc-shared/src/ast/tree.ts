@@ -1,9 +1,9 @@
 // Declaration-merging is used to implement mixin types in this file.
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+import type { Result } from 'enso-common/src/utilities/data/result'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import * as Y from 'yjs'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
-import type { Result } from '../util/data/result'
-import { Err, Ok } from '../util/data/result'
 import type { SourceRangeEdit } from '../util/data/text'
 import { allKeys } from '../util/types'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
@@ -14,7 +14,7 @@ import type { SpanMap } from './idMap'
 import { newExternalId } from './idMap'
 import type { Module } from './mutableModule'
 import { MutableModule, ROOT_ID } from './mutableModule'
-import { parseExpression, parseStatement } from './parse'
+import { parseBlockStatement, parseExpression, parseModuleStatement } from './parse'
 import type { RawConcreteChild } from './print'
 import {
   ensureSpaced,
@@ -50,6 +50,7 @@ import { Token, TokenType, isIdentifier, isToken, isTokenChild, isTokenId } from
 export type DeepReadonly<T> =
   T extends Builtin ? T
   : T extends FixedMap<infer V> ? FixedMapView<V>
+  : T extends Y.Map<infer V> ? ReadonlyMap<string, DeepReadonly<V>>
   : T extends Map<infer K, infer V> ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
   : T extends ReadonlyMap<infer K, infer V> ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
   : T extends WeakMap<infer K, infer V> ? WeakMap<DeepReadonly<K>, DeepReadonly<V>>
@@ -59,8 +60,9 @@ export type DeepReadonly<T> =
   : T extends Promise<infer U> ? Promise<DeepReadonly<U>>
   : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
   : Readonly<T>
+
 type Primitive = string | number | boolean | bigint | symbol | undefined | null
-type AnyFunction = () => void
+type AnyFunction = (...args: any[]) => unknown
 type Builtin = Primitive | AnyFunction | Date | Error | RegExp
 // Note that typescript doesn't consider this assignable to `DeepReadonly<T>`, so the intersection type can be useful.
 type DeepReadonlyExceptY<T> =
@@ -107,20 +109,38 @@ export function parentId(ast: Ast): AstId | undefined {
   return ast.fields.get('parent')
 }
 
+export interface NodePositionMetadata {
+  x: number
+  y: number
+  h?: number
+}
+export function normalizePosition(
+  position: NodePositionMetadata | (Omit<NodePositionMetadata, 'h'> & { h: undefined }),
+): NodePositionMetadata {
+  const { x, y, h } = position
+  return {
+    x,
+    y,
+    ...(h ? { h } : {}),
+  }
+}
 /** @internal */
 export interface MetadataFields {
   externalId: ExternalId
   widget: Y.Map<unknown>
 }
 export interface NodeMetadataFields {
-  position?: { x: number; y: number } | undefined
+  position?: NodePositionMetadata | undefined
   visualization?: VisualizationMetadata | undefined
   colorOverride?: string | undefined
+  displayMode?: 'expanded' | 'collapsed' | undefined
 }
+
 const nodeMetadataKeys = allKeys<NodeMetadataFields>({
   position: null,
   visualization: null,
   colorOverride: null,
+  displayMode: null,
 })
 export type NodeMetadata = FixedMapView<NodeMetadataFields & MetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields & MetadataFields>
@@ -241,14 +261,6 @@ export abstract class Ast {
   /** Return source code representing this node. */
   code(): string {
     return printWithSpans(this).code
-  }
-
-  /** TODO: Add docs */
-  visitRecursive(visit: (ast: Ast) => void | boolean): void {
-    if (visit(this) === false) return
-    for (const child of this.children()) {
-      if (!isToken(child)) child.visitRecursive(visit)
-    }
   }
 
   /** TODO: Add docs */
@@ -490,6 +502,28 @@ export abstract class MutableAst extends Ast {
   }
 }
 
+/**
+ * Visit all AST nodes in depth-first order using given visitor function.
+ * If visitor returns `false` value, child nodes of currently visited node will be skipped.
+ * If visitor returns an Iterable of nodes, only those nodes will be visited.
+ */
+export function visitRecursive(
+  ast: Ast,
+  visit: (ast: Ast) => void | boolean | Iterable<Ast | undefined | null>,
+): void {
+  const visitResult = visit(ast)
+  if (visitResult === false) return
+  if (visitResult === true || visitResult == null) {
+    for (const child of ast.children()) {
+      if (child != null && !isToken(child)) visitRecursive(child, visit)
+    }
+  } else {
+    for (const child of visitResult) {
+      if (child != null) visitRecursive(child, visit)
+    }
+  }
+}
+
 /** Values that may be found in fields of `Ast` subtypes. */
 type FieldData<T extends TreeRefs = RawRefs> =
   | NonArrayFieldData<T>
@@ -513,6 +547,7 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | NameSpecification<T>
   | TextElement<T>
   | ArgumentDefinition<T>
+  | ReturnSpecification<T>
   | VectorElement<T>
   | TypeSignature<T>
   | SignatureLine<T>
@@ -651,6 +686,18 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: ArgumentDefinition<T>,
   f: MapRef<T, U>,
 ): ArgumentDefinition<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: FunctionAnnotation<T>,
+  f: MapRef<T, U>,
+): FunctionAnnotation<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: TypeSignature<T>,
+  f: MapRef<T, U>,
+): TypeSignature<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: ReturnSpecification<T>,
+  f: MapRef<T, U>,
+): ReturnSpecification<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: VectorElement<T>,
   f: MapRef<T, U>,
@@ -1237,7 +1284,7 @@ applyMixins(MutableOprApp, [MutableAst])
 interface PropertyAccessFields {
   lhs: NodeChild<AstId> | undefined
   operator: NodeChild<SyncTokenId>
-  rhs: NodeChild<AstId>
+  rhs: NodeChild<SyncTokenId>
 }
 /** TODO: Add docs */
 export class PropertyAccess extends BaseExpression {
@@ -1269,7 +1316,7 @@ export class PropertyAccess extends BaseExpression {
       module,
       unspaced(lhs),
       { whitespace, node: dot },
-      { whitespace, node: Ident.newAllowingOperators(module, toIdent(rhs)) },
+      { whitespace, node: toIdent(rhs) },
     )
   }
 
@@ -1308,31 +1355,34 @@ export class PropertyAccess extends BaseExpression {
     module: MutableModule,
     lhs: NodeChild<Owned<MutableExpression>> | undefined,
     operator: NodeChild<Token>,
-    rhs: NodeChild<Owned<MutableIdent>>,
+    rhs: NodeChild<Token>,
   ) {
     const base = module.baseObject('PropertyAccess')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
       lhs: concreteChild(module, lhs, id_),
       operator,
-      rhs: concreteChild(module, rhs, id_),
+      rhs,
     })
     return asOwned(new MutablePropertyAccess(module, fields))
   }
 
-  /** TODO: Add docs */
+  /** Returns the left side of the operator, i.e., the value upon which a name lookup is to be performed. */
   get lhs(): Expression | undefined {
     return this.module.get(this.fields.get('lhs')?.node) as Expression | undefined
   }
-  /** TODO: Add docs */
+
+  /** Returns the dot token, with any leading whitespace if present. */
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
-  /** TODO: Add docs */
+
+  /**
+   * Returns the token to the right of the dot, i.e., the name to be looked up. It may be an ordinary identifier token;
+   * an operator symbol is also allowed in this position and is treated as a type of identifier.
+   */
   get rhs(): IdentifierOrOperatorIdentifierToken {
-    const ast = this.module.get(this.fields.get('rhs').node)
-    assert(ast instanceof Ident)
-    return ast.token as IdentifierOrOperatorIdentifierToken
+    return this.module.getToken(this.fields.get('rhs').node) as IdentifierOrOperatorIdentifierToken
   }
 
   /** TODO: Add docs */
@@ -1353,7 +1403,7 @@ export class MutablePropertyAccess extends PropertyAccess implements MutableExpr
     setNode(this.fields, 'lhs', this.claimChild(value))
   }
   setRhs(ident: IdentLike) {
-    const node = this.claimChild(Ident.newAllowingOperators(this.module, ident))
+    const node = toIdent(ident)
     const old = this.fields.get('rhs')
     this.fields.set('rhs', old ? { ...old, node } : unspaced(node))
   }
@@ -1395,6 +1445,20 @@ export class TypeAnnotated extends BaseExpression {
       typeNode: concreteChild(module, typeNode, id_),
     })
     return asOwned(new MutableTypeAnnotated(module, fields))
+  }
+
+  /** Create TypeAnnotated node. */
+  static new(
+    module: MutableModule,
+    expression: Owned<MutableExpression>,
+    typeNode: Owned<MutableExpression>,
+  ) {
+    return TypeAnnotated.concrete(
+      module,
+      autospaced(expression),
+      autospaced(Token.new(':', TokenType.TypeAnnotationOperator)),
+      autospaced(typeNode),
+    )
   }
 
   /** The expression whose type is being annotated. */
@@ -1533,7 +1597,7 @@ export class Import extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableImport> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseModuleStatement(source, module)
     if (parsed instanceof MutableImport) return parsed
   }
 
@@ -2034,7 +2098,7 @@ export class ExpressionStatement extends BaseStatement {
     source: string,
     module?: MutableModule,
   ): Owned<MutableExpressionStatement> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseBlockStatement(source, module)
     if (parsed instanceof MutableExpressionStatement) return parsed
   }
 
@@ -2371,6 +2435,11 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+export interface ReturnSpecification<T extends TreeRefs = RawRefs> {
+  arrow: T['token']
+  type: T['expression']
+}
+
 /**
  * Create a new function argument definition using provided "name" string as argument's pattern expression.
  */
@@ -2416,7 +2485,7 @@ interface AnnotationLine<T extends TreeRefs = RawRefs> {
   newlines: T['token'][]
 }
 
-interface TypeSignature<T extends TreeRefs = RawRefs> {
+export interface TypeSignature<T extends TreeRefs = RawRefs> {
   name: T['ast']
   operator: T['token']
   type: T['ast']
@@ -2436,6 +2505,7 @@ export interface FunctionDefFields<T extends TreeRefs = RawRefs> {
   private_: T['token'] | undefined
   name: T['ast']
   argumentDefinitions: ArgumentDefinition<T>[]
+  returns: ReturnSpecification<T> | undefined
   equals: T['token']
   body: T['ast'] | undefined
 }
@@ -2449,7 +2519,7 @@ export class FunctionDef extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableFunctionDef> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseModuleStatement(source, module)
     if (parsed instanceof MutableFunctionDef) return parsed
   }
 
@@ -2473,6 +2543,24 @@ export class FunctionDef extends BaseStatement {
     return this.fields
       .get('argumentDefinitions')
       .map((def) => mapRefs(def, rawToConcrete(this.module)))
+  }
+
+  /** Get annotations attached to this function. */
+  get annotations(): FunctionAnnotation<ConcreteRefs>[] {
+    return this.fields
+      .get('annotationLines')
+      .map((line) => mapRefs(line.annotation, rawToConcrete(this.module)))
+  }
+
+  /** Get function's type signature AST, if it is present. */
+  get signature(): TypeSignature<ConcreteRefs> | undefined {
+    const line = this.fields.get('signatureLine')
+    return line && mapRefs(line.signature, rawToConcrete(this.module))
+  }
+
+  /** Get function's type signature AST, if it is present. */
+  get returnType(): Expression | undefined {
+    return this.module.get(this.fields.get('returns')?.type.node) as Expression | undefined
   }
 
   /** TODO: Add docs */
@@ -2499,6 +2587,7 @@ export class FunctionDef extends BaseStatement {
       argumentDefinitions: (fields.argumentDefinitions ?? []).map((def) =>
         mapRefs(def, ownedToRaw(module, id_)),
       ),
+      returns: fields.returns && mapRefs(fields.returns, ownedToRaw(module, id_)),
       equals: fields.equals,
       body: concreteChild(module, fields.body, id_),
     })
@@ -2762,7 +2851,7 @@ export class Assignment extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableAssignment> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseBlockStatement(source, module)
     if (parsed instanceof MutableAssignment) return parsed
   }
 
@@ -3178,7 +3267,9 @@ export class Vector extends BaseExpression {
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
     const parsed = parseExpression(source, module)
-    if (parsed instanceof MutableVector) return parsed
+    if (parsed instanceof MutableVector) {
+      return parsed
+    }
   }
 
   /** TODO: Add docs */

@@ -1,28 +1,38 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
-public record BigIntegerType() implements StorageType<BigInteger>, NumericType {
+public final class BigIntegerType implements StorageType<BigInteger>, NumericType {
   public static final BigIntegerType INSTANCE = new BigIntegerType();
+
+  private BigIntegerType() {}
+
+  @Override
+  public char typeChar() {
+    return 'E';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), null, 0);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Decimal";
+  }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   @Override
@@ -35,6 +45,13 @@ public record BigIntegerType() implements StorageType<BigInteger>, NumericType {
     if (NumericConverter.isCoercibleToBigInteger(value)) {
       return NumericConverter.coerceToBigInteger(value);
     }
+
+    if (value instanceof Value polyglotValue
+        && polyglotValue.isNumber()
+        && polyglotValue.fitsInBigInteger()) {
+      return polyglotValue.asBigInteger();
+    }
+
     return null;
   }
 
@@ -46,7 +63,7 @@ public record BigIntegerType() implements StorageType<BigInteger>, NumericType {
 
   @Override
   public ColumnStorage<BigInteger> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BigIntegerType) {
+    if (StorageType.ofStorage(storage) instanceof BigIntegerType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<BigInteger>) storage;
       return output;

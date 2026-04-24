@@ -9,3 +9,17 @@ polyglot java import org.enso.base.polyglot.WrappedDataflowError
 handle_polyglot_dataflow_errors ~action =
     Panic.catch WrappedDataflowError action caught_panic->
         Error.throw caught_panic.payload.getDataflowError
+
+private get_array_size array = @Builtin_Method "Polyglot.get_array_size"
+private read_array_element array index = @Builtin_Method "Polyglot.read_array_element"
+private execute callable arguments = @Builtin_Method "Polyglot.execute"
+private get_member object member_name = @Builtin_Method "Polyglot.get_member"
+private get_members object = @Builtin_Method "Polyglot.get_members"
+private new constructor arguments = @Builtin_Method "Polyglot.new"
+private invoke target name arguments = @Builtin_Method "Polyglot.invoke"
+private has_source_location value = @Builtin_Method "Polyglot.has_source_location"
+private get_source_location value = @Builtin_Method "Polyglot.get_source_location"
+private is_language_installed language_name = @Builtin_Method "Polyglot.is_language_installed"
+private get_executable_name value = @Builtin_Method "Polyglot.get_executable_name"
+private add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+private lookup_class name = @Builtin_Method "Java.lookup_class"

@@ -59,12 +59,6 @@ public final class LanguageServerRunner extends LanguageServerApi {
     } catch (NumberFormatException e) {
       throw new WrongOption("Port must be integer");
     }
-    int dataPort;
-    try {
-      dataPort = Integer.parseInt(line.getOptionValue(LanguageServerApi.DATA_PORT_OPTION, "8081"));
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
     Integer secureRpcPort;
     try {
       var port = line.getOptionValue(LanguageServerApi.SECURE_RPC_PORT_OPTION);
@@ -72,27 +66,20 @@ public final class LanguageServerRunner extends LanguageServerApi {
     } catch (NumberFormatException e) {
       throw new WrongOption("Port must be integer");
     }
-    Integer secureDataPort;
-    try {
-      var port = line.getOptionValue(LanguageServerApi.SECURE_DATA_PORT_OPTION);
-      secureDataPort = port == null ? null : Integer.valueOf(port);
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
     var graalVMUpdater = line.hasOption(LanguageServerApi.SKIP_GRAALVM_UPDATER);
+    boolean logMasking = !line.hasOption(LanguageServerApi.NO_LOG_MASKING_OPTION);
 
     var config =
         new LanguageServerConfig(
             interfac,
             rpcPort,
             scala.Option.apply(secureRpcPort),
-            dataPort,
-            scala.Option.apply(secureDataPort),
             rootId,
             rootPath,
             projectId,
             profilingConfig,
             new StartupConfig(graalVMUpdater),
+            logMasking,
             "language-server",
             ExecutionContext.global());
     return config;

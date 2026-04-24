@@ -1,12 +1,11 @@
 use crate::prelude::*;
 
 use crate::fs::create_dir_if_missing;
+use crate::programs::SevenZip;
 use crate::programs::tar::Compression;
 use crate::programs::tar::Tar;
-use crate::programs::SevenZip;
 
 use tracing::Span;
-
 
 // ==============
 // === Export ===
@@ -15,8 +14,6 @@ use tracing::Span;
 pub mod extract_files;
 pub mod tar;
 pub mod zip;
-
-
 
 /// Archive formats that we handle.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -38,18 +35,22 @@ impl Format {
             "7z" => Ok(Format::SevenZip),
             "tgz" => Ok(Format::Tar(Some(Compression::Gzip))),
             "txz" => Ok(Format::Tar(Some(Compression::Xz))),
-            other =>
+            other => {
                 if let Ok(compression) = Compression::deduce_from_extension(other) {
                     let secondary_extension =
                         filename.file_stem().map(Path::new).and_then(Path::extension);
                     if secondary_extension == Some(OsStr::new("tar")) {
                         Ok(Format::Tar(Some(compression)))
                     } else {
-                        bail!("Extension `.{}` looks like a tar compression, but there is no `.tar.` component in the name", other)
+                        bail!(
+                            "Extension `.{}` looks like a tar compression, but there is no `.tar.` component in the name",
+                            other
+                        )
                     }
                 } else {
                     bail!("Unrecognized archive extension `{}`.", other)
-                },
+                }
+            }
         }
     }
 
@@ -81,7 +82,6 @@ impl Format {
     }
 }
 
-
 pub async fn create(
     output_archive: impl AsRef<Path>,
     paths_to_pack: impl IntoIterator<Item: AsRef<Path>>,
@@ -89,12 +89,12 @@ pub async fn create(
     let span = info_span!("Creating an archive", target = output_archive.as_ref().as_str());
     let format = Format::from_filename(&output_archive)?;
     match format {
-        Format::Zip | Format::SevenZip =>
-            SevenZip.pack(output_archive, paths_to_pack).instrument(span).await,
+        Format::Zip | Format::SevenZip => {
+            SevenZip.pack(output_archive, paths_to_pack).instrument(span).await
+        }
         Format::Tar(_) => Tar.pack(output_archive, paths_to_pack).instrument(span).await,
     }
 }
-
 
 pub fn is_archive_name(path: impl AsRef<Path>) -> bool {
     Format::from_filename(path).is_ok()
@@ -114,10 +114,12 @@ pub async fn compress_directory_contents(
 ) -> Result {
     let format = Format::from_filename(&output_archive)?;
     match format {
-        Format::Zip | Format::SevenZip =>
-            SevenZip.pack_directory_contents(output_archive, root_directory).await,
-        Format::Tar(compression) =>
-            Tar.pack_directory_contents(compression, output_archive, root_directory).await,
+        Format::Zip | Format::SevenZip => {
+            SevenZip.pack_directory_contents(output_archive, root_directory).await
+        }
+        Format::Tar(compression) => {
+            Tar.pack_directory_contents(compression, output_archive, root_directory).await
+        }
     }
 }
 
@@ -171,8 +173,9 @@ pub async fn extract_to(
     );
     let format = Format::from_filename(&archive_path)?;
     match format {
-        Format::Zip | Format::SevenZip =>
-            SevenZip.unpack_cmd(archive_path, output_directory)?.run_ok().instrument(span).await,
+        Format::Zip | Format::SevenZip => {
+            SevenZip.unpack_cmd(archive_path, output_directory)?.run_ok().instrument(span).await
+        }
         Format::Tar(_) => Tar.unpack(archive_path, output_directory).instrument(span).await,
     }
 }

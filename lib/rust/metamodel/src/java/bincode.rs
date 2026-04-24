@@ -52,8 +52,6 @@ use crate::java::*;
 use derive_where::derive_where;
 use std::fmt::Write;
 
-
-
 // ==========================
 // === Derive Deserialize ===
 // ==========================
@@ -61,17 +59,17 @@ use std::fmt::Write;
 /// Supports configuring deserialization for a type.
 #[derive_where(Debug)]
 pub struct DeserializerBuilder {
-    root:           ClassId,
+    root: ClassId,
     #[derive_where(skip)]
-    materializers:  BTreeMap<FieldId, Materializer>,
+    materializers: BTreeMap<FieldId, Materializer>,
     #[derive_where(skip)]
-    mappers:        BTreeMap<FieldId, Mapper>,
+    mappers: BTreeMap<FieldId, Mapper>,
     #[derive_where(skip)]
-    pre_hooks:      Vec<Hook>,
+    pre_hooks: Vec<Hook>,
     #[derive_where(skip)]
-    post_hooks:     Vec<Hook>,
-    support:        String,
-    either_type:    String,
+    post_hooks: Vec<Hook>,
+    support: String,
+    either_type: String,
     temp_variables: usize,
 }
 
@@ -103,26 +101,34 @@ impl DeserializerBuilder {
     /// Configure the specified field to be produced according to an expression, instead of by
     /// standard deserialization. The expression will be produced by the given function.
     pub fn materialize<F>(&mut self, field: FieldId, materializer: F)
-    where F: for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
+    where
+        F: for<'a> Fn(MaterializerInput<'a>) -> String + 'static,
+    {
         self.materializers.insert(field, Box::new(materializer));
     }
 
     /// Configure the specified field to be modified by an expression, after being deserialized.
     /// The expression will be produced by the given function.
     pub fn map<F>(&mut self, field: FieldId, mapper: F)
-    where F: for<'a, 'b> Fn(MapperInput<'a, 'b>) -> String + 'static {
+    where
+        F: for<'a, 'b> Fn(MapperInput<'a, 'b>) -> String + 'static,
+    {
         self.mappers.insert(field, Box::new(mapper));
     }
 
     /// Generate code to be run in the deserialization function, before any deserialization begins.
     pub fn pre_hook<F>(&mut self, f: F)
-    where F: for<'a> Fn(HookInput<'a>) -> String + 'static {
+    where
+        F: for<'a> Fn(HookInput<'a>) -> String + 'static,
+    {
         self.pre_hooks.push(Box::new(f));
     }
 
     /// Generate code to be run in the deserialization function, after all deserialization.
     pub fn post_hook<F>(&mut self, f: F)
-    where F: for<'a> Fn(HookInput<'a>) -> String + 'static {
+    where
+        F: for<'a> Fn(HookInput<'a>) -> String + 'static,
+    {
         self.post_hooks.push(Box::new(f));
     }
 
@@ -153,7 +159,7 @@ pub struct MapperInput<'a, 'b> {
     /// Identifier of the serialized message object.
     pub message: &'a str,
     /// Identifier of the field's value, after producing with standard deserialization.
-    pub value:   &'b str,
+    pub value: &'b str,
 }
 
 /// Input to a function that produces statement(s) to be run.
@@ -162,7 +168,6 @@ pub struct HookInput<'a> {
     /// Identifier of the serialized message object.
     pub message: &'a str,
 }
-
 
 // === Product Types ===
 
@@ -330,7 +335,6 @@ impl DeserializerBuilder {
         }
     }
 }
-
 
 // === Sum Types ===
 

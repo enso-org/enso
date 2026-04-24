@@ -23,7 +23,7 @@ public sealed interface NumericColumnAdapter<T>
         NumericColumnAdapter.BigIntegerColumnAdapter,
         NumericColumnAdapter.LongColumnAdapter {
   default boolean canApply(ColumnStorage<?> left) {
-    var leftType = left.getType();
+    var leftType = StorageType.ofStorage(left);
     if (getValidType().isOfType(leftType)) {
       return true;
     }
@@ -61,16 +61,18 @@ public sealed interface NumericColumnAdapter<T>
 
     @Override
     public ColumnStorage<Double> asTypedStorage(ColumnStorage<?> storage) {
-      return switch (storage.getType()) {
+      var storageType = StorageType.ofStorage(storage);
+      return switch (storageType) {
         case FloatType floatType -> floatType.asTypedStorage(storage);
-        case BigDecimalType bigDecimalType -> new DoubleStorageFacade<>(
-            bigDecimalType.asTypedStorage(storage), BigDecimal::doubleValue);
-        case BigIntegerType bigIntegerType -> new DoubleStorageFacade<>(
-            bigIntegerType.asTypedStorage(storage), BigInteger::doubleValue);
-        case IntegerType integerType -> new DoubleStorageFacade<>(
-            integerType.asTypedStorage(storage), Long::doubleValue);
-        default -> throw new IllegalArgumentException(
-            "Unsupported storage type: " + storage.getType());
+        case BigDecimalType bigDecimalType ->
+            new DoubleStorageFacade<>(
+                bigDecimalType.asTypedStorage(storage), BigDecimal::doubleValue);
+        case BigIntegerType bigIntegerType ->
+            new DoubleStorageFacade<>(
+                bigIntegerType.asTypedStorage(storage), BigInteger::doubleValue);
+        case IntegerType integerType ->
+            new DoubleStorageFacade<>(integerType.asTypedStorage(storage), Long::doubleValue);
+        default -> throw new IllegalArgumentException("Unsupported storage type: " + storageType);
       };
     }
 
@@ -98,8 +100,13 @@ public sealed interface NumericColumnAdapter<T>
       }
 
       @Override
-      public FloatType getType() {
-        return FloatType.FLOAT_64;
+      public char typeChar() {
+        return FloatType.FLOAT_64.typeChar();
+      }
+
+      @Override
+      public long typeSize() {
+        return FloatType.FLOAT_64.size();
       }
 
       @Override
@@ -156,16 +163,19 @@ public sealed interface NumericColumnAdapter<T>
 
     @Override
     public ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {
-      return switch (storage.getType()) {
+      var storageType = StorageType.ofStorage(storage);
+      return switch (storageType) {
         case BigDecimalType bigDecimalType -> bigDecimalType.asTypedStorage(storage);
-        case BigIntegerType bigIntegerType -> new ColumnStorageFacade<>(
-            bigIntegerType.asTypedStorage(storage), BigDecimal::new);
-        case FloatType floatType -> new ColumnStorageFacade<>(
-            floatType.asTypedStorage(storage), BigDecimal::valueOf);
-        case IntegerType integerType -> new ColumnStorageFacade<>(
-            integerType.asTypedStorage(storage), BigDecimal::valueOf);
-        default -> throw new IllegalArgumentException(
-            "Unsupported storage type: " + storage.getType());
+        case BigIntegerType bigIntegerType ->
+            new ColumnStorageFacade<>(
+                BigDecimalType.INSTANCE, bigIntegerType.asTypedStorage(storage), BigDecimal::new);
+        case FloatType floatType ->
+            new ColumnStorageFacade<>(
+                BigDecimalType.INSTANCE, floatType.asTypedStorage(storage), BigDecimal::valueOf);
+        case IntegerType integerType ->
+            new ColumnStorageFacade<>(
+                BigDecimalType.INSTANCE, integerType.asTypedStorage(storage), BigDecimal::valueOf);
+        default -> throw new IllegalArgumentException("Unsupported storage type: " + storageType);
       };
     }
   }
@@ -187,12 +197,13 @@ public sealed interface NumericColumnAdapter<T>
 
     @Override
     public ColumnStorage<BigInteger> asTypedStorage(ColumnStorage<?> storage) {
-      return switch (storage.getType()) {
+      var storageType = StorageType.ofStorage(storage);
+      return switch (storageType) {
         case BigIntegerType bigIntegerType -> bigIntegerType.asTypedStorage(storage);
-        case IntegerType integerType -> new ColumnStorageFacade<>(
-            integerType.asTypedStorage(storage), BigInteger::valueOf);
-        default -> throw new IllegalArgumentException(
-            "Unsupported storage type: " + storage.getType());
+        case IntegerType integerType ->
+            new ColumnStorageFacade<>(
+                BigIntegerType.INSTANCE, integerType.asTypedStorage(storage), BigInteger::valueOf);
+        default -> throw new IllegalArgumentException("Unsupported storage type: " + storageType);
       };
     }
   }
@@ -214,10 +225,11 @@ public sealed interface NumericColumnAdapter<T>
 
     @Override
     public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
-      if (storage.getType() instanceof IntegerType integerType) {
+      var storageType = StorageType.ofStorage(storage);
+      if (storageType instanceof IntegerType integerType) {
         return integerType.asTypedStorage(storage);
       }
-      throw new IllegalArgumentException("Unsupported storage type: " + storage.getType());
+      throw new IllegalArgumentException("Unsupported storage type: " + storageType);
     }
   }
 }

@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
@@ -16,12 +16,7 @@ import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   ComplexType,
   GenerateMethodBodies,
@@ -51,7 +46,6 @@ case object IgnoredBindings extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE
   )
@@ -143,24 +137,24 @@ case object IgnoredBindings extends IRPass {
     if (isIgnore(binding.name)) {
       val newName = supply
         .newName(from = Some(binding.name))
-        .copy(
-          location    = binding.name.location,
-          passData    = binding.name.passData,
-          diagnostics = binding.name.diagnostics
-        )
+        .copyBuilder()
+        .location(binding.name.identifiedLocation())
+        .passData(binding.name.passData())
+        .diagnostics(binding.name.diagnostics())
+        .build()
 
       binding
-        .copy(
-          name       = newName,
-          expression = resolveExpression(binding.expression, supply)
-        )
+        .copyBuilder()
+        .name(newName)
+        .expression(resolveExpression(binding.expression, supply))
+        .build()
         .updateMetadata(new MetadataPair(this, State.Ignored))
     } else {
       setNotIgnored(
         binding
-          .copy(
-            expression = resolveExpression(binding.expression, supply)
-          )
+          .copyBuilder()
+          .expression(resolveExpression(binding.expression, supply))
+          .build()
       )
     }
   }
@@ -176,15 +170,16 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Function = {
     function match {
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
+      case lam: Function.Lambda =>
+        val args        = lam.arguments()
         val argIsIgnore = args.map(isIgnoreArg)
         val newArgs = args.zip(argIsIgnore).map { case (arg, isIgnore) =>
           genNewArg(arg, isIgnore, supply)
         }
 
-        lam.copy(
-          arguments = newArgs,
-          body      = resolveExpression(body, supply)
+        lam.copyWithArgumentsAndBody(
+          newArgs,
+          resolveExpression(lam.body(), supply)
         )
       case _: Function.Binding =>
         throw new CompilerError(
@@ -222,17 +217,16 @@ case object IgnoredBindings extends IRPass {
         if (isIgnored) {
           val newName = freshNameSupply
             .newName(from = Some(spec.name))
-            .copy(
-              location    = arg.name.location,
-              passData    = arg.name.passData,
-              diagnostics = arg.name.diagnostics
-            )
+            .copyBuilder()
+            .location(arg.name.identifiedLocation())
+            .passData(arg.name.passData)
+            .diagnostics(arg.name.diagnostics)
+            .build()
 
           spec
             .copy(
-              name = newName,
-              defaultValue =
-                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              newName,
+              spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
         } else {
@@ -281,8 +275,8 @@ case object IgnoredBindings extends IRPass {
     cse match {
       case expr: Case.Expr =>
         expr.copy(
-          scrutinee = resolveExpression(expr.scrutinee, supply),
-          branches  = expr.branches.map(resolveCaseBranch(_, supply))
+          resolveExpression(expr.scrutinee, supply),
+          expr.branches.map(resolveCaseBranch(_, supply))
         )
       case _: Case.Branch =>
         throw new CompilerError(
@@ -319,48 +313,47 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Pattern = {
     pattern match {
-      case named @ Pattern.Name(name, _, _) =>
+      case named: Pattern.Name =>
+        val name = named.name()
         if (isIgnore(name)) {
           val newName = supply
             .newName(from = Some(name))
-            .copy(
-              location    = name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
+            .copyBuilder()
+            .location(name.identifiedLocation())
+            .passData(name.passData())
+            .diagnostics(name.diagnostics())
+            .build()
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
-          named.copy(
-            name = newName
-          )
+          named.copyWithName(newName)
         } else {
-          named.copy(
-            name = setNotIgnored(name)
-          )
+          named.copyWithName(setNotIgnored(name))
         }
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
-        cons.copy(
-          fields = fields.map(resolvePattern(_, supply))
+      case cons: Pattern.Constructor =>
+        cons.copyWithFields(
+          cons.fields().map(resolvePattern(_, supply))
         )
       case literal: Pattern.Literal => literal
-      case typed @ Pattern.Type(name, _, _, _) =>
-        if (isIgnore(name)) {
+      case bool: Pattern.Bool       => bool
+      case typed: Pattern.Type =>
+        if (isIgnore(typed.name())) {
           val newName = supply
-            .newName(from = Some(name))
-            .copy(
-              location    = name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
+            .newName(from = Some(typed.name))
+            .copyBuilder()
+            .location(typed.name.identifiedLocation())
+            .passData(typed.name.passData())
+            .diagnostics(typed.name.diagnostics())
+            .build()
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
-          typed.copy(
-            name = newName
-          )
+          typed.copyBuilder().name(newName).build()
         } else {
-          typed.copy(
-            name = setNotIgnored(name)
-          )
+          typed
+            .copyBuilder()
+            .name(
+              setNotIgnored(typed.name())
+            )
+            .build()
         }
       case err: errors.Pattern => err
       case _: Pattern.Documentation =>

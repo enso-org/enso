@@ -2,8 +2,8 @@ import { textEditorsCommonBindings, textEditorsMultilineBindings } from '@/bindi
 import { modKey } from '@/composables/events'
 import * as commands from '@codemirror/commands'
 import { insertNewlineKeepIndent } from '@codemirror/commands'
-import { type Extension, Prec } from '@codemirror/state'
-import { type Command, EditorView, type KeyBinding, keymap } from '@codemirror/view'
+import { Prec, type Extension } from '@codemirror/state'
+import { EditorView, keymap, type Command, type KeyBinding } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 import type { LineMode } from './index'
 

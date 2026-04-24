@@ -300,7 +300,6 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
           <Check
             color={renderProps.isInvalid ? 'error' : 'primary'}
             isSelected={renderProps.isSelected}
-            isPressed={renderProps.isPressed}
             isIndeterminate={isIndeterminate}
             className={classes.icon({ isSelected: renderProps.isSelected })}
           />

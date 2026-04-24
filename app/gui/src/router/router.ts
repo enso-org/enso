@@ -10,10 +10,18 @@ import {
   RESTORE_USER_PATH,
   SUBSCRIBE_PATH,
 } from '$/appUtils'
+import { useAuth } from '$/providers/auth'
+import { useConfig } from '$/providers/config'
 import { flagsStore } from '$/providers/featureFlags'
+import {
+  maybeRedirectToProject,
+  maybeRedirectToTab,
+  openTab,
+  redirectFromPath,
+} from '$/router/dashboardGuards'
 import { withDataLoader } from '$/router/dataLoader'
-import { maybeRedirectToInitialProject } from '$/router/initialProject'
-import { reactComponent } from '@/util/react'
+import { shouldWaitForResolvedSession } from '$/router/sessionResolution'
+import { reactComponent, suspendedReactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
@@ -46,9 +54,36 @@ const routes = [
         children: [
           {
             name: 'dashboard',
-            path: '/:path(.*)*',
-            beforeEnter: maybeRedirectToInitialProject,
-            component: withDataLoader(() => import('$/components/AppContainer.vue')),
+            path: '/',
+            beforeEnter: [maybeRedirectToProject, maybeRedirectToTab],
+            component: () =>
+              import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
+                reactComponent(mod.Dashboard),
+              ),
+            children: [
+              {
+                name: 'project',
+                path: 'project/:id',
+                component: () => import('$/project-view/ProjectView.vue'),
+              },
+              {
+                name: 'projectLog',
+                path: 'projectLog/:id/:title',
+                component: () => import('$/components/ProjectLog.vue'),
+              },
+              {
+                name: 'settings',
+                path: 'settings',
+                component: () =>
+                  import('#/layouts/Settings').then((mod) => suspendedReactComponent(mod.Settings)),
+              },
+              {
+                name: 'ensoPath',
+                path: 'asset/:path(.*)*',
+                beforeEnter: redirectFromPath,
+                component: [],
+              },
+            ],
           },
           {
             path: SUBSCRIBE_PATH,
@@ -112,6 +147,19 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+
+router.beforeEach(async () => {
+  const config = useConfig()
+  await config.waitForRemoteConfig()
+})
+router.beforeEach(async (to, from) => {
+  const auth = useAuth()
+
+  if (shouldWaitForResolvedSession(to.meta.access, from.meta.access, auth.session)) {
+    await auth.waitForSession()
+  }
+})
+router.beforeEach(openTab)
 
 router.onError((error) => console.error('Router error', error))
 

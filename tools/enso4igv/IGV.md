@@ -36,21 +36,27 @@ IGV understands Enso when
 [Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
 is installed. Login to GitHub, follow the
 [GitHub actions link](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
-and select a build. Unless you have some special needs choose the latest one.
-The build summary page provides various information as well as list of artifacts
-at the bottom. Download the _Enso IGV Plugin_ ZIP file (make sure you are logged
-into GitHub - artifacts are only available to those logged in). Unzip it and get
-`enso*.nbm` file. This file can be installed into _IGV_ (or any other
+and select a build. Unless you have some special need choose the latest one from
+`develop` branch. The build summary page provides various information as well as
+list of artifacts at the bottom.
+
+<img width="1718" height="704" alt="Download page" src="https://github.com/user-attachments/assets/28b69e13-e547-4946-a0f1-dfac5d6b5a78" />
+
+Download the _Enso IGV Plugin_ ZIP file (make sure you are logged into GitHub -
+artifacts are only available to those logged in). Unzip it and get `*.nbm`
+files. These file can be installed into _IGV_ (or any other
 [NetBeans](http://netbeans.apache.org) based application). Go to
 _Tools_/_Plugins_/_Downloaded_/_Add Plugins_ and select the NBM file.
 
-![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608153-9f0b54fa-b507-45be-83de-d7911186d121.png)
+<img width="1140" height="607" alt="Tools/Plugins/Downloaded" src="https://github.com/user-attachments/assets/30ecdcaf-4cee-424b-a685-5bcfa37c986b" />
 
-Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ - a
-necessary dependency of the _Enso support_ module. Continue through the wizard
-to _finish_ the installation.
+Proceed by clicking _Install_.
 
-![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608219-1faf2728-0045-478b-a297-e3c06f691b19.png)
+<img width="1140" height="607" alt="Click Install" src="https://github.com/user-attachments/assets/0ac8c3e5-2980-41b9-b6ad-ba6dc42e7820" />
+
+Continue through the wizard to _finish_ the installation.
+
+<img width="1140" height="607" alt="Tools/Plugins/Downloaded" src="https://github.com/user-attachments/assets/5fe3d81b-50ed-4b9b-bde3-b3eba3cabcd3" />
 
 ## Using the IGV
 
@@ -136,12 +142,6 @@ icon in the _Stack View_ to get from graph node to source. Select a drop down
 widget in the editor toolbar to show you what compiler nodes as associated with
 currently selected line.
 
-## Syntax Coloring
-
-To enable syntax coloring you may need to download and install text mate
-module into IGV. Download [its NBM file](https://repo1.maven.org/maven2/org/netbeans/api/org-netbeans-modules-textmate-lexer/RELEASE260/org-netbeans-modules-textmate-lexer-RELEASE260.nbm)
-and install in _Plugins_ dialog.
-
 ## Building
 
 The plugin can be rebuilt using [Apache Maven](http://maven.apache.org). The
@@ -149,13 +149,14 @@ build is platform independent. The following instructions are for Unix like
 environment. Switch to this directory and invoke:
 
 ```bash
-enso/tools/enso4igv$ mvn clean install
-enso/tools/enso4igv$ ls target/*.nbm
-target/enso4igv-*-SNAPSHOT.nbm
+enso/tools/enso4igv$ mvn clean install -DskipTests
+enso/tools/enso4igv$ ls -1 target/*.nbm
+target/enso4igv-*.nbm
+target/org-netbeans-modules-textmate-lexer-*.nbm
 ```
 
-an NBM file is generated which can be installed into IGV, NetBeans or any other
-NetBeans based application.
+the NBM files are generated which can be installed into IGV, NetBeans or any
+other NetBeans based application.
 
 ## VSCode Extension
 

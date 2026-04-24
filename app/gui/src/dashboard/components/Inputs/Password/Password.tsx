@@ -2,7 +2,6 @@
 import { Button } from '#/components/Button'
 import { Form, type FieldPath, type TSchema } from '#/components/Form'
 import { Input, type InputProps } from '#/components/Inputs/Input'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 
 /** Props for a {@link Password}. */
@@ -26,31 +25,19 @@ export function Password<Schema extends TSchema, TFieldName extends FieldPath<Sc
           {props.addonEnd}
 
           <Form.FieldValue<Schema, TFieldName, string> form={form} name={props.name}>
-            {(value) => (
-              <AnimatePresence>
-                {value != null && value.length > 0 && (
-                  <motion.div
-                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                    initial={{ opacity: 0, x: 10, rotateY: 30 }}
-                    animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                    exit={{ opacity: 0, x: 10, rotateY: 30 }}
-                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                    transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  >
-                    <Button
-                      size="medium"
-                      variant="icon"
-                      extraClickZone
-                      icon={showPassword ? 'eye' : 'eye_crossed'}
-                      onPress={() => {
-                        setShowPassword(!showPassword)
-                      }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            )}
+            {(value) =>
+              value != null && value.length > 0 ?
+                <Button
+                  size="medium"
+                  variant="icon"
+                  extraClickZone
+                  icon={showPassword ? 'eye' : 'eye_crossed'}
+                  onPress={() => {
+                    setShowPassword(!showPassword)
+                  }}
+                />
+              : null
+            }
           </Form.FieldValue>
         </>
       }

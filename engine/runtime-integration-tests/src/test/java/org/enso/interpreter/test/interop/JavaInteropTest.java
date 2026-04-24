@@ -5,11 +5,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.TruffleSafepoint;
+import java.time.Duration;
 import java.util.List;
-import java.util.function.Function;
 import org.enso.example.TestClass;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Test;
@@ -134,12 +136,14 @@ public abstract class JavaInteropTest {
   public void testCaseOnFunctionalInterface() {
     var code =
         """
-        from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.FnIntrfc
 
         check x y=42 = case x of
           call:FnIntrfc -> call.perform y
+          "alien" -> TestClass.alien
+          "real" -> TestClass.real
+          "subclass" -> TestClass.subclass
           _ -> "no"
 
         main = check
@@ -148,11 +152,12 @@ public abstract class JavaInteropTest {
 
     assertEquals("'no'", check.execute("Not FnIntrfc").toString());
 
-    Function<Object, Object> alien = (x) -> x;
+    var alien = check.execute("alien"); // Function<Object, Object> alien = (x) -> x;
+
     assertEquals(
         "Function isn't the right Java interface", "'no'", check.execute(alien).toString());
 
-    TestClass.FnIntrfc real = (x) -> x;
+    var real = check.execute("real"); // TestClass.FnIntrfc real = (x) -> x;
     assertEquals(
         "FnIntrfc is the right interface", "'good'", check.execute(real, "good").toString());
 
@@ -169,7 +174,7 @@ public abstract class JavaInteropTest {
         "'no'",
         check.execute(atom).toString());
 
-    TestClass.FnIntrfc subclass = new TestClass.FnIntrfcSubclass();
+    var subclass = check.execute("subclass"); // new TestClass.FnIntrfcSubclass();
     assertEquals(
         "FnIntrfcSubclass implements the right interface",
         "'subclass'",
@@ -316,25 +321,25 @@ public abstract class JavaInteropTest {
   public void testToStringBehavior() {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    polyglot java import org.enso.example.ToString as Foo
+        polyglot java import org.enso.example.ToString as Foo
 
-    type My_Fooable_Implementation
-        Instance x
+        type My_Fooable_Implementation
+            Instance x
 
-        foo : Integer
-        foo self = 100+self.x
+            foo : Integer
+            foo self = 100+self.x
 
-    main =
-        fooable = My_Fooable_Implementation.Instance 23
-        a = fooable.foo
-        b = fooable.to_text
-        c = Foo.callFoo fooable
-        d = Foo.showObject fooable
-        e = Foo.callFooAndShow fooable
-        [a, b, c, d, e]
-    """;
+        main =
+            fooable = My_Fooable_Implementation.Instance 23
+            a = fooable.foo
+            b = fooable.to_text
+            c = Foo.callFoo fooable
+            d = Foo.showObject fooable
+            e = Foo.callFooAndShow fooable
+            [a, b, c, d, e]
+        """;
 
     var res = ctx().evalModule(code);
     assertTrue("It is an array", res.hasArrayElements());
@@ -350,21 +355,21 @@ public abstract class JavaInteropTest {
   public void testToStringBehaviorSimple1() {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    polyglot java import org.enso.example.ToString as Foo
+        polyglot java import org.enso.example.ToString as Foo
 
-    type My_Fooable_Implementation
-        Instance x
+        type My_Fooable_Implementation
+            Instance x
 
-        foo : Integer
-        foo self = 100+self.x
+            foo : Integer
+            foo self = 100+self.x
 
-    main =
-        fooable = My_Fooable_Implementation.Instance 23
-        e = Foo.callFooAndShow fooable
-        e
-    """;
+        main =
+            fooable = My_Fooable_Implementation.Instance 23
+            e = Foo.callFooAndShow fooable
+            e
+        """;
 
     var res = ctx().evalModule(code);
     assertEquals("{(Instance 23)}.foo() = 123", res.asString());
@@ -374,13 +379,13 @@ public abstract class JavaInteropTest {
   public void throwsParsingError() {
     var code =
         """
-              from Standard.Base import Panic
-              polyglot java import java.lang.Integer as Num
-              polyglot java import java.lang.NumberFormatException as Ex
+        from Standard.Base import Panic
+        polyglot java import java.lang.Integer as Num
+        polyglot java import java.lang.NumberFormatException as Ex
 
-              main =
-                Panic.catch Ex (Num.parseInt "NotAnInt") .payload
-              """;
+        main =
+          Panic.catch Ex (Num.parseInt "NotAnInt") .payload
+        """;
 
     var res = ctx().evalModule(code);
     assertTrue("Got an exception back", res.isException());
@@ -397,20 +402,20 @@ public abstract class JavaInteropTest {
   public void throwsParsingErrorIndirect() {
     var code =
         """
-              from Standard.Base import Panic
-              polyglot java import java.lang.Integer as Num
-              polyglot java import java.lang.NumberFormatException as Ex
-              polyglot java import org.enso.example.TestClass
+        from Standard.Base import Panic, to_text
+        polyglot java import java.lang.Integer as Num
+        polyglot java import java.lang.NumberFormatException as Ex
+        polyglot java import org.enso.example.TestClass
 
-              type En
-                Err msg
+        type En
+          Err msg
 
-              main =
-                e = TestClass.newDirectExecutor
-                e.execute
-                    Panic.catch Ex (Num.parseInt "NotAnInt") ex->
-                        Panic.throw (En.Err ex.payload.to_text)
-              """;
+        main =
+          e = TestClass.newDirectExecutor
+          e.execute
+              Panic.catch Ex (Num.parseInt "NotAnInt") ex->
+                  Panic.throw (En.Err ex.payload.to_text)
+        """;
 
     try {
       var res = ctx().evalModule(code);
@@ -501,24 +506,103 @@ public abstract class JavaInteropTest {
     assertEquals(result.asInt(), -1);
   }
 
+  @Test
+  public void multiThreadedAccess() throws Exception {
+    var boot =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+                plus =
+                    6 + 7
+                """,
+                "boot.enso")
+            .build();
+    var bootResult = ctx().evalModule(boot, "plus").asInt();
+    assertEquals(13, bootResult);
+
+    var code1 =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+                polyglot java import org.enso.example.deps.one.DepAClass
+
+                one =
+                  DepAClass.expToNeg 2
+                """,
+                "Code1.enso")
+            .build();
+    var code2 =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+                polyglot java import org.enso.example.deps.two.DepBClass
+
+                two =
+                  DepBClass.sigmoid 2
+                """,
+                "Code2.enso")
+            .build();
+
+    var code1Thread =
+        new Thread("Code1") {
+          double result;
+
+          @Override
+          public void run() {
+            result = ctx().evalModule(code1, "one").asDouble();
+          }
+        };
+
+    var code2Thread =
+        new Thread("Code2") {
+          double result;
+
+          @Override
+          public void run() {
+            result = ctx().evalModule(code2, "two").asDouble();
+          }
+        };
+    code1Thread.start();
+    code2Thread.start();
+
+    awaitThread(code1Thread);
+    awaitThread(code2Thread);
+
+    assertEquals(0.1353352832366127, code1Thread.result, 0.01);
+    assertEquals(0.8807970779778823, code2Thread.result, 0.01);
+  }
+
+  private void awaitThread(Thread thread) throws Exception {
+    TruffleSafepoint.setBlockedThreadInterruptible(
+        null,
+        (t) -> {
+          var terminated = t.join(Duration.ofSeconds(10));
+          assertTrue("Thread " + t.getName() + " should have terminated", terminated);
+        },
+        thread);
+  }
+
   private Value checkedException(int t) {
     var code =
         """
-    polyglot java import org.enso.example.TestException
-    from Standard.Base import Panic
+        polyglot java import org.enso.example.TestException
+        from Standard.Base import Panic
 
-    handle_errors ~action  =
-        Panic.catch TestException action caught_panic->
-          -1
+        handle_errors ~action  =
+            Panic.catch TestException action caught_panic->
+              -1
 
-    run t = case t of
-      0 -> handle_errors 10
-      1 -> handle_errors (Panic.throw TestException.new)
-      2 -> handle_errors (TestException.throwMe)
-      3 -> handle_errors (TestException.throwSubtype)
+        run t = case t of
+          0 -> handle_errors 10
+          1 -> handle_errors (Panic.throw TestException.new)
+          2 -> handle_errors (TestException.throwMe)
+          3 -> handle_errors (TestException.throwSubtype)
 
-    main = run
-    """;
+        main = run
+        """;
     var result = ctx().evalModule(code);
     return result.execute(t);
   }

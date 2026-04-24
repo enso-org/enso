@@ -3,23 +3,7 @@ from Standard.Base import all
 from Standard.Table import Column, Table
 
 import project.Helpers
-from project.Helpers import time_visualization
-
-## ---
-   private: true
-   ---
-   Get first numeric column of the table.
-Table.first_numeric : Column ! Nothing
-Table.first_numeric self = self.columns.find if_missing=(Error.throw Nothing) _.is_numeric
-
-## ---
-   private: true
-   ---
-   Get the value column - the column that will be used to create histogram.
-Table.value_column : Column ! Nothing
-Table.value_column self =
-    named_col = self.lookup_ignore_case 'value'
-    named_col.catch_ self.first_numeric
+from project.Helpers import time_visualization, short_display
 
 ## ---
    private: true
@@ -49,10 +33,11 @@ type Update
    ---
 from_table : Table -> Update
 from_table table =
-    col = table.value_column
-    label = col.name.catch_ Nothing
-    values = col.to_vector.catch_ []
-    Update.Value values label
+    with_known = table.set "X" as="X" . select_columns ["X", "value"] reorder=True case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore
+    col = with_known.get 1 . if_nothing <|
+        table.columns.find if_missing=Nothing c-> c.value_type.is_numeric
+    if Nothing == col then Update.Value [] Nothing else
+        Update.Value col.to_vector col.name
 
 ## ---
    private: true
@@ -81,5 +66,5 @@ from_value value =
    ## Arguments
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value = time_visualization Histogram ("process_to_json_text: " + value.to_display_text) <|
+process_to_json_text value = time_visualization Histogram ("process_to_json_text: " + (short_display value)) <|
     from_value value . to_json

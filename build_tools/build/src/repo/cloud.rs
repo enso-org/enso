@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use ide_ci::github::RepoRef;
 
-
-
 /// The cloud repository.
 pub const CLOUD_REPO: RepoRef = RepoRef { owner: "enso-org", name: "cloud-v2" };
 

@@ -24,7 +24,7 @@ public abstract class OrNode extends Node {
     return OrNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, boolean self, @Suspend Object that);
+  abstract Object execute(VirtualFrame frame, boolean thiz, @Suspend Object that);
 
   @Specialization
   Object doIt(

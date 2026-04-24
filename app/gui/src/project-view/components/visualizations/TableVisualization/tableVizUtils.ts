@@ -1,5 +1,5 @@
 import { LINKABLE_URL_REGEX } from '@/util/link'
-import { TextFormatOptions } from '../TableVisualization.vue'
+import type { TextFormatOptions } from '../TableVisualization.vue'
 
 export interface ValueType {
   constructor: string

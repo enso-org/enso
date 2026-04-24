@@ -130,6 +130,7 @@ public final class SpecCollector {
             .allowIO(IOAccess.ALL)
             .allowAllAccess(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(new ConsoleHandler())
             .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
             .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
@@ -248,7 +249,11 @@ public final class SpecCollector {
     out.println(" */");
     out.println("@BenchmarkMode(Mode.AverageTime)");
     out.println("@OutputTimeUnit(TimeUnit.MILLISECONDS)");
-    out.println("@Fork(1)");
+    if (group.configuration().jvm_args() instanceof String args) {
+      out.println("@Fork(value=1, jvmArgsAppend=\"" + args + "\")");
+    } else {
+      out.println("@Fork(1)");
+    }
     out.println(getWarmupAnnotationForGroup(group));
     out.println(getMeasureAnnotationForGroup(group));
     out.println("@State(Scope.Benchmark)");
@@ -332,92 +337,92 @@ public final class SpecCollector {
 
     out.println(
         """
-                  private final class LogHandler extends Handler {
-                    private final Handler fallbackHandler;
+          private final class LogHandler extends Handler {
+            private final Handler fallbackHandler;
 
-                    LogHandler(Handler fallbackHandler) {
-                      this.fallbackHandler = fallbackHandler;
-                    }
+            LogHandler(Handler fallbackHandler) {
+              this.fallbackHandler = fallbackHandler;
+            }
 
-                    @Override
-                    public void publish(LogRecord lr) {
-                      if ("engine".equals(lr.getLoggerName())) {
-                        messages.add(lr);
-                      } else {
-                        fallbackHandler.publish(lr);
-                      }
-                    }
+            @Override
+            public void publish(LogRecord lr) {
+              if ("engine".equals(lr.getLoggerName())) {
+                messages.add(lr);
+              } else {
+                fallbackHandler.publish(lr);
+              }
+            }
 
-                    @Override
-                    public void flush() {
-                      fallbackHandler.flush();
-                    }
+            @Override
+            public void flush() {
+              fallbackHandler.flush();
+            }
 
-                    @Override
-                    public void close() {
-                      fallbackHandler.close();
-                    }
-                  }
+            @Override
+            public void close() {
+              fallbackHandler.close();
+            }
+          }
 
-                  @Setup(org.openjdk.jmh.annotations.Level.Iteration)
-                  public void clearCompilationMessages(IterationParams it) {
-                    var round = round(it);
-                    if (!messages.isEmpty()) {
-                      compilationLog.append("Before " + it.getType() + "#" + round + ". ");
-                      compilationLog.append("Cleaning " + messages.size() + " compilation messages\\n");
-                      messages.clear();
-                    }
-                  }
+          @Setup(org.openjdk.jmh.annotations.Level.Iteration)
+          public void clearCompilationMessages(IterationParams it) {
+            var round = round(it);
+            if (!messages.isEmpty()) {
+              compilationLog.append("Before " + it.getType() + "#" + round + ". ");
+              compilationLog.append("Cleaning " + messages.size() + " compilation messages\\n");
+              messages.clear();
+            }
+          }
 
-                  private int round(IterationParams it) {
-                    return switch (it.getType()) {
-                      case WARMUP -> ++warmupCounter;
-                      case MEASUREMENT -> ++measurementCounter;
-                    };
-                  }
+          private int round(IterationParams it) {
+            return switch (it.getType()) {
+              case WARMUP -> ++warmupCounter;
+              case MEASUREMENT -> ++measurementCounter;
+            };
+          }
 
-                  private void dumpMessages() {
-                    for (var lr : messages) {
-                      compilationLog.append(lr.getMessage() + "\\n");
-                      compilationMessagesFound = true;
-                    }
-                  }
+          private void dumpMessages() {
+            for (var lr : messages) {
+              compilationLog.append(lr.getMessage() + "\\n");
+              compilationMessagesFound = true;
+            }
+          }
 
-                  @TearDown(org.openjdk.jmh.annotations.Level.Iteration)
-                  public void dumpCompilationMessages(IterationParams it) {
-                    switch (it.getType()) {
-                      case MEASUREMENT -> {
-                        compilationLog.append("After " + it.getType() + "#" + measurementCounter + ". ");
-                        if (!messages.isEmpty()) {
-                          compilationLog.append("Dumping " + messages.size() + " compilation messages:\\n");
-                          dumpMessages();
-                        } else {
-                          compilationLog.append("No compilation messages.\\n");
-                        }
-                      }
-                    }
-                  }
+          @TearDown(org.openjdk.jmh.annotations.Level.Iteration)
+          public void dumpCompilationMessages(IterationParams it) {
+            switch (it.getType()) {
+              case MEASUREMENT -> {
+                compilationLog.append("After " + it.getType() + "#" + measurementCounter + ". ");
+                if (!messages.isEmpty()) {
+                  compilationLog.append("Dumping " + messages.size() + " compilation messages:\\n");
+                  dumpMessages();
+                } else {
+                  compilationLog.append("No compilation messages.\\n");
+                }
+              }
+            }
+          }
 
-                  @TearDown
-                  public void checkNoTruffleCompilation(BenchmarkParams params) {
-                    if (compilationMessagesFound) {
-                      var limit = Boolean.getBoolean("bench.all") ? 10 : Integer.MAX_VALUE;
-                      for (var l : compilationLog.toString().split("\\n")) {
-                        var pipe = l.indexOf('|');
-                        if (pipe > 0) {
-                          l = l.substring(0, pipe);
-                        }
-                        System.out.println(l);
-                        if (limit-- <= 0) {
-                          System.out.println("... to see more use:");
-                          System.out.println("benchOnly " + params.getBenchmark());
-                          break;
-                        }
-                      }
-                    }
-                  }
+          @TearDown
+          public void checkNoTruffleCompilation(BenchmarkParams params) {
+            if (compilationMessagesFound) {
+              var limit = Boolean.getBoolean("bench.all") ? 10 : Integer.MAX_VALUE;
+              for (var l : compilationLog.toString().split("\\n")) {
+                var pipe = l.indexOf('|');
+                if (pipe > 0) {
+                  l = l.substring(0, pipe);
+                }
+                System.out.println(l);
+                if (limit-- <= 0) {
+                  System.out.println("... to see more use:");
+                  System.out.println("benchOnly " + params.getBenchmark());
+                  break;
+                }
+              }
+            }
+          }
 
-                """);
+        """);
     // Benchmark methods
     for (var specJavaName : specJavaNames) {
       out.println();

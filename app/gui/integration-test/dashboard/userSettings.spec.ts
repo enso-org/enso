@@ -1,7 +1,7 @@
 /** @file Test the user settings tab. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
-import { INVALID_PASSWORD, TEXT, VALID_PASSWORD, mockAllAndLogin } from './actions'
+import { INVALID_PASSWORD, TEXT, VALID_PASSWORD } from '../actions'
 
 const NEW_USERNAME = 'another user-name'
 const NEW_PASSWORD = '1234!' + VALID_PASSWORD
@@ -9,24 +9,27 @@ const PROFILE_PICTURE_FILENAME = 'foo.png'
 const PROFILE_PICTURE_CONTENT = 'a profile picture'
 const PROFILE_PICTURE_MIMETYPE = 'image/png'
 
-test('user settings', ({ page }) =>
-  mockAllAndLogin({ page })
-    .do((_, { api }) => {
-      expect(api.currentUser()?.name).toBe(api.defaultName)
+test('user settings', async ({ drivePage, cloudApi }) => {
+  await drivePage.goToCategory
+    .cloud()
+    .do(() => {
+      expect(cloudApi.currentUser()?.name).toBe(cloudApi.defaultName)
     })
     .goToPage.settings()
     .accountForm()
     .fillName(NEW_USERNAME)
     .save()
-    .do((_, { api }) => {
-      expect(api.currentUser()?.name).toBe(NEW_USERNAME)
-      expect(api.currentOrganization()?.name).not.toBe(NEW_USERNAME)
-    }))
+    .do(() => {
+      expect(cloudApi.currentUser()?.name).toBe(NEW_USERNAME)
+      expect(cloudApi.currentOrganization()?.name).not.toBe(NEW_USERNAME)
+    })
+})
 
-test('change password form', ({ page }) =>
-  mockAllAndLogin({ page })
-    .do((_, { api }) => {
-      expect(api.currentPassword()).toBe(VALID_PASSWORD)
+test('change password form', async ({ drivePage, cloudApi }) => {
+  await drivePage.goToCategory
+    .cloud()
+    .do(() => {
+      expect(cloudApi.currentPassword()).toBe(VALID_PASSWORD)
     })
     .goToPage.settings()
     .changePasswordForm()
@@ -51,20 +54,23 @@ test('change password form', ({ page }) =>
     .fillConfirmNewPassword(NEW_PASSWORD)
     .save()
     // TODO: consider checking that password inputs are now empty.
-    .step('Password change should be successful', (_, { api }) => {
-      expect(api.currentPassword()).toBe(NEW_PASSWORD)
-    }))
+    .step('Password change should be successful', () => {
+      expect(cloudApi.currentPassword()).toBe(NEW_PASSWORD)
+    })
+})
 
-test('upload profile picture', ({ page }) =>
-  mockAllAndLogin({ page })
+test('upload profile picture', async ({ drivePage, cloudApi }) => {
+  await drivePage.goToCategory
+    .cloud()
     .goToPage.settings()
     .uploadProfilePicture(
       PROFILE_PICTURE_FILENAME,
       PROFILE_PICTURE_CONTENT,
       PROFILE_PICTURE_MIMETYPE,
     )
-    .step('Profile picture should be updated', async (_, { api }) => {
+    .step('Profile picture should be updated', async () => {
       await expect(() => {
-        expect(api.currentProfilePicture()).toEqual(PROFILE_PICTURE_CONTENT)
+        expect(cloudApi.currentProfilePicture()).toEqual(PROFILE_PICTURE_CONTENT)
       }).toPass()
-    }))
+    })
+})

@@ -1,19 +1,18 @@
+import { type GraphStore } from '$/providers/openedProjects/graph'
+import type { ToValue } from '$/utils/reactivity'
 import CodeEditorTooltip from '@/components/CodeEditor/CodeEditorTooltip.vue'
 import { astProp } from '@/components/CodeEditor/ensoSyntax'
 import { type VueHost } from '@/components/VueHostRender.vue'
-import { type GraphStore } from '@/stores/graph'
-import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
-import { type ToValue } from '@/util/reactivity'
 import { syntaxTree } from '@codemirror/language'
-import { type Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import {
   type EditorView,
   hoverTooltip as originalHoverTooltip,
   tooltips,
   type TooltipView,
 } from '@codemirror/view'
-import { type SyntaxNode } from '@lezer/common'
+import type { SyntaxNode } from '@lezer/common'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { h, markRaw, toValue } from 'vue'
 import { syntaxNodeAncestors } from 'ydoc-shared/util/lezer'
@@ -51,8 +50,7 @@ function codeEditorTooltip(vueHost: VueHost, props: typeof CodeEditorTooltip.pro
 
 /** @returns A CodeMirror extension that creates tooltips containing type and syntax information for Enso code. */
 export function ensoHoverTooltip(
-  graphStore: Pick<GraphStore, 'moduleSource' | 'db'>,
-  suggestionDbStore: SuggestionDbStore,
+  graphStore: ToValue<Pick<GraphStore, 'db'>>,
   vueHost: ToValue<VueHost | undefined>,
 ) {
   return hoverTooltip((syn) => {
@@ -64,12 +62,11 @@ export function ensoHoverTooltip(
     const enclosingAstNodes = iter.map(syntaxNodeAncestors(syn), (syn) => syn.tree?.prop(astProp))
     const enclosingAsts = iter.filter(enclosingAstNodes, (node) => node instanceof Ast.Ast)
     const enclosingExternalIds = iter.map(enclosingAsts, ({ externalId }) => externalId)
-    const nodeId = iter.find(enclosingExternalIds, graphStore.db.isNodeId.bind(graphStore.db))
+    const graph = toValue(graphStore)
+    const nodeId = iter.find(enclosingExternalIds, graph.db.isNodeId.bind(graph.db))
     return codeEditorTooltip(vueHostValue, {
       nodeId,
       syntax: syn.name,
-      graphDb: graphStore.db,
-      suggestionDbStore,
     })
   })
 }

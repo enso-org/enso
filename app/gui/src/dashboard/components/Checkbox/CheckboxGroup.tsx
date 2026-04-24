@@ -2,9 +2,9 @@
 import type { CheckboxGroupProps as AriaCheckboxGroupProps } from '#/components/aria'
 import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { omit } from '#/utilities/object'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { omit } from 'enso-common/src/utilities/data/object'
 import {
   forwardRef,
   type CSSProperties,
@@ -110,6 +110,7 @@ export const CheckboxGroup = forwardRef(
                       variants={fieldVariants}
                       {...checkboxGroupProps}
                       contextualHelp={contextualHelp}
+                      className="w-full"
                     >
                       {typeof children === 'function' ? children(renderProps) : children}
                     </Form.Field>

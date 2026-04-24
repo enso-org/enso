@@ -9,7 +9,7 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,
@@ -23,7 +23,7 @@ import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.data.{CompilerConfig, IRDumperWithConfig}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
@@ -68,7 +68,6 @@ class Compiler(
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val irCachingEnabled                 = !context.isIrCachingDisabled
-  private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
   private val isInteractiveMode                = context.isInteractiveMode
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
@@ -136,15 +135,12 @@ class Compiler(
     *                         to the cache; if set to False, a 'lint' compilation
     *                         will be performed, reporting any problems,
     *                         but no results will be written
-    * @param useGlobalCacheLocations whether or not the compilation result should
-    *                                  be written to the global cache
     * @param generateDocs should a documenation be generied
     * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
     shouldWriteCache: Boolean,
-    useGlobalCacheLocations: Boolean,
     generateDocs: Option[String]
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
@@ -209,8 +205,7 @@ class Compiler(
             if (shouldWriteCache) {
               context.serializeLibrary(
                 this,
-                pkg.libraryName,
-                useGlobalCacheLocations
+                pkg.libraryName
               )
             } else {
               CompletableFuture.completedFuture(true)
@@ -274,12 +269,37 @@ class Compiler(
     generateDocs: Boolean
   ): List[Module] = {
     initialize()
+
+    var moduleIrDumpers: HashMap[Module, IRDumperWithConfig] = new HashMap()
+
+    def getOrCreateDumper(module: Module): Option[IRDumperWithConfig] = {
+      config.dumpModuleIR.flatMap(irDumperConfig => {
+        if (module.getName().toString.contains(irDumperConfig.getModuleName)) {
+          moduleIrDumpers.get(module) match {
+            case Some(existing) => Some(existing)
+            case None =>
+              val dumper        = IRDumper.create(module.getName.toString)
+              val dumperWithCfg = new IRDumperWithConfig(dumper, irDumperConfig)
+              moduleIrDumpers = moduleIrDumpers.updated(module, dumperWithCfg)
+              Some(dumperWithCfg)
+          }
+        } else {
+          None
+        }
+      })
+    }
+
+    def closeAllDumpers(): Unit = {
+      moduleIrDumpers.foreach { case (_, dumper) => dumper.irDumper().close() }
+    }
+
     modules.foreach(m =>
       try {
         parseModule(
           m,
           irCachingEnabled && !context.isInteractive(m),
-          generateDocs
+          generateDocs,
+          irDumper = getOrCreateDumper(m)
         )
       } catch {
         case e: Throwable =>
@@ -296,27 +316,6 @@ class Compiler(
           )
       }
     )
-
-    var moduleIrDumpers: HashMap[Module, IRDumper] = new HashMap()
-    def getOrCreateDumper(module: Module): Option[IRDumper] = {
-      config.dumpModuleIR.flatMap(pattern => {
-        if (module.getName().toString.contains(pattern)) {
-          moduleIrDumpers.get(module) match {
-            case Some(existing) => Some(existing)
-            case None =>
-              val dumper = IRDumper.create(module.getName.toString)
-              moduleIrDumpers = moduleIrDumpers.updated(module, dumper)
-              Some(dumper)
-          }
-        } else {
-          None
-        }
-      })
-    }
-
-    def closeAllDumpers(): Unit = {
-      moduleIrDumpers.foreach { case (_, dumper) => dumper.close() }
-    }
 
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
@@ -476,6 +475,7 @@ class Compiler(
       runErrorHandling(requiredModules)
 
       val requiredModulesWithScope = requiredModules.map { module =>
+        val moduleScopeBuilder = module.getScopeBuilder()
         if (
           !module
             .getCompilationStage()
@@ -483,18 +483,9 @@ class Compiler(
               CompilationStage.AFTER_RUNTIME_STUBS
             )
         ) {
-          val moduleScopeBuilder = module.getScopeBuilder()
           context.runStubsGenerator(module, moduleScopeBuilder)
-          context.updateModule(
-            module,
-            { u =>
-              u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
-            }
-          )
-          (module, moduleScopeBuilder)
-        } else {
-          (module, module.getScopeBuilder)
         }
+        (module, moduleScopeBuilder)
       }
 
       requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
@@ -540,7 +531,6 @@ class Compiler(
                 context.serializeModule(
                   this,
                   module,
-                  useGlobalCacheLocations,
                   true
                 )
               }
@@ -675,7 +665,7 @@ class Compiler(
     module: Module,
     useCaches: Boolean,
     generateDocs: Boolean,
-    irDumper: Option[IRDumper] = None
+    irDumper: Option[IRDumperWithConfig] = None
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -711,7 +701,7 @@ class Compiler(
   private def uncachedParseModule(
     module: Module,
     generateDocs: Boolean,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -735,7 +725,11 @@ class Compiler(
       if (module.isSynthetic())
         expr
       else
-        injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
+        injectSyntheticModuleExports(
+          module.getName().toString(),
+          expr,
+          module.getDirectModulesRefs
+        )
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
@@ -859,36 +853,44 @@ class Compiler(
     *   import project.A.B.C
     *   export project.A.B.C
     * ````
-    *
+    * @param n name of module providing the IR
     * @param ir IR to be enhanced
     * @param modules fully qualified names of modules
     * @return enhanced
     */
   private def injectSyntheticModuleExports(
+    n: String,
     ir: IRModule,
     modules: java.util.List[QualifiedName]
   ): IRModule = {
     import scala.jdk.CollectionConverters._
-
+    n.getClass
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(Name.Literal(q.item, isMethod = false, identifiedLocation = null))
-      ) { case (part, acc) =>
-        Name.Literal(part, isMethod = false, identifiedLocation = null) :: acc
-      }
-      Name.Qualified(name, identifiedLocation = null)
-    }.toList
-    ir.copy(
-      imports =
-        ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
-      exports = ir.exports ::: moduleNames.map(m =>
-        Export.Module(
-          m,
-          rename             = None,
-          onlyNames          = None,
-          identifiedLocation = null,
-          isSynthetic        = true
+        List(
+          Name.Literal
+            .builder()
+            .name(q.item)
+            .isMethod(false)
+            .build()
         )
+      ) { case (part, acc) =>
+        Name.Literal
+          .builder()
+          .name(part)
+          .isMethod(false)
+          .build() :: acc
+      }
+      Name.Qualified.builder().parts(name).build()
+    }.toList
+    ir.copyWithImportsAndExports(
+      ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
+      ir.exports ::: moduleNames.map(m =>
+        Export.Module
+          .builder()
+          .name(m)
+          .isSynthetic(true)
+          .build()
       )
     )
   }
@@ -896,7 +898,7 @@ class Compiler(
   private def recognizeBindings(
     module: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     passManager.runPassesOnModule(
       module,
@@ -914,7 +916,7 @@ class Compiler(
   private def runMethodBodyPasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -932,7 +934,7 @@ class Compiler(
   private def runGlobalTypingPasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -954,7 +956,7 @@ class Compiler(
   private def runFinalTypeInferencePasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     passManager.runPassesOnModule(
       ir,
@@ -990,13 +992,13 @@ class Compiler(
   ): Unit = {
     val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
     val module    = inlineContext.getModule()
-    val hasErrors = reportDiagnostics(errors, module)
+    val hasErrors = reportDiagnostics(errors, module, inlineContext.src)
     hasErrors match {
       case error :: _ if inlineContext.compilerConfig.isStrictErrors =>
         throw error
@@ -1019,7 +1021,7 @@ class Compiler(
       List((module, errors))
     }
 
-    val hasErrors = reportDiagnostics(diagnostics)
+    val hasErrors = reportDiagnostics(diagnostics, null)
     if (hasErrors.nonEmpty && config.isStrictErrors) {
       val count =
         diagnostics.map(_._2.collect { case e: Error => e }.length).sum
@@ -1043,7 +1045,7 @@ class Compiler(
         module.getIr(),
         ModuleContext(module, compilerConfig = config)
       )
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
@@ -1111,11 +1113,12 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[(Module, List[Diagnostic])]
+    diagnostics: List[(Module, List[Diagnostic])],
+    src: Object
   ): List[RuntimeException] = {
     diagnostics.flatMap { diags =>
       if (diags._2.nonEmpty) {
-        reportDiagnostics(diags._2, diags._1)
+        reportDiagnostics(diags._2, diags._1, src)
       } else {
         List()
       }
@@ -1131,13 +1134,19 @@ class Compiler(
     */
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
-    compilerModule: CompilerContext.Module
+    compilerModule: CompilerContext.Module,
+    src: Object
   ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
     val exceptions = diagnostics
       .flatMap { diag =>
         val formattedDiag =
-          context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+          context.formatDiagnostic(
+            compilerModule,
+            diag,
+            isOutputRedirected,
+            src
+          )
         printDiagnostic(formattedDiag.getMessage)
         if (diag.isInstanceOf[Error] || config.treatWarningsAsErrors) {
           Some(formattedDiag)

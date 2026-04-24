@@ -1,20 +1,31 @@
 packages:
-  - app/ide-desktop/client
-  - app/ide-desktop/icons
   - app/common
   - app/gui
+  - app/electron-client
   - app/lang-markdown
   - app/lezer-markdown
-  - app/table-expression
+  - app/project-manager-shim
   - app/rust-ffi
+  - app/table-expression
+  - app/ydoc-channel
+  - app/ydoc-inspect
   - app/ydoc-server
-  - app/ydoc-shared
-  - app/ydoc-server-nodejs
   - app/ydoc-server-polyglot
+  - app/ydoc-shared
   - lib/js/runner
+  - tools/simple-library-server
 catalog:
   typescript: ^5.7.2
-  vite: ^6.2.4
+  "@types/node": ^24.2.1
+  vite: ^7.1.2
   vitest: ^3.2.4
-  playwright: 1.50.1
+  vue: ^3.5.13
+  playwright: 1.55.1
+  "@codemirror/autocomplete": ^6.18.7
+  "@codemirror/language": ^6.11.3
+  "@codemirror/state": ^6.5.2
+  "@codemirror/view": ^6.38.2
   "@fast-check/vitest": ^0.2.1
+  "@lezer/common": ^1.2.3
+  "@lezer/highlight": ^1.2.1
+  zod: ^3.25.49

@@ -15,19 +15,6 @@ type My_Type
     Value foo
 
 add_specs suite_builder =
-    suite_builder.group "Table.lookup_ignore_case" group_builder->
-        group_builder.specify "ignores case and takes first matching" <|
-            header = ['A', 'a' , 'ω' , 'Ω']
-            row_1  = [11 , 10  , 12  , 13]
-            row_2  = [21 , 20  , 22  , 23]
-            table  = Table.from_rows header [row_1, row_2]
-            table.lookup_ignore_case 'a' . expect 'A' [11,21]
-            table.lookup_ignore_case 'A' . expect 'A' [11,21]
-            table.lookup_ignore_case 'ω' . expect 'ω' [12,22]
-            table.lookup_ignore_case 'Ω' . expect 'ω' [12,22]
-            table.lookup_ignore_case 'b' . is_error . should_equal True
-            table.lookup_ignore_case 'B' . is_error . should_equal True
-
     suite_builder.group "Table.rows" group_builder->
         table = Table.new [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
         group_builder.specify "should visualize nicely" <|

@@ -1,5 +1,17 @@
 private
 
+import project.Data.Numbers.Integer
+import project.Data.Range.Extensions
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Panic.Panic
+import project.Logging.Progress
+import project.Nothing.Nothing
+
+from project.Data.Boolean import Boolean
+from project.Errors.Common import Uninitialized_State
+polyglot java import java.lang.Thread
+
 ## ---
    private: true
    ---
@@ -7,9 +19,56 @@ private
    You probably want `Runtime.get_stack_trace` instead.
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 
-gc = @Builtin_Method "Runtime.gc"
+gc flush_caches = @Builtin_Method "Runtime.gc"
 assertions_enabled = @Builtin_Method "Runtime.assertions_enabled"
 no_inline ~action = @Builtin_Method "Runtime.no_inline"
 no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
 
 
+sleep milliseconds:Integer ~result=Nothing sleep=(\n -> Thread.sleep n) =
+    if milliseconds < 0 then Error.throw (Illegal_Argument.Error "milliseconds must be non-negative")
+    if milliseconds <= 100 then sleep milliseconds else
+        Progress.run "Sleep" milliseconds \p->
+            Integer.up_to self=0 n=milliseconds step=100 . each \v->
+                remaining = milliseconds - v
+                if remaining >= 100 then sleep 100 else
+                    sleep remaining
+                p.advance 100
+    result
+
+state_run key state ~computation = @Builtin_Method "State.run"
+
+state_get key ~if_missing = @Builtin_Method "State.get"
+
+state_put key new_state = @Builtin_Method "State.put"
+
+state_uninitialized key =
+    Panic.throw
+        Uninitialized_State.Error key
+
+ref_new ~value = @Builtin_Method "Ref.alloc"
+ref_get ref = @Builtin_Method "Ref.get"
+ref_put ref new_value = @Builtin_Method "Ref.put"
+
+create_process command arguments input redirect_in redirect_out redirect_err cwd env = @Builtin_Method "System.create_process"
+
+exit code = @Builtin_Method "System.exit"
+nano_time = @Builtin_Method "System.nano_time"
+os = @Builtin_Method "System.os"
+is_unix = @Builtin_Method "System.is_unix"
+
+resource_bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
+resource_finalize res = @Builtin_Method "Managed_Resource.finalize"
+resource_take res = @Builtin_Method "Managed_Resource.take"
+resource_register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
+resource_with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
+
+warn_limit_reached value = @Builtin_Method "Warning.limit_reached"
+warn_create payload origin = @Builtin_Method "Warning.create"
+warn_attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
+warn_get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
+warn_set_array value warnings = @Builtin_Method "Warning.set_array"
+
+with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
+
+enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"

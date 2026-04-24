@@ -1,5 +1,6 @@
+import { elementHierarchy } from '$/utils/dom'
 import LinkEditPopup from '@/components/LinkEditPopup.vue'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import {
   contentFocused,
   contentFocusedChanged,
@@ -7,9 +8,8 @@ import {
 } from '@/util/codemirror/contentFocusedExt'
 import { pseudoRef } from '@/util/codemirror/nonReactive'
 import { getVueHost, vueHostChanged, vueHostExt } from '@/util/codemirror/vueHostExt'
-import { elementHierarchy } from '@/util/dom'
-import { type Extension } from '@codemirror/state'
-import { type EditorView, layer, type LayerMarker, type ViewUpdate } from '@codemirror/view'
+import type { Extension } from '@codemirror/state'
+import { layer, type EditorView, type LayerMarker, type ViewUpdate } from '@codemirror/view'
 import { h, markRaw } from 'vue'
 
 /** A CodeMirror extension that displays a popup when the cursor is inside a link. */

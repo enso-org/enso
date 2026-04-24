@@ -22,12 +22,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
+import org.enso.interpreter.node.expression.builtin.text.InvokeToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -81,7 +82,7 @@ public abstract class SortVectorNode extends Node {
    */
   public abstract Object execute(
       VirtualFrame frame,
-      @AcceptsError Object self,
+      @AcceptsError Object vector,
       long ascending,
       Object comparators,
       Object compareFunctions,
@@ -117,7 +118,7 @@ public abstract class SortVectorNode extends Node {
       @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
-      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
+      @Shared("anyToTextNode") @Cached InvokeToTextNode toTextNode,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
@@ -156,7 +157,7 @@ public abstract class SortVectorNode extends Node {
       LessThanNode lessThanNode,
       EqualsNode equalsNode,
       TypeOfNode typeOfNode,
-      AnyToTextNode toTextNode,
+      InvokeToTextNode toTextNode,
       long ascending,
       long problemBehaviorNum,
       InteropLibrary interop) {
@@ -193,7 +194,7 @@ public abstract class SortVectorNode extends Node {
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
-      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
+      @Shared("anyToTextNode") @Cached InvokeToTextNode toTextNode,
       @Cached MethodResolverNode methodResolverNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
@@ -236,6 +237,7 @@ public abstract class SortVectorNode extends Node {
                   problemBehavior,
                   group.comparator,
                   callNode,
+                  warningsLib,
                   toTextNode,
                   EnsoContext.get(this).currentState(),
                   less,
@@ -380,8 +382,7 @@ public abstract class SortVectorNode extends Node {
   private String getDefaultComparatorQualifiedName() {
     return EnsoContext.get(this)
         .getBuiltins()
-        .defaultComparator()
-        .getType()
+        .defaultComparatorType()
         .getQualifiedName()
         .toString();
   }
@@ -492,7 +493,7 @@ public abstract class SortVectorNode extends Node {
   }
 
   boolean isDefaultComparator(Object object, EnsoContext ctx) {
-    return ctx.getBuiltins().defaultComparator().getType() == object;
+    return ctx.getBuiltins().defaultComparatorType() == object;
   }
 
   private boolean isNan(Object object) {
@@ -539,12 +540,12 @@ public abstract class SortVectorNode extends Node {
   private abstract static class SortComparator implements java.util.Comparator<Object> {
 
     private final Set<String> warnings = new HashSet<>();
-    final AnyToTextNode toTextNode;
+    final InvokeToTextNode toTextNode;
     final ProblemBehavior problemBehavior;
     final InteropLibrary interop;
 
     protected SortComparator(
-        AnyToTextNode toTextNode, ProblemBehavior problemBehavior, InteropLibrary interop) {
+        InvokeToTextNode toTextNode, ProblemBehavior problemBehavior, InteropLibrary interop) {
       this.toTextNode = toTextNode;
       this.problemBehavior = problemBehavior;
       this.interop = interop;
@@ -552,8 +553,8 @@ public abstract class SortVectorNode extends Node {
 
     @TruffleBoundary
     protected void attachIncomparableValuesWarning(Object x, Object y) {
-      var xStr = toTextNode.execute(x).toString();
-      var yStr = toTextNode.execute(y).toString();
+      var xStr = toTextNode.executeToText(null, x).toString();
+      var yStr = toTextNode.executeToText(null, y).toString();
       String warnText = "Values " + xStr + " and " + yStr + " are incomparable";
       warnings.add(warnText);
     }
@@ -591,7 +592,7 @@ public abstract class SortVectorNode extends Node {
         LessThanNode lessThanNode,
         EqualsNode equalsNode,
         TypeOfNode typeOfNode,
-        AnyToTextNode toTextNode,
+        InvokeToTextNode toTextNode,
         boolean ascending,
         ProblemBehavior problemBehavior,
         InteropLibrary interop) {
@@ -674,7 +675,8 @@ public abstract class SortVectorNode extends Node {
 
     private String getQualifiedTypeName(Object object) {
       var typeObj = typeOfNode.findTypeOrError(object);
-      return toTextNode.execute(typeObj).toString();
+      var txt = toTextNode.executeToText(null, typeObj);
+      return txt.toString();
     }
 
     private int getPrimitiveValueCost(Object object) {
@@ -705,6 +707,8 @@ public abstract class SortVectorNode extends Node {
      */
     abstract boolean hasFunctionSelfArgument(Object definedOn);
 
+    abstract Object getPreappliedSelfArgument();
+
     /**
      * Return a comparator function.
      *
@@ -728,6 +732,18 @@ public abstract class SortVectorNode extends Node {
         return function.getSchema().getArgumentInfos()[0].getName().equals("self");
       } else {
         return false;
+      }
+    }
+
+    @Override
+    Object getPreappliedSelfArgument() {
+      var preappliedArgs = function.getPreAppliedArguments();
+      if (preappliedArgs != null) {
+        assert preappliedArgs.length > 0;
+        // Note that the first argument should always be `self`.
+        return preappliedArgs[0];
+      } else {
+        return null;
       }
     }
 
@@ -758,7 +774,16 @@ public abstract class SortVectorNode extends Node {
           methodResolverNode.expectNonNull(
               definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
       return resolvedFunction.getSchema().getArgumentsCount() > 0
-          && resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
+          && resolvedFunction
+              .getSchema()
+              .getArgumentInfos()[0]
+              .getName()
+              .equals(ConstantsNames.SELF_ARGUMENT);
+    }
+
+    @Override
+    Object getPreappliedSelfArgument() {
+      return null;
     }
 
     @Override
@@ -786,6 +811,7 @@ public abstract class SortVectorNode extends Node {
     private final boolean hasCustomOnFunc;
     private final Type comparator;
     private final CallOptimiserNode callNode;
+    private final WarningsLibrary warnLib;
     private final State state;
     private final Atom less;
     private final Atom equal;
@@ -798,7 +824,8 @@ public abstract class SortVectorNode extends Node {
         ProblemBehavior problemBehavior,
         Type comparator,
         CallOptimiserNode callNode,
-        AnyToTextNode toTextNode,
+        WarningsLibrary warnLib,
+        InvokeToTextNode toTextNode,
         State state,
         Atom less,
         Atom equal,
@@ -821,6 +848,7 @@ public abstract class SortVectorNode extends Node {
         this.onFunc = checkAndConvertOnFunc(onFunc, typesLibrary, methodResolverNode);
       }
       this.callNode = callNode;
+      this.warnLib = warnLib;
       this.less = less;
       this.equal = equal;
       this.greater = greater;
@@ -841,13 +869,24 @@ public abstract class SortVectorNode extends Node {
         yConverted = y;
       }
       Object[] args;
-      if (compareFunc.hasFunctionSelfArgument(xConverted)) {
+      var preappliedSelfArg = compareFunc.getPreappliedSelfArgument();
+      if (preappliedSelfArg != null) {
+        args = new Object[] {preappliedSelfArg, xConverted, yConverted};
+      } else if (compareFunc.hasFunctionSelfArgument(xConverted)) {
         args = new Object[] {comparator, xConverted, yConverted};
       } else {
         args = new Object[] {xConverted, yConverted};
       }
       Object res =
           callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args, null);
+      if (warnLib.hasWarnings(res)) {
+        try {
+          res = warnLib.removeWarnings(res);
+        } catch (UnsupportedMessageException ex) {
+          // unlikely to happen. if it does, then
+          // leave the res unchanged
+        }
+      }
       if (res == less) {
         return ascending ? -1 : 1;
       } else if (res == equal) {

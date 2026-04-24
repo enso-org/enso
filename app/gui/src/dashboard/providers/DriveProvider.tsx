@@ -1,11 +1,8 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
-import { useOffline } from '#/hooks/offlineHooks'
-import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import type { Category, CategoryId } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
-import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
-import { useFullUserSession } from '$/providers/react'
+import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
+import type { Category } from '$/providers/category'
 import {
   type AnyAsset,
   type AssetId,
@@ -13,52 +10,9 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
-import { persist } from 'zustand/middleware'
-import {
-  isCloudCategory,
-  useCategories,
-  type TransferrableAsset,
-} from '../layouts/Drive/Categories'
-
-/** State for {@link driveLocationStore}. */
-interface CurrentDirectoryIdStoreState {
-  readonly categoryId: CategoryId | null
-  readonly directoryId: DirectoryId | null
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
-  persist((): CurrentDirectoryIdStoreState => ({ categoryId: null, directoryId: null }), {
-    name: 'enso-drive-location',
-    version: 1,
-  }),
-)
-
-resetStoreOnLogout(driveLocationStore)
-
-/** Return the full drive location. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useCategoryId() {
-  return useStore(driveLocationStore, (store) => store.categoryId, { unsafeEnableTransition: true })
-}
-
-/** Return the full drive location. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function getDriveLocation() {
-  return driveLocationStore.getState()
-}
-
-/** Safely update the drive location. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function setDriveLocation(directoryId: DirectoryId | null, categoryId?: CategoryId | null) {
-  driveLocationStore.setState({
-    ...(categoryId !== undefined ? { categoryId } : {}),
-    directoryId,
-  })
-}
+import { type TransferrableAsset } from '../layouts/Drive/Categories'
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
@@ -71,7 +25,7 @@ export interface DrivePastePayload {
 export type SelectedAssetInfo =
   AnyAsset extends infer T ?
     T extends T ?
-      Pick<T, keyof T & ('id' | 'parentId' | 'title' | 'type')>
+      Pick<T, keyof T & ('id' | 'labels' | 'parentId' | 'title' | 'type')>
     : never
   : never
 
@@ -87,11 +41,19 @@ export interface DirectoryPath {
   readonly name: string
 }
 
+/** Data for a context menu. */
+export interface ContextMenuData {
+  readonly triggerRef: React.MutableRefObject<HTMLElement | null>
+  readonly initialContextMenuPosition: Pick<MouseEvent, 'pageX' | 'pageY'> | null
+}
+
 /** The state of this zustand store. */
 interface DriveStore {
   readonly removeSelection: () => void
-  readonly newestFolderId: DirectoryId | null
-  readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
+  readonly assetToRename: AssetId | null
+  readonly setAssetToRename: (assetToRename: AssetId | null) => void
+  readonly contextMenuData: ContextMenuData | null
+  readonly setContextMenuData: (contextMenuData: ContextMenuData | null) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
@@ -119,41 +81,21 @@ export interface DriveProviderProps extends React.PropsWithChildren {}
 export default function DriveProvider(props: DriveProviderProps) {
   const { children } = props
 
-  const { findCategoryById } = useCategories()
-  const { user } = useFullUserSession()
-  const { isOffline } = useOffline()
-
-  const [currentDirectoryId, privateSetDirectoryId] = useSearchParamsState<DirectoryId | null>(
-    'currentDirectoryId',
-    () => driveLocationStore.getState().directoryId,
-  )
-
-  const [currentCategoryId, privateSetCategoryId, privateResetCategoryId] =
-    useSearchParamsState<CategoryId | null>(
-      'driveCategory',
-      () => {
-        const id = getDriveLocation().categoryId
-        if (id == null) return null
-        const category = findCategoryById(id)
-        if (category == null) return null
-        const unavailable = (!user.isEnabled || isOffline) && isCloudCategory(category)
-        if (unavailable) return null
-        return id
-      },
-      // This is safe, because we confirm the type inside the function.
-      // eslint-disable-next-line no-restricted-syntax
-      (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
-    )
-
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
       removeSelection: () => {
         set({ selectedIds: new Set(), visuallySelectedKeys: null, selectedAssets: [] })
       },
-      newestFolderId: null,
-      setNewestFolderId: (newestFolderId) => {
-        if (get().newestFolderId !== newestFolderId) {
-          set({ newestFolderId })
+      assetToRename: null,
+      setAssetToRename: (assetToRename) => {
+        if (get().assetToRename !== assetToRename) {
+          set({ assetToRename })
+        }
+      },
+      contextMenuData: null,
+      setContextMenuData: (contextMenuData) => {
+        if (get().contextMenuData !== contextMenuData) {
+          set({ contextMenuData })
         }
       },
       canDownload: false,
@@ -172,11 +114,8 @@ export default function DriveProvider(props: DriveProviderProps) {
       setSelectedIds: (selectedIds) => {
         set({ selectedIds })
       },
-      selectedAssets: EMPTY_ARRAY,
+      selectedAssets: [],
       setSelectedAssets: (selectedAssets) => {
-        if (selectedAssets.length === 0) {
-          selectedAssets = EMPTY_ARRAY
-        }
         if (get().selectedAssets !== selectedAssets) {
           set({
             selectedAssets,
@@ -200,29 +139,6 @@ export default function DriveProvider(props: DriveProviderProps) {
     })),
   )
 
-  React.useEffect(() => {
-    setDriveLocation(currentDirectoryId, currentCategoryId)
-  }, [currentCategoryId, currentDirectoryId])
-
-  React.useEffect(
-    () =>
-      driveLocationStore.subscribe(({ directoryId, categoryId }, oldState) => {
-        if (directoryId !== oldState.directoryId) {
-          privateSetDirectoryId(directoryId)
-          store.getState().removeSelection()
-        }
-        if (categoryId !== oldState.categoryId) {
-          if (categoryId != null) {
-            privateSetCategoryId(categoryId)
-          } else {
-            privateResetCategoryId()
-          }
-          store.getState().removeSelection()
-        }
-      }),
-    [privateResetCategoryId, privateSetCategoryId, privateSetDirectoryId, store],
-  )
-
   return <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
 }
 
@@ -238,16 +154,16 @@ export function useDriveStore() {
 
 /** The ID of the most newly created folder. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useNewestFolderId() {
+export function useAssetToRename() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.newestFolderId)
+  return useStore(store, (state) => state.assetToRename)
 }
 
 /** A function to set the ID of the most newly created folder. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useSetNewestFolderId() {
+export function useSetAssetToRename() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.setNewestFolderId)
+  return useStore(store, (state) => state.setAssetToRename)
 }
 
 /** Whether the current Asset Table selection is downloadble. */
@@ -338,10 +254,4 @@ export function useIsDragTargetAssetId(assetId: AssetId) {
 export function useSetDragTargetAssetId() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setDragTargetAssetId)
-}
-
-/** The current directory ID. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useCurrentDirectoryId() {
-  return useStore(driveLocationStore, (store) => store.directoryId)
 }

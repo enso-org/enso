@@ -1,7 +1,5 @@
 use ide_ci::prelude::*;
 
-
-
 #[tokio::main]
 async fn main() -> Result {
     setup_logging()?;

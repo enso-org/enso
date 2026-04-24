@@ -5,6 +5,7 @@
     "ms-playwright.playwright",
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "andreasxp.auto-snippets"
+    "andreasxp.auto-snippets",
+    "tamasfe.even-better-toml"
   ]
 }

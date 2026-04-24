@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ContextMenu.vue'
-import { type DisplayableActionName } from '@/providers/action'
+import type { DisplayableActionName } from '@/providers/action'
 import { provideActionContext } from '@/providers/actionContext'
 
 const { actions } = defineProps<{

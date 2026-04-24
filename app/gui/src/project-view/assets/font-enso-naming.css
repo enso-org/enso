@@ -1,70 +1,70 @@
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-Thin.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-Thin.woff2") format("woff2");
   font-weight: 100;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-ExtraLight.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-ExtraLight.woff2") format("woff2");
   font-weight: 200;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-Light.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-Light.woff2") format("woff2");
   font-weight: 300;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-Regular.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-Regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-Medium.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-Medium.woff2") format("woff2");
   font-weight: 500;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-SemiBold.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-SemiBold.woff2") format("woff2");
   font-weight: 600;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-Bold.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-Bold.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-ExtraBold.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-ExtraBold.woff2") format("woff2");
   font-weight: 800;
   font-display: swap;
   unicode-range: U+0020, U+002D;
 }
 
 @font-face {
-  font-family: 'Enso Naming';
-  src: url('/font-enso-naming/Enso-Naming-Black.woff2') format('woff2');
+  font-family: "Enso Naming";
+  src: url("/font-enso-naming/Enso-Naming-Black.woff2") format("woff2");
   font-weight: 900;
   font-display: swap;
   unicode-range: U+0020, U+002D;

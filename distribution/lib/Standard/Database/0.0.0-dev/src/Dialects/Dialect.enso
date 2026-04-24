@@ -5,31 +5,25 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Table, Value_Type
 
-import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
-import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
-import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.SQLite.SQLite_Dialect
-import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
-from project.Internal.Result_Set import result_set_to_table
 
 ## ---
    private: true
@@ -114,38 +108,19 @@ type Dialect
     ## ---
        private: true
        ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       Returns a helper object that handles the logic of setting values in a
-       prepared statement.
-       This object may provide custom logic for handling dialect-specific
-       handling of some types.
-    get_statement_setter : Statement_Setter
-    get_statement_setter self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
        Builds an SQL expression that casts the given expression to the given
        target type.
 
        ## Arguments
         - `column`: the input column to transform.
+        - `mapping`: the type mapping of the connection.
         - `target_type`: the target type.
         - `infer_result_type_from_database_callback`: A callback that can be used
           to infer the type of the newly built expression from the Database. It
           should be used by default, unless an override is chosen.
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        _ = [column, target_type, infer_result_type_from_database_callback]
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column mapping target_type infer_result_type_from_database_callback =
+        _ = [column, mapping, target_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -180,9 +155,9 @@ type Dialect
        columns.
        These transformations depend on the dialect. They can be used to align the
        result types, for example.
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        _ = [column, approximate_result_type, infer_result_type_from_database_callback]
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -245,28 +220,9 @@ type Dialect
     ## ---
        private: true
        ---
-       Returns a helper for mapping database-specific SQL errors into our common
-       error types.
-    get_error_mapper : Error_Mapper
-    get_error_mapper self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name =
-        _ = [connection, table_name]
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -277,6 +233,15 @@ type Dialect
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -343,33 +308,6 @@ type Dialect
     ensure_query_has_no_holes jdbc:JDBC_Connection raw_sql:Text =
         _ = [jdbc, raw_sql]
         Unimplemented.throw "This is an interface only."
-
-## ---
-   private: true
-   ---
-   The dialect of SQLite databases.
-sqlite : Dialect
-sqlite = SQLite_Dialect.sqlite
-
-## ---
-   private: true
-   ---
-   The dialect of PostgreSQL databases.
-postgres : Dialect
-postgres = Postgres_Dialect.postgres
-
-## ---
-   private: true
-   ---
-   Default implementation relying on DatabaseMetaData.
-default_fetch_primary_key connection table_name =
-    connection.jdbc_connection.with_metadata metadata->
-        rs = metadata.getPrimaryKeys Nothing Nothing table_name
-        keys_table = result_set_to_table rs connection.dialect.get_type_mapping.make_column_fetcher
-        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
-        key_column_names = selected.sort 1 . at 0 . to_vector
-        if key_column_names.is_empty then Nothing else key_column_names
 
 ## ---
    private: true

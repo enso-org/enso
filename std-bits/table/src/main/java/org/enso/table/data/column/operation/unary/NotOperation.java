@@ -8,6 +8,7 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class NotOperation implements UnaryOperation {
@@ -24,30 +25,33 @@ public class NotOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType() instanceof BooleanType || storage.getType() instanceof NullType;
+    var storageType = StorageType.ofStorage(storage);
+    return storageType instanceof BooleanType || storageType instanceof NullType;
   }
 
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof NullType) {
-      return applySpecializedNullStorage(storage);
+    if (storage instanceof BoolStorage boolStorage) {
+      return applySpecializedBoolStorage(boolStorage);
     }
 
-    return switch (storage) {
-      case BoolStorage boolStorage -> applySpecializedBoolStorage(boolStorage);
-      case ColumnBooleanStorage columnBooleanStorage -> applyOverBooleans(columnBooleanStorage);
-      default -> StorageIterators.buildOverStorage(
-          storage,
-          Builder.getForBoolean(storage.getSize()),
-          (builder, index, value) -> {
-            if (value instanceof Boolean b) {
-              builder.appendBoolean(!b);
-            } else {
-              throw new IllegalArgumentException(
-                  "Unsupported type: " + value.getClass() + " (expected boolean type).");
-            }
-          });
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case BooleanType _ -> applyOverBooleans(BooleanType.INSTANCE.asTypedStorage(storage));
+      case NullType _ -> applySpecializedNullStorage(storage);
+      default ->
+          StorageIterators.buildOverStorage(
+              storage,
+              Builder.getForBoolean(storage.getSize()),
+              (builder, index, value) -> {
+                if (value instanceof Boolean b) {
+                  builder.appendBoolean(!b);
+                } else {
+                  throw new IllegalArgumentException(
+                      "Unsupported type: " + value.getClass() + " (expected boolean type).");
+                }
+              });
     };
   }
 
@@ -61,9 +65,10 @@ public class NotOperation implements UnaryOperation {
   public static ColumnBooleanStorage applySpecializedBoolStorage(BoolStorage boolStorage) {
     return new BoolStorage(
         boolStorage.getValues(),
-        boolStorage.getIsNothingMap(),
+        boolStorage.getValidityMap(),
         (int) boolStorage.getSize(),
-        !boolStorage.isNegated());
+        !boolStorage.isNegated(),
+        null);
   }
 
   public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {

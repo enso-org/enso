@@ -14,17 +14,20 @@ import {
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
+import { useAppTitle } from '$/composables/appTitle'
 import { useUserAgreements } from '$/composables/userAgreements'
-import { AuthStore, useAuth } from '$/providers/auth'
+import { useAuth, type AuthStore } from '$/providers/auth'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
+import { useAppClass } from '@/providers/appClass'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
-import { RouteLocation, useRoute, useRouter } from 'vue-router'
-import { Err, Ok } from 'ydoc-shared/util/data/result'
+import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -36,7 +39,7 @@ const AgreementsModal = reactComponent(AgreementsModalReact)
 
 function routeAllowed(route: RouteLocation, auth: AuthStore) {
   switch (route.meta.access) {
-    case null:
+    case undefined:
       console.error(
         'A route ',
         route,
@@ -82,7 +85,6 @@ export const dataLoader: DataLoader<Props> = {
     const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
     const auth = useAuth()
-    await auth.waitForSession()
 
     if (!routeAllowed(to, auth)) {
       return Err(redirect(auth, localStorage) ?? false)
@@ -100,7 +102,6 @@ export const dataLoader: DataLoader<Props> = {
       const queryClient = vueQuery.useQueryClient()
       const localStorage = LocalStorage.getInstance()
       const auth = useAuth()
-      await auth.waitForSession()
       if (!routeAllowed(to, auth)) {
         return redirect(auth, localStorage) ?? false
       }
@@ -130,13 +131,20 @@ const text = useText()
 const EnsoDevtools = reactComponent(EnsoDevToolsReact)
 const ReactQueryDevtools = reactComponent(ReactQueryDevtoolsReact)
 
+// Needed by devtools - act on feature flag changes
+const debugHoverAreas = useFeatureFlag('debugHoverAreas')
+useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
+
 const allowed = computed(() => routeAllowed(route, auth))
+
 watch(
   allowed,
   (allowed) => {
     if (!allowed) {
       const redirectValue = redirect(auth, LocalStorage.getInstance())
-      if (redirectValue) router.push(redirectValue)
+      if (redirectValue) {
+        router.replace(redirectValue)
+      }
     }
   },
   { immediate: true },
@@ -151,13 +159,18 @@ watchPostEffect(() => {
   }
 })
 
-const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const logoutModalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const reconnectingModalProps = computed(() => ({
+  isOpen: session.isReconnectingSession && !session.isLoggingOut,
+}))
 const displayDevTools = computed(() => auth.session != null)
 
 const shouldDisplayAgreementsModal = computed(
   () =>
     !(props.agreementsModalProps?.agreedToTos && props.agreementsModalProps?.agreedToPrivacyPolicy),
 )
+
+useAppTitle(computed(() => auth.session))
 </script>
 
 <template>
@@ -174,9 +187,19 @@ const shouldDisplayAgreementsModal = computed(
     :isDismissable="false"
     :isKeyboardDismissDisabled="true"
     :hideCloseButton="true"
-    :modalProps="modalProps"
+    :modalProps="logoutModalProps"
   >
     <ResultComponent status="loading" :title="text.getText('loggingOut')" />
+  </Dialog>
+
+  <Dialog
+    :aria-label="text.getText('reconnectingSession')"
+    :isDismissable="false"
+    :isKeyboardDismissDisabled="true"
+    :hideCloseButton="true"
+    :modalProps="reconnectingModalProps"
+  >
+    <ResultComponent status="loading" :title="text.getText('reconnectingSession')" />
   </Dialog>
 
   <AgreementsModal
@@ -184,6 +207,7 @@ const shouldDisplayAgreementsModal = computed(
     v-bind="agreementsModalProps"
   />
   <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
+  <div v-else data-testid="content-not-allowed"></div>
 
   <EnsoDevtools v-if="displayDevTools" />
   <ReactQueryDevtools v-if="displayDevTools" />

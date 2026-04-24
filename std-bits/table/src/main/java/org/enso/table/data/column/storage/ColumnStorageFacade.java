@@ -6,10 +6,15 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to another type. */
 public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
+  private final char typeChar;
+  private final long typeSize;
   private final ColumnStorage<S> parent;
   private final Function<S, T> converter;
 
-  public ColumnStorageFacade(ColumnStorage<S> parent, Function<S, T> converter) {
+  public ColumnStorageFacade(
+      StorageType<T> storageType, ColumnStorage<S> parent, Function<S, T> converter) {
+    this.typeChar = storageType.typeChar();
+    this.typeSize = storageType.size();
     this.parent = parent;
     this.converter = converter;
   }
@@ -25,8 +30,13 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   }
 
   @Override
-  public StorageType<T> getType() {
-    throw new UnsupportedOperationException("Not implemented");
+  public char typeChar() {
+    return typeChar;
+  }
+
+  @Override
+  public long typeSize() {
+    return typeSize;
   }
 
   @Override

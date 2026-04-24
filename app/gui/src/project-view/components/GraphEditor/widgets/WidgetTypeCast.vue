@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import {
+  defineWidget,
+  Score,
+  WidgetInput,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
@@ -39,18 +44,15 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTypeCast">
+  <div class="WidgetTypeCast widgetParent">
     <NodeWidget v-if="expressionInput && !isSelfArgument" :input="expressionInput" />
-    <span class="typeAnnotation">:</span>
+    <span class="typeAnnotation widgetSingleLine">:</span>
     <NodeWidget v-if="typeNodeInput" class="typeAnnotation" :input="typeNodeInput" />
   </div>
 </template>
 
 <style scoped>
 .WidgetTypeCast {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   gap: 0;
 }
 

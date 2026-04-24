@@ -3,7 +3,7 @@
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
-import { TextSelectionMenuOption } from '@/components/visualizations/toolbar'
+import type { TextSelectionMenuOption } from '@/components/visualizations/toolbar'
 import { ref } from 'vue'
 
 type Key = number | string | symbol

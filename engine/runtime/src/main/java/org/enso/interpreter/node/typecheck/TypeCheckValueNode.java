@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.enso.compiler.core.ir.AscriptionReason;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -89,14 +90,27 @@ public final class TypeCheckValueNode extends Node {
     }
   }
 
+  @CompilerDirectives.CompilationFinal private LazyCheckRootNode lazyCheck;
+
   private final Object handleCheckOrConversionImpl(VirtualFrame frame, Object value) {
     var direct = check.findDirectMatch(frame, value);
+    if (direct instanceof Function fn && fn.isFullyApplied()) {
+      if (lazyCheck == null) {
+        CompilerDirectives.transferToInterpreter();
+        var enso = EnsoLanguage.get(this);
+        var node = (AbstractTypeCheckNode) check.copy();
+        lazyCheck = new LazyCheckRootNode(enso, new TypeCheckValueNode(node, isAllTypes()));
+      }
+      var lazyCheckFn = lazyCheck.wrapThunk(fn);
+      return lazyCheckFn;
+    }
     if (direct != null) {
       return direct;
     }
-    var result = check.executeConversion(frame, value);
+    var failingCheck = new AbstractTypeCheckNode[1];
+    var result = check.executeConversion(frame, value, failingCheck);
     if (result == null) {
-      throw panicAtTheEnd(value);
+      throw panicAtTheEnd(value, failingCheck[0]);
     }
     return result;
   }
@@ -233,14 +247,17 @@ public final class TypeCheckValueNode extends Node {
     return false;
   }
 
-  private final PanicException panicAtTheEnd(Object v) {
-    var expectedTypeMessage = check.getExpectedTypeMessage();
+  private final PanicException panicAtTheEnd(Object v, AbstractTypeCheckNode failedCheck) {
+    if (failedCheck == null) {
+      failedCheck = check;
+    }
+    var expectedTypeMessage = failedCheck.getExpectedTypeMessage();
     var ctx = EnsoContext.get(this);
     Text msg;
     if (v instanceof UnresolvedConstructor) {
       msg = Text.create("Cannot find constructor {got} among {exp}");
     } else {
-      msg = check.getComment();
+      msg = failedCheck.getComment();
     }
     var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     return new PanicException(err, this);

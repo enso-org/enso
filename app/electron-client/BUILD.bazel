@@ -1,0 +1,235 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
+load("//internal:stampFiles.bzl", "stamp_files")
+
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
+
+ts_project(
+    name = "tsc",
+    srcs = glob([
+        "src/*.ts",
+        "tasks/*.ts",
+        "tests/**/*.ts",
+        "*.ts",
+    ]),
+    composite = True,
+    resolve_json_module = True,
+    source_map = True,
+    tsconfig = ":tsconfig",
+    validate = select({
+        "@platforms//os:windows": False,
+        "//conditions:default": True,
+    }),
+    visibility = ["//visibility:public"],
+    deps = npm_link_targets(),
+)
+
+npm_package(
+    name = "package",
+    srcs = [":tsc"],
+    include_runfiles = False,
+    visibility = ["//visibility:public"],
+)
+
+STAMPING_ENV = {
+    "process.env.ELECTRON_DEV_MODE": "false",
+    "process.env.ENSO_IDE_VERSION": "'((%__ENSO_IDE_VERSION__%))'",
+    "process.env.ENSO_IDE_COMMIT_HASH": "'((%__ENSO_IDE_COMMIT_HASH__%))'",
+}
+
+NON_STAMPING_ENV = {
+    "process.env.ELECTRON_DEV_MODE": "false",
+}
+
+esbuild(
+    name = "bundle",
+    srcs = glob(["src/**/*.ts"]) + [
+        "buildInfo.ts",
+        "fileAssociations.ts",
+        "paths.ts",
+    ],
+    bundle = True,
+    # Some configuration options (like plugins) cannot be defined in Bazel rule, so we use a config file.
+    config = ":esbuild.config.mjs",
+    define = select({
+        "//:stamping": STAMPING_ENV,
+        "//conditions:default": NON_STAMPING_ENV,
+    }),
+    entry_points = [
+        "src/index.ts",
+        "src/preload.ts",
+    ],
+    external = [
+        "electron",
+        "vite",
+        "lightningcss",
+        "bufferutil",
+        "utf-8-validate",
+        "encoding",
+        "supports-color",
+        "original-fs",
+    ],
+    format = "esm",
+    output_dir = True,
+    platform = "node",
+    sourcemap = "linked",
+    target = ["node20"],
+    visibility = ["//visibility:public"],
+    deps = npm_link_targets(),
+)
+
+stamp_files(
+    name = "bundle_stamped",
+    srcs = [":bundle"],
+    out = "bundle_stamped",
+    input_dir = "$(location :bundle)",
+    recalculate_hashes = False,
+    visibility = ["//visibility:public"],
+)
+
+stamp_files(
+    name = "electron_builder_config_stamped",
+    srcs = ["electron-builder-config.cjs"],
+    out = "electron_builder_config_stamped/electron-builder-config.cjs",
+    input_path = "$(location electron-builder-config.cjs)",
+    output_is_directory = False,
+    recalculate_hashes = False,
+)
+
+genrule(
+    name = "enso_bundle_marker",
+    outs = [".enso.bundle"],
+    cmd = "touch $@",
+    cmd_bat = "type NUL > $@",
+    visibility = ["//visibility:public"],
+)
+
+electron_builder_bin.electron_builder(
+    name = "dist",
+    srcs = npm_link_targets() + [
+        "assets/icons/icon.icns",
+        "package.json",
+        ":bundle_stamped",
+        ":electron_builder_config_stamped",
+        ":enso_bundle_marker",
+        "//:dependencies_scala_bin",
+        "//:sbt_build_native_engine_distribution",
+        "//:sbt_build_small_jdk",
+        "//app/gui:dist_stamped",
+        "//internal:dependencies_versions_in_bin",
+    ],
+    args = [
+        "build",
+        "--config electron_builder_config_stamped/electron-builder-config.cjs",
+    ],
+    chdir = package_name(),
+    env = {
+        # Disable Node fs patching for this target to avoid readlink issues on Bazel bin symlinks.
+        "JS_BINARY__PATCH_NODE_FS": "0",
+    },
+    out_dirs = ["ide-dist"],
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["assets/icons/icon.ico"])
+
+genrule(
+    name = "installer_artifacts",
+    srcs = [":dist"],
+    outs = [
+        "installer_payload.tar.gz",
+        "installer_metadata.json",
+    ],
+    cmd = """
+        export PATHEXT=".COM;.EXE;.BAT;.CMD"
+        export PATH="$$PATH;$$(dirname $$(realpath $(BSDTAR_BIN)))"
+        DIST_DIR=$(location :dist)
+        $(execpath //build_tools/install/config:prepare_payload) \
+            "$$DIST_DIR/win-unpacked" \
+            $(location installer_payload.tar.gz) \
+            $(location installer_metadata.json)
+    """,
+    target_compatible_with = ["@platforms//os:windows"],
+    toolchains = ["//toolchains/tar:resolved_toolchain"],
+    tools = ["//build_tools/install/config:prepare_payload"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "export_config_script",
+    data = ["electron-builder-config.cjs"],
+    entry_point = "export-config.mjs",
+)
+
+js_run_binary(
+    name = "exported_config",
+    srcs = [
+        ":electron_builder_config_stamped",
+        "//:dependencies_scala_bin",
+        "//internal:dependencies_versions_in_bin",
+    ],
+    args = ["$(location :electron_builder_config_stamped)"],
+    stdout = "electron-builder-config.json",
+    tool = ":export_config_script",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "win_installer",
+    actual = "//build_tools/install/installer:enso_installer",
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "stage_bazel_macos_app",
+    srcs = ["macos/stage-bazel-app.sh"],
+    args = [
+        "$(location :dist)",
+        "dist/ide/bazel-prepackaged",
+    ],
+    data = [":dist"],
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "noEmit": False,
+            "resolveJsonModule": True,
+            "sourceMap": True,
+            "esModuleInterop": True,
+            "types": ["node"],
+            "paths": {"@/*": ["./src/*"]},
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob([
+        "src/*.ts",
+        "tasks/*.ts",
+        "tests/**/*.ts",
+        "*.ts",
+    ]) + ["//app:vitest.node.base.ts"],
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {"tsconfig.json": ":tsconfig_generated"},
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)

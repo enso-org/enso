@@ -2,7 +2,7 @@ package org.enso.compiler.suggestions
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{
@@ -63,45 +63,42 @@ final class SuggestionBuilder[A: IndexedSource](
       if (scope.queue.isEmpty) {
         tree.result()
       } else {
-        val ir  = scope.queue.dequeue()
-        val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
+        val ir = scope.queue.dequeue()
+        val doc = ir
+          .getMetadata(
+            DocumentationComments,
+            classOf[DocumentationComments.Doc]
+          )
+          .map(_.documentation)
         ir match {
-          case Definition.Type(
-                tpName,
-                params,
-                List(),
-                _,
-                _
-              ) =>
+          case tp: Definition.Type if tp.members().isEmpty =>
+            val tpName = tp.name()
+            val params = tp.params()
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case Definition.Type(
-                tpName,
-                params,
-                members,
-                _,
-                _
-              ) =>
+          case tp: Definition.Type =>
+            val tpName  = tp.name()
+            val params  = tp.params()
+            val members = tp.members()
+
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.collect {
-              case data @ Definition.Data(
-                    name,
-                    arguments,
-                    annotations,
-                    isPrivate,
-                    _,
-                    _
-                  ) if !isPrivate =>
+              case data: Definition.Data if !data.isPrivate =>
                 buildAtomConstructor(
                   module,
                   tpName.name,
-                  name.name,
-                  arguments,
-                  annotations,
-                  data.getMetadata(DocumentationComments).map(_.documentation)
+                  data.name().name,
+                  data.arguments,
+                  data.annotations,
+                  data
+                    .getMetadata(
+                      DocumentationComments,
+                      classOf[DocumentationComments.Doc]
+                    )
+                    .map(_.documentation)
                 )
             }
             val getters = members
@@ -118,14 +115,14 @@ final class SuggestionBuilder[A: IndexedSource](
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
-          case m @ definition.Method
-                .Explicit(
-                  Name.MethodReference(typePtr, methodName, _, _),
-                  Function.Lambda(args, body, _, _, _, _),
-                  _,
-                  _,
-                  _
-                ) if !m.isStaticWrapperForInstanceMethod && !m.isPrivate =>
+          case m: definition.Method.Explicit
+              if m.body().isInstanceOf[Function.Lambda] &&
+              !m.isPrivate =>
+            val typePtr       = m.methodReference().typePointer
+            val methodName    = m.methodReference().methodName
+            val lambda        = m.body()
+            val args          = lambda.asInstanceOf[Function.Lambda].arguments()
+            val body          = lambda.asInstanceOf[Function.Lambda].body()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
@@ -160,14 +157,14 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
-          case conversionMeth @ definition.Method
-                .Conversion(
-                  Name.MethodReference(typePtr, _, _, _),
-                  _,
-                  Function.Lambda(args, body, _, _, _, _),
-                  _,
-                  _
-                ) if !conversionMeth.isPrivate =>
+          case conversionMeth: definition.Method.Conversion
+              if conversionMeth
+                .body()
+                .isInstanceOf[Function.Lambda] && !conversionMeth.isPrivate =>
+            val lambda  = conversionMeth.body()
+            val typePtr = conversionMeth.methodReference().typePointer
+            val body    = lambda.asInstanceOf[Function.Lambda].body()
+            val args    = lambda.asInstanceOf[Function.Lambda].arguments()
             val selfType = typePtr.flatMap { typePointer =>
               typePointer
                 .getMetadata(
@@ -185,17 +182,23 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(conversion, Vector()), scope)
 
-          case Expression.Binding(
-                name,
-                Function.Lambda(args, body, _, _, _, _),
-                _,
-                _
-              ) if name.location.isDefined =>
+          case bind: Expression.Binding
+              if bind
+                .expression()
+                .isInstanceOf[Function.Lambda] && bind
+                .name()
+                .location
+                .isDefined =>
+            val body = bind.expression().asInstanceOf[Function.Lambda].body()
+            val args = bind
+              .expression()
+              .asInstanceOf[Function.Lambda]
+              .arguments()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val function = buildFunction(
               body.getExternalId,
               module,
-              name,
+              bind.name(),
               args,
               scope.location.get,
               doc,
@@ -207,20 +210,19 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case Expression.Binding(name, expr, _, _)
-              if name.location.isDefined =>
+          case bind: Expression.Binding if bind.name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
-              expr.getExternalId,
+              bind.expression().getExternalId,
               module,
-              name.name,
+              bind.name.name,
               scope.location.get,
               doc,
               typeSignature
             )
             val subforest = go(
               Vector.newBuilder,
-              Scope(expr.children, expr.location)
+              Scope(bind.expression().children, bind.expression().location)
             )
             go(tree += Tree.Node(local, subforest), scope)
 
@@ -238,7 +240,10 @@ final class SuggestionBuilder[A: IndexedSource](
         builder += Tree.Node(
           buildModule(
             module,
-            ir.getMetadata(DocumentationComments).map(_.documentation)
+            ir.getMetadata(
+              DocumentationComments,
+              classOf[DocumentationComments.Doc]
+            ).map(_.documentation)
           ),
           Vector()
         )
@@ -426,13 +431,11 @@ final class SuggestionBuilder[A: IndexedSource](
     argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = new DefinitionArgument.Specified(
-      name               = Name.Self(identifiedLocation = null),
-      ascribedType       = None,
-      defaultValue       = None,
-      suspended          = false,
-      identifiedLocation = null
-    )
+    val thisArg = DefinitionArgument.Specified
+      .builder()
+      .name(Name.Self.builder().build())
+      .suspended(false)
+      .build()
     buildMethod(
       externalId         = None,
       module             = module,
@@ -538,7 +541,7 @@ final class SuggestionBuilder[A: IndexedSource](
         buildTypeSignature(tpeError.typed)
       case tname: Name =>
         tname
-          .getMetadata(TypeNames)
+          .getMetadata(TypeNames, classOf[TypeNames.Metadata])
           .map(t => buildResolvedTypeName(t.target))
           .getOrElse(TypeArg.Value(QualifiedName.simpleName(tname.name)))
 

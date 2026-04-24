@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
-  HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
-} from '@/providers/widgetRegistry'
+  type HandledUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { Ast } from '@/util/ast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -21,9 +21,11 @@ const astCode = computed(() => {
 })
 
 function acceptValue(value: string): HandledUpdate {
+  const preprocess = props.input[EnsoExpression].preprocess
+  const preprocessed = preprocess ? preprocess(value) : value
   return props.updateCallback({
     portUpdate: {
-      value: Ast.parseExpression(value),
+      value: Ast.parseExpression(preprocessed),
       origin: props.input.portId,
     },
     directInteraction: true,
@@ -46,10 +48,11 @@ const cmWidget = useTemplateRef('cmWidget')
 
 <script lang="ts">
 export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [EnsoExpression]?: {
-      weakMatch?: boolean
+      weakMatch?: boolean | undefined
+      preprocess?: ((code: string) => string) | undefined
     }
   }
 }
@@ -66,7 +69,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div
-    class="WidgetEnsoExpression widgetRounded widgetPill"
+    class="WidgetEnsoExpression widgetExpanded widgetRounded widgetPill"
     @click.stop="cmWidget?.focusAndSelect()"
   >
     <CodeMirrorWidgetBase
@@ -78,14 +81,7 @@ export const widgetDefinition = defineWidget(
       :extensions="extensions"
       lineMode="single"
       :onAccepted="acceptValue"
+      :syncAfterAccept="true"
     />
   </div>
 </template>
-
-<style scoped>
-.WidgetEnsoExpression {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>

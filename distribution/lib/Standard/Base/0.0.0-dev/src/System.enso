@@ -5,6 +5,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
+import project.Internal.Runtime_Helpers
 
 polyglot java import java.lang.System as Java_System
 
@@ -25,7 +26,8 @@ polyglot java import java.lang.System as Java_System
     - `redirect_err`: Specifies if the standard error output of the started
       process should be redirected to the program's standard error output.
 create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
-create_process command arguments input redirect_in redirect_out redirect_err = @Builtin_Method "System.create_process"
+create_process command arguments input redirect_in redirect_out redirect_err =
+    Runtime_Helpers.create_process command arguments input redirect_in redirect_out redirect_err Nothing Nothing
 
 ## ---
    private: true
@@ -42,8 +44,7 @@ create_process command arguments input redirect_in redirect_out redirect_err = @
    ```
          System.exit 42
    ```
-exit : Integer -> Nothing
-exit code = @Builtin_Method "System.exit"
+exit code:Integer -> Nothing = Runtime_Helpers.exit code
 
 ## ---
    private: true
@@ -57,15 +58,13 @@ exit code = @Builtin_Method "System.exit"
    ```
          System.nano_time
    ```
-nano_time : Integer
-nano_time = @Builtin_Method "System.nano_time"
+nano_time -> Integer = Runtime_Helpers.nano_time
 
 ## ---
    private: true
    ---
    Get the name of the current platform upon which the program is running.
-os : Text
-os = @Builtin_Method "System.os"
+os -> Text = Runtime_Helpers.os
 
 ## ---
    private: true
@@ -79,7 +78,6 @@ default_line_separator = Java_System.lineSeparator
    private: true
    ---
    The type representing the result of a process.
-@Builtin_Type
 type System_Process_Result
     ## ---
        private: true

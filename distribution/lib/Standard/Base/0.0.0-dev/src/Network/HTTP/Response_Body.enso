@@ -4,7 +4,6 @@ import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
@@ -12,7 +11,6 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.URI.URI
-import project.Nothing.Nothing
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
@@ -27,8 +25,10 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata.Widget import Single_Choice
-from project.System.File_Format import format_types
+from project.Nothing import all
+from project.System.File_Format import File_Format_SPI
 
 ## ---
    private: true
@@ -206,7 +206,7 @@ type Response_Body
        ```
     @file (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
-    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+    write self file:Writable_File on_existing_file:Existing_File_Behavior=..Backup =
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream
@@ -224,7 +224,7 @@ can_decode type = Meta.meta type . methods . contains "read_stream"
    Selector for decoding from the web.
 decode_format_selector : Widget
 decode_format_selector =
-    all_types = [Auto_Detect] + (format_types.filter can_decode)
+    all_types = [Auto_Detect] + (File_Format_SPI.get_types.filter can_decode)
     Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## ---

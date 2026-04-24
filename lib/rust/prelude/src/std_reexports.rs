@@ -1,6 +1,5 @@
 //! This module reexports several commonly used types defined in the standard library.
 
-
 // ==============
 // === Export ===
 // ==============
@@ -13,9 +12,9 @@ pub use std::cell::Cell;
 pub use std::cell::Ref;
 pub use std::cell::RefCell;
 pub use std::cell::RefMut;
-pub use std::convert::identity;
 pub use std::convert::TryFrom;
 pub use std::convert::TryInto;
+pub use std::convert::identity;
 pub use std::fmt;
 pub use std::fmt::Display;
 pub use std::hash::Hash;
@@ -45,8 +44,6 @@ pub use std::rc::Weak;
 pub use std::slice;
 pub use std::slice::SliceIndex;
 pub use std::str::FromStr;
-
-
 
 /// Alias for `Default::default()`.
 pub fn default<T: Default>() -> T {

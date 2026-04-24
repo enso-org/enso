@@ -2,24 +2,18 @@
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
 import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
 import { IconDisplay } from '#/components/IconDisplay'
 import { Menu } from '#/components/Menu'
 import { Text } from '#/components/Text'
 import { VisualTooltip } from '#/components/VisualTooltip'
-import {
-  backendMutationOptions,
-  getProjectExecutionDetailsQueryOptions,
-} from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { useContainerData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
   getLocalTimeZone,
@@ -28,7 +22,9 @@ import {
   toZoned,
   type ZonedDateTime,
 } from '@internationalized/date'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
@@ -38,8 +34,6 @@ import {
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 
-/** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
-const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
 const MONTHS_IN_YEAR = 12
 
 const PROJECT_EXECUTION_STYLES = tv({
@@ -67,34 +61,21 @@ export interface ProjectExecutionProps {
   readonly projectExecution: backendModule.ProjectExecution
   /** Defaults to the first date of `projectExecution` if not given. */
   readonly date?: ZonedDateTime
+  readonly session: backendModule.ProjectSession | undefined
 }
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectExecution(props: ProjectExecutionProps) {
-  const { compact = false, backend, item, projectExecution } = props
+  const { compact = false, backend, item, projectExecution, session } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
+  const container = useContainerData()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
   const date = props.date == null ? null : toZoned(props.date, timeZone)
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
     'enableAdvancedProjectExecutionOptions',
   )
   const { repeat } = projectExecution
-
-  const { data: details } = useQuery(
-    getProjectExecutionDetailsQueryOptions(backend, projectExecution.executionId, item.title),
-  )
-
-  const sessions = details?.projectSessions
-  const session =
-    date == null ? null : (
-      sessions?.find(
-        (otherSession) =>
-          Math.abs(Number(new Date(otherSession.createdAt)) - Number(date.toDate())) <
-          EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
-      )
-    )
-
   const repeatString = (() => {
     if (date) {
       const minuteString = String(date.minute).padStart(2, '0')
@@ -209,15 +190,14 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           buttonVariants={{ size: 'small', variant: 'outline' }}
         >
           {session && (
-            <Dialog.Trigger>
-              <Button icon={LogsIcon}>{getText('showLogs')}</Button>
-
-              <ProjectLogsModal
-                backend={backend}
-                projectSessionId={session.projectSessionId}
-                projectTitle={item.title}
-              />
-            </Dialog.Trigger>
+            <Button
+              icon={LogsIcon}
+              onPress={() => {
+                container.openProjectLogTab(session.projectSessionId, item.title)
+              }}
+            >
+              {getText('showLogs')}
+            </Button>
           )}
           <Menu.Trigger>
             <Button icon="folder_opened" iconPosition="end" variant="outline">

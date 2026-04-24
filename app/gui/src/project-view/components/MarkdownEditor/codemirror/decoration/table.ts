@@ -1,7 +1,7 @@
 import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
 import TableEditor from '@/components/MarkdownEditor/TableEditor.vue'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import type { Text } from '@codemirror/state'
 import { Decoration } from '@codemirror/view'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'

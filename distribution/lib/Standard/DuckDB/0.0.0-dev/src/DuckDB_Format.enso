@@ -1,0 +1,173 @@
+from Standard.Base import all
+from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
+
+type DuckDB_Format
+    ## Use the format automatically determined from the file extension.
+    Auto
+
+    ## Write the file in CSV format.
+
+       ## Arguments:
+        - `delimiter`: The character that separates fields in the file. Default is a comma (",").
+        - `header`: Whether to include a header row in the file. Default is True.
+        - `date_format`: The format for date values. See https://duckdb.org/docs/stable/sql/functions/dateformat.
+        - `timestamp_format`: The format for timestamp values. See https://duckdb.org/docs/stable/sql/functions/dateformat.
+        - `quote_char`: The character used to quote fields. Default is double quote (").
+        - `escape_char`: The character used to escape quote characters. Default is double quote (").
+        - `compression`: The compression type for the file format. Default is Auto.
+    @delimiter make_file_read_delimiter_selector
+    CSV delimiter:Text="," header:Boolean=True date_format:Text="" timestamp_format:Text="" quote_char:Text='"' escape_char:Text='"' compression:DuckDB_Compression=..Auto
+
+    ## Write the file in JSON format as an array of objects.
+
+       ## Arguments:
+        - `date_format`: The format for date values. See https://duckdb.org/docs/stable/sql/functions/dateformat.
+        - `timestamp_format`: The format for timestamp values. See https://duckdb.org/docs/stable/sql/functions/dateformat.
+        - `compression`: The compression type for the file format. Default is Auto.
+    JSON date_format:Text="" timestamp_format:Text="" compression:DuckDB_Compression=..Auto
+
+    ## Write the file in JSON Lines format, where each line is a separate JSON object.
+
+       ## Arguments:
+        - `date_format`: The format for date values. See https://duckdb.org/docs/stable/sql/functions/dateformat.
+        - `timestamp_format`: The format for timestamp values. See https://duckdb.org/docs/stable/sql/functions/dateformat.
+        - `compression`: The compression type for the file format. Default is Auto.
+    JSON_Lines date_format:Text="" timestamp_format:Text="" compression:DuckDB_Compression=..Auto
+
+    ## Write the file in Parquet format.
+
+       ## Arguments:
+       - `compression`: The compression type for the Parquet file. Default is Snappy.
+       - `field_ids`: How to handle field IDs. Default is 'auto', alternatively provide a struct mapping.
+       - `version`: The Parquet version to use. Default is V1.
+    Parquet compression:DuckDB_Parquet_Compression=..Snappy field_ids:Text='auto' version:DuckDB_Parquet_Version=..V1
+
+    private as_sql_function self file =
+        quoted_path = "'" + (file.path.replace "'" "''") + "'"
+        case self of
+            DuckDB_Format.Auto -> quoted_path
+            DuckDB_Format.CSV delimiter header dt ts quote_char escape_char compression ->
+                output = 'read_csv(' + quoted_path
+                    + ", delim = '" + (delimiter.replace "'" "''" . replace '\t' "\t") + "'"
+                    + (if header then ", header = true" else ", header = false")
+                    + (if quote_char != "" then ", quote = '" + (quote_char.replace "'" "''") + "'" else '')
+                    + (if escape_char != "" then ", escape = '" + (escape_char.replace "'" "''") + "'" else '')
+                    + (if dt != "" then ", date_format = '" + (dt.replace "'" "''") + "'"  else '')
+                    + (if ts != "" then ", timestamp_format = '" + (ts.replace "'" "''") + "'"  else '')
+                    + (compression.to_sql.replace "COMPRESSION " "compression = ")
+                    + ')'
+                output
+            DuckDB_Format.JSON dt ts compression ->
+                output = 'read_json(' + quoted_path
+                    + ", format = 'array'"
+                    + (if dt != "" then ", dateformat = '" + (dt.replace "'" "''") + "'"  else '')
+                    + (if ts != "" then ", timestampformat = '" + (ts.replace "'" "''") + "'"  else '')
+                    + (compression.to_sql.replace "COMPRESSION " "compression = ")
+                    + ')'
+                output
+            DuckDB_Format.JSON_Lines dt ts compression ->
+                output = 'read_json(' + quoted_path
+                    + ", format = 'newline_delimited'"
+                    + (if dt != "" then ", dateformat = '" + (dt.replace "'" "''") + "'"  else '')
+                    + (if ts != "" then ", timestampformat = '" + (ts.replace "'" "''") + "'"  else '')
+                    + (compression.to_sql.replace "COMPRESSION " "compression = ")
+                    + ')'
+                output
+            DuckDB_Format.Parquet _ _ _ -> 'read_parquet(' + quoted_path + ')'
+
+    private to_sql self = case self of
+        DuckDB_Format.Auto -> ''
+        DuckDB_Format.CSV delimiter header dt ts quote_char escape_char compression ->
+            output = ' (FORMAT CSV'
+                + ", DELIMITER '" + (delimiter.replace "'" "''" . replace '\t' "\t") + "'"
+                + (if header then ", HEADER true" else ", HEADER false")
+                + (if dt != "" then ", DATE_FORMAT '" + (dt.replace "'" "''") + "'"  else '')
+                + (if ts != "" then ", TIMESTAMP_FORMAT '" + (ts.replace "'" "''") + "'"  else '')
+                + ", QUOTE '" + (quote_char.replace "'" "''") + "'"
+                + ", ESCAPE '" + (escape_char.replace "'" "''") + "'"
+                + compression.to_sql
+                + ')'
+            output
+        DuckDB_Format.JSON dt ts compression ->
+            output = ' (FORMAT JSON, ARRAY false'
+                + (if dt != "" then ", DATE_FORMAT '" + (dt.replace "'" "''") + "'"  else '')
+                + (if ts != "" then ", TIMESTAMP_FORMAT '" + (ts.replace "'" "''") + "'"  else '')
+                + compression.to_sql
+                + ')'
+            output
+        DuckDB_Format.JSON_Lines dt ts compression ->
+            output = ' (FORMAT JSON, ARRAY true'
+                + (if dt != "" then ", DATE_FORMAT '" + (dt.replace "'" "''") + "'"  else '')
+                + (if ts != "" then ", TIMESTAMP_FORMAT '" + (ts.replace "'" "''") + "'"  else '')
+                + compression.to_sql
+                + ')'
+            output
+        DuckDB_Format.Parquet compression field_ids version ->
+            output = " (FORMAT PARQUET"
+                + compression.to_sql
+                + ", FIELD_IDS " + (if field_ids == 'auto' then 'AUTO' else field_ids.replace "'" "''")
+                + version.to_sql
+                + ')'
+            output
+
+type DuckDB_Compression
+    ## Automatically determined based on the file extension (.gz for GZIP, .zst for Zstandard).
+    Auto
+
+    ## Do not compress the file.
+    None
+
+    ## Use GZIP compression algorithm.
+    GZip
+
+    ## Use Zstandard compression algorithm.
+    Zstandard
+
+    private to_sql self = case self of
+        DuckDB_Compression.Auto -> ''
+        DuckDB_Compression.None -> ", COMPRESSION 'uncompressed'"
+        DuckDB_Compression.GZip -> ", COMPRESSION 'gzip'"
+        DuckDB_Compression.Zstandard -> ", COMPRESSION 'zstd'"
+
+## Additional compression methods for Parquet format.
+type DuckDB_Parquet_Compression
+    ## Do not compress the file.
+    None
+
+    ## Use Snappy compression.
+    Snappy
+
+    ## Use GZIP compression algorithm.
+    GZip
+
+    ## Use Zstandard compression algorithm.
+    Zstandard (compression_level:Integer=3)
+
+    ## Use Brotli compression.
+    Brotli
+
+    ## Use LZ4 compression.
+    LZ4
+
+    ## Usw raw LZ4 compression.
+    LZ4_Raw
+
+    private to_sql self = case self of
+        DuckDB_Parquet_Compression.None -> ", COMPRESSION 'uncompressed'"
+        DuckDB_Parquet_Compression.Snappy -> ", COMPRESSION 'snappy'"
+        DuckDB_Parquet_Compression.GZip -> ", COMPRESSION 'gzip'"
+        DuckDB_Parquet_Compression.Zstandard level -> ", COMPRESSION 'zstd', COMPRESSION_LEVEL " + level.to_text
+        DuckDB_Parquet_Compression.Brotli -> ", COMPRESSION 'brotli'"
+        DuckDB_Parquet_Compression.LZ4 -> ", COMPRESSION 'lz4'"
+        DuckDB_Parquet_Compression.LZ4_Raw -> ", COMPRESSION 'lz4_raw'"
+
+type DuckDB_Parquet_Version
+    ## Use Parquet version 1.0.
+    V1
+
+    ## Use Parquet version 2.0.
+    V2
+
+    private to_sql self = case self of
+        DuckDB_Parquet_Version.V1 -> ", PARQUET_VERSION 'V1'"
+        DuckDB_Parquet_Version.V2 -> ", PARQUET_VERSION 'V2'"

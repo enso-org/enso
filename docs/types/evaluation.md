@@ -14,7 +14,9 @@ design of certain APIs.
 
 To that end, Enso provides a mechanism for this through the type system.
 
-> [!WARNING] Enso is using `~` and `...` to defer computations and perform them
+<!-- prettier-ignore -->
+> [!WARNING]
+> Enso is using `~` and `...` to defer computations and perform them
 > lazily when needed.
 >
 > The standard library defines a `Suspend a` type which, when used in explicit
@@ -49,7 +51,9 @@ use the already evaluated value.
 
 ## Specifying Suspension in the Type System
 
-> [!WARNING] The actionables for this section are:
+<!-- prettier-ignore -->
+> [!WARNING]
+> The actionables for this section are:
 >
 > - Actually specify how the type system interacts with eager and lazy
 >   evaluation.

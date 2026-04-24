@@ -1,0 +1,14 @@
+import project.Data.Text.Text
+
+## An error that occurred while sending an email.
+type Send_Error
+    ## ---
+       private: true
+       ---
+    Error cause:Text
+
+    ## ---
+       private: true
+       ---
+    to_display_text : Text
+    to_display_text self = "Send Email Error: " + self.cause

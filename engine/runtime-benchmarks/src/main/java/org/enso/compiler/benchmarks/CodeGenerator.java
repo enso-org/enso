@@ -162,7 +162,7 @@ public class CodeGenerator {
 
     return switch (size) {
       case 0 -> nextLiteral();
-        // Either a single identifier or a method call on the identifier
+      // Either a single identifier or a method call on the identifier
       case 1 -> {
         var sb = new StringBuilder();
         var ident = chooseIdentifier(identifiers);
@@ -174,7 +174,7 @@ public class CodeGenerator {
         }
         yield sb.toString();
       }
-        // Method call or binary operator
+      // Method call or binary operator
       case 2 -> {
         var sb = new StringBuilder();
         var shouldCallMethod = random.nextBoolean();
@@ -196,7 +196,7 @@ public class CodeGenerator {
         }
         yield sb.toString();
       }
-        // Split into two expressions with random size
+      // Split into two expressions with random size
       default -> {
         var sb = new StringBuilder();
         var shouldCallMethod = random.nextBoolean();

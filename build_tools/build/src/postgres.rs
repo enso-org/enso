@@ -3,18 +3,16 @@ use crate::prelude::*;
 use ide_ci::env::accessor::RawVariable;
 use ide_ci::env::accessor::TypedVariable;
 use ide_ci::get_free_port;
+use ide_ci::programs::Docker;
 use ide_ci::programs::docker::ContainerId;
 use ide_ci::programs::docker::ImageId;
 use ide_ci::programs::docker::Network;
 use ide_ci::programs::docker::RunOptions;
-use ide_ci::programs::Docker;
 use std::process::Stdio;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncRead;
 use tokio::io::BufReader;
 use tokio::process::Child;
-
-
 
 /// Port used by Postgres in its container.
 const POSTGRES_CONTAINER_DEFAULT_PORT: u16 = 5432;
@@ -52,19 +50,22 @@ pub enum EndpointConfiguration {
 impl EndpointConfiguration {
     /// Tries to deduce what endpoint should be used for a spawned Postgres service.
     pub fn deduce() -> Result<Self> {
-        if let Ok(container_name) = crate::env::ENSO_RUNNER_CONTAINER_NAME.get() {
-            debug!("Assuming that I am in the Docker container named {container_name}.");
-            Ok(Self::Container { owner: container_name })
-        } else {
-            // If we are running on the bare machine (i.e. not in container), we spawn postgres
-            // and expose it on a free host port. Then we can directly consume.
-            let port = if port_check::is_local_port_free(POSTGRES_CONTAINER_DEFAULT_PORT) {
-                // Prefer the usual port.
-                POSTGRES_CONTAINER_DEFAULT_PORT
-            } else {
-                get_free_port()?
-            };
-            Ok(Self::Host { port })
+        match crate::env::ENSO_RUNNER_CONTAINER_NAME.get() {
+            Ok(container_name) => {
+                debug!("Assuming that I am in the Docker container named {container_name}.");
+                Ok(Self::Container { owner: container_name })
+            }
+            _ => {
+                // If we are running on the bare machine (i.e. not in container), we spawn postgres
+                // and expose it on a free host port. Then we can directly consume.
+                let port = if port_check::is_local_port_free(POSTGRES_CONTAINER_DEFAULT_PORT) {
+                    // Prefer the usual port.
+                    POSTGRES_CONTAINER_DEFAULT_PORT
+                } else {
+                    get_free_port()?
+                };
+                Ok(Self::Host { port })
+            }
         }
     }
 }
@@ -72,11 +73,11 @@ impl EndpointConfiguration {
 #[derive(Clone, Debug)]
 pub struct Configuration {
     pub postgres_container: ContainerId,
-    pub database_name:      String,
-    pub user:               String,
-    pub password:           String,
-    pub endpoint:           EndpointConfiguration,
-    pub version:            String,
+    pub database_name: String,
+    pub user: String,
+    pub password: String,
+    pub endpoint: EndpointConfiguration,
+    pub version: String,
 }
 
 impl Configuration {
@@ -88,8 +89,9 @@ impl Configuration {
         env::tests::ENSO_POSTGRES_DATABASE.set(&self.database_name)?;
         env::tests::ENSO_POSTGRES_HOST.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => format!("localhost:{port}"),
-            EndpointConfiguration::Container { .. } =>
-                format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}"),
+            EndpointConfiguration::Container { .. } => {
+                format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}")
+            }
         })?;
         env::tests::ENSO_POSTGRES_USER.set(&self.user)?;
         env::tests::ENSO_POSTGRES_PASSWORD.set(&self.password)?;
@@ -139,7 +141,7 @@ pub async fn process_lines_until<R: AsyncRead + Unpin>(
 #[derive(Debug)]
 pub struct PostgresContainer {
     _docker_run: Child,
-    config:      Configuration,
+    config: Configuration,
 }
 
 impl Drop for PostgresContainer {
@@ -148,13 +150,16 @@ impl Drop for PostgresContainer {
 
         debug!("Will remove the postgres container");
         let cleanup_future = self.config.cleanup();
-        if let Err(e) = futures::executor::block_on(cleanup_future) {
-            debug!(
-                "Failed to kill the Postgres container named {}: {}",
-                self.config.postgres_container, e
-            );
-        } else {
-            debug!("Postgres container killed.");
+        match futures::executor::block_on(cleanup_future) {
+            Err(e) => {
+                debug!(
+                    "Failed to kill the Postgres container named {}: {}",
+                    self.config.postgres_container, e
+                );
+            }
+            _ => {
+                debug!("Postgres container killed.");
+            }
         }
     }
 }
@@ -215,11 +220,11 @@ mod tests {
     async fn start_postgres() -> Result {
         let config = Configuration {
             postgres_container: ContainerId("something".into()),
-            endpoint:           EndpointConfiguration::deduce()?,
-            version:            "latest".into(),
-            user:               "test".into(),
-            password:           "test".into(),
-            database_name:      "test".into(),
+            endpoint: EndpointConfiguration::deduce()?,
+            version: "latest".into(),
+            user: "test".into(),
+            password: "test".into(),
+            database_name: "test".into(),
         };
         let child = Postgresql::start(config).await?;
         // drop(child);

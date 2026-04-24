@@ -5,10 +5,10 @@ import {
   sourceRangeFromKey,
   textChangeToEdits,
 } from '../util/data/text'
-import { type Origin } from '../yjsModel'
-import { type Module, type ModuleUpdate } from './mutableModule'
+import type { Origin } from '../yjsModel'
+import type { Module, ModuleUpdate } from './mutableModule'
 import { printWithSpans } from './print'
-import { type AstId } from './tree'
+import type { AstId } from './tree'
 
 /**
  * Provides a view of the text representation of a module,

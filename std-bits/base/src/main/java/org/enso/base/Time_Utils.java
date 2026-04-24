@@ -90,6 +90,14 @@ public class Time_Utils {
     return date.lengthOfMonth();
   }
 
+  public static LocalDate first_of_month(LocalDate date) {
+    return LocalDate.of(date.getYear(), date.getMonthValue(), 1);
+  }
+
+  public static LocalDate end_of_month(LocalDate date) {
+    return LocalDate.of(date.getYear(), date.getMonthValue(), date.lengthOfMonth());
+  }
+
   public static long week_of_year_localdate(LocalDate date, Locale locale) {
     return WeekFields.of(locale).weekOfYear().getFrom(date);
   }
@@ -175,6 +183,14 @@ public class Time_Utils {
    */
   public static ZonedDateTime with_zone_same_instant(ZonedDateTime dateTime, ZoneId zone) {
     return dateTime.withZoneSameInstant(zone);
+  }
+
+  /**
+   * Constructs a new time instant by changing the time zone but not altering the local date-time,
+   * which results in a value representing a different instant.
+   */
+  public static ZonedDateTime with_zone_same_local(ZonedDateTime dateTime, ZoneId zone) {
+    return dateTime.withZoneSameLocal(zone);
   }
 
   /**

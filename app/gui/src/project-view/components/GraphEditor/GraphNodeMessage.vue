@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { QualifiedImport } from '$/providers/openedProjects/module/imports'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { QualifiedImport } from '@/stores/graph/imports'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
+import { Ok } from 'enso-common/src/utilities/data/result'
 
-const graph = useGraphStore()
-const projectNames = useProjectNames()
+const { projectNames: names, module } = useCurrentProject()
 
 const props = defineProps<{
   message: string
   type: MessageType
-  passEvents?: boolean
 }>()
 
 function containsLibraryName(): ProjectPath | null {
@@ -21,7 +20,7 @@ function containsLibraryName(): ProjectPath | null {
     const rest = props.message.substring(prefix.length)
     const libName = rest.split(' ')
     if (!libName[0]) return null
-    const path = projectNames.parseProjectPathRaw(libName[0])
+    const path = names.value.parseProjectPathRaw(libName[0])
     if (!path.ok) return null
     return path.value
   } else {
@@ -38,7 +37,10 @@ function fixImport() {
       kind: 'Qualified',
       module: libName,
     } satisfies QualifiedImport
-    graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
+    module.value.edit((edit) => {
+      module.value.addMissingImports(edit, [theImport])
+      return Ok()
+    })
   }
 }
 </script>
@@ -62,11 +64,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 </script>
 
 <template>
-  <div
-    class="GraphNodeMessage"
-    :class="{ passEvents }"
-    :style="{ '--background-color': colorForMessageType[props.type] }"
-  >
+  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
@@ -106,10 +104,6 @@ export const colorForMessageType: Record<MessageType, string> = {
   pointer-events: none;
   opacity: 1;
   transition: opacity 0.2s ease;
-
-  &.passEvents {
-    opacity: 0.5;
-  }
 }
 
 .icon {

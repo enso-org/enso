@@ -239,9 +239,10 @@ public abstract class MethodGenerator {
         switch (name) {
           case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(typeVisitor, null);
           case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(typeVisitor, null);
-          default -> processingEnvironment
-              .getMessager()
-              .printMessage(Kind.ERROR, "Unknown annotation element name: " + name);
+          default ->
+              processingEnvironment
+                  .getMessager()
+                  .printMessage(Kind.ERROR, "Unknown annotation element name: " + name);
         }
       }
       if (valueFrom != null) {

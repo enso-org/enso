@@ -4,8 +4,6 @@ use crate::aws::s3::BucketContext;
 
 use aws_config::meta::region::RegionProviderChain;
 
-
-
 /// AWS Region of the `ensocdn` bucket.
 pub const BUCKET_REGION: &str = "us-west-1";
 
@@ -28,8 +26,8 @@ pub async fn client_from_env() -> Result<aws_sdk_s3::Client> {
 /// Requires AWS credentials in the environment.
 pub async fn context(version: &Version) -> Result<BucketContext> {
     Ok(BucketContext {
-        client:     client_from_env().await?,
-        bucket:     BUCKET.to_string(),
+        client: client_from_env().await?,
+        bucket: BUCKET.to_string(),
         upload_acl: aws_sdk_s3::model::ObjectCannedAcl::PublicRead,
         key_prefix: Some(format!("ide/{version}")),
     })

@@ -33,9 +33,11 @@ class ConfigSpec
         ),
         preferLocalLibraries = true,
         componentGroups      = None,
+        services             = List(),
         jvm                  = None
       )
-      val deserialized = Config.fromYaml(config.toYaml).get
+      val deserialized =
+        Config.fromYaml(config.toYaml(keepDevVersions = true)).get
       deserialized shouldEqual config
     }
 
@@ -72,6 +74,7 @@ class ConfigSpec
         ),
         preferLocalLibraries = true,
         componentGroups      = None,
+        services             = List(),
         jvm                  = Some(true)
       )
       parsed shouldEqual expectedConfig
@@ -91,17 +94,27 @@ class ConfigSpec
       parsed.normalizedName shouldEqual None
       parsed.moduleName shouldEqual "FooBar"
 
-      val ser = parsed.toYaml
+      val ser = parsed.toYaml(keepDevVersions = true)
       ser shouldEqual "name: fooBar\nnamespace: local\nedition: 2024.4.2\n"
     }
 
-    "don't persist dev edition" in {
+    "persist dev edition if requested" in {
       val parsed = Config.fromYaml("name: fooBar\nedition: 0.0.0-dev").get
       parsed.name shouldEqual "fooBar"
       parsed.normalizedName shouldEqual None
       parsed.moduleName shouldEqual "FooBar"
 
-      val ser = parsed.toYaml
+      val ser = parsed.toYaml(keepDevVersions = true)
+      ser shouldEqual "name: fooBar\nnamespace: local\nedition: 0.0.0-dev\n"
+    }
+
+    "don't persist dev edition by default" in {
+      val parsed = Config.fromYaml("name: fooBar\nedition: 0.0.0-dev").get
+      parsed.name shouldEqual "fooBar"
+      parsed.normalizedName shouldEqual None
+      parsed.moduleName shouldEqual "FooBar"
+
+      val ser = parsed.toYaml()
       ser shouldEqual "name: fooBar\nnamespace: local\n"
     }
 
@@ -115,7 +128,7 @@ class ConfigSpec
 
       parsed.edition.get.parent should contain("2020.1")
 
-      val serialized = parsed.toYaml
+      val serialized = parsed.toYaml(keepDevVersions = true)
       serialized should include("edition: '2020.1'")
     }
 
@@ -180,7 +193,7 @@ class ConfigSpec
       )
       parsed.componentGroups shouldEqual Some(expectedComponentGroups)
 
-      val serialized = parsed.toYaml
+      val serialized = parsed.toYaml(keepDevVersions = true)
       serialized should include(
         """component-groups:
           |  new:

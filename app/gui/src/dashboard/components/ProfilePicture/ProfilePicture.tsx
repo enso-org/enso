@@ -1,5 +1,5 @@
 /** @file Displays a profile picture. */
-import { type VariantProps } from '#/utilities/tailwindVariants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
 import { Icon } from '../Icon'
 import { PROFILE_PICTURE_STYLES } from './variants'
 

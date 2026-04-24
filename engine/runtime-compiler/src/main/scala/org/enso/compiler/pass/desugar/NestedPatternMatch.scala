@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.ListAsIr
+import org.enso.compiler.Implicits.ListAsIr
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
@@ -12,12 +12,7 @@ import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
 
 import scala.annotation.unused
@@ -83,7 +78,6 @@ case object NestedPatternMatch extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     TailCall.INSTANCE
@@ -165,12 +159,11 @@ case object NestedPatternMatch extends IRPass {
         val scrutineeBindingName = freshNameSupply.newName()
         val scrutineeExpression =
           desugarExpression(expr.scrutinee, freshNameSupply)
-        val scrutineeBinding =
-          Expression.Binding(
-            scrutineeBindingName,
-            scrutineeExpression,
-            identifiedLocation = null
-          )
+        val scrutineeBinding = Expression.Binding
+          .builder()
+          .name(scrutineeBindingName)
+          .expression(scrutineeExpression)
+          .build()
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
@@ -188,11 +181,11 @@ case object NestedPatternMatch extends IRPass {
           processedBranches
         )
 
-        Expression.Block(
-          List(scrutineeBinding),
-          desugaredCaseExpr,
-          identifiedLocation = null
-        )
+        Expression.Block
+          .builder()
+          .expressions(List(scrutineeBinding))
+          .returnValue(desugaredCaseExpr)
+          .build()
       case _: Case.Branch =>
         throw new CompilerError(
           "Unexpected case branch during case desugaring."
@@ -216,13 +209,15 @@ case object NestedPatternMatch extends IRPass {
   ): Case.Branch = {
     if (containsNestedPatterns(branch.pattern)) {
       branch.pattern match {
-        case cons @ Pattern.Constructor(constrName, fields, _, _) =>
+        case cons: Pattern.Constructor =>
+          val constrName = cons.constructor()
+          val fields     = cons.fields()
           // Note [Unsafe Getting the Nested Field]
           val (lastNestedPattern, nestedPosition) =
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
           val newName  = freshNameSupply.newName(from = Some(constrName))
-          val newField = Pattern.Name(newName, null)
+          val newField = Pattern.Name.create(newName)
           val nestedScrutinee =
             newName.duplicate()
 
@@ -231,9 +226,7 @@ case object NestedPatternMatch extends IRPass {
               nestedPosition + 1
             ))
 
-          val newPattern = cons.copy(
-            fields = newFields.duplicate()
-          )
+          val newPattern = cons.copyWithFields(newFields.duplicate())
 
           val newExpression = generateNestedCase(
             lastNestedPattern,
@@ -265,7 +258,7 @@ case object NestedPatternMatch extends IRPass {
           throw new CompilerError(
             "Type patterns cannot be nested. This should be unreachable."
           )
-        case Pattern.Documentation(_, _, _) =>
+        case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
@@ -310,7 +303,7 @@ case object NestedPatternMatch extends IRPass {
     nestedScrutinee: Expression,
     currentBranchExpr: Expression
   ): Expression = {
-    val patternDuplicate = pattern.duplicate()
+    val patternDuplicate = pattern.duplicate(true, true, true, false)
     val finalTest        = containsNestedPatterns(patternDuplicate)
     val patternBranch = Case.Branch
       .builder()
@@ -335,8 +328,8 @@ case object NestedPatternMatch extends IRPass {
   def containsNestedPatterns(pattern: Pattern): Boolean =
     pattern match {
       case _: Pattern.Name => false
-      case Pattern.Constructor(_, fields, _, _) =>
-        fields.exists {
+      case cons: Pattern.Constructor =>
+        cons.fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
           case _: Pattern.Type        => true
@@ -348,6 +341,7 @@ case object NestedPatternMatch extends IRPass {
             )
         }
       case _: Pattern.Literal => false
+      case _: Pattern.Bool    => false
       case _: Pattern.Type    => false
       case _: errors.Pattern  => false
       case _: Pattern.Documentation =>

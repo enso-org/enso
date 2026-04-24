@@ -30,7 +30,6 @@ pub fn derive_scope_hierarchy_consumer(input: proc_macro::TokenStream) -> proc_m
     derive_scope_hierarchy_consumer_impl(input.into()).into()
 }
 
-
 /// Derives [crate::syntax::expression::types::OperatorConsumer] by calling the corresponding
 /// functions on `self.inner`.
 ///
@@ -141,10 +140,13 @@ fn derive_group_hierarchy_consumer_impl(
 }
 
 fn flush_syntax() -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
-    (quote! { Self: crate::syntax::Flush, }, quote! {
-        use crate::syntax::Flush;
-        self.flush();
-    })
+    (
+        quote! { Self: crate::syntax::Flush, },
+        quote! {
+            use crate::syntax::Flush;
+            self.flush();
+        },
+    )
 }
 
 fn require_flush_specification<'a>(

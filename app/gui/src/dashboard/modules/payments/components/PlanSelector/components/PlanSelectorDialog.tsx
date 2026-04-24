@@ -6,11 +6,11 @@ import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
-import type { Plan, PlanBillingPeriod } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import { useQuery } from '@tanstack/react-query'
+import type { Plan, PlanBillingPeriod } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
 import {
   MAX_SEATS_BY_PLAN,

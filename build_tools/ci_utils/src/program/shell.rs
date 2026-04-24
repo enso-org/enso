@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use unicase::UniCase;
 
-
-
 /// A trait for a shell.
 ///
 /// Examples are `cmd.exe` and `powershell.exe` on windows or `bash` elsewhere.

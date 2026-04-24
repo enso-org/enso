@@ -1,4 +1,4 @@
-import { AssetType } from '#/services/Backend'
+import { AssetType } from 'enso-common/src/services/Backend'
 import { expect, test } from 'vitest'
 import { ref } from 'vue'
 import { useFileExtensionFilter } from '../fileExtensionFilter'

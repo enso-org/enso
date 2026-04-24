@@ -2,8 +2,6 @@ use enso_build::prelude::*;
 
 use enso_build::config;
 
-
-
 fn main() -> Result {
     setup_logging()?;
     trace!("Starting CLI driver, cwd is {}", ide_ci::env::current_dir()?.display());

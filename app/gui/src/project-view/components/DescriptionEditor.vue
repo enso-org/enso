@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { AnyAsset } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { backendMutationOptions } from '@/composables/backend'
@@ -9,14 +9,19 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
-import { isOnElectron } from 'enso-common/src/detect'
+import type { AssetDetailsResponse, AssetId } from 'enso-common/src/services/Backend'
+import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
+
+defineProps<{ toolbar: HTMLElement | string }>()
 
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
 const backendForAsset = computed(
   () =>
-    (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
+    (rightPanel.context?.category &&
+      backendForType(CATEGORY_BACKEND[rightPanel.context.category.type])) ??
+    null,
 )
 
 // Provide an extra `mutationKey` so that it has its own loading state.
@@ -25,58 +30,64 @@ const editDescriptionMutation = useMutation(
 )
 
 let descriptionEdited = false
-function updateDescription(asset: AnyAsset | undefined, description: string) {
-  if (asset != null && asset.description !== description) {
-    descriptionEdited = false
-    return editDescriptionMutation.mutateAsync([
+async function updateDescription(
+  asset: AssetDetailsResponse<AssetId> | undefined,
+  description: string,
+) {
+  descriptionEdited = false
+  if (asset && description && asset.description !== description) {
+    await editDescriptionMutation.mutateAsync([
       asset.id,
-      { parentDirectoryId: null, description: description, title: null },
+      {
+        parentDirectoryId: null,
+        description: description,
+        title: null,
+        metadataId: asset.metadataId,
+      },
       asset.title,
     ])
-  } else {
-    return Promise.resolve()
   }
 }
 
 const onFocusOut = ref<() => void>()
-const { syncExt, connectSync } = useStringSync()
+const { syncExt, setText, getText } = useStringSync({
+  onTextEdited: () => (descriptionEdited = true),
+})
 const scope = effectScope()
 
 function editorReadyCallback(view: EditorView) {
-  const { setText, getText, onTextEdited } = connectSync(view)
-
   // We want to run watch before DOM update, because the DescriptionEditor may be disposed as
-  // part of it. Therefore it must be in the DescriptionEditor effect socope, not MarkdownEditor.
+  // part of it. Therefore it must be in the DescriptionEditor effect scope, not MarkdownEditor.
   scope.run(() => {
     watch(
-      () => rightPanel.focusedAsset,
+      () => rightPanel.focusedAssetDetails,
       (newAsset, oldAsset) => {
-        updateDescription(oldAsset, getText())
+        updateDescription(oldAsset, getText(view))
         const pendingDescription =
           newAsset != null && editDescriptionMutation.variables.value?.[0] === newAsset.id ?
-            editDescriptionMutation.variables.value[1].description
+            editDescriptionMutation.variables.value?.[1].description
           : undefined
 
-        setText(pendingDescription ?? newAsset?.description ?? '')
+        setText(view, pendingDescription ?? newAsset?.description ?? '')
       },
       { immediate: true },
     )
 
-    onTextEdited(() => (descriptionEdited = true))
-
     onFocusOut.value = () => {
-      updateDescription(rightPanel.focusedAsset, getText())
+      updateDescription(rightPanel.focusedAssetDetails, getText(view))
     }
 
-    onScopeDispose(() => updateDescription(rightPanel.focusedAsset, getText()))
+    onScopeDispose(() => updateDescription(rightPanel.focusedAssetDetails, getText(view)))
 
     useEvent(window, 'beforeunload', (event) => {
       if (descriptionEdited) {
         event.preventDefault()
-        // While browser displays "unsaved changes" warining, electron does nothing for
+        // While browser displays "unsaved changes" warning, electron does nothing for
         // preventDefault. That gives us a chance to save changes and close manually.
         if (isOnElectron()) {
-          updateDescription(rightPanel.focusedAsset, getText()).then(() => window.close())
+          updateDescription(rightPanel.focusedAssetDetails, getText(view)).then(() =>
+            window.close(),
+          )
         }
       }
     })
@@ -87,10 +98,11 @@ function editorReadyCallback(view: EditorView) {
 <template>
   <div class="DescriptionEditor">
     <MarkdownEditor
-      v-if="rightPanel.focusedAsset"
+      v-if="rightPanel.focusedAssetDetails"
       :extensions="syncExt"
       contentTestId="asset-panel-description"
       :editorReadyCallback="editorReadyCallback"
+      :teleportToolbarTo="toolbar"
     />
     <ResultComponent
       v-else

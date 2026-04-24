@@ -72,7 +72,7 @@ public class DuplicateMethodGenerator {
         if (keepDiagnostics && this.diagnostics != null) {
           diagnosticsDuplicated = this.diagnostics.copy();
         }
-        $metaType passDataDuplicated = null;
+        $metaType passDataDuplicated = new $metaType();
         if (keepMetadata && this.passData != null) {
           passDataDuplicated = this.passData.duplicate();
         }
@@ -85,10 +85,10 @@ public class DuplicateMethodGenerator {
           idDuplicated = this.id;
         }
         """
-            .replace("$locType", ctx.getLocationMetaField().getSimpleTypeName())
-            .replace("$metaType", ctx.getPassDataMetaField().getSimpleTypeName())
-            .replace("$diagType", ctx.getDiagnosticsMetaField().getSimpleTypeName())
-            .replace("$idType", ctx.getIdMetaField().getSimpleTypeName());
+            .replace("$locType", ctx.getLocationMetaField().getTypeName())
+            .replace("$metaType", ctx.getPassDataMetaField().getTypeName())
+            .replace("$diagType", ctx.getDiagnosticsMetaField().getTypeName())
+            .replace("$idType", ctx.getIdMetaField().getTypeName());
     sb.append(Utils.indent(duplicateMetaFieldsCode, 2));
     sb.append(System.lineSeparator());
     for (var metaVar : metaFields()) {
@@ -144,9 +144,14 @@ public class DuplicateMethodGenerator {
     sb.append(newSubclass);
 
     // Rest of the fields that need to be set
+    var superClassType = ctx.getSuperClass();
     var restOfDuplicatedVars = Utils.diff(duplicatedVars, ctorParams);
     for (var duplVar : restOfDuplicatedVars) {
-      sb.append("  ").append("duplicated.").append(duplVar.originalName).append(" = ");
+      sb.append("  ((")
+          .append(superClassType.getSimpleName())
+          .append(")duplicated).")
+          .append(duplVar.originalName)
+          .append(" = ");
       if (duplVar.needsCast) {
         sb.append("(").append(duplVar.type).append(") ");
       }
@@ -192,15 +197,15 @@ public class DuplicateMethodGenerator {
   private String nullableChildCode(Field nullableChild) {
     Utils.hardAssert(nullableChild.isNullable() && nullableChild.isChild());
     return """
-          IR $dupName = null;
-          if ($childName != null) {
-            $dupName = $childName.duplicate($parameterNames);
-            if (!($dupName instanceof $childType)) {
-              throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
-            }
-          }
-        """
-        .replace("$childType", nullableChild.getSimpleTypeName())
+      IR $dupName = null;
+      if ($childName != null) {
+        $dupName = $childName.duplicate($parameterNames);
+        if (!($dupName instanceof $childType)) {
+          throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
+        }
+      }
+    """
+        .replace("$childType", nullableChild.getQualifiedTypeName())
         .replace("$childName", nullableChild.getName())
         .replace("$dupName", dupFieldName(nullableChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
@@ -209,12 +214,12 @@ public class DuplicateMethodGenerator {
   private String notNullableChildCode(Field child) {
     assert child.isChild() && !child.isNullable() && !child.isList() && !child.isOption();
     return """
-          IR $dupName = $childName.duplicate($parameterNames);
-          if (!($dupName instanceof $childType)) {
-            throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
-          }
-          """
-        .replace("$childType", child.getSimpleTypeName())
+    IR $dupName = $childName.duplicate($parameterNames);
+    if (!($dupName instanceof $childType)) {
+      throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
+    }
+    """
+        .replace("$childType", child.getQualifiedTypeName())
         .replace("$childName", child.getName())
         .replace("$dupName", dupFieldName(child))
         .replace("$parameterNames", String.join(", ", parameterNames()));
@@ -223,19 +228,19 @@ public class DuplicateMethodGenerator {
   private String listChildCode(Field listChild) {
     Utils.hardAssert(listChild.isChild() && listChild.isList());
     return """
-          $childListType $dupName = null;
-          if ($childName != null) {
-            $dupName = $childName.map(child -> {
-              IR dupChild = child.duplicate($parameterNames);
-              if (!(dupChild instanceof $childType)) {
-                throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
-              }
-              return ($childType) dupChild;
-            });
-          }
-          """
-        .replace("$childListType", listChild.getSimpleTypeName())
-        .replace("$childType", listChild.getTypeParameter().getSimpleName())
+    $childListType $dupName = null;
+    if ($childName != null) {
+      $dupName = $childName.map(child -> {
+        IR dupChild = child.duplicate($parameterNames);
+        if (!(dupChild instanceof $childType)) {
+          throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
+        }
+        return ($childType) dupChild;
+      });
+    }
+    """
+        .replace("$childListType", listChild.getQualifiedTypeName())
+        .replace("$childType", listChild.getTypeParameter().getQualifiedName())
         .replace("$childName", listChild.getName())
         .replace("$dupName", dupFieldName(listChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
@@ -244,17 +249,17 @@ public class DuplicateMethodGenerator {
   private String optionChildCode(Field optionChild) {
     Utils.hardAssert(optionChild.isOption() && optionChild.isChild());
     return """
-        $childOptType $dupName = $childName;
-        if ($childName.isDefined()) {
-          var duplicated = $childName.get().duplicate($parameterNames);
-          if (!(duplicated instanceof $childType)) {
-            throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
-          }
-          $dupName = Option.apply(duplicated);
-        }
-        """
-        .replace("$childOptType", optionChild.getSimpleTypeName())
-        .replace("$childType", optionChild.getTypeParameter().getSimpleName())
+    $childOptType $dupName = $childName;
+    if ($childName.isDefined()) {
+      var duplicated = $childName.get().duplicate($parameterNames);
+      if (!(duplicated instanceof $childType)) {
+        throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
+      }
+      $dupName = Option.apply(duplicated);
+    }
+    """
+        .replace("$childOptType", optionChild.getQualifiedTypeName())
+        .replace("$childType", optionChild.getTypeParameter().getQualifiedName())
         .replace("$childName", optionChild.getName())
         .replace("$dupName", dupFieldName(optionChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
@@ -262,19 +267,19 @@ public class DuplicateMethodGenerator {
 
   private String optionListChildCode(OptionListField optionListChild) {
     return """
-        var ${dupName} = ${childName};
-        if (${childName}.isDefined()) {
-          ${childName}.get().map(child -> {
-            IR dupChild = child.duplicate(${parameterNames});
-            if (!(dupChild instanceof ${childType})) {
-              throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
-            }
-            return (${childType}) dupChild;
-          });
+    var ${dupName} = ${childName};
+    if (${childName}.isDefined()) {
+      ${childName}.get().map(child -> {
+        IR dupChild = child.duplicate(${parameterNames});
+        if (!(dupChild instanceof ${childType})) {
+          throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
         }
-        """
+        return (${childType}) dupChild;
+      });
+    }
+    """
         .replace("${childName}", optionListChild.getName())
-        .replace("${childType}", optionListChild.getNestedTypeParameter().getSimpleName())
+        .replace("${childType}", optionListChild.getNestedTypeParameter().getQualifiedName())
         .replace("${dupName}", dupFieldName(optionListChild))
         .replace("${parameterNames}", String.join(", ", parameterNames()));
   }
@@ -282,16 +287,16 @@ public class DuplicateMethodGenerator {
   private String persistanceReferenceCode(Field perRefChild) {
     Utils.hardAssert(perRefChild.isPersistanceReference());
     return """
-        ${perRefType} ${dupName};
-        {
-          ${type} duplicated = ${childName}
-              .get(${type}.class)
-              .duplicate(${parameterNames});
-          ${dupName} = Reference.of(duplicated);
-        }
-        """
-        .replace("${perRefType}", perRefChild.getSimpleTypeName())
-        .replace("${type}", perRefChild.getTypeParameter().getSimpleName())
+    ${perRefType} ${dupName};
+    {
+      ${type} duplicated = ${childName}
+          .get(${type}.class)
+          .duplicate(${parameterNames});
+      ${dupName} = org.enso.persist.Persistance.Reference.of(duplicated);
+    }
+    """
+        .replace("${perRefType}", perRefChild.getQualifiedTypeName())
+        .replace("${type}", perRefChild.getTypeParameter().getQualifiedName())
         .replace("${childName}", perRefChild.getName())
         .replace("${dupName}", dupFieldName(perRefChild))
         .replace("${parameterNames}", String.join(", ", parameterNames()));
@@ -300,9 +305,9 @@ public class DuplicateMethodGenerator {
   private static String nonChildCode(Field field) {
     Utils.hardAssert(!field.isChild());
     return """
-        $childType $dupName = $childName;
-        """
-        .replace("$childType", field.getSimpleTypeName())
+    $childType $dupName = $childName;
+    """
+        .replace("$childType", field.getQualifiedTypeName())
         .replace("$childName", field.getName())
         .replace("$dupName", dupFieldName(field));
   }
@@ -313,7 +318,7 @@ public class DuplicateMethodGenerator {
 
   /** Generate code for call of a constructor of the subclass. */
   private String newSubclass(List<DuplicateVar> ctorParams) {
-    var subClassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    var subClassType = ctx.getProcessedClassName();
     var ctor = ctx.getProcessedClass().getCtor();
     Utils.hardAssert(ctor.getParameters().size() == ctorParams.size());
     var sb = new StringBuilder();
@@ -329,7 +334,10 @@ public class DuplicateMethodGenerator {
             .map(
                 ctorParam -> {
                   if (ctorParam.needsCast) {
-                    return "(" + ctorParam.type + ") " + ctorParam.duplicatedName;
+                    return "("
+                        + Utils.qualifiedTypeName(ctorParam.type)
+                        + ") "
+                        + ctorParam.duplicatedName;
                   } else {
                     return ctorParam.duplicatedName;
                   }
@@ -372,7 +380,7 @@ public class DuplicateMethodGenerator {
   }
 
   private String dupMethodRetType() {
-    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    return ctx.getProcessedClassName();
   }
 
   /**

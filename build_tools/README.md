@@ -80,7 +80,6 @@ the Cloud version of Enso).
 Backend is the back-end part of the project, as seen from the IDE perspective.
 It contains a Project Manager bundle that includes:
 
-- Project Manager native image;
 - Enso Engine distribution (with the Standard Library);
 - GraalVM distribution.
 

@@ -11,20 +11,13 @@ import org.netbeans.api.project.SourceGroup;
 import org.netbeans.spi.java.project.support.ui.PackageView;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.netbeans.spi.project.ui.support.CommonProjectActions;
-import org.openide.awt.ActionID;
-import org.openide.awt.ActionReference;
-import org.openide.awt.ActionReferences;
-import org.openide.filesystems.*;
+import org.openide.filesystems.FileObject;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.ChildFactory;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.util.lookup.Lookups;
 
-@ActionReferences({
-    @ActionReference(position = 3100, id = @ActionID(category = "Project", id = "org.netbeans,modules.project.ui.CloseProject"), path = "Projects/ensosbtprj/Actions", separatorBefore = 3000),
-    @ActionReference(position = 3200, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.actions.OpenSubprojects"), path = "Projects/ensosbtprj/Actions"),
-})
 final class EnsoLogicalView implements LogicalViewProvider  {
     private final EnsoSbtProject p;
 
@@ -47,7 +40,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
         if (target instanceof FileObject) {
             FileObject fo = (FileObject) target;
             for (Node n : root.getChildren().getNodes(true)) {
-                Node result = PackageView.findPath(n, target);
+                Node result = PackageView.findPath(n, fo);
                 if (result != null) {
                     return result;
                 }
@@ -65,7 +58,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
             super(Children.create(new EnsoRoots(p), true), Lookups.fixed(p));
             this.project = p;
             setDisplayName();
-            setIconBaseWithExtension("org/enso/tools/enso4igv/enso.svg");
+            setIconBaseWithExtension("org/enso/tools/enso4igv/enso-duke.svg");
         }
 
         private void setDisplayName() {
@@ -79,7 +72,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
 
         @Override
         public Action[] getActions(boolean context) {
-            return CommonProjectActions.forType("ensosbtprj"); // NOI18N
+            return CommonProjectActions.forType(EnsoJavaActions.ID);
         }
     }
 

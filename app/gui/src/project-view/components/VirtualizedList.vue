@@ -5,13 +5,12 @@
  * The element provided by default slot is used for rendering elements. Only visible elements
  * are instantiated. See usage in ComponentList as an example.
  */
-
 import { listBindings } from '@/bindings'
 import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { cloneVNode, computed, h, ref, useCssModule, VNode, watch } from 'vue'
+import { cloneVNode, computed, h, ref, useCssModule, watch, type VNode } from 'vue'
 
 const selected = defineModel<number | null>('selected', { required: false, default: null })
 const {

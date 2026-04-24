@@ -77,6 +77,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   'graph.navigateUp': ['Mod+Shift+E'],
   'components.pickColorMulti': ['Mod+Shift+C'],
   'graph.openDocumentation': ['F1'],
+  'graph.deleteSelectedEdge': ['Delete', 'Backspace'],
 })
 
 export const visualizationBindings = defineKeybinds('visualization', {
@@ -89,6 +90,10 @@ export const gridBindings = defineKeybinds('grid', {
   'grid.cutCells': ['Mod+X'],
   'grid.copyCells': ['Mod+C'],
   'grid.pasteCells': ['Mod+V'],
+})
+
+export const commandPaletteBindings = defineKeybinds('command-palette', {
+  'commandPalette.open': ['Mod+K'],
 })
 
 // === Mouse bindings ===

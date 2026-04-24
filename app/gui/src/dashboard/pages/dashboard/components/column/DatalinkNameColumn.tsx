@@ -1,15 +1,17 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import { titleSchema, type DatalinkAsset } from '#/services/Backend'
+import { useRenameAsset } from '#/hooks/backendHooks'
+import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { isDoubleClick } from '#/utilities/event'
-import { merger } from '#/utilities/object'
-import { useRightPanelData } from '$/providers/react'
-import { useGetAssetChildren } from '../../../../layouts/Drive/assetsTableItemsHooks'
+import { useDriveCurrentBackend, useRightPanelData } from '$/providers/react/container'
+import { titleSchema, type DatalinkAsset } from 'enso-common/src/services/Backend'
+import { useStore } from 'zustand'
 
 /** Props for a {@link DatalinkNameColumn}. */
-export interface DatalinkNameColumnProps extends AssetColumnProps {
+export interface DatalinkNameColumnProps extends AssetNameColumnProps {
   readonly item: DatalinkAsset
 }
 
@@ -19,15 +21,22 @@ export interface DatalinkNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, rowState, setRowState, isEditable, renameAsset } = props
+  const { item, isEditable } = props
 
+  const backend = useDriveCurrentBackend()
   const getAssetChildren = useGetAssetChildren()
-
+  const renameAsset = useRenameAsset(backend)
   const rightPanel = useRightPanelData()
+  const driveStore = useDriveStore()
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditing) {
+      if (isEditable) {
+        driveStore.setState({ assetToRename: item.id })
+      }
+    } else {
+      driveStore.setState({ assetToRename: null })
     }
   }
 
@@ -40,7 +49,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     <div
       className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -53,14 +62,14 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     >
       <Icon icon="connector" className="m-name-column-icon" />
       <EditableSpan
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

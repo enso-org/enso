@@ -231,9 +231,10 @@ object Runtime {
       /** An object representing invalidation of a list of expressions.
         *
         * @param value a list of expressions to invalidate.
+        * @param reason human-readable explanation for invalidation
         */
       @named("expressions")
-      case class Expressions(value: Vector[ExpressionId])
+      case class Expressions(value: Vector[ExpressionId], reason: String)
           extends InvalidatedExpressions
     }
 
@@ -1419,10 +1420,6 @@ object Runtime {
         s"suggestions=${suggestions.map(_.toLogString(shouldMask))}" +
         ")"
     }
-
-    /** A notification about the finished background analyze job. */
-    @named("analyzeModuleInScopeJobFinished")
-    final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
     @named("invalidateModulesIndexRequest")

@@ -15,8 +15,6 @@ use winreg::enums::*;
 
 use crate::win::registry::create_subkey;
 
-
-
 /// A set of broad categories for file types hard-coded into Windows.
 ///
 /// See: https://learn.microsoft.com/en-us/windows/win32/api/shtypes/ne-shtypes-perceived
@@ -54,11 +52,11 @@ impl PerceivedType {
 #[derive(Clone, Debug)]
 pub struct FileExtension {
     /// The file extension including the leading dot, e.g. `.enso`.
-    pub extension:      String,
+    pub extension: String,
     /// The `ProgID` of the file type.
-    pub prog_id:        String,
+    pub prog_id: String,
     /// The MIME type of the file.
-    pub mime_type:      String,
+    pub mime_type: String,
     /// A broad category for the file type, e.g. `text`.
     pub perceived_type: PerceivedType,
 }
@@ -89,11 +87,11 @@ pub struct FileType {
     /// The absolute path to the application executable.
     pub application_path: PathBuf,
     /// The `ProgID` of the file type - a unique identifier for the file type.
-    pub prog_id:          String,
+    pub prog_id: String,
     /// The friendly name of the file type.
-    pub friendly_name:    String,
+    pub friendly_name: String,
     /// The text to display in the info popup when hovering over a file of this type.
-    pub info_tip:         String,
+    pub info_tip: String,
 }
 
 impl FileType {
@@ -134,11 +132,11 @@ pub fn delete(prog_id: &str) -> Result {
 #[derive(Debug)]
 pub struct ProtocolInfo {
     /// The protocol sheme name, e.g. `enso`.
-    pub protocol:     String,
+    pub protocol: String,
     /// The icon for the protocol.
-    pub icon:         crate::win::Icon,
+    pub icon: crate::win::Icon,
     /// The command to run when opening the protocol's URL.
-    pub command:      crate::win::PlainOpenCommand,
+    pub command: crate::win::PlainOpenCommand,
     /// Display name of the protocol.
     pub display_name: Option<String>,
 }

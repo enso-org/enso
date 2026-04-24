@@ -1,24 +1,28 @@
 /** @file A list of previous versions of an asset. */
-
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
-import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
-import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useBackends, useText } from '$/providers/react'
 import {
+  useContainerData,
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
-import { includes } from 'enso-common/src/utilities/data/array'
+import { includes } from '$/utils/data/array'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import type {
+  AnyAsset,
+  AssetVersions as AssetVersionsResponse,
+  DatalinkAsset,
+  FileAsset,
+  ProjectAsset,
+} from 'enso-common/src/services/Backend'
+import { AssetType, BackendType, S3ObjectVersionId } from 'enso-common/src/services/Backend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 
@@ -28,6 +32,11 @@ interface AddNewVersionVariables {
   readonly placeholderId: S3ObjectVersionId
 }
 
+/** Context stored while optimistically updating a version comment. */
+interface UpdateCommentMutationContext {
+  readonly previousVersions?: AssetVersionsResponse
+}
+
 /** Display a list of previous versions of an asset. */
 export function AssetVersions() {
   const { remoteBackend } = useBackends()
@@ -35,7 +44,7 @@ export function AssetVersions() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category == null || CATEGORY_BACKEND[category.type] !== BackendType.remote) {
     return (
       <Result
         status="info"
@@ -72,6 +81,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
 
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const queryClient = useQueryClient()
 
   const queryOptions = assetVersionsQueryOptions({ assetId: item.id, backend })
 
@@ -81,15 +91,19 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
       data.versions.map((version, index) => {
         const number = data.versions.length - index
         const title = getText('versionX', number)
+        const tags = [
+          ...(version.isLatest ? [getText('latestIndicator')] : []),
+          ...(version.tags ?? []),
+        ]
 
-        return { ...version, number, title }
+        return { ...version, number, title, tags }
       }),
   })
 
   const versions = versionsQuery.data
   const latestVersion = versions.find((version) => version.isLatest)
 
-  const openProjectLocally = useOpenProjectLocally()
+  const { openProjectLocally } = useContainerData()
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>
@@ -100,17 +114,58 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     meta: { invalidates: [queryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const duplicateProjectMutation = useMutation(copyAssetsMutationOptions(backend))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const updateCommentMutation = useMutation(
+    backendMutationOptions(backend, 'updateAsset', {
+      onMutate: async ([, { versionId, comment }]) => {
+        await queryClient.cancelQueries({ queryKey: queryOptions.queryKey })
+
+        const previousVersions = queryClient.getQueryData<AssetVersionsResponse>(
+          queryOptions.queryKey,
+        )
+
+        if (versionId != null) {
+          queryClient.setQueryData<AssetVersionsResponse>(
+            queryOptions.queryKey,
+            (currentVersions) => {
+              if (currentVersions == null) {
+                return currentVersions
+              }
+
+              return {
+                ...currentVersions,
+                versions: currentVersions.versions.map((version) =>
+                  version.versionId === versionId ?
+                    { ...version, comment: comment ?? undefined }
+                  : version,
+                ),
+              }
+            },
+          )
+        }
+
+        return { previousVersions }
+      },
+      onError: (error, _variables, onMutateResult) => {
+        const context = isUpdateCommentMutationContext(onMutateResult) ? onMutateResult : undefined
+        if (context?.previousVersions != null) {
+          queryClient.setQueryData(queryOptions.queryKey, context.previousVersions)
+        }
+        toastAndLog('updateAssetBackendError', error, item.title)
+      },
+    }),
+  )
 
   const doDuplicate = useEventCallback(async (options?: DuplicateOptions) => {
-    const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
-    const newAsset = newItem[0]?.asset
+    const newItem = await duplicateProjectMutation.mutateAsync([
+      item.id,
+      item.parentId,
+      options?.versionId,
+    ])
+    const newAsset = newItem.asset
 
-    if (options?.start === true && newAsset != null && item.type === AssetType.project) {
-      // This is SAFE because we know that the the new asset is a Project,
-      // because we can't create a duplicate with a different type.
-      /* eslint-disable-next-line no-restricted-syntax */
-      await openProjectLocally(newAsset as ProjectAsset, backend.type)
+    if (options?.start === true && newAsset.type === AssetType.project) {
+      openProjectLocally(newAsset, backend.type)
     }
   })
 
@@ -121,6 +176,14 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     }),
   )
 
+  const doUpdateComment = useEventCallback(async (version: Version, comment: string | null) => {
+    await updateCommentMutation.mutateAsync([
+      item.id,
+      { versionId: version.versionId, comment },
+      item.title,
+    ])
+  })
+
   if (versions.length === 0) {
     return <Result status="info" centered title={getText('noVersionsFound')} />
   }
@@ -130,7 +193,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   }
 
   return (
-    <div className="flex w-full flex-col ">
+    <div className="flex h-full w-full flex-col overflow-auto">
       {versions.map((version, index) => (
         <div key={version.versionId}>
           <AssetVersion
@@ -141,8 +204,12 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
             previousVersion={versions[index + 1]}
             doRestore={doRestore}
             doDuplicate={doDuplicate}
+            doUpdateComment={doUpdateComment}
+            isUpdatingComment={
+              updateCommentMutation.isPending &&
+              updateCommentMutation.variables[1].versionId === version.versionId
+            }
           />
-
           {index !== versions.length - 1 && <div className="ml-[3px] h-5 w-[0.5px] bg-primary" />}
         </div>
       ))}
@@ -150,9 +217,12 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   )
 }
 
-/**
- * Check if the asset is allowed to have versions.
- */
+/** Check if the asset is allowed to have versions. */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
   return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
+}
+
+/** Check whether a mutation context belongs to the version comment optimistic update. */
+function isUpdateCommentMutationContext(value: unknown): value is UpdateCommentMutationContext {
+  return typeof value === 'object' && value != null
 }

@@ -19,16 +19,16 @@ public class EqualsConversionsTest {
         ctxRule
             .evalModule(
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    Text.from (that:Number) = that.to_text
+                Text.from (that:Number) = that.to_text
 
-    main =
-        r0 = "4"+"2" == "42"
-        r1 = 42 == "42"
-        r2 = "42" == 42
-        [ r0, r1, r2 ]
-    """)
+                main =
+                    r0 = "4"+"2" == "42"
+                    r1 = 42 == "42"
+                    r2 = "42" == 42
+                    [ r0, r1, r2 ]
+                """)
             .as(List.class);
 
     assertTrue("strings are equal: " + results, (boolean) results.get(0));
@@ -80,12 +80,12 @@ public class EqualsConversionsTest {
     gen.numComparator = false;
     gen.extraBlock =
         """
-    type Second_Comparator
-        compare a:Num b:Num = Num_Comparator.compare a b
-        hash a:Num = Num_Comparator.hash a
+        type Second_Comparator
+            compare a:Num b:Num = Num_Comparator.compare a b
+            hash a:Num = Num_Comparator.hash a
 
-    Comparable.from (that:Num) = Comparable.new that Second_Comparator
-    """;
+        Comparable.from (that:Num) = Comparable.new that Second_Comparator
+        """;
     assertFalse("Num.Value not equal to Integer: ", gen.evaluate());
   }
 
@@ -132,31 +132,31 @@ public class EqualsConversionsTest {
           !intNumConversion
               ? ""
               : """
-          Num.from (that:Integer) = Num.Value that
-          """;
+              Num.from (that:Integer) = Num.Value that
+              """;
 
       var block2 =
           !numComparator
               ? ""
               : """
-          Comparable.from (that:Num) = Comparable.new that Num_Comparator
-          """;
+              Comparable.from (that:Num) = Comparable.new that Num_Comparator
+              """;
 
       var block3 =
           !intComparator
               ? ""
               : """
-      Comparable.from (that:Integer) = Comparable.new that Num_Comparator
-      """;
+              Comparable.from (that:Integer) = Comparable.new that Num_Comparator
+              """;
 
       var mainBlock =
           """
-      main =
-          num42 = Num.Value 42
+          main =
+              num42 = Num.Value 42
 
-          r0 = 42 == num42
-          r0
-      """;
+              r0 = 42 == num42
+              r0
+          """;
       var res = ctxRule.evalModule(block0 + block1 + block2 + block3 + mainBlock + extraBlock);
       return res.asBoolean();
     }

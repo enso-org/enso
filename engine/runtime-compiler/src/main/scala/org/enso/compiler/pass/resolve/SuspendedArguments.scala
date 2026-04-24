@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Empty,
@@ -22,6 +22,7 @@ import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.TypeSignatures.Signature
+import org.enso.persist.Persistance
 
 /** This pass is responsible for analysing type signatures to determine which
   * arguments in a function definition are suspended.
@@ -79,8 +80,8 @@ case object SuspendedArguments extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.copy(
-      bindings = ir.bindings.map(resolveModuleBinding)
+    ir.copyWithBindings(
+      ir.bindings.map(resolveModuleBinding)
     )
 
   /** Resolves suspended arguments in an arbitrary expression.
@@ -114,45 +115,54 @@ case object SuspendedArguments extends IRPass {
     binding match {
       case method: definition.Method.Conversion =>
         method.body match {
-          case lam @ Function.Lambda(args, body, _, _, _, _) =>
-            method.getMetadata(TypeSignatures) match {
+          case lam: Function.Lambda =>
+            val args = lam.arguments()
+            val body = lam.body()
+            method.getMetadata(
+              TypeSignatures,
+              classOf[TypeSignatures.Metadata]
+            ) match {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
-                  errors.Conversion(
+                  errors.Conversion.create(
                     method,
-                    errors.Conversion.SuspendedSourceArgument(
+                    new errors.Conversion.SuspendedSourceArgument(
                       newArgs.head.name.name
                     )
                   )
                 } else {
-                  method.copy(body =
-                    lam.copy(
-                      arguments = args.head :: newArgs,
-                      body      = resolveExpression(body)
+                  method
+                    .copyBuilder()
+                    .body(
+                      lam.copyWithArgumentsAndBody(
+                        args.head :: newArgs,
+                        resolveExpression(body)
+                      )
                     )
-                  )
+                    .build()
                 }
               case None =>
                 args match {
                   case _ :: Nil =>
-                    errors.Conversion(
+                    errors.Conversion.create(
                       method,
-                      errors.Conversion.SuspendedSourceArgument(
+                      new errors.Conversion.SuspendedSourceArgument(
                         "unknown"
                       )
                     )
                   case _ :: sourceArg :: _ if sourceArg.suspended =>
-                    errors.Conversion(
+                    errors.Conversion.create(
                       method,
-                      errors.Conversion.SuspendedSourceArgument(
+                      new errors.Conversion.SuspendedSourceArgument(
                         sourceArg.name.name
                       )
                     )
                   case _ =>
-                    method.copy(
-                      body = lam.copy(body = resolveExpression(body))
-                    )
+                    method
+                      .copyBuilder()
+                      .body(lam.copyWithBody(resolveExpression(body)))
+                      .build()
                 }
             }
           case _ =>
@@ -160,26 +170,41 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case explicit @ definition.Method.Explicit(_, body, _, _, _) =>
-        body match {
-          case lam @ Function.Lambda(args, lamBody, _, _, _, _) =>
-            explicit.getMetadata(TypeSignatures) match {
+      case explicit: definition.Method.Explicit =>
+        explicit.body() match {
+          case lam: Function.Lambda =>
+            val args    = lam.arguments()
+            val lamBody = lam.body()
+            explicit.getMetadata(
+              TypeSignatures,
+              classOf[TypeSignatures.Metadata]
+            ) match {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(
                   args.drop(1),
                   signature
                 )
 
-                explicit.copy(body =
-                  lam.copy(
-                    arguments = args.head :: newArgs,
-                    body      = resolveExpression(lamBody)
+                explicit
+                  .copyBuilder()
+                  .bodyReference(
+                    Persistance.Reference.of(
+                      lam.copyWithArgumentsAndBody(
+                        args.head :: newArgs,
+                        resolveExpression(lamBody)
+                      )
+                    )
                   )
-                )
+                  .build()
               case None =>
-                explicit.copy(
-                  body = lam.copy(body = resolveExpression(lamBody))
-                )
+                explicit
+                  .copyBuilder()
+                  .bodyReference(
+                    Persistance.Reference.of(
+                      lam.copyWithBody(resolveExpression(lamBody))
+                    )
+                  )
+                  .build()
             }
           case _ =>
             throw new CompilerError(
@@ -213,29 +238,37 @@ case object SuspendedArguments extends IRPass {
     */
   private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
-      case bind @ Expression.Binding(_, expr, _, _) =>
-        val newExpr = bind.getMetadata(TypeSignatures) match {
+      case bind: Expression.Binding =>
+        val newExpr = bind.getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) match {
           case Some(Signature(signature, _)) =>
-            expr match {
-              case lam @ Function.Lambda(args, body, _, _, _, _) =>
-                lam.copy(
-                  arguments = computeSuspensions(args, signature),
-                  body      = resolveExpression(body)
+            bind.expression() match {
+              case lam: Function.Lambda =>
+                lam.copyWithArgumentsAndBody(
+                  computeSuspensions(lam.arguments(), signature),
+                  resolveExpression(lam.body())
                 )
-              case _ => expr
+              case _ => bind.expression()
             }
-          case None => expr
+          case None => bind.expression()
         }
 
-        bind.copy(expression = newExpr)
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
-        lam.getMetadata(TypeSignatures) match {
+        bind.copyBuilder().expression(newExpr).build()
+      case lam: Function.Lambda =>
+        val args = lam.arguments()
+        val body = lam.body()
+        lam.getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) match {
           case Some(Signature(signature, _)) =>
-            lam.copy(
-              arguments = computeSuspensions(args, signature),
-              body      = resolveExpression(body)
+            lam.copyWithArgumentsAndBody(
+              computeSuspensions(args, signature),
+              resolveExpression(body)
             )
-          case None => lam.copy(body = resolveExpression(body))
+          case None => lam.copyWithBody(resolveExpression(body))
         }
 
     }
@@ -251,8 +284,8 @@ case object SuspendedArguments extends IRPass {
     */
   private def toSegments(signature: Expression): List[Expression] = {
     signature match {
-      case Type.Function(args, ret, _, _) => args :+ ret
-      case _                              => List(signature)
+      case fn: Type.Function => fn.args() :+ fn.result()
+      case _                 => List(signature)
     }
   }
 
@@ -264,8 +297,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: Expression): Boolean = {
     value match {
-      case Name.Literal("Suspended", _, _, _, _) => true
-      case _                                     => false
+      case nm: Name.Literal => nm.name == "Suspended"
+      case _                => false
     }
   }
 

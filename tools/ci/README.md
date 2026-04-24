@@ -30,38 +30,6 @@ docker run -it --rm \
   runtime:latest
 ```
 
-# Ydoc Docker
-
-## Build Node.js container
-
-To build a Node.js-based Ydoc, you need to first ensure that you have the
-distributable sources:
-
-```bash
-pnpm -r compile
-```
-
-the resulting artifacts are located in `app/ydoc-server-nodejs/dist` directory.
-Having the right Node.js sources in place, one can now build the docker image:
-
-```bash
-docker build -t ydoc-server-nodejs:latest -f tools/ci/docker/ydoc-server-nodejs/Dockerfile --build-context docker-tools=tools/ci/docker/ydoc-server-nodejs app/ydoc-server-nodejs
-```
-
-## Build Native Image container
-
-Build the Native Image:
-
-```bash
-sbt ydoc-server/buildNativeImage
-```
-
-Build the Docker image:
-
-```bash
-docker build -t ydoc-server-polyglot:latest --build-context native-image=lib/java/ydoc-server/target/native-image tools/ci/docker/ydoc-server-polyglot
-```
-
 ## Running
 
 Both images `ydoc-server-nodejs` and `ydoc-server-polyglot` are started the same

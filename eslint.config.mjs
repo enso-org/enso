@@ -157,11 +157,6 @@ const RESTRICTED_SYNTAXES = [
     message: 'Use a `getText()` from `useText` instead of a literal string',
   },
   {
-    selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
-    message:
-      'Use `tv` from `#/utilities/tailwindVariants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
-  },
-  {
     selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
     message: 'Use `Button` or `UnstyledButton` instead of `button`',
   },
@@ -190,11 +185,16 @@ const config = [
       '**/generated',
       '**/*.json',
       'app/rust-ffi/pkg/',
+      'app/electron-client/electron-builder-config.cjs',
     ],
   },
   {
     // Based on a 3rd party library that doesn't use ESLint.
     ignores: ['app/lang-markdown/', 'app/lezer-markdown/'],
+  },
+  {
+    // Template/documentation file, not actual code.
+    ignores: ['app/gui/templates/visualization.vue'],
   },
   eslintJs.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
@@ -213,10 +213,15 @@ const config = [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
+            'git-clean.mjs',
             'eslint.config.mjs',
-            // 'app/ydoc-server/vitest.config.ts',
-            'app/ydoc-shared/vitest.config.ts',
+            'internal/envReplacer.mjs',
+            'internal/workspaceStatus.mjs',
+            'app/vitest.node.base.ts',
+            'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
+            'app/electron-client/electron-builder-config.cjs',
+            'app/gui/scripts/generateIconMetadata.mjs',
           ],
         },
       },
@@ -242,6 +247,11 @@ const config = [
               name: 'vue',
               importNames: ['proxyRefs'],
               message: 'Use more type-safe alternative in @/util/reactivity',
+            },
+            {
+              name: 'veaury',
+              importNames: ['applyReactInVue', 'applyPureReactInVue'],
+              message: 'Use `reactComponent` in @/util/react',
             },
           ],
         },
@@ -481,7 +491,6 @@ const config = [
       '@typescript-eslint/require-array-sort-compare': ['error', { ignoreStringArrays: true }],
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/sort-type-constituents': 'error',
-      '@typescript-eslint/strict-boolean-expressions': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': [
         'error',
         { allowDefaultCaseForExhaustiveSwitch: true },
@@ -553,6 +562,27 @@ const config = [
       '@typescript-eslint/no-var-requires': 'off',
       // Parameter types must be specified using JSDoc in JS files.
       'jsdoc/no-types': 'off',
+    },
+  },
+  {
+    files: [
+      'app/electron-client/esbuild.config.mjs',
+      'app/electron-client/export-config.mjs',
+      'app/electron-client/macos/*.cjs',
+      'app/electron-client/macos/*.mjs',
+      'app/electron-client/macos/lib/*.mjs',
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'jsdoc/require-jsdoc': 'off',
     },
   },
   {

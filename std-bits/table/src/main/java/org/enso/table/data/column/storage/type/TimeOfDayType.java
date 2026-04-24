@@ -7,17 +7,19 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record TimeOfDayType() implements StorageType<LocalTime> {
+public final class TimeOfDayType implements StorageType<LocalTime> {
   public static final TimeOfDayType INSTANCE = new TimeOfDayType();
 
+  private TimeOfDayType() {}
+
   @Override
-  public boolean isNumeric() {
-    return false;
+  public char typeChar() {
+    return 'W';
   }
 
   @Override
-  public boolean hasDate() {
-    return false;
+  public String ensoConstructorName() {
+    return "Time";
   }
 
   @Override
@@ -44,7 +46,7 @@ public record TimeOfDayType() implements StorageType<LocalTime> {
 
   @Override
   public ColumnStorage<LocalTime> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TimeOfDayType) {
+    if (StorageType.ofStorage(storage) instanceof TimeOfDayType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<LocalTime>) storage;
       return output;

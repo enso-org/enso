@@ -5,6 +5,10 @@
     - * self factor:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - + self other_period:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - - self other_period:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - between start_date_inclusive:Standard.Base.Any.Any end_date_exclusive:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - days self -> Standard.Base.Any.Any
     - months self -> Standard.Base.Any.Any

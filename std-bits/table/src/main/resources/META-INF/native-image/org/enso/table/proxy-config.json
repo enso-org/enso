@@ -16,6 +16,11 @@
     },
     {
         "interfaces": [
+            "org.enso.table.data.column.storage.ColumnStorage"
+        ]
+    },
+    {
+        "interfaces": [
             "org.enso.table.util.FunctionWithException"
         ]
     }

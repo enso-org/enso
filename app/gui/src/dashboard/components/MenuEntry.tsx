@@ -9,83 +9,47 @@ import FocusRing from '#/components/styled/FocusRing'
 import { Text, type TextProps } from '#/components/Text'
 import { useVisualTooltip } from '#/components/VisualTooltip'
 import type * as inputBindings from '#/configurations/inputBindings'
-import type { PaywallFeatureName } from '#/hooks/billing'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
+import type { PaywallFeatureName } from '$/composables/paywall'
 import { useText } from '$/providers/react'
-import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
-  base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
+  base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active',
   variants: {
     variant: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'context-menu': 'px-context-menu-entry-x',
     },
+    hasHoverBackground: {
+      true: 'group-enabled:hover:bg-hover-bg',
+    },
+  },
+  defaultVariants: {
+    hasHoverBackground: true,
   },
 })
 
 /** Get {@link text.TextId} for given shortcut action. */
-// All entries are intentionally hard-coded so that `Ctrl+F` will work.
 // eslint-disable-next-line react-refresh/only-export-components
-export const ACTION_TO_TEXT_ID: Readonly<
-  Record<
-    inputBindings.DashboardBindingKey,
-    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
-  >
-> = {
-  settings: 'settingsShortcut',
-  open: 'openShortcut',
-  run: 'runShortcut',
-  close: 'closeShortcut',
-  uploadToCloud: 'uploadToCloudShortcut',
-  downloadToLocal: 'downloadToLocalShortcut',
-  rename: 'renameShortcut',
-  edit: 'editShortcut',
-  delete: 'deleteShortcut',
-  undelete: 'undeleteShortcut',
-  share: 'shareShortcut',
-  label: 'labelShortcut',
-  duplicate: 'duplicateShortcut',
-  copy: 'copyShortcut',
-  copyAsPath: 'copyAsPathShortcut',
-  cut: 'cutShortcut',
-  paste: 'pasteShortcut',
-  download: 'downloadShortcut',
-  uploadFiles: 'uploadFilesShortcut',
-  newProject: 'newProjectShortcut',
-  newFolder: 'newFolderShortcut',
-  newDatalink: 'newDatalinkShortcut',
-  newSecret: 'newSecretShortcut',
-  newCredential: 'newCredentialShortcut',
-  useInNewProject: 'useInNewProjectShortcut',
-  closeModal: 'closeModalShortcut',
-  cancelEditName: 'cancelEditNameShortcut',
-  signOut: 'signOutShortcut',
-  downloadApp: 'downloadAppShortcut',
-  cancelCut: 'cancelCutShortcut',
-  selectAdditional: 'selectAdditionalShortcut',
-  selectRange: 'selectRangeShortcut',
-  selectAdditionalRange: 'selectAdditionalRangeShortcut',
-  goBack: 'goBackShortcut',
-  goForward: 'goForwardShortcut',
-  upgradePlan: 'upgradePlanShortcut',
-  aboutThisApp: 'aboutThisAppShortcut',
-  openInFileBrowser: 'openInFileBrowserShortcut',
-  ensoDevtools: 'ensoDevtoolsShortcut',
-  copyId: 'copyIdShortcut',
-} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
+export function actionToTextId(action: inputBindings.DashboardBindingKey): text.TextId {
+  return `${action}Shortcut`
+}
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
+  readonly picture?: JSX.Element
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
+  readonly truncateLabel?: boolean | undefined
   readonly tooltip?: string | null | undefined
   /** When true, the button is not clickable. */
   readonly isDisabled?: boolean | undefined
@@ -93,6 +57,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
   readonly isUnderPaywall?: boolean
+  readonly isSelected?: boolean
   readonly feature?: PaywallFeatureName
 }
 
@@ -105,6 +70,8 @@ export default function MenuEntry(props: MenuEntryProps) {
     title,
     doAction,
     icon: iconRaw,
+    picture,
+    truncateLabel = false,
     tooltip: tooltipValueRaw,
     color,
     isUnderPaywall = false,
@@ -121,17 +88,12 @@ export default function MenuEntry(props: MenuEntryProps) {
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
 
-  const labelTextId: text.TextId = (() => {
-    if (action === 'openInFileBrowser') {
-      return (
-        detect.isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
-        : detect.isOnWindows() ? 'openInFileBrowserShortcutWindows'
-        : 'openInFileBrowserShortcut'
-      )
-    } else {
-      return ACTION_TO_TEXT_ID[action]
-    }
-  })()
+  const labelTextId: text.TextId =
+    action === 'openInFileBrowser' ?
+      detect.isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
+      : detect.isOnWindows() ? 'openInFileBrowserShortcutWindows'
+      : 'openInFileBrowserShortcut'
+    : actionToTextId(action)
 
   const { tooltip, targetProps } = useVisualTooltip({
     isDisabled: tooltipValue == null,
@@ -165,14 +127,26 @@ export default function MenuEntry(props: MenuEntryProps) {
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
             <div
               title={title}
-              className="flex items-center gap-menu-entry whitespace-nowrap"
+              className={twMerge(
+                'flex min-w-0 items-center gap-menu-entry whitespace-nowrap',
+                truncateLabel && 'w-0 flex-1',
+              )}
               style={{ color: info.color }}
             >
-              <Icon
-                icon={icon ?? info.icon ?? BlankIcon}
-                className={info.color != null ? undefined : 'text-primary'}
-              />
-              <Text color={color} slot="label">
+              {picture === undefined && (
+                <Icon
+                  icon={icon ?? info.icon ?? BlankIcon}
+                  className={info.color != null ? undefined : 'text-primary'}
+                />
+              )}
+              {picture}
+              <Text
+                color={color}
+                slot="label"
+                className={truncateLabel ? 'min-w-0 flex-1' : undefined}
+                truncate={truncateLabel ? '1' : undefined}
+                disableLineHeightCompensation={truncateLabel}
+              >
                 {label ?? getText(labelTextId)}
               </Text>
             </div>

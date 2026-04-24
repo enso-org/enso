@@ -4,6 +4,8 @@ module org.enso.akka.wrapper {
   requires org.reactivestreams;
   // For sun.misc.Unsafe - from akka.util.Unsafe
   requires jdk.unsupported;
+  requires java.logging;
+  requires java.naming;
   requires org.slf4j;
 
   // akka-actor

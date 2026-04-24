@@ -1,7 +1,7 @@
 /** @file Utilities for manipulating and displaying dates and times. */
 import { ZonedDateTime, getDayOfWeek } from '@internationalized/date'
-import type { TextId } from '../../text'
-import { type Newtype, newtypeConstructor } from './newtype'
+import type { TextId } from '../../text.js'
+import { newtypeConstructor, type Newtype } from './newtype.js'
 
 // 0 = Monday. Use `en-US` for 0 = Sunday.
 const DAY_OF_WEEK_LOCALE = 'en-GB'
@@ -433,7 +433,6 @@ export const WHITELISTED_TIME_ZONE_INFO = [
   { timeZone: 'Pacific/Chuuk', description: 'Chuuk' },
   { timeZone: 'Pacific/Saipan', description: 'Saipan' },
   { timeZone: 'Pacific/Port_Moresby', description: 'Guam, Port Moresby' },
-  { timeZone: 'Australia/LHI', description: 'Lord Howe Island' },
   { timeZone: 'Australia/Lord_Howe', description: 'Lord Howe Island' },
   { timeZone: 'Asia/Sakhalin', description: 'Sakhalin' },
   { timeZone: 'Asia/Srednekolymsk', description: 'Srednekolymsk' },

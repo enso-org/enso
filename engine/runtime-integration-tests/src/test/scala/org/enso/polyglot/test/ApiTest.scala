@@ -27,6 +27,7 @@ class ApiTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
         Paths.get("../../distribution/component").toFile.getAbsolutePath
       )
+      .option(RuntimeOptions.CHECK_CWD, "false")
       .out(out)
       .err(out)
       .logHandler(out)

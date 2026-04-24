@@ -6,8 +6,10 @@ import java.util.List;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.common.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
+import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
@@ -154,8 +156,9 @@ abstract class TypePropagation {
           }
           case Function.Lambda f -> processLambda(f, localBindingsTyping);
           case Literal l -> processLiteral(l);
-          case Application.Sequence sequence -> BuiltinTypes.VECTOR;
+          case Application.Sequence _ -> BuiltinTypes.VECTOR;
           case Case.Expr caseExpr -> processCaseExpression(caseExpr, localBindingsTyping);
+          case Empty _ -> BuiltinTypes.NOTHING;
           default -> {
             logger.trace(
                 "type propagation: UNKNOWN branch: {}", expression.getClass().getCanonicalName());
@@ -244,13 +247,13 @@ abstract class TypePropagation {
 
   private TypeRepresentation processLiteral(Literal literal) {
     return switch (literal) {
-      case Literal.Number number -> number.isFractional()
-          ? BuiltinTypes.FLOAT
-          : BuiltinTypes.INTEGER;
+      case Literal.Number number ->
+          number.isFractional() ? BuiltinTypes.FLOAT : BuiltinTypes.INTEGER;
       case Literal.Text text -> BuiltinTypes.TEXT;
-        // This branch is needed only because Java is unable to infer that the match is exhaustive
-      default -> throw new IllegalStateException(
-          "Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
+      // This branch is needed only because Java is unable to infer that the match is exhaustive
+      default ->
+          throw new IllegalStateException(
+              "Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
     };
   }
 
@@ -355,8 +358,13 @@ abstract class TypePropagation {
       Application.Prefix relatedIR,
       LocalBindingsTyping localBindingsTyping) {
     if (argument.name().isDefined()) {
-      // TODO named arguments are not yet supported
-      return null;
+      var isSelf = ConstantsNames.SELF_ARGUMENT.equals(argument.name().get().name());
+      if (!isSelf) {
+        // TODO named arguments are not yet supported
+        return null;
+      } else {
+        // static invocation syntax is supported
+      }
     }
 
     switch (functionType) {
@@ -370,7 +378,11 @@ abstract class TypePropagation {
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
         return processUnresolvedSymbolApplication(
-            unresolvedSymbol, argument.value(), localBindingsTyping, relatedIR);
+            unresolvedSymbol,
+            argument.value(),
+            isStaticMethodInvocation(relatedIR),
+            localBindingsTyping,
+            relatedIR);
       }
 
       default -> {
@@ -399,6 +411,7 @@ abstract class TypePropagation {
   private TypeRepresentation processUnresolvedSymbolApplication(
       TypeRepresentation.UnresolvedSymbol function,
       Expression argument,
+      boolean isStaticMethodInvocation,
       LocalBindingsTyping localBindingsTyping,
       IR relatedWholeApplicationIR) {
     var argumentType = tryInferringType(argument, localBindingsTyping);
@@ -421,16 +434,23 @@ abstract class TypePropagation {
             }
           }
 
-          // Then we resolve the _static_ `method` on the `Type` - by looking at the eigen type.
-          // We resolve static calls on the eigen type. It should also contain registrations of the
-          // static variants of member methods, so we don't need to inspect member scope.
-          var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          TypeScopeReference staticScope;
+          if (isStaticMethodInvocation) {
+            staticScope = TypeScopeReference.atomType(typeObject.name());
+          } else {
+            staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          }
           var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
           if (resolvedStaticMethod == null) {
             encounteredNoSuchMethod(
                 relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
           }
-          return resolvedStaticMethod;
+          if (isStaticMethodInvocation) {
+            var withSelf = TypeRepresentation.buildStaticMethod(typeObject, resolvedStaticMethod);
+            return withSelf;
+          } else {
+            return resolvedStaticMethod;
+          }
         }
       }
 
@@ -468,8 +488,8 @@ abstract class TypePropagation {
         return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
       }
 
-        // This is not calling this function, instead it is calling the _method_ represented by the
-        // UnresolvedSymbol on this Function object.
+      // This is not calling this function, instead it is calling the _method_ represented by the
+      // UnresolvedSymbol on this Function object.
       case TypeRepresentation.ArrowType functionAsObject -> {
         var typeScope = TypeScopeReference.atomType(functionAsObject.getAssociatedType());
         var resolvedMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
@@ -491,6 +511,23 @@ abstract class TypePropagation {
     assert !name.isEmpty();
     char firstCharacter = name.charAt(0);
     return Character.isUpperCase(firstCharacter);
+  }
+
+  /**
+   * @see <a
+   *     href="https://github.com/enso-org/enso/tree/8c14901627d4d716a67da95d210c7b60f89d30b2/docs/types/dynamic-dispatch.md#static-method-invocation">static
+   *     method invocation specification</a>
+   */
+  private static boolean isStaticMethodInvocation(Application.Prefix applicationIR) {
+    if (applicationIR.arguments().length() >= 2) {
+      var secondArg = applicationIR.arguments().apply(1);
+      return isNamedSelfArgument(secondArg);
+    }
+    return false;
+  }
+
+  private static boolean isNamedSelfArgument(CallArgument arg) {
+    return arg.name().isDefined() && arg.name().get().name().equals(ConstantsNames.SELF_ARGUMENT);
   }
 
   private TypeRepresentation resolveConstructorOnType(
@@ -541,7 +578,7 @@ abstract class TypePropagation {
     }
 
     @Override
-    protected TypeRepresentation resolveLocalName(LinkInfo localLink) {
+    protected TypeRepresentation resolveLocalName(String name, LinkInfo localLink) {
       return localBindingsTyping.getBindingType(localLink.graph, localLink.link.target());
     }
 
@@ -556,8 +593,8 @@ abstract class TypePropagation {
 
         case BindingsMap.ResolvedType tpe -> typeResolver.resolvedTypeAsTypeObject(tpe);
 
-        case BindingsMap.ResolvedModule mod -> new TypeRepresentation.ModuleReference(
-            mod.qualifiedName());
+        case BindingsMap.ResolvedModule mod ->
+            new TypeRepresentation.ModuleReference(mod.qualifiedName());
 
         default -> {
           logger.trace(

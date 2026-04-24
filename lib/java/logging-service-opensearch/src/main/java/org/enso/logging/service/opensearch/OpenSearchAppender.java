@@ -2,14 +2,13 @@ package org.enso.logging.service.opensearch;
 
 import java.net.URI;
 import java.util.concurrent.ThreadPoolExecutor;
-import org.enso.logging.service.AuthenticationData;
-import org.enso.logging.service.LogJobsProcessor;
-import org.enso.logging.service.TokenRefresher;
+import org.enso.logging.service.common.AuthenticationData;
+import org.enso.logging.service.common.LogJobsProcessor;
+import org.enso.logging.service.common.RemoteAppender;
+import org.enso.logging.service.common.TokenRefresher;
 import org.slf4j.LoggerFactory;
 
-@org.openide.util.lookup.ServiceProvider(
-    service = org.enso.logging.service.logback.AbstractRemoteAppender.class)
-public final class OpenSearchAppender extends org.enso.logging.service.RemoteAppender {
+public final class OpenSearchAppender extends RemoteAppender {
 
   public OpenSearchAppender() {
     super(LoggerFactory.getLogger(OpenSearchAppender.class));

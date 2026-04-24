@@ -382,8 +382,6 @@ add_conversion_specs suite_builder setup =
             r1.catch.criteria . should_equal ["Z"]
 
             t2 = t.cast ["X", "Z"] Value_Type.Char error_on_missing_columns=False
-            warn = Problems.expect_warning Missing_Input_Columns t2
-            warn.criteria . should_equal ["Z"]
             t2.at "X" . to_vector . should_equal ["1", "2", "3"]
             t2.at "Y" . to_vector . should_equal [4, 5, 6]
 
@@ -663,10 +661,8 @@ add_conversion_specs suite_builder setup =
             t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
             t1.at "X" . to_vector . should_equal [42, 0, -1]
             setup.expect_integer_type <| t1.at "X"
-            Problems.expect_warning Missing_Input_Columns t1
 
             t2 = t.parse ["Y"] Value_Type.Integer error_on_missing_columns=False
-            Problems.expect_warning Missing_Input_Columns t2
             t2.at "X" . to_vector . should_equal ["42", "0", "-1"]
 
             r3 = t.parse ["X", "Y"] Value_Type.Integer

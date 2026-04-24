@@ -1,11 +1,11 @@
 import { createGlobalState } from '@vueuse/core'
 import { reactive, ref, watch } from 'vue'
-import { LocationQueryValue, type Router, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, type LocationQueryValue, type Router } from 'vue-router'
 
 /** Query Params store. See {@link useQueryParams}. */
 export type QueryParams = ReturnType<typeof createQueryParams>
 
-/** Crete Query Params store. See {@link useQueryParams}. */
+/** Create Query Params store. See {@link useQueryParams}. */
 export function createQueryParams(
   router: Pick<Router, 'push' | 'replace'> = useRouter(),
   route: Pick<ReturnType<typeof useRoute>, 'query'> = useRoute(),

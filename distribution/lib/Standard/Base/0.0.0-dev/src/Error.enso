@@ -1,10 +1,12 @@
 import project.Any.Any
 import project.Data.Maybe.Maybe
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Meta
+import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
@@ -39,16 +41,14 @@ type Error
        ```
              Error.throw "Oops"
        ```
-    throw : Any -> Error
-    throw payload = @Builtin_Method "Error.throw"
+    throw payload -> Error = @Builtin_Method "Error.throw"
 
     ## ---
        private: true
        unstable: true
        ---
        Returns a textual representation of the stack trace attached to an error.
-    get_stack_trace_text : Text
-    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
+    get_stack_trace_text self -> Text = error_stack_trace_text self
 
     ## ---
        private: true
@@ -61,8 +61,7 @@ type Error
        ```
              Error.throw "foo" . to_text
        ```
-    to_text : Text
-    to_text self = @Builtin_Method "Error.to_text"
+    to_text self -> Text = error_to_text self
 
     ## ---
        private: true
@@ -209,18 +208,34 @@ type Error
 
     ## ---
        private: true
-       advanced: true
        ---
-       Returns the provided `other` value, unless `self` is an error.
+       A function that will cause an error to be thrown in a Java style
+    return_if_error : Any -> Nothing
+    return_if_error flag =
+        if flag.is_error then flag
+        Nothing
+
+    ## ---
+       advanced: true
+       icon: warning
+       ---
+       Returns the provided `passthru` value, unless `self` is an error.
 
        The primary application of this function is to introduce a dataflow
        dependency between two otherwise unrelated operations. Very useful if one
        of the operations is performing a side-effect.
+
        Aside from ensuring that any dataflow errors are propagated, the result
        will also inherit any warnings attached to any of the two inputs.
 
        ## Arguments
-        - `other`: The value to return if `self` is not an error.
+        - `passthru`: The value to return if `self` is not an error.
+
+       ## Returns
+       `passthru` if `self` is not an error; otherwise, returns the error.
+
+       ## Returns
+       `passthru` if `self` is not an error; otherwise, returns the error.
 
        ## Examples
        ### Writing to a file and returning the file object if all went well, or an
@@ -230,8 +245,8 @@ type Error
              file.write "foo" . if_not_error file
        ```
     if_not_error : Any -> Any
-    if_not_error self ~other =
-        const self other
+    if_not_error self ~passthru =
+        const self passthru
 
 ## ---
    private: true
@@ -248,3 +263,111 @@ look_for_wrapped_error error_type=Any error_value =
             Maybe.None -> Maybe.None
             Maybe.Some inner_error ->
                 @Tail_Call look_for_wrapped_error error_type inner_error
+
+## ---
+   group: Errors
+   icon: error
+   ---
+   Executes the provided handler on an error, or returns the value unchanged.
+
+   ## Arguments
+   - `error_type`: The type of error to handle. Defaults to `Any` to handle
+      all errors.
+   - `handler`: The function to call on this if it is an error value of a
+      matching type. By default this is identity.
+
+   ## Examples
+   ### Catching an `Illegal_Argument` and returning its message.
+
+   ```
+         from Standard.Base import all
+
+         example_catch =
+            error = Error.throw (Illegal_Argument.Error "My message")
+            error.catch Illegal_Argument (err -> err.message)
+   ```
+
+   ### Catching any dataflow error and turning it into a regular value.
+
+   ```
+         from Standard.Base import all
+
+         example_catch =
+            error = Error.throw 42
+            error.catch == 42
+   ```
+Any.catch : Any -> (Error -> Any) -> Any
+Any.catch self (error_type = Any) (handler = x->x) =
+   self.catch_primitive error_value->
+      case error_value.is_a error_type of
+            True -> handler error_value
+            False -> self
+
+## ---
+   icon: column_add
+   ---
+   Transforms an error.
+
+   If `self` is a non-error value it is returned unchanged. However, if
+   `self` is an error, the error is transformed using the provided function.
+
+   ## Arguments
+   - `f`: The function used to transform the error.
+
+   ## Examples
+   ### Transforming an error value to provide more information.
+
+   ```
+         from Standard.Base import all
+         from Standard.Examples import Example_Error_Type
+
+         example_map_error =
+            my_dictionary = Dictionary.empty
+            error = my_dictionary.at "x"
+            error.map_error (_ -> Example_Error_Type "x is missing")
+   ```
+Any.map_error : (Error -> Error) -> Any
+Any.map_error self ~f =
+   const self f
+
+## ---
+   group: Errors
+   icon: error
+   ---
+   Checks if `self` is an error.
+
+   ## Examples
+   ### Checking if the provided value is an error.
+
+   ```
+         1.is_error
+   ```
+Any.is_error self -> Boolean = False
+
+## ---
+   advanced: true
+   icon: warning
+   ---
+   Returns the provided `passthru` value, unless `self` is an error.
+
+   The primary application of this function is to introduce a dataflow
+   dependency between two otherwise unrelated operations. Very useful if one
+   of the operations is performing a side-effect.
+
+   Aside from ensuring that any dataflow errors are propagated, the result
+   will also inherit any warnings attached to any of the two inputs.
+
+   ## Arguments
+   - `passthru`: The value to return if `self` is not an error.
+
+   ## Returns
+   `passthru` if `self` is not an error; otherwise, returns the error.
+
+   ## Examples
+   ### Writing to a file and returning the file object if all went well, or an
+   error if it failed.
+
+   ```
+         file.write "foo" . if_not_error file
+   ```
+Any.if_not_error self ~passthru = passthru

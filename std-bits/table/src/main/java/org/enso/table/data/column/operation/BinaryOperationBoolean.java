@@ -72,7 +72,8 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     boolean rightIsNothing = rightValue == null;
     boolean rightBoolean = !rightIsNothing && (boolean) rightValue;
 
-    if (left.getType() instanceof NullType) {
+    var leftType = StorageType.ofStorage(left);
+    if (leftType instanceof NullType) {
       return applySpecializedMapOverNullStorage(
           left, rightBoolean, rightIsNothing, problemAggregator);
     }
@@ -89,7 +90,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     return StorageIterators.buildOverBooleanStorage(
         BooleanType.INSTANCE.asTypedStorage(left),
         preserveNulls,
-        makeStorageBuilder(left.getSize(), left.getType(), BooleanType.INSTANCE, problemAggregator),
+        makeStorageBuilder(left.getSize(), leftType, BooleanType.INSTANCE, problemAggregator),
         (b, index, value, isNothing) -> {
           Boolean result = applySingle(value, isNothing, rightBoolean, rightIsNothing);
           if (result == null) {
@@ -112,11 +113,8 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       return true;
     }
 
-    var rightType = right.getType();
-    return switch (rightType) {
-      case NullType nt -> true;
-      case BooleanType bt -> true;
-      case AnyObjectType ay -> true;
+    return switch (StorageType.ofStorage(right)) {
+      case NullType _, BooleanType _, AnyObjectType _ -> true;
       default -> false;
     };
   }
@@ -128,11 +126,13 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       MapOperationProblemAggregator problemAggregator) {
     assert canApplyZip(left, right);
 
-    if (right.getType() instanceof NullType) {
+    var rightType = StorageType.ofStorage(right);
+    if (rightType instanceof NullType) {
       return applyMap(left, null, problemAggregator);
     }
 
-    if (left.getType() instanceof NullType) {
+    var leftType = StorageType.ofStorage(left);
+    if (leftType instanceof NullType) {
       return applySpecializedZipOverNullStorage(left, right, problemAggregator);
     }
 
@@ -145,7 +145,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       }
     }
 
-    if (!BooleanType.INSTANCE.isOfType(right.getType())) {
+    if (!BooleanType.INSTANCE.isOfType(rightType)) {
       // Have a mismatch in types (could be AnyObjectType)
       return StorageIterators.zipOverStorages(
           BooleanType.INSTANCE.asTypedStorage(left),
@@ -165,7 +165,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     return StorageIterators.zipOverBooleanStorages(
         BooleanType.INSTANCE.asTypedStorage(left),
         BooleanType.INSTANCE.asTypedStorage(right),
-        s -> makeStorageBuilder(s, left.getType(), right.getType(), problemAggregator),
+        s -> makeStorageBuilder(s, leftType, rightType, problemAggregator),
         preserveNulls,
         (index, value, isNothing, rightValue, rightIsNothing) ->
             applySingle(value, isNothing, rightValue, rightIsNothing));

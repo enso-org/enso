@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.common.CachePreferences
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.CallArgument.Specified
 import org.enso.compiler.core.{CompilerError, ExternalID}
 import org.enso.compiler.core.ir.{
@@ -20,6 +20,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.desugar._
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -56,8 +57,9 @@ case object CachePreferenceAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val weights = WeightInfo()
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
-      .updateMetadata(new MetadataPair(this, weights))
+    ir.copyWithBindings(
+      ir.bindings.map(analyseModuleDefinition(_, weights))
+    ).updateMetadata(new MetadataPair(this, weights))
   }
 
   /** Performs the cache preference analysis on an inline expression.
@@ -89,12 +91,19 @@ case object CachePreferenceAnalysis extends IRPass {
       case _: Definition.Type => binding
       case method: definition.Method.Conversion =>
         method
-          .copy(body = analyseExpression(method.body, weights))
+          .copyBuilder()
+          .body(analyseExpression(method.body, weights))
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
-      case method @ definition.Method
-            .Explicit(_, body, _, _, _) =>
+      case method: definition.Method.Explicit =>
         method
-          .copy(body = analyseExpression(body, weights))
+          .copyBuilder()
+          .bodyReference(
+            Persistance.Reference.of(
+              analyseExpression(method.body, weights)
+            )
+          )
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
       case _: definition.Method.Binding =>
         throw new CompilerError(
@@ -140,10 +149,10 @@ case object CachePreferenceAnalysis extends IRPass {
         binding.expression.getExternalId
           .foreach(weights.update(_, CachePreferences.Kind.BINDING_EXPRESSION))
         binding
-          .copy(
-            name       = binding.name.updateMetadata(new MetadataPair(this, weights)),
-            expression = analyseExpression(binding.expression, weights)
-          )
+          .copyBuilder()
+          .name(binding.name.updateMetadata(new MetadataPair(this, weights)))
+          .expression(analyseExpression(binding.expression, weights))
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
       case error: Error =>
         error
