@@ -222,16 +222,15 @@ Intersection types are often used to refine a value with additional
 functionality. For example, a value `table : Table & DB_Table` represents a
 table coming from a database that has both the base `Table` methods that all
 tables share but also database-specific methods from `DB_Table`. Either part of
-this compound type may get _hidden_ when passing around various type checks (e.g.
-`table:Table` will hide the `DB_Table` part), but the value itself still retains
-its identity as a `Table & DB_Table` and can be uncovered via a cast or a `case of`
-expression during runtime.
+this compound type may get _hidden_ when passing around various type checks
+(e.g. `table:Table` will hide the `DB_Table` part), but the value itself still
+retains its identity as a `Table & DB_Table` and can be uncovered via a cast or
+a `case of` expression during runtime.
 
-To ensure intersection types properly propagate thru the Enso program the 
-basic language constructs are designed to handle them properly. Namely:
+To ensure intersection types properly propagate thru the Enso program the basic
+language constructs are designed to handle them properly. Namely:
 
-- casting `x : A` will hide the `B` part, so the actual type is
-  `x : A & ~B`.
+- casting `x : A` will hide the `B` part, so the actual type is `x : A & ~B`.
 - inspecting the type via `case of`, e.g.
   ```
   case x of
@@ -248,17 +247,17 @@ basic language constructs are designed to handle them properly. Namely:
   one will not have an intersection type anymore. However, as long as possible,
   even conversions should try to use existing (even if hidden) parts of the type
   instead of calling into the conversion code; thus:
-  - calling `A.from x` will return a value of type `A & ~B` - the `B`
+  - calling `A.from x` will return a value of type `A & ~B` - the `B` part is
+    still there (only hidden), because no actual conversion code had to be run,
+    the type was simply extracted from the intersection type.
+  - similarly, calling `B.from x` will return a value of type `B & ~A` - the `A`
     part is still there (only hidden), because no actual conversion code had to
-    be run - the type was simply extracted from the intersection type.
-  - similarly, calling `B.from x` will return a value of type `B & ~A` -
-    the `A` part is still there (only hidden), because no actual conversion code
-    had to be run.
-It is important to ensure these operations do not remove a part of the intersection type.
-Otherwise the value loses part of its functionality which would have a detrimental effect
-in the GUI, confusing users. 
-If the `DB_Table` part is not kept as hidden, but completely removed, the
-table can no longer be cast to `DB_Table` and used as such.
+    be run. It is important to ensure these operations do not remove a part of
+    the intersection type. Otherwise the value loses part of its functionality
+    which would have a detrimental effect in the GUI, confusing users. If the
+    `DB_Table` part is not kept as hidden, but completely removed, the table can
+    no longer be cast to `DB_Table` and used as such.
+
 ## Signature vs. Cast
 
 There are two slightly different places where _type checking_ occurs:
@@ -349,4 +348,3 @@ _has been cast to_. As a special case any value wrapped into an _intersection
 type_, but _cast down_ to the original type is `==` and has the same `hash` as
 the original value. E.g. `4.2 : Complex&Float : Float` is `==` and has the same
 `hash` as `4.2` (in spite it _can be cast to_ `Complex`).
-
