@@ -231,7 +231,7 @@ To ensure intersection types properly propagate thru the Enso program the
 basic language constructs are designed to handle them properly. Namely:
 
 - casting `x : A` will hide the `B` part, so the actual type is
-  `x : A & (hidden B)`.
+  `x : A & ~B`.
 - inspecting the type via `case of`, e.g.
   ```
   case x of
