@@ -222,7 +222,7 @@ Intersection types are often used to refine a value with additional
 functionality. For example, a value `table : Table & DB_Table` represents a
 table coming from a database that has both the base `Table` methods that all
 tables share but also database-specific methods from `DB_Table`. Either part of
-this compound type may get _hidden_ when passing around various methods (e.g.
+this compound type may get _hidden_ when passing around various type checks (e.g.
 `table:Table` will hide the `DB_Table` part), but the value itself still retains
 its identity as a `Table & DB_Table` and can be uncovered via a cast or a case
 expression during runtime.
