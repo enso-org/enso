@@ -12,7 +12,7 @@ export const AI_COMMENT_PREFIX = 'AI: '
 
 const AI_MODULE_NAME = 'Main' as Identifier
 const AI_FUNCTION_NAME_PREFIX = 'ai_component' as Identifier
-const AI_ICON = 'ai_sparkle'
+const AI_ICON = 'robot'
 const AI_FUNCTION_DOC_PLACEHOLDER = 'Documentation can be added here.'
 
 /** Extract the prompt text from a documentation string, or `null` if it is not an AI comment. */

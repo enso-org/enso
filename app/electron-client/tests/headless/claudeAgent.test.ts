@@ -50,8 +50,13 @@ function makeFakeChild(opts: FakeChildOptions = {}): FakeChild {
   return child
 }
 
-function envelopeWith(resultJson: string): string {
-  return JSON.stringify({ type: 'result', subtype: 'success', result: resultJson })
+function envelopeWith(structuredOutput: unknown): string {
+  return JSON.stringify({
+    type: 'result',
+    subtype: 'success',
+    result: '',
+    structured_output: structuredOutput,
+  })
 }
 
 const exampleRequest: AiComponentRequest = {
@@ -69,7 +74,7 @@ describe('generateAiComponent', () => {
 
   test('returns the body on a successful CLI invocation', async () => {
     spawnMock.mockReturnValue(
-      makeFakeChild({ stdout: envelopeWith('{"body":"filtered = source"}') }),
+      makeFakeChild({ stdout: envelopeWith({ body: 'filtered = source' }) }),
     )
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(true)
@@ -85,7 +90,7 @@ describe('generateAiComponent', () => {
   })
 
   test('writes the prompt to stdin and closes it', async () => {
-    const fake = makeFakeChild({ stdout: envelopeWith('{"body":"ok"}') })
+    const fake = makeFakeChild({ stdout: envelopeWith({ body: 'ok' }) })
     spawnMock.mockReturnValue(fake)
     await generateAiComponent(exampleRequest)
     expect(fake.stdin.end).toHaveBeenCalledOnce()
@@ -133,21 +138,21 @@ describe('generateAiComponent', () => {
   })
 
   test('returns an error when the payload lacks a `body` field', async () => {
-    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith('{"other":"shape"}') }))
+    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith({ other: 'shape' }) }))
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error.payload).toMatch(/without a valid `body` field/)
   })
 
-  test('accepts an already-decoded object in the `result` field', async () => {
+  test('falls back to the `result` field when `structured_output` is absent', async () => {
     const envelope = JSON.stringify({
       type: 'result',
       subtype: 'success',
-      result: { body: 'decoded' },
+      result: '{"body":"legacy"}',
     })
     spawnMock.mockReturnValue(makeFakeChild({ stdout: envelope }))
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(true)
-    if (result.ok) expect(result.value.body).toBe('decoded')
+    if (result.ok) expect(result.value.body).toBe('legacy')
   })
 })

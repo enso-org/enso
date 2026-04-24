@@ -70,6 +70,17 @@ the IPC agree on the shape. At main-process startup `claudeAgent.ts` runs a
 best-effort `claude --version` probe and logs the result; failure is non-fatal —
 the first real IPC call surfaces the ENOENT error to the renderer as a toast.
 
+Gotchas:
+- With `--json-schema` active, the CLI puts the schema-validated payload in the
+  envelope's `structured_output` field (pre-decoded object); the envelope's
+  plain `result` field is left empty. Read from `structured_output` first; only
+  fall back to `result` for older CLI releases.
+- Electron IPC serializes with structured clone, which strips class prototypes.
+  `Err(...)` from `enso-common/src/utilities/data/result` arrives at the
+  renderer as a plain `{ payload, context }` — `ResultError`'s methods are
+  gone. The renderer half (`ai.ts`) rebuilds the `Result` with `Ok()` / `Err()`
+  right after the IPC call so downstream callers see a well-formed error.
+
 ## Tests
 
 Playwright-driven E2E tests in `tests/` + `playwright.config.ts`. They launch a

@@ -8,9 +8,14 @@
  * or read the API key beyond forwarding the parent environment.
  */
 import { ipcMain } from 'electron'
-import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
+import {
+  aiComponentResponseSchema,
+  type AiComponentRequest,
+  type AiComponentResponse,
+} from 'enso-common/src/ai'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { spawn } from 'node:child_process'
+import { z } from 'zod'
 import { Channel } from './ipc.js'
 
 const CLAUDE_EXECUTABLE = 'claude'
@@ -52,9 +57,13 @@ You must return a JSON object matching the supplied schema:
 
 Rules:
 - Reference the input binding by its identifier; do not invent another name for it.
-- Prefer simple, readable code; break long pipelines over multiple lines using intermediate bindings.
+- At most one method call per line; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
+- The final line must be a single identifier — the binding that holds the result. Do not put an expression on the last line; assign it to a name first and reference that name.
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.`
 
+// JSON Schema passed to the CLI's `--json-schema` flag. Must stay in sync with
+// `aiComponentResponseSchema` in `enso-common/src/ai.ts`; when the zod schema grows a
+// field, mirror it here.
 const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
@@ -63,6 +72,31 @@ const RESPONSE_SCHEMA = {
   required: ['body'],
   additionalProperties: false,
 } as const
+
+function parseJsonSafe(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+// Claude CLI's `--output-format json` envelope. With `--json-schema` active the CLI puts
+// the validated payload in `structured_output`; older releases (or runs without the flag)
+// put it in `result`, which may be either a pre-decoded object or a stringified JSON. Each
+// field parses straight to `AiComponentResponse | null`: `.catch(null)` so a mismatched
+// field never fails the whole envelope, and the caller picks the first non-null candidate.
+const cliEnvelopeSchema = z.object({
+  // eslint-disable-next-line camelcase
+  structured_output: aiComponentResponseSchema.nullable().catch(null),
+  result: z
+    .preprocess(
+      (input) => (typeof input === 'string' ? parseJsonSafe(input) : input),
+      aiComponentResponseSchema,
+    )
+    .nullable()
+    .catch(null),
+})
 
 // =================
 // === Prompt IO ===
@@ -170,34 +204,15 @@ function runClaude(
 // === Output parsing ===
 // =======================
 
-function parseJsonSafe(text: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch {
-    return null
-  }
-}
-
-// With `--json-schema` active, the CLI places the model's structured output in the
-// envelope's `result` field. Current releases stringify it; we also accept an already-
-// decoded object for forward-compatibility.
-function extractPayload(envelope: unknown): unknown {
-  if (envelope == null || typeof envelope !== 'object' || !('result' in envelope)) return null
-  const result = (envelope as { result: unknown }).result
-  if (typeof result === 'string') return parseJsonSafe(result)
-  return result
-}
-
-function extractBody(payload: unknown): string | null {
-  if (
-    payload != null &&
-    typeof payload === 'object' &&
-    'body' in payload &&
-    typeof payload.body === 'string'
-  ) {
-    return payload.body
-  }
-  return null
+/** Parse the CLI's stdout into an {@link AiComponentResponse}, or a structured error. */
+function parseCliResponse(stdout: string): Result<AiComponentResponse> {
+  const envelopeJson = parseJsonSafe(stdout)
+  if (envelopeJson == null) return Err('Claude agent produced malformed JSON on stdout')
+  const envelope = cliEnvelopeSchema.safeParse(envelopeJson)
+  if (!envelope.success) return Err('Claude agent stdout did not match the expected envelope')
+  const payload = envelope.data.structured_output ?? envelope.data.result
+  if (payload == null) return Err('Claude agent returned a result without a valid `body` field')
+  return Ok(payload)
 }
 
 function truncateStderr(stderr: string): string {
@@ -234,15 +249,7 @@ export async function generateAiComponent(
       const detail = tail ? `: ${tail}` : ''
       return Err(`'${CLAUDE_EXECUTABLE}' exited with code ${cli.exitCode}${detail}`)
     }
-    const envelope = parseJsonSafe(cli.stdout)
-    if (envelope == null) {
-      return Err('Claude agent produced malformed JSON on stdout')
-    }
-    const body = extractBody(extractPayload(envelope))
-    if (body == null) {
-      return Err('Claude agent returned a result without a valid `body` field')
-    }
-    return Ok({ body })
+    return parseCliResponse(cli.stdout)
   } finally {
     clearTimeout(timeout)
   }

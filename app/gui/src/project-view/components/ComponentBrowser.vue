@@ -321,7 +321,9 @@ function acceptInput() {
 }
 
 async function acceptAiInput() {
-  if (input.mode.mode !== 'aiPrompt') return
+  // Ignore further accept attempts while an AI prompt is already running — keeps the CB
+  // open so the user sees the spinner instead of being dismissed by a second Enter.
+  if (input.mode.mode !== 'aiPrompt' || input.processingAIPrompt) return
   const result = await input.applyAIPrompt()
   if (result != null && result.ok && input.selfArgument != null) {
     emit('acceptedAi', {
@@ -434,6 +436,7 @@ const listsHandler = listBindings.handler({
       :usage="usage"
       :mode="input.mode"
       :nodeColor="nodeColor"
+      :processing="input.processingAIPrompt"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     />
     <div class="show-visualization">

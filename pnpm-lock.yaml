@@ -220,6 +220,9 @@ importers:
       zip-stream:
         specifier: ^7.0.2
         version: 7.0.2
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@electron/notarize':
         specifier: 2.1.0

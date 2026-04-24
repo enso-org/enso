@@ -1,5 +1,7 @@
 /** @file Shared IPC types for the local Claude agent that generates AI-driven components. */
 
+import { z } from 'zod'
+
 /** Runtime context the renderer attaches to each AI component request. */
 export interface AiComponentContext {
   /** Identifier of the source binding the generated function operates on. */
@@ -14,8 +16,13 @@ export interface AiComponentRequest {
   readonly context: AiComponentContext
 }
 
-/** Successful agent response. */
-export interface AiComponentResponse {
+/**
+ * Schema for the agent's response body. Defined with zod because this payload crosses a
+ * trust boundary (it's decoded from the CLI's stdout); the request types above are
+ * assembled in our own code and don't need runtime validation.
+ */
+export const aiComponentResponseSchema = z.object({
   /** Enso source lines forming the body of the generated User Defined Component. */
-  readonly body: string
-}
+  body: z.string(),
+})
+export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>

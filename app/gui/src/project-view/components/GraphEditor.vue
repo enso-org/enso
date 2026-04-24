@@ -478,6 +478,7 @@ function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
   componentBrowserOpened.value = false
   overrideDisplayedDocs.value = undefined
+  aiMode.value = false
 }
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
