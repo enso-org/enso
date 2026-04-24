@@ -9,7 +9,7 @@ placeholder that the release pipeline rewrites).
 - `Base/` — Core types, I/O, HTTP, errors, file system, datetime, Enso Cloud
   integration. Every other module imports from `Base`.
 - `Table/` — Columnar data / table operations.
-- `Database/` — Generic SQL abstractions.
+- `Database/` — Generic SQL abstractions with SQLite and Postgres implementations.
 - `Generic_JDBC/` — JDBC integration layer for unsupported connections.
 - `AWS/`, `Google/`, `Google_Api/`, `Microsoft/`, `Snowflake/`, `Tableau/`,
   `DuckDB/`, `Saas/` — Provider-specific integrations.
