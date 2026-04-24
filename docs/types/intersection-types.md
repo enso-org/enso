@@ -350,9 +350,3 @@ type_, but _cast down_ to the original type is `==` and has the same `hash` as
 the original value. E.g. `4.2 : Complex&Float : Float` is `==` and has the same
 `hash` as `4.2` (in spite it _can be cast to_ `Complex`).
 
-### TODO
-
-- self preserves intersection types, just hides them
-- case of also
-- T.from should preserve if no conversion was made (e.g. T was among visible or
-  hidden types)
