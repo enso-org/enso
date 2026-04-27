@@ -230,7 +230,7 @@ type Context
           know that the result is not discarded, the dataflow error is preferred.
     if_enabled : Any -> Text -> Boolean -> Any ! Forbidden_Operation
     if_enabled self ~action  (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = True) =
-        check = self.check_enabled Nothing disabled_message panic
+        check = self.check_enabled disabled_message panic
         Error.return_if_error check
         action
 
@@ -252,7 +252,7 @@ type Context
        Run an action with the Context enabled.
     with_enabled : Function -> Any
     with_enabled self ~action =
-        with_enabled_context self Nothing action
+        with_enabled_context self action
 
     ## ---
        private: true
@@ -260,7 +260,7 @@ type Context
        Run an action with the Context disabled.
     with_disabled : Function -> Any
     with_disabled self ~action =
-        with_disabled_context self Nothing action
+        with_disabled_context self action
 
 ## ---
    private: true
