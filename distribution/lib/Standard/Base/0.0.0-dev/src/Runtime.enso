@@ -209,7 +209,7 @@ type Context
         - `panic`: If set to `True`, the error is raised as a Panic. Otherwise,
           it is a dataflow error.
     check_enabled self (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = False) -> Nothing ! Forbidden_Operation =
-        if self.is_enabled environment then Nothing else
+        if self.is_enabled Nothing then Nothing else
             error = Forbidden_Operation.Error disabled_message
             if panic then Panic.throw error else Error.throw error
 
@@ -230,7 +230,7 @@ type Context
           know that the result is not discarded, the dataflow error is preferred.
     if_enabled : Any -> Text -> Boolean -> Any ! Forbidden_Operation
     if_enabled self ~action  (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = True) =
-        check = self.check_enabled environment disabled_message panic
+        check = self.check_enabled Nothing disabled_message panic
         Error.return_if_error check
         action
 
@@ -274,7 +274,7 @@ type Context
     - `action`: Action to be performed with the context enabled.
 with_enabled_context : Context -> Function -> Any
 with_enabled_context context ~action =
-    Context_Helpers.with_enabled_context_builtin context (environment.to_case Case.Lower) action
+    Context_Helpers.with_enabled_context_builtin context Nothing action
 
 
 ## ---
@@ -289,4 +289,4 @@ with_enabled_context context ~action =
     - `action`: Action to be performed with the context disabled.
 with_disabled_context : Context -> Function -> Any
 with_disabled_context context ~action =
-    Context_Helpers.with_disabled_context_builtin context (environment.to_case Case.Lower) action
+    Context_Helpers.with_disabled_context_builtin context Nothing action
