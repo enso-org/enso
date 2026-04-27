@@ -2,9 +2,11 @@
 
 #### Enso Language & Runtime
 
-- [Extending Boolean, Nothing, Text via extension methods][14980]
+- [Extending `Boolean`, `Nothing`, `Text` via extension methods][14980]
+- [Avoid exposing `Runtime.current_execution_environment` & co.][14989]
 
 [14980]: https://github.com/enso-org/enso/pull/14980
+[14989]: https://github.com/enso-org/enso/pull/14989
 
 # Enso 2026.1
 
