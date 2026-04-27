@@ -35,10 +35,26 @@ wss.onconnect = (socket, url) => {
     return
   }
 
+  if (doc != null && doc.startsWith('inspect/') && inspectManager) {
+    const targetDoc = doc.slice('inspect/'.length)
+    if (inspectManager.handleDocConnection(socket, targetDoc)) return
+    console.log(`Inspect doc '${targetDoc}' not found`)
+    return
+  }
+
   const ls = url.searchParams.get('ls')
   const data = url.searchParams.get('data')
   if (doc != null && ls != null) {
-    setupGatewayClient(socket, ls, data, doc, ByteBuffer, jsonCallbacks, binaryCallbacks)
+    setupGatewayClient(
+      socket,
+      ls,
+      data,
+      doc,
+      ByteBuffer,
+      jsonCallbacks,
+      binaryCallbacks,
+      inspectManager,
+    )
   } else {
     console.log('Failed to authenticate user', ls, doc)
   }

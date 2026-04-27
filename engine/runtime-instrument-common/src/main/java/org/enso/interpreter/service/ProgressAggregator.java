@@ -18,7 +18,15 @@ final class ProgressAggregator {
 
   private final BiConsumer<Double, String> updateStatus;
   private final Deque<Progress> stack = new ArrayDeque<>();
-  private double current;
+
+  /**
+   * @GuardedBy("this")
+   */
+  private double pct;
+
+  /**
+   * @GuardedBy("this")
+   */
   private String message;
 
   /**
@@ -27,7 +35,7 @@ final class ProgressAggregator {
    * @param updateStatus called whenever percentage of the aggregated progress updates (is
    *     increased)
    */
-  public ProgressAggregator(BiConsumer<Double, String> updateStatus) {
+  ProgressAggregator(BiConsumer<Double, String> updateStatus) {
     this.updateStatus = updateStatus;
   }
 
@@ -44,8 +52,8 @@ final class ProgressAggregator {
       p = new Progress(max, 0.0, 1.0);
     } else {
       var previous = stack.peek();
-      var current = previous.from + previous.singleStep() * previous.current;
-      p = new Progress(max, current, current + previous.singleStep());
+      var at = previous.from + previous.singleStep() * previous.steps;
+      p = new Progress(max, at, at + previous.singleStep());
     }
     stack.addFirst(p);
     map.put(key, p);
@@ -67,7 +75,7 @@ final class ProgressAggregator {
   public void log(Object key, String msg) {
     if (findBy(key) instanceof Progress p) {
       message = msg;
-      updateStatus.accept(this.current, msg);
+      updateStatus(this.pct, msg);
     }
   }
 
@@ -75,24 +83,28 @@ final class ProgressAggregator {
     return map.get(key);
   }
 
-  private void advanceTo(double now) {
+  private void advanceTo(double v) {
     var notify = false;
-    assert now >= 0.0 && now <= 1.0;
+    assert v >= 0.0 && v <= 1.0;
     synchronized (this) {
-      if (now > this.current) {
-        this.current = now;
+      if (v > this.pct) {
+        this.pct = v;
         notify = true;
       }
     }
     if (notify) {
       assert !Thread.holdsLock(this);
-      updateStatus.accept(now, message);
+      updateStatus(v, message);
     }
   }
 
-  final class Progress implements AutoCloseable {
+  private void updateStatus(double value, String msg) {
+    updateStatus.accept(value, msg);
+  }
+
+  private final class Progress {
     private final long max;
-    private long current;
+    private long steps;
     private final double from;
     private final double to;
 
@@ -118,26 +130,16 @@ final class ProgressAggregator {
      * with respect to associated {@code max} number of steps, then the state is rounded to the
      * maximum.
      */
-    public final void advance(long steps) {
-      if (steps < 0) {
-        steps = 0;
+    public final void advance(long delta) {
+      if (delta < 0) {
+        delta = 0;
       }
       try {
-        this.current = Math.min(Math.addExact(this.current, steps), this.max);
-        advanceTo(from + this.current * singleStep());
+        this.steps = Math.min(Math.addExact(this.steps, delta), this.max);
+        advanceTo(from + this.steps * singleStep());
       } catch (ArithmeticException e) {
         // keep unchanged
       }
-    }
-
-    /**
-     * Closes the progress and removes it from the stack of currently active progresses. Most
-     * importantly, no new progress will become child of this progress anymore.
-     */
-    @Override
-    public void close() {
-      advance(max);
-      closeProgress(this);
     }
   }
 }

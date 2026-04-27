@@ -4,18 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --inspect dist/main.js",
-    "compile": "tsc -p tsconfig.build.json",
+    "start": "node --inspect dist/main.mjs",
+    "compile": "node build.mjs",
     "typecheck": "tsc -b tsconfig.json --noEmit",
     "lint": "eslint . --cache --max-warnings=0"
   },
   "dependencies": {
     "ws": "^8.18.0",
     "y-websocket": "^1.5.4",
+    "ydoc-shared": "workspace:*",
     "yjs": "^13.6.21"
   },
   "devDependencies": {
     "@types/ws": "^8.5.13",
+    "esbuild": "^0.25.0",
     "typescript": "catalog:"
   }
 }

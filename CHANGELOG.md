@@ -28,6 +28,8 @@
 - [Input ports no longer highlight on hover unless being connected to][14968]
 - [AI mode in Component Browser now uses underlying claude agent][14987]. The
   user has to have authorized Claude CLI executable in path.
+- Minimum supported macOS version is now 12 (Monterey); Electron 41 no longer
+  runs on Big Sur.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678

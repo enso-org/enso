@@ -27,6 +27,7 @@ export class InspectManager {
   private readonly channelsMap: Y.Map<ChannelMeta>
   private readonly registeredChannels = new Map<string, { cleanup: () => void }>()
   private readonly byteBufferClass: JavaByteBufferClass
+  private sessionDocs: Map<string, WSSharedDoc> | null = null
   private channelCounter = 0
 
   /** Create an {@link InspectManager}. */
@@ -34,6 +35,27 @@ export class InspectManager {
     this.inspectDoc = new WSSharedDoc(false)
     this.channelsMap = this.inspectDoc.doc.getMap('channels')
     this.byteBufferClass = byteBufferClass
+  }
+
+  /** Register the session's document map so inspect clients can sync project docs. */
+  registerSession(docs: Map<string, WSSharedDoc>): void {
+    this.sessionDocs = docs
+  }
+
+  /** Unregister the session's document map. */
+  unregisterSession(): void {
+    this.sessionDocs = null
+  }
+
+  /**
+   * Handles a WebSocket connection from an inspect client requesting a specific document.
+   * Returns true if the document was found and the connection was established.
+   */
+  handleDocConnection(ws: YjsSocket, docName: string): boolean {
+    const doc = this.sessionDocs?.get(docName)
+    if (!doc) return false
+    new YjsConnection(ws, doc)
+    return true
   }
 
   /** Wraps a JSON {@link YjsChannelServer} to intercept channel creation. */
