@@ -55,6 +55,7 @@ function envelopeWith(structuredOutput: unknown): string {
     type: 'result',
     subtype: 'success',
     result: '',
+    // eslint-disable-next-line camelcase
     structured_output: structuredOutput,
   })
 }
