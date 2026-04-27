@@ -26,7 +26,8 @@
 - [A comment can be attached to the asset version][14923]
 - [New tabular view of session log with filtering][14953]
 - [Input ports no longer highlight on hover unless being connected to][14968]
-- [Usage page with cloud executions statistics available for Team users in Settings][14952]
+- [Usage page with cloud executions statistics available for Team users in
+  Settings][14952]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
