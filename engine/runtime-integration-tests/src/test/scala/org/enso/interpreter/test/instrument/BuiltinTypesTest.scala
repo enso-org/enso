@@ -411,15 +411,17 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(48, 25)
+    val idMain   = metadata.addItem(48, 22)
 
     val code =
-      """import Standard.Base.Data.Time.Date
+      """import Standard.Base.Data.Time.Date.Date
         |
         |main =
-        |    Date.new_builtin 2000 1 1
+        |    Date.new 2000 1 1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+
+    metadata.assertInCode(idMain, code, "\n    Date.new 2000 1 1")
 
     runCode(contextId, requestId, contents)
 
@@ -427,7 +429,8 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.DATE),
+      TestMessages
+        .update(contextId, idMain, ConstantsGen.DATE, methodCall = None),
       context.executionComplete(contextId)
     )
   }

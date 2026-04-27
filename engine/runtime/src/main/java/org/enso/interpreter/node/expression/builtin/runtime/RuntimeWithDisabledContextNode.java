@@ -15,7 +15,6 @@ import org.enso.interpreter.runtime.state.ExecutionEnvironment;
     type = "Runtime",
     name = "with_disabled_context_builtin",
     description = "Disallows context in the specified scope.",
-    autoRegister = false,
     inlineable = true)
 public class RuntimeWithDisabledContextNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();

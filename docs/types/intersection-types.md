@@ -154,7 +154,7 @@ to_ `Float` while `c` in the case branch only _can be cast to_.
 >
 > This behavior is often described as being **open to subclasses**. E.g. the
 > `c:Complex` check allows values with _intersection types_ that include
-> `Complex` to pass thru with all their runtime information available, but one
+> `Complex` to pass through with all their runtime information available, but one
 > has to perform an explicit cast to extract the other types associated with
 > such a value.
 
@@ -210,11 +210,53 @@ Text.from (that:Float) = Float.to_text
 
 then `Complex&Float` value `cf` can be typed as `cf:Text`. The value can also be
 converted to another _intersection type_ like `ct = cf:Complex&Text`. In such
-case it looses its `Float` type and `ct:Float` would fail.
+case it loses its `Float` type and `ct:Float` would fail.
 
 In short: when a [conversion](../syntax/conversions.md) is needed to satisfy a
 type check a new value is created to satisfy just the types requested in the
 check.
+
+## Preserving identity of refined types
+
+Intersection types are often used to refine a value with additional
+functionality. For example, a value `table : Table & DB_Table` represents a
+table coming from a database that has both the base `Table` methods that all
+tables share but also database-specific methods from `DB_Table`. Either part of
+this compound type may get _hidden_ when passing around various type checks
+(e.g. `table:Table` will hide the `DB_Table` part), but the value itself still
+retains its identity as a `Table & DB_Table` and can be uncovered via a cast or
+a `case of` expression during runtime.
+
+To ensure intersection types properly propagate through the Enso program the
+basic language constructs are designed to handle them properly. Namely:
+
+- casting `x : A` will hide the `B` part, so the actual type is `x : A & ~B`.
+- inspecting the type via `case of`, e.g.
+  ```
+  case x of
+      a : A -> ...
+      _ -> ...
+  ```
+  in the first branch, the `a` has visible type `A` but the full type is still
+  `a : A & ~B` - the `B` part is hidden, but not removed.
+- dispatching a method on one of the types, e.g. calling `x.method_defined_on_A`
+  will pass the value `x` as `self` to the body of `method_defined_on_A`, the
+  `self` will have a visible type `A`, but the full type is still
+  `self : A & ~B` - so the `self` value can be cast if needed.
+- normally, calling conversions will 'start over' and the value returned from
+  one will not have an intersection type anymore. However, as long as possible,
+  even conversions should try to use existing (even if hidden) parts of the type
+  instead of calling into the conversion code; thus:
+  - calling `A.from x` will return a value of type `A & ~B` - the `B` part is
+    still there (only hidden), because no actual conversion code had to be run,
+    the type was simply extracted from the intersection type.
+  - similarly, calling `B.from x` will return a value of type `B & ~A` - the `A`
+    part is still there (only hidden), because no actual conversion code had to
+    be run. It is important to ensure these operations do not remove a part of
+    the intersection type. Otherwise the value loses part of its functionality
+    which would have a detrimental effect in the GUI, confusing users. If the
+    `DB_Table` part is not kept as hidden, but completely removed, the table can
+    no longer be cast to `DB_Table` and used as such.
 
 ## Signature vs. Cast
 
@@ -276,7 +318,7 @@ id x = x:Text&Any
 ```
 
 again. The first one only considers _visible types_, while the second one
-considers also _hidden types_. As a project of this behavior, there is also a
+considers also _hidden types_. As a projection of this behavior, there is also a
 difference in a simple _Any type check_:
 
 ```ruby

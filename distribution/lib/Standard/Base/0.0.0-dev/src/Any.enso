@@ -1,6 +1,7 @@
-import project.Errors.Common.No_Such_Conversion
+import project.Internal.Boolean_Helpers
 from project.Data.Boolean import Boolean
-from project.Metadata import Widget
+
+polyglot java import org.enso.base.polyglot.EnsoMeta
 
 ## Any is the universal top-type, with all other types being subsumed by it.
    If a value of type Any is expected in a given location, _any value_ can be
@@ -54,8 +55,7 @@ type Any
              yields_5 = Complex.Value 3 4 . to Number ignore_im=False
              default5 = Complex.Value 3 4 . to Number
        ```
-    @target_type Widget.Any_To_Target
-    to : Any -> Any ! No_Such_Conversion
+    @target_type EnsoMeta.eval "Standard.Base.Metadata" "Widget.Any_To_Target"
     to self target_type = target_type.from self ...
 
     ## ---
@@ -111,8 +111,7 @@ type Any
        While the generic equality provided here will work for _all_ values in
        Enso, its performance may often be suboptimal. Many types can implement
        their own equality operations that will be more efficient than these.
-    == : Any -> Boolean
-    == self that = @Builtin_Method "Any.=="
+    == self that -> Boolean = Boolean_Helpers.any_equals self that
 
     ## ---
        aliases: [not equals]
@@ -142,5 +141,4 @@ type Any
        relying on the default definition given here. If you do, please ensure
        that you satisfy universal equality, as described in the documentation for
        `Any.==`.
-    != : Any -> Boolean
-    != self that = (self == that).not
+    != self that -> Boolean = (self == that).not

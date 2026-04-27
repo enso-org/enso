@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
     name = "<|",
     description = "Takes a function and an argument and applies the function to the argument.",
     inlineable = true)
-public class ApplicationOperator extends Node {
+public final class ApplicationOperator extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
   ApplicationOperator() {

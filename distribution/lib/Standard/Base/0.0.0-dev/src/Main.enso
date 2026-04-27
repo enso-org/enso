@@ -88,6 +88,7 @@ export project.Data.Text.Extensions.parse_integer
 export project.Data.Text.Extensions.parse_json
 export project.Data.Text.Extensions.parse_time_of_day
 export project.Data.Text.Extensions.parse_time_zone
+export project.Data.Text.Extensions.pretty
 export project.Data.Text.Extensions.repeat
 export project.Data.Text.Extensions.replace
 export project.Data.Text.Extensions.reverse
@@ -98,6 +99,8 @@ export project.Data.Text.Extensions.substring
 export project.Data.Text.Extensions.take
 export project.Data.Text.Extensions.to_case
 export project.Data.Text.Extensions.to_regex
+export project.Data.Text.Extensions.to_text
+export project.Data.Text.Extensions.to_display_text
 export project.Data.Text.Extensions.tokenize
 export project.Data.Text.Extensions.trim
 export project.Data.Text.Extensions.utf_8

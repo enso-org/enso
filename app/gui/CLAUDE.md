@@ -1,0 +1,94 @@
+# app/gui
+
+The main Enso IDE GUI — a single-page web app built with Vite, served by
+Electron (desktop) or a static host (cloud). Published as package `enso-gui`.
+
+## Source layout
+
+**Vue is the main GUI framework.** Shared infrastructure — app shell, command
+palette, loading screen, cross-feature primitives, i18n, providers — lives at
+`src/` directly (`src/components/`, `src/providers/`, etc.), not inside any
+feature subtree. Feature-specific code lives in a subtree named after the
+feature:
+
+- `src/project-view/` — the **ProjectView** feature subtree (graph editor,
+  component browser, code editor, visualizations, documentation editor). Vue.
+  Uses `@vueuse/core`, `@tanstack/vue-query`, `yjs`. Import via `@/…`.
+- `src/dashboard/` — the **Dashboard** feature subtree (auth, cloud storage,
+  project browser, settings, billing). Still **React** as a historical artifact;
+  being progressively migrated to Vue. Uses `react-aria`,
+  `@tanstack/react-query`, `react-hook-form`, `zod`. TailwindCSS for styling.
+  Import via `#/…`.
+
+While the migration is in progress the two subtrees are bridged by **`veaury`**
+so Vue can embed React (and vice versa). Stay in one framework per file; only
+cross at the bridge boundary.
+
+Many commons still sit inside `src/project-view/` for historical reasons. The
+plan is to move genuinely shared UI/utilities **out** of `project-view/` and
+into `src/` proper so each feature subtree holds only its own feature-specific
+code. When you add something new, ask: is it ProjectView-only, Dashboard-only,
+or shared? Shared goes at `src/`.
+
+**Rule of thumb for new work:** default to Vue, put cross-feature code at
+`src/`, put feature-specific code in the matching subtree. When a Dashboard
+component needs non-trivial changes, consider porting it to Vue rather than
+extending the React version.
+
+`App.vue` / `ReactRoot.tsx` / `entrypoint.ts` wire the subtrees together at the
+top level.
+
+## TypeScript path aliases
+
+Defined in `vite.config.ts`:
+
+- `@/…` → `src/project-view/…` (ProjectView feature subtree, Vue)
+- `#/…` → `src/dashboard/…` (Dashboard feature subtree, currently React)
+- `$/…` → `src/…` (shared/cross-feature code: app shell, providers, common
+  components, i18n)
+
+Reaching across subtrees (`@/` from `src/dashboard/`, or `#/` from
+`src/project-view/`) is allowed but usually a smell — prefer pulling shared code
+into `src/` and importing via `$/`, or cross the framework bridge via `veaury`.
+
+## Entry points
+
+- `index.html` → `src/entrypoint.ts` (browser bundle)
+- `src/App.vue` — top-level Vue shell that mounts both subtrees
+
+## Scripts (run via `corepack pnpm`)
+
+- `dev:vite` — Vite dev server with HMR.
+- `build` / `build-cloud` — production bundle (with `ENSO_IDE_CLOUD_BUILD` env
+  toggle for cloud-specific behavior).
+- `test:unit` — vitest.
+- `test:integration` — Playwright (needs
+  `NODE_OPTIONS='--experimental-wasm-modules'` until Node 24 is default).
+- `playwright:install` — install the pinned browser.
+
+## ProjectView ↔ backend
+
+The ProjectView subtree talks to the Enso Language Server via Yjs documents. The
+Yjs client lives in `ydoc-shared`; messaging is handled via WebSocket
+(`y-websocket` / `modern-isomorphic-ws`). Parsing of Enso source on the client
+side uses the Rust parser compiled to WASM (`rust-ffi` package →
+`ydoc-shared/src/ast/`).
+
+## Dashboard ↔ backend
+
+The Dashboard subtree talks to the Enso Cloud over HTTPS (AWS Amplify +
+Cognito). In local/desktop mode it also talks to the local TypeScript Project
+Manager (`app/project-manager-shim/`), which is used in both dev and the
+packaged Electron build. The old Scala Project Manager is no longer wired in.
+
+## Assets and icons
+
+Static assets live in `public/`. Icons are provided by `enso-icons` (a separate
+package from `app/`). The GUI also ships with sample project templates under
+`templates/`.
+
+## Gotcha: node memory
+
+Vite production builds need `NODE_OPTIONS=--max-old-space-size=6144` (already
+set in the `build` script). If you invoke Vite directly, re-export it or the
+Rollup chunker OOMs when sourcemaps are on.

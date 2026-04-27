@@ -28,8 +28,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Meta",
     name = "atom_with_hole_builtin",
-    description = "Creates a new atom with given constructor and fields.",
-    autoRegister = false)
+    description = "Creates a new atom with given constructor and fields.")
 public abstract class AtomWithAHoleNode extends Node {
 
   static AtomWithAHoleNode build() {

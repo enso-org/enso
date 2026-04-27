@@ -14,8 +14,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     description =
         """
         Returns True if the hash map contains mapping with the given key, False otherwise.
-        """,
-    autoRegister = false)
+        """)
 @GenerateUncached
 public abstract class HashMapContainsKeyNode extends Node {
 
@@ -23,7 +22,7 @@ public abstract class HashMapContainsKeyNode extends Node {
     return HashMapContainsKeyNodeGen.create();
   }
 
-  public abstract boolean execute(Object self, Object key);
+  public abstract boolean execute(Object dict, Object key);
 
   @Specialization(
       guards = {"interop.hasHashEntries(foreignMap)"},

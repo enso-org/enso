@@ -427,7 +427,7 @@ private duckdb_overrides =
     text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, ["REVERSE", Base_Generator.make_function "reverse"], _make_pad "PAD_LEFT", _make_pad "PAD_RIGHT", ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
-    aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
+    aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_unary_function "MODE", agg_unary_function "ST_UNION_AGG", agg_unary_function "ST_INTERSECTION_AGG", agg_unary_function "ST_EXTENT_AGG", agg_array_agg "ARRAY_AGG", agg_array_agg "ARRAY_AGG_NOT_NULL"]
     other = [["RUNTIME_ERROR", make_runtime_error_op], make_st_to_geojson]
     text_ops + scalars + date_ops + aggs + other
 
@@ -632,9 +632,21 @@ agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
 ## ---
    private: true
    ---
-   Compute the mode for a column
-agg_mode = Base_Generator.lift_unary_op "MODE" arg->
-    SQL_Builder.code "MODE(" ++ arg ++ ")"
+   Compute an unary aggregate with name and function
+agg_unary_function name:Text function_name:Text=name = Base_Generator.lift_unary_op name arg->
+    SQL_Builder.code (function_name + "(") ++ arg ++ ")"
+
+## ---
+    private: true
+    ---
+    Compute an aggregate that uses array_agg with ordering and optional not null filtering
+agg_array_agg name:Text =
+    func args =
+        if args.length < 1 then Error.throw (Illegal_State.Error ("Insufficient number of arguments for the " + name + "operation."))
+        order_clause = if args.length == 1 then "" else SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
+        base_sql = SQL_Builder.code "ARRAY_AGG(" ++ args.first ++ order_clause ++ ")"
+        if name == "ARRAY_AGG" then base_sql else base_sql ++ " FILTER (WHERE " ++ args.first ++ " IS NOT NULL)"
+    [name, func]
 
 ## ---
    private: true

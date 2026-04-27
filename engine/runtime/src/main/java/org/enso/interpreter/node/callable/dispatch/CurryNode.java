@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
@@ -157,9 +158,29 @@ final class CurryNode extends BaseNode {
       State state,
       Object[] arguments) {
     return switch (getTailStatus()) {
-      case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, state, arguments);
+      case TAIL_DIRECT -> {
+        var profileFn = CompilerDirectives.inInterpreter() ? function : null;
+        try {
+          if (profileStackDepth(profileFn, 1)) {
+            // switch tail call mode
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            setTailStatus(BaseNode.TailStatus.TAIL_LOOP);
+          }
+          var res = directCall.executeCall(frame, function, callerInfo, state, arguments);
+          yield res;
+        } finally {
+          profileStackDepth(profileFn, -1);
+        }
+      }
       case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);
       default -> loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
     };
+  }
+
+  private static boolean profileStackDepth(Function fn, int delta) {
+    if (fn != null && fn.getCallTarget().getRootNode() instanceof EnsoRootNode ern) {
+      return ern.profileStackDepth(delta);
+    }
+    return false;
   }
 }

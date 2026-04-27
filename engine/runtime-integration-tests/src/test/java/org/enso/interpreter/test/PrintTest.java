@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -65,7 +66,7 @@ public class PrintTest {
   public void testPrintToText() throws Exception {
     final String code =
         """
-        import Standard.Base.IO
+        from Standard.Base import IO, to_text
 
         type My_Object
             Value x
@@ -131,7 +132,7 @@ public class PrintTest {
   public void testPrintToTextHasWarnings3() throws Exception {
     final String code =
         """
-        import Standard.Base.IO
+        from Standard.Base import IO, to_text
         from Standard.Base.Warning import Warning
 
         type My_Object
@@ -151,7 +152,7 @@ public class PrintTest {
   public void testPrintToTextHasWarnings4() throws Exception {
     final String code =
         """
-        import Standard.Base.IO
+        from Standard.Base import IO, to_text
         from Standard.Base.Warning import Warning
 
         type My_Object
@@ -214,7 +215,7 @@ public class PrintTest {
   public void testPrintToTextStaticMethod() throws Exception {
     final String code =
         """
-        import Standard.Base.IO
+        from Standard.Base import IO, to_text
 
         type My_Object
             Value x

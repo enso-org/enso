@@ -22,8 +22,7 @@ import org.enso.scala.wrapper.ScalaConversions;
 @BuiltinMethod(
     type = "Meta",
     name = "lookup_services",
-    description = "Looks services registered by a name up",
-    autoRegister = false)
+    description = "Looks services registered by a name up")
 public abstract class LookupServicesNode extends Node {
   /** Protected for mocking purposes */
   protected LookupServicesNode() {}

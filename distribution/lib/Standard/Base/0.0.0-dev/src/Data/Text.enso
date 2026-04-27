@@ -1,10 +1,6 @@
-import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
-import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
-import project.Errors.Common.Type_Error
-import project.Panic.Panic
+import project.Internal.Text_Helpers
 from project.Data.Boolean import Boolean
 from project.Nothing import all
 
@@ -41,8 +37,7 @@ type Text
        A character is defined as an Extended Grapheme Cluster, see Unicode
        Standard Annex 29. This is the smallest unit that still has semantic
        meaning in most text-processing applications.
-    length : Integer
-    length self = @Builtin_Method "Text.length"
+    length self -> Integer = Text_Helpers.length self
 
     ## ---
        aliases: [concatenate]
@@ -60,77 +55,7 @@ type Text
        ```
              "Hello" + ", world!"
        ```
-    + : Text -> Text
-    + self that = @Builtin_Method "Text.+"
-
-    ## ---
-       group: Logical
-       icon: operators
-       ---
-       Checks whether `self` is equal to `that`, ignoring the case of the texts.
-
-       Two texts are considered equal ignoring case if they are of the same
-       length and corresponding characters are equal ignoring case.
-
-       ## Arguments
-        - `that`: The text to compare `self` for case-insensitive equality with.
-        - `locale`: The locale to use for case-insensitive comparison.
-
-       ## Examples
-       ### The string 'É' (i.e. U+00C9, LATIN CAPITAL LETTER E WITH ACUTE) is
-         equal to the string 'é' (i.e. U+00E9, LATIN SMALL LETTER E WITH ACUTE)
-         ignoring case, which is canonically the same as the string 'e\u0301'
-         (i.e. the letter `e` followed by U+0301, COMBINING ACUTE ACCENT).
-         Therefore:
-
-       ```
-             (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
-       ```
-
-       ## Remarks
-
-       ### Unicode Equality
-       The definition of equality includes Unicode canonicalization. I.e. two
-       texts are equal if they are identical after canonical decomposition. This
-       ensures that different ways of expressing the same character in the
-       underlying binary representation are considered equal.
-    @locale Locale.default_widget
-    equals_ignore_case : Text -> Locale -> Boolean
-    equals_ignore_case self (that : Text) (locale : Locale = Locale.default) =
-        Text_Utils.equals_ignore_case self that locale.java_locale
-
-    ## ---
-       private: true
-       advanced: true
-       unstable: true
-       ---
-       Unifies the case of all letters in the text, generating a key which can be
-       used to perform case-insensitive comparisons.
-    @locale Locale.default_widget
-    to_case_insensitive_key : Locale -> Text
-    to_case_insensitive_key self (locale : Locale = Locale.default) =
-        Text_Utils.case_insensitive_key self locale.java_locale
-
-    ## ---
-       icon: text
-       ---
-       Compare two texts to discover their ordering.
-
-       ## Arguments
-        - `that`: The text to order `self` with respect to.
-
-       ## Examples
-       ### Checking how "a" orders in relation to "b".
-
-       ```
-             "a".compare_to_ignore_case "b"
-       ```
-    @locale Locale.default_widget
-    compare_to_ignore_case : Text -> Locale -> Ordering
-    compare_to_ignore_case self that locale=Locale.default =
-        if that.is_nothing then Panic.throw (Type_Error.Error Text that "Expected `that` to be a Text, but got {got}") else
-            comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
-            Ordering.from_sign comparison_result
+    + self that:Text -> Text = Text_Helpers.plus self that
 
     ## ---
        group: Logical
@@ -191,8 +116,7 @@ type Text
        ```
              "14.95€".is_normalized
        ```
-    is_normalized : Boolean
-    is_normalized self = @Builtin_Method "Text.is_normalized"
+    is_normalized self -> Boolean = Text_Helpers.is_normalized self
 
     ## ---
        aliases: [normalise]
@@ -214,35 +138,3 @@ type Text
         mode = normalization.get_java_mode
         name = normalization.get_mode_name
         Text_Utils.normalizeWithMode self name mode
-
-    ## ---
-       aliases: [greater than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than `that`.
-    > self that = Comparable.> self=self that
-
-    ## ---
-       aliases: [greater than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than or equal to `that`.
-    >= self that = Comparable.>= self=self that
-
-    ## ---
-       aliases: [less than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than `that`.
-    < self that = Comparable.< self=self that
-
-    ## ---
-       aliases: [less than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than or equal to `that`.
-    <= self that = Comparable.<= self=self that

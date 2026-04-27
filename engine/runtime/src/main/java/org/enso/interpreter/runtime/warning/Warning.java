@@ -49,8 +49,7 @@ public final class Warning extends BuiltinObject {
 
   @Builtin.Method(
       name = "create",
-      description = "Creates a new instance of the primitive warning value.",
-      autoRegister = false)
+      description = "Creates a new instance of the primitive warning value.")
   @Builtin.Specialize
   public static Warning create(EnsoContext ctx, Object payload, Object origin) {
     return new Warning(payload, origin, ctx.nextSequenceId());
@@ -58,8 +57,7 @@ public final class Warning extends BuiltinObject {
 
   @Builtin.Method(
       name = "attach_with_stacktrace",
-      description = "Attaches the given warning to the value.",
-      autoRegister = false)
+      description = "Attaches the given warning to the value.")
   @Builtin.Specialize
   @SuppressWarnings("generic-enso-builtin-type")
   public static Object attach(

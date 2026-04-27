@@ -288,9 +288,12 @@ type Postgres_Dialect
        private: true
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
-    check_aggregate_support self aggregate =
-        _ = aggregate
-        True
+    check_aggregate_support self aggregate = case aggregate of
+        Aggregate_Column.ST_Union _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Union")
+        Aggregate_Column.ST_Intersection _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Intersection")
+        Aggregate_Column.ST_Extent _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Extent")
+        Aggregate_Column.Array_Agg _ _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Array_Agg")
+        _ -> True
 
     ## ---
        private: true

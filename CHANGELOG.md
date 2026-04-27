@@ -1,5 +1,13 @@
 # Next Release
 
+#### Enso Language & Runtime
+
+- [Extending Boolean, Nothing, Text via extension methods][14980]
+
+[14980]: https://github.com/enso-org/enso/pull/14980
+
+# Enso 2026.1
+
 #### Enso IDE
 
 - [Add component alignment options][14590].
@@ -60,7 +68,9 @@
 - [Add pad_left and pad_right][14922]
 - [More control over when in write operation for post and process.][14930]
 - [Improve database write performance][14960]
+- [Hiding `Prim_Text_Helper` from the API][14979]
 - [Add reverse][14931]
+- [Support for Spatial aggregates and making lines and polygons.][14973]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -84,6 +94,8 @@
 [14930]: https://github.com/enso-org/enso/pull/14930
 [14960]: https://github.com/enso-org/enso/pull/14960
 [14931]: https://github.com/enso-org/enso/pull/14931
+[14979]: https://github.com/enso-org/enso/pull/14979
+[14973]: https://github.com/enso-org/enso/pull/14973
 
 #### Enso Language & Runtime
 
@@ -96,6 +108,7 @@
 - [Require opt-in to prefer local libraries][14885]
 - [One log file per execution][14893]
 - [Opt-in to get more detailed logs][14895]
+- [Automatically apply tail call optimizations][14933]
 - [`from Xyz import to_text` can import extension methods][14949]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
@@ -107,6 +120,7 @@
 [14885]: https://github.com/enso-org/enso/pull/14885
 [14893]: https://github.com/enso-org/enso/pull/14893
 [14895]: https://github.com/enso-org/enso/pull/14895
+[14933]: https://github.com/enso-org/enso/pull/14933
 [14949]: https://github.com/enso-org/enso/pull/14949
 
 # Enso 2025.3

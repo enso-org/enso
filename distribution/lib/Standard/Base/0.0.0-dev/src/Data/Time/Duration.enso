@@ -6,7 +6,6 @@ import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
-import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Missing_Argument
@@ -14,6 +13,7 @@ import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
+import project.Internal.Time.Date_Helpers
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -28,49 +28,6 @@ polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
-
-## ---
-   private: true
-   ---
-   Create an interval representing the duration between two points in time.
-
-   Recommended to use `Duration.between` instead which provides defaults.
-
-   ## Arguments
-    - `start_inclusive`: The start datetime of the duration, included.
-    - `end_exclusive`: The end datetime of the duration, excluded.
-    - `timezone_aware`: Whether the duration between two given times should be
-      aware of the timezone, that can be set for start or end times.
-between_builtin : Date_Time -> Date_Time -> Boolean -> Duration
-between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "Duration.between_builtin"
-
-## ---
-   private: true
-   ---
-   Create a duration from time units.
-
-   Recommended to use `Duration.new` instead which provides defaults.
-
-   ## Arguments
-    - `hours`: hours
-    - `minutes`: minutes
-    - `seconds`: seconds
-    - `milliseconds`: milliseconds
-    - `nanoseconds`: nanoseconds
-new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
-new_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
-
-## ---
-   private: true
-   ---
-ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument)
-ensure_duration object ~action =
-    case object of
-        _ : Duration -> action
-        _ : Period -> Error.throw (Time_Error.Error "Cannot use Period as a parameter")
-        x ->
-            Error.throw Illegal_Argument.Error <|
-                "Expected Duration type, got: " + (x.to Meta.Type . qualified_name)
 
 ## Represents the amount of time between two points in time.
 @Builtin_Type
@@ -97,7 +54,7 @@ type Duration
        ```
     between : Date_Time -> Date_Time -> Boolean -> Duration
     between start_inclusive end_exclusive timezone_aware=True =
-        between_builtin start_inclusive end_exclusive timezone_aware
+        Date_Helpers.between_builtin start_inclusive end_exclusive timezone_aware
 
     ## ---
        icon: time
@@ -121,7 +78,7 @@ type Duration
        ```
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
     new (hours : Integer = 0) (minutes : Integer = 0) (seconds : Integer = 0) (milliseconds : Integer = 0) (nanoseconds : Integer = 0) =
-        new_builtin hours minutes seconds milliseconds nanoseconds
+        Date_Helpers.new_duration_builtin hours minutes seconds milliseconds nanoseconds
 
     ## ---
        icon: time
@@ -219,8 +176,8 @@ type Duration
              example_add = (Duration.new minutes=30) + (Duration.new hours=12)
        ```
     + self that:Duration -> Duration ! Time_Error =
-        ensure_duration that <|
-            Panic.catch ArithmeticException (self.plus_builtin that) err->
+        Date_Helpers.ensure_duration that <|
+            Panic.catch ArithmeticException (Date_Helpers.duration_plus self that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
     ## ---
@@ -242,8 +199,8 @@ type Duration
              example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
        ```
     - self that:Duration -> Duration ! Time_Error =
-        ensure_duration that <|
-            Panic.catch ArithmeticException (self.minus_builtin that) err->
+        Date_Helpers.ensure_duration that <|
+            Panic.catch ArithmeticException (Date_Helpers.duration_minus self that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
     ## ---
@@ -260,8 +217,7 @@ type Duration
 
              example_nanos = Examples.duration.nanoseconds
        ```
-    nanoseconds : Integer
-    nanoseconds self = @Builtin_Method "Duration.nanoseconds"
+    nanoseconds self -> Integer = Date_Helpers.duration_nanoseconds self
 
     ## ---
        group: Metadata
@@ -277,8 +233,7 @@ type Duration
 
              example_millis = Examples.duration.milliseconds
        ```
-    milliseconds : Integer
-    milliseconds self = @Builtin_Method "Duration.milliseconds"
+    milliseconds self -> Integer = Date_Helpers.duration_milliseconds self
 
     ## ---
        group: Metadata
@@ -294,8 +249,7 @@ type Duration
 
              example_seconds = Examples.duration.seconds
        ```
-    seconds : Integer
-    seconds self = @Builtin_Method "Duration.seconds"
+    seconds self -> Integer = Date_Helpers.duration_seconds self
 
     ## ---
        group: Metadata
@@ -311,8 +265,7 @@ type Duration
 
              example_minutes = Examples.duration.minutes
        ```
-    minutes : Integer
-    minutes self = @Builtin_Method "Duration.minutes"
+    minutes self -> Integer = Date_Helpers.duration_minutes self
 
     ## ---
        group: Metadata
@@ -328,8 +281,7 @@ type Duration
 
              example_hours = Examples.duration.milliseconds
        ```
-    hours : Integer
-    hours self = @Builtin_Method "Duration.hours"
+    hours self -> Integer = Date_Helpers.duration_hours self
 
     ## ---
        group: DateTime
@@ -338,7 +290,7 @@ type Duration
        Convert the duration to total milliseconds.
     total_milliseconds : Integer ! Illegal_State
     total_milliseconds self =
-        Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
+        Panic.catch ArithmeticException (Date_Helpers.total_milliseconds_builtin self) _->
             Error.throw (Illegal_State.Error "The duration is too large to convert it to milliseconds")
 
     ## ---

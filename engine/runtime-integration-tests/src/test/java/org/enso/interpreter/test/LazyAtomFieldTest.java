@@ -162,7 +162,7 @@ public class LazyAtomFieldTest {
     var res =
         evalCode(
             """
-            from Standard.Base.Any import all
+            from Standard.Base import to_text
 
             type Generator
                 Value n ~next

@@ -1,3 +1,5 @@
 private
 
 println message ends_with = @Builtin_Method "IO.println"
+print_err message = @Builtin_Method "IO.print_err"
+readln = @Builtin_Method "IO.readln"

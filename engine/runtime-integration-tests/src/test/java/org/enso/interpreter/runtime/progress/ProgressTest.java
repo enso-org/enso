@@ -24,7 +24,7 @@ public class ProgressTest {
   public void advanceMultipleTimes() throws Exception {
     var code =
         """
-        from Standard.Base import Integer, Float
+        from Standard.Base import Integer, Float, to_text
         from Standard.Base.Logging import Progress
 
         geom n:Integer a1:Float q:Float =
@@ -101,7 +101,7 @@ public class ProgressTest {
   private void performExistingProgressFromJavaWith(Object acc) {
     var code =
         """
-        from Standard.Base import Integer, Float
+        from Standard.Base import Integer, Float, to_text
         from Standard.Base.Logging import Progress
 
         up_to n combine =

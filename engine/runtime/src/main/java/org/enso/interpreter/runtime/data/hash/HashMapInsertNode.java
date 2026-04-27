@@ -36,7 +36,7 @@ public abstract class HashMapInsertNode extends Node {
     return HashMapInsertNodeGen.getUncached();
   }
 
-  public abstract EnsoHashMap execute(VirtualFrame frame, Object self, Object key, Object value);
+  public abstract EnsoHashMap execute(VirtualFrame frame, Object dict, Object key, Object value);
 
   @Specialization
   EnsoHashMap doEnsoHashMap(

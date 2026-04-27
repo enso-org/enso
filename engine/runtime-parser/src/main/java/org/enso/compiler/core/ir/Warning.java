@@ -12,6 +12,7 @@ public sealed interface Warning extends Diagnostic
         Warning.FailedParallelism,
         Warning.NoSuchMethod,
         Warning.NonUnitTypeUsedOnValueLevel,
+        Warning.NonPrivateBuiltinMethod,
         Warning.NotInvokable,
         Warning.Syntax,
         Warning.TypeMismatch,
@@ -96,6 +97,18 @@ public sealed interface Warning extends Diagnostic
     @Override
     public String message(Function1<IdentifiedLocation, String> source) {
       return "A @Tail_Call annotation was placed in a non-tail-call position.";
+    }
+  }
+
+  /**
+   * A warning about a builtin method being visible to public.
+   *
+   * @param identifiedLocation the location of the annotated application
+   */
+  record NonPrivateBuiltinMethod(IdentifiedLocation identifiedLocation) implements Warning {
+    @Override
+    public String message(Function1<IdentifiedLocation, String> source) {
+      return "A @Builtin_Method must be private.";
     }
   }
 

@@ -20,8 +20,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 @BuiltinMethod(
     type = "Warning",
     name = "get_all_vector",
-    description = "Gets all the warnings associated with the value.",
-    autoRegister = false)
+    description = "Gets all the warnings associated with the value.")
 public abstract class GetAllWarningsNode extends Node {
 
   public static GetAllWarningsNode build() {

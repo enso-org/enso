@@ -778,6 +778,10 @@ type In_Memory_Table_Implementation
         _ = [this_table, longitude, latitude, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
+    spatial_shape function:Text (this_table : Table & In_Memory_Table) (column : Column) (as : Text) (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex) (order_by : Vector (Text | Sort_Column) | Text) =
+        _ = [function, this_table, column, as, group_by, order_by]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
     spatial_geometry_type (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
         _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
@@ -836,6 +840,14 @@ type In_Memory_Table_Implementation
 
     spatial_from_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
         _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_convex_hull (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_concave_hull (this_table : Table & In_Memory_Table) (column : Column) (as : Text) (ratio : Float) (allow_holes : Boolean) =
+        _ = [this_table, column, as, ratio, allow_holes]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
 ## ---

@@ -19,15 +19,14 @@ import org.enso.interpreter.runtime.EnsoContext;
     description =
         """
         Returns text representation of this hash map
-        """,
-    autoRegister = false)
+        """)
 public abstract class HashMapToTextNode extends Node {
 
   public static HashMapToTextNode build() {
     return HashMapToTextNodeGen.create();
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object dict);
 
   @TruffleBoundary
   @Specialization(guards = "interop.hasHashEntries(hashMap)")

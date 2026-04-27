@@ -28,7 +28,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface parsing errors in the language" in {
       val code =
         """from Standard.Base.Errors.Common import all
-          |import Standard.Base.Panic.Panic
+          |from Standard.Base import Panic, to_text
           |
           |main =
           |    x = Panic.catch Syntax_Error ` caught_panic-> caught_panic.payload
@@ -40,7 +40,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface redefinition errors in the language" in {
       val code =
         """from Standard.Base.Errors.Common import all
-          |import Standard.Base.Panic.Panic
+          |from Standard.Base import Panic, to_text
           |import Standard.Base.Any.Any
           |
           |foo =
@@ -57,7 +57,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface non-existent variable errors in the language" in {
       val code =
         """from Standard.Base.Errors.Common import all
-          |import Standard.Base.Panic.Panic
+          |from Standard.Base import Panic, to_text
           |import Standard.Base.Any.Any
           |
           |foo =

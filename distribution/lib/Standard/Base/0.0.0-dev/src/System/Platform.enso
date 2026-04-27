@@ -1,5 +1,6 @@
 import project.Data.Boolean.Boolean
 import project.Data.Text.Text
+import project.Internal.Runtime_Helpers
 import project.System
 
 ## A representation of the various operating systems on which Enso can run.
@@ -29,23 +30,20 @@ type OS
 
          example_os = Platform.os
    ```
-os : OS
-os = from_text System.os
+os -> OS = from_text System.os
 
 ## ---
    private: true
    advanced: true
    ---
    Check if the operating system is UNIX.
-is_unix : Boolean
-is_unix = @Builtin_Method "System.is_unix"
+is_unix -> Boolean = Runtime_Helpers.is_unix
 
 ## ---
    private: true
    ---
    Create an Os object from text.
-from_text : Text -> OS
-from_text os = case os of
+from_text os:Text -> OS = case os of
     "linux" -> OS.Linux
     "macos" -> OS.Mac_OS
     "windows" -> OS.Windows

@@ -1134,16 +1134,7 @@ class RuntimeRecomputeTest
       TestMessages.update(
         contextId,
         idOut,
-        "Standard.Base.Errors.Common.Forbidden_Operation",
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "catch"
-            )
-          )
-        )
+        "Standard.Base.Errors.Common.Forbidden_Operation"
       ),
       TestMessages.update(
         contextId,
@@ -1188,16 +1179,7 @@ class RuntimeRecomputeTest
       TestMessages.update(
         contextId,
         idOut,
-        ConstantsGen.INTEGER,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "catch"
-            )
-          )
-        )
+        ConstantsGen.INTEGER
       ),
       context.executionComplete(contextId)
     )
@@ -1292,12 +1274,32 @@ class RuntimeRecomputeTest
       TestMessages.update(
         contextId,
         idOutTxt,
-        ConstantsGen.TEXT
+        ConstantsGen.TEXT,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
+        )
       ),
       TestMessages.update(
         contextId,
         idInTxt,
-        ConstantsGen.TEXT
+        ConstantsGen.TEXT,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -1361,14 +1363,34 @@ class RuntimeRecomputeTest
         idInTxt,
         ConstantsGen.TEXT,
         fromCache   = false,
-        typeChanged = false
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
+        )
       ),
       TestMessages.update(
         contextId,
         idOutTxt,
         ConstantsGen.TEXT,
         fromCache   = false,
-        typeChanged = false
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -1414,7 +1436,17 @@ class RuntimeRecomputeTest
         idInTxt,
         ConstantsGen.TEXT,
         fromCache   = false,
-        typeChanged = false
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
+        )
       ),
       context.executionComplete(contextId)
     )

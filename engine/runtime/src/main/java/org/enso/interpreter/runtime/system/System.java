@@ -36,7 +36,7 @@ public final class System {
 
   private System() {}
 
-  @Builtin.Method(description = "Get the type of operating system.", autoRegister = false)
+  @Builtin.Method(description = "Get the type of operating system.")
   @CompilerDirectives.TruffleBoundary
   public static Text os() {
     if (SystemUtils.IS_OS_LINUX) return LINUX;
@@ -45,22 +45,20 @@ public final class System {
     return UNKNOWN;
   }
 
-  @Builtin.Method(description = "Check if the operating system is UNIX.", autoRegister = false)
+  @Builtin.Method(description = "Check if the operating system is UNIX.")
   @CompilerDirectives.TruffleBoundary
   public static boolean is_unix() {
     return SystemUtils.IS_OS_UNIX;
   }
 
-  @Builtin.Method(description = "Gets the nanosecond resolution system time.", autoRegister = false)
+  @Builtin.Method(description = "Gets the nanosecond resolution system time.")
   @CompilerDirectives.TruffleBoundary
   public static long nanoTime() {
     return java.lang.System.nanoTime();
   }
 
   @Builtin.Specialize
-  @Builtin.Method(
-      description = "Exits the process, returning the provided code.",
-      autoRegister = false)
+  @Builtin.Method(description = "Exits the process, returning the provided code.")
   @CompilerDirectives.TruffleBoundary
   public static void exit(long code, @Cached ExpectStringNode expectStringNode) {
     // expectStringNode is an artificial Node just to provide a location for
@@ -69,9 +67,7 @@ public final class System {
   }
 
   @Builtin.Specialize
-  @Builtin.Method(
-      description = "Create a system process, returning the exit code.",
-      autoRegister = false)
+  @Builtin.Method(description = "Create a system process, returning the exit code.")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.WrapException(from = InterruptedException.class)
   @CompilerDirectives.TruffleBoundary

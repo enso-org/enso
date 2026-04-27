@@ -43,6 +43,7 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
 
         Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
             from Standard.Base.Logging import all
+            from Standard.Base.Data.Text.Extensions import all
 
             type Typ
 
@@ -65,6 +66,8 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         prj_dir.create_directory
 
         Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+            from Standard.Base.Data.Text.Extensions import all
+
             polyglot java import java.lang.System as JSystem
             polyglot java import java.lang.System.Logger as Logger
             polyglot java import java.lang.System.Logger.Level as Level
@@ -97,6 +100,8 @@ add_specs suite_builder = suite_builder.group "Logging" group_builder->
         prj_dir.create_directory
 
         Enso_Bin_Utils.create_new_project prj_dir "logging_demo" """
+            from Standard.Base.Data.Text.Extensions import all
+
             polyglot java import org.slf4j.LoggerFactory
             polyglot java import java.lang.IllegalStateException
 

@@ -114,6 +114,7 @@ class TextTest extends InterpreterTest {
           |import Standard.Base.Any.Any
           |import Standard.Base.Data.Numbers
           |from Standard.Base.Errors.Common import all
+          |from Standard.Base import to_display_text
           |import Standard.Base.Panic.Panic
           |import Standard.Base.IO
           |import Standard.Base.Nothing

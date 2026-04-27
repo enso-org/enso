@@ -9,11 +9,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
-@BuiltinMethod(
-    type = "Meta",
-    name = "type_of",
-    description = "Returns the type of a value.",
-    autoRegister = false)
+@BuiltinMethod(type = "Meta", name = "type_of", description = "Returns the type of a value.")
 final class TypeOfBuiltin extends Node {
   private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(11);
   private @Child TypeOfNode typeOf = TypeOfNode.create();

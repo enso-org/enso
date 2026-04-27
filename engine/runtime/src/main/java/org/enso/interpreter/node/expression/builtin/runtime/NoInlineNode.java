@@ -13,8 +13,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 @BuiltinMethod(
     type = "Runtime",
     name = "no_inline",
-    description = "Runs its argument without the possibility of getting inlined.",
-    autoRegister = false)
+    description = "Runs its argument without the possibility of getting inlined.")
 public class NoInlineNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 

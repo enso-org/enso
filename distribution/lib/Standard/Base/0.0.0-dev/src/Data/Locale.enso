@@ -616,6 +616,8 @@ type Locale
             bldr.append "variant"
             bldr.append "language"
             bldr.append "country"
+            bldr.append "to_display_text"
+            bldr.append "to_text"
             bldr.append "default"
             bldr.append_vector_range <| Meta.meta Any . methods
         locale_meta . methods . filter (Filter_Condition.Is_In methods_to_remove ..Remove) . sort

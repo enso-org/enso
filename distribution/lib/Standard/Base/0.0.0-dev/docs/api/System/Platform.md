@@ -5,6 +5,6 @@
     - Mac_OS
     - Unknown
     - Windows
-- from_text os:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- is_unix -> Standard.Base.Any.Any
-- os -> Standard.Base.Any.Any
+- from_text os:Standard.Base.Data.Text.Text -> Standard.Base.System.Platform.OS
+- is_unix -> Standard.Base.Data.Boolean.Boolean
+- os -> Standard.Base.System.Platform.OS
