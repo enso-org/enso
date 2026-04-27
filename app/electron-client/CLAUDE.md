@@ -45,11 +45,6 @@ once `./run ide build` has produced the engine bundle.
 - `ENSO_POLYGLOT_YDOC_SERVER` — URL for the (polyglot) ydoc server when running
   against a cloud backend.
 - `ENSO_IDE_VERSION`, `ENSO_IDE_COMMIT_HASH` — embedded into buildinfo.
-- `ANTHROPIC_API_KEY` — **not** required by the main process. The AI node
-  feature shells out to the user's `claude` CLI, which handles auth itself
-  (OAuth / keychain / API key / subscription token). If the parent env does set
-  `ANTHROPIC_API_KEY`, it is forwarded unchanged to the spawned CLI so CI
-  pipelines keep working.
 
 ## Local Claude agent
 
@@ -71,15 +66,16 @@ best-effort `claude --version` probe and logs the result; failure is non-fatal �
 the first real IPC call surfaces the ENOENT error to the renderer as a toast.
 
 Gotchas:
+
 - With `--json-schema` active, the CLI puts the schema-validated payload in the
   envelope's `structured_output` field (pre-decoded object); the envelope's
   plain `result` field is left empty. Read from `structured_output` first; only
   fall back to `result` for older CLI releases.
 - Electron IPC serializes with structured clone, which strips class prototypes.
   `Err(...)` from `enso-common/src/utilities/data/result` arrives at the
-  renderer as a plain `{ payload, context }` — `ResultError`'s methods are
-  gone. The renderer half (`ai.ts`) rebuilds the `Result` with `Ok()` / `Err()`
-  right after the IPC call so downstream callers see a well-formed error.
+  renderer as a plain `{ payload, context }` — `ResultError`'s methods are gone.
+  The renderer half (`ai.ts`) rebuilds the `Result` with `Ok()` / `Err()` right
+  after the IPC call so downstream callers see a well-formed error.
 
 ## Tests
 
@@ -92,15 +88,15 @@ rule in `playwright.config.ts`:
 - `tests/*.spec.ts` — Playwright end-to-end tests that launch the packaged
   Electron binary from `dist/ide/` and drive the app from a real user's
   perspective (login → dashboard → project → graph editor). `electronTest.ts`
-  extends Playwright's `test` fixture to spawn Electron and exposes helpers
-  like `loginAsTestUser`, `createNewProject`, `openComponentBrowser`. See
+  extends Playwright's `test` fixture to spawn Electron and exposes helpers like
+  `loginAsTestUser`, `createNewProject`, `openComponentBrowser`. See
   `tests/README.md` for prerequisites (a built `dist/ide/`, credentials at
   `playwright/.auth/user.json`). Run with
-  `corepack pnpm -r --filter enso ide-integration-test [path.spec.ts]`.
-  Runs are long (minutes), so avoid them in inner dev loops.
+  `corepack pnpm -r --filter enso ide-integration-test [path.spec.ts]`. Runs are
+  long (minutes), so avoid them in inner dev loops.
 
 When adding a Playwright test that needs an external dependency the CI doesn't
 have yet (e.g. `aiNode.spec.ts` needs the local `claude` CLI), gate the whole
-describe block on an env flag (`process.env.ENSO_TEST_AI === '1'`) and note
-the flag in the plan's verification section so per-step smokes still exercise
-it locally.
+describe block on an env flag (`process.env.ENSO_TEST_AI === '1'`) and note the
+flag in the plan's verification section so per-step smokes still exercise it
+locally.

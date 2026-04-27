@@ -4,6 +4,7 @@ import { insertNodeStatements } from '@/composables/nodeCreation'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { frontmatter } from '../ComponentHelp/metadata'
 import { generateUniqueName } from './widgets/WidgetFunctionDef/argumentAst'
 
@@ -12,7 +13,7 @@ export const AI_COMMENT_PREFIX = 'AI: '
 
 const AI_MODULE_NAME = 'Main' as Identifier
 const AI_FUNCTION_NAME_PREFIX = 'ai_component' as Identifier
-const AI_ICON = 'robot'
+const AI_ICON: Icon = 'robot'
 const AI_FUNCTION_DOC_PLACEHOLDER = 'Documentation can be added here.'
 
 /** Extract the prompt text from a documentation string, or `null` if it is not an AI comment. */
