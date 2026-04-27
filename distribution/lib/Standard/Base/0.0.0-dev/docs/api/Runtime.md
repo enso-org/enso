@@ -4,9 +4,9 @@
     - Dataflow_Stack_Trace
     - Input
     - Output
-    - check_enabled self environment:Standard.Base.Data.Text.Text= disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Nothing.Nothing!Standard.Base.Errors.Common.Forbidden_Operation
-    - if_enabled self ~action:Standard.Base.Any.Any environment:Standard.Base.Data.Text.Text= disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - is_enabled self environment:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - check_enabled self disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Nothing.Nothing!Standard.Base.Errors.Common.Forbidden_Operation
+    - if_enabled self ~action:Standard.Base.Any.Any disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - is_enabled self -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - with_disabled self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_enabled self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -21,5 +21,5 @@
 - no_inline_with_arg function:Standard.Base.Any.Any arg:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - sleep milliseconds:Standard.Base.Data.Numbers.Integer ~result:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - value_for_uuid id:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-- with_disabled_context context:Standard.Base.Any.Any environment:Standard.Base.Any.Any= ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- with_enabled_context context:Standard.Base.Any.Any environment:Standard.Base.Any.Any= ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_disabled_context context:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_enabled_context context:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
