@@ -15,7 +15,6 @@
     - to_display_text self -> Standard.Base.Any.Any
 - assert ~action:Standard.Base.Data.Boolean.Boolean message:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
 - assertions_enabled -> Standard.Base.Any.Any
-- current_execution_environment -> Standard.Base.Any.Any
 - gc flush_caches:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Nothing.Nothing
 - get_stack_trace -> (Standard.Base.Data.Vector.Vector Standard.Base.Runtime.Stack_Trace_Element)
 - no_inline ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
