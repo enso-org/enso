@@ -2,12 +2,31 @@
 
 import { z } from 'zod'
 
+/**
+ * One identifier visible in the current method's scope, with the type the engine inferred for it
+ * (when known). Used to tell the agent which existing bindings it may reference in the generated
+ * function call.
+ */
+export interface AiInScopeBinding {
+  readonly identifier: string
+  readonly typeName?: string
+}
+
 /** Runtime context the renderer attaches to each AI component request. */
 export interface AiComponentContext {
-  /** Identifier of the source binding the generated function operates on. */
+  /** Identifier of the source binding the user dropped into the AI prompt. */
   readonly sourceIdentifier: string
   /** Fully-qualified Enso type name of the source binding, if known. */
   readonly sourceTypeName?: string
+  /** Name of the method the new node will be inserted into. */
+  readonly currentMethodName: string
+  /** Source code of the current method, including the signature line. */
+  readonly currentMethodCode: string
+  /**
+   * Other bindings already defined in the current method that the agent may reference. Excludes
+   * the source binding (which is reported separately as `sourceIdentifier`/`sourceTypeName`).
+   */
+  readonly inScopeBindings: readonly AiInScopeBinding[]
 }
 
 /** Payload sent from the renderer to the Electron main process. */
@@ -17,12 +36,21 @@ export interface AiComponentRequest {
 }
 
 /**
- * Schema for the agent's response body. Defined with zod because this payload crosses a
- * trust boundary (it's decoded from the CLI's stdout); the request types above are
- * assembled in our own code and don't need runtime validation.
+ * Schema for the agent's response. Defined with zod because this payload crosses a trust boundary
+ * (it's decoded from the CLI's stdout); the request types above are assembled in our own code and
+ * don't need runtime validation.
+ *
+ * The agent declares the full shape of a generated User Defined Component:
+ * - `functionName` — snake_case name of the new top-level function.
+ * - `argumentNames` — identifiers the function takes as parameters; these double as the
+ *   identifiers passed at the call site, so each one must be a binding the agent saw in scope.
+ * - `body` — Enso block that becomes the function body.
+ * - `callExpression` — the call placed in the current method, e.g. `Main.<functionName> a b`.
  */
 export const aiComponentResponseSchema = z.object({
-  /** Enso source lines forming the body of the generated User Defined Component. */
+  functionName: z.string(),
+  argumentNames: z.array(z.string()),
   body: z.string(),
+  callExpression: z.string(),
 })
 export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>

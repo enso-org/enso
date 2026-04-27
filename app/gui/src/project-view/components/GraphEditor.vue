@@ -523,7 +523,7 @@ function handleAiAccepted(payload: AcceptedAiPayload) {
     hideComponentBrowser()
     return
   }
-  module.value.edit((edit) => {
+  const editResult = module.value.edit((edit) =>
     createAiNode({
       edit,
       topLevel: edit.getVersion(topLevel),
@@ -531,9 +531,11 @@ function handleAiAccepted(payload: AcceptedAiPayload) {
       binding: graphStore.generateLocallyUniqueIdent('ai_component'),
       position: componentBrowserNodePosition.value,
       payload,
-    })
-    return Ok()
-  })
+    }),
+  )
+  if (!editResult.ok) {
+    toasts.userActionFailed.show(editResult.error.message('Cannot create AI component'))
+  }
   hideComponentBrowser()
 }
 

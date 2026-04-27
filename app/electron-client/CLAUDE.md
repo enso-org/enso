@@ -65,6 +65,16 @@ the IPC agree on the shape. At main-process startup `claudeAgent.ts` runs a
 best-effort `claude --version` probe and logs the result; failure is non-fatal —
 the first real IPC call surfaces the ENOENT error to the renderer as a toast.
 
+The agent generates a full User Defined Component, returning four fields:
+`functionName`, `argumentNames`, `body`, and `callExpression`. The renderer
+collects the source binding's identifier/type plus all other in-scope bindings
+in the current method (with their inferred types) and the method's source code,
+and passes that context to the agent so it can pick which bindings to thread
+into the function. The receiving side parses `callExpression` with the Enso
+parser and rejects responses where the call shape is not
+`Main.<functionName> <args…>` matching `argumentNames` — see `createAiNode` in
+`app/gui/src/project-view/components/GraphEditor/aiNode.ts`.
+
 Gotchas:
 
 - With `--json-schema` active, the CLI puts the schema-validated payload in the

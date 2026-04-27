@@ -1,5 +1,5 @@
 /** @file Unit tests for the `claude` CLI shell-out in claudeAgent.ts. */
-import type { AiComponentRequest } from 'enso-common/src/ai'
+import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
@@ -62,7 +62,20 @@ function envelopeWith(structuredOutput: unknown): string {
 
 const exampleRequest: AiComponentRequest = {
   prompt: 'filter to rows with value over 5',
-  context: { sourceIdentifier: 'source', sourceTypeName: 'Standard.Table.Table' },
+  context: {
+    sourceIdentifier: 'source',
+    sourceTypeName: 'Standard.Table.Table',
+    currentMethodName: 'main',
+    currentMethodCode: 'main =\n    source = Table.new []\n    source',
+    inScopeBindings: [{ identifier: 'helper', typeName: 'Standard.Base.Number' }],
+  },
+}
+
+const exampleResponse: AiComponentResponse = {
+  functionName: 'filter_rows',
+  argumentNames: ['source'],
+  body: 'filtered = source.filter (row -> row.value > 5)\nfiltered',
+  callExpression: 'Main.filter_rows source',
 }
 
 describe('generateAiComponent', () => {
@@ -73,13 +86,11 @@ describe('generateAiComponent', () => {
     vi.clearAllMocks()
   })
 
-  test('returns the body on a successful CLI invocation', async () => {
-    spawnMock.mockReturnValue(
-      makeFakeChild({ stdout: envelopeWith({ body: 'filtered = source' }) }),
-    )
+  test('returns the parsed response on a successful CLI invocation', async () => {
+    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith(exampleResponse) }))
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(true)
-    if (result.ok) expect(result.value).toEqual({ body: 'filtered = source' })
+    if (result.ok) expect(result.value).toEqual(exampleResponse)
     const [executable, args] = spawnMock.mock.calls[0]!
     expect(executable).toBe('claude')
     expect(args).toContain('--print')
@@ -90,14 +101,17 @@ describe('generateAiComponent', () => {
     expect(args).toContain('--no-session-persistence')
   })
 
-  test('writes the prompt to stdin and closes it', async () => {
-    const fake = makeFakeChild({ stdout: envelopeWith({ body: 'ok' }) })
+  test('writes the prompt and context to stdin and closes it', async () => {
+    const fake = makeFakeChild({ stdout: envelopeWith(exampleResponse) })
     spawnMock.mockReturnValue(fake)
     await generateAiComponent(exampleRequest)
     expect(fake.stdin.end).toHaveBeenCalledOnce()
     const [payload] = fake.stdin.end.mock.calls[0]!
     expect(payload).toContain('filter to rows with value over 5')
     expect(payload).toContain('source')
+    expect(payload).toContain('Standard.Table.Table')
+    expect(payload).toContain('Current method: main')
+    expect(payload).toContain('helper')
   })
 
   test('returns an ENOENT-specific error when claude is not on PATH', async () => {
@@ -138,22 +152,28 @@ describe('generateAiComponent', () => {
     if (!result.ok) expect(result.error.payload).toMatch(/malformed JSON/)
   })
 
-  test('returns an error when the payload lacks a `body` field', async () => {
-    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith({ other: 'shape' }) }))
+  test('returns an error when the payload is missing required fields', async () => {
+    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith({ body: 'ok' }) }))
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error.payload).toMatch(/without a valid `body` field/)
   })
 
   test('falls back to the `result` field when `structured_output` is absent', async () => {
+    const legacyPayload: AiComponentResponse = {
+      functionName: 'legacy_fn',
+      argumentNames: ['source'],
+      body: 'source',
+      callExpression: 'Main.legacy_fn source',
+    }
     const envelope = JSON.stringify({
       type: 'result',
       subtype: 'success',
-      result: '{"body":"legacy"}',
+      result: JSON.stringify(legacyPayload),
     })
     spawnMock.mockReturnValue(makeFakeChild({ stdout: envelope }))
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(true)
-    if (result.ok) expect(result.value.body).toBe('legacy')
+    if (result.ok) expect(result.value).toEqual(legacyPayload)
   })
 })

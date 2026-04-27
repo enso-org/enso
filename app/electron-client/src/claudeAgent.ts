@@ -43,22 +43,26 @@ Common stdlib entry points (Standard.Base / Standard.Table):
 - \`Data.read path\`, \`Data.write path value\`.`
 
 const SYSTEM_PROMPT = `\
-You generate the body of a User Defined Component in Enso — a small block of Enso code that takes one input binding and produces one output value.
+You generate a top-level User Defined Component in Enso — a function definition plus the call that places it inside an existing method on the user's graph.
 
 ${ENSO_CHEAT_SHEET}
 
 You will receive:
-- An input binding identifier (the parameter the block should operate on).
-- Its Enso type name, when known.
-- A natural-language description of what the block should do.
+- The Enso method the call site lives in (its name and full source).
+- The source binding the user dropped into the AI prompt (identifier and Enso type, when known) — this is the value they want to operate on.
+- Other identifiers already in scope in that method, with their Enso types when known. You may reference any of them.
+- A natural-language description of what the new component should do.
 
-You must return a JSON object matching the supplied schema:
-- \`body\`: a string containing the Enso block. Every line belongs to the block; no leading or trailing blank lines. The final line's expression is the value the block returns. Do NOT include the function signature, the \`=\` sign, or any \`main\` / module wrapper — only the body lines.
+You must return a JSON object matching the supplied schema, with these four fields:
+- \`functionName\`: snake_case identifier for the new top-level function. It must not collide with an identifier already used in the surrounding method or with a name visible in the supplied method source. Pick something descriptive of what the function does.
+- \`argumentNames\`: list of identifiers the function takes as parameters. Each one must be an in-scope binding from the supplied list (or the source binding identifier). The same identifier doubles as both the parameter name in the function signature and the value passed at the call site, so the names you list here are also the names the call expression must pass. Always include the source binding when the function operates on it; add other in-scope identifiers only when the function actually uses them.
+- \`body\`: the function body, as a string. Every line belongs to the body; no leading or trailing blank lines. Reference the parameters by the names you listed in \`argumentNames\`. The final line must be a single identifier — the binding that holds the result. Do not include the function signature, the \`=\` sign, or any module wrapper.
+- \`callExpression\`: the Enso expression placed in the user's method, of the form \`Main.<functionName> <arg1> <arg2> …\` where the args are exactly the identifiers from \`argumentNames\`, in the same order. Do not use other in-scope identifiers here — bind them through \`argumentNames\` instead.
 
 Rules:
-- Reference the input binding by its identifier; do not invent another name for it.
-- At most one method call per line; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
-- The final line must be a single identifier — the binding that holds the result. Do not put an expression on the last line; assign it to a name first and reference that name.
+- At most one method call per line in \`body\`; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
+- The final line of \`body\` must be a single identifier — assign expressions to a name first and reference that name.
+- Do not introduce parameters that aren't actually used inside \`body\`.
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.`
 
 // JSON Schema passed to the CLI's `--json-schema` flag. Must stay in sync with
@@ -67,9 +71,12 @@ Rules:
 const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
+    functionName: { type: 'string' },
+    argumentNames: { type: 'array', items: { type: 'string' } },
     body: { type: 'string' },
+    callExpression: { type: 'string' },
   },
-  required: ['body'],
+  required: ['functionName', 'argumentNames', 'body', 'callExpression'],
   additionalProperties: false,
 } as const
 
@@ -102,14 +109,29 @@ const cliEnvelopeSchema = z.object({
 // === Prompt IO ===
 // =================
 
+function formatBinding(identifier: string, typeName: string | undefined): string {
+  return typeName ? `- ${identifier} : ${typeName}` : `- ${identifier} : (type unknown)`
+}
+
 function buildUserPrompt(request: AiComponentRequest): string {
   const { prompt, context } = request
-  const typeLine =
-    context.sourceTypeName ?
-      `Input binding type: ${context.sourceTypeName}`
-    : 'Input binding type: unknown'
-  return `Input binding identifier: ${context.sourceIdentifier}
-${typeLine}
+  const otherBindings = context.inScopeBindings
+    .filter((binding) => binding.identifier !== context.sourceIdentifier)
+    .map((binding) => formatBinding(binding.identifier, binding.typeName))
+  const otherBindingsSection =
+    otherBindings.length > 0 ?
+      `Other in-scope bindings:\n${otherBindings.join('\n')}`
+    : 'Other in-scope bindings: (none)'
+  return `Current method: ${context.currentMethodName}
+Current method source:
+\`\`\`
+${context.currentMethodCode}
+\`\`\`
+
+Source binding (the value the user wants to operate on):
+${formatBinding(context.sourceIdentifier, context.sourceTypeName)}
+
+${otherBindingsSection}
 
 User request: ${prompt}`
 }

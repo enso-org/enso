@@ -326,11 +326,7 @@ async function acceptAiInput() {
   if (input.mode.mode !== 'aiPrompt' || input.processingAIPrompt) return
   const result = await input.applyAIPrompt()
   if (result != null && result.ok && input.selfArgument != null) {
-    emit('acceptedAi', {
-      prompt: input.mode.prompt,
-      body: result.value.body,
-      sourceIdentifier: input.selfArgument,
-    })
+    emit('acceptedAi', { prompt: input.mode.prompt, response: result.value })
   } else {
     emit('canceled')
   }
