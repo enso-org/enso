@@ -26,32 +26,32 @@ its glyph without infinite recursion.
 ## Icon rendering — render once, at the right layer
 
 The node's category icon is the responsibility of **one** widget per row. Don't
-draw a second icon from a downstream widget — that's the bug
-`WidgetAiPrompt` was originally guilty of.
+draw a second icon from a downstream widget — that's the bug `WidgetAiPrompt`
+was originally guilty of.
 
 Two paths land an icon in the row:
 
 - **Method calls** (`subject.method args …`): `WidgetSelfAccessChain` matches
-  the outer `PropertyAccess`, computes the displayed icon from the call's
-  `lhs`, and attaches `DisplayIcon` to that `lhs`'s widget input. The icon
-  appears where the subject would have rendered.
-- **Static calls** — `Main.<name> args …`, `Data.read …`, any application
-  whose subject is a Type/constructor: `tree.primaryApplication.function` is
-  `null`, because the AST's outer `App` function is the whole property access
-  (the resolver folds the type subject into the method identity). In that
-  case `ComponentWidgetTree.vue` attaches `DisplayIcon` to the **root** input,
-  and `WidgetIcon` renders the glyph + recurses into the same input via
+  the outer `PropertyAccess`, computes the displayed icon from the call's `lhs`,
+  and attaches `DisplayIcon` to that `lhs`'s widget input. The icon appears
+  where the subject would have rendered.
+- **Static calls** — `Main.<name> args …`, `Data.read …`, any application whose
+  subject is a Type/constructor: `tree.primaryApplication.function` is `null`,
+  because the AST's outer `App` function is the whole property access (the
+  resolver folds the type subject into the method identity). In that case
+  `ComponentWidgetTree.vue` attaches `DisplayIcon` to the **root** input, and
+  `WidgetIcon` renders the glyph + recurses into the same input via
   `<NodeWidget>` for the rest of the row.
 
-So a custom widget that occupies the function-token slot of a static call
-(e.g. `WidgetAiPrompt` for AI nodes) must render only its own slot content.
-The icon is already on the row, drawn by `WidgetIcon` at the root.
+So a custom widget that occupies the function-token slot of a static call (e.g.
+`WidgetAiPrompt` for AI nodes) must render only its own slot content. The icon
+is already on the row, drawn by `WidgetIcon` at the root.
 
 ## File layout
 
 - `Widget*.vue` — leaf widgets registered with `defineWidget`.
 - `Widget*/` — folder beside a widget for its helper modules (no enforced
   pattern beyond colocation).
-- `WidgetIcon.vue` — owns the `DisplayIcon` symbol. Other widgets attach to
-  it via `input[DisplayIcon] = { icon, showContents?, noGap? }` to request an
+- `WidgetIcon.vue` — owns the `DisplayIcon` symbol. Other widgets attach to it
+  via `input[DisplayIcon] = { icon, showContents?, noGap? }` to request an
   inline icon in front of a child widget.

@@ -2,8 +2,8 @@
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
 import type { DownloadUrlOptions } from 'enso-common/src/download'
-import type { Result } from 'enso-common/src/utilities/data/result'
 import type { Path } from 'enso-common/src/services/Backend'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import type { FileFilter } from './project-view/util/fileFilter'
 import type { MenuItem, MenuItemHandler } from './project-view/util/menuItems'
 
