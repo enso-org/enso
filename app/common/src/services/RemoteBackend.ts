@@ -746,27 +746,6 @@ export class RemoteBackend extends backend.Backend {
   }
 
   /**
-   * Return a list of executions for an organization (if called by an admin) or a request user.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async listExecutions(
-    params: backend.ListExecutionsRequestParams,
-  ): Promise<readonly backend.ProjectExecution[]> {
-    const paramsString = new URLSearchParams({
-      /* eslint-disable camelcase */
-      ...(params.lastExecutionId != null ? { last_execution_id: params.lastExecutionId } : {}),
-      /* eslint-enable camelcase */
-    }).toString()
-    const path = `${remoteBackendPaths.LIST_EXECUTIONS_PATH}?${paramsString}`
-    const response = await this.get<readonly backend.ProjectExecution[]>(path)
-    if (!response.ok) {
-      return await this.throw(response, 'listExecutionsBackendError')
-    } else {
-      return await response.json()
-    }
-  }
-
-  /**
    * Return usage summary rows for an organization (if admin) or a user.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */

@@ -1931,8 +1931,6 @@ export abstract class Backend {
     year: number,
     month: number,
   ): Promise<readonly ProjectExecution[]>
-  /** Return a list of executions for an organization (if admin) or a user. */
-  abstract listExecutions(params: ListExecutionsRequestParams): Promise<readonly ProjectExecution[]>
   /** Return usage summary rows for an organization (if admin) or a user. */
   abstract listExecutionsSummary(
     params: ListExecutionsSummaryRequestParams,
