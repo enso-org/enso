@@ -11,9 +11,11 @@ import { generateUniqueName } from './widgets/WidgetFunctionDef/argumentAst'
 /** Marker that identifies a node's documentation comment as an AI-generated prompt. */
 export const AI_COMMENT_PREFIX = 'AI: '
 
+/** Icon shown on AI-prompted component nodes and in the inline prompt widget. */
+export const AI_ICON: Icon = 'robot'
+
 const AI_MODULE_NAME = 'Main' as Identifier
 const AI_FUNCTION_NAME_PREFIX = 'ai_component' as Identifier
-const AI_ICON: Icon = 'robot'
 const AI_FUNCTION_DOC_PLACEHOLDER = 'Documentation can be added here.'
 
 /** Extract the prompt text from a documentation string, or `null` if it is not an AI comment. */
