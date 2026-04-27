@@ -16,7 +16,7 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
-// AI-prompt docs are rendered inline by WidgetAiPromptFunc, not as a comment above the node.
+// AI-prompt docs are rendered inline by WidgetAiPrompt, not as a comment above the node.
 const isAiPrompt = computed(() => {
   const text = documentation.value?.toJSON()
   return text != null && readAiPrompt(text) !== null

@@ -7,14 +7,11 @@ import {
   defineWidget,
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
-import { AI_ICON, isAiAssignment, readAiPrompt } from '@/components/GraphEditor/aiNode'
-import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import { isAiAssignment, readAiPrompt } from '@/components/GraphEditor/aiNode'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { nodeDocumentationText } from '@/util/ast/node'
-import { useDisplayedIcon } from '@/util/getIconName'
-import { computed, toRef } from 'vue'
+import { computed } from 'vue'
 
 defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -25,8 +22,6 @@ const prompt = computed(() => {
   const owner = nodeId != null ? graph.db.nodeIdToNode.get(nodeId) : undefined
   return owner ? readAiPrompt(nodeDocumentationText(owner)) : null
 })
-
-const { displayedIcon } = useDisplayedIcon(graph.db, toRef(tree, 'externalId'), AI_ICON)
 </script>
 
 <script lang="ts">
@@ -54,30 +49,11 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetAiPromptFunc widgetParent">
-    <GrowingSpinner
-      v-if="displayedIcon === '$evaluating'"
-      class="aiIcon grab-handle"
-      :size="16"
-      phase="loading-medium"
-    />
-    <SvgIcon v-else class="aiIcon grab-handle" :name="displayedIcon" />
-    <span class="prompt widgetApplyPadding">{{ prompt ?? '' }}</span>
-  </div>
+  <span class="WidgetAiPrompt widgetSingleLine widgetApplyPadding">{{ prompt ?? '' }}</span>
 </template>
 
 <style scoped>
-.WidgetAiPromptFunc {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--widget-token-pad-unit);
-}
-
-.aiIcon {
-  flex: none;
-}
-
-.prompt {
+.WidgetAiPrompt {
   white-space: nowrap;
 }
 </style>
