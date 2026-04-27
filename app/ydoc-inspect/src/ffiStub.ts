@@ -1,6 +1,7 @@
 /**
  * @file Stub for the Rust FFI interface. ydoc-inspect only reads AST from
  * synced Y.Docs and never parses code, so the parser functions are not needed.
+ * FIXME: https://github.com/enso-org/enso/issues/14988
  */
 
 /* eslint-disable camelcase */
