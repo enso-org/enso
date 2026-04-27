@@ -56,7 +56,7 @@
  *                                        inspect Y.Doc      +-------------------+
  * +-----------------+  /project/inspect  (channel logs)     | InspectManager    |
  * | ydoc-inspect    |<------------------------------------->| (ydoc-server)     |
- * | (Node.js)       |                                       +-----+----------+--+
+ * | (Node.js)       |                                       +------+----------+-+
  * |                 |  /project/inspect/index                  tap |          | tap
  * |                 |<---------------+                 +-----------+--+ +-----+----------+
  * +-----------------+  project Y.Doc |                 | JSON Channel | | Binary Channel |
