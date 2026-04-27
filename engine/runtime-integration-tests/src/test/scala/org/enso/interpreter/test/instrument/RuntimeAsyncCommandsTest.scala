@@ -366,7 +366,7 @@ class RuntimeAsyncCommandsTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -432,7 +432,7 @@ class RuntimeAsyncCommandsTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
