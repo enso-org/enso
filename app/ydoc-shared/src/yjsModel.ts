@@ -84,20 +84,6 @@ export class DistributedProject {
     return d instanceof Y.Doc ? d : null
   }
 
-  /** Ensure the visualizations subdoc exists, creating a fresh `Y.Doc` when
-   *  absent. Server-side entry point, idempotent. Note: the created `Y.Doc`
-   *  is *not* wrapped in any WebSocket-routing structure. Callers that need
-   *  the subdoc to sync to remote clients should use
-   *  {@link adoptVisualizationsDoc} with a pre-made `Y.Doc` registered in
-   *  their docs routing table. */
-  ensureVisualizationsDoc(): Y.Doc {
-    const existing = this.visualizationsDoc
-    if (existing) return existing
-    const created = new Y.Doc()
-    this.visualizationsContainer.set(VISUALIZATIONS_SUBDOC_KEY, created)
-    return created
-  }
-
   /** Install a caller-provided `Y.Doc` as the vis subdoc. Used by the
    *  ydoc-server, which must own the `Y.Doc`'s guid in its WebSocket routing
    *  table so subdoc providers from clients can reach it. If a subdoc is

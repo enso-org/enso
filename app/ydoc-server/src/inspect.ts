@@ -254,6 +254,9 @@ export class InspectManager {
   }
 }
 
-function toBinary(message: JavaByteBuffer): Uint8Array {
+function toBinary(message: JavaByteBuffer | Uint8Array): Uint8Array {
+  // In production GraalJS sends a `JavaByteBuffer` numeric handle. Tests
+  // (and any non-polyglot code path) may send a `Uint8Array` directly.
+  if (message instanceof Uint8Array) return message
   return new Uint8Array(new ArrayBuffer(message))
 }

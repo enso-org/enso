@@ -149,7 +149,8 @@ export function createProjectStore(
     },
   )
   const executionContext = createExecutionContextForMain()
-  const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, projectModel)
+  const visualizationDataRegistry = new VisualizationDataRegistry(projectModel)
+  abort.handleDispose(visualizationDataRegistry)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
     executionContext,
     projectNames,

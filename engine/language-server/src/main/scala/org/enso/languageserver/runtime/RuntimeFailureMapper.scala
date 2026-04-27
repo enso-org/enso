@@ -15,7 +15,6 @@ import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
 
 import java.io.File
 import java.lang.InternalError
-import scala.annotation.unused
 import scala.concurrent.{ExecutionContext, Future}
 
 final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
@@ -28,8 +27,6 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     */
   def mapApiError(
     error: Api.Error
-  )(implicit
-    @unused ec: ExecutionContext
   ): Future[ContextRegistryProtocol.Failure] = {
     error match {
       case Api.ContextNotExistError(contextId) =>

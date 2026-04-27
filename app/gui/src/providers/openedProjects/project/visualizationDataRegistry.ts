@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '$/providers/openedProjects/project/executionContext'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { reactive } from 'vue'
 import type {
@@ -38,14 +37,12 @@ export interface ExpressionInfo {
  */
 export class VisualizationDataRegistry {
   private readonly visualizationValues: Map<Uuid, Result<string> | null>
-  private readonly executionContext: ExecutionContext
   private vis: Visualizations | null = null
   private unobserveVisDoc: (() => void) | null = null
   private unobserveSlots: (() => void) | null = null
 
   /** TODO: Add docs */
-  constructor(executionContext: ExecutionContext, projectModel: DistributedProject) {
-    this.executionContext = executionContext
+  constructor(projectModel: DistributedProject) {
     this.visualizationValues = reactive(new Map())
 
     this.unobserveVisDoc = projectModel.observeVisualizationsDoc((doc) => {
@@ -139,9 +136,6 @@ export class VisualizationDataRegistry {
     this.unobserveSlots = null
     this.unobserveVisDoc?.()
     this.unobserveVisDoc = null
-    // Kept to preserve the previous API surface for callers that tore down
-    // the registry in tandem with the execution context.
-    void this.executionContext
   }
 }
 

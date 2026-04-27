@@ -301,6 +301,61 @@ class VisualizationBridgeActorSpec
     system.stop(actor)
   }
 
+  // Regression test: after a detach the bridge must drop its correlation
+  // entries (`requestState` + `requestsByVis`) so that a subsequent runtime
+  // update for the same visualizationId does not get routed back as a stale
+  // `ready`. Asserting via observable behaviour (no outbound messages) keeps
+  // the actor's private state encapsulated.
+  it must "drop correlation state after a detach so later runtime updates produce no output" in {
+    val runtime = TestProbe()
+    val actor = system.actorOf(
+      VisualizationBridgeServer.props(runtime.ref, system.eventStream)
+    )
+    val control = new RecordingChannel
+    val data    = new RecordingChannel
+    actor ! ControlChannelEstablished(control)
+    actor ! DataChannelEstablished(data)
+
+    val requestId       = UUID.randomUUID().toString
+    val visualizationId = UUID.randomUUID()
+    val contextId       = UUID.randomUUID()
+    val nodeId          = UUID.randomUUID()
+    val attachJson =
+      s"""{"kind":"attach","requestId":"$requestId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId",
+         |"nodeExternalId":"$nodeId","request":{"visualizationModule":"M",
+         |"expression":"identity"}}""".stripMargin
+    actor ! ControlMessage(attachJson)
+    runtime.expectMsgType[Api.Request]
+
+    val detachJson =
+      s"""{"kind":"detach","requestId":"$requestId",
+         |"visualizationId":"$visualizationId","contextId":"$contextId"}""".stripMargin
+    actor ! ControlMessage(detachJson)
+    runtime.expectMsgType[Api.Request]
+
+    drainAllSent(control)
+    drainAllSent(data)
+
+    // Runtime emits a late update for the now-detached visualization. With
+    // the correlation cleared, `activeRequestFor` returns None and nothing
+    // should land on either channel.
+    system.eventStream.publish(
+      Api.VisualizationUpdate(
+        Api.VisualizationContext(visualizationId, contextId, nodeId),
+        Array[Byte](1, 2, 3)
+      )
+    )
+
+    // Give the dispatcher a moment to process the publish before asserting
+    // silence on both channels.
+    Thread.sleep(100)
+    drainAllSent(control) must be(Nil)
+    drainAllSent(data) must be(Nil)
+
+    system.stop(actor)
+  }
+
   // Regression test: during a client-side modify the bridge receives
   //   attach(reqB, visX); detach(reqA, visX)
   // where both share the same visualizationId. The runtime treats attach as

@@ -31,7 +31,6 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import scala.annotation.unused
 import scala.concurrent.duration._
 
 /** An actor handling data communications between a single client and the
@@ -80,19 +79,13 @@ class BinaryConnectionController(
       )
       context.become(
         connectionEndHandler(Some(session))
-        orElse initialized(
-          outboundChannel,
-          clientId,
-          createRequestHandlers(outboundChannel)
-        )
+        orElse initialized(createRequestHandlers(outboundChannel))
         orElse decodingFailureHandler(outboundChannel)
       )
 
   }
 
   private def initialized(
-    @unused outboundChannel: ActorRef,
-    @unused clientId: UUID,
     handlers: Map[InboundPayloadType, Props]
   ): Receive = { case Right(msg: InboundMessage) =>
     if (handlers.contains(msg.payloadType())) {
