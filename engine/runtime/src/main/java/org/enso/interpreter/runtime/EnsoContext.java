@@ -54,6 +54,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
+import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.state.WithContextNode;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -847,8 +849,8 @@ public final class EnsoContext {
   }
 
   public ExecutionEnvironment getExecutionEnvironment() {
-    ExecutionEnvironment env = language.getExecutionEnvironment();
-    return env == null ? getGlobalExecutionEnvironment() : env;
+    var env = GetStateNode.getUncached().executeGet(null, ExecutionEnvironment.class, getNothing());
+    return env instanceof ExecutionEnvironment ee ? ee : getGlobalExecutionEnvironment();
   }
 
   /** Set the runtime execution environment of this context. */
@@ -857,7 +859,7 @@ public final class EnsoContext {
     var prev = tc.enter(null);
     try {
       this.globalExecutionEnvironment = executionEnvironment;
-      language.setExecutionEnvironment(executionEnvironment);
+      PutStateNode.getUncached().executePut(ExecutionEnvironment.class, executionEnvironment, true);
     } finally {
       tc.leave(null, prev);
     }
