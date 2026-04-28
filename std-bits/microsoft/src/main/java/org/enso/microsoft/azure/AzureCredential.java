@@ -1,7 +1,6 @@
 package org.enso.microsoft.azure;
 
 import org.enso.base.enso_cloud.EnsoHideableValue;
-import org.enso.base.enso_cloud.HideableValue;
 
 public sealed interface AzureCredential {
   String uniqueId();
@@ -36,18 +35,14 @@ public sealed interface AzureCredential {
       implements AzureCredential {
     @Override
     public String uniqueId() {
-      var tenantIdStr = HideableValue.from(tenantId).toString();
-      var clientIdStr = HideableValue.from(clientId).toString();
-      var clientSecretStr = HideableValue.from(clientSecret).toString();
-      return "ClientSecret(" + tenantIdStr + ", " + clientIdStr + ", " + clientSecretStr + ")";
+      return "ClientSecret(" + tenantId.uniqueId() + ", " + clientId.uniqueId() + ", " + clientSecret.uniqueId() + ")";
     }
   }
 
   record BlobStorageSASToken(EnsoHideableValue token) implements AzureCredential {
     @Override
     public String uniqueId() {
-      var tokenStr = HideableValue.from(token).toString();
-      return "BlobStorageSASToken(" + tokenStr + ")";
+      return "BlobStorageSASToken(" + token.uniqueId() + ")";
     }
   }
 }

@@ -6,8 +6,8 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.aws.regions.AWSRegion;
+import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -134,7 +134,7 @@ public class ClientBuilder {
    * This function is allowed access to secrets. Extra care should be taken to ensure its result is
    * not leaked.
    */
-  private String unsafeResolveSecrets(HideableValue value) {
+  private String unsafeResolveSecrets(EnsoHideableValue value) {
     return ExternalLibrarySecretHelper.resolveValue(value);
   }
 

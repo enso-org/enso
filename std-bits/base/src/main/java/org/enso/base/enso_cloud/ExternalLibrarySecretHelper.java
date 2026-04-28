@@ -10,10 +10,7 @@ import java.util.List;
 public final class ExternalLibrarySecretHelper extends SecretValueResolver {
   public static String resolveValue(EnsoHideableValue ensoHideableValue)
       throws EnsoSecretAccessDenied {
-    return resolveValue(HideableValue.from(ensoHideableValue));
-  }
-
-  public static String resolveValue(HideableValue hideableValue) throws EnsoSecretAccessDenied {
+    var hideableValue = HideableValue.from(ensoHideableValue);
     RestrictedAccess.checkAccess(allowedAccessLocations);
     return SecretValueResolver.resolveValue(hideableValue);
   }

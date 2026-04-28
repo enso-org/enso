@@ -127,7 +127,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
               .map(
                   p ->
                       new AbstractMap.SimpleEntry<>(
-                          p.name(), resolveValue(HideableValue.from(p.hideable_value()))))
+                          p.name(), resolveValue(HideableValue.from(p.as_derived_secret()))))
               .toList();
       var resolvedSchematic = new URISchematic(URI.create(baseUri), resolvedQueryParameters);
       return resolvedSchematic.build();
@@ -184,7 +184,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
             .map(
                 header -> {
                   return new AbstractMap.SimpleEntry<>(
-                      header.name(), resolveValue(HideableValue.from(header.hideable_value())));
+                      header.name(), resolveValue(HideableValue.from(header.as_derived_secret())));
                 })
             .toList();
 
@@ -236,7 +236,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       boolean hasSecrets =
           uri.containsSecrets()
               || headers.stream()
-                  .anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
+                  .anyMatch(p -> HideableValue.from(p.as_derived_secret()).containsSecrets());
       if (hasSecrets) {
         if (resolvedURI.getScheme() == null) {
           throw new IllegalArgumentException("The URI must have a scheme.");

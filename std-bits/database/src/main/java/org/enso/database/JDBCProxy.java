@@ -3,15 +3,12 @@ package org.enso.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
 import org.enso.base.enso_cloud.EnsoSecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
 import org.enso.database.audit.CloudAuditedConnection;
 import org.enso.database.audit.LocalAuditedConnection;
 

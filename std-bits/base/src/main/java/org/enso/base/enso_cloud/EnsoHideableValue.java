@@ -31,4 +31,8 @@ public interface EnsoHideableValue {
   static String render(EnsoHideableValue value) {
     return HideableValue.from(value).render();
   }
+
+  default String uniqueId() {
+    return HideableValue.from(this).toString();
+  }
 }
