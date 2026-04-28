@@ -40,14 +40,17 @@ class ExpressionIdTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |
-          |main = (2-2 == 0).if_then_else (Mist.Cons 5 6) 0
+          |main = if (2-2 == 0) then (Mist.Cons 5 6) else 0
           |
           |type Mist
           |    Cons h t
           |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(38, 41)
-      val id2  = meta.addItem(63, 13)
+      val id2  = meta.addItem(58, 13)
+
+      meta.assertInCode(id1, code, "if (2-2 == 0) then (Mist.Cons 5 6) else 0")
+      meta.assertInCode(id2, code, "Mist.Cons 5 6")
 
       instrumenter.assertNodeExists(id1, "Cons 5 6")
       instrumenter.assertNodeExists(id2, "Cons 5 6")

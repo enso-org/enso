@@ -402,7 +402,7 @@ public abstract class JavaInteropTest {
   public void throwsParsingErrorIndirect() {
     var code =
         """
-        from Standard.Base import Panic
+        from Standard.Base import Panic, to_text
         polyglot java import java.lang.Integer as Num
         polyglot java import java.lang.NumberFormatException as Ex
         polyglot java import org.enso.example.TestClass

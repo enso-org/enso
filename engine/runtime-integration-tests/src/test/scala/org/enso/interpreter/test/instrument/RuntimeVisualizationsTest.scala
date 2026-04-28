@@ -224,9 +224,137 @@ class RuntimeVisualizationsTest
       }
     }
 
+    object MainAll { context =>
+
+      val metadata = new Metadata(
+        "from Standard.Base import all hiding Number\n\n"
+      )
+
+      val idMainX = metadata.addItem(63, 1, "aa")
+      val idMainY = metadata.addItem(73, 7, "ab")
+      val idMainZ = metadata.addItem(89, 5, "ac")
+      val idFooY  = metadata.addItem(133, 8, "ad")
+      val idFooZ  = metadata.addItem(150, 5, "ae")
+
+      def code =
+        metadata.appendToCode(
+          """
+            |from Standard.Base.Data.Numbers import Number
+            |
+            |main =
+            |    x = 6
+            |    y = x.foo 5
+            |    z = y + 5
+            |    z
+            |
+            |Number.foo self = x ->
+            |    y = self + 3
+            |    z = y * x
+            |    z
+            |""".stripMargin.linesIterator.mkString("\n")
+        )
+
+      object Update {
+
+        def mainX(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idMainX,
+            ConstantsGen.INTEGER,
+            fromCache,
+            typeChanged,
+            methodCall = None
+          )
+
+        def mainY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idMainY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                ConstantsGen.NUMBER,
+                "foo"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+
+        def mainZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idMainZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "+"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+
+        def fooY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idFooY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "+"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+
+        def fooZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          TestMessages.update(
+            contextId,
+            MainAll.idFooZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "*"
+              )
+            ),
+            fromCache,
+            typeChanged
+          )
+      }
+    }
+
     object Visualization {
 
-      val metadata = new Metadata
+      val metadata = new Metadata("from Standard.Base import to_text\n\n")
 
       val code =
         metadata.appendToCode(
@@ -243,15 +371,15 @@ class RuntimeVisualizationsTest
     }
 
     object AnnotatedVisualization {
-
-      val metadata    = new Metadata
-      val idIncY      = metadata.addItem(111, 7)
-      val idIncRes    = metadata.addItem(129, 8)
-      val idIncMethod = metadata.addItem(102, 43)
+      val importOffset = 14
+      val metadata     = new Metadata
+      val idIncY       = metadata.addItem(importOffset + 111, 7)
+      val idIncRes     = metadata.addItem(importOffset + 129, 8)
+      val idIncMethod  = metadata.addItem(importOffset + 102, 43)
 
       val code =
         metadata.appendToCode(
-          """import Standard.Base.IO
+          """from Standard.Base import IO, to_text
             |
             |encode x =
             |   IO.println "encoding..."
@@ -264,6 +392,8 @@ class RuntimeVisualizationsTest
             |""".stripMargin.linesIterator.mkString("\n")
         )
 
+      metadata.assertInCode(idIncRes, code, "encode y")
+      metadata.assertInCode(idIncY, code, "a*x + b")
     }
 
   }
@@ -2182,13 +2312,6 @@ class RuntimeVisualizationsTest
         TestMessages.error(
           contextId,
           idMain,
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Error",
-              "Standard.Base.Error.Error",
-              "throw"
-            )
-          ),
           Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
         ),
         context.executionComplete(contextId)
@@ -2285,13 +2408,7 @@ class RuntimeVisualizationsTest
         TestMessages.panic(
           contextId,
           idMain,
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "throw"
-            )
-          ),
+          null,
           Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
           Some("Standard.Base.Panic.Panic")
         ),
@@ -2324,13 +2441,7 @@ class RuntimeVisualizationsTest
         TestMessages.panic(
           contextId,
           idMain,
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "throw"
-            )
-          ),
+          null,
           Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
           builtin = false
         ),
@@ -2421,13 +2532,7 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Error",
-            "Standard.Base.Error.Error",
-            "throw"
-          )
-        ),
+        null,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
@@ -2584,9 +2689,9 @@ class RuntimeVisualizationsTest
 
   it should "attach text visualization with arguments" in withContext() {
     context =>
-      val idMainRes  = context.Main.metadata.addItem(99, 1)
-      val contents   = context.Main.code
-      val mainFile   = context.writeMain(context.Main.code)
+      val idMainRes  = context.MainAll.metadata.addItem(99, 1)
+      val contents   = context.MainAll.code
+      val mainFile   = context.writeMain(context.MainAll.code)
       val moduleName = "Enso_Test.Test.Main"
 
       val contextId       = UUID.randomUUID()
@@ -2620,9 +2725,9 @@ class RuntimeVisualizationsTest
         6
       ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.PushContextResponse(contextId)),
-        context.Main.Update.mainX(contextId),
-        context.Main.Update.mainY(contextId),
-        context.Main.Update.mainZ(contextId),
+        context.MainAll.Update.mainX(contextId),
+        context.MainAll.Update.mainY(contextId),
+        context.MainAll.Update.mainZ(contextId),
         TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
         context.executionComplete(contextId)
       )
@@ -3849,15 +3954,16 @@ class RuntimeVisualizationsTest
       val moduleNameLib   = "Enso_Test.Test.Lib"
       val metadata        = new Metadata
 
-      val idS    = metadata.addItem(50, 13, "eeee")
-      val idX    = metadata.addItem(72, 14, "aaaa")
+      val idS    = metadata.addItem(80, 13, "eeee")
+      val idX    = metadata.addItem(102, 14, "aaaa")
       val idAArg = UUID.randomUUID()
       val idBArg = UUID.randomUUID()
-      val idRes  = metadata.addItem(91, 1, "dddd")
+      val idRes  = metadata.addItem(121, 1, "dddd")
 
       val typesMetadata = new Metadata
       val codeTypes = typesMetadata.appendToCode(
-        """type Foo
+        """from Standard.Base import all
+          |type Foo
           |    A
           |
           |type Bar
@@ -3890,6 +3996,7 @@ class RuntimeVisualizationsTest
 
       val code =
         """from project.Lib import Singleton
+          |from Standard.Base import all
           |
           |main =
           |    s = Singleton.S 1
@@ -4077,7 +4184,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idYX     = metadata.addItem(65, 1, "aa")
       val idY      = metadata.addItem(65, 7, "ab")
@@ -4103,6 +4210,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idZ, code, "p y s")
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -4238,7 +4347,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idY = metadata.addItem(65, 7, "ab")
 
@@ -4255,6 +4364,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+      val span     = 96
+      contents.substring(span, span + 1) shouldEqual "x"
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -4305,7 +4416,7 @@ class RuntimeVisualizationsTest
             Seq(),
             execute = true,
             idMap = Some(
-              model.IdMap(Vector(model.Span(100, 101) -> idYX))
+              model.IdMap(Vector(model.Span(span, span + 1) -> idYX))
             )
           )
         )
@@ -4401,7 +4512,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idOp1 = metadata.addItem(23, 2)
       val idOp2 = metadata.addItem(42, 13)
@@ -4416,6 +4527,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idOp1, code, "42")
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -4501,7 +4614,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idOp1 = metadata.addItem(23, 2)
       val idOp2 = metadata.addItem(42, 13)
@@ -4517,6 +4630,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idOp1, code, "42")
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -4603,7 +4718,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idOp1        = metadata.addItem(23, 2)
       val idOp2        = metadata.addItem(42, 13)
@@ -4620,6 +4735,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idOp1, code, "42")
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -4708,7 +4825,7 @@ class RuntimeVisualizationsTest
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
-      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+      val metadata        = new Metadata("from Standard.Base import all\n\n")
 
       val idOp1  = metadata.addItem(23, 2)
       val idOp2  = metadata.addItem(42, 13)
@@ -4724,6 +4841,8 @@ class RuntimeVisualizationsTest
           |""".stripMargin.linesIterator.mkString("\n")
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idOp1, code, "42")
 
       // create context
       context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))

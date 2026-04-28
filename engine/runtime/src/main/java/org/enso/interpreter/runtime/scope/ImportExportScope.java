@@ -83,6 +83,11 @@ public final class ImportExportScope extends EnsoObject {
   @Override
   @TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
+    return toString();
+  }
+
+  @Override
+  public String toString() {
     return "ImportExportScope{" + module.getName().toString() + "}";
   }
 }

@@ -7,8 +7,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 @BuiltinMethod(
     type = "Meta",
     name = "get_constructor_declaring_type",
-    description = "Gets the type that declared this constructor.",
-    autoRegister = false)
+    description = "Gets the type that declared this constructor.")
 public class GetConstructorDeclaringTypeNode extends Node {
   Object execute(AtomConstructor cons) {
     var withCheck = FindAtomConstructorNode.findAtomConstructor(this, cons, null);

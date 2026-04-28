@@ -4,6 +4,7 @@ import project.Data.Locale.Locale
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values

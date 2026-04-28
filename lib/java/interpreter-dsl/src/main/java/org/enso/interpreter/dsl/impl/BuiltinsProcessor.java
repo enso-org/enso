@@ -239,7 +239,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
                         methodName,
                         annotation.description(),
                         method.getSimpleName().toString(),
-                        annotation.autoRegister(),
                         needsFrame);
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
@@ -294,7 +293,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 builtinMethodName,
                 annotation.description(),
                 method.getSimpleName().toString(),
-                annotation.autoRegister(),
                 needsFrame);
           }
         } else {
@@ -306,7 +304,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
               builtinMethodName,
               annotation.description(),
               method.getSimpleName().toString(),
-              annotation.autoRegister(),
               needsFrame);
         }
       }

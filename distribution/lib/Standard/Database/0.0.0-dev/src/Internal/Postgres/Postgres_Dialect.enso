@@ -288,9 +288,12 @@ type Postgres_Dialect
        private: true
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
-    check_aggregate_support self aggregate =
-        _ = aggregate
-        True
+    check_aggregate_support self aggregate = case aggregate of
+        Aggregate_Column.ST_Union _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Union")
+        Aggregate_Column.ST_Intersection _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Intersection")
+        Aggregate_Column.ST_Extent _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Extent")
+        Aggregate_Column.Array_Agg _ _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Array_Agg")
+        _ -> True
 
     ## ---
        private: true
@@ -319,6 +322,7 @@ type Postgres_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> False
             Dialect_Flag.Use_Builtin_Bankers -> False
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Use_SQL_Type_Hints_For_Null_Values -> False
             Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Nested_With_Clause -> True
             Dialect_Flag.Supports_Case_Sensitive_Columns -> True

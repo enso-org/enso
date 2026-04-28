@@ -47,6 +47,7 @@ public class EnsoMultiValueTest {
 
     var main =
         """
+        from Standard.Base import to_text
         from project.Types import all
 
         main =
@@ -118,6 +119,8 @@ public class EnsoMultiValueTest {
   public void trippleCastConfusion() {
     var code =
         """
+        from Standard.Base import to_text
+
         type A
             A_Ctor x
         type B

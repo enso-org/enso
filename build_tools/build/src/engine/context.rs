@@ -574,6 +574,9 @@ impl RunContext {
             // The path to the library is of this form:
             // distribution/lib/Standard/<lib_name>/0.0.0-dev
             let dir = dir?;
+            if !dir.file_type()?.is_dir() {
+                continue;
+            }
             let lib_dir = dir.path().join("0.0.0-dev");
             assert!(lib_dir.exists(), "Directory {} does not exist", lib_dir.display());
             let api_dir = lib_dir.join("docs").join("api");

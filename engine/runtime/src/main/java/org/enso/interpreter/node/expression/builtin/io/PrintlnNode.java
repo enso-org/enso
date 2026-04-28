@@ -17,11 +17,7 @@ import org.enso.interpreter.node.expression.builtin.text.InvokeToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
-@BuiltinMethod(
-    type = "IO",
-    name = "println",
-    description = "Prints its argument to standard out.",
-    autoRegister = false)
+@BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
 public abstract class PrintlnNode extends Node {
 
   abstract Object execute(VirtualFrame frame, @AcceptsError Object message, Object nl);

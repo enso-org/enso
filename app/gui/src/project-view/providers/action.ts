@@ -335,12 +335,16 @@ const displayableActions = {
     description: 'Insert image',
   },
 
-  // === Fullscreen ===
+  // === Panel ===
 
   'panel.fullscreen': {
     available: false,
     icon: 'fullscreen',
     description: 'Fullscreen',
+  },
+  'panel.close': {
+    icon: 'close',
+    description: 'Close Panel',
   },
 
   // === Command Palette ===

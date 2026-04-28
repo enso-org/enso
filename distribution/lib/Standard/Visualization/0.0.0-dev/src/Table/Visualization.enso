@@ -396,7 +396,7 @@ private _make_json_for_value val level:Integer=0 = case val of
     db_col : DB_Column ->
         col = db_col : Column
         if level != 0 then "DB_Column{"+col.name+"}" else
-            "DB_Column{" + col.name + ": " + col.length.to_text + " rows}"
+            "DB_Column{" + col.name + ": " + col.row_count.to_text + " rows}"
     f : Function -> "[Function "+f.to_text+"]"
     date : Date -> _to_js_object_with_display_text date
     date_time : Date_Time -> _to_js_object_with_display_text date_time

@@ -1,3 +1,4 @@
+import assert from 'assert'
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test } from 'integration-test/base'
 import { connectedEdgesFromNodeWithBinding } from './locate'
@@ -47,10 +48,17 @@ test('Hover behaviour of edges', async ({ editorPage, page }) => {
   await expect(targetEdge).toExist()
 
   // Hover over edge to the left of node with binding `ten`.
-  await targetEdge.hover({
-    position: { x: 30, y: 75.0 },
-    force: true,
-  })
+  // GraphEdge.vue tracks hover via `pointerenter`, which requires the pointer to
+  // traverse from outside into the element. A single `locator.hover({ force: true })`
+  // dispatches one `mousemove` at the target and can leave the pointer already
+  // "inside" — no enter event fires and the `hovered` class stays off. Explicit
+  // two-step move guarantees the enter transition.
+  const edgeBox = await targetEdge.boundingBox()
+  assert(edgeBox)
+  const hoverX = edgeBox.x + 30
+  const hoverY = edgeBox.y + 75
+  await page.mouse.move(edgeBox.x - 20, hoverY)
+  await page.mouse.move(hoverX, hoverY, { steps: 5 })
 
   // Expect an extra edge for the split rendering.
   const hoveredEdgeElements = await connectedEdgesFromNodeWithBinding(page, 'twenty')

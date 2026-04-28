@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Internal.Runtime_Helpers
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Json import JS_Object
@@ -44,7 +45,7 @@ type Project_Description
              Project_Description.new Standard.Base.Data.Vector
        ```
     new : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
-    new module=Nothing = Project_Description.enso_project_builtin module
+    new module=Nothing = Runtime_Helpers.enso_project_builtin module
 
     ## ---
        private: true
@@ -123,11 +124,6 @@ type Project_Description
     to_js_object self =
         JS_Object.from_pairs [["type", "Project_Description"], ["name", self.name], ["namespace", self.namespace]]
 
-    ## ---
-       private: true
-       ---
-    enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"
-
 ## ---
    icon: enso_icon
    ---
@@ -142,6 +138,5 @@ type Project_Description
    ```
          enso_project
    ```
-enso_project : Project_Description ! Module_Not_In_Package_Error
-enso_project =
-    Project_Description.enso_project_builtin Nothing
+enso_project -> Project_Description ! Module_Not_In_Package_Error =
+    Runtime_Helpers.enso_project_builtin Nothing

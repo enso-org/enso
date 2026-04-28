@@ -20,8 +20,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 @BuiltinMethod(
     type = "State",
     name = "get",
-    description = "Returns the current value of monadic state.",
-    autoRegister = false)
+    description = "Returns the current value of monadic state.")
 @ReportPolymorphism
 @GenerateUncached
 public abstract class GetStateNode extends Node {

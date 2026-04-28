@@ -34,8 +34,7 @@ public final class EnsoDuration extends BuiltinObject {
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds",
-      autoRegister = false)
+          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds")
   @TruffleBoundary
   public static EnsoDuration create(
       long hours, long minutes, long seconds, long milliseconds, long nanoseconds) {
@@ -52,8 +51,7 @@ public final class EnsoDuration extends BuiltinObject {
       name = "between_builtin",
       description =
           "Construct a new Duration that is between the given start date inclusive, and end date"
-              + " exclusive",
-      autoRegister = false)
+              + " exclusive")
   @Builtin.Specialize
   @TruffleBoundary
   public static EnsoDuration between(
@@ -106,53 +104,53 @@ public final class EnsoDuration extends BuiltinObject {
   }
 
   @Builtin.Method(description = "Gets the hours part")
-  public long hours() {
-    return duration.toHoursPart();
+  public static long hours(EnsoDuration d) {
+    return d.duration.toHoursPart();
   }
 
   @Builtin.Method(description = "Gets the minutes part")
-  public long minutes() {
-    return duration.toMinutesPart();
+  public static long minutes(EnsoDuration d) {
+    return d.duration.toMinutesPart();
   }
 
   @Builtin.Method(description = "Gets the seconds part")
-  public long seconds() {
-    return duration.toSecondsPart();
+  public static long seconds(EnsoDuration d) {
+    return d.duration.toSecondsPart();
   }
 
   @Builtin.Method(description = "Gets the milliseconds part")
-  public long milliseconds() {
-    return duration.toMillisPart();
+  public static long milliseconds(EnsoDuration d) {
+    return d.duration.toMillisPart();
   }
 
   @Builtin.Method(description = "Gets the nanoseconds part")
-  public long nanoseconds() {
-    return duration.toNanosPart();
+  public static long nanoseconds(EnsoDuration d) {
+    return d.duration.toNanosPart();
   }
 
   @Builtin.Method(
       name = "total_milliseconds_builtin",
       description = "Gets the total amount of milliseconds")
-  public long totalMilliseconds() {
-    return duration.toMillis();
+  public static long totalMilliseconds(EnsoDuration d) {
+    return d.duration.toMillis();
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds another Duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
-  public EnsoDuration plus(Object durationObject, InteropLibrary interop)
+  public static EnsoDuration plus(EnsoDuration d, Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
-    return new EnsoDuration(duration.plus(interop.asDuration(durationObject)));
+    return new EnsoDuration(d.duration.plus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts another Duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
-  public EnsoDuration minus(Object durationObject, InteropLibrary interop)
+  public static EnsoDuration minus(EnsoDuration d, Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
-    return new EnsoDuration(duration.minus(interop.asDuration(durationObject)));
+    return new EnsoDuration(d.duration.minus(interop.asDuration(durationObject)));
   }
 
   @ExportMessage

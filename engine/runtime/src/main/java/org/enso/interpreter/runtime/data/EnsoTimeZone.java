@@ -35,11 +35,19 @@ public final class EnsoTimeZone extends BuiltinObject {
 
   @Builtin.Method(description = "Get the unique identifier for your system's current timezone.")
   @CompilerDirectives.TruffleBoundary
+  public static Text zone_id(EnsoTimeZone tz) {
+    return tz.zoneId();
+  }
+
   public Text zoneId() {
     return Text.create(this.zone.getId());
   }
 
   @Builtin.Method(description = "Get offset in seconds of this zone at given time")
+  public static long offset(EnsoTimeZone tz, Object at) {
+    return tz.offset(at);
+  }
+
   @CompilerDirectives.TruffleBoundary
   public long offset(Object at) {
     try {
@@ -52,10 +60,7 @@ public final class EnsoTimeZone extends BuiltinObject {
     }
   }
 
-  @Builtin.Method(
-      name = "parse_builtin",
-      description = "Parse the ID producing a Time_Zone.",
-      autoRegister = false)
+  @Builtin.Method(name = "parse_builtin", description = "Parse the ID producing a Time_Zone.")
   @Builtin.Specialize
   @Builtin.WrapException(from = ZoneRulesException.class)
   @CompilerDirectives.TruffleBoundary
@@ -67,8 +72,7 @@ public final class EnsoTimeZone extends BuiltinObject {
       name = "new_builtin",
       description =
           "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from"
-              + " the UTC zone.",
-      autoRegister = false)
+              + " the UTC zone.")
   @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone create(long hours, long minutes, long seconds) {
@@ -77,10 +81,7 @@ public final class EnsoTimeZone extends BuiltinObject {
             Math.toIntExact(hours), Math.toIntExact(minutes), Math.toIntExact(seconds)));
   }
 
-  @Builtin.Method(
-      name = "system",
-      description = "The system default timezone.",
-      autoRegister = false)
+  @Builtin.Method(name = "system", description = "The system default timezone.")
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone system() {
     return new EnsoTimeZone(Core_Date_Utils.defaultSystemZone());

@@ -36,7 +36,6 @@ public abstract class MethodNodeClassGenerator {
       String methodName,
       String description,
       String ownerMethodName,
-      boolean isAutoRegister,
       Boolean needsFrame)
       throws IOException {
     JavaFileObject gen =
@@ -52,9 +51,6 @@ public abstract class MethodNodeClassGenerator {
       out.println("import " + ownerClazz.fullyQualifiedName() + ";");
       out.println();
       String moduleOwnerInfo = "";
-      if (!isAutoRegister) {
-        moduleOwnerInfo = ", autoRegister = " + isAutoRegister;
-      }
       if (needsFrame != null) {
         moduleOwnerInfo = moduleOwnerInfo + ", inlineable = " + !needsFrame;
       }

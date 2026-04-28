@@ -1195,6 +1195,10 @@ function AssetsTable(props: AssetsTableProps) {
           </FileTrigger>
         </div>
       </AssetsTableAssetsUnselector>
+      {/* A stable area to click to deselect, used by tests. */}
+      <AssetsTableAssetsUnselector asChild>
+        <div data-testid="assets-table-background" className="h-8 w-full shrink-0" />
+      </AssetsTableAssetsUnselector>
     </Scroller>
   )
 

@@ -1,6 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Table.Aggregate_Column
 - type Aggregate_Column
+    - Array_Agg column:Standard.Base.Any.Any= as:Standard.Base.Data.Text.Text= ignore_nothing:Standard.Base.Data.Boolean.Boolean= order_by:(Standard.Table.Sort_Column.Sort_Column|Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any))=
     - Average column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Concatenate column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text= separator:Standard.Base.Data.Text.Text= prefix:Standard.Base.Data.Text.Text= suffix:Standard.Base.Data.Text.Text= quote_char:Standard.Base.Data.Text.Text=
     - Count as:Standard.Base.Data.Text.Text=
@@ -19,6 +20,9 @@
     - Mode column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Percentile percentile:Standard.Base.Data.Numbers.Number= column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - SQL function:Standard.Base.Data.Text.Text= arguments:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
+    - ST_Extent column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
+    - ST_Intersection column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
+    - ST_Union column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Shortest column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Standard_Deviation column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text= population:Standard.Base.Data.Boolean.Boolean=
     - Sum column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=

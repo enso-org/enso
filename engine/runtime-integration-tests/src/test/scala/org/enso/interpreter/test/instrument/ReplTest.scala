@@ -80,6 +80,7 @@ class ReplTest
           |polyglot java import java.util.regex.Pattern
           |import Standard.Base.Runtime.Debug
           |import Standard.Base.Data.Numbers
+          |from Standard.Base import to_text
           |
           |type A
           |    Foo a b
@@ -108,7 +109,7 @@ class ReplTest
           result.toString shouldEqual "Error in method `to_text` of [Bar 1]: Expected Text but got 42"
         }
         inside(executor.evaluate("C.Baz 1")) { case Right(result) =>
-          result.toString shouldEqual "Error in method `to_text` of [Baz 1]: Expected Text but got C.to_text[Test:19:1-28]"
+          result.toString shouldEqual "Error in method `to_text` of [Baz 1]: Expected Text but got C.to_text[Test:20:1-28]"
         }
         inside(executor.evaluate("Pattern.compile 'foo'")) {
           case Right(result) =>

@@ -357,16 +357,18 @@ type Redshift_Dialect
        private: true
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
-    check_aggregate_support self aggregate =
-        _ = self
-        case aggregate of
-            Aggregate_Column.Count_Distinct columns _ _ ->
-                if columns.length == 1 then True else
-                    Error.throw (Unsupported_Database_Operation.Error "Count_Distinct on multiple columns")
-            Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
-            Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
-            Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
-            _ -> True
+    check_aggregate_support self aggregate = case aggregate of
+        Aggregate_Column.Count_Distinct columns _ _ ->
+            if columns.length == 1 then True else
+                Error.throw (Unsupported_Database_Operation.Error "Count_Distinct on multiple columns")
+        Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
+        Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
+        Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
+        Aggregate_Column.ST_Union _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Union")
+        Aggregate_Column.ST_Intersection _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Intersection")
+        Aggregate_Column.ST_Extent _ _ -> Error.throw (Unsupported_Database_Operation.Error "ST_Extent")
+        Aggregate_Column.Array_Agg _ _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Array_Agg")
+        _ -> True
 
     ## ---
        private: true
@@ -489,6 +491,7 @@ type Redshift_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> False
             Dialect_Flag.Use_Builtin_Bankers -> False
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Use_SQL_Type_Hints_For_Null_Values -> False
             Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Nested_With_Clause -> False
             Dialect_Flag.Supports_Case_Sensitive_Columns -> False

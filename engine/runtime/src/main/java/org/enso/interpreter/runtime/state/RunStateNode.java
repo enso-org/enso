@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.error.PanicException;
     type = "State",
     name = "run",
     description = "Runs a stateful computation in a local state environment.",
-    autoRegister = false,
     inlineable = true)
 @ReportPolymorphism
 @GenerateUncached

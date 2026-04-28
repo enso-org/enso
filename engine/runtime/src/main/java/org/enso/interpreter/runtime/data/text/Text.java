@@ -52,10 +52,10 @@ public final class Text extends BuiltinObject {
 
                   "건반(Korean)".length
           """)
-  public long length() {
-    int l = length;
+  public static long length(Text t) {
+    int l = t.length;
     if (l == -1) {
-      return computeAndSetLength();
+      return t.computeAndSetLength();
     } else {
       return l;
     }
@@ -71,13 +71,17 @@ public final class Text extends BuiltinObject {
 
                 "14.95€".is_normalized
           """)
-  public boolean is_normalized() {
-    return switch (fcdNormalized) {
+  public static boolean is_normalized(Text t) {
+    return switch (t.fcdNormalized) {
       case 1 -> true;
       case -1 -> false;
-      case 0 -> computeAndSetFcd();
+      case 0 -> t.computeAndSetFcd();
       default -> false;
     };
+  }
+
+  public boolean is_normalized() {
+    return is_normalized(this);
   }
 
   @CompilerDirectives.TruffleBoundary

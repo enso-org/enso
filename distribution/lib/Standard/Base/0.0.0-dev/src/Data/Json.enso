@@ -523,3 +523,17 @@ key_value_widget =
     pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", make_all_selector]]
     item_editor = Single_Choice display=..Always values=[pair]
     Vector_Editor item_editor=item_editor display=..Always item_default=default
+
+## ---
+   icon: parse3
+   ---
+   Get a value for the key of the object.
+   As `Nothing` has no keys, returns `if_missing`.
+
+   ## Arguments
+    - `key`: The key to get.
+    - `if_missing`: The value to return if the key is not found.
+Nothing.get self (key:(Text | Integer)=0) ~if_missing=Nothing =
+    _ = key
+    if_missing
+        

@@ -16,7 +16,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class FindExceptionMessageTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
 
   @Test
   public void testThrowNPE() {
@@ -94,7 +95,8 @@ public class FindExceptionMessageTest {
         import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
         deep_panic n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
-            deep_panic n-1
+            x = deep_panic n-1
+            x + 1
 
         main =
             d = Panic.recover Any
@@ -133,11 +135,13 @@ public class FindExceptionMessageTest {
         polyglot java import org.enso.example.TestClass
 
         exec e ~r =
-            e.execute r...
+            x = e.execute r...
+            x + 1
 
         deep_panic e n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
-            exec e
+            x = exec e
                 deep_panic e n-1
+            x + 1
 
         main =
             e = TestClass.newDirectExecutor

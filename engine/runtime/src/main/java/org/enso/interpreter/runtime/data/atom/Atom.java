@@ -416,7 +416,6 @@ public abstract class Atom extends EnsoObject {
                 "Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }
     } catch (AbstractTruffleException | UnsupportedMessageException panic) {
-
       handleError.enter();
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
     }

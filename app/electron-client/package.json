@@ -38,6 +38,10 @@
     "ydoc-server": "workspace:*",
     "zip-stream": "^7.0.2"
   },
+  "//": [
+    "vite is required for the watch script",
+    "electron-builder-squirrel-windows is pinned only to satisfy app-builder-lib's required peer with a matching version — without it, pnpm keeps a stale 24.x subtree alongside the current one. The Squirrel Windows target is not used."
+  ],
   "devDependencies": {
     "@electron/notarize": "2.1.0",
     "@types/gunzip-maybe": "^1.4.2",
@@ -52,8 +56,9 @@
     "@types/yauzl": "^2.10.3",
     "@types/zip-stream": "^7.0.0",
     "cross-env": "^7.0.3",
-    "electron": "37.3.1",
-    "electron-builder": "^24.13.3",
+    "electron": "41.2.1",
+    "electron-builder": "^26.8.1",
+    "electron-builder-squirrel-windows": "^26.8.1",
     "enso-common": "workspace:*",
     "enso-gui": "workspace:*",
     "esbuild": "^0.25.0",
@@ -64,9 +69,6 @@
     "vite": "catalog:",
     "vite-node": "3.0.0-beta.3"
   },
-  "//": [
-    "vite is required for the watch script"
-  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "vite-node bundle.ts",

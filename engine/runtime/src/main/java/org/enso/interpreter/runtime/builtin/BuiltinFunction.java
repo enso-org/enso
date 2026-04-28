@@ -6,15 +6,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class BuiltinFunction {
   // Note: ideally BuiltinFunction would be a record but there appears to be a bug in frgaal.
   private Function fun;
-  private boolean autoRegister;
 
-  public BuiltinFunction(Function fun, boolean autoRegister) {
+  public BuiltinFunction(Function fun) {
     this.fun = fun;
-    this.autoRegister = autoRegister;
-  }
-
-  public boolean isAutoRegister() {
-    return this.autoRegister;
   }
 
   public Function getFunction() {

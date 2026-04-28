@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Text", name = "+", description = "Text concatenation.")
 public abstract class ConcatNode extends Node {
-  abstract Text execute(Object self, Object that);
+  abstract Text execute(Object left, Object right);
 
   static ConcatNode build() {
     return ConcatNodeGen.create();
@@ -17,9 +17,12 @@ public abstract class ConcatNode extends Node {
 
   @Specialization
   Text doExecute(
-      Object self, Object that, @Cached ExpectTextNode leftCast, @Cached ExpectTextNode rightCast) {
-    Text l = leftCast.execute(self);
-    Text r = rightCast.execute(that);
+      Object left,
+      Object right,
+      @Cached ExpectTextNode leftCast,
+      @Cached ExpectTextNode rightCast) {
+    Text l = leftCast.execute(left);
+    Text r = rightCast.execute(right);
     return Text.create(l, r);
   }
 }

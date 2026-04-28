@@ -67,6 +67,7 @@ public class EnsoYamlProjectTest extends NbTestCase {
 
     var stdlibCount = 0;
     for (var ch : stdlib.getChildren()) {
+        if (ch.hasExt("md")) continue;
         var prj = ProjectManager.getDefault().findProject(ch);
         assertNotNull("Project for " + ch + " found", prj);
         var info = ProjectUtils.getInformation(prj);

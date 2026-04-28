@@ -10,8 +10,7 @@ import org.enso.pkg.QualifiedName;
 @BuiltinMethod(
     type = "Meta",
     name = "find_type_by_qualified_name",
-    description = "Finds a type by fully qualified name.",
-    autoRegister = false)
+    description = "Finds a type by fully qualified name.")
 public class FindTypeByFqnNode extends Node {
   @TruffleBoundary
   Object execute(Text fqn) {

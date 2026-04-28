@@ -30,7 +30,7 @@ public final class Ref extends BuiltinObject {
    *
    * @param value the initial value to store in the reference.
    */
-  @Builtin.Method(description = "Creates a new Ref", autoRegister = false)
+  @Builtin.Method(description = "Creates a new Ref")
   public static Ref alloc(@Suspend Object value) {
     return new Ref(value);
   }

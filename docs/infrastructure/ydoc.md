@@ -215,7 +215,7 @@ rename the file to include word _"suspend"_ in its name - like
 `main-suspend.cjs` for example. Then the execution stops before the debugger is
 attached.
 
-#### Debugging `enso` _Native Image_ Binary
+### Debugging `enso` _Native Image_ Binary
 
 Sometimes it may be beneficial to debug _native image_ version of `enso` binary.
 Then one has to get a binary with _enabled assertions_ - according to the
@@ -238,14 +238,14 @@ Compiling _native image_ version takes more time, however launching the _native
 image_ version is usually way faster than the `--jvm` version. Moreover it more
 closely mimics the _production mode_ used by majority of Enso users.
 
-#### Inspecting Channel Traffic with ydoc-inspect
+### Inspecting Channel Traffic with ydoc-inspect
 
 The `ydoc-inspect` tool connects to a running Ydoc server and provides an
 interactive console for observing and injecting messages on YjsChannels. It
 syncs the server's internal inspect Y.Doc via WebSocket and exposes helper
 functions through Chrome DevTools `chrome://inspect` page.
 
-##### Prerequisites
+#### Prerequisites
 
 The inspect endpoint is only available when the Ydoc server runs in debug mode.
 This is controlled by the `ENSO_IDE_YDOC_LS_DEBUG` environment variable, which
@@ -254,7 +254,7 @@ is set to `true` automatically when the application is started in dev mode with
 JSON and binary channel servers to intercept all message traffic and expose it
 through a `/project/inspect` WebSocket endpoint.
 
-##### Running ydoc-inspect
+#### Running ydoc-inspect
 
 Start the application and open a project:
 
@@ -277,10 +277,12 @@ Available CLI options:
 | `--truncate` | `240`       | Max characters for message data display  |
 | `--no-watch` | _(off)_     | Disable automatic live message streaming |
 
-##### DevTools Console Commands
+#### DevTools Console Commands
 
 Once connected, open `chrome://inspect` and attach to the Node.js process. The
 following global functions are available in the DevTools console:
+
+**Channel inspection:**
 
 ```js
 channels()                    // List all registered channels
@@ -292,28 +294,16 @@ watch(channelId?)             // Watch live messages (returns stop function)
 unwatch()                     // Stop watching live messages
 ```
 
-##### Architecture
+**AST inspection:**
 
-The inspect system works by inserting an `InspectManager` between the Ydoc
-server and the Language Server. When debug mode is active:
-
-1. `InspectManager` wraps JSON and binary `YjsChannelServer` instances
-2. Each new channel gets a tap that copies all messages (with timestamps and
-   direction) into per-channel Y.Arrays (`log:<id>` and `meta:<id>`)
-3. The inspect client syncs this Y.Doc and reads the arrays to display messages
-4. Commands from the inspect client are written to `snd:<id>` / `rcv:<id>`
-   arrays, consumed by the server, and forwarded to real channels
-
-```
-+-----------------+     Y.Doc sync     +-------------------+
-| ydoc-inspect    |<------------------>| InspectManager    |
-| (Node.js)       |    WebSocket       | (ydoc-server)     |
-+-----------------+                    +-----+----------+--+
-                                         tap |          | tap
-                                 +-----------+--+ +-----+----------+
-                                 | JSON Channel | | Binary Channel |
-                                 +--------------+ +----------------+
+```js
+modules()                     // List all module names in the project
+ast(moduleName?)              // Get root AST node (defaults to Main)
+tree(moduleName?, depth?)     // Print AST tree structure to console
+node(id)                      // Look up an AST node by id
+meta(id)                      // Show metadata for a node (position, visualization, etc.)
+code(moduleName?)             // Print full module source code
 ```
 
-The inspect Y.Doc is a standard `WSSharedDoc`, so multiple inspect clients can
-connect simultaneously and observe the same traffic.
+The AST commands work by syncing the project's Y.Doc (the `index` document)
+alongside the inspect Y.Doc.

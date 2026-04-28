@@ -16,8 +16,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Meta",
     name = "get_type_methods",
-    description = "Gets the method names of a type.",
-    autoRegister = false)
+    description = "Gets the method names of a type.")
 public abstract class GetTypeMethodsNode extends Node {
   public static GetTypeMethodsNode build() {
     return GetTypeMethodsNodeGen.create();

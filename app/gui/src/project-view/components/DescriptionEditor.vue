@@ -13,6 +13,8 @@ import type { AssetDetailsResponse, AssetId } from 'enso-common/src/services/Bac
 import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
+defineProps<{ toolbar: HTMLElement | string }>()
+
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
 const backendForAsset = computed(
@@ -100,6 +102,7 @@ function editorReadyCallback(view: EditorView) {
       :extensions="syncExt"
       contentTestId="asset-panel-description"
       :editorReadyCallback="editorReadyCallback"
+      :teleportToolbarTo="toolbar"
     />
     <ResultComponent
       v-else

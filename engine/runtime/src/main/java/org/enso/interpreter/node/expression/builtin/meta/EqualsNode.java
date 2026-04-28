@@ -64,21 +64,21 @@ public final class EqualsNode extends Node {
    * to convert first argument to the second one and compare again.
    *
    * @param frame the stack frame we are executing at
-   * @param self the self object
+   * @param thiz the self object
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public EqualsAndInfo execute(VirtualFrame frame, Object self, Object other) {
-    var areEqual = node.execute(frame, self, other);
+  public EqualsAndInfo execute(VirtualFrame frame, Object thiz, Object other) {
+    var areEqual = node.execute(frame, thiz, other);
     if (!areEqual.isTrue()) {
-      var selfType = types.findTypeOrNull(self);
+      var selfType = types.findTypeOrNull(thiz);
       var otherType = types.findTypeOrNull(other);
       if (selfType != otherType) {
         if (convert == null) {
           CompilerDirectives.transferToInterpreter();
           convert = insert(WithConversionNode.create());
         }
-        return convert.executeWithConversion(frame, other, self);
+        return convert.executeWithConversion(frame, other, thiz);
       }
     }
     return areEqual;

@@ -527,6 +527,7 @@ public class AtomInteropTest {
         ctxRule.evalModule(
             """
             from Standard.Base.Any import all
+            from Standard.Base.Data.Numbers import Integer
 
             type Generator
                 Value n ~next

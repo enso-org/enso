@@ -8,8 +8,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Runtime",
     name = "current_execution_environment",
-    description = "Returns the name of the current execution environment.",
-    autoRegister = false)
+    description = "Returns the name of the current execution environment.")
 public class RuntimeCurrentExecutionEnvironmentNode extends Node {
   Object execute() {
     return Text.create(EnsoContext.get(this).getExecutionEnvironment().getName());

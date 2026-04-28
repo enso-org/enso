@@ -2,9 +2,7 @@ package org.enso.interpreter.test.closure;
 
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 
-@Ignore
 public final class AnyClosureTest extends TransitiveInfra {
   @Override
   protected String moduleName() {
@@ -23,12 +21,12 @@ public final class AnyClosureTest extends TransitiveInfra {
 
   @Override
   protected int minimumOfModules() {
-    return 25;
+    return 3;
   }
 
   @Override
   protected int maximumOfModules() {
-    return 35;
+    return 6;
   }
 
   @Override

@@ -305,9 +305,7 @@ export function dropOperationBetweenCategories(
   }
 
   if (isCloudCategory(from) !== isCloudCategory(to)) {
-    if (isLocalCategory(from) || isLocalCategory(to)) {
-      return 'copy'
-    }
+    return 'copy'
   }
 
   switch (from.type) {
@@ -319,7 +317,7 @@ export function dropOperationBetweenCategories(
       return 'move'
     case 'local':
     case 'localDirectory':
-      return 'move'
+      return 'move' // "Copy from cloud" scenario covered above.
   }
 }
 

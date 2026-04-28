@@ -5,7 +5,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
-from Standard.Table import Table
+import Standard.Table.Internal.In_Memory_Helpers
+from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
@@ -93,17 +94,30 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
 
     column_names = source_table.column_names
     insert_template = make_batched_insert_template connection table_name column_names
-    statement_setter = connection.type_mapping.statement_setter
+    jdbc_value_setter = connection.type_mapping.value_setter
     structure = structure_hint.if_nothing source_table
     aligned_structure = align_structure connection structure
     expected_type_hints = aligned_structure.map .value_type
+    expected_date_time_with_timezone = expected_type_hints.map value_type-> case value_type of
+        Value_Type.Date_Time with_timezone -> with_timezone
+        _ -> False
+    expected_sql_type_ids = expected_type_hints.map value_type->
+        (connection.type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore).typeid
+    use_sql_type_hints_for_null_values = connection.dialect.flagged ..Use_SQL_Type_Hints_For_Null_Values
+    supports_separate_nan = connection.dialect.flagged ..Supports_Separate_NaN
+    supports_infinity = connection.dialect.flagged ..Supports_Infinity
+    java_column_storages = In_Memory_Helpers.get_java_column_storages (source_table:In_Memory_Table)
+    source_row_count = source_table.row_count
     table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
 
     callback _ =
         In_Transaction.ensure_in_transaction
+        num_rows = case row_limit of
+            Nothing -> source_row_count
+            limit : Integer -> Math.min source_row_count limit
         upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
             Panic.rethrow <|
-                connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size expected_type_hints=expected_type_hints row_limit=row_limit
+                connection.jdbc_connection.batch_insert insert_template jdbc_value_setter java_column_storages batch_size=default_batch_size date_time_with_timezone=expected_date_time_with_timezone expected_type_hints=expected_sql_type_ids use_sql_type_hints_for_null_values=use_sql_type_hints_for_null_values supports_separate_nan=supports_separate_nan supports_infinity=supports_infinity num_rows=num_rows
 
         upload_status.if_not_error <|
             connection.query (..Table_Name table_name)

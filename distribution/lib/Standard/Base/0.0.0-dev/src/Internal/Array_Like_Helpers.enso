@@ -13,6 +13,7 @@ import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Report_Unmatched
 import project.Data.Vector.Vector
+from project.Data.Text.Extensions import all
 import project.Error.Error
 import project.Errors.Common.Additional_Warnings
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -169,7 +170,7 @@ sort vector order on by on_problems:Problem_Behavior =
         True -> vector.map it-> Comparable.from it . comparator
         False -> vector.map it-> Comparable.from (on it) . comparator
     compare_funcs = comps.map (it-> it.compare)
-    vector.sort_builtin order.to_sign comps compare_funcs by on (on_problems_to_number on_problems)
+    vector_sort_builtin vector order.to_sign comps compare_funcs by on (on_problems_to_number on_problems)
 
 ## ---
    private: true
@@ -392,3 +393,18 @@ Array.raw_size self =
     raw_length self
 Any.raw_size self =
     self.length
+
+from_array array = @Builtin_Method "Vector.from_array"
+from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
+
+dict_empty = @Builtin_Method "Dictionary.empty"
+dict_insert d k v = @Builtin_Method "Dictionary.insert_builtin"
+dict_remove d k = @Builtin_Method "Dictionary.remove_builtin"
+dict_size d = @Builtin_Method "Dictionary.size"
+dict_contains_key d k = @Builtin_Method "Dictionary.contains_key"
+dict_to_vector d = @Builtin_Method "Dictionary.to_vector"
+dict_to_text d = @Builtin_Method "Dictionary.to_text"
+dict_get_builtin dict key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
+
+vector_sort_builtin v o comps compare_funcs by on p = @Builtin_Method "Vector.sort_builtin"
+array_sort_builtin v o comps compare_funcs by on p = @Builtin_Method "Array.sort_builtin"

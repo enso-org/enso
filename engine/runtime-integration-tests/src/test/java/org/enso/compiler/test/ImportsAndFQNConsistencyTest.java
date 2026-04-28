@@ -109,6 +109,7 @@ main = 42
   @Test
   public void testSymbolCanBeAccessedBySimpleNameWithFQNImport() {
     var sb = new StringBuilder();
+    sb.append("import Standard.Base.Data.Text.Extensions").append(System.lineSeparator());
     sb.append("import ").append(symbol.getFqn()).append(System.lineSeparator());
     sb.append("main = ")
         .append(symbol.getLastPathItem())
@@ -122,6 +123,7 @@ main = 42
   @Test
   public void testSymbolCanBeAccessedByFQNWithLibImport() {
     var sb = new StringBuilder();
+    sb.append("import Standard.Base.Data.Text.Extensions").append(System.lineSeparator());
     sb.append("import ").append(symbol.getLibName()).append(System.lineSeparator());
     sb.append("main = ").append(symbol.getFqn()).append(".to_text").append(System.lineSeparator());
     code = sb.toString();

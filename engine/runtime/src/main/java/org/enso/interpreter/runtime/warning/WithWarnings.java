@@ -198,8 +198,8 @@ public final class WithWarnings extends EnsoObject {
       throws PanicException {
     var warns = Warning.fromMapToArray(warnsMap);
     var ctx = EnsoContext.get(where);
-    var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
-    var toText = UnresolvedSymbol.build(Constants.Names.TO_TEXT, scopeOfAny);
+    var scopeOfToText = ctx.getBuiltins().textExtensions().getDefinitionScope();
+    var toText = UnresolvedSymbol.build(Constants.Names.TO_TEXT, scopeOfToText);
     var node = InteropMethodCallNode.getUncached();
     var state = State.create(ctx);
     var text = Text.empty();

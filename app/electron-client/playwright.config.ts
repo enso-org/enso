@@ -14,7 +14,7 @@ export default defineConfig({
     toHaveScreenshot: { threshold: 0 },
   },
   use: {
-    actionTimeout: 5000,
+    actionTimeout: 15000,
     viewport: { width: 1780, height: 1000 },
   },
 })

@@ -26,7 +26,7 @@ public final class EnsoDate extends BuiltinObject {
     return "Date";
   }
 
-  @Builtin.Method(description = "Return current Date", autoRegister = false)
+  @Builtin.Method(description = "Return current Date")
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate today() {
     return new EnsoDate(LocalDate.now());
@@ -34,8 +34,7 @@ public final class EnsoDate extends BuiltinObject {
 
   @Builtin.Method(
       name = "new_builtin",
-      description = "Constructs a new Date from a year, month, and day",
-      autoRegister = false)
+      description = "Constructs a new Date from a year, month, and day")
   @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate create(long year, long month, long day) {
@@ -44,18 +43,18 @@ public final class EnsoDate extends BuiltinObject {
   }
 
   @Builtin.Method(name = "year", description = "Gets a value of year")
-  public long year() {
-    return date.getYear();
+  public static long year(EnsoDate d) {
+    return d.date.getYear();
   }
 
   @Builtin.Method(name = "month", description = "Gets a value month")
-  public long month() {
-    return date.getMonthValue();
+  public static long month(EnsoDate d) {
+    return d.date.getMonthValue();
   }
 
   @Builtin.Method(name = "day", description = "Gets a value day")
-  public long day() {
-    return date.getDayOfMonth();
+  public static long day(EnsoDate d) {
+    return d.date.getDayOfMonth();
   }
 
   @ExportMessage

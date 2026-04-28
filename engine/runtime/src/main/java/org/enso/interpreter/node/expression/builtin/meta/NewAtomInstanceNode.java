@@ -9,8 +9,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 @BuiltinMethod(
     type = "Meta",
     name = "new_atom",
-    description = "Creates a new atom with given constructor and fields.",
-    autoRegister = false)
+    description = "Creates a new atom with given constructor and fields.")
 public final class NewAtomInstanceNode extends Node {
   @Child private ArrayLikeCoerceToArrayNode coerce = ArrayLikeCoerceToArrayNode.build();
   @Child private AtomNewInstanceNode newNode = AtomNewInstanceNode.create();
