@@ -42,10 +42,11 @@ public sealed interface AzureCredential {
     }
   }
 
-  record BlobStorageSASToken(HideableValue token) implements AzureCredential {
+  record BlobStorageSASToken(EnsoHideableValue token) implements AzureCredential {
     @Override
     public String uniqueId() {
-      return "BlobStorageSASToken(" + token + ")";
+      var tokenStr = HideableValue.from(token).toString();
+      return "BlobStorageSASToken(" + tokenStr + ")";
     }
   }
 }

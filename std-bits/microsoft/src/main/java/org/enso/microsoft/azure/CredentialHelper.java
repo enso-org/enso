@@ -8,7 +8,6 @@ import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.EnvironmentCredentialBuilder;
 import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
 
 /**
  * A helper class to convert {@link AzureCredential} to {@link TokenCredential}.
@@ -36,9 +35,9 @@ final class CredentialHelper {
               EnsoHideableValue tenantId,
               EnsoHideableValue clientId,
               EnsoHideableValue clientSecret) -> {
-        var resolvedTenantId = unsafeResolveSecrets(HideableValue.from(tenantId));
-        var resolvedClientId = unsafeResolveSecrets(HideableValue.from(clientId));
-        var resolvedClientSecret = unsafeResolveSecrets(HideableValue.from(clientSecret));
+        var resolvedTenantId = unsafeResolveSecrets(tenantId);
+        var resolvedClientId = unsafeResolveSecrets(clientId);
+        var resolvedClientSecret = unsafeResolveSecrets(clientSecret);
         if (!isPresent(resolvedClientId)
             || !isPresent(resolvedClientSecret)
             || !isPresent(resolvedTenantId)) {
@@ -51,7 +50,7 @@ final class CredentialHelper {
             .clientSecret(resolvedClientSecret)
             .build();
       }
-      case AzureCredential.BlobStorageSASToken(HideableValue token) ->
+      case AzureCredential.BlobStorageSASToken(EnsoHideableValue token) ->
           throw new ClientAuthenticationException(
               "Blob Storage SAS Token is not supported for authentication.", null);
     };
@@ -59,7 +58,7 @@ final class CredentialHelper {
 
   static String toSASToken(AzureCredential credential) {
     return switch (credential) {
-      case AzureCredential.BlobStorageSASToken(HideableValue token) -> unsafeResolveSecrets(token);
+      case AzureCredential.BlobStorageSASToken(EnsoHideableValue token) -> unsafeResolveSecrets(token);
       default ->
           throw new IllegalArgumentException(
               "Only BlobStorageSASToken credentials can provide a SAS token.");
@@ -74,7 +73,7 @@ final class CredentialHelper {
    * This function is allowed access to secrets. Extra care should be taken to ensure its result is
    * not leaked.
    */
-  private static String unsafeResolveSecrets(HideableValue value) {
-    return ExternalLibrarySecretHelper.resolveValue(value);
+  private static String unsafeResolveSecrets(EnsoHideableValue ensoValue) {
+    return ExternalLibrarySecretHelper.resolveValue(ensoValue);
   }
 }
