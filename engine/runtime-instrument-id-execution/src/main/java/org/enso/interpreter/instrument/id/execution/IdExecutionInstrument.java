@@ -331,9 +331,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
               info.getId(),
               Objects::isNull,
               (savedEnvironment) -> {
-                EnsoContext context = EnsoContext.get(this);
-                var old = context.getExecutionEnvironment();
-                context.setExecutionEnvironment(nodeEnvironment, true);
+                var ctx = EnsoContext.get(this);
+                var old = ctx.getExecutionEnvironment();
+                ctx.setExecutionEnvironment(nodeEnvironment, false);
                 return old;
               });
         }
@@ -343,10 +343,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         callbacks.updateLocalExecutionEnvironment(
             uuid,
             Objects::nonNull,
-            (originalExecutionEnvironment) -> {
-              EnsoContext context = EnsoContext.get(this);
-              context.setExecutionEnvironment(
-                  (ExecutionEnvironment) originalExecutionEnvironment, true);
+            (orig) -> {
+              var ctx = EnsoContext.get(this);
+              ctx.setExecutionEnvironment((ExecutionEnvironment) orig, false);
               return null;
             });
       }
