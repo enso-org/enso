@@ -4,7 +4,8 @@ import java.util.List;
 import org.enso.base.enso_cloud.EnsoHideableValue;
 
 public sealed interface AwsCredential {
-  record Key(EnsoHideableValue accessKeyId, EnsoHideableValue secretAccessKey) implements AwsCredential {}
+  record Key(EnsoHideableValue accessKeyId, EnsoHideableValue secretAccessKey)
+      implements AwsCredential {}
 
   record Profile(String name) implements AwsCredential {}
 

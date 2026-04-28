@@ -98,8 +98,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
    *
    * @param properties properties in the form of {@code HideableValue.KeyValuePair}
    */
-  public static Connection getJDBCConnection(
-      String url, Map<String, EnsoHideableValue> properties) throws SQLException {
+  public static Connection getJDBCConnection(String url, Map<String, EnsoHideableValue> properties)
+      throws SQLException {
     var javaProperties = new Properties();
     for (var key : properties.keySet()) {
       HideableValue value = HideableValue.from(properties.get(key));

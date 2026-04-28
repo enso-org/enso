@@ -35,7 +35,13 @@ public sealed interface AzureCredential {
       implements AzureCredential {
     @Override
     public String uniqueId() {
-      return "ClientSecret(" + tenantId.uniqueId() + ", " + clientId.uniqueId() + ", " + clientSecret.uniqueId() + ")";
+      return "ClientSecret("
+          + tenantId.uniqueId()
+          + ", "
+          + clientId.uniqueId()
+          + ", "
+          + clientSecret.uniqueId()
+          + ")";
     }
   }
 
