@@ -183,6 +183,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExecutionEnvironment envOrNull,
       ExpressionExecutionState expressionExecutionState,
       ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
@@ -211,7 +212,12 @@ public final class ExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
+          ExecutionEnvironment prevEnv = null;
           try {
+            if (envOrNull != null) {
+              prevEnv = context.getExecutionEnvironment();
+              context.setExecutionEnvironment(envOrNull, true);
+            }
             var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
                 Function.fullyApplied(
@@ -219,6 +225,9 @@ public final class ExecutionService {
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
+            if (prevEnv != null) {
+              context.setExecutionEnvironment(prevEnv, true);
+            }
           }
         });
   }
@@ -250,6 +259,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExecutionEnvironment envOrNull,
       ExpressionExecutionState expressionExecutionState,
       ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
@@ -276,6 +286,7 @@ public final class ExecutionService {
                 methodCallsCache,
                 syncState,
                 nextExecutionItem,
+                envOrNull,
                 expressionExecutionState,
                 progressTimingCollector,
                 funCallCallback,
@@ -476,21 +487,6 @@ public final class ExecutionService {
    */
   public CompletionStage<Object> typeOfValue(Object value) {
     return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
-  }
-
-  /**
-   * Sets global execution environment.
-   *
-   * @param env the execution envrionment to use
-   * @return old execution environment
-   */
-  public CompletionStage<ExecutionEnvironment> setExecutionInstrument(ExecutionEnvironment env) {
-    return submitExecution(
-        () -> {
-          var old = getContext().getExecutionEnvironment();
-          getContext().setExecutionEnvironment(env, true);
-          return old;
-        });
   }
 
   private scala.Option<File> findFileByModuleName(String module) {
