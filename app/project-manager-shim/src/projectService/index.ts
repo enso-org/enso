@@ -4,7 +4,7 @@
  * renaming, opening, closing, and duplicating projects.
  */
 import { PRODUCT_NAME } from 'enso-common/src/constants'
-import { makeLocalProjectKey } from 'enso-common/src/services/ProjectManager/projectIdentity'
+import { makeProjectTelemetryKey } from 'enso-common/src/services/ProjectManager/projectIdentity'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import KSUID from 'ksuid'
 import * as crypto from 'node:crypto'
@@ -172,7 +172,7 @@ export class ProjectService {
   ): Promise<readonly (readonly [string, string])[]> {
     if (!cloud) {
       const localSessionId = `localprojectsession-${KSUID.randomSync().string}`
-      const localProjectKey = await makeLocalProjectKey(projectsDirectory, projectId)
+      const localProjectKey = await makeProjectTelemetryKey(projectsDirectory, projectId)
       return [
         ['ENSO_LOCAL_PROJECT_ID', localProjectKey],
         ['ENSO_LOCAL_PROJECT_SESSION_ID', localSessionId],

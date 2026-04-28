@@ -177,11 +177,11 @@ describe('ProjectManager', () => {
     ])
   })
 
-  it('derives different local project keys for same embedded id in different parent directories', async () => {
+  it('derives different project telemtry keys for same embedded id in different parent directories', async () => {
     const projectManager = new ProjectManager(ROOT)
 
-    const firstKey = await projectManager.getLocalProjectKey(FIRST_PROJECT_PATH)
-    const secondKey = await projectManager.getLocalProjectKey(SECOND_PROJECT_PATH)
+    const firstKey = await projectManager.getTelemetryKey(FIRST_PROJECT_PATH)
+    const secondKey = await projectManager.getTelemetryKey(SECOND_PROJECT_PATH)
 
     expect(firstKey).toMatch(/^local-[0-9a-f]{64}$/)
     expect(secondKey).toMatch(/^local-[0-9a-f]{64}$/)

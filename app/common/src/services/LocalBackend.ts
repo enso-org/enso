@@ -348,7 +348,7 @@ export class LocalBackend extends backend.Backend {
   ): Promise<backend.Project> {
     const { path } = backend.extractTypeAndPath(projectId)
     const { directoryPath } = getDirectoryAndName(path)
-    const localProjectKey = await this.projectManager.getLocalProjectKey(path)
+    const localProjectKey = await this.projectManager.getTelemetryKey(path)
     if (localProjectKey == null) {
       throw new Error(`Could not get local project key for project '${path}'`)
     }
@@ -967,7 +967,7 @@ export class LocalBackend extends backend.Backend {
     projectId: backend.ProjectId,
   ): Promise<backend.ProjectSession[]> {
     const { path } = backend.extractTypeAndPath(projectId)
-    const localProjectKey = await this.projectManager.getLocalProjectKey(path)
+    const localProjectKey = await this.projectManager.getTelemetryKey(path)
     if (localProjectKey == null) return []
     const { sessions } = await this.projectManager.listProjectSessions(localProjectKey)
     return sessions.map((s) => ({

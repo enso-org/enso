@@ -13,7 +13,7 @@ import {
 } from '../../utilities/file.js'
 import { normalizeName } from '../../utilities/nameValidation.js'
 import * as backend from '../Backend.js'
-import { makeLocalProjectKey, makeProjectCacheKey } from './projectIdentity.js'
+import { makeProjectCacheKey, makeProjectTelemetryKey } from './projectIdentity.js'
 import {
   MissingComponentAction,
   Path,
@@ -379,13 +379,13 @@ export class ProjectManager {
     }
   }
 
-  /** Return opaque local key used for local logs and telemetry. */
-  async getLocalProjectKey(projectPath: Path) {
+  /** Return opaque cache key used for local logs and telemetry. */
+  async getTelemetryKey(projectPath: Path) {
     const projectId = await this.getProjectId(projectPath)
     if (projectId == null) {
       return undefined
     }
-    return makeLocalProjectKey(getDirectoryAndName(projectPath).directoryPath, projectId)
+    return makeProjectTelemetryKey(getDirectoryAndName(projectPath).directoryPath, projectId)
   }
 
   /** List project sessions by scanning engine log files for the given local project key. */

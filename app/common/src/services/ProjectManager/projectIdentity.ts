@@ -15,8 +15,8 @@ export function makeProjectCacheKey(params: {
   return `${params.projectsDirectory}${PROJECT_IDENTITY_SEPARATOR}${params.projectId}`
 }
 
-/** Create opaque local key used for logs and telemetry. */
-export async function makeLocalProjectKey(
+/** Create opaque cache key used for logs and telemetry. */
+export async function makeProjectTelemetryKey(
   projectsDirectory: Path | string,
   projectId: UUID | string,
 ) {
