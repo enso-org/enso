@@ -25,10 +25,10 @@ final class RuntimeWithContextNode extends Node {
     var newEnv = withNode.executeEnvironmentUpdate(origEng, context, enable);
     try {
       var state = ctx.currentState();
-      ctx.setExecutionEnvironment(newEnv);
+      ctx.setExecutionEnvironment(newEnv, true);
       return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      ctx.setExecutionEnvironment(origEng);
+      ctx.setExecutionEnvironment(origEng, true);
     }
   }
 }

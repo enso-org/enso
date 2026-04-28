@@ -71,7 +71,8 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                                                     .getContext()
                                                     .setExecutionEnvironment(
                                                         ExecutionEnvironment.forName(
-                                                            executionEnvironment.name()));
+                                                            executionEnvironment.name()),
+                                                        true);
                                                 return null;
                                               }));
                           CacheInvalidation.invalidateAll(stack);

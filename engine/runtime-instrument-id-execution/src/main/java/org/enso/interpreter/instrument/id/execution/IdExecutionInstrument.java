@@ -333,7 +333,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
               (savedEnvironment) -> {
                 EnsoContext context = EnsoContext.get(this);
                 var old = context.getExecutionEnvironment();
-                context.setExecutionEnvironment(nodeEnvironment);
+                context.setExecutionEnvironment(nodeEnvironment, true);
                 return old;
               });
         }
@@ -345,7 +345,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             Objects::nonNull,
             (originalExecutionEnvironment) -> {
               EnsoContext context = EnsoContext.get(this);
-              context.setExecutionEnvironment((ExecutionEnvironment) originalExecutionEnvironment);
+              context.setExecutionEnvironment(
+                  (ExecutionEnvironment) originalExecutionEnvironment, true);
               return null;
             });
       }

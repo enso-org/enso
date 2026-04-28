@@ -488,7 +488,7 @@ public final class ExecutionService {
     return submitExecution(
         () -> {
           var old = getContext().getExecutionEnvironment();
-          getContext().setExecutionEnvironment(env);
+          getContext().setExecutionEnvironment(env, true);
           return old;
         });
   }
