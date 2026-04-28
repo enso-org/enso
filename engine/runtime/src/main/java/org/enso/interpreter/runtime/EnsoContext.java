@@ -851,19 +851,15 @@ public final class EnsoContext {
   }
 
   public ExecutionEnvironment getExecutionEnvironment() {
-    var env = GetStateNode.getUncached().executeGet(null, ExecutionEnvironment.class, getNothing());
-    return env instanceof ExecutionEnvironment ee ? ee : getGlobalExecutionEnvironment();
+    var env =
+        GetStateNode.getUncached()
+            .forClass(ExecutionEnvironment.class, EnsoContext::getGlobalExecutionEnvironment);
+    return env;
   }
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    var tc = environment.getContext();
-    var prev = tc.enter(null);
-    try {
-      PutStateNode.getUncached().executePut(ExecutionEnvironment.class, executionEnvironment, true);
-    } finally {
-      tc.leave(null, prev);
-    }
+    PutStateNode.getUncached().executePut(ExecutionEnvironment.class, executionEnvironment, true);
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */
