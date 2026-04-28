@@ -866,34 +866,18 @@ public final class EnsoContext {
   }
 
   /**
-   * Enable execution context in the execution environment.
+   * Enable or disable execution context in the execution environment.
    *
    * @param context the execution context
+     * @param enable {@code true} to enable {@code false} to disable
    * @param environmentName the execution environment name
    * @return the execution environment version before modification
    */
-  public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
+  public ExecutionEnvironment withExecutionEnvironment(Atom context, boolean enable, String environmentName) {
     ExecutionEnvironment original = globalExecutionEnvironment;
     if (original.getName().equals(environmentName)) {
       var newExecEnv =
-          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, true);
-      setExecutionEnvironment(newExecEnv);
-    }
-    return original;
-  }
-
-  /**
-   * Enable execution context in the execution environment.
-   *
-   * @param context the execution context
-   * @param environmentName the execution environment name
-   * @return the execution environment version before modification
-   */
-  public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
-    ExecutionEnvironment original = globalExecutionEnvironment;
-    if (original.getName().equals(environmentName)) {
-      var newExecEnv =
-          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, false);
+          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, enable);
       setExecutionEnvironment(newExecEnv);
     }
     return original;

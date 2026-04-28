@@ -274,7 +274,7 @@ type Context
     - `action`: Action to be performed with the context enabled.
 with_enabled_context : Context -> Function -> Any
 with_enabled_context context ~action =
-    Context_Helpers.with_enabled_context_builtin context Nothing action
+    Context_Helpers.with_context context True action
 
 
 ## ---
@@ -289,4 +289,4 @@ with_enabled_context context ~action =
     - `action`: Action to be performed with the context disabled.
 with_disabled_context : Context -> Function -> Any
 with_disabled_context context ~action =
-    Context_Helpers.with_disabled_context_builtin context Nothing action
+    Context_Helpers.with_context context False action
