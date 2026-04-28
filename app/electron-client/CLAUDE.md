@@ -66,14 +66,19 @@ best-effort `claude --version` probe and logs the result; failure is non-fatal �
 the first real IPC call surfaces the ENOENT error to the renderer as a toast.
 
 The agent generates a full User Defined Component, returning four fields:
-`functionName`, `argumentNames`, `body`, and `callExpression`. The renderer
+`functionName`, `argumentNames`, `body`, and `callArguments`. The renderer
 collects the source binding's identifier/type plus all other in-scope bindings
 in the current method (with their inferred types) and the method's source code,
 and passes that context to the agent so it can pick which bindings to thread
-into the function. The receiving side parses `callExpression` with the Enso
-parser and rejects responses where the call shape is not
-`Main.<functionName> <args…>` matching `argumentNames` — see `createAiNode` in
-`app/gui/src/project-view/components/GraphEditor/aiNode.ts`.
+into the function. `argumentNames` are pure function-signature parameter names
+(referenced by `body`); `callArguments` are the Enso expressions passed at the
+call site, one per parameter. `createAiNode`
+(`app/gui/src/project-view/components/GraphEditor/aiNode.ts`) parses each entry
+of `callArguments` with the Enso parser and assembles
+`Main.<functionName> <callArguments[0]> <callArguments[1]> …` itself, so the
+agent never has to construct call-site syntax — keeping the response purely
+data-shaped removed the AST traversal that the prior `validateCallExpression`
+needed.
 
 Gotchas:
 

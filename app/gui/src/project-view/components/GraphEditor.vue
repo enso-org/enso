@@ -320,7 +320,7 @@ const actionHandlers = registerHandlers({
     action: () => {
       const result = tryGetSelectionDocUrl()
       if (!result.ok) {
-        toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+        toasts.userActionFailed.reportError(result.error, 'Unable to show node documentation')
         return
       }
       window.open(result.value, '_blank')
@@ -534,7 +534,7 @@ function handleAiAccepted(payload: AcceptedAiPayload) {
     }),
   )
   if (!editResult.ok) {
-    toasts.userActionFailed.show(editResult.error.message('Cannot create AI component'))
+    toasts.userActionFailed.reportError(editResult.error, 'Cannot create AI component')
   }
   hideComponentBrowser()
 }

@@ -42,15 +42,20 @@ export interface AiComponentRequest {
  *
  * The agent declares the full shape of a generated User Defined Component:
  * - `functionName` — snake_case name of the new top-level function.
- * - `argumentNames` — identifiers the function takes as parameters; these double as the
- *   identifiers passed at the call site, so each one must be a binding the agent saw in scope.
+ * - `argumentNames` — parameter names in the function signature (referenced by `body`). These
+ *   are independent of the values passed at the call site, so the agent is free to pick names
+ *   that describe the parameter's role rather than reusing whatever identifier happens to be
+ *   in scope.
  * - `body` — Enso block that becomes the function body.
- * - `callExpression` — the call placed in the current method, e.g. `Main.<functionName> a b`.
+ * - `callArguments` — Enso expressions passed at the call site, one per parameter and in the
+ *   same order as `argumentNames`. Usually plain in-scope identifiers, but any single Enso
+ *   expression is allowed. The renderer assembles the actual call as
+ *   `Main.<functionName> <callArguments[0]> <callArguments[1]> …`.
  */
 export const aiComponentResponseSchema = z.object({
   functionName: z.string(),
   argumentNames: z.array(z.string()),
   body: z.string(),
-  callExpression: z.string(),
+  callArguments: z.array(z.string()),
 })
 export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>

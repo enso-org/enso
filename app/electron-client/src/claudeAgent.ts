@@ -55,14 +55,14 @@ You will receive:
 
 You must return a JSON object matching the supplied schema, with these four fields:
 - \`functionName\`: snake_case identifier for the new top-level function. It must not collide with an identifier already used in the surrounding method or with a name visible in the supplied method source. Pick something descriptive of what the function does.
-- \`argumentNames\`: list of identifiers the function takes as parameters. Each one must be an in-scope binding from the supplied list (or the source binding identifier). The same identifier doubles as both the parameter name in the function signature and the value passed at the call site, so the names you list here are also the names the call expression must pass. Always include the source binding when the function operates on it; add other in-scope identifiers only when the function actually uses them.
+- \`argumentNames\`: parameter names in the function signature, in declaration order. Pick names that describe each parameter's role inside the function — they do *not* have to match any in-scope identifier and they are the names you reference inside \`body\`. Only declare parameters that \`body\` actually uses.
 - \`body\`: the function body, as a string. Every line belongs to the body; no leading or trailing blank lines. Reference the parameters by the names you listed in \`argumentNames\`. The final line must be a single identifier — the binding that holds the result. Do not include the function signature, the \`=\` sign, or any module wrapper.
-- \`callExpression\`: the Enso expression placed in the user's method, of the form \`Main.<functionName> <arg1> <arg2> …\` where the args are exactly the identifiers from \`argumentNames\`, in the same order. Do not use other in-scope identifiers here — bind them through \`argumentNames\` instead.
+- \`callArguments\`: Enso expressions passed at the call site, one per parameter and in the same order as \`argumentNames\`. Each entry is usually just an in-scope identifier (the source binding or one of the other in-scope bindings), but any single Enso expression is accepted. The renderer wraps them as \`Main.<functionName> <callArguments[0]> <callArguments[1]> ...\`. Always pass the source binding when the function operates on it; pass other in-scope identifiers only when the function uses them.
 
 Rules:
 - At most one method call per line in \`body\`; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
 - The final line of \`body\` must be a single identifier — assign expressions to a name first and reference that name.
-- Do not introduce parameters that aren't actually used inside \`body\`.
+- \`argumentNames\` and \`callArguments\` must have the same length.
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.`
 
 // JSON Schema passed to the CLI's `--json-schema` flag. Must stay in sync with
@@ -74,9 +74,9 @@ const RESPONSE_SCHEMA = {
     functionName: { type: 'string' },
     argumentNames: { type: 'array', items: { type: 'string' } },
     body: { type: 'string' },
-    callExpression: { type: 'string' },
+    callArguments: { type: 'array', items: { type: 'string' } },
   },
-  required: ['functionName', 'argumentNames', 'body', 'callExpression'],
+  required: ['functionName', 'argumentNames', 'body', 'callArguments'],
   additionalProperties: false,
 } as const
 
@@ -118,10 +118,7 @@ function buildUserPrompt(request: AiComponentRequest): string {
   const otherBindings = context.inScopeBindings
     .filter((binding) => binding.identifier !== context.sourceIdentifier)
     .map((binding) => formatBinding(binding.identifier, binding.typeName))
-  const otherBindingsSection =
-    otherBindings.length > 0 ?
-      `Other in-scope bindings:\n${otherBindings.join('\n')}`
-    : 'Other in-scope bindings: (none)'
+  const otherBindingsList = otherBindings.length > 0 ? otherBindings.join('\n') : '(none)'
   return `Current method: ${context.currentMethodName}
 Current method source:
 \`\`\`
@@ -131,7 +128,8 @@ ${context.currentMethodCode}
 Source binding (the value the user wants to operate on):
 ${formatBinding(context.sourceIdentifier, context.sourceTypeName)}
 
-${otherBindingsSection}
+Other in-scope bindings:
+${otherBindingsList}
 
 User request: ${prompt}`
 }
@@ -237,7 +235,9 @@ function parseCliResponse(stdout: string): Result<AiComponentResponse> {
   const envelope = cliEnvelopeSchema.safeParse(envelopeJson)
   if (!envelope.success) return Err('Claude agent stdout did not match the expected envelope')
   const payload = envelope.data.structured_output ?? envelope.data.result
-  if (payload == null) return Err('Claude agent returned a result without a valid `body` field')
+  if (payload == null) {
+    return Err('Claude agent result did not match the expected response schema')
+  }
   return Ok(payload)
 }
 

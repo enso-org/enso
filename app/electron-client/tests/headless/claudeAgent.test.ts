@@ -75,7 +75,7 @@ const exampleResponse: AiComponentResponse = {
   functionName: 'filter_rows',
   argumentNames: ['source'],
   body: 'filtered = source.filter (row -> row.value > 5)\nfiltered',
-  callExpression: 'Main.filter_rows source',
+  callArguments: ['source'],
 }
 
 describe('generateAiComponent', () => {
@@ -156,7 +156,7 @@ describe('generateAiComponent', () => {
     spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith({ body: 'ok' }) }))
     const result = await generateAiComponent(exampleRequest)
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.error.payload).toMatch(/without a valid `body` field/)
+    if (!result.ok) expect(result.error.payload).toMatch(/did not match the expected response schema/)
   })
 
   test('falls back to the `result` field when `structured_output` is absent', async () => {
@@ -164,7 +164,7 @@ describe('generateAiComponent', () => {
       functionName: 'legacy_fn',
       argumentNames: ['source'],
       body: 'source',
-      callExpression: 'Main.legacy_fn source',
+      callArguments: ['source'],
     }
     const envelope = JSON.stringify({
       type: 'result',

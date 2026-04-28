@@ -1,7 +1,6 @@
 import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import type { GraphStore } from '$/providers/openedProjects/graph'
 import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { tryIdentifier } from '@/util/qualifiedName'
 import type { AiComponentRequest, AiComponentResponse, AiInScopeBinding } from 'enso-common/src/ai'
 import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 
@@ -34,17 +33,15 @@ export function useAI(
     const currentMethodCode = currentMethodAst.code()
 
     const inScopeBindings: AiInScopeBinding[] = []
-    for (const node of graphDb.nodeIdToNode.values()) {
-      const patternCode = node.pattern?.code()
-      if (patternCode == null) continue
-      const identResult = tryIdentifier(patternCode)
-      if (!identResult.ok) continue
-      const identifier = identResult.value
-      if (identifier === sourceIdentifier) continue
-      const typeInfo = graphDb.getTypeOfIdentifier(identifier)
-      const typeName =
-        typeInfo != null ? projectNames.printProjectPath(typeInfo.primaryType) : undefined
-      inScopeBindings.push(typeName != null ? { identifier, typeName } : { identifier })
+    for (const [, ports] of graphDb.nodeOutputPorts.allForward()) {
+      for (const portId of ports) {
+        const identifier = graphDb.getOutputPortIdentifier(portId)
+        if (identifier == null || identifier === sourceIdentifier) continue
+        const typeInfo = graphDb.getTypeOfIdentifier(identifier)
+        const typeName =
+          typeInfo != null ? projectNames.printProjectPath(typeInfo.primaryType) : undefined
+        inScopeBindings.push(typeName != null ? { identifier, typeName } : { identifier })
+      }
     }
 
     return Ok({

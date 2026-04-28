@@ -68,29 +68,34 @@ export function createAiNode(options: CreateAiNodeOptions): Result {
   if (!baseFunctionName.ok) {
     return Err(`Agent returned an invalid function name: '${response.functionName}'.`)
   }
-  const validatedArgs: Identifier[] = []
+  const parameterNames: Identifier[] = []
   for (const argName of response.argumentNames) {
     const arg = tryIdentifier(argName)
     if (!arg.ok) return Err(`Agent returned an invalid argument name: '${argName}'.`)
-    validatedArgs.push(arg.value)
+    parameterNames.push(arg.value)
+  }
+  if (response.callArguments.length !== parameterNames.length) {
+    return Err(
+      `Agent returned ${response.callArguments.length} call argument(s) but the function takes ${parameterNames.length}.`,
+    )
+  }
+  const callArgAsts: Ast.Owned<Ast.MutableExpression>[] = []
+  for (const [i, argSource] of response.callArguments.entries()) {
+    const argAst = Ast.parseExpression(argSource, edit)
+    if (!argAst) {
+      return Err(`Agent returned a call argument that did not parse (#${i + 1}): '${argSource}'.`)
+    }
+    callArgAsts.push(argAst)
   }
 
-  const callAst = Ast.parseExpression(response.callExpression, edit)
-  if (!callAst) {
-    return Err(`Agent returned a call expression that did not parse: '${response.callExpression}'.`)
-  }
-  const validated = validateCallExpression(callAst, baseFunctionName.value, validatedArgs)
-  if (!validated.ok) return validated
-
-  // Pick a unique top-level name. If the agent's choice is already taken, suffix it and rewrite
-  // the call's function-name token to keep the call-site in sync.
   const uniqueFunctionName = generateUniqueName(baseFunctionName.value, topLevel)
-  if (uniqueFunctionName !== baseFunctionName.value) {
-    validated.value.functionAccess.setRhs(uniqueFunctionName)
-  }
+  const callAst = Ast.App.PositionalSequence(
+    Ast.PropertyAccess.new(edit, Ast.Ident.new(edit, AI_MODULE_NAME), uniqueFunctionName),
+    callArgAsts,
+  )
 
   const functionBody = Ast.parseBlock(response.body.trim(), edit)
-  const functionDef = Ast.FunctionDef.new(uniqueFunctionName, validatedArgs, functionBody, {
+  const functionDef = Ast.FunctionDef.new(uniqueFunctionName, parameterNames, functionBody, {
     edit,
     documentation: frontmatter({ icon: AI_ICON }) + AI_FUNCTION_DOC_PLACEHOLDER,
   })
@@ -104,54 +109,4 @@ export function createAiNode(options: CreateAiNodeOptions): Result {
   insertNodeStatements(currentMethod.bodyAsBlock(), [assignment])
   topLevel.insert(currentMethodLine, functionDef, undefined)
   return Ok()
-}
-
-/**
- * Walk the agent-supplied call expression and check it has the shape
- * `Main.<expectedFunctionName> <expectedArgs[0]> <expectedArgs[1]> …`. Returns the inner
- * `PropertyAccess` so the caller can rewrite its RHS if a name collision forces a rename.
- */
-function validateCallExpression(
-  call: Ast.MutableExpression,
-  expectedFunctionName: Identifier,
-  expectedArgs: readonly Identifier[],
-): Result<{ functionAccess: Ast.MutablePropertyAccess }> {
-  const args: Ast.MutableExpression[] = []
-  let current: Ast.MutableExpression = call
-  while (current instanceof Ast.MutableApp) {
-    args.unshift(current.argument)
-    current = current.function
-  }
-  if (!(current instanceof Ast.MutablePropertyAccess)) {
-    return Err(
-      `Call expression's function should be 'Main.${expectedFunctionName}', got: '${current.code()}'.`,
-    )
-  }
-  const lhs = current.lhs
-  if (!(lhs instanceof Ast.Ident) || lhs.code() !== AI_MODULE_NAME) {
-    return Err(
-      `Call expression's function should be qualified with 'Main', got: '${current.code()}'.`,
-    )
-  }
-  if (current.rhs.code() !== expectedFunctionName) {
-    return Err(
-      `Call expression names function '${current.rhs.code()}', expected '${expectedFunctionName}'.`,
-    )
-  }
-  if (args.length !== expectedArgs.length) {
-    return Err(
-      `Call expression has ${args.length} argument(s) but argumentNames lists ${expectedArgs.length}.`,
-    )
-  }
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!
-    const expected = expectedArgs[i]!
-    if (!(arg instanceof Ast.Ident)) {
-      return Err(`Call expression argument ${i + 1} should be the identifier '${expected}'.`)
-    }
-    if (arg.code() !== expected) {
-      return Err(`Call expression argument ${i + 1} is '${arg.code()}', expected '${expected}'.`)
-    }
-  }
-  return Ok({ functionAccess: current })
 }

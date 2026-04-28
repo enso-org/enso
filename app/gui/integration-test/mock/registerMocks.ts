@@ -85,9 +85,9 @@ async function mockElectronApi(page: Page) {
                 ok: true,
                 value: {
                   functionName: 'ai_helper',
-                  argumentNames: [src],
-                  body: `result = ${src}\nresult`,
-                  callExpression: `Main.ai_helper ${src}`,
+                  argumentNames: ['input'],
+                  body: `result = input\nresult`,
+                  callArguments: [src],
                 },
               }
             },
