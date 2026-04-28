@@ -49,7 +49,7 @@ once `./run ide build` has produced the engine bundle.
 ## Local Claude agent
 
 `src/claudeAgent.ts` shells out to the user-installed `claude` CLI executable
-(assumed to be on `PATH`) via `child_process.spawn` for headless, single-turn
+(assumed to be on `PATH`) via `cross-spawn` for headless, single-turn
 generation of User Defined Components. Invocation flags:
 `--print --output-format json --json-schema <RESPONSE_SCHEMA> --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
 The prompt is always written to the child's stdin (uniform handling regardless
@@ -71,6 +71,15 @@ Gotchas:
   envelope's `structured_output` field (pre-decoded object); the envelope's
   plain `result` field is left empty. Read from `structured_output` first; only
   fall back to `result` for older CLI releases.
+- The CLI lookup uses `cross-spawn`, not `node:child_process`. Reason: a
+  user who installed Claude Code via `npm install -g @anthropic-ai/claude-code`
+  on Windows ends up with a `claude.cmd` shim in the npm global bin dir (npm
+  wraps every bin entry through `cmd-shim`, regardless of whether the target
+  is a `.exe`). `child_process.spawn('claude', …)` without `shell: true` will
+  not resolve `.cmd` extensions on Windows and returns ENOENT. `cross-spawn`
+  handles `.cmd`/`.ps1` lookup and argument quoting for `cmd.exe` while
+  staying a no-op on POSIX. The unit test mocks `cross-spawn` (default export)
+  rather than `node:child_process`.
 - Electron IPC serializes with structured clone, which strips class prototypes.
   `Err(...)` from `enso-common/src/utilities/data/result` arrives at the
   renderer as a plain `{ payload, context }` — `ResultError`'s methods are gone.

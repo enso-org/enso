@@ -7,6 +7,7 @@
  * keychain, `ANTHROPIC_API_KEY`, or subscription token). The main process does not require
  * or read the API key beyond forwarding the parent environment.
  */
+import spawn from 'cross-spawn'
 import { ipcMain } from 'electron'
 import {
   aiComponentResponseSchema,
@@ -14,7 +15,6 @@ import {
   type AiComponentResponse,
 } from 'enso-common/src/ai'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
-import { spawn } from 'node:child_process'
 import { z } from 'zod'
 import { Channel } from './ipc.js'
 
@@ -125,13 +125,13 @@ interface CliOutcome {
   spawnError?: NodeJS.ErrnoException
 }
 
-// `--tools ''` disables all built-in tools, matching Step 1's SDK `allowedTools: []`. Step 6
-// will replace this with `--allowedTools Read Glob Grep` plus `--add-dir <stdlibRoot>
+// TODO[ao]: Here add `--allowedTools Read Glob Grep` plus `--add-dir <stdlibRoot>
 // --add-dir <projectSrcRoot>` once stdlib and project paths are threaded through the
-// request. `--setting-sources ''` keeps the invocation hermetic (no user settings, plugins,
-// or `CLAUDE.md` discovery) without touching auth. `--bare` is deliberately *not* used: it
-// disables OAuth/keychain and would re-introduce the `ANTHROPIC_API_KEY` requirement we
-// just dropped.
+// request.
+
+// `--setting-sources ''` keeps the invocation hermetic (no user settings, plugins,
+// or `CLAUDE.md` discovery) without touching auth.
+// `--bare` is deliberately *not* used: it disables OAuth/keychain.
 function buildCliArgs(): string[] {
   return [
     '--print',
@@ -155,6 +155,10 @@ function runClaude(
   signal: AbortSignal,
 ): Promise<CliOutcome> {
   return new Promise((resolve) => {
+    // `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
+    // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
+    // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup and quoting on Windows
+    // and is a no-op on POSIX.
     const child = spawn(CLAUDE_EXECUTABLE, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: process.env,

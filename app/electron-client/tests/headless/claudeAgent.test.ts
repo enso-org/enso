@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 
-vi.mock('node:child_process', () => ({ spawn: spawnMock }))
+vi.mock('cross-spawn', () => ({ default: spawnMock }))
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
 
 const { generateAiComponent } = await import('../../src/claudeAgent')
