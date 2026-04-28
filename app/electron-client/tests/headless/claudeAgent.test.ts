@@ -73,8 +73,6 @@ const exampleResponse: AiComponentResponse = {
 const exampleUsage = {
   input_tokens: 1234,
   output_tokens: 56,
-  cache_creation_input_tokens: 0,
-  cache_read_input_tokens: 0,
 }
 
 function resultEnvelope(textOrObject: unknown, usage = exampleUsage): string {

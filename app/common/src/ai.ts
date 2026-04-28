@@ -66,17 +66,17 @@ export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
  * renderer's DevTools console so we can observe context growth on real data.
  *
  * - Token counts come from the assistant turn's terminal envelope (`result.usage` in the CLI's
- *   stream-json output). Anthropic prompt caching does not auto-engage in stream-json mode, so
- *   `cacheReadInputTokens` is observed as 0 in practice — the field is reported anyway in case
- *   that changes.
+ *   stream-json output).
  * - `contextBytes` is the session's running UTF-8 byte count: system prompt at spawn, plus every
  *   stdin user-turn body and every stdout assistant content body since spawn. Resets on respawn.
+ *
+ * Anthropic prompt caching does not auto-engage in the CLI's stream-json mode (probe-confirmed
+ * `cache_read_input_tokens = 0`), so cache-hit fields aren't surfaced — there is nothing useful
+ * to log. Add them back if we ever drive the API directly and engage caching ourselves.
  */
 export interface RequestUsage {
   readonly inputTokens: number
   readonly outputTokens: number
-  readonly cacheCreationInputTokens: number
-  readonly cacheReadInputTokens: number
   readonly contextBytes: number
 }
 

@@ -58,7 +58,9 @@ up-front, and torn down via SIGTERM on `before-quit`. The CLI is launched via
 
 Invocation flags:
 `-p --input-format stream-json --output-format stream-json --verbose --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
-`--verbose` is mandatory: omitting it makes the child exit 1 with `When using --print, --output-format=stream-json requires --verbose`. The extra system/init and rate_limit_event envelopes it emits are filtered by the parser.
+`--verbose` is mandatory: omitting it makes the child exit 1 with
+`When using --print, --output-format=stream-json requires --verbose`. The extra
+system/init and rate_limit_event envelopes it emits are filtered by the parser.
 We deliberately do **not** pass `--json-schema` here, even though the probe
 showed it works in stream-json mode: it adds ~800 tokens of schema overhead per
 turn plus an internal tool-use round-trip (~1s), and it conflicts with the
@@ -75,12 +77,14 @@ shared request/response types live in `enso-common/src/ai.ts`. The IPC return
 shape is
 `AiComponentIpcReply = { result: Result<AiComponentResponse>, usage: RequestUsage | null }`
 — `result` carries the parsed/validated component (or an error), and `usage`
-carries token counts plus the session's cumulative context-byte total for that
-turn. The renderer logs a one-line `[AI] usage:` summary to its DevTools console
-so context growth is observable on real data. At main-process startup
-`claudeAgent.ts` runs a best-effort `claude --version` probe and logs the
-result; failure is non-fatal — the first real IPC call surfaces the ENOENT error
-to the renderer as a toast.
+carries `inputTokens`/`outputTokens` plus the session's cumulative context-byte
+total for that turn. The renderer logs a one-line `[AI] usage:` summary to its
+DevTools console so context growth is observable on real data. Cache-hit fields
+are intentionally not surfaced — the CLI's stream-json mode doesn't engage
+Anthropic prompt caching (see "Stream-json wire format" below), so there is
+nothing useful to log there. At main-process startup `claudeAgent.ts` runs a
+best-effort `claude --version` probe and logs the result; failure is non-fatal —
+the first real IPC call surfaces the ENOENT error to the renderer as a toast.
 
 The agent generates a full User Defined Component, returning four fields:
 `functionName`, `argumentNames`, `body`, and `callArguments`. The renderer
@@ -114,9 +118,9 @@ Findings from the probe at the time the long-lived design landed:
   3. `{"type":"assistant","message":{...,content:[{"type":"text","text":"..."}]}}`
      — the assistant reply (one event in non-partial mode).
   4. `{"type":"result","subtype":"success","is_error":false,"terminal_reason":"completed", "result":<text>,"usage":{...},...}`
-     — terminal envelope. `result.usage` carries `input_tokens`,
-     `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`.
-     This is the unambiguous end-of-turn signal.
+     — terminal envelope. `result.usage` carries `input_tokens` and
+     `output_tokens` (the cache-related fields are also present but always 0;
+     see the prompt-caching note). This is the unambiguous end-of-turn signal.
 - **Multi-turn:** the same child accepts subsequent turns; `session_id` is
   stable and conversation history is maintained on the CLI side.
 - **Prompt caching does NOT auto-engage** in stream-json mode —

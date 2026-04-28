@@ -90,12 +90,8 @@ export function useAI(
 
 function logUsage(usage: RequestUsage | null): void {
   if (!usage) return
-  const promptTokens =
-    usage.inputTokens + usage.cacheReadInputTokens + usage.cacheCreationInputTokens
-  const cacheHitPct =
-    promptTokens > 0 ? Math.round((usage.cacheReadInputTokens / promptTokens) * 100) : 0
   const contextKB = (usage.contextBytes / 1024).toFixed(1)
   console.log(
-    `[AI] usage: prompt=${promptTokens}t out=${usage.outputTokens}t cache_hit=${cacheHitPct}% context=${contextKB}kB`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKB}kB`,
   )
 }

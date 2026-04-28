@@ -161,8 +161,6 @@ function userTurnLine(content: string): string {
 interface RawTokenUsage {
   input_tokens?: number
   output_tokens?: number
-  cache_creation_input_tokens?: number
-  cache_read_input_tokens?: number
 }
 
 interface TurnOutcome {
@@ -489,8 +487,6 @@ export class ClaudeAgentSession {
     return {
       inputTokens: raw.input_tokens ?? 0,
       outputTokens: raw.output_tokens ?? 0,
-      cacheCreationInputTokens: raw.cache_creation_input_tokens ?? 0,
-      cacheReadInputTokens: raw.cache_read_input_tokens ?? 0,
       contextBytes: this.contextBytes,
     }
   }
