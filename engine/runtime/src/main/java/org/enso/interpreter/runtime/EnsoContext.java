@@ -856,14 +856,10 @@ public final class EnsoContext {
   }
 
   /** Set the runtime execution environment of this context. */
-  public void setExecutionEnvironment(
-      ExecutionEnvironment executionEnvironment, boolean alsoGlobal) {
+  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     var tc = environment.getContext();
     var prev = tc.enter(null);
     try {
-      if (alsoGlobal) {
-        this.globalExecutionEnvironment = executionEnvironment;
-      }
       PutStateNode.getUncached().executePut(ExecutionEnvironment.class, executionEnvironment, true);
     } finally {
       tc.leave(null, prev);

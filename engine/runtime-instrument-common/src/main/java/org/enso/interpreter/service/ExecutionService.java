@@ -216,7 +216,7 @@ public final class ExecutionService {
           try {
             if (envOrNull != null) {
               prevEnv = context.getExecutionEnvironment();
-              context.setExecutionEnvironment(envOrNull, false);
+              context.setExecutionEnvironment(envOrNull);
             }
             var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
@@ -226,7 +226,7 @@ public final class ExecutionService {
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
             if (prevEnv != null) {
-              context.setExecutionEnvironment(prevEnv, false);
+              context.setExecutionEnvironment(prevEnv);
             }
           }
         });
