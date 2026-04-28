@@ -13,5 +13,5 @@ Integer.from (that:Context) = case that of
 
 
 type Context_Helpers
-    is_enabled c env = @Builtin_Method "Context.is_enabled_builtin"
+    is_enabled c = @Builtin_Method "Context.is_enabled_builtin"
     with_context context enable ~action = @Builtin_Method "Runtime.with_context_builtin"

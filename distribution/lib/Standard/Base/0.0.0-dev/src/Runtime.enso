@@ -208,8 +208,7 @@ type Context
         - `panic`: If set to `True`, the error is raised as a Panic. Otherwise,
           it is a dataflow error.
     check_enabled self (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = False) -> Nothing ! Forbidden_Operation =
-        enabled = self.is_enabled
-        if enabled then Nothing else
+        if self.is_enabled then Nothing else
             error = Forbidden_Operation.Error disabled_message
             if panic then Panic.throw error else Error.throw error
 
@@ -242,9 +241,8 @@ type Context
 
        ## Arguments
         - `context`: The context to enable.
-    is_enabled : Text -> Boolean
-    is_enabled self =
-        Context_Helpers.is_enabled self Nothing
+    is_enabled self -> Boolean =
+        Context_Helpers.is_enabled self
 
     ## ---
        private: true

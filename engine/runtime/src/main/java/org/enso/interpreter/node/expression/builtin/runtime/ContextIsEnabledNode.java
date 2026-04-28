@@ -4,8 +4,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.HasContextEnabledNode;
 
 @BuiltinMethod(
@@ -15,13 +13,9 @@ import org.enso.interpreter.runtime.state.HasContextEnabledNode;
 final class ContextIsEnabledNode extends Node {
   private @Child HasContextEnabledNode hasContextEnabledNode = HasContextEnabledNode.create();
 
-  Object execute(Object self, Atom context, Object env) {
+  Object execute(Object self, Atom context) {
     var ctx = EnsoContext.get(this);
-    if (ctx.getNothing() != env) {
-      Atom error = ctx.getBuiltins().error().makeUnimplemented("execution environment mismatch");
-      throw new PanicException(error, this);
-    }
-    ExecutionEnvironment currentEnv = EnsoContext.get(this).getExecutionEnvironment();
+    var currentEnv = ctx.getExecutionEnvironment();
     return hasContextEnabledNode.executeHasContextEnabled(currentEnv, context.getConstructor());
   }
 }
