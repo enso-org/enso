@@ -18,6 +18,7 @@ Various documents related to Enso debugging facilities are collected herein:
   internals inside of _native image_ `enso` launcher
 - [**Debug adapter protocol:**](./dap.md) - debug Enso code only using VSCode's
   DAP.
+- [**GUI Debugging:**](./gui-debugging.md) - debug Enso GUI code in VSCode
 - [**Enso own Debug Protocol:**](./protocol.md) describes protocol of the REPL
   Debugger.
 - [**Debugging Ydoc Server**](../infrastructure/ydoc.md#debugging) inside of the
