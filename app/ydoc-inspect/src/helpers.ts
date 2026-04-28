@@ -1,3 +1,5 @@
+import { type Ast, type AstId, isToken, MutableModule } from 'ydoc-shared/ast'
+import { DistributedProject } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 import type { InspectClient } from './client.js'
 
@@ -163,10 +165,79 @@ export function createHelpers(doc: Y.Doc, truncate: number) {
 }
 
 /**
+ * Creates helper functions for inspecting AST structure from Chrome DevTools. Module contents
+ * live in per-module Yjs subdocs that are not synced by the project-doc WebSocket. Each module
+ * is synced lazily making the ast helper commands async.
+ */
+export function createAstHelpers(projectDoc: Y.Doc, loadSubdoc: (subdoc: Y.Doc) => Promise<void>) {
+  const project = new DistributedProject(projectDoc)
+
+  async function getModule(moduleName?: string): Promise<MutableModule | undefined> {
+    const name = moduleName ?? project.moduleNames().find((n) => n.endsWith('Main')) ?? 'Main'
+    const distributed = project.openUnloadedModule(name)
+    if (!distributed) return undefined
+    await loadSubdoc(distributed.doc.ydoc)
+    return new MutableModule(distributed.doc.ydoc)
+  }
+
+  function modules(): string[] {
+    return project.moduleNames()
+  }
+
+  async function ast(moduleName?: string): Promise<Ast | undefined> {
+    return (await getModule(moduleName))?.root()
+  }
+
+  async function tree(moduleName?: string, depth?: number): Promise<void> {
+    const root = await ast(moduleName)
+    if (!root) {
+      console.log('No AST root found.')
+      return
+    }
+    const maxDepth = depth ?? Infinity
+    const printNode = (astNode: Ast, level: number) => {
+      const indent = '  '.repeat(level)
+      const codeSnippet = astNode.code()
+      console.log(`${indent}${astNode.typeName} [${astNode.id}] ${codeSnippet}`)
+      if (level >= maxDepth) return
+      for (const child of astNode.children()) {
+        if (!isToken(child)) printNode(child, level + 1)
+      }
+    }
+    printNode(root, 0)
+  }
+
+  async function node(id: string): Promise<Ast | undefined> {
+    for (const name of project.moduleNames()) {
+      const mod = await getModule(name)
+      const found = mod?.tryGet(id as AstId)
+      if (found) return found
+    }
+    return undefined
+  }
+
+  async function meta(id: string): Promise<object | undefined> {
+    const found = await node(id)
+    if (!found) return undefined
+    return found.serializeMetadata()
+  }
+
+  async function code(moduleName?: string): Promise<string | undefined> {
+    return (await ast(moduleName))?.code()
+  }
+
+  return { modules, ast, tree, node, meta, code }
+}
+
+/**
  * Expose inspect client and helpers as globals for Chrome DevTools console.
  * Returns `watch` / `unwatch` closures that track the current watcher.
  */
-export function exposeGlobals(client: InspectClient, helpers: ReturnType<typeof createHelpers>) {
+export function exposeGlobals(
+  client: InspectClient,
+  helpers: ReturnType<typeof createHelpers>,
+  astHelpers?: ReturnType<typeof createAstHelpers>,
+) {
   const g = globalThis as Record<string, unknown>
   let unwatchFn: (() => void) | undefined
 
@@ -188,6 +259,15 @@ export function exposeGlobals(client: InspectClient, helpers: ReturnType<typeof 
     } else {
       console.log('Not currently watching.')
     }
+  }
+
+  if (astHelpers) {
+    g['modules'] = astHelpers.modules
+    g['ast'] = astHelpers.ast
+    g['tree'] = astHelpers.tree
+    g['node'] = astHelpers.node
+    g['meta'] = astHelpers.meta
+    g['code'] = astHelpers.code
   }
 
   return {

@@ -12,6 +12,7 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import org.enso.base.ProgressReporter;
 import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
@@ -71,26 +72,30 @@ public final class JDBCBatchInsert {
       var localisedStorages =
           stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
 
-      for (int rowId = 0; rowId < numRows; rowId++) {
-        for (int columnId = 0; columnId < columnCount; columnId++) {
-          ColumnStorage<?> columnStorage = localisedStorages[columnId];
-          boolean keepTimezone = dateTimeWithTimezone[columnId];
-          int nullType = useSqlTypeHintsForNullValues ? sqlTypeHintIds[columnId] : Types.NULL;
-          var value = columnStorage.getItemBoxed(rowId);
-          setStatementValue(
-              stmt,
-              columnId + 1,
-              value,
-              jdbcValueSetter,
-              keepTimezone,
-              nullType,
-              supportsSeparateNaN,
-              supportsInfinity);
-        }
+      try (var progressReporter =
+          ProgressReporter.createWithStep("batchInsert", numRows, batchSize)) {
+        for (int rowId = 0; rowId < numRows; rowId++) {
+          for (int columnId = 0; columnId < columnCount; columnId++) {
+            ColumnStorage<?> columnStorage = localisedStorages[columnId];
+            boolean keepTimezone = dateTimeWithTimezone[columnId];
+            int nullType = useSqlTypeHintsForNullValues ? sqlTypeHintIds[columnId] : Types.NULL;
+            var value = columnStorage.getItemBoxed(rowId);
+            setStatementValue(
+                stmt,
+                columnId + 1,
+                value,
+                jdbcValueSetter,
+                keepTimezone,
+                nullType,
+                supportsSeparateNaN,
+                supportsInfinity);
+          }
 
-        stmt.addBatch();
-        if ((rowId + 1) % batchSize == 0) {
-          checkRows(stmt.executeBatch(), batchSize);
+          stmt.addBatch();
+          if ((rowId + 1) % batchSize == 0) {
+            checkRows(stmt.executeBatch(), batchSize);
+          }
+          progressReporter.advance();
         }
       }
 

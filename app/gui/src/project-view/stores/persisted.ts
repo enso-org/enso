@@ -40,7 +40,13 @@ export const [providePersisted, usePersisted] = createContextStore(
     const visibleAreasReady = computed(() => {
       const nodesCount = graphStore.db.nodeIdToNode.size
       const visibleNodeAreas = graphStore.visibleNodeAreas
-      return nodesCount > 0 && visibleNodeAreas.length == nodesCount
+      // Nodes without stored metadata.position are registered with `Vec2.Infinity`
+      // first and receive a real position one tick later via auto-layout.
+      return (
+        nodesCount > 0 &&
+        visibleNodeAreas.length == nodesCount &&
+        visibleNodeAreas.every((r) => r.pos.isFinite())
+      )
     })
 
     // Client graph state needs to be stored separately for:

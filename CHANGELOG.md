@@ -28,6 +28,8 @@
 - [Input ports no longer highlight on hover unless being connected to][14968]
 - [Usage page with cloud executions statistics available for Team users in
   Settings][14952]
+- Minimum supported macOS version is now 12 (Monterey); Electron 41 no longer
+  runs on Big Sur.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
