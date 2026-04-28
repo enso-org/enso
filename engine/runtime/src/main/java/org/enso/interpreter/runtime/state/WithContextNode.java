@@ -58,6 +58,6 @@ public abstract class WithContextNode extends Node {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       throw ensoCtx.raiseAssertionPanic(this, "Unknown context: " + ctor, null);
     }
-    return new ExecutionEnvironment(current.getName(), newPermissions);
+    return current.withPermissions(newPermissions);
   }
 }

@@ -1,30 +1,28 @@
 package org.enso.interpreter.runtime.state;
 
-public class ExecutionEnvironment {
-
+public final class ExecutionEnvironment {
   private final String name;
 
   final ContextPermissions permissions;
 
-  public static final String LIVE_ENVIRONMENT_NAME = "live";
+  private static final String LIVE_ENVIRONMENT_NAME = "live";
+  private static final String DESIGN_ENVIRONMENT_NAME = "design";
 
-  public static final String DESIGN_ENVIRONMENT_NAME = "design";
+  public static final ExecutionEnvironment LIVE;
 
-  public static final ExecutionEnvironment LIVE = initLive(LIVE_ENVIRONMENT_NAME);
-  public static final ExecutionEnvironment DESIGN =
-      new ExecutionEnvironment(DESIGN_ENVIRONMENT_NAME);
-
-  private static ExecutionEnvironment initLive(String name) {
-    var permissions = new ContextPermissions(true, true, false);
-    return new ExecutionEnvironment(name, permissions);
+  static {
+    var perm = new ContextPermissions(true, true, false);
+    LIVE = new ExecutionEnvironment(LIVE_ENVIRONMENT_NAME, perm);
   }
 
-  public ExecutionEnvironment(String name) {
-    this.name = name;
-    this.permissions = new ContextPermissions(false, false, false);
+  public static final ExecutionEnvironment DESIGN;
+
+  static {
+    var perm = new ContextPermissions(false, false, false);
+    DESIGN = new ExecutionEnvironment(DESIGN_ENVIRONMENT_NAME, perm);
   }
 
-  ExecutionEnvironment(String name, ContextPermissions permissions) {
+  private ExecutionEnvironment(String name, ContextPermissions permissions) {
     this.name = name;
     this.permissions = permissions;
   }
@@ -34,18 +32,21 @@ public class ExecutionEnvironment {
   }
 
   public static ExecutionEnvironment forName(String name) {
-    switch (name) {
-      case LIVE_ENVIRONMENT_NAME:
-        return LIVE;
-      case DESIGN_ENVIRONMENT_NAME:
-        return DESIGN;
-      default:
-        throw new IllegalArgumentException("Unsupported Execution Environment `" + name + "`");
-    }
+    return switch (name) {
+      case LIVE_ENVIRONMENT_NAME -> LIVE;
+      case DESIGN_ENVIRONMENT_NAME -> DESIGN;
+      default ->
+          throw new IllegalArgumentException("Unsupported Execution Environment `" + name + "`");
+    };
   }
 
   @Override
   public String toString() {
     return "ExecutionEnvironment[name=" + name + ", permissions=" + permissions + "]";
+  }
+
+  public ExecutionEnvironment withPermissions(ContextPermissions permissions) {
+    var derivedName = getName() + "+";
+    return new ExecutionEnvironment(derivedName, permissions);
   }
 }
