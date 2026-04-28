@@ -58,7 +58,8 @@ final class CredentialHelper {
 
   static String toSASToken(AzureCredential credential) {
     return switch (credential) {
-      case AzureCredential.BlobStorageSASToken(EnsoHideableValue token) -> unsafeResolveSecrets(token);
+      case AzureCredential.BlobStorageSASToken(EnsoHideableValue token) ->
+          unsafeResolveSecrets(token);
       default ->
           throw new IllegalArgumentException(
               "Only BlobStorageSASToken credentials can provide a SAS token.");

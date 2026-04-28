@@ -31,7 +31,8 @@ public sealed interface AzureCredential {
     }
   }
 
-  record ClientSecret(EnsoHideableValue tenantId, EnsoHideableValue clientId, EnsoHideableValue clientSecret)
+  record ClientSecret(
+      EnsoHideableValue tenantId, EnsoHideableValue clientId, EnsoHideableValue clientSecret)
       implements AzureCredential {
     @Override
     public String uniqueId() {

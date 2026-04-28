@@ -8,7 +8,8 @@ import java.util.List;
  * <p>It will only allow access from trusted code locations.
  */
 public final class ExternalLibrarySecretHelper extends SecretValueResolver {
-  public static String resolveValue(EnsoHideableValue ensoHideableValue) throws EnsoSecretAccessDenied {
+  public static String resolveValue(EnsoHideableValue ensoHideableValue)
+      throws EnsoSecretAccessDenied {
     return resolveValue(HideableValue.from(ensoHideableValue));
   }
 
