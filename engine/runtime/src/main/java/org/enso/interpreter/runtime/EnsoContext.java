@@ -48,7 +48,6 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
@@ -57,7 +56,6 @@ import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.GetStateNode;
 import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.state.WithContextNode;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
@@ -863,24 +861,6 @@ public final class EnsoContext {
     } finally {
       tc.leave(null, prev);
     }
-  }
-
-  /**
-   * Enable or disable execution context in the execution environment.
-   *
-   * @param context the execution context
-     * @param enable {@code true} to enable {@code false} to disable
-   * @param environmentName the execution environment name
-   * @return the execution environment version before modification
-   */
-  public ExecutionEnvironment withExecutionEnvironment(Atom context, boolean enable, String environmentName) {
-    ExecutionEnvironment original = globalExecutionEnvironment;
-    if (original.getName().equals(environmentName)) {
-      var newExecEnv =
-          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, enable);
-      setExecutionEnvironment(newExecEnv);
-    }
-    return original;
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */

@@ -1,14 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.runtime;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
-
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.state.WithContextNode;
 
 @BuiltinMethod(
     type = "Runtime",
@@ -16,17 +16,19 @@ import com.oracle.truffle.api.nodes.Node;
     description = "Enabled/disables a context in the specified scope.",
     inlineable = true)
 final class RuntimeWithContextNode extends Node {
+  private @Child WithContextNode withNode = WithContextNode.create();
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
   Object execute(VirtualFrame frame, Atom context, boolean enable, @Suspend Object action) {
     var ctx = EnsoContext.get(this);
-    var state = ctx.currentState();
-    var envName = ctx.getExecutionEnvironment().getName();
-    var original = ctx.withExecutionEnvironment(context, enable, envName);
+    var origEng = ctx.getGlobalExecutionEnvironment();
+    var newEnv = withNode.executeEnvironmentUpdate(origEng, context, enable);
     try {
+      var state = ctx.currentState();
+      ctx.setExecutionEnvironment(newEnv);
       return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      ctx.setExecutionEnvironment(original);
+      ctx.setExecutionEnvironment(origEng);
     }
   }
 }
