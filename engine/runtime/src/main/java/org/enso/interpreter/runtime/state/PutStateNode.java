@@ -17,7 +17,11 @@ import org.enso.interpreter.runtime.error.PanicException;
 @ReportPolymorphism
 @GenerateUncached
 public abstract class PutStateNode extends Node {
-  public static PutStateNode build() {
+  static PutStateNode build() {
+    return create();
+  }
+
+  public static PutStateNode create() {
     return PutStateNodeGen.create();
   }
 

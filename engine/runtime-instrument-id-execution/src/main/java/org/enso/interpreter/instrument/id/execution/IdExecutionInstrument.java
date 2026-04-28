@@ -38,6 +38,8 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
+import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.polyglot.debugger.IdExecutionService;
@@ -331,9 +333,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
               info.getId(),
               Objects::isNull,
               (savedEnvironment) -> {
-                var ctx = EnsoContext.get(this);
-                var old = ctx.getExecutionEnvironment();
-                ctx.setExecutionEnvironment(nodeEnvironment);
+                var old =
+                    GetStateNode.getUncached()
+                        .forClass(
+                            ExecutionEnvironment.class, EnsoContext::getGlobalExecutionEnvironment);
+                PutStateNode.getUncached()
+                    .executePut(ExecutionEnvironment.class, nodeEnvironment, true);
                 return old;
               });
         }
@@ -344,8 +349,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             uuid,
             Objects::nonNull,
             (orig) -> {
-              var ctx = EnsoContext.get(this);
-              ctx.setExecutionEnvironment((ExecutionEnvironment) orig);
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, orig, false);
               return null;
             });
       }

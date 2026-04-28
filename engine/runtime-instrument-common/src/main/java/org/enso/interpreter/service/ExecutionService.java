@@ -58,6 +58,8 @@ import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
+import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -212,11 +214,14 @@ public final class ExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
-          ExecutionEnvironment prevEnv = null;
+          Object prevEnv = null;
           try {
             if (envOrNull != null) {
-              prevEnv = context.getExecutionEnvironment();
-              context.setExecutionEnvironment(envOrNull);
+              prevEnv =
+                  GetStateNode.getUncached()
+                      .forClass(
+                          ExecutionEnvironment.class, EnsoContext::getGlobalExecutionEnvironment);
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, envOrNull, true);
             }
             var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
@@ -226,7 +231,7 @@ public final class ExecutionService {
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
             if (prevEnv != null) {
-              context.setExecutionEnvironment(prevEnv);
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, prevEnv, false);
             }
           }
         });
