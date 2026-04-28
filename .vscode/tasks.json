@@ -23,8 +23,8 @@
             }
           ],
           "background": {
-            "activeOnStart": true,
-            "beginsPattern": { "regexp": "." },
+            "activeOnStart": false,
+            "beginsPattern": { "regexp": ".*Local:.*http.*localhost.*5173.*" },
             "endsPattern": { "regexp": "." }
           }
         }
