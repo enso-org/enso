@@ -7,6 +7,7 @@ import type {
   Uuid,
 } from 'ydoc-shared/languageServerTypes'
 import {
+  isInFrameRequest,
   Visualizations,
   VisualizationSlotView,
   type VisRequestId,
@@ -70,7 +71,13 @@ export class VisualizationDataRegistry {
     this.recompute()
   }
 
-  /** Walks all slots and picks the most-recent-terminal slot per vis id. */
+  /**
+   * Walks all slots and picks the most-recent-terminal slot per vis id.
+   *
+   * Skips `inFrame` slots: those are one-shot `executeExpression` requests
+   * whose response the caller awaits directly via the slot, with no need to
+   * cache by `visualizationId`.
+   */
   private recompute() {
     const vis = this.vis
     if (!vis) return
@@ -78,6 +85,7 @@ export class VisualizationDataRegistry {
     const latest = new Map<string, { view: VisualizationSlotView; createdAt: number }>()
     for (const view of vis.entries()) {
       if (view.status !== 'ready' && view.status !== 'failed') continue
+      if (isInFrameRequest(view.request)) continue
       const visIdStr = (view.visualizationId as string | undefined) ?? undefined
       if (!visIdStr) continue
       const createdAt = view.createdAt ?? 0

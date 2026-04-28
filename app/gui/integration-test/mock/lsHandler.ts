@@ -117,6 +117,9 @@ const fileTree = {
 const encoder = new TextEncoder()
 const encodeJSON = (data: unknown) => encoder.encode(JSON.stringify(data))
 
+/** Stable key for the AI prompt builder, see {@link slotPreprocessorKey}. */
+const AI_BUILD_PROMPT_KEY = '@@AI.build_ai_prompt'
+
 const scatterplotJson = (params: string[]) =>
   encodeJSON({
     visualizedExpr: params[0],
@@ -207,6 +210,10 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
       [50, 25, 40, 20, 10],
     ]),
     'Standard.Visualization.Widgets.column_names_json': encodeJSON(['Column A', 'Column B']),
+    // AI prompt template returned in place of evaluating
+    // `Standard.Visualization.AI.build_ai_prompt`. The client substitutes the
+    // user's goal for `__$$GOAL$$__` and forwards the result to `ai/completion`.
+    [AI_BUILD_PROMPT_KEY]: encodeJSON('Could you __$$GOAL$$__, please?'),
   }
 
 const initialMockWidgetConfigurations: Map<string, Uint8Array> = new Map([
@@ -526,6 +533,13 @@ function slotPreprocessorKey(request: VisRequestPreprocessor): string | null {
     return `${request.visualizationModule}.${expression}`
   }
   if ('inFrame' in expression) {
+    // The component browser's AI prompt path issues a one-shot
+    // `executeExpression` request for `... . to_json` on the source node.
+    // The leftmost identifier is the source node name (varies per test), so
+    // route every AI-prompt request to a stable key.
+    if (/Standard\.Visualization\.AI\.build_ai_prompt\b.*\.\s*to_json/.test(expression.inFrame)) {
+      return AI_BUILD_PROMPT_KEY
+    }
     const exprAst = Ast.parseExpression(expression.inFrame)
     if (!exprAst) return null
     const { func } = Ast.analyzeAppLike(exprAst)
