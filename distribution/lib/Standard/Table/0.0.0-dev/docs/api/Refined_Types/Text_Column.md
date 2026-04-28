@@ -15,4 +15,7 @@
     - reverse self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
     - right self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
     - to_case self case_option:Standard.Base.Data.Text.Case.Case= locale:Standard.Base.Data.Locale.Locale= -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
+    - trim self what:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any)= where:Standard.Base.Data.Text.Location.Location= -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
+    - trim_left self what:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any)= -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
+    - trim_right self what:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any)= -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
     - upper self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
