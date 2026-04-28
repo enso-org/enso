@@ -46,6 +46,6 @@ public class ExecutionEnvironment {
 
   @Override
   public String toString() {
-    return "ExeuctionEnvironment[name=" + name + ", permissions=" + permissions + "]";
+    return "ExecutionEnvironment[name=" + name + ", permissions=" + permissions + "]";
   }
 }
