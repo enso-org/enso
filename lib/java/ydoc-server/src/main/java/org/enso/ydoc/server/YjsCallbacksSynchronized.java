@@ -25,10 +25,17 @@ final class YjsCallbacksSynchronized implements YjsChannel.Server {
     this.executor = executor;
   }
 
-  /** Wraps the channel in {@link YjsChannelSynchronized} and forwards to the delegate. */
+  /**
+   * Wraps the channel in {@link YjsChannelSynchronized} and forwards to the delegate. A null
+   * delegate is treated as a no-op so a {@link Ydoc} configured without callbacks for a given
+   * channel does not crash the JS side when a connection arrives.
+   */
   @Override
   @HostAccess.Export
   public void onConnect(YjsChannel channel) {
+    if (this.callbacks == null) {
+      return;
+    }
     var synchronizedChannel = new YjsChannelSynchronized(channel, this.executor);
     this.callbacks.onConnect(synchronizedChannel);
   }
