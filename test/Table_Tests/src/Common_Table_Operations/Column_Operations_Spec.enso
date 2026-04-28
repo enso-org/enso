@@ -1800,6 +1800,54 @@ add_column_operation_specs suite_builder setup =
             Test.expect_panic Type_Error <| data.a.trim what=1
             data.a.trim what=data.c . should_fail_with Invalid_Value_Type
 
+        group_builder.specify "trim_left should trim whitespace from the start by default" <|
+            with_mixed_columns_if_supported [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]]] t->
+                a = t.at "A"
+                a.trim_left . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
+
+        group_builder.specify "trim_left should trim custom characters from the start" <|
+            data.a.trim_left what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "Axx"]
+            data.a.trim_left what=' ' . to_vector . should_equal ["A ", '\t\n\rA\r\n\t ', "xxxAxx"]
+            data.a.trim_left what=' \t' . to_vector . should_equal ["A ", '\n\rA\r\n\t ', "xxxAxx"]
+            data.a.trim_left what=data.b . to_vector . should_equal ["A ", '\n\rA\r\n\t ', "Axx"]
+
+        group_builder.specify "trim_right should trim whitespace from the end by default" <|
+            with_mixed_columns_if_supported [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]]] t->
+                a = t.at "A"
+                a.trim_right . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
+
+        group_builder.specify "trim_right should trim custom characters from the end" <|
+            data.a.trim_right what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "xxxA"]
+            data.a.trim_right what=' ' . to_vector . should_equal [" A", ' \t\n\rA\r\n\t', "xxxAxx"]
+            data.a.trim_right what=' \t' . to_vector . should_equal [" A", ' \t\n\rA\r\n', "xxxAxx"]
+            data.a.trim_right what=data.b . to_vector . should_equal [" A", ' \t\n\rA\r\n', "xxxA"]
+
+        group_builder.specify "trim_left and trim_right should only allow Text columns as arguments" <|
+            Test.expect_panic Type_Error <| data.a.trim_left what=1
+            Test.expect_panic Type_Error <| data.a.trim_right what=1
+            data.a.trim_left what=data.c . should_fail_with Invalid_Value_Type
+            data.a.trim_right what=data.c . should_fail_with Invalid_Value_Type
+
+        group_builder.specify "should handle Nothing values in trim operations" <|
+            with_mixed_columns_if_supported [["A", [" A ", Nothing, "xxxAxx"]]] t->
+                a = t.at "A"
+                a.trim . to_vector . should_equal ["A", Nothing, "xxxAxx"]
+                a.trim_left . to_vector . should_equal ["A ", Nothing, "xxxAxx"]
+                a.trim_right . to_vector . should_equal [" A", Nothing, "xxxAxx"]
+                a.trim what='x' . to_vector . should_equal [" A ", Nothing, "A"]
+                a.trim_left what='x' . to_vector . should_equal [" A ", Nothing, "Axx"]
+                a.trim_right what='x' . to_vector . should_equal [" A ", Nothing, "xxxA"]
+
+        group_builder.specify "should handle empty strings in trim operations" <|
+            with_mixed_columns_if_supported [["A", [" ", "  ", ""]]] t->
+                a = t.at "A"
+                a.trim . to_vector . should_equal ["", "", ""]
+                a.trim_left . to_vector . should_equal ["", "", ""]
+                a.trim_right . to_vector . should_equal ["", "", ""]
+                a.trim what='x' . to_vector . should_equal [" ", "  ", ""]
+                a.trim_left what='x' . to_vector . should_equal [" ", "  ", ""]
+                a.trim_right what='x' . to_vector . should_equal [" ", "  ", ""]
+
     suite_builder.group prefix+"(Column_Operations_Spec) Other Column Operations" group_builder->
         table_builder = build_sorted_table table_builder=setup.light_table_builder
         group_builder.specify "is_in" <|

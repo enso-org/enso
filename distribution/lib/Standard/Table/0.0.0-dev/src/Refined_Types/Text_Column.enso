@@ -314,7 +314,7 @@ type Text_Column
 
             example_trim_custom = Examples.text_column_1.trim "x" ..Left
         ```
-    trim self (what : Column | Text | Any = " ") (where : Location = ..Both) -> Column & Text_Column =
+    trim self (what : Column | Text | Any = '') (where : Location = ..Both) -> Column & Text_Column =
         self.operations_implementation.trim self.column what where
 
     ## ---
@@ -342,7 +342,7 @@ type Text_Column
 
             example_trim_left_custom = Examples.text_column_1.trim_left "x"
         ```
-    trim_left self (what : Column | Text | Any = " ") -> Column & Text_Column =
+    trim_left self (what : Column | Text | Any = '') -> Column & Text_Column =
         self.operations_implementation.trim_left self.column what
 
     ## ---
@@ -370,7 +370,7 @@ type Text_Column
 
             example_trim_right_custom = Examples.text_column_1.trim_right "x"
         ```
-    trim_right self (what : Column | Text | Any = " ") -> Column & Text_Column =
+    trim_right self (what : Column | Text | Any = '') -> Column & Text_Column =
         self.operations_implementation.trim_right self.column what
 
     ## ---
