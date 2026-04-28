@@ -77,6 +77,7 @@
 - [Hiding `Prim_Text_Helper` from the API][14979]
 - [Add reverse][14931]
 - [Support for Spatial aggregates and making lines and polygons.][14973]
+- [Add text trim methods][14982]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -102,6 +103,7 @@
 [14931]: https://github.com/enso-org/enso/pull/14931
 [14979]: https://github.com/enso-org/enso/pull/14979
 [14973]: https://github.com/enso-org/enso/pull/14973
+[14982]: https://github.com/enso-org/enso/pull/14982
 
 #### Enso Language & Runtime
 
