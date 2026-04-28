@@ -7,6 +7,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Column.Column
 import Standard.Table.Column.Rest_Of_String
 import Standard.Table.Internal.Value_Type_Checks
+from Standard.Table import Value_Type
 
 import project.DB_Column.DB_Column
 import project.Internal.Helpers
