@@ -1,5 +1,6 @@
 package org.enso.microsoft.azure;
 
+import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.HideableValue;
 
 public sealed interface AzureCredential {
@@ -30,11 +31,14 @@ public sealed interface AzureCredential {
     }
   }
 
-  record ClientSecret(HideableValue tenantId, HideableValue clientId, HideableValue clientSecret)
+  record ClientSecret(EnsoHideableValue tenantId, EnsoHideableValue clientId, EnsoHideableValue clientSecret)
       implements AzureCredential {
     @Override
     public String uniqueId() {
-      return "ClientSecret(" + tenantId + ", " + clientId + ", " + clientSecret + ")";
+      var tenantIdStr = HideableValue.from(tenantId).toString();
+      var clientIdStr = HideableValue.from(clientId).toString();
+      var clientSecretStr = HideableValue.from(clientSecret).toString();
+      return "ClientSecret(" + tenantIdStr + ", " + clientIdStr + ", " + clientSecretStr + ")";
     }
   }
 

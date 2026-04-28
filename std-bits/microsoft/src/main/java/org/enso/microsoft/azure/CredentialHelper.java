@@ -6,6 +6,7 @@ import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.EnvironmentCredentialBuilder;
+import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
 
@@ -32,12 +33,12 @@ final class CredentialHelper {
       }
       case AzureCredential.CLI() -> new AzureCliCredentialBuilder().build();
       case AzureCredential.ClientSecret(
-              HideableValue tenantId,
-              HideableValue clientId,
-              HideableValue clientSecret) -> {
-        var resolvedTenantId = unsafeResolveSecrets(tenantId);
-        var resolvedClientId = unsafeResolveSecrets(clientId);
-        var resolvedClientSecret = unsafeResolveSecrets(clientSecret);
+              EnsoHideableValue tenantId,
+              EnsoHideableValue clientId,
+              EnsoHideableValue clientSecret) -> {
+        var resolvedTenantId = unsafeResolveSecrets(HideableValue.from(tenantId));
+        var resolvedClientId = unsafeResolveSecrets(HideableValue.from(clientId));
+        var resolvedClientSecret = unsafeResolveSecrets(HideableValue.from(clientSecret));
         if (!isPresent(resolvedClientId)
             || !isPresent(resolvedClientSecret)
             || !isPresent(resolvedTenantId)) {
