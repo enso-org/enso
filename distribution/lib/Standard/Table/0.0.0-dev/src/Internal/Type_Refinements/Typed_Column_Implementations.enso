@@ -330,3 +330,5 @@ private _apply_trim (this_column : Column & In_Memory_Column) (what : Column | T
         _ : Column ->
             Value_Type_Checks.is_text what
             _apply_binary_map this_column do_trim what new_name skip_nulls=False expected_result_type=Value_Type.Char
+        _ ->
+            what : Text
