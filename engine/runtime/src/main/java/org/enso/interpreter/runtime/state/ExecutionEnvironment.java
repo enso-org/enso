@@ -1,7 +1,10 @@
 package org.enso.interpreter.runtime.state;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import org.enso.interpreter.runtime.data.text.Text;
+
 public final class ExecutionEnvironment {
-  private final String name;
+  private final Text name;
 
   final ContextPermissions permissions;
 
@@ -12,23 +15,24 @@ public final class ExecutionEnvironment {
 
   static {
     var perm = new ContextPermissions(true, true, false);
-    LIVE = new ExecutionEnvironment(LIVE_ENVIRONMENT_NAME, perm);
+    LIVE = new ExecutionEnvironment(Text.create(LIVE_ENVIRONMENT_NAME), perm);
   }
 
   public static final ExecutionEnvironment DESIGN;
 
   static {
     var perm = new ContextPermissions(false, false, false);
-    DESIGN = new ExecutionEnvironment(DESIGN_ENVIRONMENT_NAME, perm);
+    DESIGN = new ExecutionEnvironment(Text.create(DESIGN_ENVIRONMENT_NAME), perm);
   }
 
-  private ExecutionEnvironment(String name, ContextPermissions permissions) {
+  private ExecutionEnvironment(Text name, ContextPermissions permissions) {
     this.name = name;
     this.permissions = permissions;
   }
 
+  @CompilerDirectives.TruffleBoundary
   public String getName() {
-    return this.name;
+    return this.name.toString();
   }
 
   public static ExecutionEnvironment forName(String name) {
@@ -45,8 +49,8 @@ public final class ExecutionEnvironment {
     return "ExecutionEnvironment[name=" + name + ", permissions=" + permissions + "]";
   }
 
-  public ExecutionEnvironment withPermissions(ContextPermissions permissions) {
-    var derivedName = getName() + "+";
+  ExecutionEnvironment withPermissions(ContextPermissions permissions) {
+    var derivedName = Text.create(name, "+");
     return new ExecutionEnvironment(derivedName, permissions);
   }
 }
