@@ -21,14 +21,14 @@ final class RuntimeWithContextNode extends Node {
 
   Object execute(VirtualFrame frame, Atom context, boolean enable, @Suspend Object action) {
     var ctx = EnsoContext.get(this);
-    var origEng = ctx.getGlobalExecutionEnvironment();
+    var origEng = ctx.getExecutionEnvironment();
     var newEnv = withNode.executeEnvironmentUpdate(origEng, context, enable);
     try {
       var state = ctx.currentState();
-      ctx.setExecutionEnvironment(newEnv, true);
+      ctx.setExecutionEnvironment(newEnv, false);
       return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      ctx.setExecutionEnvironment(origEng, true);
+      ctx.setExecutionEnvironment(origEng, false);
     }
   }
 }
