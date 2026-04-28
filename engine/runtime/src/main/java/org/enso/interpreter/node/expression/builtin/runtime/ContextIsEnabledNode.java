@@ -16,6 +16,7 @@ final class ContextIsEnabledNode extends Node {
   Object execute(Object self, Atom context) {
     var ctx = EnsoContext.get(this);
     var currentEnv = ctx.getExecutionEnvironment();
-    return hasContextEnabledNode.executeHasContextEnabled(currentEnv, context.getConstructor());
+    var ret = hasContextEnabledNode.executeHasContextEnabled(currentEnv, context.getConstructor());
+    return ret;
   }
 }
