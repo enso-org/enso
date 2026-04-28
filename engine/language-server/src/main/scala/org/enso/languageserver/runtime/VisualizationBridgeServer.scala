@@ -13,6 +13,7 @@ import org.enso.ydoc.api.YjsChannel
 
 import java.nio.ByteBuffer
 import java.util.UUID
+import java.util.function.Consumer
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
@@ -64,18 +65,30 @@ object VisualizationBridgeServer {
     override def onConnect(channel: YjsChannel): Unit = {
       logger.trace(s"vis:control channel connected")
       bridge ! ControlChannelEstablished(channel)
-      channel.subscribe { (msg: Object) =>
-        try {
-          val text = Option(msg).collect {
-            case s: String       => s
-            case c: CharSequence => c.toString
-          }.orNull
-          if (text != null) bridge ! ControlMessage(text)
-          else logger.warn(s"vis:control non-string message: ${msg.getClass}")
-        } catch {
-          case NonFatal(e) =>
-            logger.error("Error handling vis:control message", e)
-        }
+      channel.subscribe(new ControlMessageHandler(bridge))
+    }
+  }
+
+  /** Receives raw inbound messages on the `vis:control` channel and forwards
+    * decoded `String` payloads to the bridge actor. Defined as a named class
+    * (rather than a Scala lambda) so that GraalVM Native Image can include
+    * its `accept` method via a single explicit reflection-config entry.
+    */
+  final class ControlMessageHandler(bridge: ActorRef)
+      extends Consumer[Object]
+      with LazyLogging {
+
+    override def accept(msg: Object): Unit = {
+      try {
+        val text = Option(msg).collect {
+          case s: String       => s
+          case c: CharSequence => c.toString
+        }.orNull
+        if (text != null) bridge ! ControlMessage(text)
+        else logger.warn(s"vis:control non-string message: ${msg.getClass}")
+      } catch {
+        case NonFatal(e) =>
+          logger.error("Error handling vis:control message", e)
       }
     }
   }

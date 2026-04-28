@@ -3162,5 +3162,14 @@
       "parameterTypes":["org.apache.commons.cli.CommandLine", "org.enso.runner.common.ProfilingConfig", "org.slf4j.event.Level"]
     }
   ]
+},
+{
+  "name": "org.enso.languageserver.runtime.VisualizationBridgeServer$ControlMessageHandler",
+  "methods": [
+    {
+      "name": "accept",
+      "parameterTypes": ["java.lang.Object"]
+    }
+  ]
 }
 ]
