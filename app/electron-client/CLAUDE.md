@@ -48,22 +48,39 @@ once `./run ide build` has produced the engine bundle.
 
 ## Local Claude agent
 
-`src/claudeAgent.ts` shells out to the user-installed `claude` CLI executable
-(assumed to be on `PATH`) via `cross-spawn` for headless, single-turn generation
-of User Defined Components. Invocation flags:
-`--print --output-format json --json-schema <RESPONSE_SCHEMA> --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
-The prompt is always written to the child's stdin (uniform handling regardless
-of length). `--setting-sources ""` keeps the invocation hermetic (no user
+`src/claudeAgent.ts` owns a **single long-lived `claude` CLI subprocess** that
+serves every AI-component IPC for the lifetime of the Electron app. The session
+is constructed eagerly (but non-blockingly) when `initClaudeAgentIpc()` runs,
+primed with a small acknowledgment turn so the system prompt is ingested
+up-front, and torn down via SIGTERM on `before-quit`. The CLI is launched via
+`cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows
+— which arrives as `claude.cmd` — is resolved without forcing `shell: true`.
+
+Invocation flags:
+`-p --input-format stream-json --output-format stream-json --verbose --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
+`--verbose` is mandatory: omitting it makes the child exit 1 with `When using --print, --output-format=stream-json requires --verbose`. The extra system/init and rate_limit_event envelopes it emits are filtered by the parser.
+We deliberately do **not** pass `--json-schema` here, even though the probe
+showed it works in stream-json mode: it adds ~800 tokens of schema overhead per
+turn plus an internal tool-use round-trip (~1s), and it conflicts with the
+priming turn (which doesn't fit the AI component shape). The system prompt asks
+for JSON-only output and `aiComponentResponseSchema.safeParse` validates on our
+side. `--setting-sources ""` keeps the invocation hermetic (no user
 settings/plugins/`CLAUDE.md` discovery) without touching auth; `--bare` is
 deliberately avoided because it would re-introduce the `ANTHROPIC_API_KEY`
 requirement.
 
 The renderer reaches the IPC via `window.api.ai.generateComponent(...)` (see
 `enso-gui/src/electronApi.ts`) over channel `Channel.generateAiComponent`. The
-shared request/response types live in `enso-common/src/ai.ts` so both halves of
-the IPC agree on the shape. At main-process startup `claudeAgent.ts` runs a
-best-effort `claude --version` probe and logs the result; failure is non-fatal —
-the first real IPC call surfaces the ENOENT error to the renderer as a toast.
+shared request/response types live in `enso-common/src/ai.ts`. The IPC return
+shape is
+`AiComponentIpcReply = { result: Result<AiComponentResponse>, usage: RequestUsage | null }`
+— `result` carries the parsed/validated component (or an error), and `usage`
+carries token counts plus the session's cumulative context-byte total for that
+turn. The renderer logs a one-line `[AI] usage:` summary to its DevTools console
+so context growth is observable on real data. At main-process startup
+`claudeAgent.ts` runs a best-effort `claude --version` probe and logs the
+result; failure is non-fatal — the first real IPC call surfaces the ENOENT error
+to the renderer as a toast.
 
 The agent generates a full User Defined Component, returning four fields:
 `functionName`, `argumentNames`, `body`, and `callArguments`. The renderer
@@ -80,26 +97,78 @@ agent never has to construct call-site syntax — keeping the response purely
 data-shaped removed the AST traversal that the prior `validateCallExpression`
 needed.
 
-Gotchas:
+### Stream-json wire format (probe-confirmed)
 
-- With `--json-schema` active, the CLI puts the schema-validated payload in the
-  envelope's `structured_output` field (pre-decoded object); the envelope's
-  plain `result` field is left empty. Read from `structured_output` first; only
-  fall back to `result` for older CLI releases.
-- The CLI lookup uses `cross-spawn`, not `node:child_process`. Reason: a user
-  who installed Claude Code via `npm install -g @anthropic-ai/claude-code` on
-  Windows ends up with a `claude.cmd` shim in the npm global bin dir (npm wraps
-  every bin entry through `cmd-shim`, regardless of whether the target is a
-  `.exe`). `child_process.spawn('claude', …)` without `shell: true` will not
-  resolve `.cmd` extensions on Windows and returns ENOENT. `cross-spawn` handles
-  `.cmd`/`.ps1` lookup and argument quoting for `cmd.exe` while staying a no-op
-  on POSIX. The unit test mocks `cross-spawn` (default export) rather than
-  `node:child_process`.
+The CLI's stream-json envelope is undocumented (see
+[claude-code#24594](https://github.com/anthropics/claude-code/issues/24594)).
+Findings from the probe at the time the long-lived design landed:
+
+- **Stdin (per turn):**
+  `{"type":"user","message":{"role":"user","content":<string>}}\n`. JSONL
+  framing, newline-terminated. `content` as a plain string is accepted.
+- **Stdout (per turn, in order):**
+  1. `{"type":"system","subtype":"init", ...}` — large session-init payload that
+     **repeats every turn**, not just at startup. Filter on `type==='system'`.
+  2. `{"type":"rate_limit_event", ...}` — emitted at least on the first turn.
+     Filter.
+  3. `{"type":"assistant","message":{...,content:[{"type":"text","text":"..."}]}}`
+     — the assistant reply (one event in non-partial mode).
+  4. `{"type":"result","subtype":"success","is_error":false,"terminal_reason":"completed", "result":<text>,"usage":{...},...}`
+     — terminal envelope. `result.usage` carries `input_tokens`,
+     `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`.
+     This is the unambiguous end-of-turn signal.
+- **Multi-turn:** the same child accepts subsequent turns; `session_id` is
+  stable and conversation history is maintained on the CLI side.
+- **Prompt caching does NOT auto-engage** in stream-json mode —
+  `cache_read_input_tokens` is observed at 0 even with a substantial system
+  prompt. The win from the long-lived design is cold-start avoidance, not cache
+  reuse.
+- **Malformed stdin is fatal:** sending an unparsable line makes the CLI emit
+  `Error parsing streaming input line: …` on stderr and `exit 1`. We always
+  write `JSON.stringify(...)`, so we never trigger this — the crash-respawn path
+  covers it if it ever happens.
+- **SIGTERM is graceful:** the child exits in ~220ms with code 143. No SIGKILL
+  fallback is needed in `shutdown()`.
+- **No unsolicited stdout between turns**: the session is silent until we send
+  the next user turn.
+
+### Runtime behavior
+
+- **FIFO queue:** overlapping IPC calls (possible because the renderer's
+  `processingAIPrompt` gate is per-window) are serialized through a shared
+  `AsyncQueue` from `enso-common/src/utilities/async`. Only one stdin write is
+  in flight at a time.
+- **Crash recovery:** an unexpected child exit fails any in-flight request with
+  a structured `Err(...)`, then auto-respawns and re-primes. A crash-loop guard
+  suspends auto-respawn after 3 unexpected exits within 30 seconds; the next IPC
+  call attempts one more spawn before failing fast (so the user can recover by
+  retrying after fixing the underlying issue).
+- **Per-request timeout** (120s) returns `Err(timeout)` to the renderer but does
+  **not** kill the still-warm child — the next request will reuse it. The late
+  reply from the timed-out turn is dropped by the parser (`pending` is null).
+- **Context bytes:** the session tracks a running UTF-8 byte count covering the
+  system prompt, every stdin user-turn body, and every stdout assistant content
+  body. Reset on respawn. Surfaced as `RequestUsage.contextBytes` for the
+  per-request log.
+
+### Gotchas
+
+- The CLI lookup uses `cross-spawn`, not `node:child_process`, so npm-installed
+  Claude Code on Windows (`claude.cmd`) resolves without `shell: true`. The unit
+  test mocks `cross-spawn` (default export) rather than `node:child_process`.
 - Electron IPC serializes with structured clone, which strips class prototypes.
   `Err(...)` from `enso-common/src/utilities/data/result` arrives at the
   renderer as a plain `{ payload, context }` — `ResultError`'s methods are gone.
   The renderer half (`ai.ts`) rebuilds the `Result` with `Ok()` / `Err()` right
   after the IPC call so downstream callers see a well-formed error.
+- `system-init` envelopes contain large payloads (cwd, model, tools) and are
+  emitted for **every** turn, not just the first. The parser must filter them
+  out by `type` rather than treating the first one as a one-shot startup event.
+- `--json-schema` does work with stream-json mode if you ever want to re-enable
+  it; the validated payload arrives in `result.structured_output` (with `result`
+  set to `""`) and the assistant content becomes a `StructuredOutput` `tool_use`
+  block followed by an internal `tool_result` user echo. Be ready to filter the
+  internal echo on `type==='user'`.
 
 ## Tests
 

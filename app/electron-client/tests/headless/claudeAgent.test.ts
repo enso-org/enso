@@ -1,6 +1,7 @@
-/** @file Unit tests for the `claude` CLI shell-out in claudeAgent.ts. */
+/** @file Unit tests for the long-lived `claude` session in claudeAgent.ts. */
 import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
 import { EventEmitter } from 'node:events'
+import { Readable, Writable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
@@ -8,56 +9,46 @@ const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 vi.mock('cross-spawn', () => ({ default: spawnMock }))
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
 
-const { generateAiComponent } = await import('../../src/claudeAgent')
+const { ClaudeAgentSession } = await import('../../src/claudeAgent')
 
-interface FakeChildOptions {
-  stdout?: string
-  stderr?: string
-  exitCode?: number | null
-  spawnError?: NodeJS.ErrnoException
-}
+class FakeChild extends EventEmitter {
+  exitCode: number | null = null
+  killCalls: NodeJS.Signals[] = []
+  stdinWrites: string[] = []
+  stdout = new Readable({ read() {} })
+  stderr = new Readable({ read() {} })
+  stdin: Writable & { destroyed: boolean }
 
-// The real ChildProcess surface is large; the production code only uses a small subset,
-// so the fake declares just that subset and we cast to `unknown` when handing it back.
-interface FakeChild {
-  stdout: EventEmitter
-  stderr: EventEmitter
-  stdin: { end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> }
-  kill: ReturnType<typeof vi.fn>
-  exitCode: number | null
-  on(event: 'error', cb: (err: Error) => void): FakeChild
-  on(event: 'close', cb: (code: number | null) => void): FakeChild
-  emit(event: string, ...args: unknown[]): boolean
-}
+  constructor() {
+    super()
+    const writes = this.stdinWrites
+    const stream: Writable & { destroyed?: boolean } = new Writable({
+      write(chunk: Buffer, _enc: BufferEncoding, callback: (err?: Error | null) => void) {
+        writes.push(chunk.toString('utf8'))
+        callback()
+      },
+    })
+    stream.destroyed = false
+    this.stdin = stream as Writable & { destroyed: boolean }
+  }
 
-function makeFakeChild(opts: FakeChildOptions = {}): FakeChild {
-  const emitter = new EventEmitter()
-  const stdout = new EventEmitter()
-  const stderr = new EventEmitter()
-  const child = Object.assign(emitter, {
-    stdout,
-    stderr,
-    stdin: { end: vi.fn(), on: vi.fn() },
-    kill: vi.fn(() => true),
-    exitCode: opts.exitCode ?? 0,
-  }) as unknown as FakeChild
-  queueMicrotask(() => {
-    if (opts.stdout) stdout.emit('data', Buffer.from(opts.stdout))
-    if (opts.stderr) stderr.emit('data', Buffer.from(opts.stderr))
-    if (opts.spawnError) child.emit('error', opts.spawnError)
-    queueMicrotask(() => child.emit('close', opts.exitCode ?? 0))
-  })
-  return child
-}
-
-function envelopeWith(structuredOutput: unknown): string {
-  return JSON.stringify({
-    type: 'result',
-    subtype: 'success',
-    result: '',
-    // eslint-disable-next-line camelcase
-    structured_output: structuredOutput,
-  })
+  pushStdoutLine(line: string): void {
+    this.stdout.push(line + '\n')
+  }
+  pushStderr(text: string): void {
+    this.stderr.push(text)
+  }
+  crash(code: number, stderr?: string): void {
+    if (stderr != null) this.stderr.push(stderr)
+    this.exitCode = code
+    queueMicrotask(() => this.emit('exit', code, null))
+  }
+  kill(signal: NodeJS.Signals = 'SIGTERM'): boolean {
+    this.killCalls.push(signal)
+    this.exitCode = signal === 'SIGTERM' ? 143 : 137
+    queueMicrotask(() => this.emit('exit', this.exitCode, signal))
+    return true
+  }
 }
 
 const exampleRequest: AiComponentRequest = {
@@ -78,102 +69,227 @@ const exampleResponse: AiComponentResponse = {
   callArguments: ['source'],
 }
 
-describe('generateAiComponent', () => {
+/* eslint-disable camelcase -- mirrors the snake_case keys the real CLI emits in stream-json. */
+const exampleUsage = {
+  input_tokens: 1234,
+  output_tokens: 56,
+  cache_creation_input_tokens: 0,
+  cache_read_input_tokens: 0,
+}
+
+function resultEnvelope(textOrObject: unknown, usage = exampleUsage): string {
+  const result = typeof textOrObject === 'string' ? textOrObject : JSON.stringify(textOrObject)
+  return JSON.stringify({
+    type: 'result',
+    subtype: 'success',
+    is_error: false,
+    terminal_reason: 'completed',
+    result,
+    usage,
+  })
+}
+/* eslint-enable camelcase */
+
+function readyEnvelope(): string {
+  return resultEnvelope('READY')
+}
+
+/** Wait one macrotask (lets queued microtasks resolve). */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
+async function settle(): Promise<void> {
+  for (let i = 0; i < 5; i++) await tick()
+}
+
+interface SessionHarness {
+  session: InstanceType<typeof ClaudeAgentSession>
+  children: FakeChild[]
+}
+
+function buildSession(): SessionHarness {
+  const children: FakeChild[] = []
+  spawnMock.mockImplementation(() => {
+    const child = new FakeChild()
+    children.push(child)
+    return child as unknown as ReturnType<typeof import('node:child_process').spawn>
+  })
+  const session = new ClaudeAgentSession()
+  return { session, children }
+}
+
+async function primeChild(child: FakeChild): Promise<void> {
+  await settle()
+  // The session's prime() should have written the priming user turn by now.
+  child.pushStdoutLine(readyEnvelope())
+  await settle()
+}
+
+describe('ClaudeAgentSession', () => {
   beforeEach(() => {
     spawnMock.mockReset()
   })
   afterEach(() => {
+    vi.useRealTimers()
     vi.clearAllMocks()
   })
 
-  test('returns the parsed response on a successful CLI invocation', async () => {
-    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith(exampleResponse) }))
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(true)
-    if (result.ok) expect(result.value).toEqual(exampleResponse)
+  test('priming completes; first request succeeds with usage', async () => {
+    const { session, children } = buildSession()
+    expect(spawnMock).toHaveBeenCalledTimes(1)
     const [executable, args] = spawnMock.mock.calls[0]!
     expect(executable).toBe('claude')
-    expect(args).toContain('--print')
-    expect(args).toContain('--output-format')
-    expect(args).toContain('--json-schema')
-    expect(args).toContain('--system-prompt')
-    expect(args).toContain('--tools')
+    expect(args).toContain('--input-format')
+    expect(args).toContain('stream-json')
     expect(args).toContain('--no-session-persistence')
+
+    await primeChild(children[0]!)
+    expect(children[0]!.stdinWrites).toHaveLength(1)
+    expect(children[0]!.stdinWrites[0]).toContain('Acknowledge readiness')
+
+    const replyPromise = session.runRequest(exampleRequest)
+    await settle()
+    expect(children[0]!.stdinWrites).toHaveLength(2)
+    expect(children[0]!.stdinWrites[1]).toContain('filter to rows with value over 5')
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    const reply = await replyPromise
+    expect(reply.result.ok).toBe(true)
+    if (reply.result.ok) expect(reply.result.value).toEqual(exampleResponse)
+    expect(reply.usage).not.toBeNull()
+    expect(reply.usage!.inputTokens).toBe(exampleUsage.input_tokens)
+    expect(reply.usage!.outputTokens).toBe(exampleUsage.output_tokens)
+    expect(reply.usage!.contextBytes).toBeGreaterThan(0)
+    session.shutdown()
   })
 
-  test('writes the prompt and context to stdin and closes it', async () => {
-    const fake = makeFakeChild({ stdout: envelopeWith(exampleResponse) })
-    spawnMock.mockReturnValue(fake)
-    await generateAiComponent(exampleRequest)
-    expect(fake.stdin.end).toHaveBeenCalledOnce()
-    const [payload] = fake.stdin.end.mock.calls[0]!
-    expect(payload).toContain('filter to rows with value over 5')
-    expect(payload).toContain('source')
-    expect(payload).toContain('Standard.Table.Table')
-    expect(payload).toContain('Current method: main')
-    expect(payload).toContain('helper')
+  test('two consecutive requests reuse the same child', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+
+    const r1 = session.runRequest(exampleRequest)
+    await settle()
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await r1
+
+    const r2 = session.runRequest(exampleRequest)
+    await settle()
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await r2
+
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    expect(children).toHaveLength(1)
+    session.shutdown()
   })
 
-  test('returns an ENOENT-specific error when claude is not on PATH', async () => {
-    const error = Object.assign(new Error('spawn claude ENOENT'), { code: 'ENOENT' })
-    spawnMock.mockReturnValue(makeFakeChild({ spawnError: error, exitCode: null }))
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.error.payload).toMatch(/not found on PATH/)
+  test('two overlapping requests are serialized', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    expect(children[0]!.stdinWrites).toHaveLength(1)
+
+    const r1 = session.runRequest(exampleRequest)
+    const r2 = session.runRequest(exampleRequest)
+    await settle()
+    // Only the first request should have written to stdin so far; the second waits in the queue.
+    expect(children[0]!.stdinWrites).toHaveLength(2)
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await r1
+    await settle()
+    expect(children[0]!.stdinWrites).toHaveLength(3)
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await r2
+    session.shutdown()
   })
 
-  test('returns a generic spawn error for non-ENOENT spawn failures', async () => {
-    const error = Object.assign(new Error('spawn claude EACCES'), { code: 'EACCES' })
-    spawnMock.mockReturnValue(makeFakeChild({ spawnError: error, exitCode: null }))
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(false)
-    if (!result.ok) {
-      expect(result.error.payload).toMatch(/Failed to spawn 'claude'/)
-      expect(result.error.payload).toMatch(/EACCES/)
+  test('crash mid-request fails the request and respawns', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+
+    const r1 = session.runRequest(exampleRequest)
+    await settle()
+    children[0]!.crash(1, 'authentication failure')
+    const reply1 = await r1
+    expect(reply1.result.ok).toBe(false)
+    if (!reply1.result.ok) expect(reply1.result.error.payload).toMatch(/exited with code=1/)
+
+    // After the crash, spawn should have been called again automatically.
+    await settle()
+    expect(spawnMock).toHaveBeenCalledTimes(2)
+    expect(children).toHaveLength(2)
+    await primeChild(children[1]!)
+
+    const r2 = session.runRequest(exampleRequest)
+    await settle()
+    children[1]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    const reply2 = await r2
+    expect(reply2.result.ok).toBe(true)
+    session.shutdown()
+  })
+
+  test('crash-loop guard suspends respawn after three failures', async () => {
+    const { session, children } = buildSession()
+    // Crash three times in succession during priming (before READY is pushed).
+    for (let i = 0; i < 3; i++) {
+      await settle()
+      children[children.length - 1]!.crash(1, 'boom')
+      await settle()
     }
+    // After the 3rd crash, respawn should have been suspended; spawn count caps at 3.
+    expect(spawnMock).toHaveBeenCalledTimes(3)
+
+    // The next request should attempt one more spawn (the "next IPC call retries once" rule),
+    // and when that crashes, we get a clean Err — no infinite respawn.
+    const replyPromise = session.runRequest(exampleRequest)
+    await settle()
+    expect(spawnMock).toHaveBeenCalledTimes(4)
+    children[3]!.crash(1, 'still broken')
+    const reply = await replyPromise
+    expect(reply.result.ok).toBe(false)
+    session.shutdown()
   })
 
-  test('returns an error on non-zero exit and includes the stderr tail', async () => {
-    spawnMock.mockReturnValue(
-      makeFakeChild({ stdout: '', stderr: 'authentication failure', exitCode: 1 }),
-    )
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(false)
-    if (!result.ok) {
-      expect(result.error.payload).toMatch(/exited with code 1/)
-      expect(result.error.payload).toMatch(/authentication failure/)
-    }
+  test('per-request timeout returns Err without killing the child', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { session, children } = buildSession()
+    // Use a tick-only flush; primeChild can't await real-time settle when fake timers are on.
+    children[0]!.pushStdoutLine(readyEnvelope())
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const replyPromise = session.runRequest(exampleRequest)
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(children[0]!.stdinWrites.length).toBeGreaterThanOrEqual(1)
+
+    // Advance past the 120s per-request timeout.
+    await vi.advanceTimersByTimeAsync(121_000)
+    const reply = await replyPromise
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/timed out/)
+
+    // Child should NOT have been killed by the timeout.
+    expect(children[0]!.killCalls).toHaveLength(0)
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+
+    session.shutdown()
   })
 
-  test('returns an error when stdout is not valid JSON', async () => {
-    spawnMock.mockReturnValue(makeFakeChild({ stdout: 'not json' }))
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.error.payload).toMatch(/malformed JSON/)
-  })
+  test('shutdown() sends SIGTERM and rejects in-flight work', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    const replyPromise = session.runRequest(exampleRequest)
+    await settle()
 
-  test('returns an error when the payload is missing required fields', async () => {
-    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelopeWith({ body: 'ok' }) }))
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.error.payload).toMatch(/did not match the expected response schema/)
-  })
-
-  test('falls back to the `result` field when `structured_output` is absent', async () => {
-    const legacyPayload: AiComponentResponse = {
-      functionName: 'legacy_fn',
-      argumentNames: ['source'],
-      body: 'source',
-      callArguments: ['source'],
-    }
-    const envelope = JSON.stringify({
-      type: 'result',
-      subtype: 'success',
-      result: JSON.stringify(legacyPayload),
-    })
-    spawnMock.mockReturnValue(makeFakeChild({ stdout: envelope }))
-    const result = await generateAiComponent(exampleRequest)
-    expect(result.ok).toBe(true)
-    if (result.ok) expect(result.value).toEqual(legacyPayload)
+    session.shutdown()
+    const reply = await replyPromise
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/shutting down/)
+    expect(children[0]!.killCalls).toContain('SIGTERM')
   })
 })

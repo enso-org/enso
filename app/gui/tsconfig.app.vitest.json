@@ -63,7 +63,6 @@
     "./src/project-view/util/__tests__/compare.test.ts",
     "./src/project-view/util/__tests__/containers.test.ts",
     "./src/project-view/util/__tests__/link.test.ts",
-    "./src/project-view/util/__tests__/net.test.ts",
     "./src/project-view/util/__tests__/patching.test.ts",
     "./src/project-view/util/__tests__/projectPath.test.ts",
     "./src/project-view/util/__tests__/qualifiedName.test.ts",

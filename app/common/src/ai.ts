@@ -1,6 +1,7 @@
 /** @file Shared IPC types for the local Claude agent that generates AI-driven components. */
 
 import { z } from 'zod'
+import type { Result } from './utilities/data/result'
 
 /**
  * One identifier visible in the current method's scope, with the type the engine inferred for it
@@ -59,3 +60,28 @@ export const aiComponentResponseSchema = z.object({
   callArguments: z.array(z.string()),
 })
 export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
+
+/**
+ * Per-request usage telemetry surfaced from the long-lived `claude` session. Logged in the
+ * renderer's DevTools console so we can observe context growth on real data.
+ *
+ * - Token counts come from the assistant turn's terminal envelope (`result.usage` in the CLI's
+ *   stream-json output). Anthropic prompt caching does not auto-engage in stream-json mode, so
+ *   `cacheReadInputTokens` is observed as 0 in practice — the field is reported anyway in case
+ *   that changes.
+ * - `contextBytes` is the session's running UTF-8 byte count: system prompt at spawn, plus every
+ *   stdin user-turn body and every stdout assistant content body since spawn. Resets on respawn.
+ */
+export interface RequestUsage {
+  readonly inputTokens: number
+  readonly outputTokens: number
+  readonly cacheCreationInputTokens: number
+  readonly cacheReadInputTokens: number
+  readonly contextBytes: number
+}
+
+/** IPC reply shape for `Channel.generateAiComponent`. */
+export interface AiComponentIpcReply {
+  readonly result: Result<AiComponentResponse>
+  readonly usage: RequestUsage | null
+}

@@ -1,26 +1,43 @@
 /**
- * @file Electron-main-side adapter that shells out to the user-installed `claude` CLI
- * executable to generate the body of a User Defined Component from a natural-language
- * prompt. Exposed to the renderer via IPC; the renderer never invokes the CLI directly.
+ * @file Electron-main-side adapter that drives a long-lived `claude` CLI subprocess to generate
+ * the body of a User Defined Component from a natural-language prompt. Exposed to the renderer
+ * via IPC; the renderer never invokes the CLI directly.
  *
- * Authentication rides on whatever the `claude` CLI is already configured with (OAuth,
- * keychain, `ANTHROPIC_API_KEY`, or subscription token). The main process does not require
- * or read the API key beyond forwarding the parent environment.
+ * The session is spawned eagerly (but non-blockingly) at app launch, primed with a small
+ * acknowledgment turn so the system prompt is ingested before the first real request, and
+ * serialized via a per-process FIFO queue. Crashes are logged and the child is respawned in the
+ * background; per-request timeouts return errors without killing the still-warm child.
+ *
+ * Authentication rides on whatever the `claude` CLI is already configured with (OAuth, keychain,
+ * `ANTHROPIC_API_KEY`, or subscription token). The main process does not require or read the API
+ * key beyond forwarding the parent environment.
  */
+// `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
+// npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
+// without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
 import spawn from 'cross-spawn'
 import { ipcMain } from 'electron'
 import {
   aiComponentResponseSchema,
+  type AiComponentIpcReply,
   type AiComponentRequest,
   type AiComponentResponse,
+  type RequestUsage,
 } from 'enso-common/src/ai'
+import { AsyncQueue } from 'enso-common/src/utilities/async'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
-import { z } from 'zod'
+import { type ChildProcess } from 'node:child_process'
+import readline from 'node:readline'
 import { Channel } from './ipc.js'
 
 const CLAUDE_EXECUTABLE = 'claude'
-const REQUEST_TIMEOUT_MS = 60_000
+const REQUEST_TIMEOUT_MS = 120_000
+const PRIMING_TIMEOUT_MS = 60_000
 const STDERR_TAIL_CHARS = 2_000
+const RESPAWN_WINDOW_MS = 30_000
+const MAX_RESPAWNS_IN_WINDOW = 3
+const PRIMING_PROMPT =
+  'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
 
 // =====================
 // === System prompt ===
@@ -53,7 +70,7 @@ You will receive:
 - Other identifiers already in scope in that method, with their Enso types when known. You may reference any of them.
 - A natural-language description of what the new component should do.
 
-You must return a JSON object matching the supplied schema, with these four fields:
+You must return a JSON object with these four fields and nothing else (no prose, no code fences, no leading or trailing whitespace):
 - \`functionName\`: snake_case identifier for the new top-level function. It must not collide with an identifier already used in the surrounding method or with a name visible in the supplied method source. Pick something descriptive of what the function does.
 - \`argumentNames\`: parameter names in the function signature, in declaration order. Pick names that describe each parameter's role inside the function — they do *not* have to match any in-scope identifier and they are the names you reference inside \`body\`. Only declare parameters that \`body\` actually uses.
 - \`body\`: the function body, as a string. Every line belongs to the body; no leading or trailing blank lines. Reference the parameters by the names you listed in \`argumentNames\`. The final line must be a single identifier — the binding that holds the result. Do not include the function signature, the \`=\` sign, or any module wrapper.
@@ -63,47 +80,9 @@ Rules:
 - At most one method call per line in \`body\`; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
 - The final line of \`body\` must be a single identifier — assign expressions to a name first and reference that name.
 - \`argumentNames\` and \`callArguments\` must have the same length.
-- Return only valid Enso — avoid placeholders, pseudocode, or commentary.`
+- Return only valid Enso — avoid placeholders, pseudocode, or commentary.
 
-// JSON Schema passed to the CLI's `--json-schema` flag. Must stay in sync with
-// `aiComponentResponseSchema` in `enso-common/src/ai.ts`; when the zod schema grows a
-// field, mirror it here.
-const RESPONSE_SCHEMA = {
-  type: 'object',
-  properties: {
-    functionName: { type: 'string' },
-    argumentNames: { type: 'array', items: { type: 'string' } },
-    body: { type: 'string' },
-    callArguments: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['functionName', 'argumentNames', 'body', 'callArguments'],
-  additionalProperties: false,
-} as const
-
-function parseJsonSafe(text: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch {
-    return null
-  }
-}
-
-// Claude CLI's `--output-format json` envelope. With `--json-schema` active the CLI puts
-// the validated payload in `structured_output`; older releases (or runs without the flag)
-// put it in `result`, which may be either a pre-decoded object or a stringified JSON. Each
-// field parses straight to `AiComponentResponse | null`: `.catch(null)` so a mismatched
-// field never fails the whole envelope, and the caller picks the first non-null candidate.
-const cliEnvelopeSchema = z.object({
-  // eslint-disable-next-line camelcase
-  structured_output: aiComponentResponseSchema.nullable().catch(null),
-  result: z
-    .preprocess(
-      (input) => (typeof input === 'string' ? parseJsonSafe(input) : input),
-      aiComponentResponseSchema,
-    )
-    .nullable()
-    .catch(null),
-})
+If the user message is a session warm-up and the request is not for a component, reply briefly in plain text. Otherwise, every reply must be the JSON object described above.`
 
 // =================
 // === Prompt IO ===
@@ -134,31 +113,37 @@ ${otherBindingsList}
 User request: ${prompt}`
 }
 
-// ======================
-// === CLI invocation ===
-// ======================
-
-interface CliOutcome {
-  stdout: string
-  stderr: string
-  exitCode: number | null
-  spawnError?: NodeJS.ErrnoException
+function parseJsonSafe(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
 }
 
-// TODO[ao]: Here add `--allowedTools Read Glob Grep` plus `--add-dir <stdlibRoot>
-// --add-dir <projectSrcRoot>` once stdlib and project paths are threaded through the
-// request.
+function truncateStderr(stderr: string): string {
+  const trimmed = stderr.trim()
+  if (trimmed.length <= STDERR_TAIL_CHARS) return trimmed
+  return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
+}
 
-// `--setting-sources ''` keeps the invocation hermetic (no user settings, plugins,
-// or `CLAUDE.md` discovery) without touching auth.
-// `--bare` is deliberately *not* used: it disables OAuth/keychain.
-function buildCliArgs(): string[] {
+// =====================================
+// === Stream-json wire format glue ===
+// =====================================
+
+// Probe-confirmed envelope shape. See app/electron-client/CLAUDE.md for the discovery notes.
+// Note: `--verbose` is required by the CLI alongside `--output-format stream-json` (without it
+// the child exits 1 immediately with "When using --print, --output-format=stream-json requires
+// --verbose"). The extra system/init and rate_limit_event envelopes it emits are filtered in
+// `onStdoutLine`.
+function streamJsonArgs(): string[] {
   return [
-    '--print',
+    '-p',
+    '--input-format',
+    'stream-json',
     '--output-format',
-    'json',
-    '--json-schema',
-    JSON.stringify(RESPONSE_SCHEMA),
+    'stream-json',
+    '--verbose',
     '--system-prompt',
     SYSTEM_PROMPT,
     '--tools',
@@ -169,116 +154,402 @@ function buildCliArgs(): string[] {
   ]
 }
 
-function runClaude(
-  args: readonly string[],
-  stdinPayload: string,
-  signal: AbortSignal,
-): Promise<CliOutcome> {
-  return new Promise((resolve) => {
-    // `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
-    // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
-    // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup and quoting on Windows
-    // and is a no-op on POSIX.
-    const child = spawn(CLAUDE_EXECUTABLE, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: process.env,
-    })
-    const stdoutChunks: Buffer[] = []
-    const stderrChunks: Buffer[] = []
-    let spawnError: NodeJS.ErrnoException | undefined
-    let settled = false
-    const settle = () => {
-      if (settled) return
-      settled = true
-      const outcome: CliOutcome = {
-        stdout: Buffer.concat(stdoutChunks).toString('utf8'),
-        stderr: Buffer.concat(stderrChunks).toString('utf8'),
-        exitCode: child.exitCode,
-      }
-      if (spawnError) outcome.spawnError = spawnError
-      resolve(outcome)
-    }
+function userTurnLine(content: string): string {
+  return JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n'
+}
 
-    child.stdout?.on('data', (chunk: Buffer) => stdoutChunks.push(chunk))
-    child.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
-    child.on('error', (err) => {
-      spawnError = err as NodeJS.ErrnoException
-    })
-    child.on('close', settle)
+interface RawTokenUsage {
+  input_tokens?: number
+  output_tokens?: number
+  cache_creation_input_tokens?: number
+  cache_read_input_tokens?: number
+}
 
-    signal.addEventListener(
-      'abort',
-      () => {
-        child.kill('SIGTERM')
-      },
-      { once: true },
-    )
+interface TurnOutcome {
+  state: 'completed' | 'crash'
+  text: string
+  usage: RawTokenUsage | null
+  errorReason?: string
+}
 
-    if (child.stdin) {
-      // Swallow EPIPE etc. — the 'close' handler still resolves with the captured state.
-      child.stdin.on('error', (err) => {
-        spawnError ??= err as NodeJS.ErrnoException
-      })
-      child.stdin.end(stdinPayload)
-    }
+interface PendingTurn {
+  resolve: (outcome: TurnOutcome) => void
+  textChunks: string[]
+}
+
+interface Deferred<T> {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (error: unknown) => void
+}
+
+function makeDeferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
   })
+  return { promise, resolve, reject }
 }
 
-// =======================
-// === Output parsing ===
-// =======================
+// ============================
+// === ClaudeAgentSession ===
+// ============================
 
-/** Parse the CLI's stdout into an {@link AiComponentResponse}, or a structured error. */
-function parseCliResponse(stdout: string): Result<AiComponentResponse> {
-  const envelopeJson = parseJsonSafe(stdout)
-  if (envelopeJson == null) return Err('Claude agent produced malformed JSON on stdout')
-  const envelope = cliEnvelopeSchema.safeParse(envelopeJson)
-  if (!envelope.success) return Err('Claude agent stdout did not match the expected envelope')
-  const payload = envelope.data.structured_output ?? envelope.data.result
-  if (payload == null) {
-    return Err('Claude agent result did not match the expected response schema')
+/**
+ * Owns a single long-lived `claude` subprocess. Construction kicks off `spawn()` and `prime()`
+ * without awaiting either, so callers can run the constructor synchronously during Electron
+ * startup. `runRequest` awaits priming via `this.ready`.
+ */
+export class ClaudeAgentSession {
+  private child: ChildProcess | null = null
+  private readyDeferred: Deferred<void> = makeDeferred()
+  private readonly queue = new AsyncQueue<void>(Promise.resolve())
+  private pending: PendingTurn | null = null
+  private contextBytes = 0
+  private stderrTail = ''
+  private respawnTimes: number[] = []
+  private respawnSuspended = false
+  private disposed = false
+
+  /** Spawns the underlying `claude` child eagerly; priming continues in the background. */
+  constructor() {
+    this.spawn()
   }
-  return Ok(payload)
-}
 
-function truncateStderr(stderr: string): string {
-  const trimmed = stderr.trim()
-  if (trimmed.length <= STDERR_TAIL_CHARS) return trimmed
-  return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
+  /** Resolves once the current child has spawned and accepted a priming turn. */
+  get ready(): Promise<void> {
+    return this.readyDeferred.promise
+  }
+
+  /** Run an AI component request through the long-lived session. */
+  runRequest(request: AiComponentRequest): Promise<AiComponentIpcReply> {
+    return new Promise<AiComponentIpcReply>((resolveOuter) => {
+      this.queue.pushTask(async () => {
+        if (this.disposed) {
+          resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
+          return
+        }
+        if (this.respawnSuspended && (this.child == null || this.child.exitCode != null)) {
+          // Allow one respawn attempt per IPC call after the crash-loop guard tripped. We do NOT
+          // clear `respawnTimes` — keeping the recent failures means another quick crash trips the
+          // guard again immediately, instead of granting an infinite retry stream.
+          this.respawnSuspended = false
+          this.spawn()
+        }
+        try {
+          await this.ready
+        } catch (err) {
+          resolveOuter({
+            result: Err(this.formatNotReadyError(err)),
+            usage: null,
+          })
+          return
+        }
+        const turn = await this.runOneTurn(buildUserPrompt(request), REQUEST_TIMEOUT_MS)
+        resolveOuter(this.replyFromTurn(turn))
+      })
+    })
+  }
+
+  /** Request graceful shutdown of the child and reject any pending work. */
+  shutdown(): void {
+    if (this.disposed) return
+    this.disposed = true
+    if (this.pending) {
+      const pending = this.pending
+      this.pending = null
+      pending.resolve({
+        state: 'crash',
+        text: '',
+        usage: null,
+        errorReason: 'Claude agent shutting down',
+      })
+    }
+    if (this.child && this.child.exitCode == null) {
+      this.child.kill('SIGTERM')
+    }
+  }
+
+  // -------------- private --------------
+
+  private spawn(): void {
+    if (this.disposed) return
+    this.readyDeferred = makeDeferred()
+    // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
+    // unhandled rejection when no `runRequest` happens to be awaiting `ready` at the time.
+    // Awaiters that arrive later attach their own .then/.catch and still observe the rejection.
+    this.readyDeferred.promise.catch(() => undefined)
+    this.contextBytes = Buffer.byteLength(SYSTEM_PROMPT, 'utf8')
+    this.stderrTail = ''
+    this.pending = null
+
+    let child: ChildProcess
+    try {
+      child = spawn(CLAUDE_EXECUTABLE, streamJsonArgs(), {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: process.env,
+      })
+    } catch (err) {
+      this.readyDeferred.reject(err)
+      return
+    }
+    this.child = child
+
+    if (child.stdout) {
+      const rl = readline.createInterface({ input: child.stdout })
+      rl.on('line', (line) => this.onStdoutLine(line))
+    }
+    child.stderr?.on('data', (chunk: Buffer) => this.appendStderr(chunk.toString('utf8')))
+    child.on('error', (err) => {
+      this.handleChildEnded(`spawn error: ${(err as NodeJS.ErrnoException).message}`)
+    })
+    child.on('exit', (code, signal) => {
+      if (this.disposed) return
+      this.handleChildEnded(`exited with code=${code} signal=${signal ?? 'null'}`)
+    })
+
+    void this.prime().then(
+      () => this.readyDeferred.resolve(),
+      (err) => this.readyDeferred.reject(err),
+    )
+  }
+
+  private async prime(): Promise<void> {
+    const outcome = await this.runOneTurn(PRIMING_PROMPT, PRIMING_TIMEOUT_MS)
+    if (outcome.state !== 'completed') {
+      throw new Error(`priming turn ${outcome.state}: ${outcome.errorReason ?? '(no detail)'}`)
+    }
+    if (!outcome.text.trim()) {
+      throw new Error('priming turn produced no assistant text')
+    }
+  }
+
+  private runOneTurn(content: string, timeoutMs: number): Promise<TurnOutcome> {
+    return new Promise<TurnOutcome>((resolveTurn) => {
+      const child = this.child
+      if (!child || child.exitCode != null || !child.stdin || child.stdin.destroyed) {
+        resolveTurn({
+          state: 'crash',
+          text: '',
+          usage: null,
+          errorReason: 'child process is not alive',
+        })
+        return
+      }
+      const line = userTurnLine(content)
+      this.contextBytes += Buffer.byteLength(line, 'utf8')
+      const pending: PendingTurn = {
+        resolve: (outcome) => {
+          if (timeoutHandle != null) clearTimeout(timeoutHandle)
+          resolveTurn(outcome)
+        },
+        textChunks: [],
+      }
+      this.pending = pending
+      const timeoutHandle = setTimeout(() => {
+        if (this.pending !== pending) return
+        // Drop the pending claim so subsequent stdout for this turn is discarded; the runtime
+        // does NOT kill the child, because the next request will reuse it.
+        this.pending = null
+        pending.resolve({
+          state: 'crash',
+          text: '',
+          usage: null,
+          errorReason: `timed out after ${timeoutMs}ms`,
+        })
+      }, timeoutMs)
+      child.stdin.write(line, (err) => {
+        if (!err) return
+        if (this.pending === pending) {
+          this.pending = null
+          pending.resolve({
+            state: 'crash',
+            text: '',
+            usage: null,
+            errorReason: `stdin write failed: ${err.message}`,
+          })
+        }
+      })
+    })
+  }
+
+  private onStdoutLine(line: string): void {
+    const env = parseJsonSafe(line)
+    if (env == null || typeof env !== 'object') return
+    const type = (env as { type?: unknown }).type
+    if (type === 'system' || type === 'rate_limit_event' || type === 'user') return
+    if (type === 'assistant') {
+      this.captureAssistantContent(env)
+      return
+    }
+    if (type === 'result') {
+      this.resolveTerminal(env)
+    }
+  }
+
+  private captureAssistantContent(env: object): void {
+    if (!this.pending) return
+    const message = (env as { message?: unknown }).message
+    if (!message || typeof message !== 'object') return
+    const content = (message as { content?: unknown }).content
+    if (!Array.isArray(content)) return
+    for (const block of content) {
+      if (
+        block != null &&
+        typeof block === 'object' &&
+        (block as { type?: unknown }).type === 'text' &&
+        typeof (block as { text?: unknown }).text === 'string'
+      ) {
+        const text = (block as { text: string }).text
+        this.pending.textChunks.push(text)
+        this.contextBytes += Buffer.byteLength(text, 'utf8')
+      }
+    }
+  }
+
+  private resolveTerminal(env: object): void {
+    if (!this.pending) return
+    const pending = this.pending
+    this.pending = null
+    const result = (env as { result?: unknown }).result
+    const usageRaw = (env as { usage?: unknown }).usage
+    const text =
+      typeof result === 'string' && result.length > 0 ? result : pending.textChunks.join('')
+    pending.resolve({
+      state: 'completed',
+      text,
+      usage: usageRaw != null && typeof usageRaw === 'object' ? (usageRaw as RawTokenUsage) : null,
+    })
+  }
+
+  private handleChildEnded(reason: string): void {
+    const stderrTail = truncateStderr(this.stderrTail)
+    const detail = stderrTail ? `: ${stderrTail}` : ''
+    console.warn(`[AI] claude process crashed (${reason})${detail}`)
+    if (this.pending) {
+      const pending = this.pending
+      this.pending = null
+      pending.resolve({
+        state: 'crash',
+        text: '',
+        usage: null,
+        errorReason: reason,
+      })
+    }
+    // Reject the priming promise so any task awaiting `ready` fails fast — the next task in the
+    // queue will see a fresh deferred created by the upcoming spawn() call (if respawn is allowed).
+    this.readyDeferred.reject(new Error(reason))
+    this.child = null
+    if (this.disposed) return
+
+    const now = Date.now()
+    this.respawnTimes = this.respawnTimes.filter((t) => now - t <= RESPAWN_WINDOW_MS)
+    this.respawnTimes.push(now)
+    if (this.respawnTimes.length >= MAX_RESPAWNS_IN_WINDOW) {
+      this.respawnSuspended = true
+      console.warn(
+        `[AI] claude crashed ${this.respawnTimes.length} times in ${RESPAWN_WINDOW_MS}ms; suspending auto-respawn until the next request.`,
+      )
+      return
+    }
+    this.spawn()
+  }
+
+  private appendStderr(chunk: string): void {
+    this.stderrTail = (this.stderrTail + chunk).slice(-STDERR_TAIL_CHARS)
+  }
+
+  private replyFromTurn(turn: TurnOutcome): AiComponentIpcReply {
+    const usage = this.snapshotUsage(turn.usage)
+    if (turn.state !== 'completed') {
+      const reason = turn.errorReason ?? 'claude turn failed'
+      return { result: Err(`Claude agent: ${reason}`), usage }
+    }
+    if (!turn.text.trim()) {
+      return { result: Err('Claude agent returned an empty reply'), usage }
+    }
+    const parsedJson = parseJsonSafe(turn.text)
+    if (parsedJson == null) {
+      return { result: Err('Claude agent reply was not valid JSON'), usage }
+    }
+    const parsed = aiComponentResponseSchema.safeParse(parsedJson)
+    if (!parsed.success) {
+      return {
+        result: Err('Claude agent reply did not match the expected component schema'),
+        usage,
+      }
+    }
+    return { result: Ok(parsed.data), usage }
+  }
+
+  private snapshotUsage(raw: RawTokenUsage | null): RequestUsage | null {
+    if (!raw) return null
+    return {
+      inputTokens: raw.input_tokens ?? 0,
+      outputTokens: raw.output_tokens ?? 0,
+      cacheCreationInputTokens: raw.cache_creation_input_tokens ?? 0,
+      cacheReadInputTokens: raw.cache_read_input_tokens ?? 0,
+      contextBytes: this.contextBytes,
+    }
+  }
+
+  private formatNotReadyError(err: unknown): string {
+    const errno = err as NodeJS.ErrnoException | null
+    if (errno?.code === 'ENOENT') {
+      return `'${CLAUDE_EXECUTABLE}' executable not found on PATH — install Claude Code to use the AI node feature`
+    }
+    const message = errno?.message ?? String(err ?? 'unknown error')
+    return `Claude agent is not ready: ${message}`
+  }
 }
 
 // ====================
-// === Public entry ===
+// === Module state ===
 // ====================
+
+let session: ClaudeAgentSession | null = null
 
 /** Run the local `claude` CLI to produce a User Defined Component body. */
 export async function generateAiComponent(
   request: AiComponentRequest,
 ): Promise<Result<AiComponentResponse>> {
-  const abortController = new AbortController()
-  const timeout = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS)
-  try {
-    const cli = await runClaude(buildCliArgs(), buildUserPrompt(request), abortController.signal)
-    if (cli.spawnError) {
-      if (cli.spawnError.code === 'ENOENT') {
-        return Err(
-          `'${CLAUDE_EXECUTABLE}' executable not found on PATH — install Claude Code to use the AI node feature`,
-        )
-      }
-      return Err(`Failed to spawn '${CLAUDE_EXECUTABLE}': ${cli.spawnError.message}`)
-    }
-    if (abortController.signal.aborted) {
-      return Err(`Claude agent timed out after ${REQUEST_TIMEOUT_MS}ms`)
-    }
-    if (cli.exitCode !== 0) {
-      const tail = truncateStderr(cli.stderr)
-      const detail = tail ? `: ${tail}` : ''
-      return Err(`'${CLAUDE_EXECUTABLE}' exited with code ${cli.exitCode}${detail}`)
-    }
-    return parseCliResponse(cli.stdout)
-  } finally {
-    clearTimeout(timeout)
-  }
+  const reply = await generateAiComponentWithUsage(request)
+  return reply.result
+}
+
+/**
+ * Same as {@link generateAiComponent} but also returns the per-turn usage telemetry. This is what
+ * the IPC handler exposes to the renderer; the renderer logs the usage line and forwards `result`
+ * to its caller.
+ */
+export async function generateAiComponentWithUsage(
+  request: AiComponentRequest,
+): Promise<AiComponentIpcReply> {
+  if (session == null) session = new ClaudeAgentSession()
+  return session.runRequest(request)
+}
+
+/** Tear down the long-lived session. Wired to `app.on('before-quit', ...)` in `index.ts`. */
+export function shutdownClaudeAgent(): void {
+  session?.shutdown()
+  session = null
+}
+
+// ===================
+// === IPC binding ===
+// ===================
+
+/** Register the {@link Channel.generateAiComponent} IPC handler. */
+export function initClaudeAgentIpc() {
+  // Eager but non-blocking: spawning + priming happen in the background while Electron continues
+  // its own startup. Subsequent IPC calls await `session.ready` before sending stdin.
+  if (session == null) session = new ClaudeAgentSession()
+  probeClaudeVersion()
+  ipcMain.handle(Channel.generateAiComponent, async (_event, request: AiComponentRequest) =>
+    generateAiComponentWithUsage(request),
+  )
 }
 
 // ======================
@@ -320,16 +591,4 @@ function probeClaudeVersion(): void {
       )
     }
   })
-}
-
-// ===================
-// === IPC binding ===
-// ===================
-
-/** Register the {@link Channel.generateAiComponent} IPC handler. */
-export function initClaudeAgentIpc() {
-  probeClaudeVersion()
-  ipcMain.handle(Channel.generateAiComponent, async (_event, request: AiComponentRequest) =>
-    generateAiComponent(request),
-  )
 }

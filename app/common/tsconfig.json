@@ -32,6 +32,7 @@
     "./src/services/__test__/Backend.test.ts",
     "./src/text.ts",
     "./src/text/english.json",
+    "./src/utilities/__test__/async.test.ts",
     "./src/utilities/__test__/nameValidation.test.ts",
     "./src/utilities/async.ts",
     "./src/utilities/data/__tests__/iter.test.ts",

@@ -82,13 +82,16 @@ async function mockElectronApi(page: Page) {
             generateComponent: async (request: { context: { sourceIdentifier: string } }) => {
               const src = request.context.sourceIdentifier
               return {
-                ok: true,
-                value: {
-                  functionName: 'ai_helper',
-                  argumentNames: ['input'],
-                  body: `result = input\nresult`,
-                  callArguments: [src],
+                result: {
+                  ok: true,
+                  value: {
+                    functionName: 'ai_helper',
+                    argumentNames: ['input'],
+                    body: `result = input\nresult`,
+                    callArguments: [src],
+                  },
                 },
+                usage: null,
               }
             },
           },

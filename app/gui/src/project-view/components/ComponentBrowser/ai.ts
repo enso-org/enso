@@ -1,7 +1,12 @@
 import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import type { GraphStore } from '$/providers/openedProjects/graph'
 import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
-import type { AiComponentRequest, AiComponentResponse, AiInScopeBinding } from 'enso-common/src/ai'
+import type {
+  AiComponentRequest,
+  AiComponentResponse,
+  AiInScopeBinding,
+  RequestUsage,
+} from 'enso-common/src/ai'
 import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 
 /**
@@ -68,11 +73,12 @@ export function useAI(
         }
         const context = buildContext(sourceIdentifier)
         if (!context.ok) return context
-        const raw = await electronApi.ai.generateComponent({ prompt, context: context.value })
+        const reply = await electronApi.ai.generateComponent({ prompt, context: context.value })
+        logUsage(reply.usage)
         // Electron IPC uses structured clone, which strips the `ResultError` prototype —
-        // `raw.error` comes back as a plain `{ payload, context }` object without its
+        // `reply.result.error` comes back as a plain `{ payload, context }` object without its
         // `.message()` method. Rebuild a proper `Result` on this side of the boundary.
-        return raw.ok ? Ok(raw.value) : Err(raw.error.payload)
+        return reply.result.ok ? Ok(reply.result.value) : Err(reply.result.error.payload)
       },
     )
   }
@@ -80,4 +86,16 @@ export function useAI(
   return {
     query,
   }
+}
+
+function logUsage(usage: RequestUsage | null): void {
+  if (!usage) return
+  const promptTokens =
+    usage.inputTokens + usage.cacheReadInputTokens + usage.cacheCreationInputTokens
+  const cacheHitPct =
+    promptTokens > 0 ? Math.round((usage.cacheReadInputTokens / promptTokens) * 100) : 0
+  const contextKB = (usage.contextBytes / 1024).toFixed(1)
+  console.log(
+    `[AI] usage: prompt=${promptTokens}t out=${usage.outputTokens}t cache_hit=${cacheHitPct}% context=${contextKB}kB`,
+  )
 }

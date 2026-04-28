@@ -1,6 +1,7 @@
-import { AsyncQueue } from '@/util/net'
-import { wait } from 'lib0/promise'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { AsyncQueue } from '../async'
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 beforeEach(() => {
   vi.useFakeTimers()
