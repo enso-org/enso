@@ -1007,6 +1007,11 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Invalid operation. */
+  override listExecutionsSummary() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override syncProjectExecution() {
     return this.invalidOperation()
   }

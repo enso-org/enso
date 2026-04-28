@@ -308,6 +308,8 @@ export interface ProjectSession {
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
   readonly userEmail?: EmailAddress
+  readonly uptime?: number | null
+  readonly project?: Asset
 }
 
 export interface ProjectSessionLogs {
@@ -1337,6 +1339,34 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
+/** URL query string parameters for the "list all executions" endpoint. */
+export interface ListExecutionsRequestParams {
+  readonly lastExecutionId?: ProjectExecutionId | null
+}
+
+/** URL query string parameters for the "list execution usage summary" endpoint. */
+export interface ListExecutionsSummaryRequestParams {
+  readonly month?: string | null | undefined
+}
+
+export interface ExecutionUsageSummaryProject {
+  readonly projectId: ProjectId
+  readonly name: string | null
+}
+
+export interface ExecutionUsageSummaryUser {
+  readonly name: string | null
+  readonly email: EmailAddress | null
+}
+
+export interface ExecutionUsageSummary {
+  readonly project: ExecutionUsageSummaryProject
+  readonly user: ExecutionUsageSummaryUser
+  readonly totalSessions: number
+  readonly totalUptimeSeconds: number
+  readonly averageUptimeSeconds: number
+}
+
 export type AssetSortExpression = 'asset_id_discriminator_and_modified_at' | 'modified_at' | 'title'
 
 export type AssetSortDirection = 'ascending' | 'descending'
@@ -1901,6 +1931,10 @@ export abstract class Backend {
     year: number,
     month: number,
   ): Promise<readonly ProjectExecution[]>
+  /** Return usage summary rows for an organization (if admin) or a user. */
+  abstract listExecutionsSummary(
+    params: ListExecutionsSummaryRequestParams,
+  ): Promise<readonly ExecutionUsageSummary[]>
   abstract syncProjectExecution(
     executionId: ProjectExecutionId,
     projectTitle: string,
