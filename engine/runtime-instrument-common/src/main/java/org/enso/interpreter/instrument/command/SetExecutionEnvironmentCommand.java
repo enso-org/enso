@@ -67,12 +67,12 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                                           .withWriteCompilationLock(
                                               this.getClass(),
                                               () -> {
+                                                var env =
+                                                    ExecutionEnvironment.forName(
+                                                        executionEnvironment.name());
                                                 ctx.executionService()
                                                     .getContext()
-                                                    .setExecutionEnvironment(
-                                                        ExecutionEnvironment.forName(
-                                                            executionEnvironment.name()),
-                                                        true);
+                                                    .setGlobalExecutionEnvironment(env);
                                                 return null;
                                               }));
                           CacheInvalidation.invalidateAll(stack);

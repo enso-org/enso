@@ -846,6 +846,10 @@ public final class EnsoContext {
     return globalExecutionEnvironment;
   }
 
+  public void setGlobalExecutionEnvironment(ExecutionEnvironment env) {
+    this.globalExecutionEnvironment = env;
+  }
+
   public ExecutionEnvironment getExecutionEnvironment() {
     var env = GetStateNode.getUncached().executeGet(null, ExecutionEnvironment.class, getNothing());
     return env instanceof ExecutionEnvironment ee ? ee : getGlobalExecutionEnvironment();
