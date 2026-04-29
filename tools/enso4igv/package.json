@@ -131,6 +131,9 @@
     "webpack": "=5.94.0",
     "webpack-cli": "=5.0.1"
   },
+  "overrides": {
+    "tar-fs": "^3.1.2"
+  },
   "extensionDependencies": [
     "asf.apache-netbeans-java",
     "scala-lang.scala"
