@@ -9,7 +9,6 @@ import java.util.function.BiConsumer;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.BenchSuite;
