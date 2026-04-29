@@ -61,7 +61,10 @@ export function useComponentBrowserInput(
   graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
   suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
   ai: {
-    query(query: string, sourcePort: string): Promise<Result<AiComponentResponse>>
+    query(
+      query: string,
+      sourcePort: string | undefined,
+    ): Promise<Result<AiComponentResponse>>
   } = useAI(),
 ) {
   const text = ref('')
@@ -110,11 +113,9 @@ export function useComponentBrowserInput(
   }
 
   const mode: ComputedRef<ComponentBrowserMode> = computed(() => {
-    if (sourceNodeIdentifier.value) {
-      const aiPromptMatch = /^AI:(.*)$/.exec(text.value)
-      if (aiPromptMatch) {
-        return { mode: 'aiPrompt', prompt: aiPromptMatch[1] ?? ' ' }
-      }
+    const aiPromptMatch = /^AI:(.*)$/.exec(text.value)
+    if (aiPromptMatch) {
+      return { mode: 'aiPrompt', prompt: aiPromptMatch[1] ?? ' ' }
     }
     if (switchedToCodeMode.value || cbUsage.value?.type === 'editNode') {
       return {
@@ -285,13 +286,9 @@ export function useComponentBrowserInput(
   }
 
   async function applyAIPrompt(): Promise<Result<AiComponentResponse> | null> {
-    if (
-      processingAIPrompt.value ||
-      mode.value.mode !== 'aiPrompt' ||
-      sourceNodeIdentifier.value == null
-    ) {
+    if (processingAIPrompt.value || mode.value.mode !== 'aiPrompt') {
       if (!processingAIPrompt.value) {
-        console.error('Cannot apply AI prompt: not in AI mode, or no source node.')
+        console.error('Cannot apply AI prompt: not in AI mode.')
       }
       return null
     }

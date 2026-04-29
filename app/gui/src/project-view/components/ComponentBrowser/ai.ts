@@ -18,12 +18,15 @@ export function useAI(
   graphStore: GraphStore = useGraphStore(),
   projectNames: ProjectNameStore = useProjectNames(),
 ) {
-  function buildContext(sourceIdentifier: string): Result<AiComponentRequest['context']> {
+  function buildContext(
+    sourceIdentifier: string | undefined,
+  ): Result<AiComponentRequest['context']> {
     const graphDb = graphStore.db
-    if (!graphDb.getIdentDefiningNode(sourceIdentifier)) {
+    if (sourceIdentifier != null && !graphDb.getIdentDefiningNode(sourceIdentifier)) {
       return Err(`Cannot find node with name ${sourceIdentifier}`)
     }
-    const sourceTypeInfo = graphDb.getTypeOfIdentifier(sourceIdentifier)
+    const sourceTypeInfo =
+      sourceIdentifier != null ? graphDb.getTypeOfIdentifier(sourceIdentifier) : null
     const sourceTypeName =
       sourceTypeInfo != null ? projectNames.printProjectPath(sourceTypeInfo.primaryType) : undefined
 
@@ -50,7 +53,7 @@ export function useAI(
     }
 
     return Ok({
-      sourceIdentifier,
+      ...(sourceIdentifier != null ? { sourceIdentifier } : {}),
       ...(sourceTypeName != null ? { sourceTypeName } : {}),
       currentMethodName,
       currentMethodCode,
@@ -60,7 +63,7 @@ export function useAI(
 
   async function query(
     prompt: string,
-    sourceIdentifier: string,
+    sourceIdentifier: string | undefined,
   ): Promise<Result<AiComponentResponse>> {
     return withContext(
       () => 'When running the AI component generator',

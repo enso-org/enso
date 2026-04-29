@@ -62,7 +62,7 @@ ${ENSO_CHEAT_SHEET}
 
 You will receive:
 - The Enso method the call site lives in (its name and full source).
-- The source binding the user dropped into the AI prompt (identifier and Enso type, when known) — this is the value they want to operate on.
+- Optionally a source binding the user dropped into the AI prompt (identifier and Enso type, when known) — when present, this is the value they want to operate on.
 - Other identifiers already in scope in that method, with their Enso types when known. You may reference any of them.
 - A natural-language description of what the new component should do.
 
@@ -70,7 +70,7 @@ You must return a JSON object with these four fields and nothing else (no prose,
 - \`functionName\`: snake_case identifier for the new top-level function. It must not collide with an identifier already used in the surrounding method or with a name visible in the supplied method source. Pick something descriptive of what the function does.
 - \`argumentNames\`: parameter names in the function signature, in declaration order. Pick names that describe each parameter's role inside the function — they do *not* have to match any in-scope identifier and they are the names you reference inside \`body\`. Only declare parameters that \`body\` actually uses.
 - \`body\`: the function body, as a string. Every line belongs to the body; no leading or trailing blank lines. Reference the parameters by the names you listed in \`argumentNames\`. The final line must be a single identifier — the binding that holds the result. Do not include the function signature, the \`=\` sign, or any module wrapper.
-- \`callArguments\`: Enso expressions passed at the call site, one per parameter and in the same order as \`argumentNames\`. Each entry is usually just an in-scope identifier (the source binding or one of the other in-scope bindings), but any single Enso expression is accepted. The renderer wraps them as \`Main.<functionName> <callArguments[0]> <callArguments[1]> ...\`. Always pass the source binding when the function operates on it; pass other in-scope identifiers only when the function uses them.
+- \`callArguments\`: Enso expressions passed at the call site, one per parameter and in the same order as \`argumentNames\`. Each entry is usually just an in-scope identifier (the source binding or one of the other in-scope bindings), but any single Enso expression is accepted. The renderer wraps them as \`Main.<functionName> <callArguments[0]> <callArguments[1]> ...\`. When a source binding is provided, pass it as a call argument if the function operates on it; pass other in-scope identifiers only when the function uses them. The function may also take no parameters at all if it doesn't depend on anything in scope.
 
 Rules:
 - At most one method call per line in \`body\`; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
@@ -94,16 +94,20 @@ function buildUserPrompt(request: AiComponentRequest): string {
     .filter((binding) => binding.identifier !== context.sourceIdentifier)
     .map((binding) => formatBinding(binding.identifier, binding.typeName))
   const otherBindingsList = otherBindings.length > 0 ? otherBindings.join('\n') : '(none)'
+  const sourceSection =
+    context.sourceIdentifier != null ?
+      `Source binding (the value the user wants to operate on):
+${formatBinding(context.sourceIdentifier, context.sourceTypeName)}
+
+`
+    : ''
   return `Current method: ${context.currentMethodName}
 Current method source:
 \`\`\`
 ${context.currentMethodCode}
 \`\`\`
 
-Source binding (the value the user wants to operate on):
-${formatBinding(context.sourceIdentifier, context.sourceTypeName)}
-
-Other in-scope bindings:
+${sourceSection}Other in-scope bindings:
 ${otherBindingsList}
 
 User request: ${prompt}`

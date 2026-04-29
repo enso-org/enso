@@ -15,8 +15,11 @@ export interface AiInScopeBinding {
 
 /** Runtime context the renderer attaches to each AI component request. */
 export interface AiComponentContext {
-  /** Identifier of the source binding the user dropped into the AI prompt. */
-  readonly sourceIdentifier: string
+  /**
+   * Identifier of the source binding the user dropped into the AI prompt. Optional: legacy AI
+   * models required a source node, but the current agent can generate components from scratch.
+   */
+  readonly sourceIdentifier?: string
   /** Fully-qualified Enso type name of the source binding, if known. */
   readonly sourceTypeName?: string
   /** Name of the method the new node will be inserted into. */
@@ -25,7 +28,7 @@ export interface AiComponentContext {
   readonly currentMethodCode: string
   /**
    * Other bindings already defined in the current method that the agent may reference. Excludes
-   * the source binding (which is reported separately as `sourceIdentifier`/`sourceTypeName`).
+   * the source binding (when one was supplied via `sourceIdentifier`).
    */
   readonly inScopeBindings: readonly AiInScopeBinding[]
 }
