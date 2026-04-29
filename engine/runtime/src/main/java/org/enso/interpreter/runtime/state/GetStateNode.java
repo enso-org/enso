@@ -72,6 +72,19 @@ public abstract class GetStateNode extends Node {
     return key.cast(res);
   }
 
+  /**
+   * Helper reading method for a value associated with a Class key.
+   *
+   * @param <R> the type of return value
+   * @param key the class representing the key
+   * @param fallback value to return when there is nothing associated with the key in the state
+   * @return
+   */
+  public final <R> R forValue(Class<R> key, R fallback) {
+    var res = execute(null, key, fallback);
+    return key.cast(res);
+  }
+
   final State state() {
     return EnsoContext.get(this).currentState();
   }
