@@ -9,6 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.BenchSuite;
@@ -131,11 +132,12 @@ public final class SpecCollector {
             .allowAllAccess(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .option(RuntimeOptions.CHECK_CWD, "false")
+            .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true")
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
             .logHandler(new ConsoleHandler())
             .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
             .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
             .build()) {
-      var langs = ctx.getEngine().getLanguages().keySet();
       Value module = getModule(ctx, moduleName);
       assert module != null;
       List<ModuleBenchSuite> benchSuites =

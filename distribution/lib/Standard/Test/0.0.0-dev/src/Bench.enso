@@ -16,7 +16,7 @@ type Phase_Conf
     ## ---
        private: true
        ---
-    to_text self =
+    to_text self -> Text =
         self.iterations.to_text + " iterations, " + self.seconds.to_text + " seconds each"
 
     ## Validates the config and throws a Panic if it is invalid.
@@ -46,7 +46,7 @@ type Bench_Options
     ## ---
        private: true
        ---
-    to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
+    to_text self -> Text = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
 
     ## Validates the config and throws a Panic if it is invalid.
     private validate self -> Nothing =
@@ -61,8 +61,7 @@ type Bench_Builder
     private Impl builder
 
     ## Add a group to the builder.
-    group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
-    group self (name:Text) (configuration:Bench_Options) fn =
+    group self (name:Text) (configuration:Bench_Options) fn:(Group_Builder -> Any) =
         validate_name name
         group = Vector.build b->
             fn (Group_Builder.Impl name b)
@@ -87,17 +86,16 @@ type Group_Builder
 
 type Bench
     ## A set of groups of benchmarks.
-    All (groups : Vector Bench)
+    private All (groups : Vector Bench)
 
     ## A single group of benchmarks sharing configuration.
-    Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
+    private Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
 
     ## A specific single benchmark.
-    Spec (name:Text) (code : Any -> Any)
+    private Spec (name:Text) (code : Any -> Any)
 
     ## Construct a Bench object.
-    build : (Bench_Builder -> Any) -> Bench
-    build fn =
+    build fn:(Bench_Builder -> Any) -> Bench =
         groups_vec = Vector.build b->
             fn (Bench_Builder.Impl b)
         Bench.All groups_vec . validate
@@ -114,6 +112,26 @@ type Bench
         - `seconds`: The minimal number of seconds per one iteration.
     phase_conf iterations:Integer=2 seconds:Integer=3 -> Phase_Conf =
         Phase_Conf.Impl iterations seconds
+
+
+    ## Filters benchmarks based on their name.
+
+       ## Arguments
+        - `match_name`: does the provided name match?
+
+    filter self match_name:(Text->Boolean) -> Bench|Nothing = 
+        no_nothing x = x.is_nothing.not
+        case self of
+            Bench.All groups ->
+                vec = groups.map (b -> b.filter match_name) . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.All vec
+            Bench.Group n opts specs -> if match_name n then self else
+                vec = specs.map (b -> b.filter match_name) . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.Group n opts vec
+            Bench.Spec n _ ->
+                if match_name n then self else Nothing
 
     ## Validates the benchmark and throws a Panic if it is invalid. Returns self
        if the benchmark is valid.
@@ -141,8 +159,7 @@ type Bench
         Bench.Spec _ _ -> fn value self self
 
     ## Counts all the specs in the benchmark.
-    total_specs : Integer
-    total_specs self = self.fold 0 v-> _-> _-> v+1
+    total_specs self -> Integer = self.fold 0 v-> _-> _-> v+1
 
     ## Estimates the runtime based on configurations.
     estimated_runtime self -> Duration =

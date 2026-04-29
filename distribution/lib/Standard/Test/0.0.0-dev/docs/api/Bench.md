@@ -1,23 +1,21 @@
 ## Enso Signatures 1.0
 ## module Standard.Test.Bench
 - type Bench
-    - All groups:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
-    - Group name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options specs:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
-    - Spec name:Standard.Base.Data.Text.Text code:(Standard.Base.Any.Any -> Standard.Base.Any.Any)
-    - build fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - build fn:(Standard.Test.Bench.Bench_Builder -> Standard.Base.Any.Any) -> Standard.Test.Bench.Bench
     - estimated_runtime self -> Standard.Base.Data.Time.Duration.Duration
+    - filter self match_name:(Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean) -> (Standard.Test.Bench.Bench|Standard.Base.Nothing.Nothing)
     - options -> Standard.Test.Bench.Bench_Options
     - phase_conf iterations:Standard.Base.Data.Numbers.Integer= seconds:Standard.Base.Data.Numbers.Integer= -> Standard.Test.Bench.Phase_Conf
     - run_main self filter:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
-    - total_specs self -> Standard.Base.Any.Any
+    - total_specs self -> Standard.Base.Data.Numbers.Integer
 - type Bench_Builder
-    - group self name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - group self name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options fn:(Standard.Test.Bench.Group_Builder -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
 - type Bench_Options
     - set_jvm_args self args:Standard.Base.Data.Text.Text -> Standard.Test.Bench.Bench_Options
     - set_measure self meas:Standard.Test.Bench.Phase_Conf -> Standard.Test.Bench.Bench_Options
     - set_warmup self warm:Standard.Test.Bench.Phase_Conf -> Standard.Test.Bench.Bench_Options
-    - to_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Data.Text.Text
 - type Group_Builder
     - specify self name:Standard.Base.Data.Text.Text ~benchmark:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Phase_Conf
-    - to_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Data.Text.Text
