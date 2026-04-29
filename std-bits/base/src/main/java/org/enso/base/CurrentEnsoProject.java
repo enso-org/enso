@@ -41,7 +41,10 @@ public final class CurrentEnsoProject {
   private static Value invokeMember(String member, Value object, Object... args) {
     var meta = object.getMetaObject();
     if (meta.hasMember(member)) {
-      return meta.invokeMember(member, object, args);
+      var withSelfArgs = new Object[args.length + 1];
+      withSelfArgs[0] = object;
+      System.arraycopy(args, 0, withSelfArgs, 1, args.length);
+      return meta.invokeMember(member, withSelfArgs);
     } else {
       return null;
     }
