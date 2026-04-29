@@ -17,13 +17,17 @@ import {
   aiComponentResponseSchema,
   type AiComponentIpcReply,
   type AiComponentRequest,
-  type AiComponentResponse,
   type RequestUsage,
 } from 'enso-common/src/ai'
-import { AsyncQueue } from 'enso-common/src/utilities/async'
-import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
-import { type ChildProcess } from 'node:child_process'
+import { AsyncQueue, createDeferred, type Deferred } from 'enso-common/src/utilities/async'
+import {
+  ChildProcessHandle,
+  WatchedChildProcess,
+  type UnexpectedExitInfo,
+} from 'enso-common/src/utilities/childProcess'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import readline from 'node:readline'
+import { z } from 'zod'
 import { Channel } from './ipc.js'
 
 const CLAUDE_EXECUTABLE = 'claude'
@@ -131,11 +135,10 @@ function truncateStderr(stderr: string): string {
 // === Stream-json wire format glue ===
 // ====================================
 
-// Probe-confirmed envelope shape. See app/electron-client/CLAUDE.md for the discovery notes.
-// Note: `--verbose` is required by the CLI alongside `--output-format stream-json` (without it
-// the child exits 1 immediately with "When using --print, --output-format=stream-json requires
-// --verbose"). The extra system/init and rate_limit_event envelopes it emits are filtered in
-// `onStdoutLine`.
+// `--verbose` is required by the CLI alongside `--output-format stream-json` (without it the
+// child exits 1 immediately with "When using --print, --output-format=stream-json requires
+// --verbose"). The extra system/init and rate_limit_event envelopes the verbose output emits
+// are filtered out by the schema-based parser in `onStdoutLine`.
 function streamJsonArgs(): string[] {
   return [
     '-p',
@@ -158,10 +161,40 @@ function userTurnLine(content: string): string {
   return JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n'
 }
 
-interface RawTokenUsage {
-  input_tokens?: number
-  output_tokens?: number
-}
+// Probe-confirmed shape of the envelopes the CLI emits in stream-json mode. The format is
+// undocumented (see https://github.com/anthropics/claude-code/issues/24594); discovery notes
+// and per-turn emission order are in app/electron-client/CLAUDE.md.
+//
+// Each turn produces, in order: `system` (init), optional `rate_limit_event`, one `assistant`
+// (with the reply text in `message.content[].text`), then the terminal `result` envelope. The
+// schemas below validate only the fields we read; everything else is ignored.
+
+/* eslint-disable camelcase -- mirrors the snake_case keys the CLI emits. */
+const tokenUsageSchema = z.object({
+  input_tokens: z.number().optional(),
+  output_tokens: z.number().optional(),
+})
+/* eslint-enable camelcase */
+
+const assistantEnvelopeSchema = z.object({
+  type: z.literal('assistant'),
+  message: z.object({
+    content: z.array(
+      z.object({
+        type: z.string(),
+        text: z.string().optional(),
+      }),
+    ),
+  }),
+})
+
+const resultEnvelopeSchema = z.object({
+  type: z.literal('result'),
+  result: z.string().optional(),
+  usage: tokenUsageSchema.optional(),
+})
+
+type RawTokenUsage = z.infer<typeof tokenUsageSchema>
 
 interface TurnOutcome {
   state: 'completed' | 'crash'
@@ -175,45 +208,50 @@ interface PendingTurn {
   textChunks: string[]
 }
 
-interface Deferred<T> {
-  promise: Promise<T>
-  resolve: (value: T) => void
-  reject: (error: unknown) => void
-}
-
-function makeDeferred<T>(): Deferred<T> {
-  let resolve!: (value: T) => void
-  let reject!: (error: unknown) => void
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res
-    reject = rej
-  })
-  return { promise, resolve, reject }
-}
-
 // ============================
 // === ClaudeAgentSession ===
 // ============================
 
 /**
- * Owns a single long-lived `claude` subprocess. Construction kicks off `spawn()` and `prime()`
+ * Owns a single long-lived `claude` subprocess. Construction kicks off the spawn + priming flow
  * without awaiting either, so callers can run the constructor synchronously during Electron
- * startup. `runRequest` awaits priming via `this.ready`.
+ * startup. `runRequest` awaits priming via `this.ready`. The child is auto-respawned on
+ * unexpected exit (subject to a crash-loop guard); `shutdown()` SIGTERMs it permanently.
  */
 export class ClaudeAgentSession {
-  private child: ChildProcess | null = null
-  private readyDeferred: Deferred<void> = makeDeferred()
+  private readonly watcher: WatchedChildProcess
+  private readyDeferred: Deferred<void> = createDeferred()
   private readonly queue = new AsyncQueue<void>(Promise.resolve())
   private pending: PendingTurn | null = null
   private contextBytes = 0
   private stderrTail = ''
-  private respawnTimes: number[] = []
-  private respawnSuspended = false
   private disposed = false
 
-  /** Spawns the underlying `claude` child eagerly; priming continues in the background. */
   constructor() {
-    this.spawn()
+    // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
+    // unhandled rejection when no `runRequest` happens to be awaiting `ready` at the time.
+    // Awaiters that arrive later attach their own .then/.catch and still observe the rejection.
+    this.readyDeferred.promise.catch(() => undefined)
+    this.watcher = new WatchedChildProcess(
+      // `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
+      // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
+      // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
+      () =>
+        spawn(CLAUDE_EXECUTABLE, streamJsonArgs(), {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: process.env,
+        }),
+      {
+        onChildStarted: this.onChildStarted.bind(this),
+        onUnexpectedExit: this.onUnexpectedExit.bind(this),
+        crashLoopLimit: { maxCrashes: MAX_RESPAWNS_IN_WINDOW, windowMs: RESPAWN_WINDOW_MS },
+      },
+    )
+    // Synchronous spawner failures (e.g. cross-spawn rejecting on a missing CLI) are reported
+    // via firstSpawn so awaiters of `this.ready` see the underlying error rather than hanging.
+    this.watcher.firstSpawn.catch((err) => {
+      this.readyDeferred.reject(err)
+    })
   }
 
   /** Resolves once the current child has spawned and accepted a priming turn. */
@@ -229,12 +267,13 @@ export class ClaudeAgentSession {
           resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
           return
         }
-        if (this.respawnSuspended && (this.child == null || this.child.exitCode != null)) {
-          // Allow one respawn attempt per IPC call after the crash-loop guard tripped. We do NOT
-          // clear `respawnTimes` — keeping the recent failures means another quick crash trips the
-          // guard again immediately, instead of granting an infinite retry stream.
-          this.respawnSuspended = false
-          this.spawn()
+        if (this.watcher.respawnSuspended && !this.watcher.current?.alive) {
+          // The crash-loop guard tripped; the watcher is waiting for a manual respawn. The
+          // watcher does NOT clear its recent-exits buffer on respawn() — another quick crash
+          // trips the guard again immediately, instead of granting an infinite retry stream.
+          this.readyDeferred = createDeferred()
+          this.readyDeferred.promise.catch(() => undefined)
+          await this.watcher.respawn()
         }
         try {
           await this.ready
@@ -265,56 +304,60 @@ export class ClaudeAgentSession {
         errorReason: 'Claude agent shutting down',
       })
     }
-    if (this.child && this.child.exitCode == null) {
-      this.child.kill('SIGTERM')
-    }
+    void this.watcher.close()
   }
 
   // -------------- private --------------
 
-  private spawn(): void {
-    if (this.disposed) return
-    this.readyDeferred = makeDeferred()
-    // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
-    // unhandled rejection when no `runRequest` happens to be awaiting `ready` at the time.
-    // Awaiters that arrive later attach their own .then/.catch and still observe the rejection.
-    this.readyDeferred.promise.catch(() => undefined)
+  private onChildStarted(handle: ChildProcessHandle): void {
     this.contextBytes = Buffer.byteLength(SYSTEM_PROMPT, 'utf8')
     this.stderrTail = ''
     this.pending = null
 
-    let child: ChildProcess
-    try {
-      // `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
-      // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
-      // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
-      child = spawn(CLAUDE_EXECUTABLE, streamJsonArgs(), {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: process.env,
-      })
-    } catch (err) {
-      this.readyDeferred.reject(err)
-      return
-    }
-    this.child = child
-
+    const child = handle.child
     if (child.stdout) {
       const rl = readline.createInterface({ input: child.stdout })
       rl.on('line', (line) => this.onStdoutLine(line))
     }
     child.stderr?.on('data', (chunk: Buffer) => this.appendStderr(chunk.toString('utf8')))
-    child.on('error', (err) => {
-      this.handleChildEnded(`spawn error: ${(err as NodeJS.ErrnoException).message}`)
-    })
-    child.on('exit', (code, signal) => {
-      if (this.disposed) return
-      this.handleChildEnded(`exited with code=${code} signal=${signal ?? 'null'}`)
-    })
 
+    // Capture the deferred for *this* spawn so that a fast crash-and-respawn doesn't cross the
+    // wires (a stale prime resolving the next spawn's deferred, or vice versa).
+    const deferred = this.readyDeferred
     void this.prime().then(
-      () => this.readyDeferred.resolve(),
-      (err) => this.readyDeferred.reject(err),
+      () => deferred.resolve(),
+      (err) => deferred.reject(err),
     )
+  }
+
+  private onUnexpectedExit(reason: string, info: UnexpectedExitInfo): undefined {
+    const stderrTail = truncateStderr(this.stderrTail)
+    const detail = stderrTail ? `: ${stderrTail}` : ''
+    console.warn(`[AI] claude process crashed (${reason})${detail}`)
+    if (this.pending) {
+      const pending = this.pending
+      this.pending = null
+      pending.resolve({
+        state: 'crash',
+        text: '',
+        usage: null,
+        errorReason: reason,
+      })
+    }
+    // Reject the priming promise so any task awaiting `ready` fails fast.
+    this.readyDeferred.reject(new Error(reason))
+
+    if (info.exceedsCrashLimit) {
+      console.warn(
+        `[AI] claude crash-loop guard tripped (${MAX_RESPAWNS_IN_WINDOW} crashes within ${RESPAWN_WINDOW_MS}ms); auto-respawn is suspended until the next request.`,
+      )
+      // Defer to the watcher's default for exceedsCrashLimit (suspend).
+      return
+    }
+    // Prepare a fresh deferred for the upcoming auto-respawn so awaiters that arrive between
+    // here and `onChildStarted` see a pending promise instead of the just-rejected one.
+    this.readyDeferred = createDeferred()
+    this.readyDeferred.promise.catch(() => undefined)
   }
 
   private async prime(): Promise<void> {
@@ -329,8 +372,9 @@ export class ClaudeAgentSession {
 
   private runOneTurn(content: string, timeoutMs: number): Promise<TurnOutcome> {
     return new Promise<TurnOutcome>((resolveTurn) => {
-      const child = this.child
-      if (!child || child.exitCode != null || !child.stdin || child.stdin.destroyed) {
+      const handle = this.watcher.current
+      const child = handle?.child
+      if (!handle?.alive || !child?.stdin || child.stdin.destroyed) {
         resolveTurn({
           state: 'crash',
           text: '',
@@ -377,85 +421,40 @@ export class ClaudeAgentSession {
   }
 
   private onStdoutLine(line: string): void {
-    const env = parseJsonSafe(line)
-    if (env == null || typeof env !== 'object') return
-    const type = (env as { type?: unknown }).type
-    if (type === 'system' || type === 'rate_limit_event' || type === 'user') return
-    if (type === 'assistant') {
-      this.captureAssistantContent(env)
+    const envelope = parseJsonSafe(line)
+    if (envelope == null) return
+    const assistant = assistantEnvelopeSchema.safeParse(envelope)
+    if (assistant.success) {
+      this.captureAssistantContent(assistant.data)
       return
     }
-    if (type === 'result') {
-      this.resolveTerminal(env)
+    const result = resultEnvelopeSchema.safeParse(envelope)
+    if (result.success) {
+      this.resolveTerminal(result.data)
     }
+    // Other envelope types (system init, user echo, rate_limit_event, unknown): ignore.
   }
 
-  private captureAssistantContent(env: object): void {
+  private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
     if (!this.pending) return
-    const message = (env as { message?: unknown }).message
-    if (!message || typeof message !== 'object') return
-    const content = (message as { content?: unknown }).content
-    if (!Array.isArray(content)) return
-    for (const block of content) {
-      if (
-        block != null &&
-        typeof block === 'object' &&
-        (block as { type?: unknown }).type === 'text' &&
-        typeof (block as { text?: unknown }).text === 'string'
-      ) {
-        const text = (block as { text: string }).text
-        this.pending.textChunks.push(text)
-        this.contextBytes += Buffer.byteLength(text, 'utf8')
-      }
+    for (const block of env.message.content) {
+      if (block.type !== 'text' || block.text == null) continue
+      this.pending.textChunks.push(block.text)
+      this.contextBytes += Buffer.byteLength(block.text, 'utf8')
     }
   }
 
-  private resolveTerminal(env: object): void {
+  private resolveTerminal(env: z.infer<typeof resultEnvelopeSchema>): void {
     if (!this.pending) return
     const pending = this.pending
     this.pending = null
-    const result = (env as { result?: unknown }).result
-    const usageRaw = (env as { usage?: unknown }).usage
     const text =
-      typeof result === 'string' && result.length > 0 ? result : pending.textChunks.join('')
+      env.result != null && env.result.length > 0 ? env.result : pending.textChunks.join('')
     pending.resolve({
       state: 'completed',
       text,
-      usage: usageRaw != null && typeof usageRaw === 'object' ? (usageRaw as RawTokenUsage) : null,
+      usage: env.usage ?? null,
     })
-  }
-
-  private handleChildEnded(reason: string): void {
-    const stderrTail = truncateStderr(this.stderrTail)
-    const detail = stderrTail ? `: ${stderrTail}` : ''
-    console.warn(`[AI] claude process crashed (${reason})${detail}`)
-    if (this.pending) {
-      const pending = this.pending
-      this.pending = null
-      pending.resolve({
-        state: 'crash',
-        text: '',
-        usage: null,
-        errorReason: reason,
-      })
-    }
-    // Reject the priming promise so any task awaiting `ready` fails fast — the next task in the
-    // queue will see a fresh deferred created by the upcoming spawn() call (if respawn is allowed).
-    this.readyDeferred.reject(new Error(reason))
-    this.child = null
-    if (this.disposed) return
-
-    const now = Date.now()
-    this.respawnTimes = this.respawnTimes.filter((t) => now - t <= RESPAWN_WINDOW_MS)
-    this.respawnTimes.push(now)
-    if (this.respawnTimes.length >= MAX_RESPAWNS_IN_WINDOW) {
-      this.respawnSuspended = true
-      console.warn(
-        `[AI] claude crashed ${this.respawnTimes.length} times in ${RESPAWN_WINDOW_MS}ms; suspending auto-respawn until the next request.`,
-      )
-      return
-    }
-    this.spawn()
   }
 
   private appendStderr(chunk: string): void {
@@ -504,51 +503,30 @@ export class ClaudeAgentSession {
   }
 }
 
-// ====================
-// === Module state ===
-// ====================
-
-let session: ClaudeAgentSession | null = null
-
-/** Run the local `claude` CLI to produce a User Defined Component body. */
-export async function generateAiComponent(
-  request: AiComponentRequest,
-): Promise<Result<AiComponentResponse>> {
-  const reply = await generateAiComponentWithUsage(request)
-  return reply.result
-}
-
-/**
- * Same as {@link generateAiComponent} but also returns the per-turn usage telemetry. This is what
- * the IPC handler exposes to the renderer; the renderer logs the usage line and forwards `result`
- * to its caller.
- */
-export async function generateAiComponentWithUsage(
-  request: AiComponentRequest,
-): Promise<AiComponentIpcReply> {
-  if (session == null) session = new ClaudeAgentSession()
-  return session.runRequest(request)
-}
-
-/** Tear down the long-lived session. Wired to `app.on('before-quit', ...)` in `index.ts`. */
-export function shutdownClaudeAgent(): void {
-  session?.shutdown()
-  session = null
-}
-
 // ===================
 // === IPC binding ===
 // ===================
+
+let session: ClaudeAgentSession | null = null
 
 /** Register the {@link Channel.generateAiComponent} IPC handler. */
 export function initClaudeAgentIpc() {
   // Eager but non-blocking: spawning + priming happen in the background while Electron continues
   // its own startup. Subsequent IPC calls await `session.ready` before sending stdin.
   if (session == null) session = new ClaudeAgentSession()
+  const currentSession = session
   probeClaudeVersion()
-  ipcMain.handle(Channel.generateAiComponent, async (_event, request: AiComponentRequest) =>
-    generateAiComponentWithUsage(request),
+  ipcMain.handle(
+    Channel.generateAiComponent,
+    async (_event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>
+      currentSession.runRequest(request),
   )
+}
+
+/** Tear down the long-lived session. Wired to `app.on('before-quit', ...)` in `index.ts`. */
+export function shutdownClaudeAgent(): void {
+  session?.shutdown()
+  session = null
 }
 
 // ======================

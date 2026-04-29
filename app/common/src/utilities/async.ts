@@ -1,5 +1,27 @@
 /** @file Utilities related to `async`. */
 
+/**
+ * A primitive that exposes a {@link Promise} alongside its resolve/reject functions, so
+ * ownership of the promise's settlement can be passed around independently of where the
+ * promise itself is awaited.
+ */
+export interface Deferred<T> {
+  readonly promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (reason: unknown) => void
+}
+
+/** Create a fresh {@link Deferred}. */
+export function createDeferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
 /** A function to delay for a given number of milliseconds. */
 export function delay(ms: number, abortSignal?: AbortSignal) {
   return new Promise((resolve, reject) => {
