@@ -6,7 +6,7 @@
     - Output
     - check_enabled self disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Nothing.Nothing!Standard.Base.Errors.Common.Forbidden_Operation
     - if_enabled self ~action:Standard.Base.Any.Any disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - is_enabled self -> Standard.Base.Any.Any
+    - is_enabled self -> Standard.Base.Data.Boolean.Boolean
     - name self -> Standard.Base.Any.Any
     - with_disabled self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_enabled self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
