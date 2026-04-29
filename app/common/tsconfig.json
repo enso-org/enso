@@ -13,6 +13,7 @@
   "extends": "../../tsconfig.json",
   "files": [
     "./src/accessToken.ts",
+    "./src/ai.ts",
     "./src/constants.ts",
     "./src/download.ts",
     "./src/options.ts",

@@ -21,6 +21,7 @@
     "chalk": "^5.4.1",
     "commander": "^14.0.1",
     "create-servers": "3.2.0",
+    "cross-spawn": "^7.0.6",
     "electron-dl": "4.0.0",
     "electron-is-dev": "^2.0.0",
     "enso-common": "workspace:*",
@@ -36,7 +37,8 @@
     "yargs": "17.6.2",
     "yauzl": "^3.2.0",
     "ydoc-server": "workspace:*",
-    "zip-stream": "^7.0.2"
+    "zip-stream": "^7.0.2",
+    "zod": "catalog:"
   },
   "//": [
     "vite is required for the watch script",
@@ -44,6 +46,7 @@
   ],
   "devDependencies": {
     "@electron/notarize": "2.1.0",
+    "@types/cross-spawn": "^6.0.6",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/mime-types": "^2.1.4",
     "@types/node": "catalog:",

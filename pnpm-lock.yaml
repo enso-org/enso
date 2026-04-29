@@ -35,7 +35,7 @@ catalogs:
       version: 1.55.1
     typescript:
       specifier: ^5.7.2
-      version: 5.7.2
+      version: 5.8.2
     vite:
       specifier: ^7.1.2
       version: 7.1.2
@@ -175,6 +175,9 @@ importers:
       create-servers:
         specifier: 3.2.0
         version: 3.2.0
+      cross-spawn:
+        specifier: ^7.0.6
+        version: 7.0.6
       electron-dl:
         specifier: 4.0.0
         version: 4.0.0
@@ -223,10 +226,16 @@ importers:
       zip-stream:
         specifier: ^7.0.2
         version: 7.0.2
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
+      '@types/cross-spawn':
+        specifier: ^6.0.6
+        version: 6.0.6
       '@types/gunzip-maybe':
         specifier: ^1.4.2
         version: 1.4.2
@@ -3241,6 +3250,9 @@ packages:
 
   '@types/crc32-stream@4.0.3':
     resolution: {integrity: sha512-DTag28dyA2A3yVTijkx5dfrTCE+5RC+XdWthkQOl2CCCdptgm/3rqwJsNdN5mljOKylf0mYv9KZl4FRaa2X8qA==}
+
+  '@types/cross-spawn@6.0.6':
+    resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
 
   '@types/css.escape@1.5.2':
     resolution: {integrity: sha512-sq0h0y8i83T20MB434AZWgK3byezbBG48jllitFpVXlPOjHc5RNs3bg6rUen/EtMUjM4ZJjD4x+0aik9AXqLdQ==}
@@ -11458,6 +11470,10 @@ snapshots:
       '@types/readable-stream': 4.0.21
 
   '@types/crc32-stream@4.0.3':
+    dependencies:
+      '@types/node': 24.12.2
+
+  '@types/cross-spawn@6.0.6':
     dependencies:
       '@types/node': 24.12.2
 

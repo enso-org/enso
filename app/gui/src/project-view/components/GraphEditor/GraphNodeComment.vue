@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type Node } from '$/providers/openedProjects/graph'
+import { readAiPrompt } from '@/components/GraphEditor/aiNode'
 import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useFocusDelayed } from '@/composables/focus'
 import { nodeMutableDocumentation } from '@/util/ast/node'
@@ -15,13 +16,19 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
+// AI-prompt docs are rendered inline by WidgetAiPrompt, not as a comment above the node.
+const isAiPrompt = computed(() => {
+  const text = documentation.value?.toJSON()
+  return text != null && readAiPrompt(text) !== null
+})
+
 const { syncExt, connectSync } = useYTextSync(documentation, 'local:userAction:CommentEditor')
 
 syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>
 <template>
   <div
-    v-if="documentation && (editing || documentation.toJSON().trimStart())"
+    v-if="documentation && !isAiPrompt && (editing || documentation.toJSON().trimStart())"
     class="GraphNodeComment"
     @keydown.enter.capture.stop="editing = false"
   >

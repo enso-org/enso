@@ -102,6 +102,11 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
   goToCategoryNamed(this: DrivePageActions<Context>, category: string) {
     return this.step(`Go to "${category}" category`, async (page) => {
       await locateCategoryButton(page, category).click()
+      // Move the cursor off the leftBar so its `mouseenter`-triggered auto-expand
+      // timer is cleared and any in-flight expansion collapses. The expanded leftBar
+      // (~150px wide, `position: absolute; z-index: 2`) otherwise covers the leftmost
+      // toolbar/table buttons and intercepts subsequent clicks.
+      await page.mouse.move(0, 0)
       await this.expectCategory(category)
     })
   }
@@ -248,6 +253,9 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
             await getRow(page, row).dragTo(categoryElement, {
               sourcePosition: ASSET_ROW_SAFE_POSITION,
             })
+            // Drop ends with the cursor on the leftBar; move it off so the
+            // hover-to-expand timer doesn't fire and intercept later clicks.
+            await page.mouse.move(0, 0)
           },
         )
       },

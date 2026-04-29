@@ -28,6 +28,8 @@
 - [Input ports no longer highlight on hover unless being connected to][14968]
 - [Fix duplicated entries in Component Browser][14974]. The overshadowed methods
   from parent types are no longer displayed.
+- [AI mode in Component Browser now uses underlying claude agent][14987]. The
+  user has to have authorized Claude CLI executable in path.
 - [Usage page with cloud executions statistics available for Team users in
   Settings][14952]
 - Minimum supported macOS version is now 12 (Monterey); Electron 41 no longer
@@ -49,6 +51,7 @@
 [14953]: https://github.com/enso-org/enso/pull/14953
 [14968]: https://github.com/enso-org/enso/pull/14968
 [14974]: https://github.com/enso-org/enso/pull/14974
+[14987]: https://github.com/enso-org/enso/pull/14987
 [14952]: https://github.com/enso-org/enso/pull/14952
 
 #### Enso Standard Library

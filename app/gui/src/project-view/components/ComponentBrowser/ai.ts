@@ -1,49 +1,48 @@
-import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import type { AiComponentResponse } from 'enso-common/src/ai'
 import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
-import type { LanguageServer } from 'ydoc-shared/languageServer'
-import type { ExternalId } from 'ydoc-shared/yjsModel'
-
-const AI_GOAL_PLACEHOLDER = '__$$GOAL$$__'
-const AI_STOP_SEQUENCE = '`'
 
 /**
- * A Composable for using AI prompts in Component Browser. Use `query` function to get AI result
- * for given query.
+ * Resolves Component Browser AI prompts by invoking the local Claude agent hosted in
+ * the Electron main process over IPC. The agent currently produces the body of a single
+ * User Defined Component that operates on the source node supplied by the caller.
  */
 export function useAI(
   graphDb: GraphDb = useGraphStore().db,
-  project: {
-    lsRpcConnection: LanguageServer
-    executeExpression(expressionId: ExternalId, expression: string): Promise<Result<any> | null>
-  } = useProjectStore(),
+  projectNames: ProjectNameStore = useProjectNames(),
 ) {
-  async function query(query: string, sourceIdentifier: string): Promise<Result<string>> {
+  async function query(
+    prompt: string,
+    sourceIdentifier: string,
+  ): Promise<Result<AiComponentResponse>> {
     return withContext(
-      () => 'When getting AI completion',
+      () => 'When running the AI component generator',
       async () => {
-        const lsRpc = project.lsRpcConnection
-        const sourceNodeId = graphDb.getIdentDefiningNode(sourceIdentifier)
-        const contextId =
-          sourceNodeId && graphDb.nodeIdToNode.get(sourceNodeId)?.outerAst.externalId
-        if (!contextId) return Err(`Cannot find node with name ${sourceIdentifier}`)
-
-        const prompt = await withContext(
-          () => 'When building AI propt',
-          async () => {
-            const prompt = await project.executeExpression(
-              contextId,
-              `Standard.Visualization.AI.build_ai_prompt ${sourceIdentifier} . to_json`,
-            )
-            if (!prompt) return Err('No data from AI visualization')
-            return prompt
+        const electronApi = typeof window === 'undefined' ? undefined : window.api
+        if (!electronApi) {
+          return Err(
+            'AI component generation requires the desktop runtime (window.api is unavailable).',
+          )
+        }
+        if (!graphDb.getIdentDefiningNode(sourceIdentifier)) {
+          return Err(`Cannot find node with name ${sourceIdentifier}`)
+        }
+        const typeInfo = graphDb.getTypeOfIdentifier(sourceIdentifier)
+        const sourceTypeName =
+          typeInfo != null ? projectNames.printProjectPath(typeInfo.primaryType) : undefined
+        const raw = await electronApi.ai.generateComponent({
+          prompt,
+          context: {
+            sourceIdentifier,
+            ...(sourceTypeName != null ? { sourceTypeName } : {}),
           },
-        )
-        if (!prompt.ok) return prompt
-        const promptWithGoal = prompt.value.replace(AI_GOAL_PLACEHOLDER, query)
-        const completion = await lsRpc.aiCompletion(promptWithGoal, AI_STOP_SEQUENCE)
-        if (!completion.ok) return completion
-        return Ok(completion.value.code)
+        })
+        // Electron IPC uses structured clone, which strips the `ResultError` prototype —
+        // `raw.error` comes back as a plain `{ payload, context }` object without its
+        // `.message()` method. Rebuild a proper `Result` on this side of the boundary.
+        return raw.ok ? Ok(raw.value) : Err(raw.error.payload)
       },
     )
   }
