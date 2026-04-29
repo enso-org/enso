@@ -34,7 +34,7 @@ final class RuntimeWithContextNode extends Node {
       var state = ctx.currentState();
       return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      PutStateNode.getUncached().executePut(ExecutionEnvironment.class, origEnv, false);
+      putNode.executePut(ExecutionEnvironment.class, origEnv, false);
     }
   }
 }
