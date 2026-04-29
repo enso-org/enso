@@ -4,6 +4,7 @@ import { Result } from '#/components/Result'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useBackends, useText } from '$/providers/react'
 import {
   useContainerData,
@@ -11,9 +12,10 @@ import {
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
 import { includes } from '$/utils/data/array'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import type {
   AnyAsset,
+  AssetVersions as AssetVersionsResponse,
   DatalinkAsset,
   FileAsset,
   ProjectAsset,
@@ -30,6 +32,11 @@ interface AddNewVersionVariables {
   readonly placeholderId: S3ObjectVersionId
 }
 
+/** Context stored while optimistically updating a version comment. */
+interface UpdateCommentMutationContext {
+  readonly previousVersions?: AssetVersionsResponse
+}
+
 /** Display a list of previous versions of an asset. */
 export function AssetVersions() {
   const { remoteBackend } = useBackends()
@@ -37,7 +44,7 @@ export function AssetVersions() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category == null || CATEGORY_BACKEND[category.type] !== BackendType.remote) {
     return (
       <Result
         status="info"
@@ -74,6 +81,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
 
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const queryClient = useQueryClient()
 
   const queryOptions = assetVersionsQueryOptions({ assetId: item.id, backend })
 
@@ -107,6 +115,46 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   })
 
   const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const updateCommentMutation = useMutation(
+    backendMutationOptions(backend, 'updateAsset', {
+      onMutate: async ([, { versionId, comment }]) => {
+        await queryClient.cancelQueries({ queryKey: queryOptions.queryKey })
+
+        const previousVersions = queryClient.getQueryData<AssetVersionsResponse>(
+          queryOptions.queryKey,
+        )
+
+        if (versionId != null) {
+          queryClient.setQueryData<AssetVersionsResponse>(
+            queryOptions.queryKey,
+            (currentVersions) => {
+              if (currentVersions == null) {
+                return currentVersions
+              }
+
+              return {
+                ...currentVersions,
+                versions: currentVersions.versions.map((version) =>
+                  version.versionId === versionId ?
+                    { ...version, comment: comment ?? undefined }
+                  : version,
+                ),
+              }
+            },
+          )
+        }
+
+        return { previousVersions }
+      },
+      onError: (error, _variables, onMutateResult) => {
+        const context = isUpdateCommentMutationContext(onMutateResult) ? onMutateResult : undefined
+        if (context?.previousVersions != null) {
+          queryClient.setQueryData(queryOptions.queryKey, context.previousVersions)
+        }
+        toastAndLog('updateAssetBackendError', error, item.title)
+      },
+    }),
+  )
 
   const doDuplicate = useEventCallback(async (options?: DuplicateOptions) => {
     const newItem = await duplicateProjectMutation.mutateAsync([
@@ -128,6 +176,14 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     }),
   )
 
+  const doUpdateComment = useEventCallback(async (version: Version, comment: string | null) => {
+    await updateCommentMutation.mutateAsync([
+      item.id,
+      { versionId: version.versionId, comment },
+      item.title,
+    ])
+  })
+
   if (versions.length === 0) {
     return <Result status="info" centered title={getText('noVersionsFound')} />
   }
@@ -148,8 +204,12 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
             previousVersion={versions[index + 1]}
             doRestore={doRestore}
             doDuplicate={doDuplicate}
+            doUpdateComment={doUpdateComment}
+            isUpdatingComment={
+              updateCommentMutation.isPending &&
+              updateCommentMutation.variables[1].versionId === version.versionId
+            }
           />
-
           {index !== versions.length - 1 && <div className="ml-[3px] h-5 w-[0.5px] bg-primary" />}
         </div>
       ))}
@@ -160,4 +220,9 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
 /** Check if the asset is allowed to have versions. */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
   return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
+}
+
+/** Check whether a mutation context belongs to the version comment optimistic update. */
+function isUpdateCommentMutationContext(value: unknown): value is UpdateCommentMutationContext {
+  return typeof value === 'object' && value != null
 }

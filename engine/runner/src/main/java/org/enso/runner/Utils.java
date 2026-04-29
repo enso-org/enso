@@ -212,6 +212,7 @@ final class Utils {
     if (!ImageInfo.inImageRuntimeCode()) {
       return System.getProperty("enso.user.dir");
     }
+
     var nativeApi = WorkingDirectory.getInstance();
     var projectRoot = nativeApi.findProjectRoot(fileToRun);
     if (projectRoot != null) {
@@ -222,6 +223,8 @@ final class Utils {
         var dirChanged = nativeApi.changeWorkingDir(parentDir);
         if (!dirChanged) {
           LOGGER.error("Cannot change working directory to {}", parentDir);
+        } else {
+          LOGGER.debug("Changed working directory to {}", parentDir);
         }
       }
       return curDir;

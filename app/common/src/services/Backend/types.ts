@@ -33,7 +33,7 @@ export function isUserGroupId(id: string): id is UserGroupId {
 /** Unique identifier for a directory. */
 export type DirectoryId = Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtypeConstructor<DirectoryId>()
-/** Whether a given {@link unknown} is an {@link DirectoryId}. */
+/** Whether a given {@link string} is an {@link DirectoryId}. */
 export function isDirectoryId(id: string): id is DirectoryId {
   return id.startsWith('directory-')
 }
@@ -62,9 +62,13 @@ export const ErrorAssetId = newtypeConstructor<ErrorAssetId>()
 /** Unique identifier for a user's project. */
 export type ProjectId = Newtype<string, 'ProjectId'>
 export const ProjectId = newtypeConstructor<ProjectId>()
-/** Whether a given {@link unknown} is an {@link ProjectId}. */
+/** Whether a given {@link string} is an {@link ProjectId}. */
 export function isProjectId(id: string): id is ProjectId {
   return id.startsWith('project-')
+}
+/** Whether a given {@link string} is an {@link ProjectSessionId}. */
+export function isProjectSessionId(id: string): id is ProjectSessionId {
+  return id.startsWith('projectsession-') || id.startsWith('localprojectsession-')
 }
 
 /** Unique identifier for an uploaded file. */

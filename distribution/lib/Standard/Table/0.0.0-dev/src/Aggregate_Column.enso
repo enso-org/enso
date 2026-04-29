@@ -206,3 +206,49 @@ type Aggregate_Column
         - `arguments`: arguments to the SQL function.
         - `as`: name of new column.
     SQL (function:Text=(Missing_Argument.throw "function")) (arguments:(Vector (Text | Sort_Column))=[]) (as:Text="")
+
+    ## Creates a new column with the union of spatial values in the column
+       within each group. If no rows, evaluates to `Nothing`.
+
+       Only supported on Spatial Tables.
+
+       ## Arguments
+        - `column`: column (specified by name, expression or index) to find the
+          group union.
+        - `as`: name of new column.
+    ST_Union (column:Text|Integer|Any=0) (as:Text="")
+
+    ## Creates a new column with the intersection of spatial values in the column
+       within each group. If no rows, evaluates to `Nothing`.
+
+       Only supported on Spatial Tables.
+
+       ## Arguments
+        - `column`: column (specified by name, expression or index) to find the
+          group union.
+        - `as`: name of new column.
+    ST_Intersection (column:Text|Integer|Any=0) (as:Text="")
+
+    ## Creates the minimal bounding box polygon containing the set. If no rows,
+       evaluates to `Nothing`.
+
+       Only supported on Spatial Tables.
+
+       ## Arguments
+        - `column`: column (specified by name, expression or index) to find the
+          group union.
+        - `as`: name of new column.
+    ST_Extent (column:Text|Integer|Any=0) (as:Text="")
+
+    ## Internal aggregation function for database backends to create an array
+       of values in the column within each group. If no rows, evaluates to
+       `Nothing`.
+
+       ## Arguments
+        - `column`: column to find the group array.
+        - `as`: name of new column.
+        - `ignore_nothing`: if `True`, then missing values are ignored and not
+          included in the array.
+        - `order_by`: required for database tables. Specifies how to order the
+          results within the group.
+    Array_Agg (column:Any=0) (as:Text="") (ignore_nothing:Boolean=True) (order_by:(Sort_Column | Text | Nothing | Vector (Text | Sort_Column))=[])

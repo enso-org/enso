@@ -38,7 +38,7 @@ _send_email_with_ses_provider email:Email region credentials =
             . build
     message = Message.builder.subject subject . body body . build
     destination = Destination.builder
-        . toAddresses (email.to.map .to_text) 
+        . toAddresses (email.to_addresses.map .to_text) 
         . ccAddresses (email.cc.map .to_text)
         . bccAddresses (email.bcc.map .to_text)
         . build

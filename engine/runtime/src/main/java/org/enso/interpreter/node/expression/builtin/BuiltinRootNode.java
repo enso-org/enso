@@ -163,14 +163,22 @@ public abstract class BuiltinRootNode extends RootNode {
         }
         var conv = executeConversion(value);
         if (conv == null) {
-          CompilerDirectives.transferToInterpreter();
-          var err = ctx.getBuiltins().error().makeTypeError(this.ensoType, value, type.getName());
-          throw new PanicException(err, this);
+          throw raiseTypeError(value, type);
         }
-        return type.cast(conv);
-      } else {
-        return type.cast(value);
+        value = conv;
       }
+      try {
+        return type.cast(value);
+      } catch (ClassCastException ex) {
+        throw raiseTypeError(value, type);
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private <T> PanicException raiseTypeError(Object value, Class<T> type) throws PanicException {
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makeTypeError(this.ensoType, value, type.getName());
+      throw new PanicException(err, this);
     }
 
     public final Object processWarnings(VirtualFrame frame, Object result, ArgContext context) {

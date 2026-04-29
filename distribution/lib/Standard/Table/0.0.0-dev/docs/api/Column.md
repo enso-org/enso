@@ -76,7 +76,7 @@
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - regex_match self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - rename self name:Standard.Base.Data.Text.Text -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-    - reverse self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - reverse_rows self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!(Standard.Base.Errors.Illegal_Argument.Illegal_Argument|Standard.Table.Errors.Invalid_Value_Type)
     - row_count self -> Standard.Base.Data.Numbers.Integer
     - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Data.Text.Text= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)

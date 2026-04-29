@@ -1,20 +1,19 @@
-import type {
-  DirectoryId,
-  EnsoPath,
-  ProjectId,
-  ProjectSessionId,
+import {
+  type DirectoryId,
+  type EnsoPath,
+  isDirectoryId,
+  isProjectId,
+  isProjectSessionId,
+  type ProjectId,
+  type ProjectSessionId,
 } from 'enso-common/src/services/Backend'
 import * as z from 'zod'
 
-export const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
-  (x) => typeof x === 'string' && x.startsWith('project-'),
+export const PROJECT_ID_SCHEMA = z.custom<ProjectId>((x) => typeof x === 'string' && isProjectId(x))
+export const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
+  (x) => typeof x === 'string' && isProjectSessionId(x),
 )
-const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
-  (x) => typeof x === 'string' && x.startsWith('projectsession-'),
-)
-const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>(
-  (x) => typeof x === 'string' && x.startsWith('directory-'),
-)
+const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>((x) => typeof x === 'string' && isDirectoryId(x))
 const ENSO_PATH_SCHEMA = z.custom<EnsoPath>((x) => typeof x === 'string')
 export const PROJECT_INFO_SCHEMA = z.object({
   id: PROJECT_ID_SCHEMA,

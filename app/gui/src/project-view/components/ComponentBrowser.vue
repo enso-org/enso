@@ -14,6 +14,7 @@ import type { Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
+import type { AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
@@ -72,6 +73,7 @@ const emit = defineEmits<{
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
+  acceptedAi: [payload: AcceptedAiPayload]
   canceled: []
   selectedSuggestionId: [id: SuggestionId | undefined]
   isAiPrompt: [boolean]
@@ -95,9 +97,8 @@ const cbOpen: Interaction = {
     emit('canceled')
   },
   end: () => {
-    // In AI prompt mode, the input is likely not a valid expression.
     if (input.mode.mode === 'aiPrompt') {
-      emit('canceled')
+      void acceptAiInput()
     } else {
       acceptInput()
     }
@@ -319,6 +320,23 @@ function acceptInput() {
   interaction.ended(cbOpen)
 }
 
+async function acceptAiInput() {
+  // Ignore further accept attempts while an AI prompt is already running — keeps the CB
+  // open so the user sees the spinner instead of being dismissed by a second Enter.
+  if (input.mode.mode !== 'aiPrompt' || input.processingAIPrompt) return
+  const result = await input.applyAIPrompt()
+  if (result != null && result.ok && input.selfArgument != null) {
+    emit('acceptedAi', {
+      prompt: input.mode.prompt,
+      body: result.value.body,
+      sourceIdentifier: input.selfArgument,
+    })
+  } else {
+    emit('canceled')
+  }
+  interaction.ended(cbOpen)
+}
+
 // === Action Handlers ===
 
 const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
@@ -351,7 +369,7 @@ const actions = registerHandlers({
   },
   'componentBrowser.acceptAIPrompt': {
     available: () => input.mode.mode == 'aiPrompt',
-    action: () => input.applyAIPrompt(),
+    action: () => void acceptAiInput(),
   },
   'componentBrowser.switchPanelFocus': { action: () => componentList.value?.switchPanelFocus() },
   'list.moveUp': { action: () => componentList.value?.moveUp() },
@@ -418,6 +436,7 @@ const listsHandler = listBindings.handler({
       :usage="usage"
       :mode="input.mode"
       :nodeColor="nodeColor"
+      :processing="input.processingAIPrompt"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     />
     <div class="show-visualization">

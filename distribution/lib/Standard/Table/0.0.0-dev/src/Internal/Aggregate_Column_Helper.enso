@@ -222,6 +222,10 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         Aggregate_Column.Shortest c as -> Aggregate_Column.Shortest (resolve_text c) as
         Aggregate_Column.Longest c as -> Aggregate_Column.Longest (resolve_text c) as
         Aggregate_Column.SQL fn c as -> Aggregate_Column.SQL fn (if c==[] then [] else resolve_selector_to_vector c) as
+        Aggregate_Column.ST_Union c as -> Aggregate_Column.ST_Union (resolve c) as
+        Aggregate_Column.ST_Intersection c as -> Aggregate_Column.ST_Intersection (resolve c) as
+        Aggregate_Column.ST_Extent c as -> Aggregate_Column.ST_Extent (resolve c) as
+        Aggregate_Column.Array_Agg c as ignore_nothing order_by -> Aggregate_Column.Array_Agg (resolve c) as ignore_nothing (resolve_order_by order_by)
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.
@@ -280,6 +284,10 @@ java_aggregator name column =
         Aggregate_Column.Longest c _ -> ShortestOrLongestAggregator.new name (c:In_Memory_Column).java_column ShortestOrLongestAggregator.LONGEST
         Aggregate_Column.Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name (c:In_Memory_Column).java_column join prefix suffix quote
         Aggregate_Column.SQL _ _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Custom SQL aggregation not supported in memory.")
+        Aggregate_Column.ST_Union _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Spatial aggregation only supported on Spatial Tables.")
+        Aggregate_Column.ST_Intersection _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Spatial aggregation only supported on Spatial Tables.")
+        Aggregate_Column.ST_Extent _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Spatial aggregation only supported on Spatial Tables.")
+        Aggregate_Column.Array_Agg _ _ _ _ -> Error.throw (Invalid_Aggregation.Error name [] "Array aggregation not supported in memory.")
         unknown -> Error.throw (Invalid_Aggregation.Error name [] "Unsupported aggregation: "+unknown.to_display_text)
 
 ## ---

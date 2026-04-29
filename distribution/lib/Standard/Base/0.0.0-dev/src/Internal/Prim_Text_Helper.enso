@@ -1,0 +1,18 @@
+private
+
+## Internal text utilities for inspecting text primitives.
+
+import project.Data.Text.Text
+import project.Internal.Text_Helpers
+
+## ---
+   private: true
+   ---
+   Compile the regex using the Truffle regex library.
+   Returns a Java RegexObject (Truffle) (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
+
+   ## Arguments
+    - `pattern`: the regex to compile
+    - `options`: string containing traditional regex flags (for example, "g" as
+      in "/foo/g"
+compile_regex pattern:Text options:Text = Text_Helpers.compile_regex pattern options

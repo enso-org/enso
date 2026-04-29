@@ -8,11 +8,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(
-    type = "IO",
-    name = "readln",
-    description = "Reads a line from standard in.",
-    autoRegister = false)
+@BuiltinMethod(type = "IO", name = "readln", description = "Reads a line from standard in.")
 public abstract class ReadlnNode extends Node {
   static ReadlnNode build() {
     return ReadlnNodeGen.create();

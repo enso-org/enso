@@ -10,38 +10,38 @@
     - add_work_days self days:Standard.Base.Any.Any= holidays:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - at_time_zone self zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - century self -> Standard.Base.Any.Any
-    - date self -> Standard.Base.Any.Any
+    - date self -> Standard.Base.Data.Time.Date.Date
     - date_add self amount:Standard.Base.Data.Numbers.Integer period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
     - date_diff self end:Standard.Base.Data.Time.Date_Time.Date_Time period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
     - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
-    - day self -> Standard.Base.Any.Any
+    - day self -> Standard.Base.Data.Numbers.Integer
     - day_of_week self -> Standard.Base.Any.Any
     - day_of_year self -> Standard.Base.Any.Any
     - end_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - end_of_month self -> Standard.Base.Any.Any
-    - enso_epoch_start -> Standard.Base.Any.Any
+    - enso_epoch_start -> Standard.Base.Data.Time.Date_Time.Date_Time
     - first_of_month self -> Standard.Base.Any.Any
     - format self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter -> Standard.Base.Any.Any
     - from_unix_epoch_milliseconds milliseconds:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
     - from_unix_epoch_seconds seconds:Standard.Base.Data.Numbers.Integer nanoseconds:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
-    - hour self -> Standard.Base.Any.Any
+    - hour self -> Standard.Base.Data.Numbers.Integer
     - is_leap_year self -> Standard.Base.Any.Any
     - length_of_month self -> Standard.Base.Any.Any
     - length_of_year self -> Standard.Base.Any.Any
-    - microsecond self -> Standard.Base.Any.Any
-    - millisecond self -> Standard.Base.Any.Any
-    - minute self -> Standard.Base.Any.Any
-    - month self -> Standard.Base.Any.Any
-    - nanosecond self include_milliseconds:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - microsecond self -> Standard.Base.Data.Numbers.Integer
+    - millisecond self -> Standard.Base.Data.Numbers.Integer
+    - minute self -> Standard.Base.Data.Numbers.Integer
+    - month self -> Standard.Base.Data.Numbers.Integer
+    - nanosecond self include_milliseconds:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Numbers.Integer
     - new year:Standard.Base.Data.Numbers.Integer= month:Standard.Base.Data.Numbers.Integer= day:Standard.Base.Data.Numbers.Integer= hour:Standard.Base.Data.Numbers.Integer= minute:Standard.Base.Data.Numbers.Integer= second:Standard.Base.Data.Numbers.Integer= millisecond:Standard.Base.Data.Numbers.Integer= microsecond:Standard.Base.Data.Numbers.Integer= nanosecond:Standard.Base.Any.Any= zone:Standard.Base.Data.Time.Time_Zone.Time_Zone= -> Standard.Base.Any.Any
-    - now -> Standard.Base.Any.Any
+    - now -> Standard.Base.Data.Time.Date_Time.Date_Time
     - parse text:Standard.Base.Data.Text.Text format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
     - quarter self -> Standard.Base.Any.Any
-    - second self -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Data.Numbers.Integer
     - set_time_zone self zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - start_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - time_of_day self -> Standard.Base.Any.Any
+    - time_of_day self -> Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
     - to_display_text self -> Standard.Base.Any.Any
     - to_enso_epoch_milliseconds self -> Standard.Base.Any.Any
     - to_enso_epoch_seconds self -> Standard.Base.Any.Any
@@ -50,9 +50,6 @@
     - to_unix_epoch_seconds self -> Standard.Base.Any.Any
     - to_utc self -> Standard.Base.Any.Any
     - week_of_year self locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - year self -> Standard.Base.Any.Any
-    - zone self -> Standard.Base.Any.Any
-- ensure_in_epoch date:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- new_builtin year:Standard.Base.Any.Any month:Standard.Base.Any.Any day:Standard.Base.Any.Any hour:Standard.Base.Any.Any minute:Standard.Base.Any.Any second:Standard.Base.Any.Any nanosecond:Standard.Base.Any.Any zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- unix_epoch_start -> Standard.Base.Any.Any
+    - year self -> Standard.Base.Data.Numbers.Integer
+    - zone self -> Standard.Base.Data.Time.Time_Zone.Time_Zone
 - Standard.Base.Data.Time.Date_Time.Date_Time.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Time.Date_Time.Date_Time

@@ -16,9 +16,7 @@ import {
 import { useCopy } from '#/hooks/copyHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -26,15 +24,22 @@ import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { isCloudCategory } from '$/providers/category'
 import type { Tab } from '$/providers/container'
 import {
   useBackends,
+  useCategories,
   useFullUserSession,
   useIsFeatureUnderPaywall,
   useText,
 } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useContainerData, useRightPanelData } from '$/providers/react/container'
+import {
+  useContainerData,
+  useDriveCurrentBackend,
+  useDriveCurrentCategory,
+  useRightPanelData,
+} from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { getLocalTimeZone, now } from '@internationalized/date'
@@ -67,10 +72,11 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
 ) {
   const { asset, triggerRef, currentDirectoryId, initialPosition, doCopy, doCut, doPaste } = props
 
-  const { category, associatedBackend: backend } = useCategoriesAPI()
-  const isCloud = categoryModule.isCloudCategory(category)
+  const { categoryDirectoryId } = useCategories()
+  const [category] = useDriveCurrentCategory()
+  const backend = useDriveCurrentBackend()
+  const isCloud = isCloudCategory(category)
   const rightPanel = useRightPanelData()
-  const { localCategories } = useCategories()
   const driveStore = useDriveStore()
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const timeZone = IanaTimeZone(preferredTimeZone ?? getLocalTimeZone())
@@ -117,7 +123,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     backendMutationOptions(backend, 'createProjectExecution'),
   )
 
-  const newProject = useNewProject(backend, category)
+  const newProject = useNewProject(backend, category.type)
 
   const systemApi = window.api?.system
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
@@ -139,7 +145,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
 
   const globalContextMenuEntries = useGlobalContextMenuEntries({
     backend,
-    category,
+    category: category.type,
     currentDirectoryId,
     directoryId: canAddToThisDirectory ? asset.id : null,
     doPaste,
@@ -346,8 +352,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           doAction: () => {
             void downloadAssets({
               ids: [{ id: asset.id, title: asset.title }],
-              targetDirectoryId:
-                !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
+              targetDirectoryId: !isCloud ? categoryDirectoryId({ type: 'local' }) : null,
               shouldUnpackProject: false,
             })
           },

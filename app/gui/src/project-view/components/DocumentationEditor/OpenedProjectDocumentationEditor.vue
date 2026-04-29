@@ -10,6 +10,8 @@ import { ResultComponent } from '@/util/react'
 import { mapOk, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 
+defineProps<{ toolbar: HTMLElement | string }>()
+
 const { store: project, graph } = useCurrentProject()
 const projectId = computed(() => project.value.id)
 
@@ -45,6 +47,7 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
+    :teleportToolbarTo="toolbar"
   >
     <template #belowToolbar>
       <FunctionSignatureEditor

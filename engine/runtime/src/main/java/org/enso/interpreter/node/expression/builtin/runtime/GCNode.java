@@ -8,8 +8,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 @BuiltinMethod(
     type = "Runtime",
     name = "gc",
-    description = "Forces garbage collection & other cleanups",
-    autoRegister = false)
+    description = "Forces garbage collection & other cleanups")
 public final class GCNode extends Node {
   private GCNode() {}
 

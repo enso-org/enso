@@ -1,4 +1,5 @@
 import project.Any.Any
+from project.Data.Text.Extensions import all
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State

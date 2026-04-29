@@ -1366,7 +1366,7 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-                from Standard.Base import Integer, Error
+                from Standard.Base import Integer, Error, to_text
                 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
                 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -1495,7 +1495,7 @@ public class SignatureTest {
   public void avoidDoubleEvaluation() {
     var code =
         """
-        from Standard.Base import IO, Integer
+        from Standard.Base import IO, Integer, to_text
 
         type A
             A_Ctor a

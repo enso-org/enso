@@ -24,6 +24,7 @@ import { ANY_TYPE } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
+import type { AiComponentResponse } from 'enso-common/src/ai'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, readonly, ref, shallowRef, toRef, toValue, type ComputedRef } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
@@ -59,7 +60,9 @@ export type ComponentBrowserMode =
 export function useComponentBrowserInput(
   graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
   suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
-  ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
+  ai: {
+    query(query: string, sourcePort: string): Promise<Result<AiComponentResponse>>
+  } = useAI(),
 ) {
   const text = ref('')
   const cbUsage = ref<Usage>()
@@ -143,12 +146,11 @@ export function useComponentBrowserInput(
   const sourceNodeType = computed<SelfArg | null>(() => {
     if (!sourceNodeIdentifier.value) return null
     const graphDbValue = toValue(graphDb)
-    const definition = graphDbValue.getIdentDefiningNode(sourceNodeIdentifier.value)
-    if (definition == null) return null
-    const info = graphDbValue.getExpressionInfo(definition)
-    if (info == null || info.typeInfo == null) return { type: 'unknown' }
-    const ancestors = [...info.typeInfo.ancestors(toValue(suggestionDb))]
-    return { type: 'known', typeInfo: info.typeInfo, ancestors }
+    if (graphDbValue.getIdentDefiningNode(sourceNodeIdentifier.value) == null) return null
+    const typeInfo = graphDbValue.getTypeOfIdentifier(sourceNodeIdentifier.value)
+    if (typeInfo == null) return { type: 'unknown' }
+    const ancestors = [...typeInfo.ancestors(toValue(suggestionDb))]
+    return { type: 'known', typeInfo, ancestors }
   })
 
   /** Apply given suggested entry to the input. */
@@ -282,33 +284,32 @@ export function useComponentBrowserInput(
     return { text: expression, textOffset: 0, sourceNodeIdentifier: undefined }
   }
 
-  function applyAIPrompt() {
-    if (mode.value.mode !== 'aiPrompt') {
-      console.error('Cannot apply AI prompt in non-AI context')
-      return
-    }
-    if (sourceNodeIdentifier.value == null) {
-      console.error('Cannot apply AI prompt without a source node.')
-      return
+  async function applyAIPrompt(): Promise<Result<AiComponentResponse> | null> {
+    if (
+      processingAIPrompt.value ||
+      mode.value.mode !== 'aiPrompt' ||
+      sourceNodeIdentifier.value == null
+    ) {
+      if (!processingAIPrompt.value) {
+        console.error('Cannot apply AI prompt: not in AI mode, or no source node.')
+      }
+      return null
     }
     processingAIPrompt.value = true
-    ai.query(mode.value.prompt, sourceNodeIdentifier.value).then(
-      (result) => {
-        if (result.ok) {
-          text.value = result.value
-          selection.value = Range.emptyAt(result.value.length)
-        } else {
-          toastError.reportError(result.error, 'Applying AI prompt failed')
-        }
-        processingAIPrompt.value = false
-      },
-      (err) => {
-        const msg = `Applying AI prompt failed: ${err}`
-        console.error(msg)
-        toastError.show(msg)
-        processingAIPrompt.value = false
-      },
-    )
+    try {
+      const result = await ai.query(mode.value.prompt, sourceNodeIdentifier.value)
+      if (!result.ok) {
+        toastError.reportError(result.error, 'Applying AI prompt failed')
+      }
+      return result
+    } catch (err) {
+      const message = `Applying AI prompt failed: ${err instanceof Error ? err.message : String(err)}`
+      console.error(message)
+      toastError.show(message)
+      return Err(message)
+    } finally {
+      processingAIPrompt.value = false
+    }
   }
 
   function applySourceNode(text: string) {

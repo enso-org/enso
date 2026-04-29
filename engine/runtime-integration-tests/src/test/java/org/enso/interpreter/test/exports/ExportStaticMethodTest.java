@@ -67,6 +67,7 @@ public class ExportStaticMethodTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
+            from Standard.Base import Any
             from project.T_Module import My_Type, method
             main =
                 My_Type.method 42 == method 42

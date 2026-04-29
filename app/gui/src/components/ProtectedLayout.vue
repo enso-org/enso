@@ -136,12 +136,15 @@ const debugHoverAreas = useFeatureFlag('debugHoverAreas')
 useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
 
 const allowed = computed(() => routeAllowed(route, auth))
+
 watch(
   allowed,
   (allowed) => {
     if (!allowed) {
       const redirectValue = redirect(auth, LocalStorage.getInstance())
-      if (redirectValue) router.push(redirectValue)
+      if (redirectValue) {
+        router.replace(redirectValue)
+      }
     }
   },
   { immediate: true },
@@ -156,7 +159,10 @@ watchPostEffect(() => {
   }
 })
 
-const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const logoutModalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const reconnectingModalProps = computed(() => ({
+  isOpen: session.isReconnectingSession && !session.isLoggingOut,
+}))
 const displayDevTools = computed(() => auth.session != null)
 
 const shouldDisplayAgreementsModal = computed(
@@ -181,9 +187,19 @@ useAppTitle(computed(() => auth.session))
     :isDismissable="false"
     :isKeyboardDismissDisabled="true"
     :hideCloseButton="true"
-    :modalProps="modalProps"
+    :modalProps="logoutModalProps"
   >
     <ResultComponent status="loading" :title="text.getText('loggingOut')" />
+  </Dialog>
+
+  <Dialog
+    :aria-label="text.getText('reconnectingSession')"
+    :isDismissable="false"
+    :isKeyboardDismissDisabled="true"
+    :hideCloseButton="true"
+    :modalProps="reconnectingModalProps"
+  >
+    <ResultComponent status="loading" :title="text.getText('reconnectingSession')" />
   </Dialog>
 
   <AgreementsModal

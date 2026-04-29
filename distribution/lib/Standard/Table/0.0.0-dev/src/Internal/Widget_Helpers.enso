@@ -12,6 +12,7 @@ import project.Expression.Expression
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Parse_Values_Helper
+import project.Row.Row
 import project.Spatial_Table.Spatial_Join_Condition
 import project.Spatial_Table.Spatial_Table
 import project.Table.Table
@@ -62,11 +63,17 @@ make_aggregate_column_selector table:Table display:Display=..Always -> Widget = 
     maximum = Option "..Maximum" "..Maximum" [column_widget]
     minimum = Option "..Minimum" "..Minimum" [column_widget]
 
+    ## Spatial Aggregation Functions
+    spatial_aggregations = if table.is_a Spatial_Table == False then [] else
+        spatial_widget_selector = make_column_name_selector table display=Display.Always add_expression=True
+        spatial_widget = ["column", spatial_widget_selector]
+        [Option "..ST_Union" "..ST_Union" [spatial_widget], Option "..ST_Intersection" "..ST_Intersection" [spatial_widget], Option "..ST_Extent" "..ST_Extent" [spatial_widget]]
+
     ## SQL Aggregation Function
     sql_function = if table.underlying.is_a In_Memory_Table then [] else
         [Option "<SQL Function>" "..SQL" [["arguments", col_list_selector]]]
 
-    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]+sql_function
+    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]+spatial_aggregations+sql_function
 
 ## ---
    private: true
@@ -81,7 +88,7 @@ make_aggregate_column_vector_selector table:Table display:Display=..Always -> Wi
    private: true
    ---
    Make a column name selector.
-make_column_name_selector table:Table add_expression:Boolean=False display:Display=..Always -> Widget =
+make_column_name_selector table:(Table|Row) add_expression:Boolean=False display:Display=..Always -> Widget =
     _with_table_cache table "make_column_name_selector_"+add_expression.to_text+"_"+display.to_text <|
         col_names = table.column_names
         names = col_names.map n-> Option n n.pretty

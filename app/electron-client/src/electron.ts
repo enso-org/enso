@@ -1,3 +1,4 @@
+import { initClaudeAgentIpc } from '@/claudeAgent'
 import { Channel } from '@/ipc'
 import { dialog, ipcMain, shell, type BrowserWindow } from 'electron'
 import { download } from 'electron-dl'
@@ -151,6 +152,8 @@ export function initIpc(window: BrowserWindow | null) {
       return retval
     },
   )
+
+  initClaudeAgentIpc()
 
   // Handling navigation events from renderer process
   ipcMain.on(Channel.goBack, () => {

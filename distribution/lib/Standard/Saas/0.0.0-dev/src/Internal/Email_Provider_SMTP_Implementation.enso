@@ -39,7 +39,7 @@ type Email_Provider_SMTP_Implementation
             Email_Body.Plain_Text body ->
                 java_email.setMsg body
 
-        email.to.each e->
+        email.to_addresses.each e->
             if e.name.is_empty then java_email.addTo e.address else
                 java_email.addTo e.address e.name
         

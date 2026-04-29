@@ -2478,15 +2478,15 @@ type Column
        reversed.
 
        ## Examples
-       ### Reverse the values of a column to produce a new column.
+       ### Reverse the row order of a column to produce a new column.
 
        ```
              import Standard.Examples
 
-             example_reverse = Examples.integer_column.reverse
+             example_reverse = Examples.integer_column.reverse_rows
        ```
-    reverse self -> Column & Any =
-        self.implementation.reverse self
+    reverse_rows self -> Column & Any =
+        self.implementation.reverse_rows self
 
     ## ---
        group: Standard.Base.Metadata

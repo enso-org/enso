@@ -51,6 +51,8 @@ public class IfThenElseTest {
   public void variableDefinedInThen() {
     var code =
         """
+        import Standard.Base.Data.Text.Extensions
+
         check x = if x then
             xt = x.to_text
             "Good:"+xt
@@ -66,6 +68,8 @@ public class IfThenElseTest {
   public void indexSubRange() throws Exception {
     var code =
         """
+        import Standard.Base.Data.Text.Extensions
+
         check step first = case step of
           _ -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
         """;
@@ -80,6 +84,8 @@ public class IfThenElseTest {
   public void variableDefinedInElse() {
     var code =
         """
+        import Standard.Base.Data.Text.Extensions
+
         check x = if x then "OKeyish:"+x.to_text else
             xt = x.to_text
             "Bad:"+xt

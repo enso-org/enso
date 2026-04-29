@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
+import { CATEGORY_BACKEND } from '$/providers/category'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { backendMutationOptions } from '@/composables/backend'
@@ -12,11 +13,15 @@ import type { AssetDetailsResponse, AssetId } from 'enso-common/src/services/Bac
 import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
+defineProps<{ toolbar: HTMLElement | string }>()
+
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
 const backendForAsset = computed(
   () =>
-    (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
+    (rightPanel.context?.category &&
+      backendForType(CATEGORY_BACKEND[rightPanel.context.category.type])) ??
+    null,
 )
 
 // Provide an extra `mutationKey` so that it has its own loading state.
@@ -60,7 +65,7 @@ function editorReadyCallback(view: EditorView) {
         updateDescription(oldAsset, getText(view))
         const pendingDescription =
           newAsset != null && editDescriptionMutation.variables.value?.[0] === newAsset.id ?
-            editDescriptionMutation.variables.value[1].description
+            editDescriptionMutation.variables.value?.[1].description
           : undefined
 
         setText(view, pendingDescription ?? newAsset?.description ?? '')
@@ -97,6 +102,7 @@ function editorReadyCallback(view: EditorView) {
       :extensions="syncExt"
       contentTestId="asset-panel-description"
       :editorReadyCallback="editorReadyCallback"
+      :teleportToolbarTo="toolbar"
     />
     <ResultComponent
       v-else

@@ -1,4 +1,5 @@
 /** @file Actions for the context menu. */
+import { expect } from 'integration-test/base'
 import type BaseActions from './BaseActions'
 import type { PageCallback } from './BaseActions'
 import EditorPageActions from './EditorPageActions'
@@ -68,7 +69,12 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .click()
 
         // Confirm the deletion in the dialog
-        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+        const dialog = page.getByTestId('modal-dialog')
+        await dialog.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+        // Wait for the dialog to be detached. While the react-aria exit animation
+        // runs (~200ms `slide-out-to-top-1`), the modal still has `fixed inset-0`
+        // and intercepts subsequent clicks.
+        await expect(dialog).toBeHidden()
       }),
     moveToTrash: () =>
       step('Move to trash (context menu)', async (page) => {
@@ -78,7 +84,12 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .click()
 
         // Confirm the deletion in the dialog
-        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+        const dialog = page.getByTestId('modal-dialog')
+        await dialog.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+        // Wait for the dialog to be detached. While the react-aria exit animation
+        // runs (~200ms `slide-out-to-top-1`), the modal still has `fixed inset-0`
+        // and intercepts subsequent clicks.
+        await expect(dialog).toBeHidden()
       }),
     restoreFromTrash: () =>
       step('Restore from trash (context menu)', (page) =>

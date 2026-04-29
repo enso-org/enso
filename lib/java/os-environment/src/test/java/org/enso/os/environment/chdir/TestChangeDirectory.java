@@ -67,6 +67,19 @@ public class TestChangeDirectory {
   }
 
   @Test
+  public void changeDirUnicode() throws IOException {
+    var tmpDir = TMP_DIR.newFolder().toPath();
+    var subDir = tmpDir.resolve("使用者");
+    var dirCreated = subDir.toFile().mkdir();
+    assertTrue(dirCreated);
+    var subDirAbs = subDir.toAbsolutePath().toRealPath().toString();
+    var succeeded = nativeApi.changeWorkingDir(subDirAbs);
+    assertTrue(succeeded);
+    var curDir = nativeApi.currentWorkingDir();
+    assertEquals(subDirAbs, curDir);
+  }
+
+  @Test
   public void changeDir_NonExistingDir() throws IOException {
     var tmpDir = TMP_DIR.newFolder().toPath();
     var wasDeleted = tmpDir.toFile().delete();

@@ -34,7 +34,7 @@ public class BinaryDispatchTest {
                 "enso",
                 """
                 import Standard.Base.Data.Numbers
-                from Standard.Base import Text
+                from Standard.Base import Text, to_text
 
                 type Z
                     Number n

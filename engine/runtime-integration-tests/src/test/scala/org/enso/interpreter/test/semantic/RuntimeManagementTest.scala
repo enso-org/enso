@@ -110,8 +110,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
-          |import Standard.Base.IO
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+          |from Standard.Base import IO, to_text
           |
           |type Mock_File
           |    Value i
@@ -142,10 +142,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual closure of other managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
-          |import Standard.Base.IO
-          |import Standard.Base.Nothing
-          |import Standard.Base.Data.Numbers.Number
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+          |from Standard.Base import IO, Nothing, Number, to_text
           |
           |type Mock_File
           |    Value i
@@ -177,10 +175,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual takeover of other managed resources" in {
       val code =
         """
-          |from Standard.Base.Runtime.Resource import Managed_Resource
-          |import Standard.Base.IO
-          |import Standard.Base.Nothing
-          |import Standard.Base.Data.Numbers.Number
+          |from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+          |from Standard.Base import IO, Nothing, to_text, Number
           |
           |type Mock_File
           |    Value i
@@ -209,7 +205,7 @@ class RuntimeManagementTest extends InterpreterTest {
       totalOut should contain theSameElementsAs all
     }
 
-    "Allow for multithreaded polyglot class loading" ignore {
+    "Allow for multithreaded polyglot class loading" in {
       val langCtx = interpreterContext
         .ctx()
         .getBindings(LanguageInfo.ID)

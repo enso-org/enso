@@ -9,6 +9,7 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Internal.Time.Date_Helpers
 import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -25,23 +26,6 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
-
-## ---
-   private: true
-   ---
-   Obtains an instance of `Time_Of_Day` from an hour, minute, second and
-   nanosecond.
-
-   Recommended to use `Time_Of_Day.new` instead which handles potential
-   exceptions.
-
-   ## Arguments
-    - `hour`: The hour-of-day to represent, from 0 to 23.
-    - `minute`: The minute-of-hour to represent, from 0 to 59.
-    - `second`: The second-of-minute to represent, from 0 to 59.
-    - `nanosecond`: The nano-of-second to represent, from 0 to 999,999,999.
-new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
-new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_builtin"
 
 ## ---
    private: true
@@ -66,8 +50,7 @@ type Time_Of_Day
 
              example_now = Time_Of_Day.now
        ```
-    now : Time_Of_Day
-    now = @Builtin_Method "Time_Of_Day.now"
+    now -> Time_Of_Day = Date_Helpers.time_now
 
     ## ---
        group: Constants
@@ -112,7 +95,7 @@ type Time_Of_Day
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
     new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch JException (new_builtin hour minute second total_nanoseconds) caught_panic->
+        Panic.catch JException (Date_Helpers.time_new_builtin hour minute second total_nanoseconds) caught_panic->
             Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
     ## ---
@@ -213,8 +196,7 @@ type Time_Of_Day
 
              example_hour = Time_Of_Day.now.hour
        ```
-    hour : Integer
-    hour self = @Builtin_Method "Time_Of_Day.hour"
+    hour self -> Integer = Date_Helpers.time_hour self
 
     ## ---
        group: Metadata
@@ -230,8 +212,7 @@ type Time_Of_Day
 
              example_minute = Time_Of_Day.now.minute
        ```
-    minute : Integer
-    minute self = @Builtin_Method "Time_Of_Day.minute"
+    minute self -> Integer = Date_Helpers.time_minute self
 
     ## ---
        group: Metadata
@@ -247,8 +228,7 @@ type Time_Of_Day
 
              example_second = Time_Of_Day.now.second
        ```
-    second : Integer
-    second self = @Builtin_Method "Time_Of_Day.second"
+    second self -> Integer = Date_Helpers.time_second self
 
     ## ---
        group: Metadata
@@ -264,8 +244,7 @@ type Time_Of_Day
 
              example_millisecond = Time_Of_Day.now.millisecond
        ```
-    millisecond : Integer
-    millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
+    millisecond self -> Integer = Date_Helpers.time_millisecond self
 
     ## ---
        group: Metadata
@@ -281,8 +260,7 @@ type Time_Of_Day
 
              example_microsecond = Time_Of_Day.now.microsecond
        ```
-    microsecond : Integer
-    microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
+    microsecond self -> Integer = Date_Helpers.time_microsecond self
 
     ## ---
        group: Metadata
@@ -303,9 +281,8 @@ type Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
        ```
-    nanosecond : Boolean -> Integer
-    nanosecond self include_milliseconds=False =
-        self.nanosecond_builtin include_milliseconds
+    nanosecond self include_milliseconds=False:Boolean -> Integer =
+        Date_Helpers.time_nanoseconds self include_milliseconds
 
     ## ---
        group: DateTime
@@ -337,8 +314,7 @@ type Time_Of_Day
 
              example_to_seconds = Time_Of_Day.now.to_seconds
        ```
-    to_seconds : Integer
-    to_seconds self = @Builtin_Method "Time_Of_Day.to_seconds"
+    to_seconds self -> Integer = Date_Helpers.time_to_seconds self
 
     ## ---
        group: Conversions
@@ -437,7 +413,7 @@ type Time_Of_Day
     + : Duration | Time_Period -> Time_Of_Day ! Time_Error
     + self (amount : Duration | Time_Period) =
         case amount of
-            duration : Duration -> self.plus_builtin duration
+            duration : Duration -> Date_Helpers.time_plus self duration
             time_period : Time_Period ->
                 self + time_period.to_duration
 
@@ -472,7 +448,7 @@ type Time_Of_Day
     - : Duration | Time_Period -> Time_Of_Day ! Time_Error
     - self amount:(Duration | Time_Period) =
         case amount of
-            duration : Duration -> self.minus_builtin duration
+            duration : Duration -> Date_Helpers.time_minus self duration
             time_period : Time_Period ->
                 self - time_period.to_duration
 

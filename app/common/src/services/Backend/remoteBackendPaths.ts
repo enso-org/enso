@@ -101,6 +101,10 @@ export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-ses
 export const LIST_API_KEYS_PATH = 'credentials'
 /** Relative HTTP path to the "create API key" endpoint of the Cloud backend API. */
 export const CREATE_API_KEY_PATH = 'credentials'
+/** Relative HTTP path to the "list executions" endpoint of the Cloud backend API. */
+export const LIST_EXECUTIONS_PATH = 'executions'
+/** Relative HTTP path to the "list execution usage summary" endpoint of the Cloud backend API. */
+export const LIST_EXECUTIONS_SUMMARY_PATH = 'executions/summary'
 /** Relative HTTP path to the "delete API key" endpoint of the Cloud backend API. */
 export function deleteApiKeyPath(apiKeyId: ApiKeyId) {
   return `credentials/${apiKeyId}`

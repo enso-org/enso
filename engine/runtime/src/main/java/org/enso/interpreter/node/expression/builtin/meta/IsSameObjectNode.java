@@ -16,8 +16,7 @@ import org.enso.interpreter.runtime.data.Type;
 @BuiltinMethod(
     type = "Meta",
     name = "is_same_object",
-    description = "Checks if the two arguments share an underlying reference.",
-    autoRegister = false)
+    description = "Checks if the two arguments share an underlying reference.")
 @GenerateUncached
 public abstract class IsSameObjectNode extends Node {
 

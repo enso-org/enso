@@ -9,6 +9,8 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL.SQL_Type
 
+polyglot java import org.enso.database.JDBCValueSetter
+
 ## ---
    private: true
    ---
@@ -160,6 +162,15 @@ type SQL_Type_Mapping
        ---
        Creates a Statement_Setter.
     statement_setter =
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Creates the JDBCValueSetter used by both statement setters and Java-side
+       batch insert handling for this backend.
+    value_setter : JDBCValueSetter
+    value_setter =
         Unimplemented.throw "This is an interface only."
 
     ## ---

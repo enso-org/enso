@@ -5,6 +5,8 @@ import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -61,7 +63,8 @@ public class PanicExceptionTest {
                 if n == 0 then
                     Panic.throw "now"
                 else
-                    throw n-1
+                    x = throw n-1
+                    x+1
             """,
             "throw.enso",
             "throw");
@@ -76,10 +79,15 @@ public class PanicExceptionTest {
   }
 
   private void assertStackTraces(int depth, Exception first, Exception other) {
+    var sw = new StringWriter();
+    var pw = new PrintWriter(sw);
+    first.printStackTrace(pw);
+    other.printStackTrace(pw);
+    pw.close();
     for (var i = 0; i < depth; i++) {
       var polyElem = first.getStackTrace()[i];
       var truffleElem = other.getStackTrace()[i];
-      assertEquals(polyElem, truffleElem);
+      assertEquals(sw.toString(), polyElem, truffleElem);
     }
   }
 }

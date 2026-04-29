@@ -213,6 +213,16 @@ add_specs suite_builder =
             Json.parse "null" . get "foo" . should_equal Nothing
             Json.parse "null" . get "foo" 1 . should_equal 1
 
+        group_builder.specify "Nothing.get returns Nothing" <|
+            Nothing.get "key" . should_equal Nothing
+            Nothing.get 10 . should_equal Nothing
+            Nothing.get . should_equal Nothing
+
+        group_builder.specify "Nothing.get returns if_missing" <|
+            Nothing.get "anything" if_missing=5 . should_equal 5
+            Nothing.get 7 if_missing=3 . should_equal 3
+            Nothing.get if_missing="Nic" . should_equal "Nic"
+
         group_builder.specify "should allow checking for fields" <|
             object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'
             object.contains_key "foo" . should_equal True

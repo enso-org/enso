@@ -44,8 +44,7 @@ create_process command arguments input redirect_in redirect_out redirect_err =
    ```
          System.exit 42
    ```
-exit : Integer -> Nothing
-exit code = @Builtin_Method "System.exit"
+exit code:Integer -> Nothing = Runtime_Helpers.exit code
 
 ## ---
    private: true
@@ -59,15 +58,13 @@ exit code = @Builtin_Method "System.exit"
    ```
          System.nano_time
    ```
-nano_time : Integer
-nano_time = @Builtin_Method "System.nano_time"
+nano_time -> Integer = Runtime_Helpers.nano_time
 
 ## ---
    private: true
    ---
    Get the name of the current platform upon which the program is running.
-os : Text
-os = @Builtin_Method "System.os"
+os -> Text = Runtime_Helpers.os
 
 ## ---
    private: true

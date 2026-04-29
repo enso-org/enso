@@ -9,8 +9,7 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 @BuiltinMethod(
     type = "Meta",
     name = "get_atom_constructor",
-    description = "Gets the constructor of an atom.",
-    autoRegister = false)
+    description = "Gets the constructor of an atom.")
 public abstract class GetAtomConstructorNode extends Node {
   abstract Object execute(Object atom);
 

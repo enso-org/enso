@@ -1,8 +1,0 @@
-import project.Data.Text.Text
-import project.Nothing.Nothing
-import project.Panic.Panic
-
-type Unimplemented
-    Error message
-    to_display_text self = "An implementation is missing: " + self.message
-    throw message="" = Panic.throw (Unimplemented.Error message)

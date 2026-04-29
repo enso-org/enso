@@ -14,6 +14,17 @@ interface AddEventListenerOptions {
 export type MessageHandler<T = unknown> = (message: T) => void
 
 /**
+ * Direction of a tapped message.
+ */
+export type TapDirection = 'send' | 'receive'
+
+/**
+ * Non-consuming message observer callback type.
+ * Receives a copy of every message passing through the channel.
+ */
+export type TapHandler<T> = (message: T, direction: TapDirection) => void
+
+/**
  * Codec for converting between the external message type and the internal storage type.
  */
 export interface ChannelCodec<TMessage, TStored> {
@@ -60,10 +71,12 @@ export class YjsChannel<
   TMessage = unknown,
   TStored = TMessage,
 > extends ObservableV2<WebSocketEventHandlers> {
+  readonly channelName: string
   private readonly senderId: string
   private readonly doc: Y.Doc
   private readonly array: Y.Array<TStored>
   private readonly handlers: Set<MessageHandler<TMessage>> = new Set()
+  private readonly tapHandlers: Set<TapHandler<TMessage>> = new Set()
   private readonly observeHandler: (event: Y.YArrayEvent<TStored>, tr: Y.Transaction) => void
   private readonly codec: ChannelCodec<TMessage, TStored>
 
@@ -79,6 +92,7 @@ export class YjsChannel<
     codec: ChannelCodec<TMessage, TStored> = identityCodec,
   ) {
     super()
+    this.channelName = channelName
     this.senderId = crypto.randomUUID()
     this.doc = doc
     this.array = doc.getArray<TStored>(channelName)
@@ -87,9 +101,11 @@ export class YjsChannel<
     this.observeHandler = (event: Y.YArrayEvent<TStored>, transaction: Y.Transaction) => {
       // Only notify handlers if the message is from another sender
       if (transaction.origin !== this.senderId) {
-        // If no handlers are subscribed, leave items in the array for later processing.
+        const hasHandlers = this.handlers.size > 0 || this.hasActiveEventListeners()
+
+        // If no handlers or taps are subscribed, leave items in the array for later processing.
         // This handles the race condition where messages arrive before handlers are attached.
-        if (this.handlers.size === 0 && !this.hasActiveEventListeners()) {
+        if (!hasHandlers && this.tapHandlers.size === 0) {
           return
         }
 
@@ -113,16 +129,23 @@ export class YjsChannel<
           }
         }
 
-        doc.transact(() => {
-          // Delete the processed items in reverse index order to preserve correct positions
-          for (let i = inserted.length - 1; i >= 0; i--) {
-            this.array.delete(inserted[i]!.index, 1)
-          }
-        }, this.senderId)
+        // Only consume (delete) messages when regular handlers are present.
+        // When only taps exist, leave items for later handler subscription.
+        if (hasHandlers) {
+          doc.transact(() => {
+            // Delete the processed items in reverse index order to preserve correct positions
+            for (let i = inserted.length - 1; i >= 0; i--) {
+              this.array.delete(inserted[i]!.index, 1)
+            }
+          }, this.senderId)
+        }
 
-        // Notify handlers after deletion
         for (const { value } of inserted) {
-          this.notifyHandlers(this.codec.decode(value))
+          const decoded = this.codec.decode(value)
+          if (hasHandlers) {
+            this.notifyHandlers(decoded)
+          }
+          this.notifyTaps(decoded, 'receive')
         }
       }
     }
@@ -136,6 +159,7 @@ export class YjsChannel<
    */
   send(message: TMessage): void {
     this.doc.transact(() => this.array.push([this.codec.encode(message)]), this.senderId)
+    this.notifyTaps(message, 'send')
   }
 
   /**
@@ -171,11 +195,25 @@ export class YjsChannel<
   }
 
   /**
+   * Registers a non-consuming observer that receives copies of all messages
+   * passing through the channel (both sent and received).
+   * @param handler - The callback to invoke with each message and its direction
+   * @returns A function to unsubscribe the tap handler
+   */
+  tap(handler: TapHandler<TMessage>): () => void {
+    this.tapHandlers.add(handler)
+    return () => {
+      this.tapHandlers.delete(handler)
+    }
+  }
+
+  /**
    * Removes all message handlers and stops observing the Y.Array.
    */
   close(): void {
     this.array.unobserve(this.observeHandler)
     this.handlers.clear()
+    this.tapHandlers.clear()
     this.emitClose()
   }
 
@@ -265,8 +303,10 @@ export class YjsChannel<
 
   /**
    * Notifies all subscribed handlers with the received message.
+   * Used by {@link InspectManager} to inject messages. Not part of the public API.
+   * @internal
    */
-  private notifyHandlers(message: TMessage): void {
+  notifyHandlers(message: TMessage): void {
     // Create a MessageEvent-like object for WebSocket compatibility
     const messageEvent = { data: message } as MessageEvent
 
@@ -280,6 +320,21 @@ export class YjsChannel<
       } catch (e) {
         console.error('Failed to handle message', message, e)
         this.emitError(new Error(`Failed to handle message: ${message}`, { cause: e }))
+      }
+    }
+  }
+
+  /**
+   * Notifies all tap handlers with the message and direction.
+   * Used by {@link InspectManager} to inject messages. Not part of the public API.
+   * @internal
+   */
+  notifyTaps(message: TMessage, direction: TapDirection): void {
+    for (const handler of this.tapHandlers) {
+      try {
+        handler(message, direction)
+      } catch (e) {
+        console.error('Tap handler error', e)
       }
     }
   }

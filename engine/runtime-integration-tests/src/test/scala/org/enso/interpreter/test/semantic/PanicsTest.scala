@@ -82,7 +82,7 @@ class PanicsTest extends InterpreterTest {
           |
           |    to_display_text self =
           |        res = LM.V (self.txt + "Ex")
-          |        res.to_display_text
+          |        "" + res.to_display_text
           |
           |main = Panic.throw (LM.V "Hi")
           |""".stripMargin

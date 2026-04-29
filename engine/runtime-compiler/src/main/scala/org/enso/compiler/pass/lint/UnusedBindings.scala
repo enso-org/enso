@@ -326,7 +326,7 @@ case object UnusedBindings extends IRPass {
     * @param expression the expression to check
     * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
     */
-  private def isBuiltinMethod(expression: Expression): Boolean = {
+  private[lint] def isBuiltinMethod(expression: Expression): Boolean = {
     expression
       .getMetadata(
         ExpressionAnnotations,

@@ -4,6 +4,7 @@ import project.Data.Pair.Pair
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 from project.Data.Boolean import False, True
+from project.Data.Text.Extensions import all
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils

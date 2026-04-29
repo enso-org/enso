@@ -8,6 +8,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Internal.Polyglot_Helpers
 import project.Nothing.Nothing
 import project.Runtime.Source_Location.Source_Location
 
@@ -25,8 +26,7 @@ type Polyglot
        ## Arguments
         - `array`: a polyglot array object, originating in any supported
           language.
-    get_array_size : Any -> Integer
-    get_array_size array = @Builtin_Method "Polyglot.get_array_size"
+    get_array_size array -> Integer = Polyglot_Helpers.get_array_size array
 
     ## ---
        private: true
@@ -37,8 +37,7 @@ type Polyglot
        ## Arguments
         - `array`: The array on which to perform the operation.
         - `index`: The index to get the element from.
-    read_array_element : Any -> Integer -> Any
-    read_array_element array index = @Builtin_Method "Polyglot.read_array_element"
+    read_array_element array index:Integer = Polyglot_Helpers.read_array_element array index
 
     ## ---
        private: true
@@ -49,8 +48,7 @@ type Polyglot
        ## Arguments
         - `callable`: The polyglot function object to execute.
         - `arguments`: A vector of arguments to callable.
-    execute : Any -> Vector -> Any
-    execute callable arguments = @Builtin_Method "Polyglot.execute"
+    execute callable (arguments:Vector|Array) = Polyglot_Helpers.execute callable arguments
 
     ## ---
        private: true
@@ -67,8 +65,7 @@ type Polyglot
        ```
              Polyglot.get_member o "a"
        ```
-    get_member : Any -> Text -> Any
-    get_member object member_name = @Builtin_Method "Polyglot.get_member"
+    get_member object member_name:Text = Polyglot_Helpers.get_member object member_name
 
     ## ---
        private: true
@@ -84,8 +81,7 @@ type Polyglot
        ```
              Polyglot.get_members o
        ```
-    get_members : Any -> Array
-    get_members object = @Builtin_Method "Polyglot.get_members"
+    get_members object -> Vector Text = Polyglot_Helpers.get_members object
 
     ## ---
        private: true
@@ -103,8 +99,7 @@ type Polyglot
        ```
             Polyglot.new Integer [1]
        ```
-    new : Any -> Vector -> Any
-    new constructor arguments = @Builtin_Method "Polyglot.new"
+    new constructor (arguments:Vector|Array) = Polyglot_Helpers.new constructor arguments
 
     ## ---
        private: true
@@ -116,8 +111,7 @@ type Polyglot
         - `target`: The polyglot object on which to call the method.
         - `name`: The name of the method.
         - `arguments`: The arguments to pass to the method given by name.
-    invoke : Any -> Text -> Vector -> Any
-    invoke target name arguments = @Builtin_Method "Polyglot.invoke"
+    invoke target name:Text (arguments:Vector|Array) = Polyglot_Helpers.invoke target name arguments
 
     ## ---
        private: true
@@ -126,8 +120,7 @@ type Polyglot
        Checks if `value` defines a source location.
        Source locations are typically exposed by functions, classes, sometimes
        also other objects to specify their allocation sites.
-    has_source_location : Any -> Boolean
-    has_source_location value = @Builtin_Method "Polyglot.has_source_location"
+    has_source_location value -> Boolean = Polyglot_Helpers.has_source_location value
 
     ## ---
        private: true
@@ -138,8 +131,7 @@ type Polyglot
        also other objects to specify their allocation sites.
        This method will throw a polyglot exception if
        `Polyglot.has_source_location value` returns `False`.
-    get_source_location : Any -> Source_Location
-    get_source_location value = @Builtin_Method "Polyglot.get_source_location"
+    get_source_location value -> Source_Location = Source_Location.Value (Polyglot_Helpers.get_source_location value)
 
     ## ---
        private: true
@@ -149,16 +141,14 @@ type Polyglot
 
        ## Arguments
         - `language_name`: The name of the language to test.
-    is_language_installed : Text -> Boolean
-    is_language_installed language_name = @Builtin_Method "Polyglot.is_language_installed"
+    is_language_installed is_language_installed:Text -> Boolean = Polyglot_Helpers.is_language_installed is_language_installed
 
     ## ---
        private: true
        advanced: true
        ---
        Returns the executable name of a polyglot object.
-    get_executable_name : Any -> Text
-    get_executable_name value = @Builtin_Method "Polyglot.get_executable_name"
+    get_executable_name value -> Text = Polyglot_Helpers.get_executable_name value
 
 ## Utilities for working with Java polyglot objects.
 type Java
@@ -180,8 +170,7 @@ type Java
        ```
             Java.add_to_class_path "java.util.Random"
        ```
-    add_to_class_path : Text -> Nothing
-    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+    add_to_class_path path:Text -> Nothing = Polyglot_Helpers.add_to_class_path path
 
     ## ---
        private: true
@@ -201,8 +190,7 @@ type Java
        ```
              Java.lookup_class "java.util.Random"
        ```
-    lookup_class : Text -> Any
-    lookup_class name = @Builtin_Method "Java.lookup_class"
+    lookup_class name:Text = Polyglot_Helpers.lookup_class name
 
     ## ---
        private: true
@@ -212,7 +200,6 @@ type Java
        ## Arguments
         - `object`: The object to check for class membership.
         - `class`: The java class to check for membership in.
-    is_instance : Any -> Any -> Boolean
-    is_instance object class =
+    is_instance object class -> Boolean =
         class_object = class.class
         class_object.isInstance object

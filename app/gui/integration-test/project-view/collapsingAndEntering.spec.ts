@@ -1,3 +1,4 @@
+import assert from 'assert'
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import type { RelativePos } from 'integration-test/actions/EditorPageActions'
 import { expect, test } from 'integration-test/base'
@@ -197,7 +198,9 @@ test('Input node', async ({ editorPage }) => {
       // Input node has output port
       const outputPort = await locate.outputPortCoordinates(page, inputNode)
       await page.mouse.click(outputPort.x + 20, outputPort.y)
-      await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
+      const inputBox = await inputNode.boundingBox()
+      assert(inputBox)
+      await page.mouse.click(inputBox.x - 300, inputBox.y + inputBox.height / 2)
       await expect(locate.componentBrowserInput(page)).toBeFocused()
     })
     .press('Escape')

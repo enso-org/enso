@@ -261,7 +261,8 @@ private time_visualization module ~name ~action =
             Panic.throw caught_panic
         if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
         result
-    Profile.time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
+    # TBD: also need to replace this usage of Logging.Profile
+    _time_execution _profile_level label=name module=module suffix_callback=_profile_suffix wrapped
 
 private _profile_suffix value = case value of
     _:Text -> " length=" + (Text_Utils.char_length value).to_text
@@ -275,3 +276,28 @@ private _profile_level_from_env =
     if env_val == Nothing then Nothing else
         level = Log_Level.from env_val
         if level.is_error then Nothing else level
+
+## ---
+   advanced: true
+   icon: time
+   ---
+   Time the evaluation of a function, log the duration and return the result.
+
+   ## Arguments
+    - `level`: Log level to log the duration at. If `Nothing`, the duration is not logged.
+    - `label`: Label to log with the duration.
+    - `function`: Function to execute.
+    - `suffix_callback`: Optional callback to generate a suffix for the log message based
+       on the result of the function. The callback is only called if `level` is not `Nothing`.
+    - `module`: Module to log the message to. Defaults to `Profile`.
+private _time_execution level:(Log_Level | Nothing) ~label:Text ~function suffix_callback=Nothing module =
+    if Nothing == level then @Tail_Call function else
+        pair = Duration.time_execution function
+
+        ## If the function threw an error, we just return the error
+        Error.return_if_error pair.second
+
+        duration = pair.first
+        suffix = if suffix_callback == Nothing then "" else suffix_callback pair.second
+        module.log_message ("Execution time for " + label + ": " + duration.to_text + suffix) level
+        pair.second

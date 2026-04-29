@@ -25,6 +25,7 @@ Language Server through dedicated message channels.
 - [Startup Flow](#startup-flow)
 - [Source Code Layout](#source-code-layout)
 - [Debugging](#debugging)
+  - [Inspecting Channel Traffic with ydoc-inspect](#inspecting-channel-traffic-with-ydoc-inspect)
 
 <!-- /MarkdownTOC -->
 
@@ -214,7 +215,7 @@ rename the file to include word _"suspend"_ in its name - like
 `main-suspend.cjs` for example. Then the execution stops before the debugger is
 attached.
 
-#### Debugging `enso` _Native Image_ Binary
+### Debugging `enso` _Native Image_ Binary
 
 Sometimes it may be beneficial to debug _native image_ version of `enso` binary.
 Then one has to get a binary with _enabled assertions_ - according to the
@@ -236,3 +237,73 @@ enso$ YDOC_SERVER_JS=`pwd`/app/ydoc-server-polyglot/dist/main.cjs \
 Compiling _native image_ version takes more time, however launching the _native
 image_ version is usually way faster than the `--jvm` version. Moreover it more
 closely mimics the _production mode_ used by majority of Enso users.
+
+### Inspecting Channel Traffic with ydoc-inspect
+
+The `ydoc-inspect` tool connects to a running Ydoc server and provides an
+interactive console for observing and injecting messages on YjsChannels. It
+syncs the server's internal inspect Y.Doc via WebSocket and exposes helper
+functions through Chrome DevTools `chrome://inspect` page.
+
+#### Prerequisites
+
+The inspect endpoint is only available when the Ydoc server runs in debug mode.
+This is controlled by the `ENSO_IDE_YDOC_LS_DEBUG` environment variable, which
+is set to `true` automatically when the application is started in dev mode with
+`pnpm run dev:gui`. When debug mode is active, the `InspectManager` wraps both
+JSON and binary channel servers to intercept all message traffic and expose it
+through a `/project/inspect` WebSocket endpoint.
+
+#### Running ydoc-inspect
+
+Start the application and open a project:
+
+```bash
+enso$ corepack pnpm run dev:gui
+```
+
+Launch the inspect tool:
+
+```bash
+enso$ corepack pnpm run dev:inspect
+```
+
+Available CLI options:
+
+| Option       | Default     | Description                              |
+| ------------ | ----------- | ---------------------------------------- |
+| `--host`     | `localhost` | Ydoc server hostname                     |
+| `--port`     | `30617`     | Ydoc server port                         |
+| `--truncate` | `240`       | Max characters for message data display  |
+| `--no-watch` | _(off)_     | Disable automatic live message streaming |
+
+#### DevTools Console Commands
+
+Once connected, open `chrome://inspect` and attach to the Node.js process. The
+following global functions are available in the DevTools console:
+
+**Channel inspection:**
+
+```js
+channels()                    // List all registered channels
+messages(channelId?, n?)      // Get messages (optionally for a channel, last n)
+filter(channelId?, pattern?)  // Filter messages by regex (string or RegExp)
+send(channelId, msg)          // Send a message to the client as Language Server
+receive(channelId, msg)       // Send a message to Language Server as client
+watch(channelId?)             // Watch live messages (returns stop function)
+unwatch()                     // Stop watching live messages
+```
+
+**AST inspection:**
+
+```js
+modules()                     // List all module names in the project
+ast(moduleName?)              // Get root AST node (defaults to Main)
+tree(moduleName?, depth?)     // Print AST tree structure to console
+node(id)                      // Look up an AST node by id
+meta(id)                      // Show metadata for a node (position, visualization, etc.)
+code(moduleName?)             // Print full module source code
+```
+
+The AST commands work by syncing the project's Y.Doc (the `index` document)
+alongside the inspect Y.Doc.

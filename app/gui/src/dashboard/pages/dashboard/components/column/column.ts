@@ -1,7 +1,7 @@
 /** @file Column types and column display modes. */
 import type { AssetsTableState } from '#/layouts/AssetsTable'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { SortInfo } from '#/utilities/sorting'
+import type { Category } from '$/providers/category'
 import type {
   AnyAsset,
   AssetSortExpression,

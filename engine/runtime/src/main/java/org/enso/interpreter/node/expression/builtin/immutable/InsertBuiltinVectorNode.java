@@ -13,8 +13,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 @BuiltinMethod(
     type = "Array_Like_Helpers",
     name = "insert_builtin",
-    description = "Inserts a set of values into the Vector at the specified index.",
-    autoRegister = false)
+    description = "Inserts a set of values into the Vector at the specified index.")
 abstract class InsertBuiltinVectorNode extends Node {
   static InsertBuiltinVectorNode build() {
     return InsertBuiltinVectorNodeGen.create();

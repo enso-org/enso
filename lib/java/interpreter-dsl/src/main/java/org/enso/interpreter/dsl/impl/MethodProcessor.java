@@ -114,15 +114,10 @@ public class MethodProcessor
       }
       String fullClassName = def.getPackageName() + "." + def.getClassName();
       registerBuiltinMethod(
-          processingEnv.getFiler(),
-          def.getDeclaredName(),
-          fullClassName,
-          def.isStatic(),
-          def.isAutoRegister());
+          processingEnv.getFiler(), def.getDeclaredName(), fullClassName, def.isStatic());
       if (def.hasAliases()) {
         for (String alias : def.aliases()) {
-          registerBuiltinMethod(
-              processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.isAutoRegister());
+          registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName, def.isStatic());
         }
       }
     } else {
@@ -479,15 +474,13 @@ public class MethodProcessor
     }
   }
 
-  protected void registerBuiltinMethod(
-      Filer f, String name, String clazzName, boolean isStatic, boolean isAutoRegister) {
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName, boolean isStatic) {
     Map<String, String[]> methods = builtinMethods.get(f);
     if (methods == null) {
       methods = new HashMap<>();
       builtinMethods.put(f, methods);
     }
-    methods.put(
-        name, new String[] {clazzName, String.valueOf(isStatic), String.valueOf(isAutoRegister)});
+    methods.put(name, new String[] {clazzName, String.valueOf(isStatic)});
   }
 
   @Override
@@ -512,13 +505,12 @@ public class MethodProcessor
     return SourceVersion.latest();
   }
 
-  public record MethodMetadataEntry(
-      String fullEnsoName, String clazzName, boolean isStatic, boolean isAutoRegister)
+  public record MethodMetadataEntry(String fullEnsoName, String clazzName, boolean isStatic)
       implements MetadataEntry {
 
     @Override
     public String toString() {
-      return fullEnsoName + ":" + clazzName + ":" + isStatic + ":" + isAutoRegister;
+      return fullEnsoName + ":" + clazzName + ":" + isStatic;
     }
 
     @Override
@@ -530,11 +522,7 @@ public class MethodProcessor
   @Override
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
-    if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    return new MethodMetadataEntry(
-        elements[0],
-        elements[1],
-        Boolean.parseBoolean(elements[2]),
-        Boolean.parseBoolean(elements[3]));
+    if (elements.length != 3) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.parseBoolean(elements[2]));
   }
 }

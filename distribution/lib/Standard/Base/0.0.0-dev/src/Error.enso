@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Maybe.Maybe
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Wrapped_Error.Wrapped_Error
@@ -40,16 +41,14 @@ type Error
        ```
              Error.throw "Oops"
        ```
-    throw : Any -> Error
-    throw payload = @Builtin_Method "Error.throw"
+    throw payload -> Error = @Builtin_Method "Error.throw"
 
     ## ---
        private: true
        unstable: true
        ---
        Returns a textual representation of the stack trace attached to an error.
-    get_stack_trace_text : Text
-    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
+    get_stack_trace_text self -> Text = error_stack_trace_text self
 
     ## ---
        private: true
@@ -62,8 +61,7 @@ type Error
        ```
              Error.throw "foo" . to_text
        ```
-    to_text : Text
-    to_text self = @Builtin_Method "Error.to_text"
+    to_text self -> Text = error_to_text self
 
     ## ---
        private: true

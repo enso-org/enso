@@ -49,6 +49,7 @@ import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
+import UsageSettingsSection from './UsageSettingsSection'
 import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
@@ -571,6 +572,25 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.usage]: {
+    nameId: 'usageSettingsTab',
+    settingsTab: SettingsTabType.usage,
+    icon: 'credit_card',
+    feature: 'scheduler',
+    sections: [
+      {
+        nameId: 'usageSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'usageSettingsCustomEntryAliases',
+            render: (context) => <UsageSettingsSection backend={context.backend} />,
+          },
+        ],
+      },
+    ],
+  },
 }
 
 export const SETTINGS_DATA: SettingsData = [
@@ -600,6 +620,10 @@ export const SETTINGS_DATA: SettingsData = [
       SETTINGS_TAB_DATA[SettingsTabType.activityLog],
       SETTINGS_TAB_DATA[SettingsTabType.apiKeys],
     ],
+  },
+  {
+    nameId: 'usageSettingsTabSection',
+    tabs: [SETTINGS_TAB_DATA[SettingsTabType.usage]],
   },
 ]
 

@@ -27,7 +27,7 @@ public abstract class ErrorToTextNode extends Node {
     return ErrorToTextNodeGen.create();
   }
 
-  public abstract Text execute(@AcceptsError Object self);
+  public abstract Text execute(@AcceptsError Object err);
 
   @Specialization
   public Text doDataflowError(DataflowError self) {

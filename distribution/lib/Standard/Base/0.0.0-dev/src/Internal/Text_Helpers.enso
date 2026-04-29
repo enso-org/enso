@@ -1,0 +1,11 @@
+private
+
+optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
+compile_regex pattern options = @Builtin_Method "Prim_Text_Helper.compile_regex"
+length t = @Builtin_Method "Text.length"
+plus me that = @Builtin_Method "Text.+"
+is_normalized me = @Builtin_Method "Text.is_normalized"
+any_to_text obj = @Builtin_Method "Any.to_text"
+any_pretty obj = @Builtin_Method "Any.pretty"
+any_to_display_text obj = @Builtin_Method "Any.to_display_text"
+

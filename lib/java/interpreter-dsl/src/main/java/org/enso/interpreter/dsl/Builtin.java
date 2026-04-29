@@ -168,13 +168,6 @@ public @interface Builtin {
     int expandVarargs() default 0;
 
     /**
-     * `autoRegister` property indicates whether the builtin method should be automatically
-     * registered with the underlying type. By default every builtin method is registered with a
-     * type. Auto-registered methods do not have to be declared explicitly.
-     */
-    boolean autoRegister() default true;
-
-    /**
      * Allow aggressive inlining or not. This argument doesn't need to be specified. If it is
      * missing, its <em>effective value</em> is derived from the arguments of the annotated method.
      * When the annotated method requires {@link VirtualFrame} as one of its arguments the value of

@@ -21,8 +21,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 @BuiltinMethod(
     type = "Meta",
     name = "get_annotation",
-    description = "Get annotation associated with an object",
-    autoRegister = false)
+    description = "Get annotation associated with an object")
 @SuppressWarnings("truffle-splitting")
 public abstract class GetAnnotationNode extends BaseNode {
 

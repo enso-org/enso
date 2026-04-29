@@ -9,12 +9,12 @@ import { Separator } from '#/components/Separator'
 import { Text } from '#/components/Text'
 import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useCategory } from '#/layouts/Drive/Categories'
 import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { regexEscape } from '#/utilities/string'
+import type { Category } from '$/providers/category'
 import { useText } from '$/providers/react'
+import { useDriveCurrentBackend, useDriveCurrentCategory } from '$/providers/react/container'
 import { useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
 import * as backendModule from 'enso-common/src/services/Backend'
@@ -123,12 +123,13 @@ export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
  * The inner component of a {@link ResolveDuplicationsModal}.
  */
 function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
-  const categoryInfo = useCategory()
+  const [currentCategory] = useDriveCurrentCategory()
+  const currentBackend = useDriveCurrentBackend()
   const {
     targetId,
     conflictingIds,
-    category = categoryInfo.category,
-    backend = categoryInfo.associatedBackend,
+    category = currentCategory,
+    backend = currentBackend,
     canReplace = false,
   } = props
 

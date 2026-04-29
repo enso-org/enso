@@ -10,6 +10,7 @@ import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 from project.Metadata import make_single_choice
 from project.Metadata.Choice import Option
 

@@ -17,6 +17,7 @@ const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 if (isDevMode) {
   process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
+  process.env.ENSO_IDE_YDOC_LS_DEBUG ||= 'true'
 }
 
 // Used by vite middleware inside devtools plugin. Specifying this by an option doesn't work when `componentInspector` is false.

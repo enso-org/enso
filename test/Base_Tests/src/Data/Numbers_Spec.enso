@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -236,12 +237,12 @@ add_specs suite_builder =
             Integer.parse "123" 128 . should_fail_with Number_Parse_Error
 
         group_builder.specify "should be able to invoke methods on Integer via static method call" <|
-            # `Integer.+` in this case is resolved to the builtin method `Integer.type.+`
-            Integer.+ 1 2 . should_equal 3
-            Integer.+ 1 2.5 . should_equal 3.5
-            Test.expect_panic_with (Integer.+ 1.5 1) Type_Error
-            Test.expect_panic_with (Integer.+ 0.5 0.5) Type_Error
-            Test.expect_panic_with (Integer.+ 1 "hello") Type_Error
+            # `Integer.+` static method doesn't exist
+            Test.expect_panic_with (Integer.+ 1 2) No_Such_Method
+            Test.expect_panic_with (Integer.+ 1 2.5) No_Such_Method
+            Test.expect_panic_with (Integer.+ 1.5 1) No_Such_Method
+            Test.expect_panic_with (Integer.+ 0.5 0.5) No_Such_Method
+            Test.expect_panic_with (Integer.+ 1 "hello") No_Such_Method
             # `Integer.+  self=???` is resolved to standard `Integer.+` method
             Integer.+ self=1 2 . should_equal 3
             Integer.+ self=1 2.5 . should_equal 3.5

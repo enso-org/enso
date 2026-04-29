@@ -14,8 +14,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Dictionary",
     name = "size",
-    description = "Returns the number of entries in this hash map",
-    autoRegister = false)
+    description = "Returns the number of entries in this hash map")
 @GenerateUncached
 public abstract class HashMapSizeNode extends Node {
 
@@ -27,7 +26,7 @@ public abstract class HashMapSizeNode extends Node {
     return HashMapSizeNodeGen.getUncached();
   }
 
-  public abstract long execute(Object self);
+  public abstract long execute(Object dict);
 
   @Specialization(guards = "interop.hasHashEntries(hashMap)", limit = "3")
   long getHashMapSize(Object hashMap, @CachedLibrary("hashMap") InteropLibrary interop) {

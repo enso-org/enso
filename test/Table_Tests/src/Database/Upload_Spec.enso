@@ -311,6 +311,15 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             db_table.row_count . should_equal 3
             db_table.is_trivial_query . should_be_true
 
+        group_builder.specify "large table upload" pending="benchmark only" <|
+            num_rows = 10000000
+            row_ids = (0.up_to num_rows).to_vector
+            source = Table.new [["X", row_ids], ["Y", row_ids.map row_id-> "row-" + row_id.to_text]]
+            db_table = source.select_into_database_table data.connection (Name_Generator.random_name "large-table-upload") temporary=True
+            db_table.row_count . should_equal num_rows
+            db_table.at "X" . to_vector . take (..First 3) . should_equal [0, 1, 2]
+            db_table.at "Y" . to_vector . take (..First 3) . should_equal ["row-0", "row-1", "row-2"]
+
         group_builder.specify "should include the created table in the tables directory" <|
             db_table = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "permanent_table 1") temporary=False
             Panic.with_finalizer (data.connection.drop_table db_table.name) <|

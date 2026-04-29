@@ -13,8 +13,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 @BuiltinMethod(
     type = "Java",
     name = "add_to_class_path",
-    description = "Adds a path to the host class path.",
-    autoRegister = false)
+    description = "Adds a path to the host class path.")
 public abstract class AddToClassPathNode extends Node {
 
   static AddToClassPathNode build() {

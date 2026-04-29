@@ -374,6 +374,28 @@ export class ProjectManager {
     }
   }
 
+  /** List project sessions by scanning engine log files for the given project UUID. */
+  async listProjectSessions(projectId: string) {
+    return this.runStandaloneCommandJson<{
+      sessions: readonly { projectSessionId: string; createdAt: string }[]
+    }>(null, 'list-project-sessions', projectId)
+  }
+
+  /** Get log content for a local project session. */
+  async getProjectSessionLogs(sessionId: string, scrollId: string | null) {
+    const args = scrollId != null ? [sessionId, scrollId] : [sessionId]
+    return this.runStandaloneCommandJson<{ scrollId: string; hits: readonly string[] }>(
+      null,
+      'get-project-session-logs',
+      ...args,
+    )
+  }
+
+  /** Download all log content for a local project session. */
+  async downloadProjectSessionLogs(sessionId: string) {
+    return this.runStandaloneCommandJson<string>(null, 'download-project-session-logs', sessionId)
+  }
+
   /** Run the Project Manager binary with the given command-line arguments. */
   private async runStandaloneCommand(
     body: BodyInit | null,

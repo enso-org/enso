@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -42,6 +41,7 @@ import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.logger.Converter;
 import org.enso.logger.ObservedMessage;
+import org.enso.os.environment.Arguments;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -1125,6 +1125,8 @@ public class Main {
    * @param args the command line arguments
    */
   public static void main(String[] args) throws Exception {
+    // Handle an issue with Windows arguments containing UTF-16 characters
+    args = Arguments.getCurrent().alterArgs(args);
     new Main().launch(args);
   }
 
@@ -1584,6 +1586,7 @@ public class Main {
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
+    var hasJVMOption = line.hasOption(JVM_OPTION);
     setupLoggingContext(line);
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       // Setup application-ls.conf as the default config file
@@ -1591,7 +1594,12 @@ public class Main {
       // Language Server will also set up logging on its own.
       System.setProperty("config.resource", "application-ls.conf");
     } else {
-      setupLogging(line, logLevel, logMasking);
+      if (hasJVMOption && HostEnsoUtils.isAot()) {
+        // avoid setting up logger in SVM
+        // as we are about to fully run in HotSpot
+      } else {
+        setupLogging(line, logLevel, logMasking);
+      }
     }
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
@@ -1600,7 +1608,6 @@ public class Main {
       component = new File(component, "component");
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
-    var hasJVMOption = line.hasOption(JVM_OPTION);
     var jvmInProjectEnforced = isJvmModeEnabled(originalCwdOrNull, line);
     if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
@@ -1657,21 +1664,20 @@ public class Main {
   }
 
   private void setupLoggingContext(CommandLine line) {
-    String projectId;
-    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
-    try {
-      // sanity check
-      projectId =
-          projectIdOptional != null
-              ? UUID.fromString(projectIdOptional).toString()
-              : "00000000-0000-0000-0000-000000000000";
-    } catch (IllegalArgumentException e) {
-      projectId = "00000000-0000-0000-0000-000000000000";
-    }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
       MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
     } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
       MDC.put("projectId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
+    }
+    if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
+      // In hybrid projects, the cloud project ID has precedence over the local project ID
+      // because Cloud does not store the local project ID, and it is generated every time the
+      // project is started.
+      MDC.put("projectLocalId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
+    } else if (System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_ID_ENV_NAME) != null) {
+      MDC.put("projectLocalId", System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_ID_ENV_NAME));
+    } else if (line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION) != null) {
+      MDC.put("projectLocalId", line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION));
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
       MDC.put(
@@ -1681,8 +1687,11 @@ public class Main {
       MDC.put(
           "projectSessionId",
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
+    } else if (System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME) != null) {
+      MDC.put(
+          "projectSessionId",
+          System.getenv(LanguageServerApi.ENSO_LOCAL_PROJECT_SESSION_ID_ENV_NAME));
     }
-    MDC.put("projectLocalId", projectId);
   }
 
   private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {

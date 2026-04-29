@@ -17,6 +17,8 @@ const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
 const isProd = process.env.PROD === 'true'
 const TIMEOUT_MS = DEBUG ? 100_000_000 : 25_000
+const ACTION_TIMEOUT_MS = DEBUG ? 100_000_000 : 15_000
+const EXPECT_TIMEOUT_MS = DEBUG ? 100_000_000 : 10_000
 
 // We tend to use less CPU on CI to reduce the number of failures due to timeouts.
 // Instead of using workers on CI, we use shards to run tests in parallel.
@@ -75,12 +77,12 @@ export default defineConfig({
   timeout: TIMEOUT_MS,
   expect: {
     toHaveScreenshot: { threshold: 0 },
-    timeout: TIMEOUT_MS,
+    timeout: EXPECT_TIMEOUT_MS,
   },
   use: {
     baseURL: `http://localhost:${port}`,
     viewport: { width: 1920, height: 1750 },
-    actionTimeout: TIMEOUT_MS,
+    actionTimeout: ACTION_TIMEOUT_MS,
     trace: 'retain-on-failure',
     headless: !DEBUG,
     screenshot: 'only-on-failure',

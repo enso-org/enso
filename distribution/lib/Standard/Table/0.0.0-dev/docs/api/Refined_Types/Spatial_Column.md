@@ -4,6 +4,8 @@
     - Value column:Standard.Base.Any.Any parent_table:Standard.Table.Spatial_Table.Spatial_Table
     - st_area self -> Standard.Base.Any.Any
     - st_centroid self -> Standard.Base.Any.Any
+    - st_concave_hull self ratio:Standard.Base.Data.Numbers.Float= allow_holes:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - st_convex_hull self -> Standard.Base.Any.Any
     - st_distance self to_column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
     - st_extent self -> Standard.Base.Any.Any
     - st_geometry_type self -> Standard.Base.Any.Any

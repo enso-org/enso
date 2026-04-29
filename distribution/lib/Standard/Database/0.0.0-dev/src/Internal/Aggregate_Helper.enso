@@ -55,7 +55,9 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         sql_type_ref = infer_return_type op_kind [column] expression
         Internal_Column.Value as sql_type_ref expression
 
-    dialect.check_aggregate_support aggregate . if_not_error <| case aggregate of
+    Error.return_if_error (dialect.check_aggregate_support aggregate)
+
+    case aggregate of
         Aggregate_Column.Group_By c _ ->
             Internal_Column.Value as c.sql_type_reference c.expression
         Aggregate_Column.Count _ -> simple_aggregate "COUNT_ROWS" []
@@ -114,6 +116,12 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
         Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]
         Aggregate_Column.SQL fn columns _ -> custom_sql fn columns
+        Aggregate_Column.ST_Union c _ -> simple_aggregate "ST_UNION_AGG" [c]
+        Aggregate_Column.ST_Intersection c _ -> simple_aggregate "ST_INTERSECTION_AGG" [c]
+        Aggregate_Column.ST_Extent c _ -> simple_aggregate "ST_EXTENT_AGG" [c]
+        Aggregate_Column.Array_Agg c _ ignore_nothing order_by ->
+            fn = if ignore_nothing then "ARRAY_AGG_NOT_NULL" else "ARRAY_AGG"
+            aggregate_with_order_by fn c (order_by.if_nothing [])
 
 ## ---
    private: true

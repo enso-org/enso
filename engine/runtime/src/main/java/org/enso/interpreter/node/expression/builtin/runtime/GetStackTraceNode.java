@@ -19,8 +19,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Runtime",
     name = "primitive_get_stack_trace",
-    description = "Gets the current execution stacktrace.",
-    autoRegister = false)
+    description = "Gets the current execution stacktrace.")
 public class GetStackTraceNode extends Node {
 
   @NeverDefault

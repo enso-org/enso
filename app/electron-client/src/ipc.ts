@@ -33,4 +33,6 @@ export enum Channel {
   /** Download a file using its URL. */
   downloadURL = 'download-url',
   handleMenuItem = 'handle-menu-item',
+  /** Run the local Claude agent to generate a User Defined Component body. */
+  generateAiComponent = 'generate-ai-component',
 }
