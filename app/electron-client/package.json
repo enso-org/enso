@@ -70,7 +70,7 @@
     "playwright": "catalog:",
     "portfinder": "^1.0.38",
     "vite": "catalog:",
-    "vite-node": "3.0.0-beta.3"
+    "vite-node": "^3.2.4"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
