@@ -17,7 +17,7 @@ packages:
 catalog:
   typescript: ^5.7.2
   "@types/node": ^24.2.1
-  vite: ^7.1.2
+  vite: ^7.3.2
   vitest: ^3.2.4
   vue: ^3.5.13
   playwright: 1.55.1
