@@ -8,13 +8,9 @@
  * serialized via a per-process FIFO queue. Crashes are logged and the child is respawned in the
  * background; per-request timeouts return errors without killing the still-warm child.
  *
- * Authentication rides on whatever the `claude` CLI is already configured with (OAuth, keychain,
- * `ANTHROPIC_API_KEY`, or subscription token). The main process does not require or read the API
- * key beyond forwarding the parent environment.
+ * Authentication rides on whatever the `claude` CLI is already configured with. The main process
+ * does not require or read the API key beyond forwarding the parent environment.
  */
-// `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
-// npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
-// without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
 import spawn from 'cross-spawn'
 import { ipcMain } from 'electron'
 import {
@@ -127,9 +123,9 @@ function truncateStderr(stderr: string): string {
   return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
 }
 
-// =====================================
+// ====================================
 // === Stream-json wire format glue ===
-// =====================================
+// ====================================
 
 // Probe-confirmed envelope shape. See app/electron-client/CLAUDE.md for the discovery notes.
 // Note: `--verbose` is required by the CLI alongside `--output-format stream-json` (without it
@@ -285,6 +281,9 @@ export class ClaudeAgentSession {
 
     let child: ChildProcess
     try {
+      // `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
+      // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
+      // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
       child = spawn(CLAUDE_EXECUTABLE, streamJsonArgs(), {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: process.env,
