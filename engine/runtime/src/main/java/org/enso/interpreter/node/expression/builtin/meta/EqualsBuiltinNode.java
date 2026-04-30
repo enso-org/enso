@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
@@ -39,7 +40,7 @@ public final class EqualsBuiltinNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private static boolean checkFile() {
+  private static boolean confirmStop() {
     return new java.io.File("/tmp/stop").exists();
   }
 
@@ -57,7 +58,7 @@ public final class EqualsBuiltinNode extends Node {
     }
     var f1 = left instanceof Double;
     var f2 = right instanceof Double;
-    if (f1 != f2 && checkFile()) {
+    if ((f1 != f2) && confirmStop()) {
       breakpointHit(f1, f2);
     }
     var areEqual = node.execute(frame, left, right);
@@ -76,5 +77,6 @@ public final class EqualsBuiltinNode extends Node {
   private void breakpointHit(Object o1, Object o2) {
     System.err.println("EqualsNode for " + o1 + " and " + o2);
     System.err.println("         types " + o1.getClass() + " and " + o2.getClass());
+    NodeUtil.printTree(System.err, this);
   }
 }
