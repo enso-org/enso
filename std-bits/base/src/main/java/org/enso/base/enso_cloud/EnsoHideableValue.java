@@ -19,4 +19,20 @@ public interface EnsoHideableValue {
   String BASE64_TYPE = "base64";
   String CONCAT_TYPE = "concat";
   String PRIVATE_KEY_TYPE = "privateKey";
+
+  static boolean containsSecrets(EnsoHideableValue value) {
+    return HideableValue.from(value).containsSecrets();
+  }
+
+  static String safeResolve(EnsoHideableValue value) {
+    return HideableValue.from(value).safeResolve();
+  }
+
+  static String render(EnsoHideableValue value) {
+    return HideableValue.from(value).render();
+  }
+
+  default String uniqueId() {
+    return HideableValue.from(this).toString();
+  }
 }

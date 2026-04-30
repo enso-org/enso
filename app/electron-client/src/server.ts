@@ -658,6 +658,7 @@ export class Server {
       const shared = {
         title: path.basename(destinationPath),
         modifiedAt: new Date().toISOString() as DirectoryAsset['modifiedAt'],
+        createdAt: new Date().toISOString() as DirectoryAsset['createdAt'],
         parentId: DirectoryId(`directory-${path.dirname(destinationPath)}` as const),
         extension: null,
         permissions: [],
@@ -885,6 +886,7 @@ export class Server {
       const shared = {
         title: path.basename(assetPath),
         modifiedAt: new Date().toISOString() as DirectoryAsset['modifiedAt'],
+        createdAt: new Date().toISOString() as DirectoryAsset['createdAt'],
         parentId: DirectoryId(`directory-${path.dirname(assetPath)}` as const),
         extension: null,
         permissions: [],

@@ -5,7 +5,7 @@ import java.net.URISyntaxException;
 import java.util.AbstractMap;
 import java.util.List;
 import org.enso.base.enso_cloud.EnsoHeader;
-import org.enso.base.enso_cloud.HideableValue;
+import org.enso.base.enso_cloud.EnsoHideableValue;
 
 /**
  * A structure representing a URI that contains parts which may need to be updated once data from
@@ -30,7 +30,7 @@ public class URIWithSecrets {
             .map(
                 p ->
                     new AbstractMap.SimpleEntry<>(
-                        p.name(), HideableValue.from(p.hideable_value()).render()))
+                        p.name(), EnsoHideableValue.render(p.as_derived_secret())))
             .toList();
     return new URISchematic(baseUri, renderedParameters);
   }
@@ -57,7 +57,7 @@ public class URIWithSecrets {
 
   public boolean containsSecrets() {
     return queryParameters.stream()
-        .anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
+        .anyMatch(p -> EnsoHideableValue.containsSecrets(p.as_derived_secret()));
   }
 
   private URISchematic makeSchematicForSafeResolve() {
@@ -66,7 +66,7 @@ public class URIWithSecrets {
             .map(
                 p ->
                     new AbstractMap.SimpleEntry<>(
-                        p.name(), HideableValue.from(p.hideable_value()).safeResolve()))
+                        p.name(), EnsoHideableValue.safeResolve(p.as_derived_secret())))
             .toList();
     return new URISchematic(baseUri, resolvedParameters);
   }

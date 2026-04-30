@@ -1,4 +1,3 @@
-import assert from 'assert'
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test } from 'integration-test/base'
 import { connectedEdgesFromNodeWithBinding } from './locate'
@@ -47,18 +46,29 @@ test('Hover behaviour of edges', async ({ editorPage, page }) => {
   const targetEdge = edgeElements.locator('.io')
   await expect(targetEdge).toExist()
 
-  // Hover over edge to the left of node with binding `ten`.
-  // GraphEdge.vue tracks hover via `pointerenter`, which requires the pointer to
-  // traverse from outside into the element. A single `locator.hover({ force: true })`
-  // dispatches one `mousemove` at the target and can leave the pointer already
-  // "inside" — no enter event fires and the `hovered` class stays off. Explicit
-  // two-step move guarantees the enter transition.
-  const edgeBox = await targetEdge.boundingBox()
-  assert(edgeBox)
-  const hoverX = edgeBox.x + 30
-  const hoverY = edgeBox.y + 75
-  await page.mouse.move(edgeBox.x - 20, hoverY)
-  await page.mouse.move(hoverX, hoverY, { steps: 5 })
+  // Hover near the target end of the edge so `clickWillDisconnect` is true and the
+  // edge renders with a `dimmed hovered` lower part plus a non-dimmed upper part
+  // (see `activePath` in `GraphEdge.vue`). The bounding box is unsuitable for
+  // picking a point — for an L-shaped path it's mostly empty space, and `.io` has
+  // `pointer-events: stroke`, so the pointer must actually land on the path.
+  // Query the path geometry to get a point 5 units (in path-length) from the end,
+  // well within `TARGET_DISCONNECT_THRESHOLD = 10`. Convert SVG-local coordinates
+  // to viewport via `getScreenCTM` so `page.mouse.move` lands on the stroke.
+  // The two-step move ensures `pointerenter` fires (a single `mousemove` at the
+  // target may leave the pointer already "inside" without firing enter).
+  const hoverPoint = await targetEdge.evaluate((el) => {
+    const path = el as SVGPathElement
+    const length = path.getTotalLength()
+    const local = path.getPointAtLength(Math.max(0, length - 5))
+    const ctm = path.getScreenCTM()
+    if (ctm == null) throw new Error('Edge path has no screen CTM')
+    return {
+      x: ctm.a * local.x + ctm.c * local.y + ctm.e,
+      y: ctm.b * local.x + ctm.d * local.y + ctm.f,
+    }
+  })
+  await page.mouse.move(hoverPoint.x - 30, hoverPoint.y)
+  await page.mouse.move(hoverPoint.x, hoverPoint.y, { steps: 5 })
 
   // Expect an extra edge for the split rendering.
   const hoveredEdgeElements = await connectedEdgesFromNodeWithBinding(page, 'twenty')

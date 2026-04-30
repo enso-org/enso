@@ -50,6 +50,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+  readonly conflictingMethods = new ReactiveIndex(this, (_, entry): [string, string][] =>
+    entry.kind === SuggestionKind.Method && entry.selfType != null ?
+      [[entry.name, entry.selfType.key()]]
+    : [],
+  )
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
   private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
     if (entry.kind !== SuggestionKind.Constructor) return []
@@ -62,6 +67,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   /** Constructor. */
   constructor() {
     super()
+  }
+
+  /** Create database filled with entries. */
+  static createMock(entries: SuggestionEntry[]) {
+    const db = new SuggestionDb()
+    entries.forEach((entry, i) => db.set(i, entry))
+    return db
   }
 
   /** Retrieve all suggestions of the given kind stored in the suggestion database. */

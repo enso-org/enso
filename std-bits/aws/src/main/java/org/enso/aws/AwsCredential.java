@@ -2,10 +2,10 @@ package org.enso.aws;
 
 import java.util.List;
 import org.enso.base.enso_cloud.EnsoHideableValue;
-import org.enso.base.enso_cloud.HideableValue;
 
 public sealed interface AwsCredential {
-  record Key(HideableValue accessKeyId, HideableValue secretAccessKey) implements AwsCredential {}
+  record Key(EnsoHideableValue accessKeyId, EnsoHideableValue secretAccessKey)
+      implements AwsCredential {}
 
   record Profile(String name) implements AwsCredential {}
 
@@ -15,8 +15,7 @@ public sealed interface AwsCredential {
     return switch (credentialType) {
       case DEFAULT_TYPE -> new Default();
       case PROFILE_TYPE -> new Profile(parameters.get(0).text_value());
-      case KEY_TYPE ->
-          new Key(HideableValue.from(parameters.get(0)), HideableValue.from(parameters.get(1)));
+      case KEY_TYPE -> new Key(parameters.get(0), parameters.get(1));
       default -> throw new IllegalArgumentException("Unknown credential type: " + credentialType);
     };
   }

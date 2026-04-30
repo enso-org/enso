@@ -46,7 +46,66 @@ once `./run ide build` has produced the engine bundle.
   against a cloud backend.
 - `ENSO_IDE_VERSION`, `ENSO_IDE_COMMIT_HASH` — embedded into buildinfo.
 
+## Local Claude agent
+
+`src/claudeAgent.ts` shells out to the user-installed `claude` CLI executable
+(assumed to be on `PATH`) via `cross-spawn` for headless, single-turn generation
+of User Defined Components. Invocation flags:
+`--print --output-format json --json-schema <RESPONSE_SCHEMA> --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
+The prompt is always written to the child's stdin (uniform handling regardless
+of length). `--setting-sources ""` keeps the invocation hermetic (no user
+settings/plugins/`CLAUDE.md` discovery) without touching auth; `--bare` is
+deliberately avoided because it would re-introduce the `ANTHROPIC_API_KEY`
+requirement.
+
+The renderer reaches the IPC via `window.api.ai.generateComponent(...)` (see
+`enso-gui/src/electronApi.ts`) over channel `Channel.generateAiComponent`. The
+shared request/response types live in `enso-common/src/ai.ts` so both halves of
+the IPC agree on the shape. At main-process startup `claudeAgent.ts` runs a
+best-effort `claude --version` probe and logs the result; failure is non-fatal —
+the first real IPC call surfaces the ENOENT error to the renderer as a toast.
+
+Gotchas:
+
+- With `--json-schema` active, the CLI puts the schema-validated payload in the
+  envelope's `structured_output` field (pre-decoded object); the envelope's
+  plain `result` field is left empty. Read from `structured_output` first; only
+  fall back to `result` for older CLI releases.
+- The CLI lookup uses `cross-spawn`, not `node:child_process`. Reason: a user
+  who installed Claude Code via `npm install -g @anthropic-ai/claude-code` on
+  Windows ends up with a `claude.cmd` shim in the npm global bin dir (npm wraps
+  every bin entry through `cmd-shim`, regardless of whether the target is a
+  `.exe`). `child_process.spawn('claude', …)` without `shell: true` will not
+  resolve `.cmd` extensions on Windows and returns ENOENT. `cross-spawn` handles
+  `.cmd`/`.ps1` lookup and argument quoting for `cmd.exe` while staying a no-op
+  on POSIX. The unit test mocks `cross-spawn` (default export) rather than
+  `node:child_process`.
+- Electron IPC serializes with structured clone, which strips class prototypes.
+  `Err(...)` from `enso-common/src/utilities/data/result` arrives at the
+  renderer as a plain `{ payload, context }` — `ResultError`'s methods are gone.
+  The renderer half (`ai.ts`) rebuilds the `Result` with `Ok()` / `Err()` right
+  after the IPC call so downstream callers see a well-formed error.
+
 ## Tests
 
-Playwright-driven E2E tests in `tests/` + `playwright.config.ts`. They launch a
-packaged (or unpackaged) build. Runs are long; avoid in inner dev loops.
+Two layers, same directory, different runners — controlled by the `testIgnore`
+rule in `playwright.config.ts`:
+
+- `tests/headless/*.test.ts` — Vitest unit tests for main-process code. No
+  Electron, no DOM. Fast. Run with `corepack pnpm vitest --run tests/headless`.
+  This is where `claudeAgent.test.ts` lives.
+- `tests/*.spec.ts` — Playwright end-to-end tests that launch the packaged
+  Electron binary from `dist/ide/` and drive the app from a real user's
+  perspective (login → dashboard → project → graph editor). `electronTest.ts`
+  extends Playwright's `test` fixture to spawn Electron and exposes helpers like
+  `loginAsTestUser`, `createNewProject`, `openComponentBrowser`. See
+  `tests/README.md` for prerequisites (a built `dist/ide/`, credentials at
+  `playwright/.auth/user.json`). Run with
+  `corepack pnpm -r --filter enso ide-integration-test [path.spec.ts]`. Runs are
+  long (minutes), so avoid them in inner dev loops.
+
+When adding a Playwright test that needs an external dependency the CI doesn't
+have yet (e.g. `aiNode.spec.ts` needs the local `claude` CLI), gate the whole
+describe block on an env flag (`process.env.ENSO_TEST_AI === '1'`) and note the
+flag in the plan's verification section so per-step smokes still exercise it
+locally.

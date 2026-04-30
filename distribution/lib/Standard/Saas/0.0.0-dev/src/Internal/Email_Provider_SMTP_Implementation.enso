@@ -1,17 +1,16 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import Standard.Base.Network.Email.Email_Body.Email_Body
 import Standard.Base.Network.Email.Email_Send_Response.Send_Response
 import Standard.Base.Network.Email.Send_Error.Send_Error
-from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 import project.Email_Provider_SMTP.Email_Provider_SMTP
 
 polyglot java import org.apache.commons.mail.EmailAttachment
 polyglot java import org.apache.commons.mail.EmailException
 polyglot java import org.apache.commons.mail.HtmlEmail
-polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.saas.CredentialSetter
 
 ## The SMTP implementation of the Email Provider SPI.
@@ -22,7 +21,7 @@ type Email_Provider_SMTP_Implementation
         java_email = HtmlEmail.new
         java_email.setHostName self.config.server
         java_email.setSmtpPort self.config.port
-        CredentialSetter.setAuthenticator java_email self.config.username (as_hideable_value self.config.password factory=HideableValue)
+        CredentialSetter.setAuthenticator java_email self.config.username (Derived_Secret_Value.from self.config.password)
         java_email.setSSLOnConnect self.config.use_tls
 
         from_address = email.from_address

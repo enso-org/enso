@@ -2,9 +2,11 @@
 
 #### Enso Language & Runtime
 
-- [Extending Boolean, Nothing, Text via extension methods][14980]
+- [Extending `Boolean`, `Nothing`, `Text` via extension methods][14980]
+- [Avoid exposing `Runtime.current_execution_environment` & co.][14989]
 
 [14980]: https://github.com/enso-org/enso/pull/14980
+[14989]: https://github.com/enso-org/enso/pull/14989
 
 # Enso 2026.1
 
@@ -26,6 +28,12 @@
 - [A comment can be attached to the asset version][14923]
 - [New tabular view of session log with filtering][14953]
 - [Input ports no longer highlight on hover unless being connected to][14968]
+- [Fix duplicated entries in Component Browser][14974]. The overshadowed methods
+  from parent types are no longer displayed.
+- [AI mode in Component Browser now uses underlying claude agent][14987]. The
+  user has to have authorized Claude CLI executable in path.
+- [Usage page with cloud executions statistics available for Team users in
+  Settings][14952]
 - Minimum supported macOS version is now 12 (Monterey); Electron 41 no longer
   runs on Big Sur.
 
@@ -44,6 +52,9 @@
 [14823]: https://github.com/enso-org/enso/pull/14823
 [14953]: https://github.com/enso-org/enso/pull/14953
 [14968]: https://github.com/enso-org/enso/pull/14968
+[14974]: https://github.com/enso-org/enso/pull/14974
+[14987]: https://github.com/enso-org/enso/pull/14987
+[14952]: https://github.com/enso-org/enso/pull/14952
 
 #### Enso Standard Library
 

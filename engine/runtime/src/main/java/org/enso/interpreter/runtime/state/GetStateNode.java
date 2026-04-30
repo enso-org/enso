@@ -10,6 +10,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
+import java.util.function.Function;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode.TailStatus;
@@ -24,7 +25,11 @@ import org.enso.interpreter.runtime.EnsoContext;
 @ReportPolymorphism
 @GenerateUncached
 public abstract class GetStateNode extends Node {
-  public static GetStateNode build() {
+  static GetStateNode build() {
+    return create();
+  }
+
+  public static GetStateNode create() {
     return GetStateNodeGen.create();
   }
 
@@ -48,6 +53,37 @@ public abstract class GetStateNode extends Node {
    * @throws {@link PanicException} when there is no such key in the {@link State}
    */
   public abstract Object executeGet(VirtualFrame frame, Object key, Object ifMissing);
+
+  /**
+   * Helper reading method for a value associated with a Class key.
+   *
+   * @param <R> the type of return value
+   * @param key the class representing the key
+   * @param fallback function to invoke when state isn't explicitly set
+   * @return
+   */
+  public final <R> R forClass(Class<R> key, Function<EnsoContext, R> fallback) {
+    var ctx = EnsoContext.get(this);
+    var zero = ctx.getNothing();
+    var res = execute(null, key, zero);
+    if (res == zero) {
+      res = fallback.apply(ctx);
+    }
+    return key.cast(res);
+  }
+
+  /**
+   * Helper reading method for a value associated with a Class key.
+   *
+   * @param <R> the type of return value
+   * @param key the class representing the key
+   * @param fallback value to return when there is nothing associated with the key in the state
+   * @return
+   */
+  public final <R> R forValue(Class<R> key, R fallback) {
+    var res = execute(null, key, fallback);
+    return key.cast(res);
+  }
 
   final State state() {
     return EnsoContext.get(this).currentState();

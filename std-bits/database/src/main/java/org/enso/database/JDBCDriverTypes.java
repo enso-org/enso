@@ -3,8 +3,8 @@ package org.enso.database;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
-import java.util.List;
-import org.enso.base.enso_cloud.HideableValue;
+import java.util.Map;
+import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.database.dryrun.OperationSynchronizer;
 
 public final class JDBCDriverTypes {
@@ -53,16 +53,12 @@ public final class JDBCDriverTypes {
     return SQLTimeoutException.class;
   }
 
-  public HideableValue.Factory hideableValueFactory() {
-    return new HideableValue.Factory();
-  }
-
   public OperationSynchronizer newOperationSynchronizer() {
     return new OperationSynchronizer();
   }
 
   public Connection getConnectionWithCatalogSchema(
-      String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema)
+      String url, Map<String, EnsoHideableValue> properties, String catalog, String schema)
       throws SQLException {
     return JDBCProxy.getConnectionWithCatalogSchema(url, properties, catalog, schema, initScript);
   }

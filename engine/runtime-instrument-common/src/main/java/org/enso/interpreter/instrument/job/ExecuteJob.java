@@ -195,28 +195,14 @@ public class ExecuteJob extends Job<Void> implements UniqueJob<Void>, SkipSchedu
                       this.getClass(),
                       () -> {
                         try {
-                          ExecutionEnvironment originalExecutionEnvironment = null;
+                          ExecutionEnvironment runInEnv = null;
                           if (executionEnvironment.isDefined()) {
                             var env = (Runtime$Api$ExecutionEnvironment) executionEnvironment.get();
-                            originalExecutionEnvironment =
-                                ctx.executionService()
-                                    .setExecutionInstrument(
-                                        ExecutionEnvironment.forName(env.name()))
-                                    .toCompletableFuture()
-                                    .get();
+                            runInEnv = ExecutionEnvironment.forName(env.name());
                           }
-                          Option<?> outcome;
-                          try {
-                            outcome =
-                                ProgramExecutionSupport$.MODULE$.runProgram(contextId, stack, ctx);
-                          } finally {
-                            if (originalExecutionEnvironment != null) {
-                              ctx.executionService()
-                                  .setExecutionInstrument(originalExecutionEnvironment)
-                                  .toCompletableFuture()
-                                  .get();
-                            }
-                          }
+                          Option<?> outcome =
+                              ProgramExecutionSupport$.MODULE$.runProgram(
+                                  contextId, stack, Option.apply(runInEnv), ctx);
                           handleOutcome(outcome, ctx);
                         } catch (ExecutionException e) {
                           ctx.endpoint()

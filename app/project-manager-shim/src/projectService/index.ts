@@ -4,6 +4,7 @@
  * renaming, opening, closing, and duplicating projects.
  */
 import { PRODUCT_NAME } from 'enso-common/src/constants'
+import { makeProjectTelemetryKey } from 'enso-common/src/services/ProjectManager/projectIdentity'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import KSUID from 'ksuid'
 import * as crypto from 'node:crypto'
@@ -164,14 +165,16 @@ export class ProjectService {
     return project
   }
 
-  private projectEnvVars(
+  private async projectEnvVars(
     projectId: UUID,
+    projectsDirectory: Path,
     cloud?: CloudParams,
-  ): readonly (readonly [string, string])[] {
+  ): Promise<readonly (readonly [string, string])[]> {
     if (!cloud) {
       const localSessionId = `localprojectsession-${KSUID.randomSync().string}`
+      const localProjectKey = await makeProjectTelemetryKey(projectsDirectory, projectId)
       return [
-        ['ENSO_LOCAL_PROJECT_ID', projectId],
+        ['ENSO_LOCAL_PROJECT_ID', localProjectKey],
         ['ENSO_LOCAL_PROJECT_SESSION_ID', localSessionId],
       ]
     }
@@ -189,7 +192,7 @@ export class ProjectService {
     this.logger.debug(`Running project '${project.path}'`)
     const exitCode = await this.runner.runProject(
       project.path,
-      this.projectEnvVars(projectId, cloud),
+      await this.projectEnvVars(projectId, projectsDirectory, cloud),
     )
     this.logger.debug(`Project '${project.path}' finished running`)
     return exitCode
@@ -215,7 +218,7 @@ export class ProjectService {
       project.path,
       projectId,
       this.extraArgs.length > 0 ? this.extraArgs : undefined,
-      this.projectEnvVars(projectId, cloud),
+      await this.projectEnvVars(projectId, projectsDirectory, cloud),
     )
 
     // Return the OpenProject response

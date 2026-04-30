@@ -2,6 +2,7 @@ import {
   ComputedValueRegistry,
   translateMethodCall,
   type ExpressionInfo,
+  type TypeInfo,
 } from '$/providers/openedProjects/project/computedValueRegistry'
 import {
   mockProjectNameStore,
@@ -200,6 +201,13 @@ export class GraphDb {
   getExpressionInfo(id: AstId | ExternalId | undefined): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
     return this.valuesRegistry.getExpressionInfo(externalId)
+  }
+
+  /** @returns type info of the expression bound to the given identifier, if available. */
+  getTypeOfIdentifier(ident: string): TypeInfo | undefined {
+    const nodeId = this.getIdentDefiningNode(ident)
+    if (nodeId == null) return undefined
+    return this.getExpressionInfo(nodeId)?.typeInfo
   }
 
   /** TODO: Add docs */

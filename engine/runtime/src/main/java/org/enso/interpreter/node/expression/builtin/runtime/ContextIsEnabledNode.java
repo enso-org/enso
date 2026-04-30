@@ -2,32 +2,24 @@ package org.enso.interpreter.node.expression.builtin.runtime;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
 import org.enso.interpreter.runtime.state.HasContextEnabledNode;
 
 @BuiltinMethod(
     type = "Context",
     name = "is_enabled_builtin",
     description = "Check if the context is enabled in the provided execution environment.")
-public class ContextIsEnabledNode extends Node {
-  private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
+final class ContextIsEnabledNode extends Node {
+  private @Child GetStateNode stateNode = GetStateNode.create();
   private @Child HasContextEnabledNode hasContextEnabledNode = HasContextEnabledNode.create();
 
-  Object execute(Object self, Atom context, Object env) {
-    String envName = expectStringNode.execute(env);
-    ExecutionEnvironment currentEnv = EnsoContext.get(this).getExecutionEnvironment();
-    if (!currentEnv.getName().equals(envName)) {
-      Atom error =
-          EnsoContext.get(this)
-              .getBuiltins()
-              .error()
-              .makeUnimplemented("execution environment mismatch");
-      throw new PanicException(error, this);
-    }
-    return hasContextEnabledNode.executeHasContextEnabled(currentEnv, context.getConstructor());
+  final boolean execute(Object self, Atom context) {
+    var currentEnv =
+        stateNode.forClass(ExecutionEnvironment.class, EnsoContext::getGlobalExecutionEnvironment);
+    var ret = hasContextEnabledNode.executeHasContextEnabled(currentEnv, context.getConstructor());
+    return ret;
   }
 }

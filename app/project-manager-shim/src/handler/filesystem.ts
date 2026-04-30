@@ -10,6 +10,7 @@ import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import * as yaml from 'yaml'
 import { getEngineLogDirectory } from '../distributionManager.js'
 import * as projectManagement from '../projectManagement.js'
+import { resolveClashingProjectIds } from '../projectService/resolveClashingProjectIds.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
 
 // =======================
@@ -180,7 +181,7 @@ export async function handleFilesystemCommand(
       case '--filesystem-list':
       case '--filesystem-list-recursive': {
         const directoryPath = cliArguments[1]
-        const isRecursive = cliArguments[1] === '--filesystem-list-recursive'
+        const isRecursive = cliArguments[0] === '--filesystem-list-recursive'
         if (directoryPath == null) break
         const directoryPathQueue = [directoryPath]
         const entries: FileSystemEntry[] = []
@@ -188,13 +189,18 @@ export async function handleFilesystemCommand(
           const currentDirectoryPath = directoryPathQueue.shift()
           if (currentDirectoryPath == null) break
           const entryNames = await fs.readdir(currentDirectoryPath)
-          for (const entryName of entryNames) {
-            const entryPath = path.join(currentDirectoryPath, entryName)
-            if (isFileHidden(entryPath)) continue
-            const entry = await getFileSystemEntry(entryPath)
-            entries.push(entry)
+          const fileEntries = await Promise.all(
+            entryNames.map(async (entryName) => {
+              const entryPath = path.join(currentDirectoryPath, entryName)
+              if (isFileHidden(entryPath)) return []
+              return [await getFileSystemEntry(entryPath)]
+            }),
+          )
+          const resolvedEntries = await resolveClashingProjectEntryIds(fileEntries.flat())
+          entries.push(...resolvedEntries)
+          for (const entry of resolvedEntries) {
             if (isRecursive && entry.type === FileSystemEntryType.DirectoryEntry) {
-              directoryPathQueue.push(entryPath)
+              directoryPathQueue.push(entry.path)
             }
           }
         }
@@ -249,9 +255,9 @@ export async function handleFilesystemCommand(
         break
       }
       case '--list-project-sessions': {
-        const projectId = cliArguments[1]
-        if (projectId == null) break
-        result = toJSONRPCResult(await listProjectSessions(projectId))
+        const localProjectKey = cliArguments[1]
+        if (localProjectKey == null) break
+        result = toJSONRPCResult(await listProjectSessions(localProjectKey))
         break
       }
       case '--get-project-session-logs': {
@@ -281,12 +287,56 @@ export async function handleFilesystemCommand(
   return result
 }
 
+/** Update metadata ids of projects to avoid duplicates. */
+async function resolveClashingProjectEntryIds(entries: readonly FileSystemEntry[]) {
+  const rewrittenProjects = new Map<string, ProjectEntry>()
+  const projects = entries.flatMap((entry) =>
+    entry.type === FileSystemEntryType.ProjectEntry ?
+      [
+        {
+          entry,
+          id: entry.metadata.id,
+          directoryCreationTime: entry.attributes.creationTime,
+        },
+      ]
+    : [],
+  )
+  const resolvedProjects = await resolveClashingProjectIds(projects, async (project, newId) => {
+    const projectMetadataPath = path.join(
+      project.entry.path,
+      projectManagement.PROJECT_METADATA_RELATIVE_PATH,
+    )
+    const projectMetadata = JSON.parse(await fs.readFile(projectMetadataPath, 'utf-8'))
+    projectMetadata.id = newId
+    await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadata, null, 2))
+    return {
+      ...project,
+      id: newId,
+      entry: {
+        ...project.entry,
+        metadata: {
+          ...project.entry.metadata,
+          id: newId,
+        },
+      },
+    }
+  })
+  for (const project of resolvedProjects) {
+    rewrittenProjects.set(project.entry.path, project.entry)
+  }
+  return entries.map((entry) =>
+    entry.type === FileSystemEntryType.ProjectEntry ?
+      (rewrittenProjects.get(entry.path) ?? entry)
+    : entry,
+  )
+}
+
 /** Get a file system entry for a given path. */
 export async function getFileSystemEntry(entryPath: string): Promise<FileSystemEntry> {
   const stat = await fs.stat(entryPath)
   const attributes: Attributes = {
     byteSize: stat.size,
-    creationTime: new Date(stat.ctimeMs).toISOString(),
+    creationTime: new Date(stat.birthtime).toISOString(),
     lastAccessTime: new Date(stat.atimeMs).toISOString(),
     lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
   }
@@ -383,15 +433,15 @@ function extractSessionBaseName(filename: string): string | null {
 }
 
 /**
- * Encode a session ID from projectId and file base name.
- * Format: `localprojectsession-{projectId}/{baseName}`
+ * Encode a session ID from local project key and file base name.
+ * Format: `localprojectsession-{localProjectKey}/{baseName}`
  */
-export function encodeSessionId(projectId: string, baseName: string): string {
-  return `${SESSION_ID_PREFIX}${projectId}/${baseName}`
+export function encodeSessionId(localProjectKey: string, baseName: string): string {
+  return `${SESSION_ID_PREFIX}${localProjectKey}/${baseName}`
 }
 
 /**
- * Decode a session ID into projectId and file base name.
+ * Decode a session ID into local project key and file base name.
  * Returns the project log directory and the file base name.
  * Throws if the session ID contains path traversal attempts.
  */
@@ -406,25 +456,25 @@ function decodeSessionId(sessionId: string): { projectLogDir: string; baseName: 
     }
     return { projectLogDir: logDir, baseName: raw }
   }
-  const projectId = raw.slice(0, slashIdx)
+  const localProjectKey = raw.slice(0, slashIdx)
   const baseName = raw.slice(slashIdx + 1)
-  if (!isSafePathSegment(projectId) || !isSafePathSegment(baseName)) {
+  if (!isSafePathSegment(localProjectKey) || !isSafePathSegment(baseName)) {
     throw new Error(`Invalid session ID: unsafe path segments in '${sessionId}'`)
   }
-  return { projectLogDir: path.join(logDir, projectId), baseName }
+  return { projectLogDir: path.join(logDir, localProjectKey), baseName }
 }
 
 /**
- * List project sessions by scanning `{logDir}/{projectId}/` for log files.
+ * List project sessions by scanning `{logDir}/{localProjectKey}/` for log files.
  * Each unique base name (active log + its rolled archives) is one session.
  */
 export async function listProjectSessions(
-  projectId: string,
+  localProjectKey: string,
 ): Promise<{ sessions: readonly { projectSessionId: string; createdAt: Rfc3339DateTime }[] }> {
-  if (!isSafePathSegment(projectId)) {
-    throw new Error(`Invalid project ID: unsafe segment '${projectId}'`)
+  if (!isSafePathSegment(localProjectKey)) {
+    throw new Error(`Invalid project key: unsafe segment '${localProjectKey}'`)
   }
-  const projectLogDir = path.join(getEngineLogDirectory(), projectId)
+  const projectLogDir = path.join(getEngineLogDirectory(), localProjectKey)
   let entries: string[]
   try {
     entries = await fs.readdir(projectLogDir)
@@ -445,7 +495,7 @@ export async function listProjectSessions(
     const createdAt = parseDateTimeFromFilename(baseName)
     if (!createdAt) continue
     sessions.push({
-      projectSessionId: encodeSessionId(projectId, baseName),
+      projectSessionId: encodeSessionId(localProjectKey, baseName),
       createdAt,
     })
   }

@@ -2,10 +2,14 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -163,5 +167,45 @@ public class PolyglotErrorTest {
     assertEquals("(Error: 1)", r.getArrayElement(0).toString());
     assertEquals("(Error: 2)", r.getArrayElement(1).toString());
     assertEquals("(Error: 1)", r.getArrayElement(2).toString());
+  }
+
+  @Test
+  public void invokeErrorThrow() {
+    var ensoBindings = ctxRule.context().getBindings("enso");
+    var errorModule = ensoBindings.invokeMember("get_module", "Standard.Base.Error");
+    var errorType = errorModule.invokeMember("get_type", "Error");
+    var error = errorType.invokeMember("throw", "OK");
+    assertTrue("Expecting error: " + error, error.isException());
+    try {
+      throw error.throwException();
+    } catch (PolyglotException ex) {
+      assertEquals("OK", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void invokeOversaturatedInteropPanics() {
+    var ensoBindings = ctxRule.context().getBindings("enso");
+    var mathModule = ensoBindings.invokeMember("get_module", "Standard.Base.Math");
+    var mathType = mathModule.invokeMember("get_associated_type");
+    var six = mathType.invokeMember("min", 6, 7);
+    assertEquals("6 is less then 7", 6, six.asInt());
+    try {
+      var res = mathType.invokeMember("min", 6, 7, 2, 1);
+      fail("min takes just two arguments: " + res);
+    } catch (PolyglotException ex) {
+      MatcherAssert.assertThat(
+          ex.getMessage(), Matchers.containsString("Type error: expected a function"));
+    }
+  }
+
+  @Test
+  public void typesWithoutConstructorsStillHaveMembers() {
+    var ensoBindings = ctxRule.context().getBindings("enso");
+    var projectModule = ensoBindings.invokeMember("get_module", "Standard.Base.Meta.Enso_Project");
+    var projectType = projectModule.invokeMember("get_type", "Project_Description");
+    var memberNames = projectType.getMemberKeys();
+    assertTrue("namespace is there: " + memberNames, memberNames.contains("namespace"));
+    assertTrue("root is there: " + memberNames, memberNames.contains("root"));
   }
 }

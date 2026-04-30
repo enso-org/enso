@@ -58,6 +58,8 @@ import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
+import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -183,6 +185,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExecutionEnvironment envOrNull,
       ExpressionExecutionState expressionExecutionState,
       ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
@@ -211,7 +214,15 @@ public final class ExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
+          Object prevEnv = null;
           try {
+            if (envOrNull != null) {
+              prevEnv =
+                  GetStateNode.getUncached()
+                      .forClass(
+                          ExecutionEnvironment.class, EnsoContext::getGlobalExecutionEnvironment);
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, envOrNull, true);
+            }
             var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
                 Function.fullyApplied(
@@ -219,6 +230,9 @@ public final class ExecutionService {
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
+            if (prevEnv != null) {
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, prevEnv, false);
+            }
           }
         });
   }
@@ -250,6 +264,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExecutionEnvironment envOrNull,
       ExpressionExecutionState expressionExecutionState,
       ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
@@ -276,6 +291,7 @@ public final class ExecutionService {
                 methodCallsCache,
                 syncState,
                 nextExecutionItem,
+                envOrNull,
                 expressionExecutionState,
                 progressTimingCollector,
                 funCallCallback,
@@ -476,21 +492,6 @@ public final class ExecutionService {
    */
   public CompletionStage<Object> typeOfValue(Object value) {
     return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
-  }
-
-  /**
-   * Sets global execution environment.
-   *
-   * @param env the execution envrionment to use
-   * @return old execution environment
-   */
-  public CompletionStage<ExecutionEnvironment> setExecutionInstrument(ExecutionEnvironment env) {
-    return submitExecution(
-        () -> {
-          var old = getContext().getExecutionEnvironment();
-          getContext().setExecutionEnvironment(env);
-          return old;
-        });
   }
 
   private scala.Option<File> findFileByModuleName(String module) {

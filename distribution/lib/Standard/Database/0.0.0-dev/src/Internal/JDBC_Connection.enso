@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -6,7 +7,6 @@ import Standard.Base.Logging.Progress
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.State
-from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 from Standard.Table import Value_Type
 
@@ -18,9 +18,6 @@ from project.Errors import SQL_Error, SQL_Timeout
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
-polyglot java import org.enso.base.enso_cloud.HideableValue
-polyglot java import org.enso.base.enso_cloud.HideableValue.Factory
-polyglot java import org.enso.base.enso_cloud.HideableValue.KeyValuePair
 polyglot java import org.enso.database.JDBCBatchInsert
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCDriverTypes
@@ -199,14 +196,12 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
        private: true
        ---
        Converts a vector of Enso key-value pairs into Java properties.
-    properties_as_java_props properties hideable_value_factory =
-        properties.map pair->
-            java_value = if hideable_value_factory.is_a pair.second then pair.second else
-                as_hideable_value pair.second factory=hideable_value_factory
-            hideable_value_factory.createPair pair.first java_value
+    properties_dict properties =
+        pairs = properties.map pair-> [pair.first, Derived_Secret_Value.from pair.second]
+        Dictionary.from_vector pairs
 
     sql_error_handler = create_sql_error_handler types_record
-    java_props = properties_as_java_props properties types_record.hideableValueFactory
+    java_props = properties_dict properties
     java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
     resource = Managed_Resource.register java_connection close_connection
     JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler types_record.newBatchInsert

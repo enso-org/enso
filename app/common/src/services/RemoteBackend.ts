@@ -746,6 +746,24 @@ export class RemoteBackend extends backend.Backend {
   }
 
   /**
+   * Return usage summary rows for an organization (if admin) or a user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listExecutionsSummary(
+    params: backend.ListExecutionsSummaryRequestParams,
+  ): Promise<readonly backend.ExecutionUsageSummary[]> {
+    const response = await this.get<readonly backend.ExecutionUsageSummary[]>(
+      remoteBackendPaths.LIST_EXECUTIONS_SUMMARY_PATH,
+      params.month != null ? { month: params.month } : undefined,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'listExecutionsSummaryBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
    * Return a list of executions for a project.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */

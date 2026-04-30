@@ -267,7 +267,7 @@ export class Filtering {
   pattern: FilteringWithPattern | undefined
   selfArg: SelfArg | undefined
 
-  /** TODO: Add docs */
+  /** Create filtering class. */
   constructor(
     filter: Filter,
     public currentModule: ProjectPath | undefined = undefined,
@@ -277,7 +277,7 @@ export class Filtering {
     this.selfArg = selfArg
   }
 
-  private selfTypeMatches(entry: SuggestionEntry): MatchResult | null {
+  private selfTypeMatches(entry: SuggestionEntry, db: SuggestionDb): MatchResult | null {
     if (this.selfArg == null)
       return entry.kind !== SuggestionKind.Method || entry.selfType == null ? exactMatch() : null
     if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
@@ -287,14 +287,21 @@ export class Filtering {
     const visibleTypeMatch = visibleTypes?.find((ty) => entrySelfType.equals(ty))
     if (visibleTypeMatch != null) return exactMatch()
     const hiddenTypeMatch = this.selfArg.typeInfo?.hiddenTypes.find((t) => entrySelfType.equals(t))
-    const matchedAncestor = this.selfArg.ancestors.find((t) => entrySelfType.equals(t))
-    if (entrySelfType.equals(ANY_TYPE) || hiddenTypeMatch != null || matchedAncestor != null)
-      // Matched ancestor are not added to `fromType`, because type casting is not needed.
+    if (hiddenTypeMatch != null) {
       return { score: DIFFERENT_TYPE_PENALTY, fromType: hiddenTypeMatch }
-    return null
+    }
+    const matchedAncestor =
+      entrySelfType.equals(ANY_TYPE) ? ANY_TYPE : (
+        this.selfArg.ancestors.find((t) => entrySelfType.equals(t))
+      )
+    if (matchedAncestor == null) return null
+    const ancestorOvershadowed = db.conflictingMethods.lookup(entry.name).has(matchedAncestor.key())
+    if (ancestorOvershadowed) return null
+    // Matched ancestor are not added to `fromType`, because type casting is not needed.
+    return { score: DIFFERENT_TYPE_PENALTY, fromType: undefined }
   }
 
-  /** TODO: Add docs */
+  /** Check if current filter is clear, and a "Main" view of the CB should be displayed. */
   isMainView() {
     return this.pattern == null && this.selfArg == null
   }
@@ -321,7 +328,7 @@ export class Filtering {
   filter(entry: SuggestionEntry, db: SuggestionDb): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null
-    let result = this.selfTypeMatches(entry)
+    let result = this.selfTypeMatches(entry, db)
     if (result == null) return null
     if (this.pattern) {
       const additionalSelfTypes =

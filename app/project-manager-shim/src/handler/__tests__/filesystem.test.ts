@@ -8,8 +8,107 @@ import {
   downloadProjectSessionLogs,
   encodeSessionId,
   getProjectSessionLogs,
+  handleFilesystemCommand,
   listProjectSessions,
 } from '../filesystem'
+
+async function createProject(directory: string, id: string, name = path.basename(directory)) {
+  await fsPromises.mkdir(path.join(directory, '.enso'), { recursive: true })
+  await fsPromises.writeFile(
+    path.join(directory, 'package.yaml'),
+    `name: ${name}\nnamespace: local\n`,
+  )
+  await fsPromises.writeFile(
+    path.join(directory, '.enso/project.json'),
+    JSON.stringify({ id, kind: 'UserProject', created: '2026-01-01T00:00:00.000Z' }, null, 2),
+  )
+}
+
+async function listEntries(directory: string, recursive = false) {
+  const response = await handleFilesystemCommand(
+    [recursive ? '--filesystem-list-recursive' : '--filesystem-list', directory],
+    {} as any,
+  )
+  if (typeof response !== 'string') {
+    throw new Error('Expected JSON-RPC string response.')
+  }
+  return (JSON.parse(response) as { result: { entries: unknown[] } }).result.entries
+}
+
+describe('filesystem listing duplicate resolution', () => {
+  let tmpDir: string
+
+  beforeEach(async () => {
+    tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'filesystem-list-test-'))
+  })
+
+  afterEach(async () => {
+    await fsPromises.rm(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 1000 })
+  })
+
+  test('dedupes sibling project IDs during listing and rewrites younger metadata on disk', async () => {
+    const duplicateId = '11111111-1111-1111-1111-111111111111'
+    const olderProject = path.join(tmpDir, 'older')
+    const youngerProject = path.join(tmpDir, 'younger')
+
+    await createProject(olderProject, duplicateId, 'Older')
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await createProject(youngerProject, duplicateId, 'Younger')
+
+    const entries = (await listEntries(tmpDir)).filter(
+      (
+        entry,
+      ): entry is {
+        type: 'ProjectEntry'
+        path: string
+        metadata: { id: string; name: string }
+      } =>
+        typeof entry === 'object' &&
+        entry != null &&
+        'type' in entry &&
+        entry.type === 'ProjectEntry' &&
+        'metadata' in entry,
+    )
+    const olderEntry = entries.find((entry) => entry.path === olderProject)
+    const youngerEntry = entries.find((entry) => entry.path === youngerProject)
+    const youngerMetadata = JSON.parse(
+      await fsPromises.readFile(path.join(youngerProject, '.enso/project.json'), 'utf-8'),
+    )
+
+    expect(entries).toHaveLength(2)
+    expect(olderEntry?.metadata.id).toBe(duplicateId)
+    expect(youngerEntry?.metadata.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    )
+    expect(youngerEntry?.metadata.id).not.toBe(duplicateId)
+    expect(youngerMetadata.id).toBe(youngerEntry?.metadata.id)
+  })
+
+  test('recursive listing does not dedupe same IDs across different parent directories', async () => {
+    const duplicateId = '22222222-2222-2222-2222-222222222222'
+    const firstParent = path.join(tmpDir, 'first-parent')
+    const secondParent = path.join(tmpDir, 'second-parent')
+    const firstProject = path.join(firstParent, 'project')
+    const secondProject = path.join(secondParent, 'project')
+
+    await fsPromises.mkdir(firstParent, { recursive: true })
+    await fsPromises.mkdir(secondParent, { recursive: true })
+    await createProject(firstProject, duplicateId, 'First')
+    await createProject(secondProject, duplicateId, 'Second')
+
+    const projects = (await listEntries(tmpDir, true)).filter(
+      (entry): entry is { type: 'ProjectEntry'; path: string; metadata: { id: string } } =>
+        typeof entry === 'object' &&
+        entry != null &&
+        'type' in entry &&
+        entry.type === 'ProjectEntry' &&
+        'metadata' in entry,
+    )
+
+    expect(projects.find((entry) => entry.path === firstProject)?.metadata.id).toBe(duplicateId)
+    expect(projects.find((entry) => entry.path === secondProject)?.metadata.id).toBe(duplicateId)
+  })
+})
 
 describe('listProjectSessions', () => {
   let tmpDir: string

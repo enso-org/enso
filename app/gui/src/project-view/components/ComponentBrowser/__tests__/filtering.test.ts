@@ -99,6 +99,22 @@ test('`Any` type methods taken into account when filtering', () => {
   expect(filteringWithoutSelfType.filter(entry2, db)).toBeNull()
 })
 
+test('`Any` or ancestor type methods may be overshadowed', () => {
+  const entry1 = makeMethod('Standard.Table.Column.Column.is_nothing')
+  const entry2 = makeMethod('Standard.Base.Any.Any.is_nothing')
+  const entry3 = makeMethod('Standard.Database.DB_Column.is_nothing')
+  const filtering = new Filtering({
+    selfArg: {
+      type: 'known',
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Table.Column.Column')], [])!,
+      ancestors: [stdPath('Standard.Database.DB_Column')],
+    },
+  })
+  const db = SuggestionDb.createMock([entry1, entry2, entry3])
+  expect(filtering.filter(entry1, db)).not.toBeNull()
+  expect(filtering.filter(entry2, db)).toBeNull()
+})
+
 test('Hidden self types and ancestors are taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Numbers.Float.abs')
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
@@ -349,10 +365,7 @@ describe('Constructor fields accessors', () => {
     const constructor = createConstructor('Standard.Base.Data.Json.JS_Object.Value', false)
     const fieldAccessor = makeMethod('Standard.Base.Data.Json.JS_Object.object_node')
     const typeMethod = makeMethod('Standard.Base.Data.Json.JS_Object.some_method')
-    const db = new SuggestionDb()
-    db.set(0, constructor)
-    db.set(1, fieldAccessor)
-    db.set(2, typeMethod)
+    const db = SuggestionDb.createMock([constructor, fieldAccessor, typeMethod])
     expect(filtering.filter(fieldAccessor, db)).not.toBeNull()
     expect(filtering.filter(typeMethod, db)).not.toBeNull()
   })
@@ -361,10 +374,7 @@ describe('Constructor fields accessors', () => {
     const constructor = createConstructor('Standard.Base.Data.Json.JS_Object.Value', true)
     const fieldAccessor = makeMethod('Standard.Base.Data.Json.JS_Object.object_node')
     const typeMethod = makeMethod('Standard.Base.Data.Json.JS_Object.some_method')
-    const db = new SuggestionDb()
-    db.set(0, constructor)
-    db.set(1, fieldAccessor)
-    db.set(2, typeMethod)
+    const db = SuggestionDb.createMock([constructor, fieldAccessor, typeMethod])
     expect(filtering.filter(fieldAccessor, db)).toBeNull()
     expect(filtering.filter(typeMethod, db)).not.toBeNull()
   })
@@ -374,13 +384,10 @@ describe('Constructor fields accessors', () => {
     const constructor2 = createConstructor('Standard.Base.Data.Json.JS_Object.PublicValue', false)
     const fieldAccessor = makeMethod('Standard.Base.Data.Json.JS_Object.object_node')
     const typeMethod = makeMethod('Standard.Base.Data.Json.JS_Object.some_method')
-    const db = new SuggestionDb()
-    db.set(0, constructor1)
-    db.set(1, fieldAccessor)
-    db.set(2, typeMethod)
+    const db = SuggestionDb.createMock([constructor1, fieldAccessor, typeMethod])
     expect(filtering.filter(fieldAccessor, db)).toBeNull()
     expect(filtering.filter(typeMethod, db)).not.toBeNull()
-    db.set(3, constructor2)
+    db.set(33, constructor2)
     expect(filtering.filter(fieldAccessor, db)).not.toBeNull()
     expect(filtering.filter(typeMethod, db)).not.toBeNull()
   })

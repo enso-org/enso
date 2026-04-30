@@ -11,7 +11,7 @@ import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHook
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
-import { SharedWithColumn } from '#/pages/dashboard/components/column'
+import { CreatedByColumn, SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import Label from '#/pages/dashboard/components/Label'
 import { tv } from '#/utilities/tailwindVariants'
@@ -36,6 +36,7 @@ import {
   type AnyAsset,
   type DatalinkId,
 } from 'enso-common/src/services/Backend'
+import { formatBytes } from 'enso-common/src/utilities/bytes'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as permissions from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
@@ -98,6 +99,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
+  const isTeam = category.type === 'team'
   const { getText } = useText()
   const featureFlags = useFeatureFlags()
   const datalinkQuery = useQuery(
@@ -236,6 +238,40 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   </Text>
                 </td>
               </tr>
+              <tr data-testid="asset-panel-created-at" className="h-row">
+                <td className="min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('createdAt')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <Text className="grow" truncate="1">
+                    {toReadableIsoString(new Date(item.createdAt))}
+                  </Text>
+                </td>
+              </tr>
+              {item.size != null && (
+                <tr data-testid="asset-panel-size" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('sizeColumnName')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <Text className="grow" truncate="1">
+                      {formatBytes(item.size)}
+                    </Text>
+                  </td>
+                </tr>
+              )}
+              {isTeam && (
+                <tr data-testid="asset-panel-created-by" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('createdByColumnName')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <Text className="grow" truncate="1">
+                      <CreatedByColumn item={item} state={{ category }} />
+                    </Text>
+                  </td>
+                </tr>
+              )}
               {isEnterprise && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">

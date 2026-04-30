@@ -337,6 +337,6 @@ object RuntimeExecutionEnvironmentTest {
         "Standard.Base.Runtime.Context",
         "if_enabled"
       ),
-      Vector(2, 3, 4)
+      Vector(2, 3)
     )
 }

@@ -507,9 +507,8 @@ export function useProjectStates() {
   /** Create an event logger for given project. */
   function eventLogger(project: Opened, runDetails: ProjectDetails) {
     const logProjectId =
-      project.info.mode === 'local' ?
-        `project-${runDetails.internalId?.replaceAll('-', '')}`
-      : project.info.id
+      project.info.mode === 'local' ? runDetails.localProjectKey : project.info.id
+    assertDefined(logProjectId)
     return {
       async send(message: string) {
         backends.remoteBackend.logEvent(message, logProjectId)

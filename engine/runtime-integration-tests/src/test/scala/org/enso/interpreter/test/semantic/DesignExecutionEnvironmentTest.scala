@@ -20,7 +20,7 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |from Standard.Base.Runtime.Context import Input
           |
           |input_action : Integer -> Integer
-          |input_action i = Input.if_enabled i environment="design"
+          |input_action i = Input.if_enabled i
           |
           |main = Panic.catch Any (input_action 2) p-> p.payload.to_text
           |""".stripMargin
@@ -35,7 +35,7 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |from Standard.Base.Runtime.Context import Input,Output
           |
           |input_action : Integer -> Integer
-          |input_action i = Input.if_enabled i environment="design"
+          |input_action i = Input.if_enabled i
           |
           |main = Panic.catch Any (Runtime.with_enabled_context Output (input_action 2)) p-> p.payload.to_text
           |""".stripMargin
@@ -50,13 +50,13 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |from Standard.Base.Runtime.Context import Input
           |
           |input_action : Integer -> Integer
-          |input_action i = Input.if_enabled i environment="live"
+          |input_action i = Input.if_enabled i
           |
           |main = Panic.catch Any (input_action 2) p-> p.payload.to_text
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "(Unimplemented.Error execution environment mismatch)"
+      ) shouldEqual "(Forbidden_Operation.Error 'The Input context is disabled.')"
     }
 
     "pass on Input actions" in {
@@ -65,7 +65,7 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |from Standard.Base.Runtime.Context import Input
           |
           |input_action : Integer -> Integer
-          |input_action i = Input.if_enabled i environment="design"
+          |input_action i = Input.if_enabled i
           |
           |main = Runtime.with_enabled_context Input action=(input_action 2)
           |""".stripMargin
@@ -78,7 +78,7 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |from Standard.Base.Runtime.Context import Output
           |
           |output_action : Integer -> Integer
-          |output_action i = Output.if_enabled i environment="design"
+          |output_action i = Output.if_enabled i
           |
           |main = Panic.catch Any (output_action 2) p-> p.payload.to_text
           |""".stripMargin
@@ -110,13 +110,13 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |from Standard.Base.Runtime.Context import Input, Output
           |
           |output_action : Integer -> Integer
-          |output_action i = Output.if_enabled (i+1) environment="design"
+          |output_action i = Output.if_enabled (i+1)
           |
           |input_action : Integer -> Integer
-          |input_action i = Input.if_enabled (i*2) environment="design"
+          |input_action i = Input.if_enabled (i*2)
           |
           |main =
-          |    r = Runtime.with_enabled_context Input environment="design" <| Runtime.with_enabled_context Output environment="design" <| output_action <| input_action 123
+          |    r = Runtime.with_enabled_context Input <| Runtime.with_enabled_context Output <| output_action <| input_action 123
           |    [r].to_text
           |""".stripMargin
       eval(code) shouldEqual "[247]"
