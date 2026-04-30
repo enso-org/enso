@@ -91,6 +91,44 @@ async function resolveDataFiles<T extends Readonly<Record<string, string>>>(
   return result as { [K in keyof T]: string }
 }
 
+/**
+ * Wait for the Enso engine to finish evaluating all nodes, then bail if any node is showing an
+ * originating Panic, DataflowError, or Missing_Argument. Catching the failure here saves the rest
+ * of the AI budget (each downstream prompt would chain off the broken node and either inherit the
+ * panic or waste a 5-15s round-trip producing more code on top of bad data).
+ *
+ * Background: `.GraphNode.evaluating` is added while the LS payload type is `Pending` and during
+ * the 500ms post-completion visual settle (see `app/gui/src/project-view/components/GraphEditor/
+ * GraphNode.vue` `useRecomputation` / `useProgressBackground`). Once `.evaluating` clears across
+ * every node, all expression updates have flushed into Vue's reactive layer, so `.GraphNodeMessage`
+ * either is or is not present — no race window.
+ *
+ * Warnings (`type === 'warning'`) render with the same `.GraphNodeMessage` element when the node
+ * is hovered or selected — `useNodeMessage`'s `expand` parameter is `nodeHovered || selected` in
+ * `GraphNode.vue`, and our `runAIPromptOnLastNode` selects the new node at the end of each step.
+ * They are not pipeline failures, so we discriminate by the SvgIcon's `<use href>`, which is
+ * `<iconsUri>#<iconName>` per `svgUseHref` in `app/gui/src/project-view/util/icons.ts`. Per
+ * `iconForMessageType` in `GraphNodeMessage.vue` the mapping is:
+ *   panic   → `#panic`     (Panic payload — fail)
+ *   error   → `#error`     (DataflowError other than Missing_Argument — fail)
+ *   missing → `#metadata`  (Missing_Argument DataflowError — fail; AI emitted a call missing args)
+ *   warning → `#warning`   (benign — IGNORE)
+ */
+async function assertNoNodeErrors(page: Page, contextDescription: string) {
+  await expect(page.locator('.GraphNode.evaluating')).toHaveCount(0, { timeout: 60_000 })
+  const errorMessages = page.locator(
+    '.GraphNodeMessage:has(use[href$="#panic"]), ' +
+      '.GraphNodeMessage:has(use[href$="#error"]), ' +
+      '.GraphNodeMessage:has(use[href$="#metadata"])',
+  )
+  const count = await errorMessages.count()
+  if (count === 0) return
+  const texts = await errorMessages.locator('.message').allInnerTexts()
+  throw new Error(
+    `Node error after ${contextDescription} — bailing (downstream AI prompts would compound the failure):\n${texts.map((t) => '  - ' + t).join('\n')}`,
+  )
+}
+
 async function addFreestandingNode(page: Page, expression: string, expectedNodeCount: number) {
   await page.getByTestId('add-component-button').click()
   const cbInput = page.getByTestId('component-editor-content')
@@ -100,6 +138,7 @@ async function addFreestandingNode(page: Page, expression: string, expectedNodeC
   await expect(page.locator('.GraphNode')).toHaveCount(expectedNodeCount, {
     timeout: MANUAL_NODE_TIMEOUT_MS,
   })
+  await assertNoNodeErrors(page, `creating node \`${expression}\``)
 }
 
 /**
@@ -125,6 +164,7 @@ async function runAIPromptOnLastNode(page: Page, prompt: string, expectedNodeCou
   await page.keyboard.insertText(`AI: ${prompt}`)
   await page.keyboard.press('Enter')
   await expect(graphNodes).toHaveCount(expectedNodeCount, { timeout: AI_PROMPT_TIMEOUT_MS })
+  await assertNoNodeErrors(page, `AI prompt: ${prompt}`)
   // AI-generated nodes are NOT auto-selected after creation (unlike CB-typed nodes — see
   // localWorkflow.spec.ts:120). Without this re-selection, the next iteration's Enter would
   // keep chaining off the original Data.read source, producing parallel branches instead of a
