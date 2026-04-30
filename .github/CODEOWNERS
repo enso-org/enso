@@ -1,5 +1,3 @@
-# Change log
-CHANGELOG.md
-
 # Empty the CODEOWNERS file to remove all code owners. This will allow anyone to be able to review and merge pull requests without needing approval from specific code owners.
-/
+** @wdanilo @farmaazon
+* @wdanilo @farmaazon
