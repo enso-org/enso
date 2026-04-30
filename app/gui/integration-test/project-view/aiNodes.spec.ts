@@ -38,3 +38,31 @@ test('AI prompt creates a User Defined Component node', async ({ editorPage, pag
   // The source node `data` is wired to the AI node's argument port via a real edge.
   await editorPage.expectEdgesFromTo('data', 'ai_component1', 1)
 })
+
+test('AI prompt without a source node still renders the category icon', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+
+  // Open the CB without a source node so the agent's mock returns no `callArguments`.
+  // The resulting call AST is just `Main.ai_helper` (a `PropertyAccess`, not an `App`),
+  // which makes `WidgetAiPrompt` and `WidgetIcon` both eligible to render the root —
+  // and a regression here drops the icon when `WidgetAiPrompt` outranks `WidgetIcon`.
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowser(page)).toBeVisible()
+
+  const PROMPT = 'no source needed'
+  await page.keyboard.insertText(`AI:${PROMPT}`)
+  await expect(page.locator('.ComponentList')).toBeHidden()
+  await page.keyboard.press('Enter')
+  await expect(locate.componentBrowser(page)).toBeHidden()
+
+  const aiNode = locate.graphNodeByBinding(page, 'ai_component1')
+  await expect(aiNode).toBeVisible()
+  await expect(aiNode.locator('.WidgetAiPrompt')).toHaveText(PROMPT)
+
+  // The bug being guarded against: with no call arguments the row used to render without
+  // any category icon, because `WidgetAiPrompt` won the priority tie at the root input.
+  await expect(locate.graphNodeIcon(aiNode)).toBeVisible()
+})
