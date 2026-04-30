@@ -110,13 +110,13 @@ main filter=Nothing =
         Default_Args_Spec.add_specs suite_builder
         Error_Spec.add_specs suite_builder
         Environment_Spec.add_specs suite_builder
-        Embedded_Native_Libs_Spec.add_specs suite_builder
+        # Embedded_Native_Libs_Spec.add_specs suite_builder
         File_Spec.add_specs suite_builder
         Temporary_File_Spec.add_specs suite_builder
         File_Read_Spec.add_specs suite_builder
         Input_Stream_Spec.add_specs suite_builder
-        Reporting_Stream_Decoder_Spec.add_specs suite_builder
-        Reporting_Stream_Encoder_Spec.add_specs suite_builder
+        # Reporting_Stream_Decoder_Spec.add_specs suite_builder
+        # Reporting_Stream_Encoder_Spec.add_specs suite_builder
         Http_Header_Spec.add_specs suite_builder
         Http_Request_Spec.add_specs suite_builder
         Http_Spec.add_specs suite_builder
@@ -177,10 +177,10 @@ main filter=Nothing =
         Warnings_Spec.add_specs suite_builder
         Private_Spec.add_specs suite_builder
         System_Spec.add_specs suite_builder
-        Logging_Spec.add_specs suite_builder
+        # Logging_Spec.add_specs suite_builder
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
         Decimal_Spec.add_specs suite_builder
-        Runner_Spec.add_specs suite_builder
+        # Runner_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

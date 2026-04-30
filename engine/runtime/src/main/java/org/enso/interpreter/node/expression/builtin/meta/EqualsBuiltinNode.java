@@ -38,6 +38,11 @@ public final class EqualsBuiltinNode extends Node {
     return new EqualsBuiltinNode(EqualsNode.build());
   }
 
+  @CompilerDirectives.TruffleBoundary
+  private static boolean checkFile() {
+    return new java.io.File("/tmp/stop").exists();
+  }
+
   /**
    * Compares two objects for equality.
    *
@@ -50,6 +55,11 @@ public final class EqualsBuiltinNode extends Node {
     if (left instanceof DataflowError e) {
       return e;
     }
+    var f1 = left instanceof Double;
+    var f2 = right instanceof Double;
+    if (f1 != f2 && checkFile()) {
+      breakpointHit(f1, f2);
+    }
     var areEqual = node.execute(frame, left, right);
     if (areEqual.getWarnings() != null) {
       if (append == null) {
@@ -60,5 +70,11 @@ public final class EqualsBuiltinNode extends Node {
     } else {
       return areEqual.isTrue();
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void breakpointHit(Object o1, Object o2) {
+    System.err.println("EqualsNode for " + o1 + " and " + o2);
+    System.err.println("         types " + o1.getClass() + " and " + o2.getClass());
   }
 }

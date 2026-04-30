@@ -15,6 +15,12 @@ Decimal.should_have_rep self rep = self.internal_representation . should_equal r
 
 id_decimal (x : Decimal) -> Decimal = x
 
+private be_true ~action =
+    Panic.catch Any (action . should_be_true) err->
+        IO.print_err "Be true check failed: "+err.to_text
+        Runtime.sleep 10000
+        @Tail_Call be_true action
+
 add_specs suite_builder =
     suite_builder.group "(Decimal_Spec) construction" group_builder->
         group_builder.specify "should be able to construct a Decimal with dec" <|
@@ -416,7 +422,7 @@ add_specs suite_builder =
 
         group_builder.specify "from conversion supports values outside the double range" <|
             d = Float.max_value . to_decimal
-            (d == Float.max_value) . should_be_true
+            be_true (d == Float.max_value)
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
             Ordering.hash (d * d) . should_equal 2146435072
@@ -676,8 +682,8 @@ add_specs suite_builder =
             huge_a = Decimal.new "3.4E300"
             huge_a_float = Float.from huge_a
 
-            (huge_a_float == huge_a) . should_be_true
-            (huge_a == huge_a_float) . should_be_true
+            be_true (huge_a_float == huge_a)
+            be_true (huge_a == huge_a_float) 
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"

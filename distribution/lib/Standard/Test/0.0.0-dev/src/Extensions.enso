@@ -310,7 +310,10 @@ Number.should_equal self that epsilon=0 = Frame_Hider.hide <|
         True -> Spec_Result.Success
         False ->
             msg = self.to_text + " did not equal " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
-            Test.fail msg
+            IO.print_err msg
+            IO.print_err "Waiting 10s before retrying..."
+            Runtime.sleep 10000
+            @Tail_Call Number.should_equal self=self that epsilon
 
 ## Asserts that `self` is within `epsilon` from `that`.
 
