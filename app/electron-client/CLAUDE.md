@@ -203,3 +203,10 @@ have yet (e.g. `aiNode.spec.ts` needs the local `claude` CLI), gate the whole
 describe block on an env flag (`process.env.ENSO_TEST_AI === '1'`) and note the
 flag in the plan's verification section so per-step smokes still exercise it
 locally.
+
+`tests/aiChallengePrep.spec.ts` is the heavy AI suite — it drives full Preppin'
+Data challenge solves through `AI:` prompts. Both tests are **expected to fail
+today**; they are forcing functions for upcoming agent capabilities (stdlib
+reading, runtime value probing). Gated on
+`ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at manually-downloaded inputs;
+see `tests/README.md` for the expected layout.
