@@ -155,6 +155,22 @@ async function closeRightPanel(page: Page) {
   if (await closeButton.isVisible().catch(() => false)) await closeButton.click()
 }
 
+/**
+ * Delete the template welcome node that ships with every freshly-created project. Its inline
+ * `.TableVisualization` (which `createNewProject` in `electronTest.ts` asserts contains
+ * "Welcome To Enso!") otherwise lingers in the DOM for the whole test, so the final-result
+ * assertions — which query `.TableVisualization` to inspect the pipeline output — pick up the
+ * welcome viz too and either trigger Playwright's strict-mode duplicate-match guard or, worse,
+ * silently match the welcome viz instead of the actual output.
+ */
+async function clearWelcomeNode(page: Page) {
+  const graphNodes = page.locator('.GraphNode')
+  await expect(graphNodes).toHaveCount(1)
+  await graphNodes.first().click()
+  await page.keyboard.press('Backspace')
+  await expect(graphNodes).toHaveCount(0)
+}
+
 async function runAIPromptOnLastNode(page: Page, prompt: string, expectedNodeCount: number) {
   const graphNodes = page.locator('.GraphNode')
   // The currently-selected node is the source for the chained CB; press Enter to open it.
@@ -185,9 +201,9 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
   await closeWelcome(page)
   await createNewProject(page)
   await closeRightPanel(page)
+  await clearWelcomeNode(page)
 
   const graphNodes = page.locator('.GraphNode')
-  await expect(graphNodes).toHaveCount(1)
 
   // Manual: 4 Data.read source nodes — three sheets out of `Gym Leader Set Cards.xlsx` and the
   // Pokemon sheet of `Pokemon Input.xlsx`. The agent identifies which source is which by reading
@@ -202,7 +218,7 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
     `Data.read "${files.cardsWorkbook}" (..Sheet "Trainer Cards")`,
     `Data.read "${files.cardsWorkbook}" (..Sheet "Pokemon Cards")`,
   ]
-  let nodeCount = 1
+  let nodeCount = 0
   for (const expr of sources) {
     nodeCount += 1
     await addFreestandingNode(page, expr, nodeCount)
@@ -264,11 +280,11 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
   await closeWelcome(page)
   await createNewProject(page)
   await closeRightPanel(page)
+  await clearWelcomeNode(page)
 
   const graphNodes = page.locator('.GraphNode')
-  await expect(graphNodes).toHaveCount(1)
 
-  await addFreestandingNode(page, `Data.read "${files.scores}"`, 2)
+  await addFreestandingNode(page, `Data.read "${files.scores}"`, 1)
 
   // Input columns: Series, Week, Couple, Scores, Dance, Music, Result, Film, Broadway musical,
   // Musical, Country, CelebratingBBC. Step 3 deliberately does NOT spell out the `Scores` field's
@@ -287,7 +303,7 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
       ' their final-round average; project to the columns Series, Couple, Finalist Positions,' +
       ' Avg Judge\'s Score, % Change',
   ]
-  let nodeCount = 2
+  let nodeCount = 1
   for (const prompt of prompts) {
     nodeCount += 1
     await runAIPromptOnLastNode(page, prompt, nodeCount)
