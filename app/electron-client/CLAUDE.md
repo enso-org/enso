@@ -91,11 +91,11 @@ The agent generates a full User Defined Component, returning four fields:
 collects all in-scope bindings in the current method (with their inferred
 types), the method's source code, and — optionally — a source binding the user
 dropped into the prompt, then passes that context to the agent so it can pick
-which bindings to thread into the function. The source binding is optional:
-when absent, the agent generates a component from scratch using only the other
-in-scope bindings (or none at all). `argumentNames` are pure function-signature parameter names
-(referenced by `body`); `callArguments` are the Enso expressions passed at the
-call site, one per parameter. `createAiNode`
+which bindings to thread into the function. The source binding is optional: when
+absent, the agent generates a component from scratch using only the other
+in-scope bindings (or none at all). `argumentNames` are pure function-signature
+parameter names (referenced by `body`); `callArguments` are the Enso expressions
+passed at the call site, one per parameter. `createAiNode`
 (`app/gui/src/project-view/components/GraphEditor/aiNode.ts`) parses each entry
 of `callArguments` with the Enso parser and assembles
 `Main.<functionName> <callArguments[0]> <callArguments[1]> …` itself, so the

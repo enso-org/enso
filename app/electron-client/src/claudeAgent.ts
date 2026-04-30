@@ -227,6 +227,7 @@ export class ClaudeAgentSession {
   private stderrTail = ''
   private disposed = false
 
+  /** Spawn the child, kick off priming, and start serving requests. */
   constructor() {
     // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
     // unhandled rejection when no `runRequest` happens to be awaiting `ready` at the time.
