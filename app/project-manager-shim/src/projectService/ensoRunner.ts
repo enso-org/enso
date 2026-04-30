@@ -178,8 +178,12 @@ class OpenedProject {
     }
   }
 
-  private onUnexpectedExit(reason: string, info: UnexpectedExitInfo): undefined {
+  private onUnexpectedExit(reason: string, info: UnexpectedExitInfo): boolean | undefined {
     clearTimeout(this.nextWatchdogCheck)
+    if (this.closed) {
+      // Exit caused by our own gracefulShutdown — suppress respawn so the port frees up.
+      return false
+    }
     this.loadedDeferred.reject(new Error(reason))
     if (info.exceedsCrashLimit) {
       console.error(
