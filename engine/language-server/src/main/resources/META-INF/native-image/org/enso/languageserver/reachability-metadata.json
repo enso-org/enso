@@ -31,7 +31,25 @@
           "name": "onConnect",
           "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
         }
-      ]      
+      ]
+    },
+    {
+      "type": "org.enso.languageserver.runtime.VisualizationBridgeServer$ControlServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]
+    },
+    {
+      "type": "org.enso.languageserver.runtime.VisualizationBridgeServer$DataServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]
     },
     {
       "type": "org.enso.jsonrpc.YdocJsonRpcServer$ServerCallbacks",

@@ -11,6 +11,7 @@
     "./src/inspect.ts",
     "./src/languageServerSession.ts",
     "./src/serialization.ts",
+    "./src/visualizationBridge.ts",
     "./src/ydoc.ts"
   ]
 }

@@ -3,14 +3,12 @@ package org.enso.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
 import org.enso.base.enso_cloud.EnsoSecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
 import org.enso.database.audit.CloudAuditedConnection;
 import org.enso.database.audit.LocalAuditedConnection;
 
@@ -48,7 +46,7 @@ public final class JDBCProxy {
    */
   public static Connection getConnectionWithCatalogSchema(
       String url,
-      List<HideableValue.KeyValuePair> properties,
+      Map<String, EnsoHideableValue> properties,
       String catalog,
       String schema,
       String initScript)
@@ -93,21 +91,21 @@ public final class JDBCProxy {
   public static final String RELATED_ASSET_ID_KEY = ENSO_PROPERTY_PREFIX + "relatedAssetId";
 
   private record PartitionedProperties(
-      Map<String, String> ensoProperties, List<HideableValue.KeyValuePair> jdbcProperties) {
-    public static PartitionedProperties parse(List<HideableValue.KeyValuePair> properties) {
-      List<HideableValue.KeyValuePair> jdbcProperties = new ArrayList<>();
+      Map<String, String> ensoProperties, Map<String, EnsoHideableValue> jdbcProperties) {
+    public static PartitionedProperties parse(Map<String, EnsoHideableValue> properties) {
+      Map<String, EnsoHideableValue> jdbcProperties = new HashMap<>();
       HashMap<String, String> ensoProperties = new HashMap<>();
 
-      for (var pair : properties) {
-        if (pair.key().startsWith(ENSO_PROPERTY_PREFIX)) {
+      for (var key : properties.keySet()) {
+        if (key.startsWith(ENSO_PROPERTY_PREFIX)) {
           try {
-            ensoProperties.put(pair.key(), pair.value().safeResolve());
+            ensoProperties.put(key, EnsoHideableValue.safeResolve(properties.get(key)));
           } catch (EnsoSecretAccessDenied e) {
             throw new IllegalStateException(
-                "Internal Enso property " + pair.key() + " should not contain secrets.");
+                "Internal Enso property " + key + " should not contain secrets.");
           }
         } else {
-          jdbcProperties.add(pair);
+          jdbcProperties.put(key, properties.get(key));
         }
       }
 

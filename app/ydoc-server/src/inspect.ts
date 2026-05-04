@@ -88,6 +88,41 @@ export class InspectManager {
     }
   }
 
+  /** Wraps the visualization control (JSON) server to intercept channel creation. */
+  wrapVisControlServer(delegate: YjsChannelServer<string>): YjsChannelServer<string> {
+    return {
+      onConnect: (channel: YjsChannel<string, unknown>) => {
+        this.registerChannel(
+          channel,
+          'json',
+          (m) => m,
+          (v) => v,
+        )
+        delegate.onConnect(channel)
+      },
+    }
+  }
+
+  /**
+   * Wraps the visualization data (binary) server. The LS-side channel uses
+   * `JavaByteBufferCodec` in production, so the tapped messages arrive as
+   * `JavaByteBuffer` (the external type). Convert to `Uint8Array` for
+   * storage in the inspect log the same way `wrapBinaryServer` does.
+   */
+  wrapVisDataServer(delegate: YjsChannelServer<JavaByteBuffer>): YjsChannelServer<JavaByteBuffer> {
+    return {
+      onConnect: (channel: YjsChannel<JavaByteBuffer, unknown>) => {
+        this.registerChannel(
+          channel,
+          'data',
+          (m) => toBinary(m),
+          (v) => this.fromBinary(v),
+        )
+        delegate.onConnect(channel)
+      },
+    }
+  }
+
   /**
    * Handles a WebSocket connection from an inspect client.
    * Syncs the inspect Y.Doc to the client.
@@ -219,6 +254,9 @@ export class InspectManager {
   }
 }
 
-function toBinary(message: JavaByteBuffer): Uint8Array {
+function toBinary(message: JavaByteBuffer | Uint8Array): Uint8Array {
+  // In production GraalJS sends a `JavaByteBuffer` numeric handle. Tests
+  // (and any non-polyglot code path) may send a `Uint8Array` directly.
+  if (message instanceof Uint8Array) return message
   return new Uint8Array(new ArrayBuffer(message))
 }

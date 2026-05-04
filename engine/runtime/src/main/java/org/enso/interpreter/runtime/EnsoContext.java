@@ -48,14 +48,12 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.state.WithContextNode;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
@@ -846,55 +844,8 @@ public final class EnsoContext {
     return globalExecutionEnvironment;
   }
 
-  public ExecutionEnvironment getExecutionEnvironment() {
-    ExecutionEnvironment env = language.getExecutionEnvironment();
-    return env == null ? getGlobalExecutionEnvironment() : env;
-  }
-
-  /** Set the runtime execution environment of this context. */
-  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    var tc = environment.getContext();
-    var prev = tc.enter(null);
-    try {
-      this.globalExecutionEnvironment = executionEnvironment;
-      language.setExecutionEnvironment(executionEnvironment);
-    } finally {
-      tc.leave(null, prev);
-    }
-  }
-
-  /**
-   * Enable execution context in the execution environment.
-   *
-   * @param context the execution context
-   * @param environmentName the execution environment name
-   * @return the execution environment version before modification
-   */
-  public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
-    ExecutionEnvironment original = globalExecutionEnvironment;
-    if (original.getName().equals(environmentName)) {
-      var newExecEnv =
-          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, true);
-      setExecutionEnvironment(newExecEnv);
-    }
-    return original;
-  }
-
-  /**
-   * Enable execution context in the execution environment.
-   *
-   * @param context the execution context
-   * @param environmentName the execution environment name
-   * @return the execution environment version before modification
-   */
-  public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
-    ExecutionEnvironment original = globalExecutionEnvironment;
-    if (original.getName().equals(environmentName)) {
-      var newExecEnv =
-          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, false);
-      setExecutionEnvironment(newExecEnv);
-    }
-    return original;
+  public void setGlobalExecutionEnvironment(ExecutionEnvironment env) {
+    this.globalExecutionEnvironment = env;
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */

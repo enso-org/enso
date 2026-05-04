@@ -562,7 +562,25 @@
           "name": "onConnect",
           "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
         }
-      ]      
+      ]
+    },
+    {
+      "type": "org.enso.languageserver.runtime.VisualizationBridgeServer$ControlServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]
+    },
+    {
+      "type": "org.enso.languageserver.runtime.VisualizationBridgeServer$DataServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]
     },
     {
       "type": "org.enso.ydoc.polyfill.web.URL",
@@ -600,6 +618,8 @@
           "parameterTypes": [
             "java.lang.String",
             "java.lang.String",
+            "org.enso.ydoc.api.YjsChannel$Server",
+            "org.enso.ydoc.api.YjsChannel$Server",
             "org.enso.ydoc.api.YjsChannel$Server",
             "org.enso.ydoc.api.YjsChannel$Server"
           ]

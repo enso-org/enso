@@ -59,7 +59,21 @@
       "tslib": "$tslib",
       "@types/react": "^18.3.1",
       "ws": "^8.18.0",
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "node-forge": "^1.4.0",
+      "fast-xml-parser": "^5.7.2",
+      "flatted": "^3.4.2",
+      "minimatch": "^10.2.5",
+      "glob": "^13.0.6",
+      "vite": "^7.3.2",
+      "rollup": "^4.59.0",
+      "postcss": "^8.5.10",
+      "ajv@8": "^8.18.0",
+      "path-to-regexp": "^0.1.13",
+      "qs": "^6.14.2",
+      "uuid": "^14.0.0",
+      "picomatch@2": "^2.3.2",
+      "picomatch@4": "^4.0.4"
     },
     "packageExtensions": {
       "@aws-amplify/auth": {

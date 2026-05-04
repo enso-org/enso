@@ -8,10 +8,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.enso.base.enso_cloud.EnsoHideableValue;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
-import org.enso.base.enso_cloud.HideableValue;
 import org.enso.base.net.http.UrlencodedBodyBuilder;
 
 public final class SnowflakeCloudCredentials {
@@ -43,18 +44,38 @@ public final class SnowflakeCloudCredentials {
         accountField.asText(), clientIdField.asText(), clientSecretField.asText());
   }
 
-  public static List<HideableValue.KeyValuePair> makePairs(
+  public static Map<String, EnsoHideableValue> makePairs(
       ExternalLibraryCredentialHelper.CredentialReference credentialReference) {
     SnowflakeCredentialConfig credentials = unsafeReadCredential(credentialReference);
     AccessToken accessToken = credentials.refresh();
-    List<HideableValue.KeyValuePair> secureProperties = new ArrayList<>();
-    secureProperties.add(
-        new HideableValue.KeyValuePair("authenticator", HideableValue.plain("oauth")));
-    secureProperties.add(
-        new HideableValue.KeyValuePair("user", HideableValue.plain(accessToken.username())));
-    secureProperties.add(
-        new HideableValue.KeyValuePair("token", HideableValue.plain(accessToken.token())));
+    Map<String, EnsoHideableValue> secureProperties = new HashMap<>();
+    secureProperties.put("authenticator", new PlainHideableValue("oauth"));
+    secureProperties.put("user", new PlainHideableValue(accessToken.username()));
+    secureProperties.put("token", new PlainHideableValue(accessToken.token()));
     return secureProperties;
+  }
+
+  private static class PlainHideableValue implements EnsoHideableValue {
+    private final String value;
+
+    PlainHideableValue(String value) {
+      this.value = value;
+    }
+
+    @Override
+    public String value_type() {
+      return EnsoHideableValue.PLAIN_TYPE;
+    }
+
+    @Override
+    public String text_value() {
+      return value;
+    }
+
+    @Override
+    public List<EnsoHideableValue> children() {
+      return List.of();
+    }
   }
 
   private static String extractTokenFromResponse(HttpResponse<String> response) {

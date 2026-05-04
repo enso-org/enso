@@ -24,6 +24,8 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
 import org.enso.interpreter.runtime.state.HasContextEnabledNode;
 import org.enso.interpreter.runtime.state.State;
 
@@ -51,16 +53,22 @@ public final class DataflowError extends AbstractTruffleException {
    *
    * @param payload the user-provided value carried by the error
    * @param location the node in which the error was created
+   * @param stateNode
+   * @param hasContextEnabledNode
    * @return a new dataflow error
    */
   public static DataflowError withDefaultTrace(
-      Object payload, Node location, HasContextEnabledNode hasContextEnabledNode) {
+      Object payload,
+      Node location,
+      GetStateNode stateNode,
+      HasContextEnabledNode hasContextEnabledNode) {
     assert payload != null;
     var ensoCtx = EnsoContext.get(location);
     var dataflowStacktraceCtx = ensoCtx.getBuiltins().context().getDataflowStackTrace();
-    boolean attachFullStackTrace =
-        hasContextEnabledNode.executeHasContextEnabled(
-            ensoCtx.getExecutionEnvironment(), dataflowStacktraceCtx);
+    var env =
+        stateNode.forValue(ExecutionEnvironment.class, ensoCtx.getGlobalExecutionEnvironment());
+    var attachFullStackTrace =
+        hasContextEnabledNode.executeHasContextEnabled(env, dataflowStacktraceCtx);
     if (attachFullStackTrace) {
       var result =
           new DataflowError(payload, AbstractTruffleException.UNLIMITED_STACK_TRACE, location);
@@ -74,7 +82,8 @@ public final class DataflowError extends AbstractTruffleException {
 
   /** Slow version of {@link #withDefaultTrace(State, Object, Node, HasContextEnabledNode)}. */
   public static DataflowError withDefaultTrace(Object payload, Node location) {
-    return withDefaultTrace(payload, location, HasContextEnabledNode.getUncached());
+    return withDefaultTrace(
+        payload, location, GetStateNode.getUncached(), HasContextEnabledNode.getUncached());
   }
 
   /**

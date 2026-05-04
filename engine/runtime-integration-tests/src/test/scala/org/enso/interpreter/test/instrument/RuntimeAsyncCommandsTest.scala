@@ -366,7 +366,7 @@ class RuntimeAsyncCommandsTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -432,7 +432,7 @@ class RuntimeAsyncCommandsTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -889,11 +889,14 @@ class RuntimeAsyncCommandsTest
     context.send(
       Api.Request(
         requestId,
-        Api.ExecuteExpression(
-          contextId,
+        Api.AttachVisualization(
           visualizationId,
           idOp2,
-          "fun1 operator1"
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.InFrame("fun1 operator1"),
+            ""
+          )
         )
       )
     )
@@ -901,11 +904,14 @@ class RuntimeAsyncCommandsTest
     context.send(
       Api.Request(
         requestId,
-        Api.ExecuteExpression(
-          contextId,
+        Api.AttachVisualization(
           visualizationId,
           idMain,
-          "fun1 operator1+operator2"
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.InFrame("fun1 operator1+operator2"),
+            ""
+          )
         )
       )
     )

@@ -39,7 +39,9 @@ import {
 } from './edits'
 import * as fileFormat from './fileFormat'
 import { deserializeIdMap, idMapToArray, serializeIdMap } from './serialization'
+import { createVisualizationBridge, type VisualizationBridge } from './visualizationBridge'
 import { WSSharedDoc } from './ydoc'
+import type { JavaByteBuffer, JavaByteBufferClass } from './YjsBinaryChannel'
 
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
@@ -58,11 +60,19 @@ export class LanguageServerSession {
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
   unregister: () => void
+  visualizationBridge: VisualizationBridge
 
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(ls: LanguageServer, indexDoc: WSSharedDoc, unregister: () => void) {
+  constructor(
+    ls: LanguageServer,
+    indexDoc: WSSharedDoc,
+    unregister: () => void,
+    visControlServer: YjsChannelServer<string>,
+    visDataServer: YjsChannelServer<JavaByteBuffer>,
+    byteBufferClass: JavaByteBufferClass,
+  ) {
     this.clientScope = new AbortScope()
     this.docs = new Map()
     this.retainCount = 0
@@ -83,19 +93,46 @@ export class LanguageServerSession {
       }
     })
     this.clientScope.onAbort(() => this.ls.release())
+
+    // Wrap the vis subdoc in a WSSharedDoc so the gateway server can route
+    // its own WebSocket connections (keyed by the subdoc's guid) to it.
+    // Without this, clients attaching providers to the subdoc would find no
+    // endpoint and the slot contents would never sync.
+    const visWsDoc = new WSSharedDoc()
+    this.model.adoptVisualizationsDoc(visWsDoc.doc)
+    this.docs.set(visWsDoc.doc.guid, visWsDoc)
+    this.visualizationBridge = createVisualizationBridge(
+      this.indexDoc.doc,
+      visWsDoc.doc,
+      visControlServer,
+      visDataServer,
+      byteBufferClass,
+    )
+
     this.setupClient()
   }
 
   static sessions: Map<string, LanguageServerSession> = new Map<string, LanguageServerSession>()
 
   /** Get a {@link LanguageServerSession} by its URL. */
-  static get(url: string, callbacks: YjsChannelServer): LanguageServerSession {
+  static get(
+    url: string,
+    callbacks: YjsChannelServer,
+    visControlServer: YjsChannelServer<string>,
+    visDataServer: YjsChannelServer<JavaByteBuffer>,
+    byteBufferClass: JavaByteBufferClass,
+  ): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
       const transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
       const ls = new LanguageServer(crypto.randomUUID(), transport)
-      return new LanguageServerSession(ls, indexDoc, () =>
-        LanguageServerSession.sessions.delete(url),
+      return new LanguageServerSession(
+        ls,
+        indexDoc,
+        () => LanguageServerSession.sessions.delete(url),
+        visControlServer,
+        visDataServer,
+        byteBufferClass,
       )
     })
     session.retain()
@@ -257,6 +294,7 @@ export class LanguageServerSession {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
     this.unregister()
+    this.visualizationBridge.close()
     const modules = this.authoritativeModules.values()
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()

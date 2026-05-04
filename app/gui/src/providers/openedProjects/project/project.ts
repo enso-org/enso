@@ -20,7 +20,6 @@ import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { ProjectId } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
-import { wait } from 'lib0/promise'
 import type { Ref, WatchSource } from 'vue'
 import {
   computed,
@@ -33,10 +32,16 @@ import {
   type WritableComputedRef,
 } from 'vue'
 import type { Identifier } from 'ydoc-shared/ast'
-import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
+import type { Diagnostic } from 'ydoc-shared/languageServerTypes'
 import type { AbortScope } from 'ydoc-shared/util/net'
+import {
+  newVisRequestId,
+  Visualizations,
+  VisualizationSlotView,
+  type VisRequestId,
+  type VisualizationId,
+} from 'ydoc-shared/visualizations'
 import { DistributedProject, type ExternalId, type Uuid } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
@@ -133,6 +138,7 @@ export function createProjectStore(
       },
       abort,
       projectNames,
+      projectModel,
     )
   }
 
@@ -143,7 +149,8 @@ export function createProjectStore(
     },
   )
   const executionContext = createExecutionContextForMain()
-  const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+  const visualizationDataRegistry = new VisualizationDataRegistry(projectModel)
+  abort.handleDispose(visualizationDataRegistry)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
     executionContext,
     projectNames,
@@ -227,133 +234,139 @@ export function createProjectStore(
 
   const isRecordingEnabled = computed(() => executionMode.value === 'live')
 
+  /**
+   * Evaluate `expression` in the context of node `expressionId`, returning
+   * the decoded JSON result.
+   *
+   * Transport: writes an `execute` slot to the vis subdoc and observes it
+   * until it lands in a terminal state (`ready | failed`). Back-pressure is
+   * the LS bridge actor's responsibility; retry is a single-shot timeout
+   * (caller handles retry if desired, via {@link queuedExecuteExpression}).
+   *
+   * Returns `null` iff the vis subdoc has not synced yet - the caller can
+   * retry momentarily. `Ok(parsed)` on success, `Err(message)` on
+   * evaluation failure.
+   */
   function executeExpression(
     expressionId: ExternalId,
     expression: string,
   ): Promise<Result<any> | null> {
-    return new Promise((resolve) => {
-      const visualizationId = crypto.randomUUID() as Uuid
-      const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
-        if (uuid === visualizationId) {
-          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-          executionContext.off('visualizationEvaluationFailed', errorHandler)
-          const dataStr = Ok(visData.dataString())
-          resolve(parseVisualizationData(dataStr))
-        }
-      }
-      const errorHandler = (
-        uuid: Uuid,
-        _expressionId: ExpressionId,
-        message: string,
-        _diagnostic: Diagnostic | undefined,
-      ) => {
-        if (uuid == visualizationId) {
-          resolve(Err(message))
-          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-          executionContext.off('visualizationEvaluationFailed', errorHandler)
-        }
-      }
-      dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-      executionContext.on('visualizationEvaluationFailed', errorHandler)
-      return lsRpcConnection.executeExpression(
-        executionContext.id,
-        visualizationId,
-        expressionId,
-        expression,
-      )
-    })
+    return runExecuteExpressionSlot(expressionId, expression, null)
   }
-
-  // Maximum number of in-progress expressions.
-  const MAX_IN_PROGRESS = 5
-  const MAX_RETRIES_IN_QUEUE = 5
-
-  const inProgress = ref(0)
-  const queueLength = ref(0)
 
   function queuedExecuteExpression(
     expressionId: ExternalId,
     expression: string,
     timeoutMs: number = 5000,
   ): Promise<Result<unknown> | null> {
-    if (inProgress.value >= MAX_IN_PROGRESS) {
-      queueLength.value += 1
-      const pause = queueLength.value * 250
-      return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
-        queueLength.value -= 1
-        return queuedExecuteExpression(expressionId, expression, timeoutMs)
-      })
+    return runExecuteExpressionSlot(expressionId, expression, timeoutMs)
+  }
+
+  /**
+   * Shared implementation for {@link executeExpression} and
+   * {@link queuedExecuteExpression}. If `timeoutMs` is `null`, wait
+   * indefinitely for the slot to terminate; otherwise reject with a timeout
+   * error once the deadline passes. Either way the slot is removed from the
+   * subdoc before the returned promise settles.
+   */
+  function runExecuteExpressionSlot(
+    expressionId: ExternalId,
+    expression: string,
+    timeoutMs: number | null,
+  ): Promise<Result<any> | null> {
+    const visDoc = projectModel.visualizationsDoc
+    if (!visDoc) {
+      // Subdoc not yet synced. Callers today retry by waiting for UI
+      // interactions, so a single-shot `null` return is sufficient.
+      console.warn('[executeExpression] vis subdoc not ready; returning null')
+      return Promise.resolve(null)
     }
-
-    inProgress.value += 1
-    return new Promise<Result<any> | null>((resolve, reject) => {
-      const visualizationId = crypto.randomUUID() as Uuid
-      let state = 1
-
-      const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
-        if (uuid !== visualizationId) {
-          return
-        }
-
-        inProgress.value -= state
-        state = 0 // Prevent further updates from this handler.
-        dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-        executionContext.off('visualizationEvaluationFailed', errorHandler)
-        const dataStr = Ok(visData.dataString())
-        const parsed = parseVisualizationData(dataStr)
-        resolve(parsed)
-      }
-      const errorHandler = (
-        uuid: Uuid,
-        _expressionId: ExpressionId,
-        message: string,
-        _diagnostic: Diagnostic | undefined,
-      ) => {
-        if (uuid !== visualizationId) {
-          return
-        }
-
-        inProgress.value -= state
-        state = 0 // Prevent further updates from this handler.
-        dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-        executionContext.off('visualizationEvaluationFailed', errorHandler)
-        reject(Err(message))
-      }
-
-      const waitWithExponentialBackoff = (retryAttempt: number, timeoutMs: number) => {
-        wait(timeoutMs).then(() => {
-          if (state === 1) {
-            if (retryAttempt < MAX_RETRIES_IN_QUEUE) {
-              const incRetryAttempt = retryAttempt + 1
-              DEV: console.warn(
-                'Waiting on data (expressionId=' +
-                  expressionId +
-                  ', visualizationId=' +
-                  visualizationId +
-                  '), retry attempt: ' +
-                  incRetryAttempt,
-              )
-              waitWithExponentialBackoff(incRetryAttempt, timeoutMs * 2 ** retryAttempt)
-            } else {
-              inProgress.value -= 1
-              state = 0 // Prevent further updates from this handler.
-              dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-              executionContext.off('visualizationEvaluationFailed', errorHandler)
-              reject(Err(`executeExpression: Execution timed out.`))
-            }
-          }
-        })
-      }
-      waitWithExponentialBackoff(0, timeoutMs)
-
-      dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-      executionContext.on('visualizationEvaluationFailed', errorHandler)
-      lsRpcConnection.executeExpression(
-        executionContext.id,
+    const vis = new Visualizations(visDoc)
+    const visualizationId = crypto.randomUUID() as VisualizationId
+    const requestId = newVisRequestId()
+    vis.createSlot(
+      {
         visualizationId,
-        expressionId,
-        expression,
-      )
+        contextId: executionContext.id,
+        nodeExternalId: expressionId,
+        request: {
+          visualizationModule: '',
+          expression: { inFrame: expression },
+        },
+      },
+      requestId,
+    )
+    return awaitExecuteSlot(vis, requestId, timeoutMs).finally(() => {
+      vis.removeSlot(requestId)
+    })
+  }
+
+  /**
+   * Observe slot `requestId` until it lands in `ready` (-> decode response
+   * bytes as UTF-8 JSON -> `Ok(parsed)`) or `failed` (-> `Err(message)`).
+   * Honors an optional timeout deadline.
+   */
+  function awaitExecuteSlot(
+    vis: Visualizations,
+    requestId: VisRequestId,
+    timeoutMs: number | null,
+  ): Promise<Result<any> | null> {
+    return new Promise<Result<any> | null>((resolve, reject) => {
+      let unobserve: (() => void) | null = null
+      let timer: ReturnType<typeof setTimeout> | null = null
+
+      const finish = (value: Result<any> | null, err?: unknown) => {
+        if (unobserve) {
+          unobserve()
+          unobserve = null
+        }
+        if (timer) {
+          clearTimeout(timer)
+          timer = null
+        }
+        if (err != null) reject(err)
+        else resolve(value)
+      }
+
+      const commitTerminal = (view: VisualizationSlotView): boolean => {
+        if (view.status === 'ready') {
+          const bytes = view.response
+          if (bytes == null) {
+            finish(Err('executeExpression: ready slot with no response bytes'))
+            return true
+          }
+          try {
+            const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes)
+            finish(parseVisualizationData(Ok(text)))
+          } catch (e) {
+            finish(Err(`Failed to decode visualization response: ${e}`))
+          }
+          return true
+        }
+        if (view.status === 'failed') {
+          const message = view.failure?.message ?? 'Visualization evaluation failed'
+          finish(null, Err(message))
+          return true
+        }
+        return false
+      }
+
+      const existing = vis.getSlot(requestId)
+      if (existing && commitTerminal(existing)) return
+
+      const observer = () => {
+        const view = vis.getSlot(requestId)
+        if (!view) return
+        commitTerminal(view)
+      }
+      vis.slots.observeDeep(observer)
+      unobserve = () => vis.slots.unobserveDeep(observer)
+
+      if (timeoutMs != null) {
+        timer = setTimeout(() => {
+          finish(null, Err('executeExpression: Execution timed out.'))
+        }, timeoutMs)
+      }
     })
   }
 

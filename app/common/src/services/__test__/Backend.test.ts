@@ -8,21 +8,54 @@ import {
 } from '../Backend'
 
 describe('Backend', () => {
-  it('sorts assets by modified date descending', () => {
+  it('sorts assets by creation date descending', () => {
     const assets = [
       {
         type: AssetType.file,
         modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
         title: 'a',
       },
       {
         type: AssetType.file,
         modifiedAt: Rfc3339DateTime('2024-01-02'),
+        createdAt: Rfc3339DateTime('2024-01-02'),
         title: 'b',
       },
       {
         type: AssetType.file,
         modifiedAt: Rfc3339DateTime('2024-01-03'),
+        createdAt: Rfc3339DateTime('2024-01-03'),
+        title: 'c',
+      },
+    ] as AnyAsset[]
+
+    const sorted = assets.sort(compareAssets)
+    expect(sorted).toMatchObject([
+      { createdAt: '2024-01-03' },
+      { createdAt: '2024-01-02' },
+      { createdAt: '2024-01-01' },
+    ])
+  })
+
+  it('sorts assets by modified date descending', () => {
+    const assets = [
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'a',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-02'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'b',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-03'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
         title: 'c',
       },
     ] as AnyAsset[]
@@ -37,31 +70,81 @@ describe('Backend', () => {
 
   it('sorts assets by type first', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'a' },
-      { type: AssetType.directory, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'b' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'c' },
-      { type: AssetType.directory, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'd' },
-      { type: AssetType.project, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'e' },
-      { type: AssetType.datalink, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'f' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'a',
+      },
+      {
+        type: AssetType.directory,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'b',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'c',
+      },
+      {
+        type: AssetType.directory,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'd',
+      },
+      {
+        type: AssetType.project,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'e',
+      },
+      {
+        type: AssetType.datalink,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'f',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort(compareAssets)
     expect(sorted).toMatchObject([
-      { type: AssetType.directory, modifiedAt: '2024-01-01' },
-      { type: AssetType.directory, modifiedAt: '2024-01-01' },
-      { type: AssetType.project, modifiedAt: '2024-01-01' },
-      { type: AssetType.file, modifiedAt: '2024-01-01' },
-      { type: AssetType.file, modifiedAt: '2024-01-01' },
-      { type: AssetType.datalink, modifiedAt: '2024-01-01' },
+      { type: AssetType.directory, modifiedAt: '2024-01-01', createdAt: '2024-01-01' },
+      { type: AssetType.directory, modifiedAt: '2024-01-01', createdAt: '2024-01-01' },
+      { type: AssetType.project, modifiedAt: '2024-01-01', createdAt: '2024-01-01' },
+      { type: AssetType.file, modifiedAt: '2024-01-01', createdAt: '2024-01-01' },
+      { type: AssetType.file, modifiedAt: '2024-01-01', createdAt: '2024-01-01' },
+      { type: AssetType.datalink, modifiedAt: '2024-01-01', createdAt: '2024-01-01' },
     ])
   })
 
   it('sorts titles case-insensitively', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Apple' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'banana' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'CARROT' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'date' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Apple',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'banana',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'CARROT',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'date',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -75,10 +158,30 @@ describe('Backend', () => {
 
   it('sorts titles with numbers correctly', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file10' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file2' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file1' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file20' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file10',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file2',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file1',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file20',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -92,10 +195,30 @@ describe('Backend', () => {
 
   it('sorts titles with special characters', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '@special' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '#hashtag' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '$money' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '_underscore' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '@special',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '#hashtag',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '$money',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '_underscore',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -109,10 +232,30 @@ describe('Backend', () => {
 
   it('sorts titles with emojis', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '🍎 apple' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '🍌 banana' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '🥕 carrot' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '🌴 palm' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '🍎 apple',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '🍌 banana',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '🥕 carrot',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '🌴 palm',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -126,14 +269,30 @@ describe('Backend', () => {
 
   it('sorts titles with spaces correctly', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'no space' },
       {
         type: AssetType.file,
         modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'no space',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
         title: 'multiple   spaces',
       },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: ' leading space' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'trailing space ' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: ' leading space',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'trailing space ',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -147,10 +306,30 @@ describe('Backend', () => {
 
   it('sorts titles with accented characters', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'étoile' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'über' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'naïve' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'café' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'étoile',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'über',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'naïve',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'café',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -164,10 +343,30 @@ describe('Backend', () => {
 
   it('sorts titles with mixed alphanumeric and special characters', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file-1.txt' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file_2.txt' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file(3).txt' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file[4].txt' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file-1.txt',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file_2.txt',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file(3).txt',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file[4].txt',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -181,10 +380,30 @@ describe('Backend', () => {
 
   it('sorts titles with unicode symbols', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '♠️ spades' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '♥️ hearts' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '♦️ diamonds' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '♣️ clubs' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '♠️ spades',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '♥️ hearts',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '♦️ diamonds',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '♣️ clubs',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -198,10 +417,30 @@ describe('Backend', () => {
 
   it('sorts titles with mixed case and numbers', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'File123' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file123' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'FILE123' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'FiLe123' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'File123',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file123',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'FILE123',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'FiLe123',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -215,10 +454,30 @@ describe('Backend', () => {
 
   it('sorts titles with parentheses and brackets', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file (copy)' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file [backup]' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file {draft}' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file <old>' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file (copy)',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file [backup]',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file {draft}',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'file <old>',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -232,10 +491,30 @@ describe('Backend', () => {
 
   it('sorts titles with same letters but different capitalization', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'PROJECT' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'PrOjEcT' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'PROJECT',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'PrOjEcT',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -249,10 +528,30 @@ describe('Backend', () => {
 
   it('sorts mixed case titles with spaces', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'New Project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'NEW PROJECT' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'new project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'New project' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'New Project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'NEW PROJECT',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'new project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'New project',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -266,10 +565,30 @@ describe('Backend', () => {
 
   it('sorts titles with leading capitals', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Alpha' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Beta' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'alpha' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'beta' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Alpha',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Beta',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'alpha',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'beta',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -283,10 +602,30 @@ describe('Backend', () => {
 
   it('sorts titles with mixed capitalization and special characters', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project_A' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project-a' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'PROJECT_A' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'project-A' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project_A',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project-a',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'PROJECT_A',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'project-A',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -300,12 +639,42 @@ describe('Backend', () => {
 
   it('sorts titles with numbers in different positions', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '1Project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project1' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Pro2ject' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '10Project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project10' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Pro10ject' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '1Project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project1',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Pro2ject',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '10Project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project10',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Pro10ject',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
@@ -321,10 +690,30 @@ describe('Backend', () => {
 
   it('sorts titles with mixed numbers and special characters', () => {
     const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '1-Project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project-1' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '1_Project' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project_1' },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '1-Project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project-1',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: '1_Project',
+      },
+      {
+        type: AssetType.file,
+        modifiedAt: Rfc3339DateTime('2024-01-01'),
+        createdAt: Rfc3339DateTime('2024-01-01'),
+        title: 'Project_1',
+      },
     ] as AnyAsset[]
 
     const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))

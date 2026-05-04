@@ -570,7 +570,6 @@ namespace org.enso.languageserver.protocol.binary;
 union OutboundPayload {
   ERROR: Error,
   SUCCESS: Success,
-  VISUALIZATION_UPDATE: VisualizationUpdate,
   FILE_CONTENTS_REPLY: FileContentsReply
 }
 

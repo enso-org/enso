@@ -11,17 +11,16 @@ type Phase_Conf
        ## Arguments
         - `iterations`: The number of iterations of the phase.
         - `seconds`: The minimal number of seconds per one iteration.
-    Impl (iterations:Integer) (seconds:Integer)
+    private Impl (iterations:Integer) (seconds:Integer)
 
     ## ---
        private: true
        ---
-    to_text self =
+    to_text self -> Text =
         self.iterations.to_text + " iterations, " + self.seconds.to_text + " seconds each"
 
     ## Validates the config and throws a Panic if it is invalid.
-    validate : Nothing
-    validate self =
+    private validate self -> Nothing =
         if self.seconds < 0 then Panic.throw (Illegal_Argument.Error "Seconds must be positive")
         if self.iterations < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
 
@@ -33,27 +32,24 @@ type Bench_Options
     ## ---
        private: true
        ---
-    Impl (warmup:Phase_Conf) (measure:Phase_Conf) (jvm_args : Text | Nothing = Nothing)
+    private Impl (warmup:Phase_Conf) (measure:Phase_Conf) (jvm_args : Text | Nothing = Nothing)
 
     ## Sets the warmup phase.
-    set_warmup : Phase_Conf -> Bench_Options
-    set_warmup self (warm:Phase_Conf) = Bench_Options.Impl warm self.measure self.jvm_args
+    set_warmup self (warm:Phase_Conf) -> Bench_Options = Bench_Options.Impl warm self.measure self.jvm_args
 
     ## Sets the measurement phase.
-    set_measure : Phase_Conf -> Bench_Options
-    set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas self.jvm_args
+    set_measure self (meas:Phase_Conf) -> Bench_Options = Bench_Options.Impl self.warmup meas self.jvm_args
 
     ## Sets additional JVM args
-    set_jvm_args self args:Text = Bench_Options.Impl self.warmup self.measure args
+    set_jvm_args self args:Text -> Bench_Options = Bench_Options.Impl self.warmup self.measure args
 
     ## ---
        private: true
        ---
-    to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
+    to_text self -> Text = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
 
     ## Validates the config and throws a Panic if it is invalid.
-    validate : Nothing
-    validate self =
+    private validate self -> Nothing =
         self.warmup.validate
         self.measure.validate
 
@@ -62,11 +58,10 @@ type Bench_Builder
     ## ---
        private: true
        ---
-    Impl builder
+    private Impl builder
 
     ## Add a group to the builder.
-    group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
-    group self (name:Text) (configuration:Bench_Options) fn =
+    group self (name:Text) (configuration:Bench_Options) fn:(Group_Builder -> Any) =
         validate_name name
         group = Vector.build b->
             fn (Group_Builder.Impl name b)
@@ -77,7 +72,7 @@ type Group_Builder
     ## ---
        private: true
        ---
-    Impl name builder
+    private Impl name builder
 
     ## Adds a benchmark specification to the group.
 
@@ -91,24 +86,22 @@ type Group_Builder
 
 type Bench
     ## A set of groups of benchmarks.
-    All (groups : Vector Bench)
+    private All (groups : Vector Bench)
 
     ## A single group of benchmarks sharing configuration.
-    Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
+    private Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
 
     ## A specific single benchmark.
-    Spec (name:Text) (code : Any -> Any)
+    private Spec (name:Text) (code : Any -> Any)
 
     ## Construct a Bench object.
-    build : (Bench_Builder -> Any) -> Bench
-    build fn =
+    build fn:(Bench_Builder -> Any) -> Bench =
         groups_vec = Vector.build b->
             fn (Bench_Builder.Impl b)
         Bench.All groups_vec . validate
 
     ## The default options for benchmarks.
-    options : Bench_Options
-    options = Bench_Options.Impl Bench.phase_conf Bench.phase_conf
+    options -> Bench_Options = Bench_Options.Impl Bench.phase_conf Bench.phase_conf
 
     ## Returns the default phase configuration.
        The default used for the JMH library are 5 iterations for 10 seconds each.
@@ -117,14 +110,32 @@ type Bench
        ## Arguments
         - `iterations`: The number of iterations of the phase.
         - `seconds`: The minimal number of seconds per one iteration.
-    phase_conf : Integer -> Integer -> Phase_Conf
-    phase_conf iterations=2 seconds=3 =
+    phase_conf iterations:Integer=2 seconds:Integer=3 -> Phase_Conf =
         Phase_Conf.Impl iterations seconds
+
+
+    ## Filters benchmarks based on their name.
+
+       ## Arguments
+        - `match_name`: does the provided name match?
+
+    filter self match_name:(Text->Boolean) -> Bench|Nothing = 
+        no_nothing x = x.is_nothing.not
+        case self of
+            Bench.All groups ->
+                vec = groups.map (b -> b.filter match_name) . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.All vec
+            Bench.Group n opts specs -> if match_name n then self else
+                vec = specs.map (b -> b.filter match_name) . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.Group n opts vec
+            Bench.Spec n _ ->
+                if match_name n then self else Nothing
 
     ## Validates the benchmark and throws a Panic if it is invalid. Returns self
        if the benchmark is valid.
-    validate : Bench
-    validate self =
+    private validate self -> Bench =
         ensure_distinct_names names =
             if names.length != names.distinct.length then Panic.throw (Illegal_Argument.Error ("Benchmark names must be unique, got: " + names.to_text))
         case self of
@@ -142,19 +153,16 @@ type Bench
         self
 
     ## Fold over the set of benchmarks merging using the specified function.
-    fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
-    fold self value fn = case self of
+    private fold self value fn:(Any -> Bench -> Bench -> Any) = case self of
         Bench.All groups -> groups.fold value (v-> g-> g.fold v fn)
         Bench.Group _ _ specs -> specs.fold value (v-> s-> fn v self s)
         Bench.Spec _ _ -> fn value self self
 
     ## Counts all the specs in the benchmark.
-    total_specs : Integer
-    total_specs self = self.fold 0 v-> _-> _-> v+1
+    total_specs self -> Integer = self.fold 0 v-> _-> _-> v+1
 
     ## Estimates the runtime based on configurations.
-    estimated_runtime : Duration
-    estimated_runtime self =
+    estimated_runtime self -> Duration =
         total_seconds = self.fold 0 acc-> group-> spec->
             single_call_runtime = case group of
                 Bench.Group _ conf _ ->
@@ -216,8 +224,7 @@ type Bench
              example_measure =
                  Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
        ```
-    measure : Text -> Phase_Conf -> Phase_Conf -> Any -> Nothing
-    measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
+    private measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act -> Nothing =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         case dry_run of
             True ->
@@ -237,7 +244,7 @@ type Bench
 
     ## Measure the amount of time in ns it takes to execute a given suspended
        computation.
-    single_call ~act =
+    private single_call ~act =
         start = System.nano_time
         r = Runtime.no_inline act
         end = System.nano_time
@@ -254,8 +261,7 @@ type Bench
         - `phase_name`: The name of the phase.
         - `conf`: The phase configuration.
         - `act`: Method that should be measured - benchmark body.
-    run_phase : Text -> Text -> Phase_Conf -> (Any -> Any) -> Nothing
-    run_phase (label:Text) (phase_name:Text) (conf:Phase_Conf) ~act =
+    private run_phase (label:Text) (phase_name:Text) (conf:Phase_Conf) ~act -> Nothing =
         duration_ns = conf.iterations * conf.seconds * 1000000000
         phase_start = System.nano_time
         stop_ns = phase_start + duration_ns
@@ -282,7 +288,7 @@ type Bench
        This is a very simple implementation of summarizing the benchmark results.
        We may want to improve it later, but it gets the job done to give us
        simple summary that can be analysed more easily than logs.
-    summarize_phase (label:Text) (phase_name:Text) (invocations:Integer) (average_time:Float) (time_stddev:Float) (phase_duration:Duration) =
+    private summarize_phase (label:Text) (phase_name:Text) (invocations:Integer) (average_time:Float) (time_stddev:Float) (phase_duration:Duration) =
         avg_fmt = average_time.format "#.###"
         stddev_fmt = time_stddev.format "#.###"
         IO.println <| phase_name + " duration:    " + (phase_duration.total_milliseconds.format "#.##") + " ms"
@@ -301,8 +307,7 @@ type Bench
    Checks whether the given name is a valid benchmark name - either group name or
    a spec name. The name should be a valid Java identifier.
    Throw a Panic error if the validation fails.
-validate_name : Text -> Nothing
-validate_name name =
+private validate_name name:Text -> Nothing =
     # Cannot start with a digit
     valid_java_identifier_regex = Regex.compile "[A-Za-z_$][a-zA-Z0-9_$]*"
     if valid_java_identifier_regex.matches name then Nothing else
@@ -311,5 +316,4 @@ validate_name name =
 ## ---
    private: true
    ---
-get_benchmark_report_path : Text | Nothing
-get_benchmark_report_path = Environment.get "ENSO_BENCHMARK_REPORT_PATH"
+private get_benchmark_report_path -> Text | Nothing = Environment.get "ENSO_BENCHMARK_REPORT_PATH"

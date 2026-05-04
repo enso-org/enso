@@ -67,22 +67,10 @@ import org.enso.languageserver.requesthandler.refactoring.{
   RenameSymbolHandler
 }
 import org.enso.languageserver.requesthandler.text._
-import org.enso.languageserver.requesthandler.visualization.{
-  AttachVisualizationHandler,
-  DetachVisualizationHandler,
-  ExecuteExpressionHandler,
-  ModifyVisualizationHandler
-}
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
-import org.enso.languageserver.runtime.VisualizationApi.{
-  AttachVisualization,
-  DetachVisualization,
-  ExecuteExpression,
-  ModifyVisualization
-}
 import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
@@ -433,22 +421,6 @@ class JsonConnectionController(
         ExecutionContextExecutionStatus.Params(contextId, diagnostics)
       )
 
-    case ContextRegistryProtocol.VisualizationEvaluationFailed(
-          ctx,
-          message,
-          diagnostic
-        ) =>
-      webActor ! Notification(
-        VisualizationEvaluationFailed,
-        VisualizationEvaluationFailed.Params(
-          ctx.contextId,
-          ctx.visualizationId,
-          ctx.expressionId,
-          message,
-          diagnostic
-        )
-      )
-
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(
           version,
           updates
@@ -616,14 +588,6 @@ class JsonConnectionController(
         rpcSession,
         runtimeConnector
       ),
-      ExecuteExpression -> ExecuteExpressionHandler
-        .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      AttachVisualization -> AttachVisualizationHandler
-        .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      DetachVisualization -> DetachVisualizationHandler
-        .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      ModifyVisualization -> ModifyVisualizationHandler
-        .props(rpcSession.clientId, requestTimeout, contextRegistry),
       RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId),
       SuppressStandardOutput -> SuppressStdOutHandler

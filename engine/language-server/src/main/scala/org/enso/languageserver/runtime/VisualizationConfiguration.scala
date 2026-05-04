@@ -213,6 +213,28 @@ object VisualizationExpression {
       s")"
   }
 
+  /** One-shot visualization expression evaluated in the node's breakpoint
+    * frame. Mirrors `Api.VisualizationExpression.InFrame`.
+    */
+  case class InFrame(expression: String) extends VisualizationExpression {
+
+    /** @inheritdoc */
+    override val module: String = ""
+
+    /** @inheritdoc */
+    override val positionalArgumentsExpressions: Vector[String] = Vector.empty
+
+    /** @inheritdoc */
+    override def toApi: Api.VisualizationExpression =
+      Api.VisualizationExpression.InFrame(expression)
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "InFrame(expression=" +
+      (if (shouldMask) STUB else expression) +
+      ")"
+  }
+
   private object CodecField {
 
     val Type = "type"
@@ -223,6 +245,8 @@ object VisualizationExpression {
     val Text = "Text"
 
     val ModuleMethod = "ModuleMethod"
+
+    val InFrame = "InFrame"
   }
 
   implicit val encoder: Encoder[VisualizationExpression] =
@@ -238,6 +262,11 @@ object VisualizationExpression {
           .deepMerge(
             Json.obj(CodecField.Type -> PayloadType.ModuleMethod.asJson)
           )
+
+      case inFrame: VisualizationExpression.InFrame =>
+        Encoder[VisualizationExpression.InFrame]
+          .apply(inFrame)
+          .deepMerge(Json.obj(CodecField.Type -> PayloadType.InFrame.asJson))
     }
 
   implicit val decoder: Decoder[VisualizationExpression] =
@@ -248,6 +277,9 @@ object VisualizationExpression {
 
         case PayloadType.ModuleMethod =>
           Decoder[VisualizationExpression.ModuleMethod].tryDecode(cursor)
+
+        case PayloadType.InFrame =>
+          Decoder[VisualizationExpression.InFrame].tryDecode(cursor)
       }
     }
 

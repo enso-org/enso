@@ -28,7 +28,13 @@ import { join } from 'node:path'
 import type { Page, WebSocketRoute } from 'playwright'
 import { YjsChannel } from 'ydoc-channel'
 import { WSSharedDoc, YjsConnection, type YjsSocket } from 'ydoc-server'
-import { makeVisUpdates, mockDataHandler, mockLSHandler, mockYdocProvider } from './lsHandler'
+import {
+  clearPreprocessorOverrides,
+  mockDataHandler,
+  mockLSHandler,
+  mockYdocProvider,
+  updateVisualizationData,
+} from './lsHandler'
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -86,6 +92,13 @@ export interface MockLocalApi extends Awaited<ReturnType<typeof mockLocalApi>> {
 
 /** Add route handlers for the mock API to a page. */
 export async function mockLocalApi(page: Page) {
+  // Drop any preprocessor overrides set by an earlier test in the same
+  // worker. Widget configurations are intentionally *not* reset here because
+  // some test describes rely on their own `beforeEach` hook to
+  // `clearMockWidgetConfigurations()` before the fixture runs; resetting to
+  // the initial set here would undo that.
+  clearPreprocessorOverrides()
+
   const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
 
@@ -240,9 +253,6 @@ export async function mockLocalApi(page: Page) {
   addDirectory({ path: ROOT_PARENT_PATH })
   addDirectory({ path: ROOT_PATH })
   addDirectory({ path: DOWNLOAD_PATH })
-
-  // Data channel for visualization updates, set up when client connects
-  let dataChannel: YjsChannel<Uint8Array> | null = null
 
   await test.step('Mock Local API', async () => {
     const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
@@ -408,8 +418,6 @@ export async function mockLocalApi(page: Page) {
 
     /** Set up the mock binary data channel handler */
     function setupMockDataChannel(channel: YjsChannel<Uint8Array>) {
-      // Also set the global dataChannel for updateVisualization API
-      dataChannel = channel
       channel.subscribe(async (messageRaw) => {
         // Important: Use slice to get a copy of just the relevant portion
         // because messageRaw.buffer may include data beyond the Uint8Array's view
@@ -438,9 +446,9 @@ export async function mockLocalApi(page: Page) {
       let binaryChannel: YjsChannel<Uint8Array> | null = null
       if (dataChannelName) {
         binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataChannelName)
-        // Only set the global dataChannel for the main 'index' room connection.
-        // Subdoc connections should not overwrite it, as the client's DataServer
-        // only listens on the main document's channel.
+        // Only set up the data handler for the main 'index' room connection.
+        // Subdoc connections reuse the same ydoc transport but do not drive
+        // the DataServer protocol handled here.
         if (room === 'index') {
           setupMockDataChannel(binaryChannel)
         }
@@ -665,9 +673,7 @@ export async function mockLocalApi(page: Page) {
   })
 
   async function updateVisualization(preprocessor: string, data: unknown) {
-    for (const update of makeVisUpdates(preprocessor, data)) {
-      dataChannel?.send(new Uint8Array(update))
-    }
+    updateVisualizationData(preprocessor, data)
   }
 
   const api = {

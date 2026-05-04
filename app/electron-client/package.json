@@ -31,7 +31,7 @@
     "opener": "^1.5.2",
     "project-manager-shim": "workspace:*",
     "semver": "^7.6.3",
-    "tar-fs": "^3.1.1",
+    "tar-fs": "^3.1.2",
     "tar-stream": "^3.1.7",
     "vitest": "catalog:",
     "yargs": "17.6.2",
@@ -52,7 +52,7 @@
     "@types/node": "catalog:",
     "@types/opener": "^1.4.3",
     "@types/semver": "^7.5.8",
-    "@types/tar": "^6.1.13",
+    "@types/tar": "^7.0.87",
     "@types/tar-fs": "^2.0.4",
     "@types/tar-stream": "^3.1.4",
     "@types/yargs": "^17.0.33",
@@ -70,7 +70,7 @@
     "playwright": "catalog:",
     "portfinder": "^1.0.38",
     "vite": "catalog:",
-    "vite-node": "3.0.0-beta.3"
+    "vite-node": "^3.2.4"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

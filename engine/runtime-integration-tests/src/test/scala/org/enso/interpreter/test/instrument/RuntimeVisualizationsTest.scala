@@ -4577,11 +4577,14 @@ class RuntimeVisualizationsTest
       context.send(
         Api.Request(
           requestId,
-          Api.ExecuteExpression(
-            contextId,
+          Api.AttachVisualization(
             visualizationId,
             idOp2,
-            "fun1 operator1"
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.InFrame("fun1 operator1"),
+              ""
+            )
           )
         )
       )
@@ -4681,11 +4684,14 @@ class RuntimeVisualizationsTest
       context.send(
         Api.Request(
           requestId,
-          Api.ExecuteExpression(
-            contextId,
+          Api.AttachVisualization(
             visualizationId,
             idRes,
-            "fun1 operator1"
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.InFrame("fun1 operator1"),
+              ""
+            )
           )
         )
       )
@@ -4788,11 +4794,16 @@ class RuntimeVisualizationsTest
       context.send(
         Api.Request(
           requestId,
-          Api.ExecuteExpression(
-            contextId,
+          Api.AttachVisualization(
             visualizationId,
             idOp2Binding,
-            "fun1 operator1+operator2"
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.InFrame(
+                "fun1 operator1+operator2"
+              ),
+              ""
+            )
           )
         )
       )
@@ -4892,11 +4903,16 @@ class RuntimeVisualizationsTest
       context.send(
         Api.Request(
           requestId,
-          Api.ExecuteExpression(
-            contextId,
+          Api.AttachVisualization(
             visualizationId,
             idMain,
-            "fun1 operator1+operator2"
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.InFrame(
+                "fun1 operator1+operator2"
+              ),
+              ""
+            )
           )
         )
       )
@@ -4982,11 +4998,16 @@ class RuntimeVisualizationsTest
       context.send(
         Api.Request(
           requestId,
-          Api.ExecuteExpression(
-            contextId,
+          Api.AttachVisualization(
             visualizationId,
             idMain,
-            "Preprocessor.default_preprocessor 85"
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.InFrame(
+                "Preprocessor.default_preprocessor 85"
+              ),
+              ""
+            )
           )
         )
       )
@@ -5073,11 +5094,16 @@ class RuntimeVisualizationsTest
       context.send(
         Api.Request(
           requestId,
-          Api.ExecuteExpression(
-            contextId,
+          Api.AttachVisualization(
             visualizationId,
             idMain,
-            "Standard.Visualization.Preprocessor.default_preprocessor 85"
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.InFrame(
+                "Standard.Visualization.Preprocessor.default_preprocessor 85"
+              ),
+              ""
+            )
           )
         )
       )

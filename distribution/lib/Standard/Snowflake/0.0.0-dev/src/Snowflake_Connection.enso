@@ -69,7 +69,7 @@ type Snowflake_Connection
         auth_properties = case credentials of
             cloud_credentials : Enso_Secret ->
                 # Special handling for OAuth credentials stored in the cloud
-                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials CredentialReference)
+                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials CredentialReference) . to_vector
             _ -> auth_jdbc_properties credentials
 
         clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))

@@ -1,7 +1,7 @@
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { assert } from '@/util/assert'
 import { findDifferenceIndex } from '@/util/data/array'
-import { isSome, type Opt } from '@/util/data/opt'
+import { type Opt } from '@/util/data/opt'
 import {
   methodPointerEquals,
   stackItemsEqual,
@@ -32,7 +32,15 @@ import type {
   Uuid,
 } from 'ydoc-shared/languageServerTypes'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
-import type { ExternalId } from 'ydoc-shared/yjsModel'
+import {
+  Visualizations,
+  newVisRequestId,
+  type VisRequestId,
+  type VisRequestPreprocessor,
+  type VisualizationId,
+  type VisualizationSlotSpec,
+} from 'ydoc-shared/visualizations'
+import type { DistributedProject, ExternalId } from 'ydoc-shared/yjsModel'
 
 // This constant should be synchronized with EXECUTION_ENVIRONMENT constant in
 // engine/runtime/src/main/java/org/enso/interpreter/EnsoLanguage.java
@@ -83,6 +91,17 @@ type ExecutionContextState =
   | { status: 'not-created' }
   | {
       status: 'created'
+      /**
+       * Which request id (slot) is currently the authoritative in-flight one
+       * for each visualization id. Set when a slot is written; cleared when
+       * it is detached or superseded.
+       */
+      visualizationSlotByVisId: Map<Uuid, VisRequestId>
+      /**
+       * The config we currently believe the bridge/runtime is computing for
+       * each visualization id. Used to decide whether a config change is a
+       * no-op, a modify, or a detach+attach.
+       */
       visualizations: Map<Uuid, NodeVisualizationConfiguration>
       stack: StackItem[]
       environment: ExecutionEnvironment
@@ -92,12 +111,6 @@ type EntryPoint = Omit<ExplicitCall, 'type'>
 
 type ExecutionContextNotification = {
   'expressionUpdates'(updates: ExpressionUpdate[]): void
-  'visualizationEvaluationFailed'(
-    visualizationId: Uuid,
-    expressionId: ExpressionId,
-    message: string,
-    diagnostic: Diagnostic | undefined,
-  ): void
   'executionFailed'(message: string): void
   'executionComplete'(): void
   'executionStatus'(diagnostics: Diagnostic[]): void
@@ -131,19 +144,46 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
   private _executionEnvironment: ExecutionEnvironment = 'Design'
 
+  /**
+   * Handle to the vis subdoc wrapper once it has been created on the server
+   * side and synced to us. Writes to slots go through this.
+   */
+  private visualizations: Visualizations | null = null
+  private unobserveVisDoc: (() => void) | null = null
+
   /** TODO: Add docs */
   constructor(
     private lsRpc: LanguageServer,
     entryPoint: EntryPoint,
     private abort: AbortScope,
     private readonly projectNames: ProjectNameStore,
+    projectModel: DistributedProject,
   ) {
     super()
     this.abort.handleDispose(this)
     this.lsRpc.retain()
     this.queue = new AsyncQueue<ExecutionContextState>(Promise.resolve({ status: 'not-created' }))
     this.registerHandlers()
+    this.subscribeToVisualizationsDoc(projectModel)
     this.pushItem({ type: 'ExplicitCall', ...entryPoint })
+  }
+
+  private subscribeToVisualizationsDoc(projectModel: DistributedProject) {
+    this.unobserveVisDoc = projectModel.observeVisualizationsDoc((doc) => {
+      if (!doc) {
+        this.visualizations = null
+        return
+      }
+      // Load the subdoc so its contents actually sync. Without this, Yjs only
+      // transports the subdoc *reference* in the parent; the slot contents
+      // never arrive and writes here are invisible to the ydoc-server. The
+      // `.load()` call fires the parent doc's `subdocs` `loaded` event, which
+      // in turn drives `attachProvider` in `project-view/util/crdt.ts` to
+      // open a dedicated WebSocket for the subdoc.
+      doc.load()
+      this.visualizations = new Visualizations(doc)
+      this.sync()
+    })
   }
 
   private registerHandlers() {
@@ -159,19 +199,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.abort.handleObserve(this.lsRpc, 'executionContext/executionStatus', (event) => {
       if (event.contextId == this.id) this.emit('executionStatus', [event.diagnostics])
     })
-    this.abort.handleObserve(
-      this.lsRpc,
-      'executionContext/visualizationEvaluationFailed',
-      (event) => {
-        if (event.contextId == this.id)
-          this.emit('visualizationEvaluationFailed', [
-            event.visualizationId,
-            event.expressionId,
-            event.message,
-            event.diagnostic,
-          ])
-      },
-    )
     this.lsRpc.on('transport/closed', () => {
       // Connection closed: the created execution context is no longer available
       // There is no point in any scheduled action until resynchronization
@@ -287,7 +314,17 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
   /** TODO: Add docs */
   dispose() {
+    this.unobserveVisDoc?.()
+    this.unobserveVisDoc = null
     this.queue.pushTask(async (state) => {
+      // Detach any still-live visualization slots this context owned. The
+      // server would otherwise hold the runtime attachments until it notices
+      // the context is gone.
+      if (state.status === 'created' && this.visualizations) {
+        for (const requestId of state.visualizationSlotByVisId.values()) {
+          this.visualizations.removeSlot(requestId)
+        }
+      }
       if (state.status === 'created') {
         const result = await this.withBackoff(
           () => this.lsRpc.destroyExecutionContext(this.id),
@@ -341,6 +378,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           }
           newState = {
             status: 'created',
+            visualizationSlotByVisId: new Map(),
             visualizations: new Map(),
             stack: [],
             environment: DEFAULT_ENVIRONMENT,
@@ -405,87 +443,52 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         const state = newState
         if (state.status !== 'created')
           return Err('Cannot sync visualizations when execution context is not created')
-        const promises: Promise<void>[] = []
 
-        const attach = (id: Uuid, config: NodeVisualizationConfiguration) => {
-          return this.withBackoff(
-            () =>
-              this.lsRpc.attachVisualization(id, config.expressionId, {
-                executionContextId: this.id,
-                expression:
-                  typeof config.expression === 'string' ?
-                    config.expression
-                  : serializeMethodPointer(config.expression, this.projectNames),
-                visualizationModule: config.visualizationModule,
-                ...(config.positionalArgumentsExpressions ?
-                  { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
-              }),
-            'Failed to attach visualization',
-          ).then((result) => {
-            if (result.ok) state.visualizations.set(id, config)
-          })
+        const vis = this.visualizations
+        if (!vis) {
+          // Vis subdoc hasn't arrived yet; the observer will re-trigger sync
+          // when it does. Treat as a no-op for this cycle.
+          return Ok()
         }
 
-        const modify = (id: Uuid, config: NodeVisualizationConfiguration) => {
-          return this.withBackoff(
-            () =>
-              this.lsRpc.modifyVisualization(id, {
-                executionContextId: this.id,
-                expression:
-                  typeof config.expression === 'string' ?
-                    config.expression
-                  : serializeMethodPointer(config.expression, this.projectNames),
-                visualizationModule: config.visualizationModule,
-                ...(config.positionalArgumentsExpressions ?
-                  { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
-              }),
-            'Failed to modify visualization',
-          ).then((result) => {
-            if (result.ok) state.visualizations.set(id, config)
-          })
+        const attach = (visId: Uuid, config: NodeVisualizationConfiguration) => {
+          const spec: VisualizationSlotSpec = {
+            visualizationId: visId as VisualizationId,
+            contextId: this.id,
+            nodeExternalId: config.expressionId,
+            request: serializeRequest(config, this.projectNames),
+          }
+          const requestId = newVisRequestId()
+          vis.createSlot(spec, requestId)
+          state.visualizationSlotByVisId.set(visId, requestId)
+          state.visualizations.set(visId, config)
         }
 
-        const detach = (id: Uuid, config: NodeVisualizationConfiguration) => {
-          return this.withBackoff(
-            () => this.lsRpc.detachVisualization(id, config.expressionId, this.id),
-            'Failed to detach visualization',
-          ).then((result) => {
-            if (result.ok) state.visualizations.delete(id)
-          })
+        const detach = (visId: Uuid) => {
+          const requestId = state.visualizationSlotByVisId.get(visId)
+          if (requestId != null) vis.removeSlot(requestId)
+          state.visualizationSlotByVisId.delete(visId)
+          state.visualizations.delete(visId)
         }
 
-        // Attach new and update existing visualizations.
+        // Attach new and update existing visualizations. Modify is always a
+        // detach+attach: every change gets a new slot with a new request id so
+        // the response is unambiguously paired with its preprocessor.
         for (const [id, config] of this.visualizationConfigs) {
           const previousConfig = state.visualizations.get(id)
           if (previousConfig == null) {
-            promises.push(attach(id, config))
+            attach(id, config)
           } else if (!visualizationConfigEqual(previousConfig, config)) {
-            if (previousConfig.expressionId === config.expressionId) {
-              promises.push(modify(id, config))
-            } else {
-              promises.push(detach(id, previousConfig).then(() => attach(id, config)))
-            }
+            detach(id)
+            attach(id, config)
           }
         }
 
         // Detach removed visualizations.
-        for (const [id, config] of state.visualizations) {
+        for (const id of Array.from(state.visualizations.keys())) {
           if (!this.visualizationConfigs.get(id)) {
-            promises.push(detach(id, config))
+            detach(id)
           }
-        }
-        const settled = await Promise.allSettled(promises)
-
-        // Emit errors for failed requests.
-        const errors = settled
-          .map((result) => (result.status === 'rejected' ? result.reason : null))
-          .filter(isSome)
-        if (errors.length > 0) {
-          const result = Err(`Failed to synchronize visualizations: ${errors}`)
-          result.error.log()
-          return result
         }
         return Ok()
       }
@@ -559,5 +562,28 @@ function serializeMethodPointer(
     module: projectNames.serializeProjectPathForBackend(methodPointer.module),
     definedOnType: projectNames.serializeProjectPathForBackend(methodPointer.definedOnType),
     name: methodPointer.name,
+  }
+}
+
+/**
+ * Turn a client-side node configuration into the preprocessor payload that
+ * lives inside a vis slot. The result is plain JSON intended to be stored
+ * immutably in the Y.Map. The shape must stay in sync with
+ * `VisRequestPreprocessor` in `ydoc-shared/visualizations.ts` and the
+ * decoder in `VisualizationBridgeServer.scala`.
+ */
+function serializeRequest(
+  config: NodeVisualizationConfiguration,
+  projectNames: ProjectNameStore,
+): VisRequestPreprocessor {
+  return {
+    visualizationModule: config.visualizationModule,
+    expression:
+      typeof config.expression === 'string' ?
+        config.expression
+      : serializeMethodPointer(config.expression, projectNames),
+    ...(config.positionalArgumentsExpressions ?
+      { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+    : {}),
   }
 }

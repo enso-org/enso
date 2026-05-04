@@ -18,17 +18,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -382,10 +380,12 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
+    Set<String> consNames;
     if (hasAllConstructorsPrivate) {
-      return ArrayLikeHelpers.empty();
+      consNames = Set.of();
+    } else {
+      consNames = constructors.keySet();
     }
-    var consNames = constructors.keySet();
     if (!includeInternal) {
       return ArrayLikeHelpers.wrapStrings(consNames.toArray(String[]::new));
     }
@@ -426,7 +426,7 @@ public final class Type extends EnsoObject {
         Object[] args,
         @Cached("member") String cachedMember,
         @Cached("findMethod(receiver, cachedMember)") Function func,
-        @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode) {
+        @Cached InteropApplicationNode invokeNode) {
       Object[] finalArgs = args;
       if (func.getSchema().shouldPrependSyntheticSelfArg(args.length)) {
         var argsWithReceiver = new Object[args.length + 1];
@@ -434,7 +434,8 @@ public final class Type extends EnsoObject {
         System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
         finalArgs = argsWithReceiver;
       }
-      return invokeCallableNode.execute(func, null, null, finalArgs);
+      var result = invokeNode.execute(func, null, finalArgs);
+      return result;
     }
 
     @Specialization(replaces = "doCached")
@@ -445,25 +446,11 @@ public final class Type extends EnsoObject {
       if (method == null) {
         throw UnknownIdentifierException.create(member);
       }
-      var invokeCallableNode = buildInvokeCallableNode(method);
-      return doCached(receiver, member, args, member, method, invokeCallableNode);
+      return doCached(receiver, member, args, member, method, InteropApplicationNode.getUncached());
     }
 
     static Function findMethod(Type self, String methodName) {
       return self.methods().get(methodName);
-    }
-
-    static InvokeCallableNode buildInvokeCallableNode(Function func) {
-      assert func != null;
-      var argumentInfos = func.getSchema().getArgumentInfos();
-      var callArgInfos = new CallArgumentInfo[argumentInfos.length];
-      for (var i = 0; i < argumentInfos.length; i++) {
-        var argInfo = argumentInfos[i];
-        var callArgInfo = new CallArgumentInfo(argInfo.getName());
-        callArgInfos[i] = callArgInfo;
-      }
-      return InvokeCallableNode.build(
-          callArgInfos, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
     }
   }
 

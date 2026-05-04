@@ -16,10 +16,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.runtime.ContextRegistryProtocol._
 import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.session.JsonSession
-import org.enso.languageserver.session.SessionRouter.{
-  DeliverToBinaryController,
-  DeliverToJsonController
-}
+import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
@@ -261,145 +258,10 @@ class ContextEventsListenerSpec
       )
     }
 
-    "register oneshot visualization" taggedAs Retry in withEventsListener {
-      (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
-          UUID.randomUUID(),
-          contextId,
-          UUID.randomUUID()
-        )
-
-        listener ! RegisterOneshotVisualization(
-          ctx.contextId,
-          ctx.visualizationId,
-          ctx.expressionId
-        )
-
-        val data1 = Array[Byte](1, 2, 3)
-        listener ! Api.VisualizationUpdate(ctx, data1)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data1
-            )
-          )
-        )
-        registry.expectMsg(
-          DetachVisualization(
-            clientId,
-            ctx.contextId,
-            ctx.visualizationId,
-            ctx.expressionId
-          )
-        )
-
-        val data2 = Array[Byte](2, 3, 4)
-        listener ! Api.VisualizationUpdate(ctx, data2)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data2
-            )
-          )
-        )
-        registry.expectNoMessage()
-    }
-
-    "detach oneshot visualization when evaluation fails" taggedAs Retry in withEventsListener {
-      (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
-          UUID.randomUUID(),
-          contextId,
-          UUID.randomUUID()
-        )
-
-        listener ! RegisterOneshotVisualization(
-          ctx.contextId,
-          ctx.visualizationId,
-          ctx.expressionId
-        )
-
-        val message = "boom!"
-        listener ! Api.VisualizationEvaluationFailed(ctx, message, None)
-        registry.expectMsg(
-          DetachVisualization(
-            clientId,
-            ctx.contextId,
-            ctx.visualizationId,
-            ctx.expressionId
-          )
-        )
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            VisualizationEvaluationFailed(
-              VisualizationContext(
-                ctx.visualizationId,
-                contextId,
-                ctx.expressionId
-              ),
-              message,
-              None
-            )
-          )
-        )
-    }
-
-    "send visualization updates" taggedAs Retry in withEventsListener {
-      (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
-          UUID.randomUUID(),
-          contextId,
-          UUID.randomUUID()
-        )
-
-        val data1 = Array[Byte](1, 2, 3)
-        listener ! Api.VisualizationUpdate(ctx, data1)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data1
-            )
-          )
-        )
-        registry.expectNoMessage()
-
-        val data2 = Array[Byte](2, 3, 4)
-        listener ! Api.VisualizationUpdate(ctx, data2)
-        router.expectMsg(
-          DeliverToBinaryController(
-            clientId,
-            VisualizationUpdate(
-              VisualizationContext(
-                ctx.visualizationId,
-                ctx.contextId,
-                ctx.expressionId
-              ),
-              data2
-            )
-          )
-        )
-        registry.expectNoMessage()
-    }
+    // Oneshot visualization tests removed: `executeExpression` and every
+    // attach/modify/detach variant now flow through the vis subdoc +
+    // `VisualizationBridgeActor`, so `ContextEventsListener` no longer has
+    // any visualization-related code paths.
 
     "send execution failed notification" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, _, listener) =>
@@ -463,36 +325,6 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send visualization evaluation failed notification" taggedAs Retry in withEventsListener {
-      (clientId, contextId, router, _, listener) =>
-        val message         = "Test visualization evaluation failed"
-        val visualizationId = UUID.randomUUID()
-        val expressionId    = UUID.randomUUID()
-        listener ! Api.VisualizationEvaluationFailed(
-          Api.VisualizationContext(
-            visualizationId,
-            contextId,
-            expressionId
-          ),
-          message,
-          None
-        )
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            VisualizationEvaluationFailed(
-              VisualizationContext(
-                visualizationId,
-                contextId,
-                expressionId
-              ),
-              message,
-              None
-            )
-          )
-        )
-    }
   }
 
   def newConfig(root: ContentRootWithFile): Config = {

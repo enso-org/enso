@@ -5,29 +5,23 @@ import {
   WIDGETS_ENSO_MODULE,
 } from '@/components/GraphEditor/widgets/WidgetFunction/consts'
 import * as Ast from '@/util/ast/abstract'
-import { Pattern } from '@/util/ast/match'
 import type { QualifiedName } from '@/util/qualifiedName'
-import {
-  Builder,
-  EnsoUUID,
-  OutboundMessage,
-  OutboundPayload,
-  VisualizationContext,
-  VisualizationUpdate,
-} from 'ydoc-shared/binaryProtocol'
 import { ErrorCode } from 'ydoc-shared/languageServer'
 import type {
   ContextId,
-  ExpressionId,
   LibraryComponentGroup,
   Path,
   Uuid,
-  VisualizationConfiguration,
   response,
 } from 'ydoc-shared/languageServerTypes'
 import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
-import { uuidToBits } from 'ydoc-shared/uuid'
-import { Doc } from 'yjs'
+import {
+  VIS_SLOT_FIELDS,
+  Visualizations,
+  type VisRequestPreprocessor,
+} from 'ydoc-shared/visualizations'
+import { VISUALIZATIONS_SUBDOC_KEY } from 'ydoc-shared/yjsModel'
+import { Doc, Map as YMap } from 'yjs'
 import mockDb from './data/mockSuggestions.json' with { type: 'json' }
 import { mockDataWSHandler } from './dataServer'
 
@@ -120,11 +114,11 @@ const fileTree = {
   },
 }
 
-const visualizations = new Map<Uuid, VisualizationConfiguration>()
-const visualizationExprIds = new Map<Uuid, ExpressionId>()
-
 const encoder = new TextEncoder()
 const encodeJSON = (data: unknown) => encoder.encode(JSON.stringify(data))
+
+/** Stable key for the AI prompt builder, see {@link slotPreprocessorKey}. */
+const AI_BUILD_PROMPT_KEY = '@@AI.build_ai_prompt'
 
 const scatterplotJson = (params: string[]) =>
   encodeJSON({
@@ -216,6 +210,10 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
       [50, 25, 40, 20, 10],
     ]),
     'Standard.Visualization.Widgets.column_names_json': encodeJSON(['Column A', 'Column B']),
+    // AI prompt template returned in place of evaluating
+    // `Standard.Visualization.AI.build_ai_prompt`. The client substitutes the
+    // user's goal for `__$$GOAL$$__` and forwards the result to `ai/completion`.
+    [AI_BUILD_PROMPT_KEY]: encodeJSON('Could you __$$GOAL$$__, please?'),
   }
 
 const initialMockWidgetConfigurations: Map<string, Uint8Array> = new Map([
@@ -397,11 +395,22 @@ let mockWidgetConfigurations: Map<string, Uint8Array> = new Map(initialMockWidge
 /** Clear standard widget configurations. Use `updateMockWidgetConfiguration` to set a specific configuration needed for test. */
 export function clearMockWidgetConfigurations() {
   mockWidgetConfigurations.clear()
+  preprocessorOverrides.clear()
 }
 
 /** Restore standard mocks of widget configurations. */
 export function restoreMockWidgetConfigurations() {
   mockWidgetConfigurations = new Map(initialMockWidgetConfigurations)
+  preprocessorOverrides.clear()
+}
+
+/**
+ * Per-test reset for {@link updateVisualizationData} overrides. Does not
+ * touch {@link mockWidgetConfigurations}: some test describes own the widget
+ * map via their own `beforeEach`/`afterEach` hooks and must not be stomped on.
+ */
+export function clearPreprocessorOverrides() {
+  preprocessorOverrides.clear()
 }
 
 function mockWidgetConfiguration(method: string | undefined) {
@@ -409,91 +418,11 @@ function mockWidgetConfiguration(method: string | undefined) {
   return mockWidgetConfigurations.get(method) ?? null
 }
 
-function createMessageId(builder: Builder) {
-  const messageUuid = crypto.randomUUID()
-  const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
-  return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
-}
-
-function createId(id: Uuid) {
-  const [low, high] = uuidToBits(id)
-  return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, low, high)
-}
-
-type VizRequest = { type: 'widget'; id: string | undefined } | { type: 'visualization'; id: string }
-function recognizeVizRequest(config: VisualizationConfiguration): VizRequest {
-  if (typeof config.expression === 'string') {
-    // Getting widget configuration is a special case, where we sometimes pass lambda as
-    // expression to discard the input value
-    if (/^[a-z_]+ *->.*get_widget_json/.test(config.expression)) {
-      return { type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } as VizRequest
-    } else {
-      return {
-        type: 'visualization',
-        id: `${config.visualizationModule}.${config.expression}`,
-      } as VizRequest
-    }
-  } else if (
-    config.expression.module === WIDGETS_ENSO_MODULE &&
-    config.expression.name === GET_WIDGETS_METHOD
-  ) {
-    return { type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } as VizRequest
-  } else {
-    return {
-      type: 'visualization',
-      id: `${config.expression.definedOnType}.${config.expression.name}`,
-    } as VizRequest
-  }
-}
-
-function makeVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
-  const req = recognizeVizRequest(config)
-  const vizDataHandler =
-    req.type === 'visualization' ? mockVizPreprocessors[req.id] : mockWidgetConfiguration(req.id)
-  if (!vizDataHandler) return
-  const vizData =
-    vizDataHandler instanceof Uint8Array ? vizDataHandler : (
-      vizDataHandler(config.positionalArgumentsExpressions ?? [])
-    )
-  if (!vizData) return
-  const exprId = expressionId ?? visualizationExprIds.get(id)
-  return makeVizUpdate(id, config.executionContextId, exprId, vizData)
-}
-
-function makeVizUpdate(
-  id: Uuid,
-  executionCtxId: Uuid,
-  exprId: Uuid | undefined,
-  vizData: Uint8Array,
-) {
-  const builder = new Builder()
-  const visualizationContextOffset = VisualizationContext.createVisualizationContext(
-    builder,
-    createId(id),
-    createId(executionCtxId),
-    exprId ? createId(exprId) : null,
-  )
-  const dataOffset = VisualizationUpdate.createDataVector(builder, vizData)
-  const payload = VisualizationUpdate.createVisualizationUpdate(
-    builder,
-    visualizationContextOffset,
-    dataOffset,
-  )
-  const rootTable = OutboundMessage.createOutboundMessage(
-    builder,
-    createMessageId,
-    null, // correlationId
-    OutboundPayload.VISUALIZATION_UPDATE,
-    payload,
-  )
-  return builder.finish(rootTable).toArrayBuffer()
-}
-
 export const mockLSHandler = async (
   method: string,
   params: object,
   sendMessage: (message: { method: string; params: object }) => void,
-  sendBinary: (data?: ArrayBuffer) => void,
+  _sendBinary: (data?: ArrayBuffer) => void,
 ) => {
   switch (method) {
     case 'session/initProtocolConnection':
@@ -513,70 +442,6 @@ export const mockLSHandler = async (
         100,
       )
       return { contextId: data_.contextId }
-    }
-    case 'executionContext/attachVisualization': {
-      const data_ = params as {
-        visualizationId: Uuid
-        expressionId: ExpressionId
-        visualizationConfig: VisualizationConfiguration
-      }
-      visualizations.set(data_.visualizationId, data_.visualizationConfig)
-      visualizationExprIds.set(data_.visualizationId, data_.expressionId)
-      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
-      return
-    }
-    case 'executionContext/detachVisualization': {
-      const data_ = params as {
-        visualizationId: Uuid
-        expressionId: ExpressionId
-        contextId: ContextId
-      }
-      visualizations.delete(data_.visualizationId)
-      visualizationExprIds.delete(data_.visualizationId)
-      return
-    }
-    case 'executionContext/modifyVisualization': {
-      const data_ = params as {
-        visualizationId: Uuid
-        visualizationConfig: VisualizationConfiguration
-      }
-      visualizations.set(data_.visualizationId, data_.visualizationConfig)
-      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
-      return
-    }
-    case 'executionContext/executeExpression': {
-      const data_ = params as {
-        executionContextId: ContextId
-        visualizationId: Uuid
-        expressionId: ExpressionId
-        expression: string
-      }
-      const aiPromptPat = Pattern.parseExpression(
-        'Standard.Visualization.AI.build_ai_prompt __ . to_json',
-      )
-      const exprAst = Ast.parseExpression(data_.expression)!
-      if (aiPromptPat.test(exprAst)) {
-        sendBinary(
-          makeVizUpdate(
-            data_.visualizationId,
-            data_.executionContextId,
-            data_.expressionId,
-            encodeJSON('Could you __$$GOAL$$__, please?'),
-          ),
-        )
-      } else {
-        // Check if there's existing preprocessor mock which matches our expression
-        const { func, args } = Ast.analyzeAppLike(exprAst)
-        if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
-        const visualizationConfig: VisualizationConfiguration = {
-          executionContextId: data_.executionContextId,
-          visualizationModule: func.lhs.code(),
-          expression: func.rhs.code(),
-          positionalArgumentsExpressions: args.map((ast) => ast.code()),
-        }
-        sendBinary(makeVizData(data_.visualizationId, visualizationConfig, data_.expressionId))
-      }
-      return
     }
     case 'executionContext/push':
     case 'executionContext/pop':
@@ -633,19 +498,136 @@ export const mockLSHandler = async (
   }
 }
 
-/** Prepare visualization update data sent by a mock binary endpoint */
-export function makeVisUpdates(preprocessor: string, data: unknown) {
-  const updates: ArrayBuffer[] = []
-  for (const [id, config] of visualizations.entries()) {
-    if (recognizeVizRequest(config).id === preprocessor) {
-      const exprId = visualizationExprIds.get(id)
-      const vizData = encodeJSON(data)
-      updates.push(makeVizUpdate(id, config.executionContextId, exprId, vizData))
-      mockWidgetConfigurations.set(preprocessor, vizData)
+/**
+ * Test-only overrides for mock preprocessor responses. A test pushes updated
+ * data via {@link updateVisualizationData}; on receipt the mock ydoc provider
+ * rewrites every matching ready/pending slot in the vis subdoc so the client
+ * observes the new bytes through its normal reactive path.
+ */
+const preprocessorOverrides = new Map<string, Uint8Array>()
+
+/**
+ * Extract the preprocessor identifier from a slot's immutable request, matching
+ * the scheme the pre-refactor mock used for the binary `VisualizationUpdate`
+ * path. The client serializes preprocessor module + expression + positional
+ * args into the slot's `request` field; we recover the same composite key so
+ * the mock can route responses by preprocessor name.
+ */
+function slotPreprocessorKey(request: VisRequestPreprocessor): string | null {
+  const expression = request.expression
+  if (typeof expression === 'string') {
+    if (/^[a-z_]+ *->.*get_widget_json/.test(expression)) {
+      return request.positionalArgumentsExpressions?.at(0) ?? null
+    }
+    return `${request.visualizationModule}.${expression}`
+  }
+  if ('inFrame' in expression) {
+    // The component browser's AI prompt path issues a one-shot
+    // `executeExpression` request for `... . to_json` on the source node.
+    // The leftmost identifier is the source node name (varies per test), so
+    // route every AI-prompt request to a stable key.
+    if (/Standard\.Visualization\.AI\.build_ai_prompt\b.*\.\s*to_json/.test(expression.inFrame)) {
+      return AI_BUILD_PROMPT_KEY
+    }
+    const exprAst = Ast.parseExpression(expression.inFrame)
+    if (!exprAst) return null
+    const { func } = Ast.analyzeAppLike(exprAst)
+    if (!(func instanceof Ast.PropertyAccess && func.lhs)) return null
+    return `${func.lhs.code()}.${func.rhs.code()}`
+  }
+  if (expression.module === WIDGETS_ENSO_MODULE && expression.name === GET_WIDGETS_METHOD) {
+    return request.positionalArgumentsExpressions?.at(0) ?? null
+  }
+  return `${expression.definedOnType}.${expression.name}`
+}
+
+function slotPositionalArgs(request: VisRequestPreprocessor): string[] {
+  if (typeof request.expression === 'object' && 'inFrame' in request.expression) {
+    const exprAst = Ast.parseExpression(request.expression.inFrame)
+    if (!exprAst) return []
+    const { args } = Ast.analyzeAppLike(exprAst)
+    return args.map((ast) => ast.code())
+  }
+  return request.positionalArgumentsExpressions ?? []
+}
+
+/**
+ * Look up mock response bytes for a given preprocessor key. The preprocessor
+ * space is unified across both visualization queries
+ * (`Module.expression`-keyed) and widget queries (keyed by the first
+ * positional arg, e.g. `.read`), so tests can push responses for either via a
+ * single {@link updateVisualizationData} call. Lookup order:
+ *
+ * 1. Test overrides set through {@link updateVisualizationData}.
+ * 2. The widget configuration map - widget queries route here because the
+ *    pre-refactor binary path called `mockWidgetConfiguration(positionalArgs[0])`.
+ * 3. Built-in visualization mocks in {@link mockVizPreprocessors}.
+ */
+function responseBytesFor(
+  preprocessorKey: string,
+  positionalArgs: readonly string[],
+): Uint8Array | null {
+  const override = preprocessorOverrides.get(preprocessorKey)
+  if (override) return override
+  const widget = mockWidgetConfigurations.get(preprocessorKey)
+  if (widget) return widget
+  const mock = mockVizPreprocessors[preprocessorKey]
+  if (mock instanceof Uint8Array) return mock
+  if (typeof mock === 'function') return mock(Array.from(positionalArgs))
+  return null
+}
+
+/**
+ * All vis subdoc `slots` maps that the mock currently observes. One entry per
+ * live WebSocket connection to the vis subdoc; iterated by
+ * {@link updateVisualizationData} so a test's push reaches every connection.
+ */
+const visSlotsMaps = new Set<YMap<YMap<unknown>>>()
+
+/** Write response bytes + `status: 'ready'` into `slot`. */
+function writeSlotResponse(slot: YMap<unknown>, bytes: Uint8Array): void {
+  const doc = slot.doc
+  if (!doc) return
+  doc.transact(() => {
+    slot.set(VIS_SLOT_FIELDS.response, bytes)
+    slot.set(VIS_SLOT_FIELDS.status, 'ready')
+  })
+}
+
+/** If the slot's preprocessor is mocked, write the mock bytes into it. */
+function maybeRespondToSlot(slot: YMap<unknown>): void {
+  const request = slot.get(VIS_SLOT_FIELDS.request) as VisRequestPreprocessor | undefined
+  if (!request) return
+  const key = slotPreprocessorKey(request)
+  if (!key) return
+  const bytes = responseBytesFor(key, slotPositionalArgs(request))
+  if (bytes) writeSlotResponse(slot, bytes)
+}
+
+/**
+ * Test entry point: push `data` as the mock response for every slot whose
+ * preprocessor matches `preprocessor`. Also caches the bytes for future slots
+ * created after this call, and for widget lookups that hit
+ * {@link mockWidgetConfigurations}.
+ */
+export function updateVisualizationData(preprocessor: string, data: unknown): void {
+  const bytes = encodeJSON(data)
+  preprocessorOverrides.set(preprocessor, bytes)
+  mockWidgetConfigurations.set(preprocessor, bytes)
+  for (const slots of visSlotsMaps) {
+    for (const [, slot] of slots.entries()) {
+      const request = slot.get(VIS_SLOT_FIELDS.request) as VisRequestPreprocessor | undefined
+      if (!request) continue
+      if (slotPreprocessorKey(request) === preprocessor) writeSlotResponse(slot, bytes)
     }
   }
-  return updates
 }
+
+/**
+ * Stable guid for the mock vis subdoc, so the provider can recognize the
+ * subdoc room when the client opens a WebSocket for it.
+ */
+const MOCK_VIS_SUBDOC_GUID = 'mock-visualizations-subdoc'
 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')
 
@@ -670,6 +652,26 @@ export const mockYdocProvider = (room: string, doc: Doc) => {
   if (room === 'index') {
     const modules = doc.getMap('modules')
     for (const file in srcFiles) modules.set(file, new Doc({ guid: `mock-${file}` }))
+    // Install a vis subdoc placeholder so the client resolves the
+    // visualizations container to a loadable subdoc and opens the matching
+    // WebSocket room. The guid is fixed so the provider can recognize the
+    // vis room when that second connection arrives.
+    const visContainer = doc.getMap<Doc>('visualizations')
+    visContainer.set(VISUALIZATIONS_SUBDOC_KEY, new Doc({ guid: MOCK_VIS_SUBDOC_GUID }))
+  } else if (room === MOCK_VIS_SUBDOC_GUID) {
+    const vis = new Visualizations(doc)
+    // Retained for the lifetime of the mock process. Playwright page teardown
+    // destroys the page-level WebSockets anyway, and iterating a stale map is
+    // harmless - its slots resolve to `.doc === null` and the write is a
+    // no-op.
+    visSlotsMaps.add(vis.slots)
+    vis.slots.observeDeep(() => {
+      for (const [, slot] of vis.slots.entries()) {
+        const status = slot.get(VIS_SLOT_FIELDS.status)
+        if (status !== 'pending') continue
+        maybeRespondToSlot(slot)
+      }
+    })
   } else if (room.startsWith('mock-')) {
     const fileContents = srcFiles[room.slice('mock-'.length)]
     if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)

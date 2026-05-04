@@ -241,7 +241,7 @@ test('Exercise 2', async ({ page }) => {
       .click()
     await page.getByRole('button', { name: 'Count', exact: true }).click()
 
-    await page.getByText('direction', { exact: true }).click()
+    await openDropdownInWidget(page, 'direction')
     await page.getByRole('button', { name: '..Descending', exact: true }).click()
 
     await visualizeData(page)
@@ -249,6 +249,10 @@ test('Exercise 2', async ({ page }) => {
 
   // ---------------- Objective 3 ----------------
   await test.step('Objective 3: Create table of currencies by product names', async () => {
+    // Park the cursor before scrolling: after a wheel the cursor stays at the
+    // same viewport coord while page contents shift, so it can end up over a
+    // column header and trigger a tooltip that intercepts the next click.
+    await page.mouse.move(0, 0)
     // Scroll into view
     await page.mouse.wheel(0, -200)
 
@@ -272,7 +276,7 @@ test('Exercise 2', async ({ page }) => {
     await expect(curRCode).toBeVisible()
     await curRCode.click()
 
-    await page.getByText('values', { exact: true }).click()
+    await openDropdownInWidget(page, 'values')
     await page.getByRole('button', { name: '..Count_Distinct', exact: true }).click()
 
     // Click the plus and select argument
@@ -290,6 +294,8 @@ test('Exercise 2', async ({ page }) => {
 
   // ---------------- Objective 4 ----------------
   await test.step('Objective 4:  Fixing Dirty Data', async () => {
+    // See note on the matching `mouse.move(0, 0)` in Objective 3.
+    await page.mouse.move(0, 0)
     // Scroll into view
     await page.mouse.wheel(0, -200)
 

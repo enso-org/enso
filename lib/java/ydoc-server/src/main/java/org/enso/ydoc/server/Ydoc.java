@@ -27,6 +27,8 @@ public final class Ydoc implements AutoCloseable {
   private final int port;
   private final YjsChannel.Server jsonChannelCallbacks;
   private final YjsChannel.Server binaryChannelCallbacks;
+  private final YjsChannel.Server visControlChannelCallbacks;
+  private final YjsChannel.Server visDataChannelCallbacks;
 
   private Context context;
   private ScheduledExecutorService statsLoggerExecutor;
@@ -38,7 +40,9 @@ public final class Ydoc implements AutoCloseable {
       String hostname,
       int port,
       YjsChannel.Server jsonChannelCallbacks,
-      YjsChannel.Server binaryChannelCallbacks) {
+      YjsChannel.Server binaryChannelCallbacks,
+      YjsChannel.Server visControlChannelCallbacks,
+      YjsChannel.Server visDataChannelCallbacks) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
@@ -46,6 +50,8 @@ public final class Ydoc implements AutoCloseable {
     this.port = port;
     this.jsonChannelCallbacks = jsonChannelCallbacks;
     this.binaryChannelCallbacks = binaryChannelCallbacks;
+    this.visControlChannelCallbacks = visControlChannelCallbacks;
+    this.visDataChannelCallbacks = visDataChannelCallbacks;
   }
 
   public static final class Builder {
@@ -61,6 +67,8 @@ public final class Ydoc implements AutoCloseable {
     private int port = -1;
     private YjsChannel.Server jsonChannelCallbacks;
     private YjsChannel.Server binaryChannelCallbacks;
+    private YjsChannel.Server visControlChannelCallbacks;
+    private YjsChannel.Server visDataChannelCallbacks;
 
     private Builder() {}
 
@@ -172,6 +180,16 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
+    public Builder visControlChannelCallbacks(YjsChannel.Server callbacks) {
+      this.visControlChannelCallbacks = callbacks;
+      return this;
+    }
+
+    public Builder visDataChannelCallbacks(YjsChannel.Server callbacks) {
+      this.visDataChannelCallbacks = callbacks;
+      return this;
+    }
+
     public Ydoc build() {
       if (executor == null) {
         executor = new YdocScheduledExecutorService();
@@ -211,7 +229,13 @@ public final class Ydoc implements AutoCloseable {
               : jsonChannelCallbacks,
           isTracing
               ? new DelegateYjsChannel.Server("binary", binaryChannelCallbacks)
-              : binaryChannelCallbacks);
+              : binaryChannelCallbacks,
+          isTracing
+              ? new DelegateYjsChannel.Server("vis:control", visControlChannelCallbacks)
+              : visControlChannelCallbacks,
+          isTracing
+              ? new DelegateYjsChannel.Server("vis:data", visDataChannelCallbacks)
+              : visDataChannelCallbacks);
     }
   }
 
@@ -225,6 +249,14 @@ public final class Ydoc implements AutoCloseable {
 
   private YjsChannel.Server getBinaryChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
+  }
+
+  private YjsChannel.Server getVisControlChannelCallbacksSynchronized() {
+    return new YjsCallbacksSynchronized(visControlChannelCallbacks, executor);
+  }
+
+  private YjsChannel.Server getVisDataChannelCallbacksSynchronized() {
+    return new YjsCallbacksSynchronized(visDataChannelCallbacks, executor);
   }
 
   private static String findYdocServerSrc() {
@@ -296,6 +328,11 @@ public final class Ydoc implements AutoCloseable {
                   "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
               bindings.putMember(
                   "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
+              bindings.putMember(
+                  "YDOC_VIS_CONTROL_CHANNEL_CALLBACKS",
+                  getVisControlChannelCallbacksSynchronized());
+              bindings.putMember(
+                  "YDOC_VIS_DATA_CHANNEL_CALLBACKS", getVisDataChannelCallbacksSynchronized());
               // FIXME: (#14948) replace with LOG.isLoggable(System.Logger.Level.DEBUG)
               var isDebug = "true".equals(System.getenv("ENSO_IDE_YDOC_LS_DEBUG"));
               bindings.putMember("YDOC_LS_DEBUG", isDebug);

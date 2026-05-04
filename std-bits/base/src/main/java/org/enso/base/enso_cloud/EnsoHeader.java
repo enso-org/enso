@@ -4,5 +4,5 @@ package org.enso.base.enso_cloud;
 public interface EnsoHeader {
   String name();
 
-  EnsoHideableValue hideable_value();
+  EnsoHideableValue as_derived_secret();
 }

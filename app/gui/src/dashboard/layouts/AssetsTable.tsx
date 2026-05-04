@@ -445,6 +445,28 @@ function AssetsTable(props: AssetsTableProps) {
           )
           break
         }
+        case 'createdAt': {
+          const creations = assets.map((node) => {
+            const date = new Date(node.createdAt)
+            return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+          })
+          setSuggestions(
+            Array.from(
+              new Set(['today', ...creations]),
+              (createdAt): assetSearchBar.Suggestion => ({
+                key: createdAt,
+                render: () =>
+                  AssetQuery.termToString({
+                    tag: 'createdAt',
+                    values: [createdAt],
+                  }),
+                addToQuery: (oldQuery) => oldQuery.add('creations', [createdAt]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('creations', [createdAt]),
+              }),
+            ),
+          )
+          break
+        }
         case 'label': {
           setSuggestions(
             (labels ?? []).map(

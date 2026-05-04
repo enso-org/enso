@@ -17,6 +17,8 @@ declare const YDOC_PORT: number | undefined
 declare const YDOC_LS_DEBUG: boolean | undefined
 declare const YDOC_JSON_CHANNEL_CALLBACKS: YjsChannelServer | undefined
 declare const YDOC_BINARY_CHANNEL_CALLBACKS: YjsChannelServer | undefined
+declare const YDOC_VIS_CONTROL_CHANNEL_CALLBACKS: YjsChannelServer<string> | undefined
+declare const YDOC_VIS_DATA_CHANNEL_CALLBACKS: YjsChannelServer<any> | undefined
 
 // rust ffi shims
 declare function parse_block(code: string): Uint8Array

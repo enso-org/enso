@@ -23,6 +23,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -490,6 +491,39 @@ public class AtomInteropTest {
     assertThat(atom.canInvokeMember("method"), is(true));
     var res = atom.invokeMember("method");
     assertThat(res.asInt(), is(42));
+  }
+
+  @Test
+  public void instanceMethodHasRootNode() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            from Standard.Base import Error, True, False
+
+            type My_Type
+                Cons
+                method self yield=True =
+                    if yield then Error.throw "OK"
+            main = My_Type.Cons
+            """);
+    assertThat(atom.hasMember("method"), is(true));
+    assertThat(atom.canInvokeMember("method"), is(true));
+    var res = atom.invokeMember("method");
+    assertTrue("It should be an error: " + res, res.isException());
+    try {
+      throw res.throwException();
+    } catch (PolyglotException ex) {
+      assertEquals("OK", ex.getMessage());
+    }
+    var resWithTrue = atom.invokeMember("method", true);
+    assertTrue("It should be an error: " + resWithTrue, resWithTrue.isException());
+    try {
+      throw resWithTrue.throwException();
+    } catch (PolyglotException ex) {
+      assertEquals("OK", ex.getMessage());
+    }
+    var resWithFalse = atom.invokeMember("method", false);
+    assertTrue("Return Nothing", resWithFalse.isNull());
   }
 
   @Test

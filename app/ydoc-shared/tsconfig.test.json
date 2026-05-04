@@ -48,6 +48,7 @@
     "./src/util/net/__tests__/YjsTransport.test.ts",
     "./src/util/types.ts",
     "./src/uuid.ts",
+    "./src/visualizations.ts",
     "./src/yjsModel.ts",
     "./vitest.config.ts"
   ]

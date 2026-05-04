@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.job
 
+import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.slf4j.LoggerFactory
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import com.oracle.truffle.api.source.SourceSection
@@ -64,7 +65,8 @@ object ProgramExecutionSupport {
   final private def executeProgram(
     contextId: Api.ContextId,
     executionFrame: ExecutionFrame,
-    callStack: List[LocalCallFrame]
+    callStack: List[LocalCallFrame],
+    env: Option[ExecutionEnvironment]
   )(implicit ctx: RuntimeContext): Unit = {
 
     val methodCallsCache = new MethodCallsCache
@@ -169,6 +171,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          env.orNull,
           ctx.state.expressionExecutionState,
           ctx.progressTimingCollector,
           callablesCallback,
@@ -212,6 +215,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          env.orNull,
           ctx.state.expressionExecutionState,
           ctx.progressTimingCollector,
           callablesCallback,
@@ -273,7 +277,7 @@ object ProgramExecutionSupport {
               item.cache,
               item.syncState
             )
-          executeProgram(contextId, executionFrame, tail)
+          executeProgram(contextId, executionFrame, tail, env)
         }
     }
   }
@@ -285,9 +289,11 @@ object ProgramExecutionSupport {
     * @param ctx a runtime context
     * @return an execution result
     */
+  @throws[ExecutionException]
   final def runProgram(
     contextId: Api.ContextId,
-    stack: List[InstrumentFrame]
+    stack: List[InstrumentFrame],
+    env: Option[ExecutionEnvironment]
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     logger.trace(s"Run program {}", contextId)
     @scala.annotation.tailrec
@@ -323,7 +329,7 @@ object ProgramExecutionSupport {
         )
       _ <-
         Try(
-          executeProgram(contextId, stackItem, localCalls)
+          executeProgram(contextId, stackItem, localCalls, env)
         ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()
