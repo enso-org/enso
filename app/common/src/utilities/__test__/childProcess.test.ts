@@ -305,10 +305,10 @@ describe('WatchedChildProcess', () => {
     ctrl.fakes[0]!.simulateError(err)
     await flush()
     expect(onUnexpectedExit).toHaveBeenCalledTimes(1)
-    expect(onUnexpectedExit).toHaveBeenCalledWith(
-      expect.stringContaining('ENOENT'),
-      { exceedsCrashLimit: false, exitError: err },
-    )
+    expect(onUnexpectedExit).toHaveBeenCalledWith(expect.stringContaining('ENOENT'), {
+      exceedsCrashLimit: false,
+      exitError: err,
+    })
     await watcher.close()
   })
 
