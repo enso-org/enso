@@ -3,6 +3,7 @@ import type { Electron } from '@/electron'
 import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { homedir } from 'node:os'
 import * as path from 'node:path'
+import { findStdlibRoot } from 'project-manager-shim'
 
 /**
  * The root of the application bundle.
@@ -65,6 +66,20 @@ export function assetsPath(electron: Electron | undefined) {
  */
 export function resourcesPath(electron: Electron | undefined, electronIsDev: boolean): string {
   return electronIsDev ? appPath(electron) : path.join(appPath(electron), '..')
+}
+
+/**
+ * Bundled engine's `lib/Standard` directory, or `undefined` if it cannot be located.
+ *
+ * Resolved by deriving from the engine binary's location (the PM shim's `findStdlibRoot`),
+ * not by hard-coding a relative path — the bundle layout differs between dev (`dist/backend/dist/<v>/`)
+ * and packaged (`<resources>/enso/dist/<v>/`), and the version segment is glob-resolved.
+ */
+export function stdlibRoot(
+  electron: Electron | undefined,
+  electronIsDev: boolean,
+): string | undefined {
+  return findStdlibRoot(resourcesPath(electron, electronIsDev))
 }
 
 /** Relative path of Enso Project package metadata relative to the project root. */

@@ -50,14 +50,14 @@ once `./run ide build` has produced the engine bundle.
 
 `src/claudeAgent.ts` owns a **single long-lived `claude` CLI subprocess** that
 serves every AI-component IPC for the lifetime of the Electron app. The session
-is constructed eagerly (but non-blockingly) when `initClaudeAgentIpc()` runs,
-primed with a small acknowledgment turn so the system prompt is ingested
+is constructed eagerly (but non-blockingly) when `initClaudeAgentIpc(config)`
+runs, primed with a small acknowledgment turn so the system prompt is ingested
 up-front, and torn down via SIGTERM on `before-quit`. The CLI is launched via
 `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows
 — which arrives as `claude.cmd` — is resolved without forcing `shell: true`.
 
 Invocation flags:
-`-p --input-format stream-json --output-format stream-json --verbose --system-prompt <SYSTEM_PROMPT> --tools "" --setting-sources "" --no-session-persistence`.
+`-p --input-format stream-json --output-format stream-json --verbose --system-prompt <SYSTEM_PROMPT> --add-dir <stdlibRoot> --allowedTools "Read,Glob,Grep" --setting-sources "" --no-session-persistence`.
 `--verbose` is mandatory: omitting it makes the child exit 1 with
 `When using --print, --output-format=stream-json requires --verbose`. The extra
 system/init and rate_limit_event envelopes it emits are filtered by the parser.
@@ -70,6 +70,90 @@ side. `--setting-sources ""` keeps the invocation hermetic (no user
 settings/plugins/`CLAUDE.md` discovery) without touching auth; `--bare` is
 deliberately avoided because it would re-introduce the `ANTHROPIC_API_KEY`
 requirement.
+
+`--add-dir <stdlibRoot>` plus `--allowedTools "Read,Glob,Grep"` lets the agent
+browse the bundled standard library on disk when it's unsure of an API name or
+signature — the system prompt's cheat sheet covers only the most common entry
+points, and inventing a name is the dominant failure mode. `--allowedTools`
+(camelCase, not the deprecated `--tools`) **pre-grants** the listed tools so no
+permission prompt fires in `-p` mode (where there is no UI to prompt against).
+The stdlib path is resolved at startup by `paths.stdlibRoot()`, which derives
+from the PM shim's `findStdlibRoot()` (sibling of `findEnsoExecutable`,
+`<engineRoot>/lib/Standard` where `<engineRoot>` is two `dirname`s above the
+engine binary). When the binary cannot be located the path is `undefined`; the
+session still spawns but without filesystem access and with the stdlib hint
+omitted from the system prompt — the agent shouldn't be told it has tools it
+can't actually use.
+
+`REQUEST_TIMEOUT_MS` was bumped from 120 s to 240 s when filesystem tools were
+introduced — a single turn now does up to a handful of stdlib lookups in
+addition to the model's own output, and the original budget got tight. The
+priming timeout (60 s) and the per-stdin write retry/backoff are unchanged.
+
+### AI tool bridge (MCP `evaluateExpression`)
+
+`src/aiMcpServer.ts` owns an in-process MCP server bound to a random localhost
+port at app startup. Its single tool, `evaluateExpression(expression)`, lets
+the model run a plain Enso expression in the scope where the AI's new node
+would land — exactly the same scope the generated `body` will see, so every
+in-scope binding listed in the prompt is referenceable by name (and one call
+can stitch several of them together, e.g.
+`cards.join leader_order on=["Set"] . column_names`). The server writes a
+temporary JSON config file (`<tmpdir>/enso-claude-mcp-<pid>-<uuid>.json`) and
+that path is passed to the agent as `--mcp-config <path> --strict-mcp-config`;
+`--strict-mcp-config` makes the CLI ignore any project- or user-level MCP
+config so the session is hermetic. The temp file is deleted on shutdown.
+
+**Why HTTP (not stdio):** Claude Code can spawn its own MCP servers via stdio,
+but the server we need has to share state with the Electron main process —
+specifically, it must reach into the renderer's `graphDb`/`executionContext` to
+evaluate expressions. Hosting in-process and pointing the CLI at it via
+`{"type":"http","url":"http://127.0.0.1:<port>/mcp"}` sidesteps cross-process
+state-sharing entirely. The transport uses
+`StreamableHTTPServerTransport` from `@modelcontextprotocol/sdk` in stateless
+mode (each request gets its own short-lived transport — the single in-process
+consumer doesn't keep an SSE channel open between turns).
+
+**Per-turn sender slot:** the agent's singleton serves any window in the app,
+but a tool call needs to dispatch back to the *specific* renderer that
+originated the in-flight turn. `runRequest(request, sender)` pins the
+`WebContents` to the per-turn `pending` slot (not to the session — that way
+crashes and `shutdown()` reject in-flight bridge promises by construction).
+The MCP server reads it via `session.activeSender`, which returns `null` between
+turns and also when the in-flight sender has since been destroyed. Tool calls
+that find `null` reply with a clean `Err("no active AI turn …")` so the model
+recovers cleanly instead of hanging.
+
+**Reentrancy contract:** within a turn the model can fan out tool calls
+sequentially, but the outer `AsyncQueue` in `ClaudeAgentSession.runRequest`
+guarantees only one turn is ever in flight at a time — so multiple windows
+serialize through the singleton, and a second window's IPC blocks until the
+first turn returns. Acceptable today (the typical user has one window); if
+multi-window AI becomes common the `pending` slot would need to grow into a
+per-turn map.
+
+**Timeouts:** per-tool-call 30 s on the main-process side (the MCP server
+rejects with a clean error after that), nested inside the 240 s outer
+`REQUEST_TIMEOUT_MS`. So the model's worst case is "spent the whole turn on
+tool calls, none replied" — which still leaves room for it to wrap up. The
+`--allowedTools` list is built dynamically: `Read,Glob,Grep` are added when
+the stdlib path is available, `mcp__enso__evaluateExpression` is added when
+the MCP server started successfully — the system prompt's "Tools you have
+available" list mirrors that, so we don't lie to the model about capabilities
+that aren't wired.
+
+**Renderer side:**
+`app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts`
+exposes a `useAiToolHandler()` Vue composable mounted by `ComponentBrowser.vue`.
+It subscribes to `window.api.ai.onToolCall`, resolves the LS scope-anchor
+(currently the last node in the current method, since
+`nodeOutputPorts.allForward()` matches textual order — every binding earlier
+in the method is in scope), calls `queuedExecuteExpression(anchor, expression)`
+from the project store (the **queued** variant, not the bare one — it
+cooperates with the `MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`),
+parses the visualization update as JSON, and replies via `replyToolCall`.
+Returns a clean `Err` for "no active project" and "no in-scope binding to
+anchor scope".
 
 The renderer reaches the IPC via `window.api.ai.generateComponent(...)` (see
 `enso-gui/src/electronApi.ts`) over channel `Channel.generateAiComponent`. The

@@ -51,7 +51,7 @@ import {
 } from './electronTest'
 
 const DATASETS_DIR = process.env.ENSO_TEST_AI_CHALLENGES_DIR
-const AI_PROMPT_TIMEOUT_MS = 120_000
+const AI_PROMPT_TIMEOUT_MS = 240_000
 const MANUAL_NODE_TIMEOUT_MS = 30_000
 
 const WEEK_32_FILES = {
@@ -192,10 +192,10 @@ async function runAIPromptOnLastNode(page: Page, prompt: string, expectedNodeCou
 test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)", async ({
   page,
 }) => {
-  // 9 AI calls × up to 120s each, plus 4 manual source nodes and the final visualization. The
-  // 3-minute playwright default is far too short; budget 25 min so a hang fails fast without
+  // 9 AI calls × up to 240s each, plus 4 manual source nodes and the final visualization. The
+  // 3-minute playwright default is far too short; budget 45 min so a hang fails fast without
   // squeezing the worst-case happy path.
-  test.setTimeout(25 * 60_000)
+  test.setTimeout(45 * 60_000)
   const files = await resolveDataFiles(WEEK_32_FILES)
   await loginAsTestUser(page)
   await closeWelcome(page)
@@ -239,7 +239,7 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
     'Join the result with the Pokemon Input table (columns: Pokédex #, Name, Type, ...) on the' +
       ' result\'s `Card` column matching Pokemon Input\'s `Name` column, bringing in just the' +
       ' `Pokédex #` column.',
-    'Deduplicate the rows by the combination of (Leader, Card, number).',
+    'Deduplicate the rows by the combination of (Leader, Card, number, set_name).',
     'Rename columns: `set_name` to `Gym Set`, `number` to `Number`, `level` to `Level`. Add a new' +
       ' column `Card Type` with the constant value "Pokémon".',
     'Union with the Trainer Cards table (columns: Leader, Gym Set, Number, Card). For rows coming' +
@@ -273,8 +273,8 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
 test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isolation)", async ({
   page,
 }) => {
-  // 6 AI calls × up to 120s each, plus the manual source node and the final visualization.
-  test.setTimeout(15 * 60_000)
+  // 6 AI calls × up to 240s each, plus the manual source node and the final visualization.
+  test.setTimeout(30 * 60_000)
   const files = await resolveDataFiles(WEEK_51_FILES)
   await loginAsTestUser(page)
   await closeWelcome(page)

@@ -12,7 +12,7 @@
  * does not require or read the API key beyond forwarding the parent environment.
  */
 import spawn from 'cross-spawn'
-import { ipcMain } from 'electron'
+import { ipcMain, type WebContents } from 'electron'
 import {
   aiComponentResponseSchema,
   type AiComponentIpcReply,
@@ -28,16 +28,38 @@ import {
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import readline from 'node:readline'
 import { z } from 'zod'
+import { startAiMcpServer, type AiMcpServer } from './aiMcpServer.js'
 import { Channel } from './ipc.js'
 
 const CLAUDE_EXECUTABLE = 'claude'
-const REQUEST_TIMEOUT_MS = 120_000
+// Tool round-trips (filesystem reads, MCP `evaluateExpression` calls) eat the budget fast — a
+// single turn can do half a dozen sub-second LS queries on top of the model's own output. The
+// pre-tools value was 120s; doubled with headroom for the worst-case fan-out.
+const REQUEST_TIMEOUT_MS = 240_000
 const PRIMING_TIMEOUT_MS = 60_000
 const STDERR_TAIL_CHARS = 2_000
 const RESPAWN_WINDOW_MS = 30_000
 const MAX_RESPAWNS_IN_WINDOW = 3
 const PRIMING_PROMPT =
   'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
+
+/** Configuration for the long-lived `claude` session. Resolved main-process-side at startup. */
+export interface ClaudeSessionConfig {
+  /**
+   * Filesystem path to the bundled engine's `lib/Standard` tree, passed to the CLI as `--add-dir`
+   * so the session's `Read`/`Glob`/`Grep` tools can browse it. `undefined` when the bundle isn't
+   * resolvable — in that case the session still spawns but without filesystem context, and the
+   * system prompt's stdlib hint is omitted so we don't lie to the model.
+   */
+  readonly stdlibRoot: string | undefined
+  /**
+   * Path to the JSON config file written by {@link AiMcpServer.start} that points the CLI at our
+   * in-process MCP server. When present, the spawn line gets `--mcp-config <path> --strict-mcp-config`
+   * and the `evaluateExpression` tool is added to `--allowedTools`. When `undefined`, the agent runs
+   * without MCP — used by headless tests where we don't want an HTTP listener.
+   */
+  readonly mcpConfigPath: string | undefined
+}
 
 // =====================
 // === System prompt ===
@@ -59,10 +81,23 @@ Common stdlib entry points (Standard.Base / Standard.Table):
 - \`Text.contains\`, \`Text.starts_with\`, \`Text.split\`.
 - \`Data.read path\`, \`Data.write path value\`.`
 
-const SYSTEM_PROMPT = `\
+function buildSystemPrompt(config: ClaudeSessionConfig): string {
+  const toolLines: string[] = []
+  if (config.stdlibRoot != null) {
+    toolLines.push(
+      `- \`Read\`, \`Glob\`, and \`Grep\` against the Enso standard library at \`${config.stdlibRoot}\`. Prefer reading the actual \`.enso\` source files when in doubt about a function's exact name, signature, or available overloads — your built-in cheat sheet is incomplete. Stay inside that directory; do not attempt to read anything else.`,
+    )
+  }
+  if (config.mcpConfigPath != null) {
+    toolLines.push(
+      "- `evaluateExpression(expression)` — evaluate a plain Enso expression in the same scope your generated `body` would run in. Every in-scope binding listed below is referenceable by name. Use it when you need to inspect actual values you cannot infer from types: `<binding>.first.to_text.take 200` to preview a value (especially when the prompt asks you to parse, split, or otherwise depend on a column's wire format that has not been shown to you), `<binding>.column_names` to confirm a schema, `<binding>.join other on=[..] . column_names` to verify a join shape. Each call is a real LS round-trip — pick what you need, don't fan out.",
+    )
+  }
+  const toolsSection = toolLines.length > 0 ? `\n\nTools you have available:\n${toolLines.join('\n')}` : ''
+  return `\
 You generate a top-level User Defined Component in Enso — a function definition plus the call that places it inside an existing method on the user's graph.
 
-${ENSO_CHEAT_SHEET}
+${ENSO_CHEAT_SHEET}${toolsSection}
 
 You will receive:
 - The Enso method the call site lives in (its name and full source).
@@ -83,6 +118,7 @@ Rules:
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.
 
 If the user message is a session warm-up and the request is not for a component, reply briefly in plain text. Otherwise, every reply must be the JSON object described above.`
+}
 
 // =================
 // === Prompt IO ===
@@ -139,8 +175,16 @@ function truncateStderr(stderr: string): string {
 // child exits 1 immediately with "When using --print, --output-format=stream-json requires
 // --verbose"). The extra system/init and rate_limit_event envelopes the verbose output emits
 // are filtered out by the schema-based parser in `onStdoutLine`.
-function streamJsonArgs(): string[] {
-  return [
+//
+// `--add-dir <stdlib>` plus `--allowedTools "Read,Glob,Grep"` lets the model browse the bundled
+// standard library when it's unsure of an API. We pre-grant those tools (`--allowedTools`) so the
+// CLI doesn't try to prompt — there's no UI to prompt against in `-p` mode. The pre-existing
+// `--tools ""` is gone: in 2026 Claude Code, the right shape is `--allowedTools` (camelCase) plus
+// `--add-dir`; specifying both `--tools ""` and `--allowedTools …` would be self-contradictory
+// (the former disables, the latter pre-grants). Stdlib access is omitted entirely when
+// `config.stdlibRoot` is `undefined` so we don't pass `--add-dir` for a path that doesn't exist.
+function streamJsonArgs(config: ClaudeSessionConfig): string[] {
+  const args = [
     '-p',
     '--input-format',
     'stream-json',
@@ -148,13 +192,25 @@ function streamJsonArgs(): string[] {
     'stream-json',
     '--verbose',
     '--system-prompt',
-    SYSTEM_PROMPT,
-    '--tools',
-    '',
-    '--setting-sources',
-    '',
-    '--no-session-persistence',
+    buildSystemPrompt(config),
   ]
+  if (config.stdlibRoot != null) {
+    args.push('--add-dir', config.stdlibRoot)
+  }
+  if (config.mcpConfigPath != null) {
+    // `--strict-mcp-config` makes the CLI ignore project- and user-level MCP configs — this
+    // session is hermetic and only sees our in-process server.
+    args.push('--mcp-config', config.mcpConfigPath, '--strict-mcp-config')
+  }
+  // Build `--allowedTools` from whatever capabilities are actually wired. Conditional so a
+  // session without any tools (e.g. headless tests) doesn't lie to the model. The MCP tool is
+  // namespaced as `mcp__<server-name>__<tool-name>` per Claude Code 2026 docs.
+  const allowedTools: string[] = []
+  if (config.stdlibRoot != null) allowedTools.push('Read', 'Glob', 'Grep')
+  if (config.mcpConfigPath != null) allowedTools.push('mcp__enso__evaluateExpression')
+  if (allowedTools.length > 0) args.push('--allowedTools', allowedTools.join(','))
+  args.push('--setting-sources', '', '--no-session-persistence')
+  return args
 }
 
 function userTurnLine(content: string): string {
@@ -206,6 +262,17 @@ interface TurnOutcome {
 interface PendingTurn {
   resolve: (outcome: TurnOutcome) => void
   textChunks: string[]
+  /**
+   * The renderer that originated the request, or `null` for the priming turn (which has no
+   * originator). The MCP server reads this slot via {@link ClaudeAgentSession.activeSender} so
+   * tool calls dispatched mid-turn target the right window; for priming there is no window and
+   * tool calls would be wrong anyway.
+   *
+   * Pinned to `pending` (not the session) so a crash or shutdown rejects the slot by
+   * construction; a stale tool call arriving after the slot was cleared (timeout, crash) is
+   * dropped by the MCP server's request table.
+   */
+  sender: WebContents | null
 }
 
 // ============================
@@ -219,6 +286,7 @@ interface PendingTurn {
  * unexpected exit (subject to a crash-loop guard); `shutdown()` SIGTERMs it permanently.
  */
 export class ClaudeAgentSession {
+  private readonly config: ClaudeSessionConfig
   private readonly watcher: WatchedChildProcess
   private readyDeferred: Deferred<void> = createDeferred()
   private readonly queue = new AsyncQueue<void>(Promise.resolve())
@@ -228,7 +296,8 @@ export class ClaudeAgentSession {
   private disposed = false
 
   /** Spawn the child, kick off priming, and start serving requests. */
-  constructor() {
+  constructor(config: ClaudeSessionConfig) {
+    this.config = config
     // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
     // unhandled rejection when no `runRequest` happens to be awaiting `ready` at the time.
     // Awaiters that arrive later attach their own .then/.catch and still observe the rejection.
@@ -238,7 +307,7 @@ export class ClaudeAgentSession {
       // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
       // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
       () =>
-        spawn(CLAUDE_EXECUTABLE, streamJsonArgs(), {
+        spawn(CLAUDE_EXECUTABLE, streamJsonArgs(this.config), {
           stdio: ['pipe', 'pipe', 'pipe'],
           env: process.env,
         }),
@@ -260,9 +329,33 @@ export class ClaudeAgentSession {
     return this.readyDeferred.promise
   }
 
+  /**
+   * The renderer that originated the currently-in-flight request, or `null` between turns. The
+   * MCP server reads this so tool calls dispatched mid-turn target the right window. Returns
+   * `null` (and not the destroyed sender's reference) when the renderer was destroyed since the
+   * turn started.
+   */
+  get activeSender(): WebContents | null {
+    const pending = this.pending
+    if (pending == null) return null
+    const sender = pending.sender
+    if (sender == null || sender.isDestroyed()) return null
+    return sender
+  }
+
   /** Run an AI component request through the long-lived session. */
-  runRequest(request: AiComponentRequest): Promise<AiComponentIpcReply> {
+  runRequest(request: AiComponentRequest, sender: WebContents): Promise<AiComponentIpcReply> {
     return new Promise<AiComponentIpcReply>((resolveOuter) => {
+      // Pre-flight: if the originating renderer is already gone, there is no point spinning up a
+      // turn that can't be replied to. This catches the racy case where a window closes between
+      // the renderer's IPC dispatch and the main-process handler running.
+      if (sender.isDestroyed()) {
+        resolveOuter({
+          result: Err('Renderer was destroyed before the AI request could be handled'),
+          usage: null,
+        })
+        return
+      }
       this.queue.pushTask(async () => {
         if (this.disposed) {
           resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
@@ -285,7 +378,7 @@ export class ClaudeAgentSession {
           })
           return
         }
-        const turn = await this.runOneTurn(buildUserPrompt(request), REQUEST_TIMEOUT_MS)
+        const turn = await this.runOneTurn(buildUserPrompt(request), REQUEST_TIMEOUT_MS, sender)
         resolveOuter(this.replyFromTurn(turn))
       })
     })
@@ -311,7 +404,7 @@ export class ClaudeAgentSession {
   // -------------- private --------------
 
   private onChildStarted(handle: ChildProcessHandle): void {
-    this.contextBytes = Buffer.byteLength(SYSTEM_PROMPT, 'utf8')
+    this.contextBytes = Buffer.byteLength(buildSystemPrompt(this.config), 'utf8')
     this.stderrTail = ''
     this.pending = null
 
@@ -364,7 +457,7 @@ export class ClaudeAgentSession {
   }
 
   private async prime(): Promise<void> {
-    const outcome = await this.runOneTurn(PRIMING_PROMPT, PRIMING_TIMEOUT_MS)
+    const outcome = await this.runOneTurn(PRIMING_PROMPT, PRIMING_TIMEOUT_MS, null)
     if (outcome.state !== 'completed') {
       throw new Error(`priming turn ${outcome.state}: ${outcome.errorReason ?? '(no detail)'}`)
     }
@@ -373,7 +466,11 @@ export class ClaudeAgentSession {
     }
   }
 
-  private runOneTurn(content: string, timeoutMs: number): Promise<TurnOutcome> {
+  private runOneTurn(
+    content: string,
+    timeoutMs: number,
+    sender: WebContents | null,
+  ): Promise<TurnOutcome> {
     return new Promise<TurnOutcome>((resolveTurn) => {
       const handle = this.watcher.current
       const child = handle?.child
@@ -394,6 +491,7 @@ export class ClaudeAgentSession {
           resolveTurn(outcome)
         },
         textChunks: [],
+        sender,
       }
       this.pending = pending
       const timeoutHandle = setTimeout(() => {
@@ -511,12 +609,45 @@ export class ClaudeAgentSession {
 // ===================
 
 let session: ClaudeAgentSession | null = null
+let mcpServer: AiMcpServer | null = null
 
-/** Register the {@link Channel.generateAiComponent} IPC handler. */
-export function initClaudeAgentIpc() {
+/**
+ * Public init parameters. Subset of {@link ClaudeSessionConfig} — `mcpConfigPath` is filled in
+ * here after starting the in-process MCP server.
+ */
+export interface ClaudeAgentIpcConfig {
+  readonly stdlibRoot: string | undefined
+}
+
+/**
+ * Register the {@link Channel.generateAiComponent} IPC handler. Boots the in-process MCP
+ * server in the background; if the server fails to start, the session still spawns but without
+ * the `evaluateExpression` tool.
+ */
+export async function initClaudeAgentIpc(config: ClaudeAgentIpcConfig): Promise<void> {
+  if (config.stdlibRoot == null) {
+    console.warn(
+      `[AI] could not locate the bundled engine's lib/Standard directory; the agent will run without stdlib filesystem access.`,
+    )
+  } else {
+    console.info(`[AI] stdlib filesystem access at ${config.stdlibRoot}`)
+  }
+  let mcpConfigPath: string | undefined
+  try {
+    const started = await startAiMcpServer(() => session?.activeSender ?? null)
+    mcpServer = started.server
+    mcpConfigPath = started.mcpConfigPath
+    console.info(`[AI] MCP server config at ${mcpConfigPath}`)
+  } catch (err) {
+    console.warn(
+      `[AI] failed to start in-process MCP server; the agent will run without the evaluateExpression tool:`,
+      err,
+    )
+    mcpConfigPath = undefined
+  }
   // Eager but non-blocking: spawning + priming happen in the background while Electron continues
   // its own startup. Subsequent IPC calls await `session.ready` before sending stdin.
-  if (session == null) session = new ClaudeAgentSession()
+  if (session == null) session = new ClaudeAgentSession({ ...config, mcpConfigPath })
   const currentSession = session
   // One-time startup diagnostic. The session's first `ready` rejection carries the original
   // ErrnoException (synchronous spawner throws via `firstSpawn`; async 'error' events via the
@@ -535,13 +666,17 @@ export function initClaudeAgentIpc() {
   })
   ipcMain.handle(
     Channel.generateAiComponent,
-    async (_event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>
-      currentSession.runRequest(request),
+    async (event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>
+      currentSession.runRequest(request, event.sender),
   )
 }
 
-/** Tear down the long-lived session. Wired to `app.on('before-quit', ...)` in `index.ts`. */
+/** Tear down the long-lived session and MCP server. Wired to `app.on('before-quit', ...)`. */
 export function shutdownClaudeAgent(): void {
   session?.shutdown()
   session = null
+  if (mcpServer != null) {
+    void mcpServer.shutdown()
+    mcpServer = null
+  }
 }

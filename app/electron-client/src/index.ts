@@ -296,7 +296,7 @@ class App {
       }
       console.log('Starting the application with args', args)
       await this.createWindowIfEnabled(args)
-      initIpc(this.window)
+      initIpc(this.window, this.electron, this.electronIsDev)
       await this.loadWindowContent(args)
       if (this.electron) {
         /**

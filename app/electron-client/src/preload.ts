@@ -7,7 +7,12 @@
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as accessToken from 'enso-common/src/accessToken'
-import type { AiComponentIpcReply, AiComponentRequest } from 'enso-common/src/ai'
+import type {
+  AiComponentIpcReply,
+  AiComponentRequest,
+  AiToolCallReply,
+  AiToolCallRequest,
+} from 'enso-common/src/ai'
 import type { $Config } from 'enso-gui/src/config'
 import type { ElectronApi } from 'enso-gui/src/electronApi'
 import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
@@ -191,6 +196,23 @@ const system: ElectronApi['system'] = {
 const ai: ElectronApi['ai'] = {
   generateComponent: (request: AiComponentRequest): Promise<AiComponentIpcReply> =>
     electron.ipcRenderer.invoke(ipc.Channel.generateAiComponent, request),
+  /**
+   * Subscribe to mid-turn tool calls dispatched by the in-process MCP server. The handler must
+   * eventually reply via {@link replyToolCall} with a matching `requestId`; failure to reply
+   * means the main-process call will time out after 30 s. Returns a disposer that unsubscribes
+   * the handler — necessary for project view re-mounting.
+   */
+  onToolCall: (handler: (request: AiToolCallRequest) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: AiToolCallRequest) =>
+      handler(request)
+    electron.ipcRenderer.on(ipc.Channel.aiToolCall, listener)
+    return () => {
+      electron.ipcRenderer.removeListener(ipc.Channel.aiToolCall, listener)
+    }
+  },
+  replyToolCall: (reply: AiToolCallReply): void => {
+    electron.ipcRenderer.send(ipc.Channel.aiToolReply, reply)
+  },
 }
 
 const api: ElectronApi = {

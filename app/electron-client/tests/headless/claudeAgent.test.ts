@@ -7,7 +7,15 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 
 vi.mock('cross-spawn', () => ({ default: spawnMock }))
-vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
+vi.mock('electron', () => ({ ipcMain: { handle: vi.fn(), on: vi.fn() } }))
+
+/** A `WebContents`-shaped stub good enough for the constructor + activeSender invariants. */
+function fakeSender(opts: { destroyed?: boolean } = {}) {
+  return {
+    isDestroyed: () => opts.destroyed === true,
+    send: vi.fn(),
+  } as unknown as Electron.WebContents
+}
 
 const { ClaudeAgentSession } = await import('../../src/claudeAgent')
 
@@ -106,14 +114,21 @@ interface SessionHarness {
   children: FakeChild[]
 }
 
-function buildSession(): SessionHarness {
+const FAKE_STDLIB_ROOT = '/fake/engine-bundle/lib/Standard'
+
+function buildSession(
+  config: { stdlibRoot?: string | undefined; mcpConfigPath?: string | undefined } = {},
+): SessionHarness {
   const children: FakeChild[] = []
   spawnMock.mockImplementation(() => {
     const child = new FakeChild()
     children.push(child)
     return child as unknown as ReturnType<typeof import('node:child_process').spawn>
   })
-  const session = new ClaudeAgentSession()
+  const session = new ClaudeAgentSession({
+    stdlibRoot: 'stdlibRoot' in config ? config.stdlibRoot : FAKE_STDLIB_ROOT,
+    mcpConfigPath: 'mcpConfigPath' in config ? config.mcpConfigPath : undefined,
+  })
   return { session, children }
 }
 
@@ -141,12 +156,21 @@ describe('ClaudeAgentSession', () => {
     expect(args).toContain('--input-format')
     expect(args).toContain('stream-json')
     expect(args).toContain('--no-session-persistence')
+    // The deprecated `--tools` flag must not appear; allow-listing is done via `--allowedTools`.
+    expect(args).not.toContain('--tools')
+    // With stdlib root provided, expect `--add-dir <root>` and `--allowedTools Read,Glob,Grep`.
+    const addDirIdx = args.indexOf('--add-dir')
+    expect(addDirIdx).toBeGreaterThan(-1)
+    expect(args[addDirIdx + 1]).toBe(FAKE_STDLIB_ROOT)
+    const allowedToolsIdx = args.indexOf('--allowedTools')
+    expect(allowedToolsIdx).toBeGreaterThan(-1)
+    expect(args[allowedToolsIdx + 1]).toBe('Read,Glob,Grep')
 
     await primeChild(children[0]!)
     expect(children[0]!.stdinWrites).toHaveLength(1)
     expect(children[0]!.stdinWrites[0]).toContain('Acknowledge readiness')
 
-    const replyPromise = session.runRequest(exampleRequest)
+    const replyPromise = session.runRequest(exampleRequest, fakeSender())
     await settle()
     expect(children[0]!.stdinWrites).toHaveLength(2)
     expect(children[0]!.stdinWrites[1]).toContain('filter to rows with value over 5')
@@ -166,12 +190,12 @@ describe('ClaudeAgentSession', () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
 
-    const r1 = session.runRequest(exampleRequest)
+    const r1 = session.runRequest(exampleRequest, fakeSender())
     await settle()
     children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
     await r1
 
-    const r2 = session.runRequest(exampleRequest)
+    const r2 = session.runRequest(exampleRequest, fakeSender())
     await settle()
     children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
     await r2
@@ -186,8 +210,8 @@ describe('ClaudeAgentSession', () => {
     await primeChild(children[0]!)
     expect(children[0]!.stdinWrites).toHaveLength(1)
 
-    const r1 = session.runRequest(exampleRequest)
-    const r2 = session.runRequest(exampleRequest)
+    const r1 = session.runRequest(exampleRequest, fakeSender())
+    const r2 = session.runRequest(exampleRequest, fakeSender())
     await settle()
     // Only the first request should have written to stdin so far; the second waits in the queue.
     expect(children[0]!.stdinWrites).toHaveLength(2)
@@ -206,7 +230,7 @@ describe('ClaudeAgentSession', () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
 
-    const r1 = session.runRequest(exampleRequest)
+    const r1 = session.runRequest(exampleRequest, fakeSender())
     await settle()
     children[0]!.crash(1, 'authentication failure')
     const reply1 = await r1
@@ -219,7 +243,7 @@ describe('ClaudeAgentSession', () => {
     expect(children).toHaveLength(2)
     await primeChild(children[1]!)
 
-    const r2 = session.runRequest(exampleRequest)
+    const r2 = session.runRequest(exampleRequest, fakeSender())
     await settle()
     children[1]!.pushStdoutLine(resultEnvelope(exampleResponse))
     const reply2 = await r2
@@ -240,7 +264,7 @@ describe('ClaudeAgentSession', () => {
 
     // The next request should attempt one more spawn (the "next IPC call retries once" rule),
     // and when that crashes, we get a clean Err — no infinite respawn.
-    const replyPromise = session.runRequest(exampleRequest)
+    const replyPromise = session.runRequest(exampleRequest, fakeSender())
     await settle()
     expect(spawnMock).toHaveBeenCalledTimes(4)
     children[3]!.crash(1, 'still broken')
@@ -259,14 +283,15 @@ describe('ClaudeAgentSession', () => {
     await Promise.resolve()
     await Promise.resolve()
 
-    const replyPromise = session.runRequest(exampleRequest)
+    const replyPromise = session.runRequest(exampleRequest, fakeSender())
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()
     expect(children[0]!.stdinWrites.length).toBeGreaterThanOrEqual(1)
 
-    // Advance past the 120s per-request timeout.
-    await vi.advanceTimersByTimeAsync(121_000)
+    // Advance past the 240s per-request timeout (bumped from 120s when filesystem tools
+    // were introduced; tool round-trips eat the budget faster).
+    await vi.advanceTimersByTimeAsync(241_000)
     const reply = await replyPromise
     expect(reply.result.ok).toBe(false)
     if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/timed out/)
@@ -278,10 +303,85 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
+  test('omits --add-dir / --allowedTools when stdlib root cannot be resolved', () => {
+    const { session } = buildSession({ stdlibRoot: undefined })
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    const [, args] = spawnMock.mock.calls[0]!
+    expect(args).not.toContain('--add-dir')
+    expect(args).not.toContain('--allowedTools')
+    // The agent still spawns; it just runs without filesystem context.
+    expect(args).toContain('--input-format')
+    session.shutdown()
+  })
+
+  test('with mcpConfigPath, --mcp-config + --strict-mcp-config + tool allow-list are wired', () => {
+    const { session } = buildSession({ mcpConfigPath: '/tmp/fake-mcp.json' })
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    const [, args] = spawnMock.mock.calls[0]!
+    const mcpIdx = args.indexOf('--mcp-config')
+    expect(mcpIdx).toBeGreaterThan(-1)
+    expect(args[mcpIdx + 1]).toBe('/tmp/fake-mcp.json')
+    expect(args).toContain('--strict-mcp-config')
+    const allowedToolsIdx = args.indexOf('--allowedTools')
+    expect(allowedToolsIdx).toBeGreaterThan(-1)
+    // With both stdlib + MCP enabled, all three filesystem tools plus the MCP tool show up.
+    expect(args[allowedToolsIdx + 1]).toBe('Read,Glob,Grep,mcp__enso__evaluateExpression')
+    session.shutdown()
+  })
+
+  test('runRequest rejects early when sender is already destroyed', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    const reply = await session.runRequest(exampleRequest, fakeSender({ destroyed: true }))
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok)
+      expect(reply.result.error.payload).toMatch(/destroyed before the AI request/)
+    // No stdin write should have happened — the request was rejected before reaching the queue.
+    expect(children[0]!.stdinWrites).toHaveLength(1) // priming only
+    session.shutdown()
+  })
+
+  test('activeSender returns null between turns and the live sender mid-turn', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    expect(session.activeSender).toBeNull()
+
+    const sender = fakeSender()
+    const replyPromise = session.runRequest(exampleRequest, sender)
+    await settle()
+    expect(session.activeSender).toBe(sender)
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await replyPromise
+    expect(session.activeSender).toBeNull()
+    session.shutdown()
+  })
+
+  test('activeSender returns null when the in-flight sender has been destroyed mid-turn', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    let destroyed = false
+    const sender = {
+      isDestroyed: () => destroyed,
+      send: vi.fn(),
+    } as unknown as Electron.WebContents
+
+    const replyPromise = session.runRequest(exampleRequest, sender)
+    await settle()
+    expect(session.activeSender).toBe(sender)
+
+    destroyed = true
+    expect(session.activeSender).toBeNull()
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await replyPromise
+    session.shutdown()
+  })
+
   test('shutdown() sends SIGTERM and rejects in-flight work', async () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
-    const replyPromise = session.runRequest(exampleRequest)
+    const replyPromise = session.runRequest(exampleRequest, fakeSender())
     await settle()
 
     session.shutdown()

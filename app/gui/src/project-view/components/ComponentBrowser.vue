@@ -13,6 +13,7 @@ import ActionButton from '@/components/ActionButton.vue'
 import type { Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
+import { useAiToolHandler } from '@/components/ComponentBrowser/aiToolHandler'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import type { AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
@@ -185,6 +186,11 @@ const selectedSuggestion = computed(() => {
 // === Input and Filtering ===
 
 const input = useComponentBrowserInput()
+
+// Subscribe to mid-turn tool calls dispatched by the in-process MCP server. Active for the
+// component browser's lifetime — long enough to cover any in-flight AI request originating from
+// here. The composable internally calls `onScopeDispose` so unmount cleanup is automatic.
+useAiToolHandler()
 
 onUnmounted(() => {
   graphStore.cbEditedEdge = undefined

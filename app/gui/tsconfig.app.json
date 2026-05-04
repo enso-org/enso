@@ -488,6 +488,7 @@
     "./src/project-view/components/ComponentBrowser/ComponentList.vue",
     "./src/project-view/components/ComponentBrowser/ComponentTypeLabel.vue",
     "./src/project-view/components/ComponentBrowser/ai.ts",
+    "./src/project-view/components/ComponentBrowser/aiToolHandler.ts",
     "./src/project-view/components/ComponentBrowser/component.ts",
     "./src/project-view/components/ComponentBrowser/filtering.ts",
     "./src/project-view/components/ComponentBrowser/input.ts",

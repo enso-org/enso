@@ -1,6 +1,11 @@
 /** @file Shared API types exposed on `window.api` for both GUI and Electron. */
 import type * as saveAccessToken from 'enso-common/src/accessToken'
-import type { AiComponentIpcReply, AiComponentRequest } from 'enso-common/src/ai'
+import type {
+  AiComponentIpcReply,
+  AiComponentRequest,
+  AiToolCallReply,
+  AiToolCallRequest,
+} from 'enso-common/src/ai'
 import type { DownloadUrlOptions } from 'enso-common/src/download'
 import type { Path } from 'enso-common/src/services/Backend'
 import type { FileFilter } from './project-view/util/fileFilter'
@@ -62,6 +67,13 @@ export interface LogApi {
 
 export interface AiApi {
   readonly generateComponent: (request: AiComponentRequest) => Promise<AiComponentIpcReply>
+  /**
+   * Subscribe to mid-turn tool calls dispatched by the in-process MCP server. The handler must
+   * eventually reply via {@link replyToolCall} with the matching `requestId`. Returns a disposer.
+   */
+  readonly onToolCall: (handler: (request: AiToolCallRequest) => void) => () => void
+  /** Reply to an `onToolCall` invocation. */
+  readonly replyToolCall: (reply: AiToolCallReply) => void
 }
 
 export interface ElectronApi {

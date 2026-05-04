@@ -35,4 +35,11 @@ export enum Channel {
   handleMenuItem = 'handle-menu-item',
   /** Run the local Claude agent to generate a User Defined Component body. */
   generateAiComponent = 'generate-ai-component',
+  /**
+   * Main → renderer: request the renderer to handle a tool call from the in-flight Claude turn
+   * (currently `evaluateExpression`). Carries a `requestId` the renderer must echo on its reply.
+   */
+  aiToolCall = 'ai-tool-call',
+  /** Renderer → main: reply to a previously-issued {@link aiToolCall}. */
+  aiToolReply = 'ai-tool-reply',
 }
