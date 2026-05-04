@@ -25,6 +25,14 @@ class FakeChildProcess extends EventEmitter {
   simulateExit(code: number | null, signal: NodeJS.Signals | null = null): void {
     this.emit('exit', code, signal)
   }
+
+  simulateError(err: NodeJS.ErrnoException): void {
+    this.emit('error', err)
+  }
+}
+
+function enoent(message = 'spawn claude ENOENT'): NodeJS.ErrnoException {
+  return Object.assign(new Error(message), { code: 'ENOENT' })
 }
 
 function asChild(fake: FakeChildProcess): ChildProcess {
@@ -129,6 +137,43 @@ describe('ChildProcessHandle', () => {
     await vi.advanceTimersByTimeAsync(5_000)
     expect(fake.killCalls).toEqual(['SIGTERM'])
   })
+
+  test("'error' event marks handle dead and exposes exitError with the original code", () => {
+    const fake = new FakeChildProcess()
+    const handle = new ChildProcessHandle(asChild(fake))
+    const err = enoent()
+    fake.simulateError(err)
+    expect(handle.alive).toBe(false)
+    expect(handle.exitError).toBe(err)
+    expect(handle.exitReason).toContain('ENOENT')
+  })
+
+  test("'error' before 'exit' wins; subsequent 'exit' is a no-op", () => {
+    const fake = new FakeChildProcess()
+    const handle = new ChildProcessHandle(asChild(fake))
+    const err = enoent()
+    fake.simulateError(err)
+    fake.simulateExit(1, null)
+    expect(handle.exitError).toBe(err)
+    expect(handle.exitReason).toContain('ENOENT')
+  })
+
+  test("'exit' before 'error' wins; subsequent 'error' is a no-op", () => {
+    const fake = new FakeChildProcess()
+    const handle = new ChildProcessHandle(asChild(fake))
+    fake.simulateExit(1, null)
+    fake.simulateError(enoent())
+    expect(handle.exitError).toBeNull()
+    expect(handle.exitReason).toBe('exited with code=1 signal=null')
+  })
+
+  test('waitForExit resolves when only an error fires', async () => {
+    const fake = new FakeChildProcess()
+    const handle = new ChildProcessHandle(asChild(fake))
+    const exit = handle.waitForExit()
+    fake.simulateError(enoent())
+    expect(await exit).toEqual({ code: null, signal: null })
+  })
 })
 
 describe('WatchedChildProcess', () => {
@@ -204,6 +249,7 @@ describe('WatchedChildProcess', () => {
     await expect(watcher.firstSpawn).rejects.toBe(err)
     expect(onUnexpectedExit).not.toHaveBeenCalled()
     expect(watcher.current).toBeNull()
+    expect(watcher.respawnSuspended).toBeTruthy()
   })
 
   test('async spawner is awaited before onChildStarted fires', async () => {
@@ -241,9 +287,29 @@ describe('WatchedChildProcess', () => {
     expect(onUnexpectedExit).toHaveBeenCalledTimes(1)
     expect(onUnexpectedExit).toHaveBeenCalledWith('exited with code=1 signal=null', {
       exceedsCrashLimit: false,
+      exitError: null,
     })
     expect(watcher.respawnSuspended).toBe(false)
     await teardown(watcher, ctrl.fakes)
+  })
+
+  test("forwards the child's exitError to onUnexpectedExit on async 'error'", async () => {
+    const ctrl = makeSpawner()
+    const onUnexpectedExit = vi.fn(() => false as const)
+    const watcher = new WatchedChildProcess(ctrl.spawner, {
+      onChildStarted: () => undefined,
+      onUnexpectedExit,
+    })
+    await watcher.firstSpawn
+    const err = enoent()
+    ctrl.fakes[0]!.simulateError(err)
+    await flush()
+    expect(onUnexpectedExit).toHaveBeenCalledTimes(1)
+    expect(onUnexpectedExit).toHaveBeenCalledWith(
+      expect.stringContaining('ENOENT'),
+      { exceedsCrashLimit: false, exitError: err },
+    )
+    await watcher.close()
   })
 
   test('returning false from onUnexpectedExit suspends respawn', async () => {
@@ -293,6 +359,7 @@ describe('WatchedChildProcess', () => {
     await flush()
     expect(onUnexpectedExit).toHaveBeenLastCalledWith(expect.any(String), {
       exceedsCrashLimit: false,
+      exitError: null,
     })
     expect(ctrl.fakes).toHaveLength(3)
 
@@ -300,6 +367,7 @@ describe('WatchedChildProcess', () => {
     await flush()
     expect(onUnexpectedExit).toHaveBeenLastCalledWith(expect.any(String), {
       exceedsCrashLimit: true,
+      exitError: null,
     })
     expect(ctrl.fakes).toHaveLength(3)
     expect(watcher.respawnSuspended).toBe(true)
@@ -403,6 +471,7 @@ describe('WatchedChildProcess', () => {
     expect(onUnexpectedExit).toHaveBeenCalledTimes(1)
     expect(onUnexpectedExit).toHaveBeenCalledWith('spawn failed: respawn boom', {
       exceedsCrashLimit: false,
+      exitError: expect.objectContaining({ message: 'respawn boom' }),
     })
     expect(watcher.respawnSuspended).toBe(true)
   })

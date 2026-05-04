@@ -7,8 +7,9 @@ const DEFAULT_TERMINATE_TIMEOUT_MS = 5_000
 
 /**
  * Wraps a spawned {@link ChildProcess} and provides:
- * - reliable liveness tracking via the `'exit'` event (instead of `process.exitCode`,
- *   which stays `null` when the child terminates via signal),
+ * - reliable liveness tracking via the `'exit'` and `'error'` events (instead of
+ *   `process.exitCode`, which stays `null` when the child terminates via signal — and
+ *   never updates if the child fails to spawn at all),
  * - a graceful termination protocol with SIGKILL fallback after a timeout.
  */
 export class ChildProcessHandle {
@@ -16,24 +17,48 @@ export class ChildProcessHandle {
     createDeferred()
   private _alive = true
   private _exitReason: string | null = null
+  private _exitError: NodeJS.ErrnoException | null = null
 
   /** Construct a handle for a child that has just been spawned. */
   constructor(public readonly child: ChildProcess) {
     child.once('exit', (code, signal) => {
+      if (!this._alive) return
       this._alive = false
       this._exitReason = formatExitReason(code, signal)
       this.exitDeferred.resolve({ code, signal })
     })
+    // 'error' fires when the child cannot be spawned (e.g. ENOENT on POSIX, where the spawner
+    // returns a child object that emits 'error' asynchronously instead of throwing). 'exit' may
+    // or may not follow; whichever fires first is treated as terminal.
+    child.once('error', (err) => {
+      if (!this._alive) return
+      const errno = err as NodeJS.ErrnoException
+      this._alive = false
+      this._exitError = errno
+      this._exitReason = formatErrorReason(errno)
+      this.exitDeferred.resolve({ code: null, signal: null })
+    })
   }
 
-  /** True until the underlying process has emitted its `'exit'` event. */
+  /** True until the underlying process has emitted its `'exit'` or `'error'` event. */
   get alive(): boolean {
     return this._alive
   }
 
-  /** Set after `'exit'` to a human-readable description like `"exited with code=1 signal=null"`. */
+  /**
+   * Set after the child has terminated to a human-readable description like
+   * `"exited with code=1 signal=null"` or `"spawn error: ENOENT: spawn claude ENOENT"`.
+   */
   get exitReason(): string | null {
     return this._exitReason
+  }
+
+  /**
+   * The original `Error` from the child's `'error'` event (e.g. ENOENT when the executable was
+   * not found). Null when the child exited via `'exit'` instead.
+   */
+  get exitError(): NodeJS.ErrnoException | null {
+    return this._exitError
   }
 
   /** Resolves once the process has exited (immediately if it already has). */
@@ -67,6 +92,10 @@ function formatExitReason(code: number | null, signal: NodeJS.Signals | null): s
   return `exited with code=${code} signal=${signal ?? 'null'}`
 }
 
+function formatErrorReason(err: NodeJS.ErrnoException): string {
+  return `spawn error: ${err.code ?? 'unknown'}: ${err.message}`
+}
+
 /** Information passed to {@link WatchedChildProcessOptions.onUnexpectedExit}. */
 export interface UnexpectedExitInfo {
   /**
@@ -76,6 +105,12 @@ export interface UnexpectedExitInfo {
    * suspend when `true`, respawn when `false`.
    */
   exceedsCrashLimit: boolean
+  /**
+   * The original error from the child's `'error'` event (e.g. ENOENT) or from a thrown spawner.
+   * Null when the child exited normally via `'exit'`. Forwarded so the consumer can preserve
+   * `.code` for downstream handling instead of parsing the `reason` string.
+   */
+  exitError: NodeJS.ErrnoException | null
 }
 
 /** Options for {@link WatchedChildProcess}. */
@@ -192,10 +227,11 @@ export class WatchedChildProcess {
       if (!this.firstSpawnSettled) {
         this.firstSpawnSettled = true
         this.firstSpawnDeferred.reject(err)
+        this.respawnSuspended_ = true
         return
       }
       const reason = `spawn failed: ${formatError(err)}`
-      this.handleExit(reason)
+      this.handleExit(reason, asErrno(err))
       return
     }
     if (this.closed) {
@@ -216,14 +252,14 @@ export class WatchedChildProcess {
         this.suppressNextAutoRespawn = false
         return
       }
-      this.handleExit(handle.exitReason ?? 'unknown exit')
+      this.handleExit(handle.exitReason ?? 'unknown exit', handle.exitError)
     })
   }
 
-  private handleExit(reason: string): void {
+  private handleExit(reason: string, exitError: NodeJS.ErrnoException | null): void {
     if (this.closed) return
     const exceedsCrashLimit = this.recordExitForCrashLimit()
-    const decision = this.options.onUnexpectedExit?.(reason, { exceedsCrashLimit })
+    const decision = this.options.onUnexpectedExit?.(reason, { exceedsCrashLimit, exitError })
     const shouldRespawn = decision === undefined ? !exceedsCrashLimit : decision
     if (shouldRespawn) {
       this.respawnSuspended_ = false
@@ -246,4 +282,8 @@ export class WatchedChildProcess {
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message
   return String(err ?? 'unknown error')
+}
+
+function asErrno(err: unknown): NodeJS.ErrnoException | null {
+  return err instanceof Error ? (err as NodeJS.ErrnoException) : null
 }

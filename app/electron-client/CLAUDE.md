@@ -82,9 +82,13 @@ total for that turn. The renderer logs a one-line `[AI] usage:` summary to its
 DevTools console so context growth is observable on real data. Cache-hit fields
 are intentionally not surfaced — the CLI's stream-json mode doesn't engage
 Anthropic prompt caching (see "Stream-json wire format" below), so there is
-nothing useful to log there. At main-process startup `claudeAgent.ts` runs a
-best-effort `claude --version` probe and logs the result; failure is non-fatal —
-the first real IPC call surfaces the ENOENT error to the renderer as a toast.
+nothing useful to log there. At main-process startup `initClaudeAgentIpc()`
+attaches a one-time diagnostic to `session.ready` so a missing CLI logs an
+install hint immediately, without spawning a separate `--version` probe — the
+session itself surfaces ENOENT through the watcher (synchronous spawner throws
+via `firstSpawn`, async `'error'` events captured by `ChildProcessHandle`'s
+`exitError` and forwarded through `UnexpectedExitInfo`). The first real IPC call
+surfaces the same error to the renderer as a toast.
 
 The agent generates a full User Defined Component, returning four fields:
 `functionName`, `argumentNames`, `body`, and `callArguments`. The renderer

@@ -94,9 +94,9 @@ function formatBinding(identifier: string, typeName: string | undefined): string
 
 function buildUserPrompt(request: AiComponentRequest): string {
   const { prompt, context } = request
-  const otherBindings = context.inScopeBindings
-    .filter((binding) => binding.identifier !== context.sourceIdentifier)
-    .map((binding) => formatBinding(binding.identifier, binding.typeName))
+  const otherBindings = context.inScopeBindings.map((binding) =>
+    formatBinding(binding.identifier, binding.typeName),
+  )
   const otherBindingsList = otherBindings.length > 0 ? otherBindings.join('\n') : '(none)'
   const sourceSection =
     context.sourceIdentifier != null ?
@@ -345,8 +345,10 @@ export class ClaudeAgentSession {
         errorReason: reason,
       })
     }
-    // Reject the priming promise so any task awaiting `ready` fails fast.
-    this.readyDeferred.reject(new Error(reason))
+    // Reject the priming promise so any task awaiting `ready` fails fast. Prefer the original
+    // error object (when 'error' fired on the child, e.g. ENOENT) so `formatNotReadyError` can
+    // surface the install hint via `.code` instead of parsing the reason string.
+    this.readyDeferred.reject(info.exitError ?? new Error(reason))
 
     if (info.exceedsCrashLimit) {
       console.warn(
@@ -516,7 +518,21 @@ export function initClaudeAgentIpc() {
   // its own startup. Subsequent IPC calls await `session.ready` before sending stdin.
   if (session == null) session = new ClaudeAgentSession()
   const currentSession = session
-  probeClaudeVersion()
+  // One-time startup diagnostic. The session's first `ready` rejection carries the original
+  // ErrnoException (synchronous spawner throws via `firstSpawn`; async 'error' events via the
+  // child handle), so we can detect a missing CLI without spawning a separate `--version` probe.
+  void currentSession.ready.catch((err) => {
+    const errno = err as NodeJS.ErrnoException | null
+    if (errno?.code === 'ENOENT') {
+      console.warn(
+        `[AI] '${CLAUDE_EXECUTABLE}' not found on PATH; AI node generation will fail until Claude Code is installed.`,
+      )
+    } else {
+      console.warn(
+        `[AI] failed to start '${CLAUDE_EXECUTABLE}' session: ${errno?.message ?? String(err)}`,
+      )
+    }
+  })
   ipcMain.handle(
     Channel.generateAiComponent,
     async (_event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>
@@ -528,45 +544,4 @@ export function initClaudeAgentIpc() {
 export function shutdownClaudeAgent(): void {
   session?.shutdown()
   session = null
-}
-
-// ======================
-// === Startup probe ===
-// ======================
-
-// Best-effort check that `claude` is reachable. Non-blocking: startup continues even if the
-// probe fails, because the first real IPC call surfaces the error to the renderer anyway.
-function probeClaudeVersion(): void {
-  let probe
-  try {
-    probe = spawn(CLAUDE_EXECUTABLE, ['--version'], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: process.env,
-    })
-  } catch (err) {
-    console.warn(`[AI] could not spawn '${CLAUDE_EXECUTABLE} --version' probe:`, err)
-    return
-  }
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  probe.stdout?.on('data', (chunk: Buffer) => stdoutChunks.push(chunk.toString('utf8')))
-  probe.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk.toString('utf8')))
-  probe.on('error', (err) => {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      console.warn(
-        `[AI] '${CLAUDE_EXECUTABLE}' not found on PATH; AI node generation will fail until Claude Code is installed.`,
-      )
-      return
-    }
-    console.warn(`[AI] '${CLAUDE_EXECUTABLE} --version' probe failed:`, err.message)
-  })
-  probe.on('close', (exitCode) => {
-    if (exitCode === 0) {
-      console.info(`[AI] '${CLAUDE_EXECUTABLE}' CLI available: ${stdoutChunks.join('').trim()}`)
-    } else if (exitCode != null) {
-      console.warn(
-        `[AI] '${CLAUDE_EXECUTABLE} --version' exited ${exitCode}: ${stderrChunks.join('').trim()}`,
-      )
-    }
-  })
 }
