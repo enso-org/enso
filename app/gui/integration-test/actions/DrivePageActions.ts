@@ -233,6 +233,10 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
           })
+          // Move the cursor off so the leftBar's hover-to-expand timer doesn't fire and
+          // intercept later clicks on the leftmost row buttons (e.g. the directory navigate
+          // button). Same mitigation as in `dragRowToCategory` and `goToCategoryNamed`.
+          await page.mouse.move(0, 0)
         })
       },
       /** Drag a row onto another row. */

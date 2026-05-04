@@ -190,10 +190,13 @@ test.describe(() => {
       await errorText.click()
 
       await inputEl.fill('Another Project')
-      await locateEditingTick(row).click()
-
+      // The form re-validates on change, so the error message (and its outline) detaches
+      // *before* the click below — wait for that relayout to settle, otherwise the Confirm
+      // Edit button can shift position underneath the in-flight click and we hit a flaky
+      // "html intercepts pointer events / element was detached from the DOM" race.
       await expect(errorOutline).not.toBeAttached()
       await expect(errorText).not.toBeAttached()
+      await locateEditingTick(row).click()
     })
   })
 })
