@@ -74,7 +74,6 @@ import org.enso.interpreter.node.callable.{
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
@@ -107,6 +106,7 @@ import java.util.function.Supplier
 import java.util.logging.Level
 
 import scala.annotation.tailrec
+import scala.annotation.unused
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
@@ -723,6 +723,7 @@ private[runtime] class IrToTruffle(
     )
   }
 
+  @unused
   private def buildBuiltinFunction(
     fn: Function,
     expressionProcessor: ExpressionProcessor,
@@ -774,53 +775,7 @@ private[runtime] class IrToTruffle(
       }
       .map(fOpt =>
         fOpt.map { m =>
-          if (m.isAutoRegister) {
-            val irFunctionArgumentsCount = fn.arguments.length
-            val builtinArgumentsCount =
-              m.getFunction.getSchema.getArgumentsCount
-            if (irFunctionArgumentsCount != builtinArgumentsCount) {
-              val irFunctionArguments =
-                fn.arguments.map(_.name.name).mkString(",")
-              val builtinArguments =
-                m.getFunction.getSchema.getArgumentInfos
-                  .map(_.getName)
-                  .mkString(",")
-              throw new CompilerError(
-                s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
-                s"[$irFunctionArguments] vs [$builtinArguments]"
-              )
-            }
-            val bodyBuilder =
-              new expressionProcessor.BuildFunctionBody(
-                true,
-                m.getFunction.getName,
-                fn.arguments,
-                fn.body,
-                null,
-                effectContext,
-                true
-              )
-            val builtinRootNode =
-              m.getFunction.getCallTarget.getRootNode
-                .asInstanceOf[BuiltinRootNode]
-            builtinRootNode
-              .setModuleName(scopeBuilder.getModule.getName)
-            builtinRootNode.setTypeName(cons.getQualifiedName)
-            val funcSchemaBldr = FunctionSchema
-              .newBuilder()
-              .argumentDefinitions(bodyBuilder.args(): _*)
-            if (methodDef.isPrivate) {
-              funcSchemaBldr.projectPrivate()
-            }
-            val funcSchema = funcSchemaBldr.build()
-            new RuntimeFunction(
-              m.getFunction.getCallTarget,
-              null,
-              funcSchema
-            )
-          } else {
-            m.getFunction
-          }
+          m.getFunction
         }
       )
   }

@@ -781,39 +781,50 @@ public final class Module extends EnsoObject {
             UnsupportedMessageException {
       EnsoContext context = EnsoContext.get(null);
       ModuleScope scope;
-      switch (member) {
-        case MethodNames.Module.GET_NAME:
-          return module.getName().toString();
-        case MethodNames.Module.GET_METHOD:
-          scope = module.compileScope(context);
-          Function result = getMethod(scope, arguments);
-          if (result == null || result.getSchema().isProjectPrivate()) {
-            return Builtins.get(context).nothing();
-          } else {
-            return result;
-          }
-        case MethodNames.Module.GET_TYPE:
-          scope = module.compileScope(context);
-          return getType(scope, arguments);
-        case MethodNames.Module.REPARSE:
-          return reparse(module, arguments, context);
-        case MethodNames.Module.GENERATE_DOCS:
-          return generateDocs(module, context);
-        case MethodNames.Module.GATHER_IMPORT_STATEMENTS:
-          return gatherImportStatements(module, context);
-        case MethodNames.Module.SET_SOURCE:
-          return setSource(module, arguments, context);
-        case MethodNames.Module.SET_SOURCE_FILE:
-          return setSourceFile(module, arguments, context);
-        case MethodNames.Module.GET_ASSOCIATED_TYPE:
-          scope = module.compileScope(context);
-          return getAssociatedType(scope, arguments);
-        case MethodNames.Module.EVAL_EXPRESSION:
-          scope = module.compileScope(context);
-          return evalExpression(scope, arguments, context, callOptimiserNode);
-        default:
-          throw UnknownIdentifierException.create(member);
-      }
+      var res =
+          switch (member) {
+            case MethodNames.Module.GET_NAME -> {
+              yield module.getName().toString();
+            }
+            case MethodNames.Module.GET_METHOD -> {
+              scope = module.compileScope(context);
+              Function result = getMethod(scope, arguments);
+              if (result == null || result.getSchema().isProjectPrivate()) {
+                yield null;
+              } else {
+                yield result;
+              }
+            }
+            case MethodNames.Module.GET_TYPE -> {
+              scope = module.compileScope(context);
+              yield getType(scope, arguments);
+            }
+            case MethodNames.Module.REPARSE -> {
+              yield reparse(module, arguments, context);
+            }
+            case MethodNames.Module.GENERATE_DOCS -> {
+              yield generateDocs(module, context);
+            }
+            case MethodNames.Module.GATHER_IMPORT_STATEMENTS -> {
+              yield gatherImportStatements(module, context);
+            }
+            case MethodNames.Module.SET_SOURCE -> {
+              yield setSource(module, arguments, context);
+            }
+            case MethodNames.Module.SET_SOURCE_FILE -> {
+              yield setSourceFile(module, arguments, context);
+            }
+            case MethodNames.Module.GET_ASSOCIATED_TYPE -> {
+              scope = module.compileScope(context);
+              yield getAssociatedType(scope, arguments);
+            }
+            case MethodNames.Module.EVAL_EXPRESSION -> {
+              scope = module.compileScope(context);
+              yield evalExpression(scope, arguments, context, callOptimiserNode);
+            }
+            default -> throw UnknownIdentifierException.create(member);
+          };
+      return res != null ? res : Builtins.get(context).nothing();
     }
   }
 

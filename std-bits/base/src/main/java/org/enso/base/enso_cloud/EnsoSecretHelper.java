@@ -98,18 +98,18 @@ public final class EnsoSecretHelper extends SecretValueResolver {
    *
    * @param properties properties in the form of {@code HideableValue.KeyValuePair}
    */
-  public static Connection getJDBCConnection(
-      String url, List<HideableValue.KeyValuePair> properties) throws SQLException {
+  public static Connection getJDBCConnection(String url, Map<String, EnsoHideableValue> properties)
+      throws SQLException {
     var javaProperties = new Properties();
-    for (var pair : properties) {
-      HideableValue value = pair.value();
+    for (var key : properties.keySet()) {
+      HideableValue value = HideableValue.from(properties.get(key));
       // Special handling for PrivateKey parameter.
       if (value instanceof HideableImpl.InterpretAsPrivateKey(HideableValue innerValue)) {
         String rawKey = resolveValue(innerValue);
-        PrivateKey key = HideableImpl.InterpretAsPrivateKey.decodePrivateKey(rawKey);
-        javaProperties.put(pair.key(), key);
+        PrivateKey privateKey = HideableImpl.InterpretAsPrivateKey.decodePrivateKey(rawKey);
+        javaProperties.put(key, privateKey);
       } else {
-        javaProperties.setProperty(pair.key(), resolveValue(pair.value()));
+        javaProperties.setProperty(key, resolveValue(value));
       }
     }
 
@@ -127,7 +127,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
               .map(
                   p ->
                       new AbstractMap.SimpleEntry<>(
-                          p.name(), resolveValue(HideableValue.from(p.hideable_value()))))
+                          p.name(), resolveValue(HideableValue.from(p.as_derived_secret()))))
               .toList();
       var resolvedSchematic = new URISchematic(URI.create(baseUri), resolvedQueryParameters);
       return resolvedSchematic.build();
@@ -184,7 +184,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
             .map(
                 header -> {
                   return new AbstractMap.SimpleEntry<>(
-                      header.name(), resolveValue(HideableValue.from(header.hideable_value())));
+                      header.name(), resolveValue(HideableValue.from(header.as_derived_secret())));
                 })
             .toList();
 
@@ -236,7 +236,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       boolean hasSecrets =
           uri.containsSecrets()
               || headers.stream()
-                  .anyMatch(p -> HideableValue.from(p.hideable_value()).containsSecrets());
+                  .anyMatch(p -> HideableValue.from(p.as_derived_secret()).containsSecrets());
       if (hasSecrets) {
         if (resolvedURI.getScheme() == null) {
           throw new IllegalArgumentException("The URI must have a scheme.");

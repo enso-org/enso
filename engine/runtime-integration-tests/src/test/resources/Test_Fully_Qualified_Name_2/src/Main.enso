@@ -1,3 +1,4 @@
+import Standard.Base.Any
 import local.Test_Fully_Qualified_Name_1
 
 main =

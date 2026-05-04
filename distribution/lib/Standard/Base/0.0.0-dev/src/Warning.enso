@@ -6,6 +6,7 @@ import project.Data.Pair.Pair
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
+import project.Internal.Runtime_Helpers
 import project.Meta
 import project.Runtime
 import project.Runtime.Stack_Trace_Element
@@ -97,7 +98,7 @@ type Warning
        Returns `True` if the maximal number of reported warnings for a value has
        been reached, `False` otherwise.
     limit_reached : Any -> Boolean
-    limit_reached value = @Builtin_Method "Warning.limit_reached"
+    limit_reached value -> Boolean = Runtime_Helpers.warn_limit_reached value
 
     ## ---
        private: true
@@ -312,7 +313,7 @@ type Warning
     - `origin`: stacktrace representing the location where the warning is being
       created at.
 create : Any -> Any -> Warning
-create payload origin = @Builtin_Method "Warning.create"
+create payload origin = Runtime_Helpers.warn_create payload origin
 
 ## ---
    private: true
@@ -321,14 +322,15 @@ create payload origin = @Builtin_Method "Warning.create"
    compared to `Warning.attach` requires an explicit stacktrace associated with
    it.
 attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
-attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
+attach_with_stacktrace value warning origin = 
+    Runtime_Helpers.warn_attach_with_stacktrace value warning origin
 
 ## ---
    private: true
    ---
    Builtin function that gets all the warnings attached to the given value.
-get_all_vector : Any -> Boolean -> Vector Warning
-get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
+get_all_vector value should_wrap:Boolean -> Vector Warning =
+    Runtime_Helpers.warn_get_all_vector value should_wrap
 
 ## ---
    private: true
@@ -340,7 +342,8 @@ get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
     - `value`: the value to which warnings should be set to.
     - `warnings`: array of warnings to set to the value.
 set_array : Any -> Array Warning -> Any
-set_array value warnings = @Builtin_Method "Warning.set_array"
+set_array value warnings = 
+    Runtime_Helpers.warn_set_array value warnings
 
 ## ---
    private: true

@@ -3,7 +3,7 @@ import project.Data.Number_Utils
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Extensions
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error

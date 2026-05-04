@@ -24,7 +24,6 @@ import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.refactoring.RefactoringApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.search.SearchApi._
-import org.enso.languageserver.runtime.VisualizationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
@@ -84,10 +83,6 @@ object JsonRpc {
     .registerRequest(ExecutionContextSetExecutionEnvironment)
     .registerRequest(ExecutionContextInterrupt)
     .registerRequest(ExecutionContextGetComponentGroups)
-    .registerRequest(ExecuteExpression)
-    .registerRequest(AttachVisualization)
-    .registerRequest(DetachVisualization)
-    .registerRequest(ModifyVisualization)
     .registerRequest(GetSuggestionsDatabase)
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(InvalidateSuggestionsDatabase)
@@ -134,7 +129,6 @@ object JsonRpc {
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
-    .registerNotification(VisualizationEvaluationFailed)
     .registerNotification(ProjectRenamed)
     .registerNotification(AiCompletionProgress)
     .finalized()

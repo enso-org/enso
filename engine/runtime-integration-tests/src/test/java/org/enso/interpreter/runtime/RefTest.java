@@ -38,15 +38,28 @@ public class RefTest {
     return refType.invokeMember("get", ref);
   }
 
-  private static Value newRef(Object object) {
-    return refType.invokeMember("new", refType, object, false);
-  }
-
   @Test
   public void regularReference() throws Exception {
     var obj = new Object();
-    var ref = newRef(obj);
+    var ref = refType.invokeMember("new", refType, obj);
+    assertRef(ref, obj);
+  }
 
+  @Test
+  public void regularReferenceLazyFalse() throws Exception {
+    var obj = new Object();
+    var ref = refType.invokeMember("new", refType, obj, false);
+    assertRef(ref, obj);
+  }
+
+  @Test
+  public void regularReferenceLazyTrue() throws Exception {
+    var obj = new Object();
+    var ref = refType.invokeMember("new", refType, obj, true);
+    assertRef(ref, obj);
+  }
+
+  private void assertRef(Value ref, Object obj) {
     assertFalse("Value returned", ref.isNull());
     assertEquals("Standard.Base.Runtime.Ref.Ref", ref.getMetaObject().getMetaQualifiedName());
 

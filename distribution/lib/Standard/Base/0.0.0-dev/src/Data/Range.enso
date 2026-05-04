@@ -4,6 +4,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found

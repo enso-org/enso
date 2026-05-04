@@ -1,0 +1,24 @@
+diff --git a/out/node-module-collector/packageManager.js b/out/node-module-collector/packageManager.js
+index 8d0bba04437d0303858cc854de88be50003611c1..d04c76a47fdc876423ac69de49f34f769ddbf4e6 100644
+--- a/out/node-module-collector/packageManager.js
++++ b/out/node-module-collector/packageManager.js
+@@ -28,6 +28,19 @@ const pmPathCache = {
+ function resolveCommand(pm) {
+     const fallback = pm === PM.YARN_BERRY ? "yarn" : pm;
+     if (process.platform !== "win32") {
++        // When the current process was spawned via `pnpm run ...` / `yarn ...` / `npm run ...`,
++        // the package manager exports its own absolute entry path in `npm_execpath`. Prefer it
++        // over a bare name so we don't require the PM on PATH (e.g. when corepack is used
++        // without `corepack enable` having created shims). Downstream spawns with `shell: true`,
++        // so we emit a shell-quoted `node <execpath>` invocation.
++        const execpath = process.env.npm_execpath;
++        if (execpath) {
++            const base = path.basename(execpath).toLowerCase();
++            const expected = pm === PM.YARN_BERRY ? "yarn" : pm;
++            if (base === expected || base.startsWith(expected + ".")) {
++                return `"${process.execPath}" "${execpath}"`;
++            }
++        }
+         return fallback;
+     }
+     try {

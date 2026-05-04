@@ -240,8 +240,11 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
 }
 
 /** Open drop-down menu in WidgetSelection with given label. */
-export function openDropdownInWidget(page: Page, label: string) {
-  return page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
+export async function openDropdownInWidget(page: Page, label: string) {
+  await page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
+  // Wait for any in-flight dropdown transitions to finish before returning, so subsequent
+  // item clicks don't race with a leaving/entering animation.
+  await expect(page.locator('.DropdownWidget[data-transitioning]')).toHaveCount(0)
 }
 
 /** Find and click + button in an empty Vector Widget inside provided locator. */

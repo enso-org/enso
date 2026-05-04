@@ -76,17 +76,15 @@ final class ContextRegistry(
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
-      .subscribe(self, classOf[Api.VisualizationUpdate])
-    context.system.eventStream
       .subscribe(self, classOf[Api.ExecutionFailed])
     context.system.eventStream
       .subscribe(self, classOf[Api.ExecutionComplete])
     context.system.eventStream
       .subscribe(self, classOf[Api.ExecutionUpdate])
     context.system.eventStream
-      .subscribe(self, classOf[Api.VisualizationEvaluationFailed])
-    context.system.eventStream
       .subscribe(self, classOf[JsonSessionTerminated])
+    // Visualization update/evaluation-failed notifications are now consumed
+    // by `VisualizationBridgeActor`; this registry no longer routes them.
   }
 
   override def receive: Receive =
@@ -101,11 +99,6 @@ final class ContextRegistry(
       case update: Api.ExpressionUpdates =>
         store.getListener(update.contextId).foreach(_ ! update)
 
-      case update: Api.VisualizationUpdate =>
-        store
-          .getListener(update.visualizationContext.contextId)
-          .foreach(_ ! update)
-
       case update: Api.ExecutionFailed =>
         store.getListener(update.contextId).foreach(_ ! update)
 
@@ -114,12 +107,6 @@ final class ContextRegistry(
 
       case update: Api.ExecutionUpdate =>
         store.getListener(update.contextId).foreach(_ ! update)
-
-      case update: Api.VisualizationExpressionFailed =>
-        store.getListener(update.ctx.contextId).foreach(_ ! update)
-
-      case update: Api.VisualizationEvaluationFailed =>
-        store.getListener(update.ctx.contextId).foreach(_ ! update)
 
       case CreateContextRequest(client, contextIdOpt) =>
         val contextId = contextIdOpt.getOrElse(UUID.randomUUID())
@@ -272,97 +259,9 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
-      case ExecuteExpression(
-            clientId,
-            contextId,
-            visualizationId,
-            expressionId,
-            expression
-          ) =>
-        if (store.hasContext(clientId, contextId)) {
-          store.getListener(contextId).foreach { listener =>
-            listener ! RegisterOneshotVisualization(
-              contextId,
-              visualizationId,
-              expressionId
-            )
-          }
-          val handler = context.actorOf(
-            ExecuteExpressionHandler.props(
-              runtimeFailureMapper,
-              timeout,
-              runtime
-            )
-          )
-          handler.forward(
-            Api.ExecuteExpression(
-              contextId,
-              visualizationId,
-              expressionId,
-              expression
-            )
-          )
-        } else {
-          sender() ! AccessDenied
-        }
-
-      case AttachVisualization(clientId, visualizationId, expressionId, cfg) =>
-        if (store.hasContext(clientId, cfg.executionContextId)) {
-          val handler = context.actorOf(
-            AttachVisualizationHandler.props(
-              runtimeFailureMapper,
-              timeout,
-              runtime
-            )
-          )
-          handler.forward(
-            Api.AttachVisualization(
-              visualizationId,
-              expressionId,
-              cfg.toApi
-            )
-          )
-        } else {
-          sender() ! AccessDenied
-        }
-
-      case DetachVisualization(
-            clientId,
-            contextId,
-            visualizationId,
-            expressionId
-          ) =>
-        if (store.hasContext(clientId, contextId)) {
-          val handler = context.actorOf(
-            DetachVisualizationHandler.props(
-              runtimeFailureMapper,
-              timeout,
-              runtime
-            )
-          )
-          handler.forward(
-            Api.DetachVisualization(contextId, visualizationId, expressionId)
-          )
-        } else {
-          sender() ! AccessDenied
-        }
-
-      case ModifyVisualization(clientId, visualizationId, cfg) =>
-        if (store.hasContext(clientId, cfg.executionContextId)) {
-          val handler = context.actorOf(
-            ModifyVisualizationHandler.props(
-              runtimeFailureMapper,
-              timeout,
-              runtime
-            )
-          )
-
-          handler.forward(
-            Api.ModifyVisualization(visualizationId, cfg.toApi)
-          )
-        } else {
-          sender() ! AccessDenied
-        }
+      // All visualization attach/detach/modify/execute requests flow through
+      // the vis subdoc and `VisualizationBridgeActor` directly into the
+      // runtime.  `ContextRegistry` no longer needs a visualization path.
 
       case JsonSessionTerminated(session) =>
         store.contexts.getOrElse(session.clientId, Set()).map { contextId =>

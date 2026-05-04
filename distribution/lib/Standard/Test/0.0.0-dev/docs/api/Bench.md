@@ -1,37 +1,21 @@
 ## Enso Signatures 1.0
 ## module Standard.Test.Bench
 - type Bench
-    - All groups:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
-    - Group name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options specs:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
-    - Spec name:Standard.Base.Data.Text.Text code:(Standard.Base.Any.Any -> Standard.Base.Any.Any)
-    - build fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - estimated_runtime self -> Standard.Base.Any.Any
-    - fold self value:Standard.Base.Any.Any fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - measure label:Standard.Base.Data.Text.Text warmup_conf:Standard.Test.Bench.Phase_Conf measure_conf:Standard.Test.Bench.Phase_Conf ~act:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - options -> Standard.Base.Any.Any
-    - phase_conf iterations:Standard.Base.Any.Any= seconds:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - build fn:(Standard.Test.Bench.Bench_Builder -> Standard.Base.Any.Any) -> Standard.Test.Bench.Bench
+    - estimated_runtime self -> Standard.Base.Data.Time.Duration.Duration
+    - filter self match_name:(Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean) -> (Standard.Test.Bench.Bench|Standard.Base.Nothing.Nothing)
+    - options -> Standard.Test.Bench.Bench_Options
+    - phase_conf iterations:Standard.Base.Data.Numbers.Integer= seconds:Standard.Base.Data.Numbers.Integer= -> Standard.Test.Bench.Phase_Conf
     - run_main self filter:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
-    - run_phase label:Standard.Base.Data.Text.Text phase_name:Standard.Base.Data.Text.Text conf:Standard.Test.Bench.Phase_Conf ~act:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - single_call ~act:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - summarize_phase label:Standard.Base.Data.Text.Text phase_name:Standard.Base.Data.Text.Text invocations:Standard.Base.Data.Numbers.Integer average_time:Standard.Base.Data.Numbers.Float time_stddev:Standard.Base.Data.Numbers.Float phase_duration:Standard.Base.Data.Time.Duration.Duration -> Standard.Base.Any.Any
-    - total_specs self -> Standard.Base.Any.Any
-    - validate self -> Standard.Base.Any.Any
+    - total_specs self -> Standard.Base.Data.Numbers.Integer
 - type Bench_Builder
-    - Impl builder:Standard.Base.Any.Any
-    - group self name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - group self name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options fn:(Standard.Test.Bench.Group_Builder -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
 - type Bench_Options
-    - Impl warmup:Standard.Test.Bench.Phase_Conf measure:Standard.Test.Bench.Phase_Conf jvm_args:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
-    - set_jvm_args self args:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-    - set_measure self meas:Standard.Test.Bench.Phase_Conf -> Standard.Base.Any.Any
-    - set_warmup self warm:Standard.Test.Bench.Phase_Conf -> Standard.Base.Any.Any
-    - to_text self -> Standard.Base.Any.Any
-    - validate self -> Standard.Base.Any.Any
+    - set_jvm_args self args:Standard.Base.Data.Text.Text -> Standard.Test.Bench.Bench_Options
+    - set_measure self meas:Standard.Test.Bench.Phase_Conf -> Standard.Test.Bench.Bench_Options
+    - set_warmup self warm:Standard.Test.Bench.Phase_Conf -> Standard.Test.Bench.Bench_Options
+    - to_text self -> Standard.Base.Data.Text.Text
 - type Group_Builder
-    - Impl name:Standard.Base.Any.Any builder:Standard.Base.Any.Any
     - specify self name:Standard.Base.Data.Text.Text ~benchmark:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Phase_Conf
-    - Impl iterations:Standard.Base.Data.Numbers.Integer seconds:Standard.Base.Data.Numbers.Integer
-    - to_text self -> Standard.Base.Any.Any
-    - validate self -> Standard.Base.Any.Any
-- get_benchmark_report_path -> Standard.Base.Any.Any
-- validate_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Data.Text.Text

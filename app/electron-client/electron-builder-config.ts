@@ -215,6 +215,10 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       category: 'public.app-category.developer-tools',
       darkModeSupport: true,
       type: 'distribution',
+      // Matches the macOS floor of the bundled Electron runtime (Electron 38+ dropped
+      // macOS 11 / Big Sur). Writes `LSMinimumSystemVersion` into the packaged Info.plist
+      // so Finder refuses to launch on unsupported systems instead of crashing at link time.
+      minimumSystemVersion: '12.0.0',
       // The following settings are required for macOS signing and notarisation.
       // The hardened runtime is required to be able to notarise the application.
       hardenedRuntime: true,

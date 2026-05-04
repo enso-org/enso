@@ -1,7 +1,0 @@
-@Builtin_Type
-type Warning
-    value self = @Builtin_Method "Warning.value"
-
-    origin self = @Builtin_Method "Warning.origin"
-
-attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"

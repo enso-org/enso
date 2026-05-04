@@ -48,7 +48,7 @@ type Header
        private: true
        ---
        The value as a Derived_Secret_Value
-    hideable_value self = case self.value of
+    as_derived_secret self = case self.value of
         _ : Text -> Derived_Secret_Value.from self.value
         _ : Enso_Secret -> Derived_Secret_Value.from self.value
         _ : Derived_Secret_Value -> self.value

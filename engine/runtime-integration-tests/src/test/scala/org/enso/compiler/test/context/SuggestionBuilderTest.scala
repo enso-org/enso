@@ -4203,7 +4203,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
     arg3.tagValues shouldEqual Some(List("True", "False"))
 
-    method.get.returnType shouldEqual "Standard.Base.Any.Any"
+    method.get.returnType shouldEqual "Test.Test"
   }
 
   "parse method with partially inlined types (3)" in {

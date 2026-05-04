@@ -13,6 +13,7 @@ import {
 } from '../../utilities/file.js'
 import { normalizeName } from '../../utilities/nameValidation.js'
 import * as backend from '../Backend.js'
+import { makeProjectCacheKey, makeProjectTelemetryKey } from './projectIdentity.js'
 import {
   MissingComponentAction,
   Path,
@@ -42,7 +43,7 @@ type WithProjectPath<T> = Omit<T, 'projectId' | 'projectsDirectory'> & {
 export class ProjectManager {
   // This is required so that projects get recursively updated (deleted, renamed or moved).
   private readonly directories = new Map<Path, readonly FileSystemEntry[]>()
-  private readonly projects = new Map<UUID, ProjectState>()
+  private readonly projects = new Map<string, ProjectState>()
   private readonly projectIds = new Map<Path, UUID>()
 
   /** Create a {@link ProjectManager} */
@@ -58,22 +59,21 @@ export class ProjectManager {
 
   /** Get the state of a project given its path. */
   async getProject(projectPath: Path) {
-    const existingProjectId = this.projectIds.get(projectPath)
-    if (existingProjectId) {
-      return this.projects.get(existingProjectId)
+    const cacheKey = await this.getProjectCacheKey(projectPath)
+    if (cacheKey != null) {
+      return this.projects.get(cacheKey)
     }
-    await this.listDirectory(Path(getFolderPath(projectPath)))
-    const projectId = this.projectIds.get(projectPath)
-    if (!projectId) {
+    if (!this.projectIds.has(projectPath)) {
       throw new Error(`Unknown project id for project '${projectPath}'.`)
     }
-    return this.projects.get(projectId)
+    return this.projects.get(await this.requireProjectCacheKey(projectPath))
   }
 
   /** Open an existing project. */
   async openProject(params: WithProjectPath<OpenProjectParams>): Promise<OpenProject> {
     const fullParams: OpenProjectParams = await this.paramsWithPathToWithId(params)
-    const cached = this.projects.get(fullParams.projectId)
+    const cacheKey = makeProjectCacheKey(fullParams)
+    const cached = this.projects.get(cacheKey)
     if (cached) {
       return cached.data
     } else {
@@ -81,19 +81,19 @@ export class ProjectManager {
         'project/open',
         fullParams,
       )
-      this.projects.set(fullParams.projectId, {
+      this.projects.set(cacheKey, {
         state: backend.ProjectState.openInProgress,
         data: promise,
       })
       try {
         const result = await promise
-        this.projects.set(fullParams.projectId, {
+        this.projects.set(cacheKey, {
           state: backend.ProjectState.opened,
           data: result,
         })
         return result
       } catch (error) {
-        this.projects.delete(fullParams.projectId)
+        this.projects.delete(cacheKey)
         throw error
       }
     }
@@ -101,8 +101,9 @@ export class ProjectManager {
 
   /** Close an open project. */
   async closeProject(params: WithProjectPath<CloseProjectParams>): Promise<void> {
-    const id = this.projectIds.get(params.projectPath)
-    const state = id != null ? this.projects.get(id) : null
+    const fullParams: CloseProjectParams = await this.paramsWithPathToWithId(params)
+    const cacheKey = makeProjectCacheKey(fullParams)
+    const state = this.projects.get(cacheKey)
     if (state?.state === backend.ProjectState.openInProgress) {
       // Projects that are not opened cannot be closed.
       // This is the only way to wait until the project is open.
@@ -111,8 +112,7 @@ export class ProjectManager {
         missingComponentAction: MissingComponentAction.install,
       })
     }
-    const fullParams: CloseProjectParams = await this.paramsWithPathToWithId(params)
-    this.projects.delete(fullParams.projectId)
+    this.projects.delete(cacheKey)
     return this.runProjectServiceCommand('project/close', fullParams)
   }
 
@@ -148,10 +148,11 @@ export class ProjectManager {
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
     const fullParams: RenameProjectParams = await this.paramsWithPathToWithId(params)
+    const cacheKey = makeProjectCacheKey(fullParams)
     await this.runProjectServiceCommand('project/rename', fullParams)
-    const state = this.projects.get(fullParams.projectId)
+    const state = this.projects.get(cacheKey)
     if (state?.state === backend.ProjectState.opened) {
-      this.projects.set(fullParams.projectId, {
+      this.projects.set(cacheKey, {
         state: state.state,
         data: {
           ...state.data,
@@ -191,20 +192,19 @@ export class ProjectManager {
   /** Delete a project. */
   async deleteProject(params: WithProjectPath<DeleteProjectParams>): Promise<void> {
     const fullParams: DeleteProjectParams = await this.paramsWithPathToWithId(params)
-    const cached = this.projects.get(fullParams.projectId)
+    const cacheKey = makeProjectCacheKey(fullParams)
+    const cached = this.projects.get(cacheKey)
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
     await this.runProjectServiceCommand('project/delete', fullParams)
     this.projectIds.delete(params.projectPath)
-    this.projects.delete(fullParams.projectId)
+    this.projects.delete(cacheKey)
     const siblings = this.directories.get(fullParams.projectsDirectory)
     if (siblings != null) {
       this.directories.set(
         fullParams.projectsDirectory,
-        siblings.filter(
-          (entry) => entry.type !== 'ProjectEntry' || entry.metadata.id !== fullParams.projectId,
-        ),
+        siblings.filter((entry) => entry.path !== params.projectPath),
       )
     }
   }
@@ -332,7 +332,12 @@ export class ProjectManager {
               break
             }
             case 'ProjectEntry': {
-              this.projects.delete(child.metadata.id)
+              this.projects.delete(
+                makeProjectCacheKey({
+                  projectId: child.metadata.id,
+                  projectsDirectory: getDirectoryAndName(child.path).directoryPath,
+                }),
+              )
               this.projectIds.delete(child.path)
               break
             }
@@ -374,11 +379,20 @@ export class ProjectManager {
     }
   }
 
-  /** List project sessions by scanning engine log files for the given project UUID. */
-  async listProjectSessions(projectId: string) {
+  /** Return opaque cache key used for local logs and telemetry. */
+  async getTelemetryKey(projectPath: Path) {
+    const projectId = await this.getProjectId(projectPath)
+    if (projectId == null) {
+      return undefined
+    }
+    return makeProjectTelemetryKey(getDirectoryAndName(projectPath).directoryPath, projectId)
+  }
+
+  /** List project sessions by scanning engine log files for the given local project key. */
+  async listProjectSessions(localProjectKey: string) {
     return this.runStandaloneCommandJson<{
       sessions: readonly { projectSessionId: string; createdAt: string }[]
-    }>(null, 'list-project-sessions', projectId)
+    }>(null, 'list-project-sessions', localProjectKey)
   }
 
   /** Get log content for a local project session. */
@@ -435,5 +449,24 @@ export class ProjectManager {
     } else {
       throw new Error(json.error.message)
     }
+  }
+
+  private async getProjectCacheKey(projectPath: Path) {
+    const projectId = await this.getProjectId(projectPath)
+    if (projectId == null) {
+      return undefined
+    }
+    return makeProjectCacheKey({
+      projectId,
+      projectsDirectory: getDirectoryAndName(projectPath).directoryPath,
+    })
+  }
+
+  private async requireProjectCacheKey(projectPath: Path) {
+    const cacheKey = await this.getProjectCacheKey(projectPath)
+    if (cacheKey == null) {
+      throw new Error(`Unknown project id for project '${projectPath}'.`)
+    }
+    return cacheKey
   }
 }

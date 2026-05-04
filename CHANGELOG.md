@@ -1,5 +1,15 @@
 # Next Release
 
+#### Enso Language & Runtime
+
+- [Extending `Boolean`, `Nothing`, `Text` via extension methods][14980]
+- [Avoid exposing `Runtime.current_execution_environment` & co.][14989]
+
+[14980]: https://github.com/enso-org/enso/pull/14980
+[14989]: https://github.com/enso-org/enso/pull/14989
+
+# Enso 2026.1
+
 #### Enso IDE
 
 - [Add component alignment options][14590].
@@ -17,6 +27,16 @@
 - [Add component spacing options][14888]
 - [When resizing component, other components are moved to make room][14904]
 - [A comment can be attached to the asset version][14923]
+- [New tabular view of session log with filtering][14953]
+- [Input ports no longer highlight on hover unless being connected to][14968]
+- [Fix duplicated entries in Component Browser][14974]. The overshadowed methods
+  from parent types are no longer displayed.
+- [AI mode in Component Browser now uses underlying claude agent][14987]. The
+  user has to have authorized Claude CLI executable in path.
+- [Usage page with cloud executions statistics available for Team users in
+  Settings][14952]
+- Minimum supported macOS version is now 12 (Monterey); Electron 41 no longer
+  runs on Big Sur.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
@@ -32,6 +52,11 @@
 [14888]: https://github.com/enso-org/enso/pull/14888
 [14904]: https://github.com/enso-org/enso/pull/14904
 [14823]: https://github.com/enso-org/enso/pull/14823
+[14953]: https://github.com/enso-org/enso/pull/14953
+[14968]: https://github.com/enso-org/enso/pull/14968
+[14974]: https://github.com/enso-org/enso/pull/14974
+[14987]: https://github.com/enso-org/enso/pull/14987
+[14952]: https://github.com/enso-org/enso/pull/14952
 
 #### Enso Standard Library
 
@@ -55,6 +80,10 @@
 - [Add last_index_of][14903]
 - [Add pad_left and pad_right][14922]
 - [More control over when in write operation for post and process.][14930]
+- [Improve database write performance][14960]
+- [Hiding `Prim_Text_Helper` from the API][14979]
+- [Add reverse][14931]
+- [Support for Spatial aggregates and making lines and polygons.][14973]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -76,6 +105,10 @@
 [14903]: https://github.com/enso-org/enso/pull/14903
 [14922]: https://github.com/enso-org/enso/pull/14922
 [14930]: https://github.com/enso-org/enso/pull/14930
+[14960]: https://github.com/enso-org/enso/pull/14960
+[14931]: https://github.com/enso-org/enso/pull/14931
+[14979]: https://github.com/enso-org/enso/pull/14979
+[14973]: https://github.com/enso-org/enso/pull/14973
 
 #### Enso Language & Runtime
 
@@ -88,6 +121,7 @@
 - [Require opt-in to prefer local libraries][14885]
 - [One log file per execution][14893]
 - [Opt-in to get more detailed logs][14895]
+- [Automatically apply tail call optimizations][14933]
 - [`from Xyz import to_text` can import extension methods][14949]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
@@ -99,6 +133,7 @@
 [14885]: https://github.com/enso-org/enso/pull/14885
 [14893]: https://github.com/enso-org/enso/pull/14893
 [14895]: https://github.com/enso-org/enso/pull/14895
+[14933]: https://github.com/enso-org/enso/pull/14933
 [14949]: https://github.com/enso-org/enso/pull/14949
 
 # Enso 2025.3

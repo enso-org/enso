@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.state;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -36,6 +37,7 @@ public abstract class WithContextNode extends Node {
     var ensoCtx = EnsoContext.get(this);
     var contextBuiltin = ensoCtx.getBuiltins().context();
     if (context.getConstructor().getType() != contextBuiltin.getType()) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
       throw ensoCtx.raiseAssertionPanic(this, "Invalid context type", null);
     }
     var ctor = context.getConstructor();
@@ -53,8 +55,9 @@ public abstract class WithContextNode extends Node {
           new ContextPermissions(
               current.permissions.input(), current.permissions.output(), enabled);
     } else {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
       throw ensoCtx.raiseAssertionPanic(this, "Unknown context: " + ctor, null);
     }
-    return new ExecutionEnvironment(current.getName(), newPermissions);
+    return current.withPermissions(newPermissions);
   }
 }

@@ -343,13 +343,6 @@ export type Notifications = {
     contextId: ContextId
     diagnostics: Diagnostic[]
   }) => void
-  'executionContext/visualizationEvaluationFailed': (param: {
-    contextId: ContextId
-    visualizationId: Uuid
-    expressionId: ExpressionId
-    message: string
-    diagnostic?: Diagnostic
-  }) => void
   'search/suggestionsDatabaseUpdates': (param: SuggestionDatabaseUpdates) => void
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: object) => void

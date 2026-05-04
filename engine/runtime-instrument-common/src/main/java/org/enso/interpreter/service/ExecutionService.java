@@ -40,6 +40,7 @@ import org.enso.interpreter.instrument.execution.ErrorResolver;
 import org.enso.interpreter.instrument.execution.LocationResolver;
 import org.enso.interpreter.instrument.job.VisualizationResult;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
@@ -57,6 +58,8 @@ import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.GetStateNode;
+import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -182,7 +185,9 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExecutionEnvironment envOrNull,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -198,6 +203,7 @@ public final class ExecutionService {
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
+                  progressTimingCollector,
                   onCachedCallback,
                   onComputedCallback,
                   funCallCallback,
@@ -208,7 +214,15 @@ public final class ExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
+          Object prevEnv = null;
           try {
+            if (envOrNull != null) {
+              prevEnv =
+                  GetStateNode.getUncached()
+                      .forClass(
+                          ExecutionEnvironment.class, EnsoContext::getGlobalExecutionEnvironment);
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, envOrNull, true);
+            }
             var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
                 Function.fullyApplied(
@@ -216,6 +230,9 @@ public final class ExecutionService {
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
+            if (prevEnv != null) {
+              PutStateNode.getUncached().executePut(ExecutionEnvironment.class, prevEnv, false);
+            }
           }
         });
   }
@@ -247,7 +264,9 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExecutionEnvironment envOrNull,
       ExpressionExecutionState expressionExecutionState,
+      ProgressTimingCollector progressTimingCollector,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -272,7 +291,9 @@ public final class ExecutionService {
                 methodCallsCache,
                 syncState,
                 nextExecutionItem,
+                envOrNull,
                 expressionExecutionState,
+                progressTimingCollector,
                 funCallCallback,
                 onComputedCallback,
                 onCachedCallback,
@@ -370,6 +391,7 @@ public final class ExecutionService {
       RuntimeCache executionCache,
       Module module,
       Object function,
+      ProgressTimingCollector progressTimingCollector,
       Object... arguments) {
 
     return submitExecutionWithCacheAccess(
@@ -399,6 +421,7 @@ public final class ExecutionService {
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
+                  progressTimingCollector,
                   onCachedCallback,
                   onComputedCallback,
                   funCallCallback,
@@ -469,21 +492,6 @@ public final class ExecutionService {
    */
   public CompletionStage<Object> typeOfValue(Object value) {
     return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
-  }
-
-  /**
-   * Sets global execution environment.
-   *
-   * @param env the execution envrionment to use
-   * @return old execution environment
-   */
-  public CompletionStage<ExecutionEnvironment> setExecutionInstrument(ExecutionEnvironment env) {
-    return submitExecution(
-        () -> {
-          var old = getContext().getExecutionEnvironment();
-          getContext().setExecutionEnvironment(env);
-          return old;
-        });
   }
 
   private scala.Option<File> findFileByModuleName(String module) {

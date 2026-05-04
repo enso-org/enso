@@ -129,6 +129,26 @@ type Text_Column
 
     ## ---
        group: Standard.Base.Text
+       icon: text
+       ---
+       Reverses each text value in the column.
+
+       In the in-memory backend, characters are reversed by extended grapheme
+       clusters, matching `Text.reverse`.
+
+        ## Examples
+        ### Reverse the values in a text column.
+
+        ```
+            import Standard.Examples
+
+            example_reverse = Examples.text_column_1.reverse
+        ```
+    reverse self -> Column & Text_Column =
+        self.operations_implementation.reverse self.column
+
+    ## ---
+       group: Standard.Base.Text
        icon: preparation
        ---
        Gets the left n characters for each element of the column.

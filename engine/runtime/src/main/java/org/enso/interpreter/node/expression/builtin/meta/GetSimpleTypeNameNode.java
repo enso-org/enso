@@ -10,8 +10,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Meta",
     name = "simple_type_name_builtin",
-    description = "Pretty prints a type.",
-    autoRegister = false)
+    description = "Pretty prints a type.")
 public class GetSimpleTypeNameNode extends Node {
   @Child @CompilationFinal TypeToDisplayTextNode displayTypeNode = TypeToDisplayTextNode.create();
 

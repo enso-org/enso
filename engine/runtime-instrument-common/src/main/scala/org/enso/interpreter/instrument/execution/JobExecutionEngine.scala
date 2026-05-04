@@ -9,6 +9,7 @@ import org.enso.interpreter.instrument.job.{
   SkipSchedulingUniqueJob,
   UniqueJob
 }
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector
 import org.enso.text.Sha3_224VersionCalculator
 import org.enso.runtime.utils.ThreadUtils
 import org.slf4j.Logger
@@ -17,7 +18,12 @@ import org.slf4j.LoggerFactory
 import java.util
 import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{CancellationException, ExecutorService, TimeUnit}
+import java.util.concurrent.{
+  CancellationException,
+  ExecutorService,
+  ScheduledExecutorService,
+  TimeUnit
+}
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.control.NonFatal
 
@@ -54,8 +60,11 @@ final class JobExecutionEngine(
   private val delayedBackgroundJobsQueue =
     new util.ArrayList[BackgroundJob[_]](4096)
 
-  val jobExecutor: ExecutorService =
+  val jobExecutor: ScheduledExecutorService =
     context.getThreadManager.newFixedThreadPool(jobParallelism, "job-pool")
+
+  val progressTimingCollector: ProgressTimingCollector =
+    new ProgressTimingCollector(jobExecutor)
 
   private val MaxJobLimit =
     Integer.MAX_VALUE // Temporary solution to avoid jobs being dropped
@@ -78,15 +87,16 @@ final class JobExecutionEngine(
 
   private val runtimeContext =
     RuntimeContext(
-      executionService  = interpreterContext.executionService,
-      contextManager    = interpreterContext.contextManager,
-      endpoint          = interpreterContext.endpoint,
-      truffleContext    = interpreterContext.truffleContext,
-      jobProcessor      = this,
-      jobControlPlane   = this,
-      locking           = locking,
-      state             = executionState,
-      versionCalculator = Sha3_224VersionCalculator
+      executionService        = interpreterContext.executionService,
+      contextManager          = interpreterContext.contextManager,
+      endpoint                = interpreterContext.endpoint,
+      truffleContext          = interpreterContext.truffleContext,
+      jobProcessor            = this,
+      jobControlPlane         = this,
+      locking                 = locking,
+      state                   = executionState,
+      versionCalculator       = Sha3_224VersionCalculator,
+      progressTimingCollector = progressTimingCollector
     )
 
   private lazy val logger: Logger =

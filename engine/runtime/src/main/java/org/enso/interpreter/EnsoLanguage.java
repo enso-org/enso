@@ -1,7 +1,6 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.ContextLocal;
 import com.oracle.truffle.api.ContextThreadLocal;
 import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -122,8 +121,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
 
-  private final ContextLocal<ExecutionEnvironment[]> executionEnvironment =
-      locals.createContextLocal(ctx -> new ExecutionEnvironment[1]);
   private final ContextThreadLocal<State> state =
       locals.createContextThreadLocal((ctx, thread) -> State.create(ctx));
 
@@ -495,14 +492,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       context.getLogger().log(Level.WARNING, "Unexpected exception", e);
     }
     return null;
-  }
-
-  public ExecutionEnvironment getExecutionEnvironment() {
-    return executionEnvironment.get()[0];
-  }
-
-  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.executionEnvironment.get()[0] = executionEnvironment;
   }
 
   /** Access to state associated with current context and thread. */

@@ -1,12 +1,19 @@
 <script lang="ts">
 import { ModalWrapper as ModalWrapperReact } from '#/components/ModalWrapper'
+import type { TransferBetweenCategoriesFunction } from '#/layouts/Drive/Categories'
+import type { ConfirmDeleteModalProps } from '#/modals/ConfirmDeleteModal'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import CommandPalette from '$/components/CommandPalette.vue'
 import { useContainerData } from '$/providers/container'
+import { provideDriveLocation } from '$/providers/drive'
 import { useOpenedProjects } from '$/providers/openedProjects'
 import { ContainerProviderForReact } from '$/providers/react/container'
+import { provideReactApi } from '$/providers/reactApi'
 import { provideRightPanelData } from '$/providers/rightPanel'
+import { useNavigateLink } from '$/utils/links'
+import { proxyRefs } from '$/utils/reactivity'
 import { appContainerBindings } from '@/bindings'
+import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers, type ActionName } from '@/providers/action'
 import { provideAsyncResources } from '@/providers/asyncResources'
@@ -17,12 +24,9 @@ import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { newDirectoryId, newProjectId } from 'enso-common/src/services/LocalBackend'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { normalizeSlashes } from 'enso-common/src/utilities/file'
-import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
-import MiddlePanel from './MiddlePanel.vue'
-
-import { useNavigateLink } from '$/utils/links'
-import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
+import { onMounted, onUnmounted, shallowRef, toRef, toRefs } from 'vue'
 import LeftPanel from './LeftPanel.vue'
+import MiddlePanel from './MiddlePanel.vue'
 import RightPanel from './RightPanel.vue'
 import TabBar from './TabBar.vue'
 
@@ -31,6 +35,13 @@ const UserBar = reactComponent(UserBarReact)
 </script>
 
 <script setup lang="ts">
+const props = defineProps<{
+  startReactTransition: (action: () => void) => void
+  isReactTransitioning: boolean
+  transferBetweenCategories: TransferBetweenCategoriesFunction
+  confirmDelete: (properties: ConfirmDeleteModalProps) => void
+}>()
+
 // NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
 // with veaury's ref assignment implementation that runs during parent React component lifecycle.
 const fullscreenRoot = shallowRef<HTMLElement>()
@@ -38,10 +49,19 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 const openedProjects = useOpenedProjects()
 const containerData = useContainerData()
 const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
-const anyTabs = computed(() => containerData.tabList.length > 0)
+const { focusedPanel, middlePanelShown } = toRefs(containerData)
 provideAsyncResources(openedProjects)
-provideRightPanelData(toRef(containerData, 'focusedPanel'))
+provideRightPanelData(focusedPanel)
 provideFullscreenRoot(fullscreenRoot)
+provideDriveLocation(props.startReactTransition)
+provideReactApi(
+  proxyRefs({
+    startTransition: props.startReactTransition,
+    isTransitioning: toRef(props, 'isReactTransitioning'),
+    transferBetweenCategories: props.transferBetweenCategories,
+    confirmDelete: props.confirmDelete,
+  }),
+)
 
 const HELP_URLS: Record<ActionName & `help.${string}`, string> = {
   'help.whatsNew': 'https://community.ensoanalytics.com/c/what-is-new-in-enso/',
@@ -113,14 +133,14 @@ onUnmounted(() => {
         <div class="topBarBackground" />
         <CommandPalette />
         <ModalWrapper />
-        <LeftPanel :middlePanelShown="anyTabs" :class="{ noMiddlePanel: !anyTabs }" />
-        <div class="tabPanel" :class="{ noMiddlePanel: !anyTabs }">
+        <LeftPanel :class="{ noMiddlePanel: !middlePanelShown }" />
+        <div class="tabPanel" :class="{ noMiddlePanel: !middlePanelShown }">
           <div class="bar">
             <TabBar />
             <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
           </div>
           <div class="belowBar">
-            <MiddlePanel v-if="anyTabs" />
+            <MiddlePanel v-if="middlePanelShown" />
             <RightPanel />
           </div>
         </div>

@@ -402,19 +402,3 @@ test.skip('Component browser handling of overridden record-mode', async ({ edito
   await expect(locate.componentBrowser(page)).toBeVisible()
   await expect(content).toHaveText(`Data.read ${ADDED_PATH}`)
 })
-
-test('AI prompt', async ({ editorPage, page }) => {
-  await editorPage
-
-  const node = locate.graphNodeByBinding(page, 'data')
-  await node.click()
-  await expect(node).toBeSelected()
-  await locate.graphEditor(page).press('Enter')
-  await expect(locate.componentBrowser(page)).toBeVisible()
-
-  await page.keyboard.insertText('AI:convert to table')
-  await expect(page.locator('.ComponentList')).toBeHidden()
-  await page.keyboard.press('Enter')
-  await expect(locate.componentBrowserInput(page)).toHaveText('to_table')
-  await expect(locate.componentBrowser(page)).toHaveAttribute('data-self-argument', 'data')
-})

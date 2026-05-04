@@ -4,6 +4,7 @@ import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Data.Pair.Pair
 import project.Error.Error

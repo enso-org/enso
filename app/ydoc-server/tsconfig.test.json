@@ -7,12 +7,15 @@
     "./src/YjsBinaryChannel.ts",
     "./src/__tests__/edits.bench.ts",
     "./src/__tests__/edits.test.ts",
+    "./src/__tests__/visualizationBridge.test.ts",
     "./src/auth.ts",
     "./src/edits.ts",
     "./src/fileFormat.ts",
     "./src/index.ts",
+    "./src/inspect.ts",
     "./src/languageServerSession.ts",
     "./src/serialization.ts",
+    "./src/visualizationBridge.ts",
     "./src/ydoc.ts",
     "./vitest.config.ts"
   ]

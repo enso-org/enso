@@ -33,17 +33,17 @@ add_specs suite_builder =
             res . should_equal 2
 
         group_builder.specify "should prevent execution with explicitly disabled context" <|
-            res = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment (in_fn 1)) p-> p.payload.to_text
+            res = Panic.catch Any (Runtime.with_disabled_context Input (in_fn 1)) p-> p.payload.to_text
             res . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
 
         group_builder.specify "should be configurable" <|
-            r1 = Runtime.with_enabled_context Input environment=Runtime.current_execution_environment <|
-                Runtime.with_enabled_context Output environment=Runtime.current_execution_environment <|
+            r1 = Runtime.with_enabled_context Input <|
+                Runtime.with_enabled_context Output <|
                   in_fn (out_fn 10)
             r1.should_equal 22
 
             r2 = Panic.catch (handler=p-> p.payload.to_text) Any <|
-                Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <|
+                Runtime.with_disabled_context Input  <|
                     in_fn (out_fn 10)
             r2 . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
 
@@ -51,13 +51,13 @@ add_specs suite_builder =
             check_fn ten =
                 in_fn (out_fn ten)
 
-            r1 = Runtime.with_enabled_context Input environment=Runtime.current_execution_environment <|
-                Runtime.with_enabled_context Output environment=Runtime.current_execution_environment <|
+            r1 = Runtime.with_enabled_context Input <|
+                Runtime.with_enabled_context Output <|
                     CallbackHelper.runCallbackInt check_fn 10
             r1.should_equal 22
 
             r2 = Panic.catch (handler=p-> p.payload.to_text) Any <|
-                Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <|
+                Runtime.with_disabled_context Input  <|
                     CallbackHelper.runCallbackInt check_fn 10
             r2 . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
 

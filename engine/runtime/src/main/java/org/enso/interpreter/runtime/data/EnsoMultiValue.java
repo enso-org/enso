@@ -31,7 +31,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
+import org.enso.interpreter.node.expression.builtin.text.InvokeToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.FunctionAndType;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -286,12 +286,12 @@ public final class EnsoMultiValue extends EnsoObject {
   @TruffleBoundary
   @Override
   public final String toDisplayString(boolean ignore) {
-    return toDisplayString(ignore, AnyToTextNode.getUncached()).toString();
+    return toDisplayString(ignore, InvokeToTextNode.getUncached()).toString();
   }
 
   @ExportMessage
-  final Object toDisplayString(boolean ignore, @Cached AnyToTextNode toTextNode) {
-    return toTextNode.execute(this);
+  final Object toDisplayString(boolean ignore, @Cached InvokeToTextNode toTextNode) {
+    return toTextNode.executeToText(null, this);
   }
 
   private enum InteropType {

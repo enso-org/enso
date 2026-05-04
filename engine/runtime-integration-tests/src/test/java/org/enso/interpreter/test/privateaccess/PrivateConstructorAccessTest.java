@@ -193,6 +193,7 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.createProject(
         "Proj",
         """
+        from Standard.Base import to_text
         from local.Lib import call_method
 
         callback cons =
@@ -238,6 +239,7 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.createProject(
         "Proj",
         """
+        from Standard.Base import to_text
         from local.Lib import call_method
 
         callback cons =

@@ -15,6 +15,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds

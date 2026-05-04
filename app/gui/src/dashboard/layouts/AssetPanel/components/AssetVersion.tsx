@@ -1,21 +1,29 @@
 /** @file Displays information describing a specific version of an asset. */
-import { Badge } from '#/components/Badge'
 import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
+import { Dialog, Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import { BasicInput } from '#/components/Inputs/Input'
 import { Menu } from '#/components/Menu'
 import { TEXT_WITH_ICON } from '#/components/patterns'
-import { Text } from '#/components/Text'
+import { Text, TEXT_STYLE } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
-import { VisualTooltip } from '#/components/VisualTooltip'
+import { VisualTooltip, type TooltipElementType } from '#/components/VisualTooltip'
+import {
+  backendQueryOptions,
+  useAddAssetVersionTag,
+  useRemoveAssetVersionTag,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { setModal } from '#/providers/ModalProvider'
+import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { useQuery } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
 import * as backendService from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
+import { useFilter } from 'react-aria-components'
 import { AssetDiffView } from './AssetDiffView'
 
 const HEADER_GAP_PX = 8
@@ -27,6 +35,124 @@ const COMMENT_ACTION_BUTTON_CLASS_NAME =
   'opacity-30 transition-opacity hover:opacity-100 focus-visible:opacity-100'
 const COMMENT_TEXT_AREA_CLASS_NAME =
   'min-h-7 w-full resize-none rounded-md border border-primary/20 bg-transparent px-2 py-1 text-[10.5px] leading-4 text-primary focus:border-primary disabled:cursor-default disabled:opacity-50'
+
+/** Options for add tag compontent. */
+interface AddTagProps {
+  readonly availableTags: readonly string[]
+  readonly backend: Backend
+  readonly item: backendService.AnyAsset
+  readonly refetchAvailableTags: () => Promise<unknown>
+  readonly version: Version
+}
+
+const ADD_TAG_STYLES = tv({
+  slots: {
+    form: 'flex w-80 max-w-[min(20rem,calc(100vw-2rem))] flex-col gap-2',
+    inputRow: 'flex items-center gap-2',
+    input:
+      'w-full rounded-full border-0.5 border-primary/20 bg-transparent px-3 py-1.5 text-xs text-primary outline-none transition-colors placeholder:text-primary/40 focus:border-primary',
+    suggestions: 'flex max-h-56 flex-col overflow-y-auto overflow-x-hidden',
+    suggestionButton:
+      'w-full justify-start rounded-full px-3 py-1.5 text-left text-xs font-medium text-primary hover:bg-primary/5',
+  },
+})
+
+/** Add tag popover content. */
+function AddTag(props: AddTagProps) {
+  const { availableTags, item, version, backend, refetchAvailableTags } = props
+  const { getText } = useText()
+  const styles = ADD_TAG_STYLES()
+  const filter = useFilter({ sensitivity: 'base' })
+  const [value, setValue] = React.useState('')
+  const deferredValue = React.useDeferredValue(value)
+
+  const addAssetVersionTag = useAddAssetVersionTag(backend)
+  const normalizedValue = value.trim()
+  const filteredTags = React.useMemo(() => {
+    const existingTags = new Set(version.tags)
+    return availableTags.filter(
+      (tag) =>
+        tag.trim() !== '' &&
+        !existingTags.has(tag) &&
+        (deferredValue.trim() === '' || filter.contains(tag, deferredValue)),
+    )
+  }, [availableTags, deferredValue, filter, version.tags])
+
+  const submit = useEventCallback(async (tag: string, close: () => void) => {
+    const normalizedTag = tag.trim()
+    if (normalizedTag === '' || version.tags.includes(normalizedTag)) {
+      return
+    }
+    setValue('')
+    close()
+    await addAssetVersionTag(item.id, version.versionId, normalizedTag)
+  })
+
+  return (
+    <Popover.Trigger
+      onOpenChange={(isOpen: boolean) => {
+        if (isOpen) {
+          void refetchAvailableTags()
+        }
+      }}
+    >
+      <Button
+        variant="icon"
+        size="xxsmall"
+        icon="add"
+        tooltip={getText('assetVersions.addTag')}
+        className="shrink-0 opacity-40 hover:opacity-100"
+      />
+      {({ close }: { close: () => void }) => (
+        <Popover size="auto" placement="bottom start">
+          <form
+            className={styles.form()}
+            onSubmit={(event) => {
+              event.preventDefault()
+              void submit(normalizedValue, close)
+            }}
+          >
+            <div className={styles.inputRow()}>
+              <BasicInput
+                autoFocus
+                value={value}
+                onChange={(event) => {
+                  setValue(event.currentTarget.value)
+                }}
+                placeholder={getText('assetVersions.addTag')}
+                aria-label={getText('assetVersions.addTag')}
+                className={styles.input()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void submit(normalizedValue, close)
+                  } else if (event.key === 'Escape') {
+                    event.preventDefault()
+                    close()
+                  }
+                }}
+              />
+            </div>
+            {filteredTags.length > 0 && (
+              <div className={styles.suggestions()}>
+                {filteredTags.map((tag) => (
+                  <Button
+                    key={tag}
+                    variant="custom"
+                    className={styles.suggestionButton()}
+                    onPress={() => submit(tag, close)}
+                  >
+                    {tag}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </form>
+        </Popover>
+      )}
+    </Popover.Trigger>
+  )
+}
 
 /** A version of an asset. */
 export interface Version extends backendService.S3ObjectVersion {
@@ -75,11 +201,18 @@ export function AssetVersion(props: AssetVersionProps) {
   const comparableVersions = otherVersions
     .map((v, index) => ({ ...v, number: otherVersions.length - index }))
     .filter((v) => v.versionId !== version.versionId)
+  const { data: availableTags, refetch: refetchAvailableTags } = useQuery(
+    backendQueryOptions(backend, 'listAssetVersionTags', []),
+  )
 
   const canRestore = !version.isLatest
   const doRestore = useEventCallback(async () => {
     await doRestoreRaw(version)
   })
+
+  const removeAssetVersionTag = useRemoveAssetVersionTag(backend)
+  const onDelete = (versionId: backendService.S3ObjectVersionId, tag: string) =>
+    removeAssetVersionTag(item.id, versionId, tag)
 
   // Conditional collapsing based on available headerBounds with respect to the approximate width of all tags.
   // The width of tags is based on the first tag, so it can be innacurate, but should be reasonable in practice.
@@ -115,9 +248,9 @@ export function AssetVersion(props: AssetVersionProps) {
       </div>
     )
     return (
-      <VisualTooltip tooltip={collapsedTagsTooltip} className="shrink-0">
-        <Badge variant="outline">{getText('xTags', version.tags.length)}</Badge>
-      </VisualTooltip>
+      <div className="min-w-0 shrink-0">
+        <Tag tooltip={collapsedTagsTooltip}>{getText('xTags', version.tags.length)}</Tag>
+      </div>
     )
   }
 
@@ -151,19 +284,32 @@ export function AssetVersion(props: AssetVersionProps) {
                 {version.tags.length > 0 &&
                   (shouldCollapseTags ?
                     <CollapsedTagsPlaceholder />
-                  : <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+                  : <div className="flex min-w-0 items-center gap-1">
                       {version.tags.map((tag, index) => (
-                        <VisualTooltip
+                        <div
                           key={`${version.versionId}-${tag}-${index}`}
-                          tooltip={tag}
-                          className={`min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink overflow-hidden`}
+                          className={`min-w-0 min-w-[${MIN_TAG_WIDTH_CH}ch] max-w-[${MAX_TAG_WIDTH_CH}ch] shrink`}
                         >
-                          <Badge variant="outline" className="w-full">
+                          <Tag
+                            tooltip={tag}
+                            onDelete={
+                              tag !== getText('latestIndicator') ?
+                                () => onDelete(version.versionId, tag)
+                              : undefined
+                            }
+                          >
                             {tag}
-                          </Badge>
-                        </VisualTooltip>
+                          </Tag>
+                        </div>
                       ))}
                     </div>)}
+                <AddTag
+                  availableTags={availableTags ?? []}
+                  item={item}
+                  version={version}
+                  backend={backend}
+                  refetchAvailableTags={refetchAvailableTags}
+                />
               </div>
 
               {/* Tags list copies to measure sizes for conditional collapse behavior. */}
@@ -176,9 +322,7 @@ export function AssetVersion(props: AssetVersionProps) {
                   className="inline-block"
                   style={{ width: `${MIN_TAG_WIDTH_CH}ch` }}
                 >
-                  <Badge variant="outline" className="w-full">
-                    {version.tags[0] ?? getText('latestIndicator')}
-                  </Badge>
+                  <Tag className="w-full">{version.tags[0] ?? getText('latestIndicator')}</Tag>
                 </span>
               </div>
             </>
@@ -487,5 +631,57 @@ function VersionDialog(props: VersionDialogProps) {
         />
       </div>
     </Dialog>
+  )
+}
+
+/** Tag props. */
+interface TagProps {
+  readonly children: React.ReactNode
+  readonly className?: string
+  readonly tooltip?: TooltipElementType
+  readonly onDelete?: (() => void) | undefined
+}
+
+const TAG_STYLES = tv({
+  base: 'flex items-center min-w-0 w-full rounded-full border-[0.5px] border-[var(--color-primary)] text-primary overflow-visible',
+  variants: {
+    variant: {
+      deleteButton: 'pl-2 pr-1',
+      noDeleteButton: 'px-2',
+    },
+  },
+  slots: {
+    deleteButton: 'ml-1 flex-none opacity-40 hover:opacity-100',
+    textWrapper: 'min-w-0 flex-1',
+    text: TEXT_STYLE({ variant: 'body-sm', color: 'current', truncate: true }),
+  },
+})
+
+/** Version tag component. */
+function Tag(props: TagProps) {
+  const { children, onDelete, tooltip, className } = props
+  const styles = TAG_STYLES({
+    className: className,
+    variant: onDelete ? 'deleteButton' : 'noDeleteButton',
+  })
+  const { getText } = useText()
+  return (
+    <div className={styles.base()}>
+      <div className={styles.textWrapper()}>
+        <VisualTooltip tooltip={tooltip} className="block min-w-0">
+          <span className={styles.text()}>{children}</span>
+        </VisualTooltip>
+      </div>
+      {onDelete && (
+        <Button
+          icon="close"
+          tooltip={getText('assetVersions.removeTag')}
+          variant="icon"
+          size="xxsmall"
+          onPress={onDelete}
+          className={styles.deleteButton()}
+        />
+      )}
+    </div>
   )
 }

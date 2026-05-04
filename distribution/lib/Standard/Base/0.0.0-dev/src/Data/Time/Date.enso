@@ -16,11 +16,12 @@ import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
+import project.Internal.Time.Date_Helpers
 import project.Meta
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Data.Time.Date_Time import ensure_in_epoch
+from project.Internal.Time.Date_Helpers import ensure_in_epoch
 from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
 from project.Nothing import all
@@ -33,21 +34,6 @@ polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.base.Time_Utils.AdjustOp
-
-## ---
-   private: true
-   ---
-   Constructs a new Date from a year, month, and day.
-
-   Recommended to use `Date.new` instead which handles potential exceptions.
-
-   ## Arguments
-    - `year`: The year to represent.
-    - `month`: The month-of-year to represent, from 1 (January) to 12 (December).
-    - `day`: The day-of-month to represent, from 1 to 31. It must be valid for
-      the year and month.
-new_builtin : Integer -> Integer -> Integer -> Date
-new_builtin year month day = @Builtin_Method "Date.new_builtin"
 
 ## This type represents a date, often viewed as year-month-day.
    For example, the value "2nd October 2007" can be stored in a `Date`.
@@ -69,8 +55,7 @@ type Date
        ```
              example_today = Date.today
        ```
-    today : Date
-    today = @Builtin_Method "Date.today"
+    today -> Date = Date_Helpers.today
 
     ## ---
        group: Constants
@@ -106,7 +91,7 @@ type Date
     @day make_day_picker
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year:Integer (month:Integer=1) (day:Integer=1) =
-        Panic.catch JException (new_builtin year month day) caught->
+        Panic.catch JException (Date_Helpers.new_date_builtin year month day) caught->
             Error.throw (Time_Error.Error caught.payload.getMessage)
 
     ## ---
@@ -223,7 +208,7 @@ type Date
              example_year = Date.today.year
        ```
     year : Integer
-    year self = @Builtin_Method "Date.year"
+    year self -> Integer = Date_Helpers.year self
 
     ## ---
        group: Metadata
@@ -237,8 +222,7 @@ type Date
        ```
              example_month = Date.today.month
        ```
-    month : Integer
-    month self = @Builtin_Method "Date.month"
+    month self -> Integer = Date_Helpers.month self 
 
     ## ---
        group: Metadata
@@ -254,8 +238,7 @@ type Date
 
              example_day = Date.today.day
        ```
-    day : Integer
-    day self = @Builtin_Method "Date.day"
+    day self -> Integer = Date_Helpers.day self
 
     ## ---
        icon: metadata

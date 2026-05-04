@@ -11,7 +11,8 @@ import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
 import type { YjsChannelServer } from 'ydoc-channel'
-import { YjsBinaryChannel } from './YjsBinaryChannel'
+import { YjsBinaryChannel, type JavaByteBuffer, type JavaByteBufferClass } from './YjsBinaryChannel'
+import type { InspectManager } from './inspect'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -100,14 +101,24 @@ export function setupGatewayClient(
   lsUrl: string | undefined | null,
   dataUrl: string | undefined | null,
   docName: string,
-  byteBuffer: any,
+  byteBuffer: JavaByteBufferClass,
   jsonChannelServer: YjsChannelServer,
   binaryChannelServer: YjsChannelServer,
+  visControlChannelServer: YjsChannelServer<string>,
+  visDataChannelServer: YjsChannelServer<JavaByteBuffer>,
+  inspectManager?: InspectManager | null,
 ): void {
   console.log(
     `Setting up Gateway Client: docName=${docName}, lsUrl=${lsUrl ?? 'none'}, dataUrl=${dataUrl ?? 'none'}`,
   )
-  const lsSession = getSessionForUrl(lsUrl, jsonChannelServer)
+  const lsSession = getSessionForUrl(
+    lsUrl,
+    jsonChannelServer,
+    visControlChannelServer,
+    visDataChannelServer,
+    byteBuffer,
+  )
+  inspectManager?.registerSession(lsSession.docs)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
     ws.close()
@@ -124,16 +135,31 @@ export function setupGatewayClient(
     try {
       dataSocket?.close()
       await lsSession.release()
+      if (LanguageServerSession.sessions.size === 0) {
+        inspectManager?.unregisterSession()
+      }
     } catch (error) {
       console.error('Session release failed.\n', error)
     }
   })
 }
 
-function getSessionForUrl(lsUrl: string | undefined | null, jsonChannelServer: YjsChannelServer) {
+function getSessionForUrl(
+  lsUrl: string | undefined | null,
+  jsonChannelServer: YjsChannelServer,
+  visControlServer: YjsChannelServer<string>,
+  visDataServer: YjsChannelServer<JavaByteBuffer>,
+  byteBufferClass: JavaByteBufferClass,
+) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
-    lsSession = LanguageServerSession.get(lsUrl, jsonChannelServer)
+    lsSession = LanguageServerSession.get(
+      lsUrl,
+      jsonChannelServer,
+      visControlServer,
+      visDataServer,
+      byteBufferClass,
+    )
   } else {
     const anySession = LanguageServerSession.sessions.values().next().value
     if (LanguageServerSession.sessions.size === 1 && anySession) {

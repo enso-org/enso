@@ -102,15 +102,19 @@ public final class ManagedResource extends BuiltinObject {
               + " effectively making the underlying resource unmanaged again.")
   @Builtin.Specialize
   @SuppressWarnings("generic-enso-builtin-type")
-  public Object take(EnsoContext context) {
-    context.getResourceManager().take(this);
-    return this.getResource();
+  public static Object take(ManagedResource mr, EnsoContext context) {
+    context.getResourceManager().take(mr);
+    return mr.getResource();
   }
 
   @Builtin.Method(
       name = "finalize",
       description = "Finalizes a managed resource, even if it is still reachable.")
   @Builtin.Specialize
+  public static void finalizer(ManagedResource mr, EnsoContext ctx) {
+    mr.close(ctx);
+  }
+
   public void close(EnsoContext context) {
     context.getResourceManager().close(this);
   }

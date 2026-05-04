@@ -3,7 +3,6 @@ import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/bac
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { defineMenuEntries } from '#/hooks/menuHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -11,6 +10,7 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
+import type { CategoryType } from '$/providers/category'
 import type { Backend } from 'enso-common/src/services/Backend'
 import { BackendType, type DirectoryId } from 'enso-common/src/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
@@ -18,7 +18,7 @@ import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 /** Props for a {@link GlobalContextMenuEntries}. */
 export interface GlobalContextMenuEntriesOptions {
   readonly backend: Backend
-  readonly category: Category
+  readonly category: CategoryType
   readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
   readonly doPaste: (newParentId: DirectoryId) => void

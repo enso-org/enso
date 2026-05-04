@@ -3,6 +3,7 @@ package org.enso.interpreter.service;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.enso.interpreter.instrument.telemetry.ProgressTimingCollector;
 import org.enso.logger.ObservedMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,12 +16,15 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage>, Auto
   private final Thread thread;
   private final AutoCloseable handle;
   private final ProgressAggregator aggregate;
+  private final ProgressTimingCollector progressTimingCollector;
 
-  private ExecutionProgressObserver(UUID nodeId, BiConsumer<Double, String> c) {
+  private ExecutionProgressObserver(
+      UUID nodeId, BiConsumer<Double, String> c, ProgressTimingCollector progressTimingCollector) {
     this.nodeId = nodeId;
     this.handle = ObservedMessage.observe(PROGRESS, this);
     this.thread = Thread.currentThread();
     this.aggregate = new ProgressAggregator(c);
+    this.progressTimingCollector = progressTimingCollector;
   }
 
   UUID nodeId() {
@@ -41,8 +45,10 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage>, Auto
    * @return a handle to call when the computation shall no longer be observed
    */
   static ExecutionProgressObserver startComputation(
-      UUID nodeId, BiConsumer<Double, String> consumer) {
-    var observer = new ExecutionProgressObserver(nodeId, consumer);
+      UUID nodeId,
+      BiConsumer<Double, String> consumer,
+      ProgressTimingCollector progressTimingCollector) {
+    var observer = new ExecutionProgressObserver(nodeId, consumer, progressTimingCollector);
     // start by notifying indeterminate computation
     consumer.accept(-1.0, null);
     return observer;
@@ -65,6 +71,11 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage>, Auto
           if (t.getArguments().size() >= 2 && t.getArguments().get(1) instanceof Number by) {
             var key = t.getArguments().get(0);
             aggregate.advanceBy(key, by.longValue());
+            if (t.getArguments().size() >= 3
+                && t.getArguments().get(2) instanceof Number elapsedMs) {
+              progressTimingCollector.recordTiming(
+                  key.toString(), by.longValue(), elapsedMs.longValue());
+            }
           }
         }
         case "LOG {}:{}" -> {

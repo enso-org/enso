@@ -11,6 +11,10 @@
 - Standard.Base.Data.Ordering.Ordering.from_sign sign:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Ordering.Ordering.hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Ordering.Ordering.to_sign self -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.< self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.<= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.> self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.>= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Any.Any -> Standard.Base.Data.Ordering.Comparable
 - Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Data.Ordering.Ordering -> Standard.Base.Data.Ordering.Comparable
 - type Ordering

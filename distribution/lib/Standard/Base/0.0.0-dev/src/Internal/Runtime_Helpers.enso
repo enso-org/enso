@@ -8,6 +8,7 @@ import project.Panic.Panic
 import project.Logging.Progress
 import project.Nothing.Nothing
 
+from project.Data.Boolean import Boolean
 from project.Errors.Common import Uninitialized_State
 polyglot java import java.lang.Thread
 
@@ -50,3 +51,24 @@ ref_get ref = @Builtin_Method "Ref.get"
 ref_put ref new_value = @Builtin_Method "Ref.put"
 
 create_process command arguments input redirect_in redirect_out redirect_err cwd env = @Builtin_Method "System.create_process"
+
+exit code = @Builtin_Method "System.exit"
+nano_time = @Builtin_Method "System.nano_time"
+os = @Builtin_Method "System.os"
+is_unix = @Builtin_Method "System.is_unix"
+
+resource_bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
+resource_finalize res = @Builtin_Method "Managed_Resource.finalize"
+resource_take res = @Builtin_Method "Managed_Resource.take"
+resource_register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
+resource_with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
+
+warn_limit_reached value = @Builtin_Method "Warning.limit_reached"
+warn_create payload origin = @Builtin_Method "Warning.create"
+warn_attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
+warn_get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
+warn_set_array value warnings = @Builtin_Method "Warning.set_array"
+
+with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
+
+enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"

@@ -3,18 +3,9 @@ package org.enso.languageserver.runtime
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  DetachVisualization,
-  RegisterOneshotVisualization,
-  VisualizationContext,
-  VisualizationUpdate
-}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
-import org.enso.languageserver.session.SessionRouter.{
-  DeliverToBinaryController,
-  DeliverToJsonController
-}
+import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.CollectionConversions._
 import org.enso.polyglot.runtime.Runtime.Api
@@ -57,60 +48,13 @@ final class ContextEventsListener(
     }
   }
 
-  override def receive: Receive = withState(Set(), Vector())
+  override def receive: Receive = withState(Vector())
 
   private def withState(
-    oneshotVisualizations: Set[Api.VisualizationContext],
     expressionUpdates: Vector[Api.ExpressionUpdate]
   ): Receive = {
-    case RegisterOneshotVisualization(
-          contextId,
-          visualizationId,
-          expressionId
-        ) =>
-      val visualizationContext =
-        Api.VisualizationContext(
-          visualizationId,
-          contextId,
-          expressionId
-        )
-      context.become(
-        withState(
-          oneshotVisualizations + visualizationContext,
-          expressionUpdates
-        )
-      )
-
-    case Api.VisualizationUpdate(ctx, data) if ctx.contextId == contextId =>
-      val payload =
-        VisualizationUpdate(
-          VisualizationContext(
-            ctx.visualizationId,
-            ctx.contextId,
-            ctx.expressionId
-          ),
-          data
-        )
-      sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
-      if (oneshotVisualizations.contains(ctx)) {
-        context.parent ! DetachVisualization(
-          rpcSession.clientId,
-          contextId,
-          ctx.visualizationId,
-          ctx.expressionId
-        )
-        context.become(
-          withState(
-            oneshotVisualizations - ctx,
-            expressionUpdates
-          )
-        )
-      }
-
     case Api.ExpressionUpdates(`contextId`, apiUpdates) =>
-      context.become(
-        withState(oneshotVisualizations, expressionUpdates :++ apiUpdates)
-      )
+      context.become(withState(expressionUpdates :++ apiUpdates))
 
     case Api.ExecutionFailed(`contextId`, error) =>
       val message = for {
@@ -143,48 +87,9 @@ final class ContextEventsListener(
 
       message.pipeTo(sessionRouter)
 
-    case Api.VisualizationEvaluationFailed(
-          ctx @ Api.VisualizationContext(
-            visualizationId,
-            contextId,
-            expressionId
-          ),
-          message,
-          diagnostic
-        ) =>
-      val response = for {
-        diagnostic <- liftOptionOfFuture(
-          diagnostic
-            .map(runtimeFailureMapper.toProtocolDiagnostic)
-        )
-        payload =
-          ContextRegistryProtocol.VisualizationEvaluationFailed(
-            VisualizationContext(visualizationId, contextId, expressionId),
-            message,
-            diagnostic
-          )
-      } yield DeliverToJsonController(rpcSession.clientId, payload)
-
-      if (oneshotVisualizations.contains(ctx)) {
-        context.parent ! DetachVisualization(
-          rpcSession.clientId,
-          contextId,
-          ctx.visualizationId,
-          ctx.expressionId
-        )
-        context.become(
-          withState(
-            oneshotVisualizations - ctx,
-            expressionUpdates
-          )
-        )
-      }
-
-      response.pipeTo(sessionRouter)
-
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       runExpressionUpdates(expressionUpdates)
-      context.become(withState(oneshotVisualizations, Vector()))
+      context.become(withState(Vector()))
 
     case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }

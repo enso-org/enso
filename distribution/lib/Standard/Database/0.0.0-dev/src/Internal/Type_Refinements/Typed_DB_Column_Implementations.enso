@@ -130,6 +130,11 @@ type DB_Text_Column_Implementation
         new_name = (naming_helper column).function_name "proper" [column]
         make_unary_op column "PROPER" new_name
 
+    reverse column =
+        Value_Type_Checks.is_text column
+        new_name = (naming_helper column).function_name "reverse" [column]
+        make_unary_op column "REVERSE" new_name
+
     left (this_column : Column & DB_Column) n:Column|Integer =
         Value_Type_Checks.is_text this_column
         Helpers.is_specific_integer_type this_column n

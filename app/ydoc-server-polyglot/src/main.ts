@@ -1,4 +1,4 @@
-import { configureAllDebugLogs, docName, setupGatewayClient } from 'ydoc-server'
+import { configureAllDebugLogs, docName, InspectManager, setupGatewayClient } from 'ydoc-server'
 
 const host = typeof YDOC_HOST == 'string' ? YDOC_HOST : 'localhost'
 const port = typeof YDOC_PORT == 'number' ? YDOC_PORT : 1234
@@ -12,13 +12,50 @@ if (YDOC_JSON_CHANNEL_CALLBACKS == undefined) {
 if (YDOC_BINARY_CHANNEL_CALLBACKS == undefined) {
   throw new Error('YDOC_BINARY_CHANNEL_CALLBACKS undefined')
 }
+if (YDOC_VIS_CONTROL_CHANNEL_CALLBACKS == undefined) {
+  throw new Error('YDOC_VIS_CONTROL_CHANNEL_CALLBACKS undefined')
+}
+if (YDOC_VIS_DATA_CHANNEL_CALLBACKS == undefined) {
+  throw new Error('YDOC_VIS_DATA_CHANNEL_CALLBACKS undefined')
+}
 
 const ByteBuffer = Java.type('java.nio.ByteBuffer')
+
+const inspectManager = debug ? new InspectManager(ByteBuffer) : null
+const jsonCallbacks =
+  inspectManager ?
+    inspectManager.wrapJsonServer(YDOC_JSON_CHANNEL_CALLBACKS)
+  : YDOC_JSON_CHANNEL_CALLBACKS
+const binaryCallbacks =
+  inspectManager ?
+    inspectManager.wrapBinaryServer(YDOC_BINARY_CHANNEL_CALLBACKS)
+  : YDOC_BINARY_CHANNEL_CALLBACKS
+const visControlCallbacks =
+  inspectManager ?
+    inspectManager.wrapVisControlServer(YDOC_VIS_CONTROL_CHANNEL_CALLBACKS)
+  : YDOC_VIS_CONTROL_CHANNEL_CALLBACKS
+const visDataCallbacks =
+  inspectManager ?
+    inspectManager.wrapVisDataServer(YDOC_VIS_DATA_CHANNEL_CALLBACKS)
+  : YDOC_VIS_DATA_CHANNEL_CALLBACKS
 
 const wss = new WebSocketServer({ host, port })
 
 wss.onconnect = (socket, url) => {
   const doc = docName(url.pathname)
+
+  if (doc === 'inspect' && inspectManager) {
+    inspectManager.handleConnection(socket)
+    return
+  }
+
+  if (doc != null && doc.startsWith('inspect/') && inspectManager) {
+    const targetDoc = doc.slice('inspect/'.length)
+    if (inspectManager.handleDocConnection(socket, targetDoc)) return
+    console.log(`Inspect doc '${targetDoc}' not found`)
+    return
+  }
+
   const ls = url.searchParams.get('ls')
   const data = url.searchParams.get('data')
   if (doc != null && ls != null) {
@@ -28,8 +65,11 @@ wss.onconnect = (socket, url) => {
       data,
       doc,
       ByteBuffer,
-      YDOC_JSON_CHANNEL_CALLBACKS,
-      YDOC_BINARY_CHANNEL_CALLBACKS,
+      jsonCallbacks,
+      binaryCallbacks,
+      visControlCallbacks,
+      visDataCallbacks,
+      inspectManager,
     )
   } else {
     console.log('Failed to authenticate user', ls, doc)

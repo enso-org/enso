@@ -65,7 +65,7 @@ export function UserBar(props: UserBarProps) {
   const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
 
   return (
-    <div className="pt-0.5">
+    <div className="flex-shrink-0 pt-0.5">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x">
         {isOffline && (
           <div className="mr-2 flex items-center gap-2">

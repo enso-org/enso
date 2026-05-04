@@ -22,7 +22,6 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /**
@@ -216,19 +215,17 @@ final class BuiltinsRegistry {
         .map(
             line -> {
               String[] builtinMeta = line.split(":");
-              if (builtinMeta.length != 4) {
+              if (builtinMeta.length != 3) {
                 throw new CompilerError("Invalid builtin metadata in: " + line);
               }
               String[] builtinName = builtinMeta[0].split("\\.");
               if (builtinName.length != 2) {
                 throw new CompilerError("Invalid builtin metadata in : " + line);
               }
-              boolean isStatic = java.lang.Boolean.valueOf(builtinMeta[2]);
-              boolean isAutoRegister = java.lang.Boolean.valueOf(builtinMeta[3]);
+              boolean isStatic = java.lang.Boolean.parseBoolean(builtinMeta[2]);
 
               return new AbstractMap.SimpleEntry<>(
-                  builtinMeta[0],
-                  new LoadedBuiltinMetaMethod(builtinMeta[1], isStatic, isAutoRegister));
+                  builtinMeta[0], new LoadedBuiltinMetaMethod(builtinMeta[1], isStatic));
             })
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
@@ -271,28 +268,6 @@ final class BuiltinsRegistry {
             atomNodesMeta.put(builtinMethodName, meta);
           }
         });
-
-    for (Builtin builtin : builtins.values()) {
-      var type = builtin.getType();
-      Map<String, LoadedBuiltinMetaMethod> methods = builtinMetaMethods.get(type.getName());
-      if (methods != null) {
-        // Register a builtin method iff it is marked as auto-register.
-        // Methods can only register under a type or, if we deal with a static method, it's
-        // eigen-type.
-        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any
-        // or Number.
-        methods.forEach(
-            (key, value) -> {
-              Type tpe =
-                  value.isAutoRegister() ? (!value.isStatic() ? type : type.getEigentype()) : null;
-              if (tpe != null) {
-                Supplier<Function> supplier =
-                    () -> value.toMethod().toFunction(language).get().getFunction();
-                scope.registerMethod(tpe, key, supplier);
-              }
-            });
-      }
-    }
     return builtinMethodNodes;
   }
 
@@ -310,21 +285,15 @@ final class BuiltinsRegistry {
     private LoadedBuiltinMethod method;
     private final String className;
     private final boolean staticMethod;
-    private final boolean autoRegister;
 
-    private LoadedBuiltinMetaMethod(String className, boolean staticMethod, boolean autoRegister) {
+    private LoadedBuiltinMetaMethod(String className, boolean staticMethod) {
       this.className = className;
       this.staticMethod = staticMethod;
-      this.autoRegister = autoRegister;
       this.method = null;
     }
 
     boolean isStatic() {
       return staticMethod;
-    }
-
-    boolean isAutoRegister() {
-      return autoRegister;
     }
 
     LoadedBuiltinMethod toMethod() {
@@ -333,7 +302,7 @@ final class BuiltinsRegistry {
           @SuppressWarnings("unchecked")
           Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
           Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class);
-          method = new LoadedBuiltinMethod(meth, staticMethod, autoRegister);
+          method = new LoadedBuiltinMethod(meth, staticMethod);
         } catch (ClassNotFoundException | NoSuchMethodException e) {
           throw new CompilerError("Invalid builtin method " + className, e);
         }
@@ -342,12 +311,12 @@ final class BuiltinsRegistry {
     }
   }
 
-  private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
+  private record LoadedBuiltinMethod(Method meth, boolean isStatic) {
     Optional<BuiltinFunction> toFunction(EnsoLanguage language) {
       try {
         var f = (Function) meth.invoke(null, language);
         if (f != null) {
-          var bf = new BuiltinFunction(f, isAutoRegister);
+          var bf = new BuiltinFunction(f);
           return Optional.of(bf);
         }
       } catch (Exception e) {

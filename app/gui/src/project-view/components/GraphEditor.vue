@@ -24,6 +24,7 @@ import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { createAiNode, type AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
@@ -477,6 +478,7 @@ function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
   componentBrowserOpened.value = false
   overrideDisplayedDocs.value = undefined
+  aiMode.value = false
 }
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
@@ -510,6 +512,28 @@ function commitComponentBrowser(
       requiredImports,
     })
   }
+  hideComponentBrowser()
+}
+
+function handleAiAccepted(payload: AcceptedAiPayload) {
+  const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
+  const topLevel = module.value.root
+  if (currentMethodName == null || topLevel == null) {
+    toasts.userActionFailed.show('Cannot create AI component: no current method loaded.')
+    hideComponentBrowser()
+    return
+  }
+  module.value.edit((edit) => {
+    createAiNode({
+      edit,
+      topLevel: edit.getVersion(topLevel),
+      currentMethodName,
+      binding: graphStore.generateLocallyUniqueIdent('ai_component'),
+      position: componentBrowserNodePosition.value,
+      payload,
+    })
+    return Ok()
+  })
   hideComponentBrowser()
 }
 
@@ -741,6 +765,7 @@ const contextMenuActions: DisplayableActionName[] = [
             :usage="componentBrowserUsage"
             :graphEditorRoot="root"
             @accepted="commitComponentBrowser"
+            @acceptedAi="handleAiAccepted"
             @canceled="hideComponentBrowser"
             @selectedSuggestionId="overrideDisplayedDocs = $event"
             @isAiPrompt="aiMode = $event"

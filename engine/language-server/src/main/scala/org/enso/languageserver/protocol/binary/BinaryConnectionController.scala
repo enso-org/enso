@@ -17,11 +17,9 @@ import org.enso.languageserver.protocol.binary.InboundPayload._
 import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
-  SuccessReplyFactory,
-  VisualizationUpdateFactory
+  SuccessReplyFactory
 }
 import org.enso.languageserver.requesthandler.file._
-import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualizationUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -33,7 +31,6 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import scala.annotation.unused
 import scala.concurrent.duration._
 
 /** An actor handling data communications between a single client and the
@@ -82,35 +79,24 @@ class BinaryConnectionController(
       )
       context.become(
         connectionEndHandler(Some(session))
-        orElse initialized(
-          outboundChannel,
-          clientId,
-          createRequestHandlers(outboundChannel)
-        )
+        orElse initialized(createRequestHandlers(outboundChannel))
         orElse decodingFailureHandler(outboundChannel)
       )
 
   }
 
   private def initialized(
-    outboundChannel: ActorRef,
-    @unused clientId: UUID,
     handlers: Map[InboundPayloadType, Props]
-  ): Receive = {
-    case Right(msg: InboundMessage) =>
-      if (handlers.contains(msg.payloadType())) {
-        val handler = context.actorOf(handlers(msg.payloadType()))
-        handler.forward(msg)
-      } else {
-        logger.error(
-          "Received InboundMessage with unknown payload type [{}].",
-          msg.payloadType()
-        )
-      }
-
-    case update: VisualizationUpdate =>
-      val updatePacket = convertVisualizationUpdateToOutPacket(update)
-      outboundChannel ! updatePacket
+  ): Receive = { case Right(msg: InboundMessage) =>
+    if (handlers.contains(msg.payloadType())) {
+      val handler = context.actorOf(handlers(msg.payloadType()))
+      handler.forward(msg)
+    } else {
+      logger.error(
+        "Received InboundMessage with unknown payload type [{}].",
+        msg.payloadType()
+      )
+    }
   }
 
   private def connectionEndHandler(
@@ -150,23 +136,6 @@ class BinaryConnectionController(
         logger.error("Unrecognized error occurred in binary protocol.", th)
         ErrorFactory.createServiceError()
     }
-
-  private def convertVisualizationUpdateToOutPacket(
-    update: VisualizationUpdate
-  ): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
-    val event                               = VisualizationUpdateFactory.create(update)
-    val msg = OutboundMessageFactory.create(
-      UUID.randomUUID(),
-      None,
-      OutboundPayload.VISUALIZATION_UPDATE,
-      event
-    )
-
-    builder.finish(msg)
-    val updatePacket = builder.dataBuffer()
-    updatePacket
-  }
 
   private def createSessionInitResponsePacket(
     requestId: EnsoUUID

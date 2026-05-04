@@ -1,6 +1,0 @@
-run key local_state ~computation = @Builtin_Method "State.run"
-get key if_nothing=(0/1) =
-    get_impl key if_nothing
-put key new_state = @Builtin_Method "State.put"
-
-private get_impl key = @Builtin_Method "State.get"

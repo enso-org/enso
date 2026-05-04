@@ -20,8 +20,7 @@ import org.enso.interpreter.runtime.state.GetStateNode;
 @BuiltinMethod(
     type = "Meta",
     name = "instrumentor_builtin",
-    description = "Handles instrumentation operations.",
-    autoRegister = false)
+    description = "Handles instrumentation operations.")
 public class InstrumentorBuiltin extends Node {
   @Child private ArrayLikeAtNode atNode = ArrayLikeAtNode.create();
 

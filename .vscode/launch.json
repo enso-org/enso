@@ -40,11 +40,19 @@
       "name": "Rust Gen CI",
       "cargo": ["run", "-p", "enso-build-ci-gen"],
     },
-   {
+    {
       "type": "lldb",
       "request": "launch",
       "name": "Rust ./run",
       "cargo": ["run", "-p", "enso-build-ci"],
+    },
+    {
+      "name": "Enso GUI",
+      "type": "editor-browser",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceRoot}/app/gui",
+      "preLaunchTask": "Enso GUI",
     },
   ]
 }

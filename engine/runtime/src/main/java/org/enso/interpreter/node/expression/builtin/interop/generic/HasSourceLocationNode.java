@@ -9,8 +9,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 @BuiltinMethod(
     type = "Polyglot",
     name = "has_source_location",
-    description = "Checks if an object has a source location.",
-    autoRegister = false)
+    description = "Checks if an object has a source location.")
 public class HasSourceLocationNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

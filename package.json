@@ -28,6 +28,8 @@
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --aggregate-output /^^^^dev:/",
+    "dev:inspect": "corepack pnpm run -r --filter ydoc-inspect compile && node --inspect app/ydoc-inspect/dist/main.mjs",
+    "check:tsconfigs": "bazel run //:write_all --verbose_failures && node internal/checkTsconfigs.mjs",
     "compile": "corepack pnpm run -r compile",
     "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
@@ -43,7 +45,7 @@
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "node git-clean.mjs",
     "bazel-clean": "bazel clean --expunge_async",
-    "postinstall": "bazel run //:write_all --verbose_failures"
+    "postinstall": "node internal/postinstall.mjs"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
   "pnpm": {
@@ -57,7 +59,21 @@
       "tslib": "$tslib",
       "@types/react": "^18.3.1",
       "ws": "^8.18.0",
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "node-forge": "^1.4.0",
+      "fast-xml-parser": "^5.7.2",
+      "flatted": "^3.4.2",
+      "minimatch": "^10.2.5",
+      "glob": "^13.0.6",
+      "vite": "^7.3.2",
+      "rollup": "^4.59.0",
+      "postcss": "^8.5.10",
+      "ajv@8": "^8.18.0",
+      "path-to-regexp": "^0.1.13",
+      "qs": "^6.14.2",
+      "uuid": "^14.0.0",
+      "picomatch@2": "^2.3.2",
+      "picomatch@4": "^4.0.4"
     },
     "packageExtensions": {
       "@aws-amplify/auth": {
@@ -164,7 +180,8 @@
       }
     },
     "patchedDependencies": {
-      "@aws-amplify/auth": "patches/@aws-amplify__auth.patch"
+      "@aws-amplify/auth": "patches/@aws-amplify__auth.patch",
+      "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch"
     }
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"

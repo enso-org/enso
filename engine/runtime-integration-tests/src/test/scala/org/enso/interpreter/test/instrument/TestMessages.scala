@@ -172,7 +172,7 @@ object TestMessages {
           Api.ExpressionUpdate(
             expressionId,
             Some(Api.ExpressionType(Vector(expressionType), Vector())),
-            Some(methodCall),
+            Option(methodCall),
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
             typeChanged,
@@ -252,7 +252,7 @@ object TestMessages {
     errorBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       fromCache,
       typeChanged,
       payload
@@ -351,7 +351,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       payload,
       builtin,
       true
@@ -376,7 +376,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       payload,
       builtin,
       true
@@ -393,7 +393,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodCall),
+      Option(methodCall),
       payload,
       builtin,
       typeChanged

@@ -14,7 +14,6 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException;
     type = "Thread",
     name = "with_interrupt_handler",
     description = "Runs a computation with a handler for thread interrupts.",
-    autoRegister = false,
     inlineable = true)
 public class WithInterruptHandlerNode extends Node {
   private @Child ThunkExecutorNode actExecutorNode = ThunkExecutorNode.build();

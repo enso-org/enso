@@ -19,8 +19,7 @@ import project.Nothing.Nothing
    ```
          IO.print_err "Oh no!"
    ```
-print_err : Any -> Nothing
-print_err message = @Builtin_Method "IO.print_err"
+print_err message -> Nothing = IO_Helpers.print_err message
 
 ## ---
    private: true
@@ -38,8 +37,7 @@ print_err message = @Builtin_Method "IO.print_err"
    ```
          IO.println "Oh yes!"
    ```
-println : Any -> Nothing
-println message = IO_Helpers.println message '\n'
+println message -> Nothing = IO_Helpers.println message '\n'
 
 ## ---
    private: true
@@ -59,8 +57,7 @@ println message = IO_Helpers.println message '\n'
          IO.print "Oh "
          IO.println "yes!"
    ```
-print : Any -> Nothing
-print message = IO_Helpers.println message ''
+print message -> Nothing = IO_Helpers.println message ''
 
 ## ---
    private: true
@@ -74,5 +71,4 @@ print message = IO_Helpers.println message ''
    ```
          IO.readln
    ```
-readln : Text
-readln = @Builtin_Method "IO.readln"
+readln -> Text = IO_Helpers.readln

@@ -343,10 +343,13 @@
 
   --drive-name-column-width: 15.3125rem;
   --drive-modified-column-width: 8.3125rem;
+  --drive-created-at-column-width: 8.3125rem;
   --drive-shared-with-column-width: 10rem;
   --drive-labels-column-width: 20rem;
   --drive-accessed-by-projects-column-width: 24rem;
   --drive-accessed-data-column-width: 24rem;
+  --drive-size-column-width: 4rem;
+  --drive-created-by-column-width: 8rem;
   --name-column-padding-x: 0.375rem;
   --name-column-padding-y: 0.125rem;
   --name-column-icon-margin: 0.25rem;

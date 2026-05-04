@@ -24,8 +24,7 @@ import org.enso.interpreter.runtime.error.PanicException;
         """
         Transforms the hash map into a vector of key value pairs. If possible, caches
         the result. Key value pairs are represented as nested 2 element vectors.
-        """,
-    autoRegister = false)
+        """)
 @GenerateUncached
 public abstract class HashMapToVectorNode extends Node {
 
@@ -37,7 +36,7 @@ public abstract class HashMapToVectorNode extends Node {
     return HashMapToVectorNodeGen.getUncached();
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object dict);
 
   @Specialization
   Object ensoMapToVector(EnsoHashMap hashMap, @Cached ConditionProfile vectorReprNotCachedProfile) {

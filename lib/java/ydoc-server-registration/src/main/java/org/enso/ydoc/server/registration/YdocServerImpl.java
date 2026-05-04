@@ -16,7 +16,9 @@ public final class YdocServerImpl extends YdocServerApi {
       String hostname,
       int port,
       YjsChannel.Server jsonChannelCallbacks,
-      YjsChannel.Server binaryChannelCallbacks)
+      YjsChannel.Server binaryChannelCallbacks,
+      YjsChannel.Server visControlChannelCallbacks,
+      YjsChannel.Server visDataChannelCallbacks)
       throws IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);
@@ -43,7 +45,14 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    impl.invokeMember("launch", hostname, port + "", jsonChannelCallbacks, binaryChannelCallbacks);
+    impl.invokeMember(
+        "launch",
+        hostname,
+        port + "",
+        jsonChannelCallbacks,
+        binaryChannelCallbacks,
+        visControlChannelCallbacks,
+        visDataChannelCallbacks);
     return loader;
   }
 }

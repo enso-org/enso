@@ -1,5 +1,6 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.System.File.File
 from project.Data.Boolean import False, True
 from project.Nothing import all

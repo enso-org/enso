@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
@@ -26,6 +27,18 @@ public abstract class EnsoRootNode extends RootNode {
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
   private final CachingSupplier<Source> source;
+
+  /**
+   * @see #profileStackDepth
+   * @see #TOO_DEEP_RECURSION
+   */
+  private int stackDepth;
+
+  /**
+   * How many repetition is considered too much. How many times a function invocation must appear on
+   * a stack to automatically switch to tail recursive invocations?
+   */
+  private static final int TOO_DEEP_RECURSION = 5;
 
   /**
    * Constructs the root node.
@@ -173,5 +186,18 @@ public abstract class EnsoRootNode extends RootNode {
   @Override
   public boolean isCloningAllowed() {
     return true;
+  }
+
+  /**
+   * Low level counter function. Each root node keeps its depth - e.g. number of occurences on
+   * stack. This is used to detect recursive functions.
+   *
+   * @param delta how much to change the depth of stack
+   * @return {@code true} if the stack is <b>too deep</b>
+   */
+  public final boolean profileStackDepth(int delta) {
+    assert CompilerDirectives.inInterpreter();
+    stackDepth += delta;
+    return stackDepth > TOO_DEEP_RECURSION;
   }
 }

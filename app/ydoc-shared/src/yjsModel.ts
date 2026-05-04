@@ -51,12 +51,23 @@ export function visIdentifierEquals(
 
 export type ProjectSetting = string
 
+/** The fixed key under which the single visualizations subdoc lives inside
+ *  `DistributedProject.visualizationsContainer`. There is never more than one,
+ *  but Yjs requires subdocs to be values of a shared type, so the container is
+ *  a Y.Map with one reserved key. */
+export const VISUALIZATIONS_SUBDOC_KEY = 'doc'
+
 /** TODO: Add docs */
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
   modules: Y.Map<Y.Doc>
   settings: Y.Map<ProjectSetting>
+  /** Container map holding the single visualizations subdoc. The subdoc itself
+   *  is not created here. The Language Server session creates it on init so
+   *  that there is a single authoritative guid. Clients observe it via
+   *  {@link observeVisualizationsDoc}. */
+  visualizationsContainer: Y.Map<Y.Doc>
 
   /** TODO: Add docs */
   constructor(doc: Y.Doc) {
@@ -64,6 +75,32 @@ export class DistributedProject {
     this.name = this.doc.getText('name')
     this.modules = this.doc.getMap('modules')
     this.settings = this.doc.getMap('settings')
+    this.visualizationsContainer = this.doc.getMap('visualizations')
+  }
+
+  /** Return the visualizations subdoc if one has been created yet, else null. */
+  get visualizationsDoc(): Y.Doc | null {
+    const d = this.visualizationsContainer.get(VISUALIZATIONS_SUBDOC_KEY)
+    return d instanceof Y.Doc ? d : null
+  }
+
+  /** Install a caller-provided `Y.Doc` as the vis subdoc. Used by the
+   *  ydoc-server, which must own the `Y.Doc`'s guid in its WebSocket routing
+   *  table so subdoc providers from clients can reach it. If a subdoc is
+   *  already present the caller's doc replaces it. Callers are expected to
+   *  run this at session setup, not mid-session. */
+  adoptVisualizationsDoc(doc: Y.Doc): void {
+    this.visualizationsContainer.set(VISUALIZATIONS_SUBDOC_KEY, doc)
+  }
+
+  /** Observe creation/replacement of the visualizations subdoc. The callback
+   *  fires immediately with the current state, and again whenever the
+   *  container mutates. Returns an unsubscribe function. */
+  observeVisualizationsDoc(cb: (doc: Y.Doc | null) => void): () => void {
+    cb(this.visualizationsDoc)
+    const listener = () => cb(this.visualizationsDoc)
+    this.visualizationsContainer.observe(listener)
+    return () => this.visualizationsContainer.unobserve(listener)
   }
 
   /** TODO: Add docs */

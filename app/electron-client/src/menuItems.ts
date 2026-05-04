@@ -24,12 +24,14 @@ export function inheritMenuItem(
   newLabel?: string,
   newSubmenu?: electron.MenuItem[],
 ) {
-  // `click` is a property that is intentionally removed from this
-  // destructured object, in order to satisfy TypeScript.
+  // `click` is intentionally stripped to satisfy TypeScript. `accelerator` is pulled out
+  // because `MenuItem.accelerator` is `string | null` at runtime but `MenuItemConstructorOptions.accelerator`
+  // is `string` only — forward it via conditional spread when set.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { click, ...passthrough } = item
+  const { click, accelerator, ...passthrough } = item
   return new electron.MenuItem({
     ...passthrough,
+    ...(accelerator != null ? { accelerator } : {}),
     ...(newLabel != null ? { label: newLabel } : {}),
     ...(newSubmenu != null ? { submenu: electron.Menu.buildFromTemplate(newSubmenu) } : {}),
   })

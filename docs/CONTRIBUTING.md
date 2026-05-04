@@ -150,7 +150,7 @@ compiler that they relate to.
 The following operating systems are supported for developing Enso:
 
 - Windows 10
-- macOS 10.14 and above
+- macOS 12 and above
 - Linux 4.4 and above
 
 Currently, we support `x86_64` (all mentioned OS) and `arm64` (Mac only)

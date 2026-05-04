@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.output.TeeOutputStream
 import org.enso.common.{LanguageInfo, MethodNames, RuntimeOptions}
-import org.enso.compiler.core.ConstantsNames
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
@@ -14,7 +13,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.util.UUID
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -54,13 +53,6 @@ class RuntimeRecomputeTest
         )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(new TeeOutputStream(logOut, System.err))
         .out(new TeeOutputStream(out, System.err))
@@ -423,7 +415,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -438,7 +430,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -473,7 +465,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         ),
         typeChanged = false
@@ -489,7 +481,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         ),
         typeChanged = false
@@ -526,7 +518,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         ),
         typeChanged = false
@@ -542,7 +534,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         ),
         typeChanged = false
@@ -618,7 +610,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -633,7 +625,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -672,7 +664,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -711,7 +703,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -1033,7 +1025,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -1142,16 +1134,7 @@ class RuntimeRecomputeTest
       TestMessages.update(
         contextId,
         idOut,
-        "Standard.Base.Errors.Common.Forbidden_Operation",
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "catch"
-            )
-          )
-        )
+        "Standard.Base.Errors.Common.Forbidden_Operation"
       ),
       TestMessages.update(
         contextId,
@@ -1164,7 +1147,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -1196,16 +1179,7 @@ class RuntimeRecomputeTest
       TestMessages.update(
         contextId,
         idOut,
-        ConstantsGen.INTEGER,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Panic",
-              "Standard.Base.Panic.Panic",
-              "catch"
-            )
-          )
-        )
+        ConstantsGen.INTEGER
       ),
       context.executionComplete(contextId)
     )
@@ -1281,7 +1255,7 @@ class RuntimeRecomputeTest
             "Standard.Base.Runtime.Context",
             "is_enabled"
           ),
-          Vector(1)
+          Vector()
         )
       ),
       TestMessages.update(
@@ -1294,33 +1268,37 @@ class RuntimeRecomputeTest
             "Standard.Base.Runtime.Context",
             "is_enabled"
           ),
-          Vector(1)
+          Vector()
         )
       ),
       TestMessages.update(
         contextId,
         idOutTxt,
         ConstantsGen.TEXT,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Any",
-            "Standard.Base.Any.Any",
-            ConstantsNames.TO_TEXT
-          ),
-          Vector()
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
         )
       ),
       TestMessages.update(
         contextId,
         idInTxt,
         ConstantsGen.TEXT,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Standard.Base.Any",
-            "Standard.Base.Any.Any",
-            ConstantsNames.TO_TEXT
-          ),
-          Vector()
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Text.Extensions",
+              "Standard.Base.Any.Any",
+              "to_text"
+            ),
+            Vector()
+          )
         )
       ),
       context.executionComplete(contextId)
@@ -1359,7 +1337,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -1376,7 +1354,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -1389,9 +1367,9 @@ class RuntimeRecomputeTest
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
-              "Standard.Base.Any",
+              "Standard.Base.Data.Text.Extensions",
               "Standard.Base.Any.Any",
-              ConstantsNames.TO_TEXT
+              "to_text"
             ),
             Vector()
           )
@@ -1406,9 +1384,9 @@ class RuntimeRecomputeTest
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
-              "Standard.Base.Any",
+              "Standard.Base.Data.Text.Extensions",
               "Standard.Base.Any.Any",
-              ConstantsNames.TO_TEXT
+              "to_text"
             ),
             Vector()
           )
@@ -1449,7 +1427,7 @@ class RuntimeRecomputeTest
               "Standard.Base.Runtime.Context",
               "is_enabled"
             ),
-            Vector(1)
+            Vector()
           )
         )
       ),
@@ -1462,9 +1440,9 @@ class RuntimeRecomputeTest
         methodCall = Some(
           Api.MethodCall(
             Api.MethodPointer(
-              "Standard.Base.Any",
+              "Standard.Base.Data.Text.Extensions",
               "Standard.Base.Any.Any",
-              ConstantsNames.TO_TEXT
+              "to_text"
             ),
             Vector()
           )

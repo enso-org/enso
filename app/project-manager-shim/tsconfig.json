@@ -28,6 +28,7 @@
     "./src/projectService/index.ts",
     "./src/projectService/nameValidation.ts",
     "./src/projectService/projectRepository.ts",
+    "./src/projectService/resolveClashingProjectIds.ts",
     "./src/projectService/types.ts",
     "./src/runProjects.ts",
     "./src/upload.ts"

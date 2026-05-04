@@ -5,7 +5,8 @@ import * as path from 'node:path'
 import trash from 'trash'
 import * as yaml from 'yaml'
 import * as nameValidation from './nameValidation.js'
-import { Path, type UUID } from './types.js'
+import { resolveClashingProjectIds } from './resolveClashingProjectIds.js'
+import { Path, UUID } from './types.js'
 
 export interface Project {
   readonly id: UUID
@@ -143,7 +144,11 @@ export class ProjectFileRepository implements ProjectRepository {
       )
 
       const validProjects = projects.filter((p) => p !== null)
-      return this.resolveClashingIds(validProjects)
+      return resolveClashingProjectIds(validProjects, async (project, newId) => {
+        const updatedProject = { ...project, id: UUID(newId) }
+        await this.update(updatedProject)
+        return updatedProject
+      })
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
         return []
@@ -297,43 +302,5 @@ export class ProjectFileRepository implements ProjectRepository {
         return Path(candidatePath)
       }
     }
-  }
-
-  private async resolveClashingIds(projects: Project[]): Promise<Project[]> {
-    const idGroups = new Map<string, Project[]>()
-
-    for (const project of projects) {
-      const group = idGroups.get(project.id) ?? []
-      group.push(project)
-      idGroups.set(project.id, group)
-    }
-
-    const result: Project[] = []
-
-    for (const group of idGroups.values()) {
-      if (group.length === 1) {
-        result.push(group[0]!)
-      } else {
-        // Sort by directory creation time, keep oldest
-        group.sort((a, b) => {
-          const timeA = a.directoryCreationTime ? new Date(a.directoryCreationTime).getTime() : 0
-          const timeB = b.directoryCreationTime ? new Date(b.directoryCreationTime).getTime() : 0
-          return timeA - timeB
-        })
-
-        result.push(group[0]!)
-
-        // Assign new IDs to clashing projects
-        for (let i = 1; i < group.length; i++) {
-          const project = group[i]!
-          const newId = crypto.randomUUID() as UUID
-          const updatedProject = { ...project, id: newId }
-          await this.update(updatedProject)
-          result.push(updatedProject)
-        }
-      }
-    }
-
-    return result
   }
 }

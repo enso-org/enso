@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Prim_Text_Helper
 
 from Standard.Test import Bench
 
@@ -7,7 +6,8 @@ polyglot java import java.lang.StringBuilder
 
 build_long n =
     res = 1.up_to n . fold "" acc-> n-> acc + n.to_text
-    Prim_Text_Helper.optimize res
+    sb = StringBuilder.new
+    sb.append res # forces conversion toString
     res
 
 

@@ -43,6 +43,15 @@ const tabsViewInfos = computed(() =>
           },
         ]
       }
+      case 'projectLog': {
+        return [
+          {
+            ...tab,
+            icon: 'log',
+            label: `Session Log for ${tab.title}`,
+          },
+        ]
+      }
       case 'settings': {
         return [
           {

@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Prim_Text_Helper",
     name = "compile_regex",
-    description = "Compiles a regexp.",
-    autoRegister = false)
+    description = "Compiles a regexp.")
 public abstract class RegexCompileNode extends Node {
   static RegexCompileNode build() {
     return RegexCompileNodeGen.create();

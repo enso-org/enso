@@ -69,6 +69,7 @@ export default class AssetQuery {
     readonly extensions: readonly string[],
     readonly descriptions: readonly string[],
     readonly modifieds: readonly string[],
+    readonly creations: readonly string[],
     readonly owners: readonly string[],
   ) {
     this.query = query ?? ''
@@ -119,6 +120,7 @@ export default class AssetQuery {
     const extensions: string[] = []
     const descriptions: string[] = []
     const modifieds: string[] = []
+    const creations: string[] = []
     const owners: string[] = []
     const tagNameToSet: Readonly<Record<string, string[]>> = {
       // This is a dictionary, not an object.
@@ -132,6 +134,7 @@ export default class AssetQuery {
       description: descriptions,
       desc: descriptions,
       modified: modifieds,
+      creations: creations,
       owner: owners,
       /* eslint-enable @typescript-eslint/naming-convention */
     }
@@ -151,6 +154,7 @@ export default class AssetQuery {
       extensions,
       descriptions,
       modifieds,
+      creations,
       owners,
     )
   }
@@ -205,6 +209,7 @@ export default class AssetQuery {
       this.extensions,
       this.descriptions,
       this.modifieds,
+      this.creations,
       this.owners,
     )
   }
@@ -226,6 +231,7 @@ export default class AssetQuery {
         updates.extensions ?? this.extensions,
         updates.descriptions ?? this.descriptions,
         updates.modifieds ?? this.modifieds,
+        updates.creations ?? this.creations,
         updates.owners ?? this.owners,
       )
     }

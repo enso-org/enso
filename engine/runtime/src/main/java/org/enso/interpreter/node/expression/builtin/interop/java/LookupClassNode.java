@@ -9,11 +9,7 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 
-@BuiltinMethod(
-    type = "Java",
-    name = "lookup_class",
-    description = "Looks up a Java symbol.",
-    autoRegister = false)
+@BuiltinMethod(type = "Java", name = "lookup_class", description = "Looks up a Java symbol.")
 public abstract class LookupClassNode extends Node {
   static LookupClassNode build() {
     return LookupClassNodeGen.create();

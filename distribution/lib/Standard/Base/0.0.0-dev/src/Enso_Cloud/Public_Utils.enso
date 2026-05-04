@@ -6,6 +6,7 @@ import project.Enso_Cloud.Internal.Utils
 import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, True
+from project.Data.Text.Extensions import all
 from project.Error import all
 
 ## ---

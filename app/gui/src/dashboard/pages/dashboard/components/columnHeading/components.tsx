@@ -85,6 +85,71 @@ export function LabelsColumnHeading(props: AssetColumnHeadingProps) {
   )
 }
 
+/** A heading for the "Created at" column. */
+export function CreatedAtColumnHeading(props: AssetColumnHeadingProps) {
+  const { hideColumn, sortInfo, setSortInfo } = props
+
+  const { getText } = useText()
+
+  const isSortActive = sortInfo?.field === 'created_at'
+  const isDescending = sortInfo?.direction === 'descending'
+
+  const hideThisColumn = useEventCallback(() => {
+    hideColumn(Column.createdAt)
+  })
+
+  const cycleSortDirection = useEventCallback(() => {
+    if (!sortInfo) {
+      setSortInfo({ field: 'created_at', direction: 'ascending' })
+      return
+    }
+    const nextDirection = isSortActive ? nextSortDirection(sortInfo.direction) : 'ascending'
+    if (nextDirection == null) {
+      setSortInfo(null)
+    } else {
+      setSortInfo({ field: 'created_at', direction: nextDirection })
+    }
+  })
+
+  return (
+    <div
+      aria-label={
+        !isSortActive ? getText('sortByCreationDate')
+        : isDescending ?
+          getText('stopSortingByCreationDate')
+        : getText('sortByCreationDateDescending')
+      }
+      className="group flex h-table-row w-full cursor-pointer items-center gap-2"
+    >
+      <Button
+        variant="icon"
+        icon="time"
+        aria-label={getText('hideColumn')}
+        tooltip={false}
+        onPress={hideThisColumn}
+      />
+      <Button
+        fullWidth
+        size="custom"
+        variant="custom"
+        addonEnd={
+          <Icon
+            icon={iconIdFor(sortInfo?.direction, isSortActive)}
+            className={twJoin(
+              'ml-1 transition-all duration-arrow',
+              isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+            )}
+          />
+        }
+        className="flex justify-start"
+        onPress={cycleSortDirection}
+      >
+        <Text weight="bold">{getText('createdAtColumnName')}</Text>
+      </Button>
+    </div>
+  )
+}
+
 /** A heading for the "Modified" column. */
 export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn, sortInfo, setSortInfo } = props
@@ -199,6 +264,35 @@ export function NameColumnHeading(props: AssetColumnHeadingProps) {
   )
 }
 
+/** A heading for the "Size" column. */
+export function SizeColumnHeading(props: AssetColumnHeadingProps) {
+  const { hideColumn } = props
+
+  const { getText } = useText()
+
+  const hideThisColumn = useEventCallback(() => {
+    hideColumn(Column.size)
+  })
+
+  return (
+    <div
+      className="isolate flex h-table-row w-full items-center gap-2"
+      data-testid="size-column-heading"
+    >
+      <Button
+        variant="icon"
+        icon="metadata"
+        aria-label={getText('sizeColumnName')}
+        tooltip={false}
+        onPress={hideThisColumn}
+      />
+      <Text weight="bold" truncate="1" color="custom">
+        {getText('sizeColumnName')}
+      </Text>
+    </div>
+  )
+}
+
 /** A heading for the "Path" column. */
 export function PathColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn } = props
@@ -251,6 +345,35 @@ export function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
       <div className="flex items-center gap-1">
         <Text weight="bold" truncate="1" color="custom">
           {getText('sharedWithColumnName')}
+        </Text>
+      </div>
+    </div>
+  )
+}
+
+/** A heading for the "Created by" column. */
+export function CreatedByColumnHeading(props: AssetColumnHeadingProps) {
+  const { hideColumn } = props
+
+  const { getText } = useText()
+
+  const hideThisColumn = useEventCallback(() => {
+    hideColumn(Column.createdBy)
+  })
+
+  return (
+    <div className="isolate flex h-table-row w-full items-center gap-2">
+      <Button
+        variant="icon"
+        icon="people"
+        aria-label={getText('createdByColumnName')}
+        tooltip={false}
+        onPress={hideThisColumn}
+      />
+
+      <div className="flex items-center gap-1">
+        <Text weight="bold" truncate="1" color="custom">
+          {getText('createdByColumnName')}
         </Text>
       </div>
     </div>
