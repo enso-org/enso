@@ -20,9 +20,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { ipcMain, type WebContents } from 'electron'
 import type { AiToolCallReply, AiToolCallRequest } from 'enso-common/src/ai'
-import { createServer, type Server as HttpServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import * as fs from 'node:fs'
+import { createServer, type Server as HttpServer } from 'node:http'
 import * as path from 'node:path'
 import { z } from 'zod'
 import { Channel } from './ipc.js'
@@ -147,14 +147,22 @@ export class AiMcpServer {
           'Every in-scope binding the prompt listed is referenceable by name, and one call may ' +
           'stitch several of them together. Use sparingly to learn things you cannot infer from ' +
           'types alone (column names, value previews, join shapes). Each call costs a real LS ' +
-          'round-trip (~hundreds of ms to a few seconds). Returns the expression value as JSON, ' +
-          'or an error string if the binding/scope is unavailable or evaluation fails.',
+          'round-trip (~hundreds of ms to a few seconds). The expression must evaluate to Text — ' +
+          'pick the encoding yourself with `.to_text`, `.to_display_text`, or `.to_json` (e.g. ' +
+          '`<binding>.column_names.to_json`). For expressions that may produce a DataflowError ' +
+          'wrap with `.catch_primitive (e -> e.to_display_text)` so the result is still Text. ' +
+          'Returns the text the expression produced, or an error string if the binding/scope is ' +
+          'unavailable or evaluation fails.',
         inputSchema: { expression: z.string() },
       },
       async ({ expression }) => {
         const result = await this.dispatchToRenderer({ tool: 'evaluateExpression', expression })
         if (result.ok) {
-          return { content: [{ type: 'text' as const, text: JSON.stringify(result.value) }] }
+          // `result.value` is already raw text the agent's expression produced; passing it
+          // through unchanged means JSON-style outputs land as JSON and `.to_text` previews
+          // land as plain text. JSON-stringifying here would double-encode and surround simple
+          // text values with quotes the agent would have to peel off.
+          return { content: [{ type: 'text' as const, text: result.value }] }
         }
         return {
           content: [{ type: 'text' as const, text: `Error: ${result.error}` }],

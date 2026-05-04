@@ -93,33 +93,47 @@ priming timeout (60 s) and the per-stdin write retry/backoff are unchanged.
 ### AI tool bridge (MCP `evaluateExpression`)
 
 `src/aiMcpServer.ts` owns an in-process MCP server bound to a random localhost
-port at app startup. Its single tool, `evaluateExpression(expression)`, lets
-the model run a plain Enso expression in the scope where the AI's new node
-would land — exactly the same scope the generated `body` will see, so every
-in-scope binding listed in the prompt is referenceable by name (and one call
-can stitch several of them together, e.g.
-`cards.join leader_order on=["Set"] . column_names`). The server writes a
-temporary JSON config file (`<tmpdir>/enso-claude-mcp-<pid>-<uuid>.json`) and
+port at app startup. Its single tool, `evaluateExpression(expression)`, lets the
+model run a plain Enso expression in the scope where the AI's new node would
+land — exactly the same scope the generated `body` will see, so every in-scope
+binding listed in the prompt is referenceable by name (and one call can stitch
+several of them together, e.g.
+`(cards.join leader_order on=["Set"]).column_names.to_json`). The server writes
+a temporary JSON config file (`<tmpdir>/enso-claude-mcp-<pid>-<uuid>.json`) and
 that path is passed to the agent as `--mcp-config <path> --strict-mcp-config`;
-`--strict-mcp-config` makes the CLI ignore any project- or user-level MCP
-config so the session is hermetic. The temp file is deleted on shutdown.
+`--strict-mcp-config` makes the CLI ignore any project- or user-level MCP config
+so the session is hermetic. The temp file is deleted on shutdown.
+
+**Text-only return contract:** the LS evaluates the expression `inFrame` and the
+engine's `VisualizationResult.visualizationResultToBytes` only knows how to
+encode `Text`/`String` values. Wrapping the agent's expression on our side (e.g.
+`Standard.Visualization.Preprocessor.default_preprocessor`) was rejected because
+it forces a stringification cost on every call and the Visualization module
+isn't reliably resolvable in inline scope. Instead the system prompt tells the
+agent to choose its own encoding (`.to_text`, `.to_display_text`, `.to_json`, …)
+and `aiToolHandler.ts` translates the engine's
+`Cannot encode class X to byte array.` into an actionable hint ("Expression must
+evaluate to Text … wrap with `.to_text` … use `.catch_primitive` for failing
+expressions") so a slip-up teaches rather than mystifies. Future structured-data
+needs (small images, sample bytes) get a new tool variant; the text path stays
+strictly text.
 
 **Why HTTP (not stdio):** Claude Code can spawn its own MCP servers via stdio,
 but the server we need has to share state with the Electron main process —
 specifically, it must reach into the renderer's `graphDb`/`executionContext` to
 evaluate expressions. Hosting in-process and pointing the CLI at it via
 `{"type":"http","url":"http://127.0.0.1:<port>/mcp"}` sidesteps cross-process
-state-sharing entirely. The transport uses
-`StreamableHTTPServerTransport` from `@modelcontextprotocol/sdk` in stateless
-mode (each request gets its own short-lived transport — the single in-process
-consumer doesn't keep an SSE channel open between turns).
+state-sharing entirely. The transport uses `StreamableHTTPServerTransport` from
+`@modelcontextprotocol/sdk` in stateless mode (each request gets its own
+short-lived transport — the single in-process consumer doesn't keep an SSE
+channel open between turns).
 
 **Per-turn sender slot:** the agent's singleton serves any window in the app,
-but a tool call needs to dispatch back to the *specific* renderer that
+but a tool call needs to dispatch back to the _specific_ renderer that
 originated the in-flight turn. `runRequest(request, sender)` pins the
 `WebContents` to the per-turn `pending` slot (not to the session — that way
-crashes and `shutdown()` reject in-flight bridge promises by construction).
-The MCP server reads it via `session.activeSender`, which returns `null` between
+crashes and `shutdown()` reject in-flight bridge promises by construction). The
+MCP server reads it via `session.activeSender`, which returns `null` between
 turns and also when the in-flight sender has since been destroyed. Tool calls
 that find `null` reply with a clean `Err("no active AI turn …")` so the model
 recovers cleanly instead of hanging.
@@ -134,26 +148,32 @@ per-turn map.
 
 **Timeouts:** per-tool-call 30 s on the main-process side (the MCP server
 rejects with a clean error after that), nested inside the 240 s outer
-`REQUEST_TIMEOUT_MS`. So the model's worst case is "spent the whole turn on
-tool calls, none replied" — which still leaves room for it to wrap up. The
-`--allowedTools` list is built dynamically: `Read,Glob,Grep` are added when
-the stdlib path is available, `mcp__enso__evaluateExpression` is added when
-the MCP server started successfully — the system prompt's "Tools you have
-available" list mirrors that, so we don't lie to the model about capabilities
-that aren't wired.
+`REQUEST_TIMEOUT_MS`. So the model's worst case is "spent the whole turn on tool
+calls, none replied" — which still leaves room for it to wrap up. The
+`--allowedTools` list is built dynamically: `Read,Glob,Grep` are added when the
+stdlib path is available, `mcp__enso__evaluateExpression` is added when the MCP
+server started successfully — the system prompt's "Tools you have available"
+list mirrors that, so we don't lie to the model about capabilities that aren't
+wired.
 
 **Renderer side:**
-`app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts`
-exposes a `useAiToolHandler()` Vue composable mounted by `ComponentBrowser.vue`.
-It subscribes to `window.api.ai.onToolCall`, resolves the LS scope-anchor
+`app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts` exposes
+a `useAiToolHandler()` Vue composable mounted by `ComponentBrowser.vue`. It
+subscribes to `window.api.ai.onToolCall`, resolves the LS scope-anchor
 (currently the last node in the current method, since
-`nodeOutputPorts.allForward()` matches textual order — every binding earlier
-in the method is in scope), calls `queuedExecuteExpression(anchor, expression)`
-from the project store (the **queued** variant, not the bare one — it
-cooperates with the `MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`),
-parses the visualization update as JSON, and replies via `replyToolCall`.
-Returns a clean `Err` for "no active project" and "no in-scope binding to
-anchor scope".
+`nodeOutputPorts.allForward()` matches textual order — every binding earlier in
+the method is in scope), calls `queuedExecuteExpressionRaw(anchor, expression)`
+from the project store (the **raw** variant — JSON parsing is intentionally
+bypassed so the agent controls the encoding; the queued variant cooperates with
+the `MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`), and forwards the
+UTF-8-decoded text through `replyToolCall`. Failure paths run through
+`translateEngineError` so the engine's raw
+`Cannot encode class X to byte array.` becomes a self-teaching hint. Returns a
+clean `Err` for "no active project" and "no in-scope binding to anchor scope".
+The slot machinery in `project.ts:awaitExecuteSlot` resolves with `Err(message)`
+on `failed`/timeout (rather than rejecting) so the `Result<string>` contract is
+consistent across success and failure paths and `aiToolHandler.ts`'s
+`if (!result.ok)` branch catches every legitimate evaluation failure.
 
 The renderer reaches the IPC via `window.api.ai.generateComponent(...)` (see
 `enso-gui/src/electronApi.ts`) over channel `Channel.generateAiComponent`. The

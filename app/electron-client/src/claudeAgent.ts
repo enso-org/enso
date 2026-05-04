@@ -90,10 +90,11 @@ function buildSystemPrompt(config: ClaudeSessionConfig): string {
   }
   if (config.mcpConfigPath != null) {
     toolLines.push(
-      "- `evaluateExpression(expression)` — evaluate a plain Enso expression in the same scope your generated `body` would run in. Every in-scope binding listed below is referenceable by name. Use it when you need to inspect actual values you cannot infer from types: `<binding>.first.to_text.take 200` to preview a value (especially when the prompt asks you to parse, split, or otherwise depend on a column's wire format that has not been shown to you), `<binding>.column_names` to confirm a schema, `<binding>.join other on=[..] . column_names` to verify a join shape. Each call is a real LS round-trip — pick what you need, don't fan out.",
+      '- `evaluateExpression(expression)` — evaluate a plain Enso expression in the same scope your generated `body` would run in. Every in-scope binding listed below is referenceable by name. **The expression must evaluate to Text** (the transport sends raw bytes back as text); pick the encoding yourself with `.to_text`, `.to_display_text`, or `.to_json` depending on what is most useful. For non-Text producers wrap the call: `<binding>.column_names.to_json` (JSON array of column names), `(<binding>.first.to_text).take 200` (preview a value), `(<binding>.row_count).to_text` (a single number), `(cards.join leader_order on=["Set"]).column_names.to_json` (JSON array, schema check). Expressions that may produce a DataflowError need an explicit catch: `((<expr>).catch_primitive (e -> e.to_display_text))` — otherwise the call comes back with the dataflow error wrapped in an actionable hint, not the value you wanted. Each call is a real LS round-trip — pick what you need, don\'t fan out.',
     )
   }
-  const toolsSection = toolLines.length > 0 ? `\n\nTools you have available:\n${toolLines.join('\n')}` : ''
+  const toolsSection =
+    toolLines.length > 0 ? `\n\nTools you have available:\n${toolLines.join('\n')}` : ''
   return `\
 You generate a top-level User Defined Component in Enso — a function definition plus the call that places it inside an existing method on the user's graph.
 

@@ -118,10 +118,13 @@ export interface AiToolCallRequest {
 export interface AiToolCallReply {
   readonly requestId: string
   /**
-   * Discriminated union: `value` carries arbitrary JSON parsed from the visualization update
-   * (the tool's output is whatever the expression evaluated to, encoded by the LS as JSON);
-   * `error` carries a human-readable explanation suitable for the model to act on
-   * ("no active project", "no in-scope binding to anchor scope", "<LS evaluation message>", …).
+   * Discriminated union. `value` is the raw text the LS produced — the agent picks the format
+   * (plain text, JSON, base64, …) by writing the appropriate Enso expression (`.to_text`,
+   * `.to_json`, etc.); we forward the bytes UTF-8-decoded without parsing. `error` carries a
+   * human-readable explanation suitable for the model to act on ("no active project", "no
+   * in-scope binding to anchor scope", "<LS evaluation message>", …).
    */
-  readonly result: { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly error: string }
+  readonly result:
+    | { readonly ok: true; readonly value: string }
+    | { readonly ok: false; readonly error: string }
 }

@@ -8,9 +8,8 @@ const ipcEmitter = new EventEmitter()
 const ipcOn = vi.fn((channel: string, listener: (...args: unknown[]) => void) =>
   ipcEmitter.on(channel, listener),
 )
-const ipcRemoveListener = vi.fn(
-  (channel: string, listener: (...args: unknown[]) => void) =>
-    ipcEmitter.off(channel, listener),
+const ipcRemoveListener = vi.fn((channel: string, listener: (...args: unknown[]) => void) =>
+  ipcEmitter.off(channel, listener),
 )
 
 vi.mock('electron', () => ({
@@ -37,9 +36,11 @@ function dispatch(
   payload: { tool: 'evaluateExpression'; expression: string },
 ): Promise<AiToolCallReply['result']> {
   // Cast through unknown — tests only.
-  const dispatchToRenderer = (server as unknown as {
-    dispatchToRenderer(payload: unknown): Promise<AiToolCallReply['result']>
-  }).dispatchToRenderer.bind(server)
+  const dispatchToRenderer = (
+    server as unknown as {
+      dispatchToRenderer(payload: unknown): Promise<AiToolCallReply['result']>
+    }
+  ).dispatchToRenderer.bind(server)
   return dispatchToRenderer(payload)
 }
 
@@ -73,8 +74,8 @@ describe('AiMcpServer', () => {
     const request = lastDispatchedRequest(sender)
     expect(request.tool).toBe('evaluateExpression')
     expect(request.expression).toBe('x.column_names')
-    answer(request, { ok: true, value: ['a', 'b'] })
-    expect(await promise).toEqual({ ok: true, value: ['a', 'b'] })
+    answer(request, { ok: true, value: '["a","b"]' })
+    expect(await promise).toEqual({ ok: true, value: '["a","b"]' })
   })
 
   test('returns "no active AI turn" when the sender resolver yields null', async () => {
@@ -137,6 +138,6 @@ describe('AiMcpServer', () => {
     await server.shutdown()
     await promise
     // Late reply must not throw.
-    expect(() => answer(request, { ok: true, value: 42 })).not.toThrow()
+    expect(() => answer(request, { ok: true, value: '42' })).not.toThrow()
   })
 })
