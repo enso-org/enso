@@ -25,7 +25,9 @@ export function useAiToolHandler(
   const electronApi = typeof window === 'undefined' ? undefined : window.api
   if (electronApi == null) return
   const dispose = electronApi.ai.onToolCall((request) => {
+    console.debug('Tool called', request.expression)
     void handleToolCall(request, graphStore, currentProject).then((reply) => {
+      console.debug('Tool response', reply.result)
       electronApi.ai.replyToolCall(reply)
     })
   })

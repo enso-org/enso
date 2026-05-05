@@ -67,6 +67,7 @@ const exampleRequest: AiComponentRequest = {
     currentMethodName: 'main',
     currentMethodCode: 'main =\n    source = Table.new []\n    source',
     inScopeBindings: [{ identifier: 'helper', typeName: 'Standard.Base.Number' }],
+    moduleImports: ['from Standard.Base import all', 'from Standard.Table import all'],
   },
 }
 

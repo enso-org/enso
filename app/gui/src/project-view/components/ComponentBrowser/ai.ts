@@ -1,6 +1,7 @@
 import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import type { GraphStore } from '$/providers/openedProjects/graph'
 import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { Ast } from '@/util/ast'
 import type {
   AiComponentRequest,
   AiComponentResponse,
@@ -40,6 +41,14 @@ export function useAI(
     const currentMethodName = graphStore.currentMethod.pointer.value.name
     const currentMethodCode = currentMethodAst.code()
 
+    const moduleImports: string[] = []
+    const moduleRoot = currentMethodAst.module.root()
+    if (moduleRoot instanceof Ast.BodyBlock) {
+      for (const statement of moduleRoot.statements()) {
+        if (statement instanceof Ast.Import) moduleImports.push(statement.code())
+      }
+    }
+
     const inScopeBindings: AiInScopeBinding[] = []
     for (const [, ports] of graphDb.nodeOutputPorts.allForward()) {
       for (const portId of ports) {
@@ -58,6 +67,7 @@ export function useAI(
       currentMethodName,
       currentMethodCode,
       inScopeBindings,
+      moduleImports,
     })
   }
 

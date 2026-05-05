@@ -197,9 +197,15 @@ surfaces the same error to the renderer as a toast.
 The agent generates a full User Defined Component, returning four fields:
 `functionName`, `argumentNames`, `body`, and `callArguments`. The renderer
 collects all in-scope bindings in the current method (with their inferred
-types), the method's source code, and — optionally — a source binding the user
-dropped into the prompt, then passes that context to the agent so it can pick
-which bindings to thread into the function. The source binding is optional: when
+types), the method's source code, the verbatim text of every `import` statement
+at the top of the module, and — optionally — a source binding the user dropped
+into the prompt, then passes that context to the agent so it can pick which
+bindings to thread into the function. The module-imports list tells the agent
+which names resolve unqualified (so it doesn't reach for an unimported atom by
+its short name and produce a `name X could not be found` compile error); the
+agent cannot mutate imports itself, so when it needs an atom whose type isn't
+imported, the system prompt directs it to use the `..` auto-resolve constructor
+form rather than fully qualified names. The source binding is optional: when
 absent, the agent generates a component from scratch using only the other
 in-scope bindings (or none at all). `argumentNames` are pure function-signature
 parameter names (referenced by `body`); `callArguments` are the Enso expressions

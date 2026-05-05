@@ -31,6 +31,13 @@ export interface AiComponentContext {
    * the source binding (when one was supplied via `sourceIdentifier`).
    */
   readonly inScopeBindings: readonly AiInScopeBinding[]
+  /**
+   * Verbatim text of every `import` / `from … import …` statement at the top of the current
+   * module, in source order. Tells the agent which names are already resolvable without
+   * qualification (e.g. anything brought in by `from Standard.Table import all`) and which it
+   * must qualify or — better — write with the `..` auto-resolve form.
+   */
+  readonly moduleImports: readonly string[]
 }
 
 /** Payload sent from the renderer to the Electron main process. */

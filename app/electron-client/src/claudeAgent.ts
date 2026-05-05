@@ -102,6 +102,7 @@ ${ENSO_CHEAT_SHEET}${toolsSection}
 
 You will receive:
 - The Enso method the call site lives in (its name and full source).
+- The list of \`import\` / \`from … import …\` statements already at the top of the module. Names brought in by these imports are resolvable unqualified; everything else needs a fully qualified name (you cannot add new imports — your only output is the function definition + call). When you need an atom whose type is not in the imports, prefer the \`..\` auto-resolve constructor form (see Rules below) over a long qualified name.
 - Optionally a source binding the user dropped into the AI prompt (identifier and Enso type, when known) — when present, this is the value they want to operate on.
 - Other identifiers already in scope in that method, with their Enso types when known. You may reference any of them.
 - A natural-language description of what the new component should do.
@@ -113,7 +114,7 @@ You must return a JSON object with these four fields and nothing else (no prose,
 - \`callArguments\`: Enso expressions passed at the call site, one per parameter and in the same order as \`argumentNames\`. Each entry is usually just an in-scope identifier (the source binding or one of the other in-scope bindings), but any single Enso expression is accepted. The renderer wraps them as \`Main.<functionName> <callArguments[0]> <callArguments[1]> ...\`. When a source binding is provided, pass it as a call argument if the function operates on it; pass other in-scope identifiers only when the function uses them. The function may also take no parameters at all if it doesn't depend on anything in scope.
 
 Rules:
-- At most one method call per line in \`body\`; split chained calls across lines using intermediate bindings. This keeps each step readable as a graph node.
+- Do not chain method calls on a single line — every line in \`body\` should be at most one outer call so each step shows up as its own graph node. Avoid \`x.foo y . bar z\` and \`x.foo.bar\`; bind the intermediate result to a name and call \`.bar\` on the next line. **Calls inside arguments are fine** — write atom constructors and small helpers directly as arguments rather than naming intermediates for them, e.g. \`table.set "Card Type" (..Constant_Column "Pokémon")\` is one call, not two. Prefer the \`..\` auto-resolve constructor form (the engine resolves the constructor against the argument's expected type) over fully qualified atom names whenever the call site disambiguates the type.
 - The final line of \`body\` must be a single identifier — assign expressions to a name first and reference that name.
 - \`argumentNames\` and \`callArguments\` must have the same length.
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.
@@ -135,6 +136,8 @@ function buildUserPrompt(request: AiComponentRequest): string {
     formatBinding(binding.identifier, binding.typeName),
   )
   const otherBindingsList = otherBindings.length > 0 ? otherBindings.join('\n') : '(none)'
+  const moduleImportsList =
+    context.moduleImports.length > 0 ? context.moduleImports.join('\n') : '(none)'
   const sourceSection =
     context.sourceIdentifier != null ?
       `Source binding (the value the user wants to operate on):
@@ -147,6 +150,9 @@ Current method source:
 \`\`\`
 ${context.currentMethodCode}
 \`\`\`
+
+Module imports (already in scope without qualification):
+${moduleImportsList}
 
 ${sourceSection}Other in-scope bindings:
 ${otherBindingsList}
