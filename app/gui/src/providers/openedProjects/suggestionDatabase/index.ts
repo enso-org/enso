@@ -50,10 +50,15 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
-  readonly conflictingMethods = new ReactiveIndex(this, (_, entry): [string, string][] =>
-    entry.kind === SuggestionKind.Method && entry.selfType != null ?
-      [[entry.name, entry.selfType.key()]]
-    : [],
+  // Keyed by `selfType#name` so multiple LS entries sharing a `(name, selfType)` pair
+  // (in particular: conversion-method overloads like `Email_Attachment.from`) coexist
+  // under unique `(compositeKey, id)` pairs. Use {@link hasMethodOnType} to query.
+  private readonly methodOnTypeIndex = new ReactiveIndex(
+    this,
+    (id, entry): [string, SuggestionId][] =>
+      entry.kind === SuggestionKind.Method && entry.selfType != null ?
+        [[methodOnTypeKey(entry.selfType, entry.name), id]]
+      : [],
   )
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
   private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
@@ -183,6 +188,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return this.constructorFields.lookup(constructorFieldKey(type, field))
   }
 
+  /** Whether the suggestion DB contains a method with the given `name` on the given `selfType`. */
+  hasMethodOnType(selfType: ProjectPath, name: string): boolean {
+    return this.methodOnTypeIndex.hasKey(methodOnTypeKey(selfType, name))
+  }
+
   /** Returns the entry's ancestors, starting with its parent. */
   *ancestors(entry: SuggestionEntry): Iterable<ProjectPath> {
     while (entry.kind === SuggestionKind.Type && entry.parentType) {
@@ -197,6 +207,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 /** Helper for serializing keys of `constructorFields` index. */
 function constructorFieldKey(type: ProjectPath, field: string): string {
   return `${type.key()}#${field}`
+}
+
+/** Helper for serializing keys of `methodOnTypeIndex`. */
+function methodOnTypeKey(selfType: ProjectPath, name: string): string {
+  return `${selfType.key()}#${name}`
 }
 
 /**

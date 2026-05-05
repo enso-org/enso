@@ -295,7 +295,7 @@ export class Filtering {
         this.selfArg.ancestors.find((t) => entrySelfType.equals(t))
       )
     if (matchedAncestor == null) return null
-    const ancestorOvershadowed = db.conflictingMethods.lookup(entry.name).has(matchedAncestor.key())
+    const ancestorOvershadowed = db.hasMethodOnType(matchedAncestor, entry.name)
     if (ancestorOvershadowed) return null
     // Matched ancestor are not added to `fromType`, because type casting is not needed.
     return { score: DIFFERENT_TYPE_PENALTY, fromType: undefined }
