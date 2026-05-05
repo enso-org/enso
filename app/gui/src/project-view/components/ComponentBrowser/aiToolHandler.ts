@@ -62,8 +62,10 @@ async function handleToolCall(
   try {
     // Raw text path: the agent picks the encoding (`.to_text`, `.to_json`, etc.), so we forward
     // bytes through unchanged. Wrapping the expression on our side would mask the agent's choice
-    // and force a stringification cost on simple value previews.
-    const result = await projectStore.queuedExecuteExpressionRaw(anchor, request.expression)
+    // and force a stringification cost on simple value previews. The 25s budget aligns with the
+    // main-process MCP server's 30s per-call timeout — leave a small margin so the renderer's
+    // failure surfaces first with an actionable message instead of the bare MCP timeout.
+    const result = await projectStore.queuedExecuteExpressionRaw(anchor, request.expression, 25_000)
     if (result == null) {
       return fail('expression evaluation returned no result')
     }
