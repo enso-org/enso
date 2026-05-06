@@ -164,8 +164,8 @@ current method body's `externalId`, mirroring the `ComponentBrowser.vue` preview
 path — see the long-form scope-semantics docstring at the top of
 `aiToolHandler.ts` for why this is the right anchor and why graph node ids are
 not), calls `queuedExecuteExpressionRaw(anchor, expression)` from the project
-store (the **raw** variant — JSON parsing is intentionally bypassed so the
-agent controls the encoding; the queued variant cooperates with the
+store (the **raw** variant — JSON parsing is intentionally bypassed so the agent
+controls the encoding; the queued variant cooperates with the
 `MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`), and forwards the
 UTF-8-decoded text through `replyToolCall`. Failure paths run through
 `translateEngineError` so the engine's raw

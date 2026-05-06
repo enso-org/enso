@@ -149,9 +149,7 @@ async function addFreestandingNode(page: Page, expression: string, expectedNodeC
  * easily land in that region.
  */
 async function closeRightPanel(page: Page) {
-  const closeButton = page
-    .getByTestId('right-panel')
-    .getByRole('button', { name: 'Close Panel' })
+  const closeButton = page.getByTestId('right-panel').getByRole('button', { name: 'Close Panel' })
   if (await closeButton.isVisible().catch(() => false)) await closeButton.click()
 }
 
@@ -237,7 +235,7 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
       ' `Leader` (the part before the apostrophe-s, e.g. "Brock") and `Card` (the part after,' +
       ' e.g. "Rhydon"). Drop the original `name` column; keep level, number, set_name.',
     'Join the result with the Pokemon Input table (columns: Pokédex #, Name, Type, ...) on the' +
-      ' result\'s `Card` column matching Pokemon Input\'s `Name` column, bringing in just the' +
+      " result's `Card` column matching Pokemon Input's `Name` column, bringing in just the" +
       ' `Pokédex #` column.',
     'Deduplicate the rows by the combination of (Leader, Card, number, set_name).',
     'Rename columns: `set_name` to `Gym Set`, `number` to `Number`, `level` to `Level`. Add a new' +
@@ -249,7 +247,7 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
       ' `Order` and renaming it to `Sort Order`. For "Leftover Trainers" rows where `Sort Order`' +
       ' is null, set `Sort Order` to 100 so they sort last.',
     'Sort the rows by: Sort Order ascending, then Card Type ascending, then for Trainer rows' +
-      ' Gym Set with \'Gym Heroes\' before \'Gym Challenge\', then Number ascending, then' +
+      " Gym Set with 'Gym Heroes' before 'Gym Challenge', then Number ascending, then" +
       ' `Pokédex #` ascending, then Level ascending.',
     'Project the table to only these columns, in this order: Sort Order, Leader, Gym Set, Number,' +
       ' Card, Card Type.',
@@ -267,7 +265,9 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
     // would trip Playwright's strict-mode check.
     await expect(page.locator('.TableVisualization').first()).toContainText(col)
   }
-  await expect(page.getByText('Total Row Count: 252')).toBeVisible({ timeout: MANUAL_NODE_TIMEOUT_MS })
+  await expect(page.getByText('Total Row Count: 252')).toBeVisible({
+    timeout: MANUAL_NODE_TIMEOUT_MS,
+  })
 })
 
 test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isolation)", async ({
@@ -296,12 +296,12 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
     'convert the `Week` column to a numeric type and drop rows that fail to parse',
     'parse the `Scores` column into a `total_score` (number) column and a `judges_count` (number)' +
       ' column, then add an `avg_judges_score` column equal to `total_score / judges_count`',
-    'keep only each Couple\'s first dance (their lowest Week) and any of their dances in the' +
+    "keep only each Couple's first dance (their lowest Week) and any of their dances in the" +
       ' final round; restrict to couples who reached the final',
     'aggregate the final-round rows per Couple by averaging `avg_judges_score`',
-    'compute the percentage change between each Couple\'s first-dance `avg_judges_score` and' +
+    "compute the percentage change between each Couple's first-dance `avg_judges_score` and" +
       ' their final-round average; project to the columns Series, Couple, Finalist Positions,' +
-      ' Avg Judge\'s Score, % Change',
+      " Avg Judge's Score, % Change",
   ]
   let nodeCount = 1
   for (const prompt of prompts) {
@@ -317,5 +317,7 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
     // would trip Playwright's strict-mode check.
     await expect(page.locator('.TableVisualization').first()).toContainText(col)
   }
-  await expect(page.getByText('Total Row Count: 62')).toBeVisible({ timeout: MANUAL_NODE_TIMEOUT_MS })
+  await expect(page.getByText('Total Row Count: 62')).toBeVisible({
+    timeout: MANUAL_NODE_TIMEOUT_MS,
+  })
 })

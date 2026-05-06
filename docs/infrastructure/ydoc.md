@@ -184,13 +184,13 @@ fun1 x = x.to_text
 ```
 
 - **Method body** (the body block of `main`): all of the method's bindings are
-  in scope — `operator1`, `operator2`, plus the module-level `fun1`. This is
-  the strongest scope and the right anchor when the client wants the snippet
-  to see "everything the method defines".
+  in scope — `operator1`, `operator2`, plus the module-level `fun1`. This is the
+  strongest scope and the right anchor when the client wants the snippet to see
+  "everything the method defines".
 - **Binding statement** (e.g. the `operator2 = operator1 + 1` line as a whole):
   the binding itself plus every previously declared binding is in scope.
 - **Arbitrary sub-expression** (e.g. the RHS `operator1 + 1`): only what's in
-  scope *at that expression* is visible — `operator1` and `fun1`, but **not**
+  scope _at that expression_ is visible — `operator1` and `fun1`, but **not**
   `operator2`, because the assignment hasn't run yet at the RHS's program point.
 
 The third rule is the trap for GUI clients: in the IDE's graph model, a "node
