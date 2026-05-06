@@ -29,8 +29,8 @@ import { Channel } from './ipc.js'
 const CLAUDE_EXECUTABLE = 'claude'
 // Tool round-trips (filesystem reads, MCP `evaluateExpression` calls) eat the budget fast — a
 // single turn can do half a dozen sub-second LS queries on top of the model's own output. The
-// pre-tools value was 120s; doubled with headroom for the worst-case fan-out.
-const REQUEST_TIMEOUT_MS = 240_000
+// pre-tools value was 120s; tripled with headroom for the worst-case fan-out.
+const REQUEST_TIMEOUT_MS = 360_000
 const PRIMING_TIMEOUT_MS = 60_000
 const STDERR_TAIL_CHARS = 2_000
 const RESPAWN_WINDOW_MS = 30_000
@@ -178,13 +178,15 @@ function truncateStderr(stderr: string): string {
 //
 // `--add-dir <stdlib>` plus `--allowedTools "Read,Glob,Grep"` lets the model browse the bundled
 // standard library when it's unsure of an API. We pre-grant those tools (`--allowedTools`) so the
-// CLI doesn't try to prompt — there's no UI to prompt against in `-p` mode. The pre-existing
-// `--tools ""` is gone: in 2026 Claude Code, the right shape is `--allowedTools` (camelCase) plus
-// `--add-dir`; specifying both `--tools ""` and `--allowedTools …` would be self-contradictory
-// (the former disables, the latter pre-grants). Stdlib access is omitted entirely when
-// `config.stdlibRoot` is `undefined` so we don't pass `--add-dir` for a path that doesn't exist.
+// CLI doesn't try to prompt — there's no UI to prompt against in `-p` mode.
 function streamJsonArgs(config: ClaudeSessionConfig): string[] {
-  const args = [
+  // MCP tools are namespaced as `mcp__<server>__<tool>`. Conditional so a tool-less session
+  // (e.g. headless tests) doesn't claim capabilities to the model.
+  const allowedTools = [
+    ...(config.stdlibRoot != null ? ['Read', 'Glob', 'Grep'] : []),
+    ...(config.mcpConfigPath != null ? ['mcp__enso__evaluateExpression'] : []),
+  ]
+  return [
     '-p',
     '--input-format',
     'stream-json',
@@ -193,24 +195,17 @@ function streamJsonArgs(config: ClaudeSessionConfig): string[] {
     '--verbose',
     '--system-prompt',
     buildSystemPrompt(config),
-  ]
-  if (config.stdlibRoot != null) {
-    args.push('--add-dir', config.stdlibRoot)
-  }
-  if (config.mcpConfigPath != null) {
-    // `--strict-mcp-config` makes the CLI ignore project- and user-level MCP configs — this
+    ...(config.stdlibRoot != null ? ['--add-dir', config.stdlibRoot] : []),
+    // `--strict-mcp-config` makes the CLI ignore project- and user-level MCP configs so the
     // session is hermetic and only sees our in-process server.
-    args.push('--mcp-config', config.mcpConfigPath, '--strict-mcp-config')
-  }
-  // Build `--allowedTools` from whatever capabilities are actually wired. Conditional so a
-  // session without any tools (e.g. headless tests) doesn't lie to the model. The MCP tool is
-  // namespaced as `mcp__<server-name>__<tool-name>` per Claude Code 2026 docs.
-  const allowedTools: string[] = []
-  if (config.stdlibRoot != null) allowedTools.push('Read', 'Glob', 'Grep')
-  if (config.mcpConfigPath != null) allowedTools.push('mcp__enso__evaluateExpression')
-  if (allowedTools.length > 0) args.push('--allowedTools', allowedTools.join(','))
-  args.push('--setting-sources', '', '--no-session-persistence')
-  return args
+    ...(config.mcpConfigPath != null ?
+      ['--mcp-config', config.mcpConfigPath, '--strict-mcp-config']
+    : []),
+    ...(allowedTools.length > 0 ? ['--allowedTools', allowedTools.join(',')] : []),
+    '--setting-sources',
+    '',
+    '--no-session-persistence',
+  ]
 }
 
 function userTurnLine(content: string): string {
@@ -285,6 +280,7 @@ export class ClaudeAgentSession {
   private stderrTail = ''
   private disposed = false
 
+  /** Spawn the child eagerly and kick off the priming turn in the background. */
   constructor(config: ClaudeSessionConfig) {
     this.config = config
     // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
@@ -594,16 +590,30 @@ export class ClaudeAgentSession {
 let session: ClaudeAgentSession | null = null
 let mcpServer: AiMcpServer | null = null
 
-/** Init parameters; `mcpConfigPath` is filled in after starting the MCP server. */
-export interface ClaudeAgentIpcConfig {
-  readonly stdlibRoot: string | undefined
+/**
+ * Start the in-process MCP server that exposes `evaluateExpression` to the agent. Returns the
+ * config file path to pass into {@link initClaudeAgentIpc}, or `undefined` if startup failed.
+ */
+export async function initAiMcpServer(): Promise<string | undefined> {
+  try {
+    const started = await startAiMcpServer(() => session?.activeSender ?? null)
+    mcpServer = started.server
+    console.info(`[AI] MCP server config at ${started.mcpConfigPath}`)
+    return started.mcpConfigPath
+  } catch (err) {
+    console.warn(
+      `[AI] failed to start in-process MCP server; the agent will run without the evaluateExpression tool:`,
+      err,
+    )
+    return undefined
+  }
 }
 
 /**
- * Register the {@link Channel.generateAiComponent} IPC handler and start the MCP server.
- * If the MCP server fails to start, the session still spawns but without `evaluateExpression`.
+ * Spawn the long-lived agent session and register the {@link Channel.generateAiComponent} IPC
+ * handler. Pass `mcpConfigPath` from {@link initAiMcpServer} (or `undefined` to disable MCP).
  */
-export async function initClaudeAgentIpc(config: ClaudeAgentIpcConfig): Promise<void> {
+export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
   if (config.stdlibRoot == null) {
     console.warn(
       `[AI] could not locate the bundled engine's lib/Standard directory; the agent will run without stdlib filesystem access.`,
@@ -611,20 +621,7 @@ export async function initClaudeAgentIpc(config: ClaudeAgentIpcConfig): Promise<
   } else {
     console.info(`[AI] stdlib filesystem access at ${config.stdlibRoot}`)
   }
-  let mcpConfigPath: string | undefined
-  try {
-    const started = await startAiMcpServer(() => session?.activeSender ?? null)
-    mcpServer = started.server
-    mcpConfigPath = started.mcpConfigPath
-    console.info(`[AI] MCP server config at ${mcpConfigPath}`)
-  } catch (err) {
-    console.warn(
-      `[AI] failed to start in-process MCP server; the agent will run without the evaluateExpression tool:`,
-      err,
-    )
-    mcpConfigPath = undefined
-  }
-  if (session == null) session = new ClaudeAgentSession({ ...config, mcpConfigPath })
+  if (session == null) session = new ClaudeAgentSession(config)
   const currentSession = session
   // Surface a missing-CLI hint via the first `ready` rejection — saves spawning a `--version` probe.
   void currentSession.ready.catch((err) => {

@@ -42,6 +42,7 @@ export class AiMcpServer {
   private readonly resolveActiveSender: ActiveSenderResolver
   private listening = false
 
+  /** Wire up the IPC reply listener and the HTTP server (still unbound until {@link start}). */
   constructor(resolveActiveSender: ActiveSenderResolver) {
     this.resolveActiveSender = resolveActiveSender
     this.httpServer = createServer((req, res) => void this.handleHttp(req, res))

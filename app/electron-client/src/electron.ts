@@ -1,4 +1,4 @@
-import { initClaudeAgentIpc } from '@/claudeAgent'
+import { initAiMcpServer, initClaudeAgentIpc } from '@/claudeAgent'
 import { Channel } from '@/ipc'
 import * as paths from '@/paths'
 import { dialog, ipcMain, shell, type BrowserWindow } from 'electron'
@@ -159,7 +159,11 @@ export function initIpc(
   )
 
   // Fire-and-forget: the MCP server's HTTP listener boots async, but startup must not block on it.
-  void initClaudeAgentIpc({ stdlibRoot: paths.stdlibRoot(electron, electronIsDev) })
+  void (async () => {
+    const stdlibRoot = paths.stdlibRoot(electron, electronIsDev)
+    const mcpConfigPath = await initAiMcpServer()
+    initClaudeAgentIpc({ stdlibRoot, mcpConfigPath })
+  })()
 
   // Handling navigation events from renderer process
   ipcMain.on(Channel.goBack, () => {

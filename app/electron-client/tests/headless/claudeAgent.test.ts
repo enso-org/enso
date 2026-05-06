@@ -290,9 +290,8 @@ describe('ClaudeAgentSession', () => {
     await Promise.resolve()
     expect(children[0]!.stdinWrites.length).toBeGreaterThanOrEqual(1)
 
-    // Advance past the 240s per-request timeout (bumped from 120s when filesystem tools
-    // were introduced; tool round-trips eat the budget faster).
-    await vi.advanceTimersByTimeAsync(241_000)
+    // Advance past the per-request timeout (REQUEST_TIMEOUT_MS in claudeAgent.ts).
+    await vi.advanceTimersByTimeAsync(361_000)
     const reply = await replyPromise
     expect(reply.result.ok).toBe(false)
     if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/timed out/)
