@@ -159,21 +159,23 @@ wired.
 **Renderer side:**
 `app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts` exposes
 a `useAiToolHandler()` Vue composable mounted by `ComponentBrowser.vue`. It
-subscribes to `window.api.ai.onToolCall`, resolves the LS scope-anchor
-(currently the last node in the current method, since
-`nodeOutputPorts.allForward()` matches textual order — every binding earlier in
-the method is in scope), calls `queuedExecuteExpressionRaw(anchor, expression)`
-from the project store (the **raw** variant — JSON parsing is intentionally
-bypassed so the agent controls the encoding; the queued variant cooperates with
-the `MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`), and forwards the
+subscribes to `window.api.ai.onToolCall`, resolves the LS scope-anchor (the
+current method body's `externalId`, mirroring the `ComponentBrowser.vue` preview
+path — see the long-form scope-semantics docstring at the top of
+`aiToolHandler.ts` for why this is the right anchor and why graph node ids are
+not), calls `queuedExecuteExpressionRaw(anchor, expression)` from the project
+store (the **raw** variant — JSON parsing is intentionally bypassed so the
+agent controls the encoding; the queued variant cooperates with the
+`MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`), and forwards the
 UTF-8-decoded text through `replyToolCall`. Failure paths run through
 `translateEngineError` so the engine's raw
 `Cannot encode class X to byte array.` becomes a self-teaching hint. Returns a
-clean `Err` for "no active project" and "no in-scope binding to anchor scope".
-The slot machinery in `project.ts:awaitExecuteSlot` resolves with `Err(message)`
-on `failed`/timeout (rather than rejecting) so the `Result<string>` contract is
-consistent across success and failure paths and `aiToolHandler.ts`'s
-`if (!result.ok)` branch catches every legitimate evaluation failure.
+clean `Err` for "no active project", "current method has no parsed AST", and
+"current method has no body to anchor scope". The slot machinery in
+`project.ts:awaitExecuteSlot` resolves with `Err(message)` on `failed`/timeout
+(rather than rejecting) so the `Result<string>` contract is consistent across
+success and failure paths and `aiToolHandler.ts`'s `if (!result.ok)` branch
+catches every legitimate evaluation failure.
 
 The renderer reaches the IPC via `window.api.ai.generateComponent(...)` (see
 `enso-gui/src/electronApi.ts`) over channel `Channel.generateAiComponent`. The

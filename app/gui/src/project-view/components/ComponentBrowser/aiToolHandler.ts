@@ -17,6 +17,42 @@ import { onScopeDispose } from 'vue'
  * cap and retry/backoff in `project.ts`), then reply with `Channel.aiToolReply` echoing the
  * `requestId`. Failure to reply triggers the server's 30 s per-call timeout, which surfaces back
  * to the model as a structured error.
+ *
+ * ## `executionContext/executeExpression` semantics — pick the right anchor
+ *
+ * The LS treats `expressionId` (here called the "anchor") as a program point: the snippet runs
+ * with the local + global symbols that are in scope **at that point**, as if a breakpoint paused
+ * execution there and we typed the snippet into the REPL. The exact node you anchor on therefore
+ * determines what the snippet can see. For
+ *
+ *     main =
+ *         operator1 = 42
+ *         operator2 = operator1 + 1
+ *
+ *     fun1 x = x.to_text
+ *
+ * the visible-symbols rules are:
+ *
+ * - Anchor on the **method body** (`main`'s body block): all bindings of the method are visible.
+ *   Here that's `operator1`, `operator2`, and the module-level `fun1`.
+ * - Anchor on a **binding statement** (e.g. the whole `operator2 = operator1 + 1` line): the
+ *   binding itself plus every previously declared binding is visible. Same as above for this
+ *   example because `operator2` is the last line.
+ * - Anchor on an **arbitrary expression** (e.g. the RHS `operator1 + 1`): only symbols in scope
+ *   *at that expression* are visible — `operator1` and `fun1`, but **not** `operator2`, because
+ *   the assignment `operator2 := …` hasn't run yet at the program point of the RHS.
+ *
+ * This last rule is the trap: the GUI's "node id" for `operator2 = …` is the externalId of the
+ * RHS expression, not of the binding statement. Anchoring on a node id therefore puts the snippet
+ * at the RHS program point, where the node's own binding is still uninitialized — references like
+ * `operator2.column_names` come back as `Uninitialized value`. We anchor on the method body
+ * instead, mirroring `ComponentBrowser.vue`'s preview path; that gives the AI tool the strongest
+ * scope (all method bindings visible) regardless of which node it asks about.
+ *
+ * Reference: the historical write-up of this rule lived in
+ * `docs/language-server/protocol-language-server.md` under `executionContext/executeExpression`
+ * (commit `c30a0f6`, lines 3888-3922) before that endpoint was migrated off JSON-RPC to the
+ * visualization subdoc; the semantics on the engine side are unchanged.
  */
 export function useAiToolHandler(
   graphStore: GraphStore = useGraphStore(),
@@ -24,10 +60,14 @@ export function useAiToolHandler(
 ): void {
   const electronApi = typeof window === 'undefined' ? undefined : window.api
   if (electronApi == null) return
+  let nextCallId = 0
   const dispose = electronApi.ai.onToolCall((request) => {
-    console.debug('Tool called', request.expression)
+    const callId = ++nextCallId
+    const t0 = performance.now()
+    console.log(`Tool called [#${callId}]`, request.expression)
     void handleToolCall(request, graphStore, currentProject).then((reply) => {
-      console.debug('Tool response', reply.result)
+      const elapsedMs = Math.round(performance.now() - t0)
+      console.log(`Tool response [#${callId}, ${elapsedMs}ms]`, reply.result)
       electronApi.ai.replyToolCall(reply)
     })
   })
@@ -50,15 +90,20 @@ async function handleToolCall(
     return fail('no active project')
   }
   const projectStore = currentProject.store.value
-  // The LS uses `expressionId` to determine which method scope the new expression evaluates in.
-  // Anchor on the last in-scope binding in the current method: every binding defined earlier in
-  // the method (including the anchor itself) is visible — exactly the scope where the AI's
-  // generated `body` would land. Iteration order of `nodeOutputPorts.allForward()` matches the
-  // method's textual order.
-  const anchor = lastInScopeNodeId(graphStore)
-  if (anchor == null) {
-    return fail('no in-scope binding to anchor scope')
+  // Anchor on the method body's externalId — the same anchor `ComponentBrowser.vue` preview
+  // evaluation uses (see `previewDataSource` there). The LS interprets `expressionId` as the
+  // program point at which the snippet runs, so anchoring on the body gives the snippet a scope
+  // populated with every binding the method defines, exactly the scope into which a generated
+  // node would land. See the `executionContext/executeExpression` notes at the top of this file
+  // for why other obvious anchors (graph node ids, "last in-scope binding") fall short.
+  if (!graphStore.currentMethod.ast.ok) {
+    return fail('current method has no parsed AST')
   }
+  const body = graphStore.currentMethod.ast.value.body
+  if (body == null) {
+    return fail('current method has no body to anchor scope')
+  }
+  const anchor = body.externalId
   try {
     // Raw text path: the agent picks the encoding (`.to_text`, `.to_json`, etc.), so we forward
     // bytes through unchanged. Wrapping the expression on our side would mask the agent's choice
@@ -76,16 +121,6 @@ async function handleToolCall(
   } catch (err) {
     return fail(translateEngineError(formatLsError(err)))
   }
-}
-
-function lastInScopeNodeId(
-  graphStore: GraphStore,
-): import('ydoc-shared/yjsModel').ExternalId | undefined {
-  let last: import('ydoc-shared/yjsModel').ExternalId | undefined
-  for (const [nodeId] of graphStore.db.nodeOutputPorts.allForward()) {
-    last = nodeId
-  }
-  return last
 }
 
 function formatLsError(err: unknown): string {
