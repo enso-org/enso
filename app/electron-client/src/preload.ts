@@ -196,12 +196,6 @@ const system: ElectronApi['system'] = {
 const ai: ElectronApi['ai'] = {
   generateComponent: (request: AiComponentRequest): Promise<AiComponentIpcReply> =>
     electron.ipcRenderer.invoke(ipc.Channel.generateAiComponent, request),
-  /**
-   * Subscribe to mid-turn tool calls dispatched by the in-process MCP server. The handler must
-   * eventually reply via {@link replyToolCall} with a matching `requestId`; failure to reply
-   * means the main-process call will time out after 30 s. Returns a disposer that unsubscribes
-   * the handler — necessary for project view re-mounting.
-   */
   onToolCall: (handler: (request: AiToolCallRequest) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, request: AiToolCallRequest) =>
       handler(request)

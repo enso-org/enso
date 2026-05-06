@@ -265,13 +265,8 @@ export function createProjectStore(
   }
 
   /**
-   * Variant of {@link queuedExecuteExpression} that returns the raw decoded text
-   * the LS produced (no JSON parsing). Callers that want to forward the
-   * expression's text representation as-is — for example the AI tool bridge,
-   * where the agent picks the format and we don't want to mangle non-JSON
-   * outputs — use this. Failure semantics match {@link queuedExecuteExpression}:
-   * `null` if the vis subdoc has not synced yet, `Err` on evaluation failure
-   * or timeout, `Ok(text)` otherwise.
+   * Variant of {@link queuedExecuteExpression} that returns the raw decoded text the LS produced
+   * (no JSON parsing). Failure semantics match {@link queuedExecuteExpression}.
    */
   function queuedExecuteExpressionRaw(
     expressionId: ExternalId,
@@ -321,12 +316,9 @@ export function createProjectStore(
   }
 
   /**
-   * Observe slot `requestId` until it lands in `ready` (-> decode response
-   * bytes as UTF-8 -> `Ok(text)`) or `failed` (-> `Err(message)`). Honors an
-   * optional timeout deadline (-> `Err(timeout)`). All terminal states resolve
-   * the returned promise; rejection is reserved for catastrophic failures
-   * (e.g. observer setup throwing), which the caller's `.catch` can surface as
-   * a generic error.
+   * Observe slot `requestId` until it lands in a terminal state: `ready` → `Ok(text)` (UTF-8
+   * decoded), `failed` → `Err(message)`, timeout → `Err(timeout)`. Always resolves; rejection
+   * is reserved for catastrophic failures.
    */
   function awaitExecuteSlot(
     vis: Visualizations,

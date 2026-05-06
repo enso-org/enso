@@ -158,9 +158,7 @@ export function initIpc(
     },
   )
 
-  // Fire-and-forget: starting the in-process MCP server is async, but the AI session itself
-  // is constructed synchronously inside `initClaudeAgentIpc`, and the MCP-config arrival just
-  // affects whether the `evaluateExpression` tool is available — startup must not block on it.
+  // Fire-and-forget: the MCP server's HTTP listener boots async, but startup must not block on it.
   void initClaudeAgentIpc({ stdlibRoot: paths.stdlibRoot(electron, electronIsDev) })
 
   // Handling navigation events from renderer process

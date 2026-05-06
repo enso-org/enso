@@ -672,12 +672,8 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
 }
 
 /**
- * Resolve the bundled engine's `lib/Standard` directory by deriving it from the engine
- * executable's location. The engine package layout is `<root>/bin/enso` next to
- * `<root>/lib/Standard/<Lib>/<version>/...`, so the stdlib root is two `dirname`s above the
- * binary plus `lib/Standard`. Returns `undefined` if the executable cannot be located OR if the
- * derived stdlib directory does not exist on disk (so the caller can decide between failing
- * loudly and degrading gracefully).
+ * Bundled engine's `lib/Standard` directory, derived from the engine binary's location.
+ * `undefined` when the binary cannot be located or the derived directory does not exist.
  */
 export function findStdlibRoot(workDir: string = '.'): Path | undefined {
   const ensoPath = findEnsoExecutable(workDir)

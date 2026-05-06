@@ -68,11 +68,10 @@ export interface LogApi {
 export interface AiApi {
   readonly generateComponent: (request: AiComponentRequest) => Promise<AiComponentIpcReply>
   /**
-   * Subscribe to mid-turn tool calls dispatched by the in-process MCP server. The handler must
-   * eventually reply via {@link replyToolCall} with the matching `requestId`. Returns a disposer.
+   * Subscribe to mid-turn tool calls; the handler must reply via {@link AiApi.replyToolCall}
+   * with the matching `requestId`. Returns a disposer.
    */
   readonly onToolCall: (handler: (request: AiToolCallRequest) => void) => () => void
-  /** Reply to an `onToolCall` invocation. */
   readonly replyToolCall: (reply: AiToolCallReply) => void
 }
 

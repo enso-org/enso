@@ -187,9 +187,6 @@ const selectedSuggestion = computed(() => {
 
 const input = useComponentBrowserInput()
 
-// Subscribe to mid-turn tool calls dispatched by the in-process MCP server. Active for the
-// component browser's lifetime — long enough to cover any in-flight AI request originating from
-// here. The composable internally calls `onScopeDispose` so unmount cleanup is automatic.
 useAiToolHandler()
 
 onUnmounted(() => {

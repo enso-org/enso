@@ -68,13 +68,7 @@ export function resourcesPath(electron: Electron | undefined, electronIsDev: boo
   return electronIsDev ? appPath(electron) : path.join(appPath(electron), '..')
 }
 
-/**
- * Bundled engine's `lib/Standard` directory, or `undefined` if it cannot be located.
- *
- * Resolved by deriving from the engine binary's location (the PM shim's `findStdlibRoot`),
- * not by hard-coding a relative path — the bundle layout differs between dev (`dist/backend/dist/<v>/`)
- * and packaged (`<resources>/enso/dist/<v>/`), and the version segment is glob-resolved.
- */
+/** Bundled engine's `lib/Standard` directory, or `undefined` if it cannot be located. */
 export function stdlibRoot(
   electron: Electron | undefined,
   electronIsDev: boolean,

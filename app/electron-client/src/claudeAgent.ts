@@ -1,15 +1,10 @@
 /**
- * @file Electron-main-side adapter that drives a long-lived `claude` CLI subprocess to generate
- * the body of a User Defined Component from a natural-language prompt. Exposed to the renderer
- * via IPC; the renderer never invokes the CLI directly.
+ * @file Drives a long-lived `claude` CLI subprocess that generates User Defined Component bodies
+ * from natural-language prompts. Authentication rides on whatever the CLI is already configured
+ * with — the main process never reads the API key directly.
  *
- * The session is spawned eagerly (but non-blockingly) at app launch, primed with a small
- * acknowledgment turn so the system prompt is ingested before the first real request, and
- * serialized via a per-process FIFO queue. Crashes are logged and the child is respawned in the
- * background; per-request timeouts return errors without killing the still-warm child.
- *
- * Authentication rides on whatever the `claude` CLI is already configured with. The main process
- * does not require or read the API key beyond forwarding the parent environment.
+ * Lifecycle, queueing, crash handling, and the stream-json wire format are documented in
+ * `electron-client/CLAUDE.md`.
  */
 import spawn from 'cross-spawn'
 import { ipcMain, type WebContents } from 'electron'
@@ -43,20 +38,16 @@ const MAX_RESPAWNS_IN_WINDOW = 3
 const PRIMING_PROMPT =
   'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
 
-/** Configuration for the long-lived `claude` session. Resolved main-process-side at startup. */
+/** Configuration for the long-lived `claude` session. */
 export interface ClaudeSessionConfig {
   /**
-   * Filesystem path to the bundled engine's `lib/Standard` tree, passed to the CLI as `--add-dir`
-   * so the session's `Read`/`Glob`/`Grep` tools can browse it. `undefined` when the bundle isn't
-   * resolvable — in that case the session still spawns but without filesystem context, and the
-   * system prompt's stdlib hint is omitted so we don't lie to the model.
+   * Bundled engine's `lib/Standard` directory, exposed to the agent via `--add-dir` plus the
+   * `Read`/`Glob`/`Grep` tools. `undefined` disables stdlib filesystem access.
    */
   readonly stdlibRoot: string | undefined
   /**
-   * Path to the JSON config file written by {@link AiMcpServer.start} that points the CLI at our
-   * in-process MCP server. When present, the spawn line gets `--mcp-config <path> --strict-mcp-config`
-   * and the `evaluateExpression` tool is added to `--allowedTools`. When `undefined`, the agent runs
-   * without MCP — used by headless tests where we don't want an HTTP listener.
+   * Config file produced by {@link AiMcpServer.start}, exposing the `evaluateExpression` tool.
+   * `undefined` runs the agent without MCP (used by headless tests).
    */
   readonly mcpConfigPath: string | undefined
 }
@@ -271,16 +262,7 @@ interface TurnOutcome {
 interface PendingTurn {
   resolve: (outcome: TurnOutcome) => void
   textChunks: string[]
-  /**
-   * The renderer that originated the request, or `null` for the priming turn (which has no
-   * originator). The MCP server reads this slot via {@link ClaudeAgentSession.activeSender} so
-   * tool calls dispatched mid-turn target the right window; for priming there is no window and
-   * tool calls would be wrong anyway.
-   *
-   * Pinned to `pending` (not the session) so a crash or shutdown rejects the slot by
-   * construction; a stale tool call arriving after the slot was cleared (timeout, crash) is
-   * dropped by the MCP server's request table.
-   */
+  // Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming.
   sender: WebContents | null
 }
 
@@ -289,10 +271,9 @@ interface PendingTurn {
 // ============================
 
 /**
- * Owns a single long-lived `claude` subprocess. Construction kicks off the spawn + priming flow
- * without awaiting either, so callers can run the constructor synchronously during Electron
- * startup. `runRequest` awaits priming via `this.ready`. The child is auto-respawned on
- * unexpected exit (subject to a crash-loop guard); `shutdown()` SIGTERMs it permanently.
+ * Owns a single long-lived `claude` subprocess: spawn + priming run in the background, requests
+ * serialize through a FIFO queue, and the child is auto-respawned on unexpected exit (with a
+ * crash-loop guard).
  */
 export class ClaudeAgentSession {
   private readonly config: ClaudeSessionConfig
@@ -304,7 +285,6 @@ export class ClaudeAgentSession {
   private stderrTail = ''
   private disposed = false
 
-  /** Spawn the child, kick off priming, and start serving requests. */
   constructor(config: ClaudeSessionConfig) {
     this.config = config
     // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
@@ -333,16 +313,14 @@ export class ClaudeAgentSession {
     })
   }
 
-  /** Resolves once the current child has spawned and accepted a priming turn. */
+  /** Resolves once the current child has spawned and accepted the priming turn. */
   get ready(): Promise<void> {
     return this.readyDeferred.promise
   }
 
   /**
-   * The renderer that originated the currently-in-flight request, or `null` between turns. The
-   * MCP server reads this so tool calls dispatched mid-turn target the right window. Returns
-   * `null` (and not the destroyed sender's reference) when the renderer was destroyed since the
-   * turn started.
+   * Renderer that originated the in-flight turn, or `null` between turns or after the renderer
+   * was destroyed mid-turn. Read by the MCP server to dispatch tool calls back to the right window.
    */
   get activeSender(): WebContents | null {
     const pending = this.pending
@@ -355,9 +333,6 @@ export class ClaudeAgentSession {
   /** Run an AI component request through the long-lived session. */
   runRequest(request: AiComponentRequest, sender: WebContents): Promise<AiComponentIpcReply> {
     return new Promise<AiComponentIpcReply>((resolveOuter) => {
-      // Pre-flight: if the originating renderer is already gone, there is no point spinning up a
-      // turn that can't be replied to. This catches the racy case where a window closes between
-      // the renderer's IPC dispatch and the main-process handler running.
       if (sender.isDestroyed()) {
         resolveOuter({
           result: Err('Renderer was destroyed before the AI request could be handled'),
@@ -371,9 +346,8 @@ export class ClaudeAgentSession {
           return
         }
         if (this.watcher.respawnSuspended && !this.watcher.current?.alive) {
-          // The crash-loop guard tripped; the watcher is waiting for a manual respawn. The
-          // watcher does NOT clear its recent-exits buffer on respawn() — another quick crash
-          // trips the guard again immediately, instead of granting an infinite retry stream.
+          // The watcher's recent-exits buffer is preserved across respawn(), so a quick re-crash
+          // trips the guard again and we don't loop indefinitely.
           this.readyDeferred = createDeferred()
           this.readyDeferred.promise.catch(() => undefined)
           await this.watcher.respawn()
@@ -620,18 +594,14 @@ export class ClaudeAgentSession {
 let session: ClaudeAgentSession | null = null
 let mcpServer: AiMcpServer | null = null
 
-/**
- * Public init parameters. Subset of {@link ClaudeSessionConfig} — `mcpConfigPath` is filled in
- * here after starting the in-process MCP server.
- */
+/** Init parameters; `mcpConfigPath` is filled in after starting the MCP server. */
 export interface ClaudeAgentIpcConfig {
   readonly stdlibRoot: string | undefined
 }
 
 /**
- * Register the {@link Channel.generateAiComponent} IPC handler. Boots the in-process MCP
- * server in the background; if the server fails to start, the session still spawns but without
- * the `evaluateExpression` tool.
+ * Register the {@link Channel.generateAiComponent} IPC handler and start the MCP server.
+ * If the MCP server fails to start, the session still spawns but without `evaluateExpression`.
  */
 export async function initClaudeAgentIpc(config: ClaudeAgentIpcConfig): Promise<void> {
   if (config.stdlibRoot == null) {
@@ -654,13 +624,9 @@ export async function initClaudeAgentIpc(config: ClaudeAgentIpcConfig): Promise<
     )
     mcpConfigPath = undefined
   }
-  // Eager but non-blocking: spawning + priming happen in the background while Electron continues
-  // its own startup. Subsequent IPC calls await `session.ready` before sending stdin.
   if (session == null) session = new ClaudeAgentSession({ ...config, mcpConfigPath })
   const currentSession = session
-  // One-time startup diagnostic. The session's first `ready` rejection carries the original
-  // ErrnoException (synchronous spawner throws via `firstSpawn`; async 'error' events via the
-  // child handle), so we can detect a missing CLI without spawning a separate `--version` probe.
+  // Surface a missing-CLI hint via the first `ready` rejection — saves spawning a `--version` probe.
   void currentSession.ready.catch((err) => {
     const errno = err as NodeJS.ErrnoException | null
     if (errno?.code === 'ENOENT') {

@@ -5,54 +5,12 @@ import type { AiToolCallReply, AiToolCallRequest } from 'enso-common/src/ai'
 import { onScopeDispose } from 'vue'
 
 /**
- * Subscribe to mid-turn tool calls dispatched by the in-process MCP server. This composable is
- * mounted inside `WithCurrentProject`'s component tree alongside `useAI()`, so when the project
- * view unmounts (project close, navigation back to dashboard) the listener is automatically
- * disposed and any subsequent tool call from a leftover `claude` turn answers `no active project`
- * as a fallback once the renderer-side handler is gone.
+ * Subscribe to mid-turn `evaluateExpression` calls from the AI MCP server, evaluate them against
+ * the active project, and reply over `Channel.aiToolReply`. Auto-disposes on scope dispose.
  *
- * Tool dispatch contract: the main-process MCP server sends `Channel.aiToolCall` with a unique
- * `requestId`; we evaluate the request against the active project's LS connection via
- * `queuedExecuteExpression` (the queued variant — it cooperates with the existing concurrency
- * cap and retry/backoff in `project.ts`), then reply with `Channel.aiToolReply` echoing the
- * `requestId`. Failure to reply triggers the server's 30 s per-call timeout, which surfaces back
- * to the model as a structured error.
- *
- * ## `executionContext/executeExpression` semantics — pick the right anchor
- *
- * The LS treats `expressionId` (here called the "anchor") as a program point: the snippet runs
- * with the local + global symbols that are in scope **at that point**, as if a breakpoint paused
- * execution there and we typed the snippet into the REPL. The exact node you anchor on therefore
- * determines what the snippet can see. For
- *
- *     main =
- *         operator1 = 42
- *         operator2 = operator1 + 1
- *
- *     fun1 x = x.to_text
- *
- * the visible-symbols rules are:
- *
- * - Anchor on the **method body** (`main`'s body block): all bindings of the method are visible.
- *   Here that's `operator1`, `operator2`, and the module-level `fun1`.
- * - Anchor on a **binding statement** (e.g. the whole `operator2 = operator1 + 1` line): the
- *   binding itself plus every previously declared binding is visible. Same as above for this
- *   example because `operator2` is the last line.
- * - Anchor on an **arbitrary expression** (e.g. the RHS `operator1 + 1`): only symbols in scope
- *   *at that expression* are visible — `operator1` and `fun1`, but **not** `operator2`, because
- *   the assignment `operator2 := …` hasn't run yet at the program point of the RHS.
- *
- * This last rule is the trap: the GUI's "node id" for `operator2 = …` is the externalId of the
- * RHS expression, not of the binding statement. Anchoring on a node id therefore puts the snippet
- * at the RHS program point, where the node's own binding is still uninitialized — references like
- * `operator2.column_names` come back as `Uninitialized value`. We anchor on the method body
- * instead, mirroring `ComponentBrowser.vue`'s preview path; that gives the AI tool the strongest
- * scope (all method bindings visible) regardless of which node it asks about.
- *
- * Reference: the historical write-up of this rule lived in
- * `docs/language-server/protocol-language-server.md` under `executionContext/executeExpression`
- * (commit `c30a0f6`, lines 3888-3922) before that endpoint was migrated off JSON-RPC to the
- * visualization subdoc; the semantics on the engine side are unchanged.
+ * The expression is anchored on the current method body so it sees every method binding;
+ * see `docs/infrastructure/ydoc.md` ("Scope semantics of `nodeExternalId` for `inFrame`
+ * one-shots") for why other anchors are wrong.
  */
 export function useAiToolHandler(
   graphStore: GraphStore = useGraphStore(),
@@ -90,12 +48,6 @@ async function handleToolCall(
     return fail('no active project')
   }
   const projectStore = currentProject.store.value
-  // Anchor on the method body's externalId — the same anchor `ComponentBrowser.vue` preview
-  // evaluation uses (see `previewDataSource` there). The LS interprets `expressionId` as the
-  // program point at which the snippet runs, so anchoring on the body gives the snippet a scope
-  // populated with every binding the method defines, exactly the scope into which a generated
-  // node would land. See the `executionContext/executeExpression` notes at the top of this file
-  // for why other obvious anchors (graph node ids, "last in-scope binding") fall short.
   if (!graphStore.currentMethod.ast.ok) {
     return fail('current method has no parsed AST')
   }
@@ -105,11 +57,8 @@ async function handleToolCall(
   }
   const anchor = body.externalId
   try {
-    // Raw text path: the agent picks the encoding (`.to_text`, `.to_json`, etc.), so we forward
-    // bytes through unchanged. Wrapping the expression on our side would mask the agent's choice
-    // and force a stringification cost on simple value previews. The 25s budget aligns with the
-    // main-process MCP server's 30s per-call timeout — leave a small margin so the renderer's
-    // failure surfaces first with an actionable message instead of the bare MCP timeout.
+    // 25s budget: under the main-process MCP server's 30s timeout so renderer-side errors
+    // surface first with an actionable message.
     const result = await projectStore.queuedExecuteExpressionRaw(anchor, request.expression, 25_000)
     if (result == null) {
       return fail('expression evaluation returned no result')
@@ -146,10 +95,9 @@ function formatLsError(err: unknown): string {
 }
 
 /**
- * Convert the engine's raw "Cannot encode class X to byte array." failures — which fire when
- * the model returns a non-Text value through `evaluateExpression` — into an actionable hint
- * that names the offending type and points at the standard remedies. Pass other messages
- * through unchanged.
+ * Turn the engine's "Cannot encode class X to byte array." failures (raised when the agent's
+ * expression evaluates to a non-Text value) into a hint pointing at `.to_text` / `.to_json` /
+ * `.catch_primitive`. Other messages pass through unchanged.
  */
 function translateEngineError(message: string): string {
   const match = /^Cannot encode class ([\w$.]+) to byte array\.?$/.exec(message)

@@ -11,9 +11,8 @@ import type {
 import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 
 /**
- * Resolves Component Browser AI prompts by invoking the local Claude agent hosted in
- * the Electron main process over IPC. The agent generates a top-level User Defined
- * Component plus a call placed in the current method.
+ * Resolves Component Browser AI prompts by invoking the local Claude agent in the Electron main
+ * process. Returns the generated User Defined Component plus its call site.
  */
 export function useAI(
   graphStore: GraphStore = useGraphStore(),
@@ -88,9 +87,7 @@ export function useAI(
         if (!context.ok) return context
         const reply = await electronApi.ai.generateComponent({ prompt, context: context.value })
         logUsage(reply.usage)
-        // Electron IPC uses structured clone, which strips the `ResultError` prototype —
-        // `reply.result.error` comes back as a plain `{ payload, context }` object without its
-        // `.message()` method. Rebuild a proper `Result` on this side of the boundary.
+        // Electron's structured clone strips the `ResultError` prototype, so rebuild it here.
         return reply.result.ok ? Ok(reply.result.value) : Err(reply.result.error.payload)
       },
     )

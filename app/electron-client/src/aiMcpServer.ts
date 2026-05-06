@@ -1,20 +1,7 @@
 /**
- * @file Localhost MCP server hosted by the Electron main process. Exposes a single tool,
- * `evaluateExpression`, that the long-lived `claude` CLI subprocess can call mid-turn to
- * inspect the runtime value of any in-scope binding (or any expression that references in-scope
- * bindings) via the renderer's already-open Language Server connection.
- *
- * Why HTTP over stdio: Claude Code can launch MCP servers itself via stdio, but the server we
- * need has to share state with the Electron main process — it must reach into the renderer's
- * `graphDb` / `executionContext` to evaluate expressions, and it must know which `WebContents`
- * a given turn originated from. Hosting in-process (and pointing the CLI at it via
- * `--mcp-config <file>` with `"type":"http"`) sidesteps cross-process state-sharing entirely.
- *
- * Bridging back to the renderer: the tool handler sends `Channel.aiToolCall` to the active
- * turn's `WebContents` and awaits a matching `Channel.aiToolReply`. Per-call timeout is 30 s.
- * The single-in-flight-turn invariant of `ClaudeAgentSession.runRequest` means tool calls are
- * naturally sequential within a turn, but multiple calls can still overlap in the request table
- * (the model can fan out tool calls within one assistant message), so we key by `requestId`.
+ * @file In-process MCP server exposing the `evaluateExpression` tool to the long-lived `claude`
+ * subprocess; bridges tool calls to the active renderer over `Channel.aiToolCall`/`aiToolReply`.
+ * Lifecycle, transport choice, and reentrancy notes live in `electron-client/CLAUDE.md`.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
@@ -23,23 +10,17 @@ import type { AiToolCallReply, AiToolCallRequest } from 'enso-common/src/ai'
 import { randomUUID } from 'node:crypto'
 import * as fs from 'node:fs'
 import { createServer, type Server as HttpServer } from 'node:http'
+import * as os from 'node:os'
 import * as path from 'node:path'
 import { z } from 'zod'
 import { Channel } from './ipc.js'
 
 const TOOL_CALL_TIMEOUT_MS = 30_000
 
-/**
- * Resolve the `WebContents` to dispatch tool calls to. Returns `null` when no AI turn is in
- * flight — the tool handler then replies with a clean error so the model can recover instead of
- * hanging.
- */
+/** Resolves the renderer for the currently-running AI turn, or `null` between turns. */
 export type ActiveSenderResolver = () => WebContents | null
 
-/**
- * Public handle returned by {@link startAiMcpServer}. The `mcpConfigPath` is what the caller
- * passes to the `claude` CLI as `--mcp-config <path>`; `shutdown()` is wired to `before-quit`.
- */
+/** Returned by {@link startAiMcpServer}; `mcpConfigPath` is the value for the CLI's `--mcp-config`. */
 export interface AiMcpServerHandle {
   readonly mcpConfigPath: string
   shutdown(): Promise<void>
@@ -50,7 +31,10 @@ interface PendingToolCall {
   timer: NodeJS.Timeout
 }
 
-/** In-process MCP server lifecycle. */
+/**
+ * In-process MCP server bound to a random localhost port. Holds the IPC bridge between the
+ * `claude` subprocess (HTTP client) and the active renderer (which actually evaluates the tool).
+ */
 export class AiMcpServer {
   private readonly pending = new Map<string, PendingToolCall>()
   private readonly httpServer: HttpServer
@@ -58,7 +42,6 @@ export class AiMcpServer {
   private readonly resolveActiveSender: ActiveSenderResolver
   private listening = false
 
-  /** Wire up the IPC reply listener and the HTTP listener (still on a random port until {@link start}). */
   constructor(resolveActiveSender: ActiveSenderResolver) {
     this.resolveActiveSender = resolveActiveSender
     this.httpServer = createServer((req, res) => void this.handleHttp(req, res))
@@ -67,10 +50,7 @@ export class AiMcpServer {
     })
   }
 
-  /**
-   * Start listening on a random localhost port and write the temporary MCP config file so the
-   * agent's spawn can pass `--mcp-config`. Resolves with the file path.
-   */
+  /** Start the HTTP listener and write the MCP config file. Returns the config file path. */
   async start(): Promise<string> {
     if (this.listening) {
       if (this.configPath == null) throw new Error('AiMcpServer: started but no config path')
@@ -90,19 +70,13 @@ export class AiMcpServer {
     }
     const url = `http://127.0.0.1:${address.port}/mcp`
     const config = { mcpServers: { enso: { type: 'http', url } } }
-    const file = path.join(
-      // os.tmpdir is correct here, but go through Electron's userData-adjacent tempdir if it's
-      // available (Electron sets `app.getPath('temp')` to the platform tmp anyway, so tmpdir is
-      // a fine fallback used by the headless tests where Electron isn't booted).
-      process.env.TMPDIR || '/tmp',
-      `enso-claude-mcp-${process.pid}-${randomUUID()}.json`,
-    )
+    const file = path.join(os.tmpdir(), `enso-claude-mcp-${process.pid}-${randomUUID()}.json`)
     fs.writeFileSync(file, JSON.stringify(config))
     this.configPath = file
     return file
   }
 
-  /** Tear down the server, drop the config file, and reject any in-flight tool calls. */
+  /** Stop the listener, delete the config file, and fail any in-flight tool calls. */
   async shutdown(): Promise<void> {
     for (const [requestId, pending] of this.pending) {
       clearTimeout(pending.timer)
@@ -127,12 +101,8 @@ export class AiMcpServer {
 
   // -------------- private --------------
 
-  /**
-   * Create a fresh `McpServer` with the `evaluateExpression` tool registered. The SDK rejects
-   * `connect()` if a `Protocol` is already wired to a transport, and our HTTP transport is
-   * stateless (one transport per request), so we follow the SDK's official stateless example —
-   * `simpleStatelessStreamableHttp.js` — and instantiate a server per request.
-   */
+  // Fresh server per request: the SDK rejects `connect()` on an already-wired Protocol and our
+  // HTTP transport is stateless (one transport per request) — see SDK's `simpleStatelessStreamableHttp`.
   private createServer(): McpServer {
     const server = new McpServer(
       { name: 'enso', version: '0.0.0-dev' },
@@ -158,10 +128,7 @@ export class AiMcpServer {
       async ({ expression }) => {
         const result = await this.dispatchToRenderer({ tool: 'evaluateExpression', expression })
         if (result.ok) {
-          // `result.value` is already raw text the agent's expression produced; passing it
-          // through unchanged means JSON-style outputs land as JSON and `.to_text` previews
-          // land as plain text. JSON-stringifying here would double-encode and surround simple
-          // text values with quotes the agent would have to peel off.
+          // Forward the agent-chosen encoding verbatim — JSON-stringifying here would double-encode.
           return { content: [{ type: 'text' as const, text: result.value }] }
         }
         return {
@@ -220,13 +187,9 @@ export class AiMcpServer {
     req: import('node:http').IncomingMessage,
     res: import('node:http').ServerResponse,
   ): Promise<void> {
-    // Stateless mode: each incoming request gets its own short-lived transport AND its own
-    // McpServer — the SDK's Protocol class refuses `connect()` if it's already wired to a
-    // transport, so reusing a single server across requests fails on the second call. Pattern
-    // mirrors the SDK's `simpleStatelessStreamableHttp.js` example. The cast on the options bag
-    // works around the SDK's type using a non-optional `() => string` for `sessionIdGenerator`
-    // even though the runtime accepts `undefined` to mean "stateless".
     const server = this.createServer()
+    // The cast works around the SDK typing `sessionIdGenerator` as a non-optional
+    // `() => string` even though `undefined` (stateless) is accepted at runtime.
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     } as unknown as ConstructorParameters<typeof StreamableHTTPServerTransport>[0])
@@ -235,9 +198,8 @@ export class AiMcpServer {
       void server.close()
     })
     try {
-      // The SDK's `Transport` type declares `onclose` as `() => void` (non-optional) under
-      // exactOptionalPropertyTypes; the concrete class actually exposes `(() => void) | undefined`.
-      // Cast at the call site to bridge the gap without weakening the rest of the file.
+      // SDK's `Transport.onclose` is `() => void` under exactOptionalPropertyTypes; the
+      // concrete class actually exposes it as optional.
       await server.connect(transport as unknown as Parameters<typeof server.connect>[0])
       await transport.handleRequest(req, res)
     } catch (err) {
