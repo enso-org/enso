@@ -453,6 +453,7 @@ describe('ClaudeAgentSession', () => {
     await settle()
 
     // Built-in `Read` tool: description should come from `file_path`.
+    /* eslint-disable camelcase -- mirrors the snake_case `file_path` key the real CLI emits. */
     children[0]!.pushStdoutLine(
       JSON.stringify({
         type: 'assistant',
@@ -463,6 +464,7 @@ describe('ClaudeAgentSession', () => {
         },
       }),
     )
+    /* eslint-enable camelcase */
     // MCP `evaluateExpression`: description should come from `expression`.
     children[0]!.pushStdoutLine(
       JSON.stringify({

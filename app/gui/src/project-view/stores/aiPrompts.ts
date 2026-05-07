@@ -1,19 +1,4 @@
-/**
- * @file Renderer-side queue for in-flight AI component prompts.
- *
- * The Component Browser closes immediately on submit; each AI request becomes a "pending node"
- * placeholder rendered on the graph. This store owns those placeholders and serializes the
- * dispatch to the Electron main process — at most one request is in flight at a time, since the
- * `claude` CLI subprocess is single-stream stdin/stdout (see `app/electron-client/CLAUDE.md`).
- *
- * Live progress events from the main process update each placeholder's `statusText`; cancelling
- * a placeholder either drops it from the queue (if not yet running) or sends a cancel IPC (if
- * running). On success the placeholder is removed and the AST is committed via `createAiNode`.
- *
- * The store is local-only — pending placeholders are NOT broadcast over Yjs awareness. A user's
- * in-flight prompts are their own affair; cross-window visibility would invite distracting
- * noise without meaningful collaboration value.
- */
+/** @file Renderer-side queue and placeholder nodes for in-flight AI component prompts. */
 
 import { useCurrentProject, useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import { proxyRefs } from '$/utils/reactivity'
@@ -26,43 +11,26 @@ import type { AiComponentResponse, AiProgressEvent } from 'enso-common/src/ai'
 import { computed, onScopeDispose, reactive } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
-/**
- * Lifecycle states for a pending placeholder. `queued` means the dispatcher has not yet sent
- * the request to the main process; `running` means the IPC is in flight; `failed` is a brief
- * post-error display state before the placeholder is removed.
- */
+/** `failed` is the brief post-error display before the placeholder is removed. */
 export type PendingStatus = 'queued' | 'running' | 'failed'
 
-/** A single pending AI prompt rendered as a placeholder node on the graph. */
+/** A pending AI prompt rendered as a placeholder node on the graph. */
 export interface AiPending {
-  /** Local identifier for the placeholder; also the key into the store's entries map. */
   readonly id: string
-  /** Identifier echoed in `aiProgress` events and used as the cancel key over IPC. */
+  /** Echoed in `aiProgress` events and used as the cancel key over IPC. */
   readonly requestId: string
-  /**
-   * `externalId` of the method the placeholder belongs to — used to filter which method's graph
-   * displays which placeholder. Captured at enqueue so navigating away doesn't move the
-   * placeholder; navigating back brings it into view.
-   */
+  /** Captured at enqueue so a navigation-away still commits the new node into the right method. */
   readonly methodId: ExternalId
-  /**
-   * Method name captured at enqueue, used at commit time to find the destination function in
-   * the module's top-level. Persisting the name (rather than re-reading the current method)
-   * means a navigation-away after enqueue still commits to the right method.
-   */
+  /** Captured at enqueue for the same reason as {@link methodId}. */
   readonly methodName: string
-  /** Position the AI node will occupy once committed. */
   readonly position: Vec2
-  /** Original natural-language prompt; surfaced as the bubble's title/tooltip. */
   readonly prompt: string
-  /** Source binding the user dropped onto the prompt, if any. */
   readonly sourceIdentifier: string | undefined
   status: PendingStatus
   /** Live status text shown above the placeholder; updated by progress events. */
   statusText: string
 }
 
-/** Arguments to {@link AiPromptsStore.enqueue}. */
 export interface EnqueueArgs {
   readonly prompt: string
   readonly sourceIdentifier: string | undefined
@@ -71,7 +39,6 @@ export interface EnqueueArgs {
   readonly position: Vec2
 }
 
-/** Public API of the AI prompts store; exported for typing of consumers. */
 export type AiPromptsStore = ReturnType<typeof aiPromptsStoreFactory>
 
 const STATUS_TEXT_MAX_CHARS = 120
@@ -79,6 +46,13 @@ const FAILED_DISPLAY_MS = 3_000
 const QUEUED_LABEL = 'Queued…'
 const STARTED_LABEL = 'Thinking…'
 
+/**
+ * Owns the placeholder nodes for in-flight AI prompts and serializes their dispatch to the
+ * Electron main process — only one request is in flight at a time because the `claude` CLI is
+ * single-stream stdin/stdout. Live progress events update each placeholder's `statusText`;
+ * cancelling either drops a still-queued entry or sends a cancel IPC for a running one. The
+ * store is local-only (not broadcast over Yjs awareness).
+ */
 function aiPromptsStoreFactory() {
   const graphStore = useGraphStore()
   const projectNames = useProjectNames()
@@ -112,10 +86,12 @@ function aiPromptsStoreFactory() {
         break
       }
       case 'tool':
-        target.statusText =
-          event.description ?
-            `${event.toolName}: ${truncate(event.description, STATUS_TEXT_MAX_CHARS)}`
-          : event.toolName
+        // Tool args (raw expressions / file paths) tend to be cryptic to the user — log them to the
+        // web console for debugging and let the placeholder keep showing the model's last text
+        // narration, which describes what the agent is actually trying to do.
+        console.log(
+          `[AI] ${event.toolName}${event.description ? `: ${event.description}` : ''}`,
+        )
         break
     }
   }
@@ -127,16 +103,10 @@ function aiPromptsStoreFactory() {
     return undefined
   }
 
-  /**
-   * Add a placeholder for a new AI prompt and (lazily) kick the dispatcher. Returns the
-   * local placeholder id so the caller can pass it to {@link cancel} if needed.
-   */
+  /** Add a placeholder for a new AI prompt and lazily kick the dispatcher. */
   function enqueue(args: EnqueueArgs): string {
     const id = newId()
     const requestId = newId()
-    // Initial label reflects the queue state at enqueue time. Once the request reaches the head
-    // of the queue, the dispatcher overwrites it via the `started` event and subsequent
-    // progress events.
     const ahead = countActive()
     const placeholder: AiPending = {
       id,
@@ -155,14 +125,9 @@ function aiPromptsStoreFactory() {
   }
 
   /**
-   * Drop a placeholder. Behavior depends on its lifecycle state:
-   * - `queued`: removed immediately. The dispatcher's `pickNext` skips deleted entries, so no
-   *   IPC ever fires for this prompt.
-   * - `running`: a cancel IPC is sent to the main process. The dispatcher's awaited `dispatch`
-   *   eventually resolves with a cancellation `Err`; `runEntry` then removes the placeholder
-   *   silently. We do NOT remove synchronously here so the dispatcher's bookkeeping stays
-   *   linear (one request → one settle → one removal).
-   * - `failed`: removed immediately, dismissing the post-error display early.
+   * Drop a placeholder. For a `running` entry the cancel IPC is sent and removal happens later
+   * when the dispatcher's pending dispatch resolves with a cancellation `Err` — keeps the
+   * one-request-one-settle bookkeeping linear.
    */
   function cancel(id: string): void {
     const entry = entries.get(id)

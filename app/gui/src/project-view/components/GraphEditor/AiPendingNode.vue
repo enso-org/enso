@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import type { AiPending } from '@/stores/aiPrompts'
 import { computed } from 'vue'
 
@@ -33,6 +34,12 @@ function onKeydown(event: KeyboardEvent) {
       {{ pending.statusText }}
     </div>
     <div class="skeleton">
+      <GrowingSpinner
+        v-if="pending.status !== 'failed'"
+        class="spinner"
+        :size="16"
+        phase="loading-medium"
+      />
       <span class="prompt">AI: {{ pending.prompt }}</span>
       <button
         type="button"
@@ -94,6 +101,10 @@ function onKeydown(event: KeyboardEvent) {
 
 .AiPendingNode.failed .skeleton {
   background-color: var(--color-node-background-error, #f8d7da);
+}
+
+.spinner {
+  flex: 0 0 auto;
 }
 
 .prompt {

@@ -42,12 +42,7 @@ const PRIMING_PROMPT =
 
 /** Synthetic request id used for the priming turn. */
 const PRIMING_REQUEST_ID = 'priming'
-/**
- * Watchdog window between SIGINT (graceful cancel — close the in-flight HTTPS stream to
- * Anthropic; preserve the warm session for the next turn) and SIGTERM (force respawn — pays the
- * priming cost again). 2s is enough for a CLI that handles SIGINT to settle but short enough
- * that an ignored SIGINT doesn't leave a phantom turn cooking.
- */
+/** SIGINT (graceful) to SIGTERM (force respawn) escalation window. */
 const CANCEL_SIGINT_TO_SIGTERM_MS = 2_000
 /** Truncation limit for tool-call descriptions surfaced as live progress to the renderer. */
 const TOOL_DESCRIPTION_MAX_CHARS = 120
@@ -181,13 +176,7 @@ function truncateStderr(stderr: string): string {
   return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
 }
 
-/**
- * Pick the most informative single-string summary of a tool call's args for surfacing as live
- * progress to the renderer. Per-tool field preferences mirror what the user is most likely to
- * recognize: file paths for filesystem tools, the expression text for `evaluateExpression`.
- * Falls back to the first string-valued arg, then the empty string when the input shape is
- * unrecognized. Always truncated to {@link TOOL_DESCRIPTION_MAX_CHARS}.
- */
+/** Pick the most informative single-string summary of a tool's args; truncated for the UI bubble. */
 function describeToolUse(toolName: string, input: unknown): string {
   if (input == null || typeof input !== 'object') return ''
   const args = input as Record<string, unknown>
@@ -302,34 +291,21 @@ interface TurnOutcome {
   state: 'completed' | 'crash'
   text: string
   usage: RawTokenUsage | null
-  /**
-   * Wall-clock duration between writing the user prompt to the CLI's stdin and resolving the
-   * outcome (success, timeout, or crash). Zero for the early "child isn't alive" return where
-   * we never started a real measurement.
-   */
+  /** Stdin-write to outcome wall-clock; `0` when we returned early without starting a measurement. */
   durationMs: number
   errorReason?: string
 }
 
 interface PendingTurn {
-  /**
-   * Renderer-supplied request id (or {@link PRIMING_REQUEST_ID} for the priming turn). Used as
-   * the cancellation key, the routing key for `aiProgress` IPC, and the discriminator that lets
-   * `aiMcpServer` tag tool dispatches against the originating turn.
-   */
+  /** Renderer-supplied id, or {@link PRIMING_REQUEST_ID} for priming. */
   readonly requestId: string
-  /** Accepts an outcome without `durationMs` — `runOneTurn`'s wrapper computes it. */
   resolve: (outcome: Omit<TurnOutcome, 'durationMs'>) => void
   textChunks: string[]
-  // Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming.
+  /** Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming. */
   sender: WebContents | null
 }
 
-/**
- * The renderer + request id pair currently driving a turn, exposed to {@link AiMcpServer} so it
- * can dispatch tool calls and tag `aiProgress` events without two separate getter calls (which
- * could disagree if the pending slot rotated between them).
- */
+/** Renderer + request id driving a turn — read atomically by {@link AiMcpServer}. */
 export interface ActiveRequest {
   readonly requestId: string
   readonly sender: WebContents
@@ -353,13 +329,7 @@ export class ClaudeAgentSession {
   private contextBytes = 0
   private stderrTail = ''
   private disposed = false
-  /**
-   * Request ids the renderer cancelled before they reached `runOneTurn` (typically because they
-   * were behind another turn in {@link queue}). Each entry is consumed by the queue task on entry
-   * and short-circuits with a `cancelled by user` error; entries for already-running turns end up
-   * in {@link cancelTurn}'s synchronous-pending branch instead, so anything left here is purely
-   * "queued but not yet started".
-   */
+  /** Ids cancelled while still queued behind another turn; consumed by the queue task on entry. */
   private readonly cancelled = new Set<string>()
 
   /** Spawn the child eagerly and kick off the priming turn in the background. */
@@ -458,19 +428,10 @@ export class ClaudeAgentSession {
   }
 
   /**
-   * Cancel a request the renderer previously dispatched. If the request is currently in flight,
-   * the pending slot is nulled synchronously (so a late `result` envelope is dropped by the
-   * existing `if (!this.pending) return` guard) and the originating turn is resolved with a
-   * cancellation `Err` immediately — the renderer's pending promise settles without waiting on
-   * the CLI. SIGINT is then sent to the child to close the in-flight HTTPS stream to Anthropic;
-   * a 2-second watchdog escalates to SIGTERM (which forces the watcher to respawn) if the CLI
-   * ignores SIGINT in `-p stream-json` mode.
-   *
-   * If the request hasn't reached `runOneTurn` yet — typically because it's queued behind
-   * another turn in {@link queue} — the id is filed in {@link cancelled}, and the queue task
-   * short-circuits when it runs. Idempotent: cancelling an unknown id is a no-op (it just
-   * leaves an entry in `cancelled` that the queue task will eventually delete on entry, or
-   * never, if the id never enters the queue — bounded by user action so the leak is small).
+   * Cancel a previously-dispatched request. For the in-flight slot the originating turn resolves
+   * synchronously with a cancellation `Err` and the child is SIGINT'd (with a 2s SIGTERM watchdog
+   * if SIGINT is ignored). Queued requests file the id in {@link cancelled} for the queue task to
+   * short-circuit. Idempotent.
    */
   cancelTurn(requestId: string): void {
     if (this.disposed) return
@@ -489,12 +450,7 @@ export class ClaudeAgentSession {
     this.cancelled.add(requestId)
   }
 
-  /**
-   * Send SIGINT to the child to abort the in-flight Anthropic API call, then a 2-second
-   * watchdog that escalates to SIGTERM if the child is still alive (which the watcher then
-   * sees as an unexpected exit and respawns). Best-effort; errors from `kill` are swallowed
-   * because the cancellation outcome has already been delivered to the renderer.
-   */
+  /** SIGINT then SIGTERM-after-2s; best-effort, since the cancellation Err already landed. */
   private signalCancel(): void {
     const handle = this.watcher.current
     if (handle == null || !handle.alive) return
@@ -693,22 +649,15 @@ export class ClaudeAgentSession {
           this.emitProgress({ requestId, kind: 'text', text: block.text })
         }
       } else if (block.type === 'tool_use' && block.name != null) {
-        // Emitted from here (not `aiMcpServer.dispatchToRenderer`) because the assistant
-        // envelope is the only place where ALL tool calls show up — `Read`/`Glob`/`Grep` are
-        // run by the CLI itself and never reach our MCP server. Firing on the assistant
-        // envelope catches both built-in and MCP tools at the moment the model decides to
-        // invoke them, which is what the renderer wants to display.
+        // Emit from here (not `aiMcpServer.dispatchToRenderer`) so built-in `Read`/`Glob`/`Grep`
+        // — which the CLI runs itself and never sends to our MCP server — are also captured.
         const description = describeToolUse(block.name, block.input)
         this.emitProgress({ requestId, kind: 'tool', toolName: block.name, description })
       }
     }
   }
 
-  /**
-   * Send an {@link AiProgressEvent} to the renderer that originated the current turn. Drops
-   * silently when there is no pending turn, when the slot has rotated to a different request
-   * since `event.requestId` was generated, or when the originating sender has been destroyed.
-   */
+  /** Drops silently when the pending slot has rotated or the originating sender is gone. */
   private emitProgress(event: AiProgressEvent): void {
     const pending = this.pending
     if (pending == null || pending.requestId !== event.requestId) return
