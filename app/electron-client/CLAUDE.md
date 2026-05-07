@@ -87,9 +87,9 @@ can't actually use.
 
 `REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
-on top of the model's own output, and tighter budgets started clipping legitimate
-turns. The priming timeout (60 s) and the per-stdin write retry/backoff are
-unchanged.
+on top of the model's own output, and tighter budgets started clipping
+legitimate turns. The priming timeout (60 s) and the per-stdin write
+retry/backoff are unchanged.
 
 ### AI tool bridge (MCP `evaluateExpression`)
 
@@ -318,8 +318,7 @@ flag in the plan's verification section so per-step smokes still exercise it
 locally.
 
 `tests/aiChallengePrep.spec.ts` is the heavy AI suite — it drives full Preppin'
-Data challenge solves through `AI:` prompts. With stdlib reading and
-`evaluateExpression` runtime probing both wired up, the suite is now expected to
-pass; it stays gated on `ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at
-manually-downloaded inputs (see `tests/README.md` for the expected layout)
-because the inputs aren't checked in and the agent budget is real.
+Data challenge solves through `AI:` prompts. It's gated on
+`ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at manually-downloaded inputs
+(see `tests/README.md` for the expected layout) because the inputs aren't
+checked in and the agent budget is real.

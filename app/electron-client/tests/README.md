@@ -70,9 +70,7 @@ enso> ENSO_TEST_AI=1 corepack pnpm -r --filter enso ide-integration-test tests/a
 ### `aiChallengePrep.spec.ts` — Preppin' Data challenge inputs (5–15 min/test)
 
 Long-running e2e tests that drive AI nodes through a full Preppin' Data
-challenge. Both tests are **expected to fail today**; they exist as the bar for
-two upcoming AI agent capabilities (stdlib reading, runtime value probing). See
-the file's top-of-file comment for what each test isolates and why.
+challenge.
 
 These tests need the `claude` CLI **and** the original challenge inputs
 downloaded by hand (no fixtures are committed). Source URLs:

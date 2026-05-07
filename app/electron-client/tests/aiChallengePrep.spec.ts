@@ -1,7 +1,6 @@
 /**
  * @file Long-running e2e tests that simulate a user solving Preppin' Data challenges almost
- * entirely through `AI:` prompts (only the `Data.read` source nodes are user-typed). Both tests
- * are EXPECTED TO FAIL today; they are forcing functions for two upcoming AI agent capabilities:
+ * entirely through `AI:` prompts (only the `Data.read` source nodes are user-typed).
  *
  *   - week 32 — flips green once the agent can read Standard library `.enso` source files.
  *     Prompts deliberately spell out any value-dependent context (gym leader order, gym set
@@ -12,10 +11,9 @@
  *     a sample value to figure out the parser.
  *
  * Each AI prompt creates exactly one new graph node, so an N-step challenge runs ~N AI calls.
- * With ~95% per-call success, expected per-test pass rate is ~50-70% even after the architectural
- * follow-ups land. These tests are SIGNAL, not gates — failures are surfaced honestly with no
- * automatic retries so the developer triaging a run can decide whether the failure is a capability
- * gap or an LLM hiccup.
+ * With ~95% per-call success, expected per-test pass rate is ~50-70%. These tests are SIGNAL, not
+ * gates — failures are surfaced honestly with no automatic retries so the developer triaging a run
+ * can decide whether the failure is a capability gap or an LLM hiccup.
  *
  * Requires the `claude` CLI on PATH and authenticated (same as `aiNode.spec.ts`), plus
  * `ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at a directory with the manually-downloaded
@@ -31,12 +29,6 @@
  * local copy. The agent identifies which `Data.read` binding is which by reading the sheet name
  * (or file basename) out of the current method's source it receives in its context — so don't
  * rename the sheets/files to opaque labels like `input1`.
- *
- * IMPORTANT: the prompt text inside each test is load-bearing. Week 32 only stays in the
- * "stdlib-only" regime because every step's prompt provides whatever value information the agent
- * would otherwise need; weakening a prompt to leave value information out would silently make the
- * test depend on value-probing too, and it would lose its purpose as the bar for the stdlib-read
- * follow-up PR.
  */
 
 import fs from 'node:fs/promises'
