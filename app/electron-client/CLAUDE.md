@@ -85,10 +85,11 @@ session still spawns but without filesystem access and with the stdlib hint
 omitted from the system prompt — the agent shouldn't be told it has tools it
 can't actually use.
 
-`REQUEST_TIMEOUT_MS` was bumped from 120 s to 240 s when filesystem tools were
-introduced — a single turn now does up to a handful of stdlib lookups in
-addition to the model's own output, and the original budget got tight. The
-priming timeout (60 s) and the per-stdin write retry/backoff are unchanged.
+`REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
+now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
+on top of the model's own output, and tighter budgets started clipping legitimate
+turns. The priming timeout (60 s) and the per-stdin write retry/backoff are
+unchanged.
 
 ### AI tool bridge (MCP `evaluateExpression`)
 
@@ -147,7 +148,7 @@ multi-window AI becomes common the `pending` slot would need to grow into a
 per-turn map.
 
 **Timeouts:** per-tool-call 30 s on the main-process side (the MCP server
-rejects with a clean error after that), nested inside the 240 s outer
+rejects with a clean error after that), nested inside the 360 s outer
 `REQUEST_TIMEOUT_MS`. So the model's worst case is "spent the whole turn on tool
 calls, none replied" — which still leaves room for it to wrap up. The
 `--allowedTools` list is built dynamically: `Read,Glob,Grep` are added when the
@@ -265,7 +266,7 @@ Findings from the probe at the time the long-lived design landed:
   suspends auto-respawn after 3 unexpected exits within 30 seconds; the next IPC
   call attempts one more spawn before failing fast (so the user can recover by
   retrying after fixing the underlying issue).
-- **Per-request timeout** (120s) returns `Err(timeout)` to the renderer but does
+- **Per-request timeout** (360s) returns `Err(timeout)` to the renderer but does
   **not** kill the still-warm child — the next request will reuse it. The late
   reply from the timed-out turn is dropped by the parser (`pending` is null).
 - **Context bytes:** the session tracks a running UTF-8 byte count covering the
@@ -317,8 +318,8 @@ flag in the plan's verification section so per-step smokes still exercise it
 locally.
 
 `tests/aiChallengePrep.spec.ts` is the heavy AI suite — it drives full Preppin'
-Data challenge solves through `AI:` prompts. Both tests are **expected to fail
-today**; they are forcing functions for upcoming agent capabilities (stdlib
-reading, runtime value probing). Gated on
-`ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at manually-downloaded inputs;
-see `tests/README.md` for the expected layout.
+Data challenge solves through `AI:` prompts. With stdlib reading and
+`evaluateExpression` runtime probing both wired up, the suite is now expected to
+pass; it stays gated on `ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at
+manually-downloaded inputs (see `tests/README.md` for the expected layout)
+because the inputs aren't checked in and the agent budget is real.

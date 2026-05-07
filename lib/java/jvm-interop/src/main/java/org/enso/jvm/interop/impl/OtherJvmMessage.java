@@ -246,6 +246,14 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       try {
         return Class.forName(name, false, PersistClass.class.getClassLoader());
       } catch (ClassNotFoundException e) {
+        // Expected for proxy classes (whose names exist only in the sender's classloader); also
+        // covers genuine sender/receiver classpath skew, which we surface as a warning rather
+        // than fail the whole message.
+        System.getLogger("org.enso.jvm.interop")
+            .log(
+                System.Logger.Level.WARNING,
+                "PersistClass: cannot resolve {0} on receiver, falling back to Object.class",
+                name);
         return Object.class;
       }
     }

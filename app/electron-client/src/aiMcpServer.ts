@@ -40,15 +40,15 @@ export class AiMcpServer {
   private readonly httpServer: HttpServer
   private configPath: string | null = null
   private readonly resolveActiveSender: ActiveSenderResolver
+  private readonly ipcReplyListener: (event: unknown, reply: AiToolCallReply) => void
   private listening = false
 
   /** Wire up the IPC reply listener and the HTTP server (still unbound until {@link start}). */
   constructor(resolveActiveSender: ActiveSenderResolver) {
     this.resolveActiveSender = resolveActiveSender
     this.httpServer = createServer((req, res) => void this.handleHttp(req, res))
-    ipcMain.on(Channel.aiToolReply, (_event, reply: AiToolCallReply) => {
-      this.handleReply(reply)
-    })
+    this.ipcReplyListener = (_event, reply) => this.handleReply(reply)
+    ipcMain.on(Channel.aiToolReply, this.ipcReplyListener)
   }
 
   /** Start the HTTP listener and write the MCP config file. Returns the config file path. */
@@ -79,6 +79,7 @@ export class AiMcpServer {
 
   /** Stop the listener, delete the config file, and fail any in-flight tool calls. */
   async shutdown(): Promise<void> {
+    ipcMain.removeListener(Channel.aiToolReply, this.ipcReplyListener)
     for (const [requestId, pending] of this.pending) {
       clearTimeout(pending.timer)
       pending.resolve({ ok: false, error: 'AI MCP server shutting down' })
@@ -208,6 +209,10 @@ export class AiMcpServer {
       if (!res.headersSent) {
         res.statusCode = 500
         res.end()
+      } else {
+        // Headers already sent — can't send a clean error code; tear the socket down so it
+        // doesn't linger until the server's keep-alive timeout.
+        res.destroy()
       }
     }
   }
