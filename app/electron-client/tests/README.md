@@ -101,3 +101,14 @@ Per-test skips fire when only one challenge's files are present, so a developer
 who has downloaded only week 51 can still run that one. If Preppin' Data
 publishes the inputs under different filenames, edit the `WEEK_32_FILES` /
 `WEEK_51_FILES` constants in the spec or rename the local copy.
+
+#### Effectiveness metrics (optional)
+
+Set `ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path` alongside the dataset env var to
+collect per-run AI-effectiveness telemetry. On a **successful** test the spec
+appends one CSV row per run to `<dir>/<sanitized-test-name>.csv`, with totals
+plus semicolon-separated per-AI-node breakdowns of duration, input/output
+tokens, and running context size. The row's `commit` column carries the current
+HEAD SHA when the working tree is clean and the literal `WIP` otherwise, so
+runs from in-progress branches are still recorded but won't be confused with
+clean-tree benchmarks. Failed tests append nothing.

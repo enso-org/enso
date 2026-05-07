@@ -102,6 +102,6 @@ function logUsage(usage: RequestUsage | null): void {
   if (!usage) return
   const contextKB = (usage.contextBytes / 1024).toFixed(1)
   console.log(
-    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKB}kB`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKB}kB time=${usage.durationMs}ms`,
   )
 }

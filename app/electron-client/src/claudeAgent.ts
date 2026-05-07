@@ -251,11 +251,22 @@ interface TurnOutcome {
   state: 'completed' | 'crash'
   text: string
   usage: RawTokenUsage | null
+  /**
+   * Wall-clock duration between writing the user prompt to the CLI's stdin and resolving the
+   * outcome (success, timeout, or crash). Zero for the early "child isn't alive" return where
+   * we never started a real measurement.
+   */
+  durationMs: number
   errorReason?: string
 }
 
 interface PendingTurn {
-  resolve: (outcome: TurnOutcome) => void
+  /**
+   * Accepts an outcome without `durationMs` — `runOneTurn`'s wrapper computes it from the
+   * pending's `startedAt` so callers (timeout handler, crash handler, stdout parser) don't
+   * each have to plumb the start time through.
+   */
+  resolve: (outcome: Omit<TurnOutcome, 'durationMs'>) => void
   textChunks: string[]
   // Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming.
   sender: WebContents | null
@@ -458,16 +469,19 @@ export class ClaudeAgentSession {
           state: 'crash',
           text: '',
           usage: null,
+          durationMs: 0,
           errorReason: 'child process is not alive',
         })
         return
       }
       const line = userTurnLine(content)
       this.contextBytes += Buffer.byteLength(line, 'utf8')
+      const startedAt = performance.now()
       const pending: PendingTurn = {
         resolve: (outcome) => {
           if (timeoutHandle != null) clearTimeout(timeoutHandle)
-          resolveTurn(outcome)
+          const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+          resolveTurn({ ...outcome, durationMs })
         },
         textChunks: [],
         sender,
@@ -542,7 +556,7 @@ export class ClaudeAgentSession {
   }
 
   private replyFromTurn(turn: TurnOutcome): AiComponentIpcReply {
-    const usage = this.snapshotUsage(turn.usage)
+    const usage = this.snapshotUsage(turn.usage, turn.durationMs)
     if (turn.state !== 'completed') {
       const reason = turn.errorReason ?? 'claude turn failed'
       return { result: Err(`Claude agent: ${reason}`), usage }
@@ -564,12 +578,13 @@ export class ClaudeAgentSession {
     return { result: Ok(parsed.data), usage }
   }
 
-  private snapshotUsage(raw: RawTokenUsage | null): RequestUsage | null {
+  private snapshotUsage(raw: RawTokenUsage | null, durationMs: number): RequestUsage | null {
     if (!raw) return null
     return {
       inputTokens: raw.input_tokens ?? 0,
       outputTokens: raw.output_tokens ?? 0,
       contextBytes: this.contextBytes,
+      durationMs,
     }
   }
 

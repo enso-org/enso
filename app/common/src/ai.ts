@@ -44,12 +44,14 @@ export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
 
 /**
  * Per-request usage telemetry from the `claude` session. `contextBytes` is the running UTF-8
- * byte count of the system prompt plus every user/assistant turn since the last spawn.
+ * byte count of the system prompt plus every user/assistant turn since the last spawn;
+ * `durationMs` is the main-process round-trip from stdin write to the terminal `result` envelope.
  */
 export interface RequestUsage {
   readonly inputTokens: number
   readonly outputTokens: number
   readonly contextBytes: number
+  readonly durationMs: number
 }
 
 /** IPC reply shape for `Channel.generateAiComponent`. */
