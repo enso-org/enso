@@ -172,6 +172,51 @@ function parseJsonSafe(text: string): unknown {
   }
 }
 
+/**
+ * Try strict JSON.parse first; on failure, fall back to extracting the last balanced top-level
+ * `{…}` object in the text. The fallback covers the case where the model leaks narration prose
+ * into its closing turn instead of emitting JSON-only.
+ */
+function extractJsonObject(text: string): unknown {
+  const direct = parseJsonSafe(text)
+  if (direct != null && typeof direct === 'object') return direct
+  let depth = 0
+  let start = -1
+  let inString = false
+  let escape = false
+  let bestStart = -1
+  let bestEnd = -1
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (escape) {
+      escape = false
+      continue
+    }
+    if (ch === '\\') {
+      escape = true
+      continue
+    }
+    if (ch === '"') {
+      inString = !inString
+      continue
+    }
+    if (inString) continue
+    if (ch === '{') {
+      if (depth === 0) start = i
+      depth++
+    } else if (ch === '}') {
+      depth--
+      if (depth === 0 && start !== -1) {
+        bestStart = start
+        bestEnd = i
+        start = -1
+      }
+    }
+  }
+  if (bestStart < 0 || bestEnd < 0) return null
+  return parseJsonSafe(text.slice(bestStart, bestEnd + 1))
+}
+
 function truncateStderr(stderr: string): string {
   const trimmed = stderr.trim()
   if (trimmed.length <= STDERR_TAIL_CHARS) return trimmed
@@ -698,7 +743,7 @@ export class ClaudeAgentSession {
     if (!turn.text.trim()) {
       return { result: Err('Claude agent returned an empty reply'), usage }
     }
-    const parsedJson = parseJsonSafe(turn.text)
+    const parsedJson = extractJsonObject(turn.text)
     if (parsedJson == null) {
       return { result: Err('Claude agent reply was not valid JSON'), usage }
     }
