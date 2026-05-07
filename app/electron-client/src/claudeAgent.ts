@@ -121,7 +121,12 @@ Rules:
 - \`argumentNames\` and \`callArguments\` must have the same length.
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.
 
-If the user message is a session warm-up and the request is not for a component, reply briefly in plain text. Otherwise, every reply must be the JSON object described above.`
+Live progress narration (the user sees these notes above the placeholder node):
+- Whenever you move to a new logical step in your work, emit ONE short text block (≤8 words, present continuous) saying what that step is in human terms — e.g. "Checking Pokemon Cards columns", "Looking up Table.join signature", "Reading Standard.Table source", "Drafting filter step". One narration covers all the tool calls that step needs; don't restate it per tool call.
+- Do NOT put code, expression text, or file paths in these notes — those are logged separately.
+- After the final logical step (or for prompts that need no tools), your closing assistant turn must contain ONLY the JSON object — no narration, no prose, no code fences, no leading or trailing whitespace mixed in.
+
+If the user message is a session warm-up and the request is not for a component, reply briefly in plain text. Otherwise, your final assistant text must be the JSON object described above and nothing else.`
 }
 
 // =================
