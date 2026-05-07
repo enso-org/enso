@@ -109,6 +109,6 @@ collect per-run AI-effectiveness telemetry. On a **successful** test the spec
 appends one CSV row per run to `<dir>/<sanitized-test-name>.csv`, with totals
 plus semicolon-separated per-AI-node breakdowns of duration, input/output
 tokens, and running context size. The row's `commit` column carries the current
-HEAD SHA when the working tree is clean and the literal `WIP` otherwise, so
-runs from in-progress branches are still recorded but won't be confused with
+HEAD SHA when the working tree is clean and the literal `WIP` otherwise, so runs
+from in-progress branches are still recorded but won't be confused with
 clean-tree benchmarks. Failed tests append nothing.

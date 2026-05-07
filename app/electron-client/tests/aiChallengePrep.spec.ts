@@ -36,6 +36,7 @@
  * rename the sheets/files to opaque labels like `input1`.
  */
 
+import type { RequestUsage } from 'enso-common/src/ai'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { expect, type Page, type TestInfo } from 'playwright/test'
@@ -47,7 +48,6 @@ import {
   test,
   visualizeData,
 } from './electronTest'
-import type { RequestUsage } from 'enso-common/src/ai'
 
 const DATASETS_DIR = process.env.ENSO_TEST_AI_CHALLENGES_DIR
 const METRICS_DIR = process.env.ENSO_AI_CHALLENGES_METRICS_DIR
@@ -203,10 +203,9 @@ async function runAIPromptOnLastNode(page: Page, prompt: string, expectedNodeCou
   await graphNodes.last().click()
 }
 
-test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)", async (
-  { page },
-  testInfo,
-) => {
+test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)", async ({
+  page,
+}, testInfo) => {
   // 9 AI calls × up to 240s each, plus 4 manual source nodes and the final visualization. The
   // 3-minute playwright default is far too short; budget 45 min so a hang fails fast without
   // squeezing the worst-case happy path.
@@ -289,10 +288,9 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
   await recordSuccess(testInfo, usage.samples)
 })
 
-test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isolation)", async (
-  { page },
-  testInfo,
-) => {
+test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isolation)", async ({
+  page,
+}, testInfo) => {
   // 6 AI calls × up to 240s each, plus the manual source node and the final visualization.
   test.setTimeout(30 * 60_000)
   const files = await resolveDataFiles(WEEK_51_FILES)

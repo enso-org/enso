@@ -6,8 +6,8 @@ import {
   useProjectNames,
 } from '$/components/WithCurrentProject.vue'
 import { proxyRefs } from '$/utils/reactivity'
-import { useAI } from '@/composables/ai'
 import { createAiNode } from '@/components/GraphEditor/aiNode'
+import { useAI } from '@/composables/ai'
 import { createContextStore } from '@/providers'
 import type { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'

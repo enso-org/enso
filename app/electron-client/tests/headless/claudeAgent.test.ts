@@ -458,7 +458,11 @@ describe('ClaudeAgentSession', () => {
         type: 'assistant',
         message: {
           content: [
-            { type: 'tool_use', name: 'Read', input: { file_path: '/lib/Standard/Table/0.0.0/Main.enso' } },
+            {
+              type: 'tool_use',
+              name: 'Read',
+              input: { file_path: '/lib/Standard/Table/0.0.0/Main.enso' },
+            },
           ],
         },
       }),

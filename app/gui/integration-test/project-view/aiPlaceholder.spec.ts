@@ -38,10 +38,7 @@ async function resolveAi(page: Page, requestId: string): Promise<void> {
   await page.evaluate((id) => {
     const w = window as unknown as {
       __aiMockController: {
-        pending: Map<
-          string,
-          (reply: { result: { ok: true; value: unknown }; usage: null }) => void
-        >
+        pending: Map<string, (reply: { result: { ok: true; value: unknown }; usage: null }) => void>
       }
     }
     const resolve = w.__aiMockController.pending.get(id)
