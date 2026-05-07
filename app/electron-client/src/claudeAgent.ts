@@ -323,11 +323,7 @@ interface PendingTurn {
    * `aiMcpServer` tag tool dispatches against the originating turn.
    */
   readonly requestId: string
-  /**
-   * Accepts an outcome without `durationMs` — `runOneTurn`'s wrapper computes it from the
-   * pending's `startedAt` so callers (timeout handler, crash handler, stdout parser) don't
-   * each have to plumb the start time through.
-   */
+  /** Accepts an outcome without `durationMs` — `runOneTurn`'s wrapper computes it. */
   resolve: (outcome: Omit<TurnOutcome, 'durationMs'>) => void
   textChunks: string[]
   // Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming.

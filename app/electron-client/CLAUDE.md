@@ -32,8 +32,13 @@ desktop binary (AppImage/DMG/exe + installer).
 Currently driven by `./run ide build` (the legacy Enso build CLI). Don't call
 `electron-builder` or `pnpm run dist` manually unless you're debugging packaging
 — the build CLI wires the engine bundle, GUI, and Electron together with the
-right env vars. `./run` is slated to be replaced by a Bazel target; check for
-one before assuming `./run` is the only path.
+right env vars. Always checkout submodules before building - they contain
+important environment information. For testing, always build with
+`--mode staging`, to not pollute production backend and telemetry with test
+runs.
+
+`./run` is slated to be replaced by a Bazel target; check for one before
+assuming `./run` is the only path.
 
 `watch:linux` / `watch:macos` / `watch:windows` scripts are for local iteration
 once `./run ide build` has produced the engine bundle.
@@ -260,22 +265,22 @@ Findings from the probe at the time the long-lived design landed:
 - **FIFO queue:** the renderer's `aiPrompts` store enforces single-in-flight at
   the window level, but overlapping IPC calls (multi-window, or main-process
   priming overlap) are still serialized through a shared `AsyncQueue` from
-  `enso-common/src/utilities/async`. Only one stdin write is in flight at a time.
+  `enso-common/src/utilities/async`. Only one stdin write is in flight at a
+  time.
 - **Cancellation:** `Channel.cancelAiComponent` carries the renderer's
   `requestId`. On match against the pending slot, the session nulls pending
   synchronously, resolves the originating turn with
   `Err('Claude agent: cancelled by user')`, and sends SIGINT to the child to
   abort the in-flight HTTPS stream to Anthropic. A 2-second watchdog escalates
   to SIGTERM if the CLI ignores SIGINT in `-p stream-json` mode (the watcher
-  then sees the child exit and auto-respawns — the warm context is lost, but
-  the user got a fast cancel). For a queued request that hasn't reached
-  `runOneTurn` yet, the id is filed in a `cancelled` set; the queue task
-  consumes it on entry and short-circuits without any signal needed. SIGINT
-  behavior in stream-json mode is not officially documented; if the CLI exits
-  on SIGINT, the watcher just respawns. We did NOT add an "in-stdin cancel
-  message" path: the CLI is turn-based, so a cancel line submitted mid-turn
-  queues for AFTER the current turn finishes, by which point the tokens are
-  already spent.
+  then sees the child exit and auto-respawns — the warm context is lost, but the
+  user got a fast cancel). For a queued request that hasn't reached `runOneTurn`
+  yet, the id is filed in a `cancelled` set; the queue task consumes it on entry
+  and short-circuits without any signal needed. SIGINT behavior in stream-json
+  mode is not officially documented; if the CLI exits on SIGINT, the watcher
+  just respawns. We did NOT add an "in-stdin cancel message" path: the CLI is
+  turn-based, so a cancel line submitted mid-turn queues for AFTER the current
+  turn finishes, by which point the tokens are already spent.
 - **Crash recovery:** an unexpected child exit fails any in-flight request with
   a structured `Err(...)`, then auto-respawns and re-primes. A crash-loop guard
   suspends auto-respawn after 3 unexpected exits within 30 seconds; the next IPC
@@ -284,15 +289,15 @@ Findings from the probe at the time the long-lived design landed:
 - **Per-request timeout** (360s) returns `Err(timeout)` to the renderer but does
   **not** kill the still-warm child — the next request will reuse it. The late
   reply from the timed-out turn is dropped by the parser (`pending` is null).
-- **Live progress:** `Channel.aiProgress` carries `AiProgressEvent`s tagged
-  with the originating `requestId`. `started` fires once stdin has been written;
-  `text` fires for every non-empty text block in an `assistant` envelope;
-  `tool` fires for every `tool_use` block (covers both built-in
-  `Read`/`Glob`/`Grep` and the MCP `evaluateExpression`). The renderer's
-  `aiPrompts` store routes each event to the placeholder it created and
-  updates the visible status text. `emitProgress` filters events whose
-  `requestId` doesn't match the current pending slot, so a stale event from a
-  rotated/cancelled turn never lands on a new placeholder.
+- **Live progress:** `Channel.aiProgress` carries `AiProgressEvent`s tagged with
+  the originating `requestId`. `started` fires once stdin has been written;
+  `text` fires for every non-empty text block in an `assistant` envelope; `tool`
+  fires for every `tool_use` block (covers both built-in `Read`/`Glob`/`Grep`
+  and the MCP `evaluateExpression`). The renderer's `aiPrompts` store routes
+  each event to the placeholder it created and updates the visible status text.
+  `emitProgress` filters events whose `requestId` doesn't match the current
+  pending slot, so a stale event from a rotated/cancelled turn never lands on a
+  new placeholder.
 - **Context bytes:** the session tracks a running UTF-8 byte count covering the
   system prompt, every stdin user-turn body, and every stdout assistant content
   body. Reset on respawn. Surfaced as `RequestUsage.contextBytes` for the
@@ -324,14 +329,13 @@ rule in `playwright.config.ts`:
 
 - `tests/headless/*.test.ts` — Vitest unit tests for main-process code. No
   Electron, no DOM. Fast. Run with `corepack pnpm vitest --run tests/headless`.
-  This is where `claudeAgent.test.ts` lives.
 - `tests/*.spec.ts` — Playwright end-to-end tests that launch the packaged
   Electron binary from `dist/ide/` and drive the app from a real user's
   perspective (login → dashboard → project → graph editor). `electronTest.ts`
   extends Playwright's `test` fixture to spawn Electron and exposes helpers like
   `loginAsTestUser`, `createNewProject`, `openComponentBrowser`. See
   `tests/README.md` for prerequisites (a built `dist/ide/`, credentials at
-  `playwright/.auth/user.json`). Run with
+  `playwright/.auth/user.json`). If on a worktree, Run with
   `corepack pnpm -r --filter enso ide-integration-test [path.spec.ts]`. Runs are
   long (minutes), so avoid them in inner dev loops.
 

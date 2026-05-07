@@ -26,8 +26,7 @@ export interface AiComponentContext {
 export interface AiComponentRequest {
   /**
    * Renderer-generated UUID identifying this request. Echoed back on every {@link AiProgressEvent}
-   * and used as the cancellation key for {@link AiCancelRequest}; the renderer also keys its
-   * pending-prompt placeholder by this id.
+   * and used as the cancellation key for {@link AiCancelRequest}.
    */
   readonly requestId: string
   readonly prompt: string

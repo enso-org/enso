@@ -1,19 +1,13 @@
 /**
  * @file Helpers for collecting AI-effectiveness telemetry from Playwright e2e tests and
  * appending one CSV row per successful test run to a configurable directory.
- *
- * Each `[AI] usage: …` line the renderer emits per AI-component request carries the four
- * numbers we care about (input/output tokens, running context size, agent round-trip time).
- * `collectAiUsage` subscribes to the page's console stream and accumulates them in order;
- * `appendMetricsRow` is called from a successful test's tail to persist a row tagged with
- * the current git commit (or `WIP` when the working tree is dirty).
  */
+import type { RequestUsage } from 'enso-common/src/ai'
 import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import type { Page } from 'playwright/test'
-import type { RequestUsage } from 'enso-common/src/ai'
 
 const execFileAsync = promisify(execFile)
 
@@ -23,10 +17,13 @@ const execFileAsync = promisify(execFile)
  * `contextBytes` as kilobytes with one decimal (e.g. `46.3kB`); we round-trip through
  * `kB * 1024` so the CSV reports bytes consistent with the in-memory `RequestUsage` type.
  */
-const AI_USAGE_LINE_REGEX =
-  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)kB time=(\d+)ms/
+const AI_USAGE_LINE_REGEX = /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)kB time=(\d+)ms/
 
-/** Parse one renderer console line into a `RequestUsage`, or `null` if it doesn't match. */
+/**
+ * Parse one "[AI] renderer console line into a `RequestUsage`, or `null` if it doesn't match.
+ *
+ * The line is defined in `logUsage` in `app/gui/src/project-view/components/ComponentBrowser/ai.ts`
+ */
 export function parseAiUsageLine(text: string): RequestUsage | null {
   const m = AI_USAGE_LINE_REGEX.exec(text)
   if (!m) return null
