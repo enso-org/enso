@@ -11,14 +11,6 @@ const transform = computed(() => {
   const { x, y } = pending.position
   return `translate(${x}px, ${y}px)`
 })
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Backspace' || event.key === 'Delete') {
-    event.preventDefault()
-    event.stopPropagation()
-    emit('cancel')
-  }
-}
 </script>
 
 <template>
@@ -26,8 +18,6 @@ function onKeydown(event: KeyboardEvent) {
     class="AiPendingNode"
     :class="{ failed: pending.status === 'failed' }"
     :style="{ transform }"
-    tabindex="0"
-    @keydown="onKeydown"
     @pointerdown.stop
     @click.stop
   >
@@ -42,12 +32,7 @@ function onKeydown(event: KeyboardEvent) {
         phase="loading-medium"
       />
       <span class="prompt">AI: {{ pending.prompt }}</span>
-      <SvgButton
-        class="cancel"
-        name="close"
-        title="Cancel AI prompt (Backspace)"
-        @activate="emit('cancel')"
-      />
+      <SvgButton class="cancel" name="close" title="Cancel AI prompt" @activate="emit('cancel')" />
     </div>
   </div>
 </template>
@@ -59,7 +44,6 @@ function onKeydown(event: KeyboardEvent) {
   flex-direction: column;
   align-items: flex-start;
   z-index: 2;
-  outline: none;
 }
 
 .bubble {
@@ -92,11 +76,6 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--color-text, #222);
   font-family: var(--font-code, monospace);
   opacity: 0.85;
-}
-
-.AiPendingNode:focus .skeleton {
-  outline: 2px solid var(--color-focus-ring, #1976d2);
-  outline-offset: 2px;
 }
 
 .AiPendingNode.failed .skeleton {

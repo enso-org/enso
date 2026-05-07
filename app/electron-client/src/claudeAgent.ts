@@ -221,6 +221,21 @@ function truncateStderr(stderr: string): string {
   return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
 }
 
+/**
+ * Send a progress event to a specific renderer without going through the per-turn `pending` slot.
+ * Used for `queued` acknowledgments emitted before the turn begins (and thus before `pending`
+ * is set) — `ClaudeAgentSession.emitProgress` requires a matching pending requestId, which we
+ * don't have yet at that point.
+ */
+function emitProgressTo(sender: WebContents, event: AiProgressEvent): void {
+  if (sender.isDestroyed()) return
+  try {
+    sender.send(Channel.aiProgress, event)
+  } catch {
+    // Renderer destroyed mid-emit; the next send will short-circuit on isDestroyed().
+  }
+}
+
 // ====================================
 // === Stream-json wire format glue ===
 // ====================================
@@ -420,6 +435,11 @@ export class ClaudeAgentSession {
           resolveOuter({ result: Err('Cancelled by user'), usage: null })
           return
         }
+        // Acknowledge IPC receipt now that we know we're going to actually run the turn. For
+        // an uncontended request `started` follows microseconds later, but multi-window or
+        // post-priming contention can keep us here long enough for the renderer to want a
+        // "we got it" signal.
+        emitProgressTo(sender, { requestId: request.requestId, kind: 'queued' })
         if (this.disposed) {
           resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
           return

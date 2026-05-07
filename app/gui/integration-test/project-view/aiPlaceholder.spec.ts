@@ -116,15 +116,17 @@ test('AI placeholder appears, narrates progress, and clears once the agent repli
   await openAiPrompt(page, 'first prompt')
   const placeholder = aiPendingNode(page)
   await expect(placeholder).toHaveCount(1)
-  // Initial label flips to "Thinking…" once the main process emits `started` — but in deferred
-  // mode the main process is silent until we drive it; the renderer-side store also flips to
-  // running on `runEntry`, so "Thinking…" is what the user sees here.
-  await expect(aiPendingStatus(placeholder)).toHaveText('Thinking…')
+  // The placeholder starts in the waiting state; the main process drives the transition to
+  // "Thinking…" via the `started` progress event.
+  await expect(aiPendingStatus(placeholder)).toHaveText('Waiting…')
 
-  // Drive a `text` progress event — placeholder narration updates.
   const probe = await probeAiMock(page)
   expect(probe.ids).toHaveLength(1)
   const requestId = probe.ids[0]!
+  await emitProgress(page, { requestId, kind: 'started' })
+  await expect(aiPendingStatus(placeholder)).toHaveText('Thinking…')
+
+  // Drive a `text` progress event — placeholder narration updates.
   await emitProgress(page, { requestId, kind: 'text', text: 'Inspecting columns' })
   await expect(aiPendingStatus(placeholder)).toHaveText('Inspecting columns')
 
@@ -146,13 +148,17 @@ test('queueing two AI prompts shows both placeholders, second is queued', async 
 
   const placeholders = aiPendingNode(page)
   await expect(placeholders).toHaveCount(2)
-  // First entry is running, second is queued (its label calls out the queue position).
-  await expect(aiPendingStatus(placeholders.nth(0))).toHaveText('Thinking…')
-  await expect(aiPendingStatus(placeholders.nth(1))).toContainText('Queued')
+  // Both entries are user-visibly "queued" until the main process emits `started` on the first.
+  // The second carries the renderer-side queue position label.
+  await expect(aiPendingStatus(placeholders.nth(0))).toHaveText('Waiting…')
+  await expect(aiPendingStatus(placeholders.nth(1))).toContainText('#2')
 
-  // Only the first request reached the main process; the dispatcher serialises the rest.
+  // Drive `started` on the first; it flips to "Thinking…", the second's label is unchanged.
   const probe = await probeAiMock(page)
   expect(probe.ids).toHaveLength(1)
+  await emitProgress(page, { requestId: probe.ids[0]!, kind: 'started' })
+  await expect(aiPendingStatus(placeholders.nth(0))).toHaveText('Thinking…')
+  await expect(aiPendingStatus(placeholders.nth(1))).toContainText('#2')
 })
 
 test('cancelling a queued placeholder removes it without sending a cancel IPC', async ({
@@ -203,22 +209,28 @@ test('failed placeholder stays until dismissed via the cancel button', async ({
   await enableDeferredAiMock(page)
 
   await openAiPrompt(page, 'first')
-  const placeholder = aiPendingNode(page)
-  await expect(placeholder).toHaveCount(1)
+  const placeholders = aiPendingNode(page)
+  await expect(placeholders).toHaveCount(1)
 
   const { ids } = await probeAiMock(page)
   const requestId = ids[0]!
   await failAi(page, requestId, 'Mock failure for testing')
 
   // The placeholder switches to the failed state and parks the error in the bubble.
-  await expect(placeholder).toHaveClass(/(?<=^| )failed(?=$| )/)
-  await expect(aiPendingStatus(placeholder)).toContainText('Mock failure for testing')
+  const failed = page.locator('.AiPendingNode.failed')
+  await expect(failed).toHaveCount(1)
+  await expect(aiPendingStatus(failed)).toContainText('Mock failure for testing')
 
-  // It does NOT auto-dismiss — give the renderer a beat and confirm it's still around.
-  await page.waitForTimeout(500)
-  await expect(placeholder).toHaveCount(1)
+  // Submit a second prompt; the failed placeholder must persist alongside the new pending one.
+  // This both rules out any auto-dismiss path (which would drop the count back to 1) and
+  // exercises the event-driven renderer cycle so the check isn't a fixed-sleep race.
+  await openAiPrompt(page, 'second')
+  await expect(placeholders).toHaveCount(2)
+  await expect(failed).toHaveCount(1)
 
-  // Dismissing via the cancel button finally clears it.
-  await placeholder.locator('.cancel').click()
-  await expect(placeholder).toHaveCount(0)
+  // Dismissing the failed placeholder via its cancel button finally clears it; the second
+  // (still-pending) placeholder is unaffected.
+  await failed.locator('.cancel').click()
+  await expect(failed).toHaveCount(0)
+  await expect(placeholders).toHaveCount(1)
 })

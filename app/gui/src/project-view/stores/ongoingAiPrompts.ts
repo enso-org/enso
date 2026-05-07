@@ -6,9 +6,11 @@ import {
   useProjectNames,
 } from '$/components/WithCurrentProject.vue'
 import { proxyRefs } from '$/utils/reactivity'
+import { DEFAULT_NODE_SIZE } from '@/components/ComponentBrowser/placement'
 import { createAiNode } from '@/components/GraphEditor/aiNode'
 import { useAI } from '@/composables/ai'
 import { createContextStore } from '@/providers'
+import { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import type { AiComponentResponse, AiProgressEvent } from 'enso-common/src/ai'
@@ -31,6 +33,12 @@ export interface AiPending {
   readonly prompt: string
   readonly sourceIdentifier: string | undefined
   status: PendingStatus
+  /**
+   * `true` once {@link runEntry} has called the IPC dispatch for this entry. The user-visible
+   * `status` may still be `'queued'` until the main process emits `'started'`, but cancellation
+   * needs to send the IPC any time we've entered the dispatch — otherwise main keeps processing.
+   */
+  dispatched: boolean
   /** Live status text shown above the placeholder; updated by progress events. */
   statusText: string
 }
@@ -46,8 +54,12 @@ export interface EnqueueArgs {
 export type OngoingAiPromptsStore = ReturnType<typeof ongoingAiPromptsStoreFactory>
 
 const STATUS_TEXT_MAX_CHARS = 120
-const QUEUED_LABEL = 'Queued…'
+const QUEUED_LABEL = 'Waiting…'
 const STARTED_LABEL = 'Thinking…'
+
+function queuedPositionLabel(position: number): string {
+  return `Waiting (#${position})`
+}
 
 /**
  * Owns the placeholder nodes for in-flight AI prompts and serializes their dispatch to the
@@ -72,12 +84,37 @@ function ongoingAiPromptsStoreFactory() {
     onScopeDispose(dispose)
   }
 
+  // Tear down on scope dispose: cancel any IPC-dispatched entry so a stale dispatch can't
+  // resolve and commit a node into a different module after this store's owner unmounts.
+  // Renderer-only queued entries (no IPC sent yet) are dropped silently by `entries.clear()`.
+  onScopeDispose(() => {
+    if (electronApi != null) {
+      for (const entry of entries.values()) {
+        if (entry.dispatched && entry.status !== 'failed') {
+          electronApi.ai.cancel(entry.requestId)
+        }
+      }
+    }
+    entries.clear()
+  })
+
+  // Expose placeholder positions to the graph store so node placement avoids overlapping with
+  // in-flight AI prompts. Read snapshot inside the source so the graph store's computed picks
+  // up changes to `entries` reactively.
+  const unregisterPlaceholderRects = graphStore.registerExtraOccupiedAreas(() =>
+    Array.from(entries.values(), (e) => new Rect(e.position, DEFAULT_NODE_SIZE)),
+  )
+  onScopeDispose(unregisterPlaceholderRects)
+
   function handleProgress(event: AiProgressEvent): void {
     const target = findByRequestId(event.requestId)
     if (target == null) return
     switch (event.kind) {
       case 'queued':
-        target.statusText = QUEUED_LABEL
+        // The IPC reached the main process. Collapse any "(#N)" position label set at enqueue
+        // — that count is renderer-side queue position and is no longer accurate once we're
+        // through the local queue.
+        if (target.status === 'queued') target.statusText = QUEUED_LABEL
         break
       case 'started':
         target.status = 'running'
@@ -118,7 +155,8 @@ function ongoingAiPromptsStoreFactory() {
       prompt: args.prompt,
       sourceIdentifier: args.sourceIdentifier,
       status: 'queued',
-      statusText: ahead === 0 ? QUEUED_LABEL : `Queued (${ahead + 1} pending)`,
+      dispatched: false,
+      statusText: ahead === 0 ? QUEUED_LABEL : queuedPositionLabel(ahead + 1),
     }
     entries.set(id, placeholder)
     void kickDispatcher()
@@ -126,15 +164,17 @@ function ongoingAiPromptsStoreFactory() {
   }
 
   /**
-   * Drop a placeholder. `running` entries are cancelled over IPC and removed when the dispatcher's
-   * pending dispatch resolves with a cancellation `Err` — keeps the one-request-one-settle
-   * bookkeeping linear. `queued` and `failed` entries are removed immediately; this is also how
-   * the user dismisses a failed placeholder.
+   * Drop a placeholder. Entries that have already been dispatched to the main process (whether
+   * the user-visible `status` is still `'queued'` or has flipped to `'running'`) are cancelled
+   * over IPC and removed when the pending dispatch resolves with a cancellation `Err` — keeps
+   * the one-request-one-settle bookkeeping linear. Renderer-only queued entries (`dispatched`
+   * still `false`) and failed entries are removed immediately; the latter is how the user
+   * dismisses a failed placeholder.
    */
   function cancel(id: string): void {
     const entry = entries.get(id)
     if (entry == null) return
-    if (entry.status === 'running') {
+    if (entry.dispatched && entry.status !== 'failed') {
       electronApi?.ai.cancel(entry.requestId)
       return
     }
@@ -157,14 +197,16 @@ function ongoingAiPromptsStoreFactory() {
 
   function pickNext(): AiPending | undefined {
     for (const entry of entries.values()) {
-      if (entry.status === 'queued') return entry
+      if (entry.status === 'queued' && !entry.dispatched) return entry
     }
     return undefined
   }
 
   async function runEntry(entry: AiPending): Promise<void> {
-    entry.status = 'running'
-    entry.statusText = STARTED_LABEL
+    // The user-visible status stays `'queued'` until the main process emits `'started'`. We mark
+    // `dispatched` here so cancel() routes through IPC instead of dropping locally — the IPC has
+    // already left the renderer.
+    entry.dispatched = true
     let result
     try {
       result = await ai.dispatch(entry.prompt, entry.sourceIdentifier, entry.requestId)

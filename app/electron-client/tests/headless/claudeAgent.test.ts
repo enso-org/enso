@@ -403,7 +403,7 @@ describe('ClaudeAgentSession', () => {
     expect(children[0]!.killCalls).toContain('SIGTERM')
   })
 
-  test('emits ai-progress: started + text on a successful turn', async () => {
+  test('emits ai-progress: queued + started + text on a successful turn', async () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
     const sender = fakeSender()
@@ -412,12 +412,26 @@ describe('ClaudeAgentSession', () => {
     const request = makeRequest({ requestId: 'req-progress' })
     const replyPromise = session.runRequest(request, sender)
     await settle()
-    // `started` should fire as soon as the turn begins (right after pending is set).
+    // `queued` should fire on IPC receipt (before any awaits in the queue task), and `started`
+    // once the turn actually begins.
+    const queuedCalls = sendMock.mock.calls.filter(
+      (c) => c[0] === 'ai-progress' && c[1].kind === 'queued',
+    )
+    expect(queuedCalls).toHaveLength(1)
+    expect(queuedCalls[0]![1]).toEqual({ requestId: 'req-progress', kind: 'queued' })
     const startedCalls = sendMock.mock.calls.filter(
       (c) => c[0] === 'ai-progress' && c[1].kind === 'started',
     )
     expect(startedCalls).toHaveLength(1)
     expect(startedCalls[0]![1]).toEqual({ requestId: 'req-progress', kind: 'started' })
+    // The two events arrive in order: `queued` before `started`.
+    const orderedKinds = sendMock.mock.calls
+      .filter((c) => c[0] === 'ai-progress')
+      .map((c) => c[1].kind)
+    const queuedIdx = orderedKinds.indexOf('queued')
+    const startedIdx = orderedKinds.indexOf('started')
+    expect(queuedIdx).toBeGreaterThanOrEqual(0)
+    expect(startedIdx).toBeGreaterThan(queuedIdx)
 
     // Synthesize an assistant envelope with a text block — captureAssistantContent should fire
     // a `text` progress event.

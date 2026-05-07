@@ -290,14 +290,18 @@ Findings from the probe at the time the long-lived design landed:
   **not** kill the still-warm child — the next request will reuse it. The late
   reply from the timed-out turn is dropped by the parser (`pending` is null).
 - **Live progress:** `Channel.aiProgress` carries `AiProgressEvent`s tagged with
-  the originating `requestId`. `started` fires once stdin has been written;
-  `text` fires for every non-empty text block in an `assistant` envelope; `tool`
-  fires for every `tool_use` block (covers both built-in `Read`/`Glob`/`Grep`
-  and the MCP `evaluateExpression`). The renderer's `aiPrompts` store routes
-  each event to the placeholder it created and updates the visible status text.
-  `emitProgress` filters events whose `requestId` doesn't match the current
-  pending slot, so a stale event from a rotated/cancelled turn never lands on a
-  new placeholder.
+  the originating `requestId`. `queued` fires once the IPC reaches the
+  AsyncQueue (acknowledging receipt — useful when a previous turn hasn't yet
+  released the queue slot, or when priming is still finishing); `started` fires
+  once stdin has been written; `text` fires for every non-empty text block in an
+  `assistant` envelope; `tool` fires for every `tool_use` block (covers both
+  built-in `Read`/`Glob`/`Grep` and the MCP `evaluateExpression`). The
+  renderer's `aiPrompts` store routes each event to the placeholder it created
+  and updates the visible status text. `emitProgress` filters events whose
+  `requestId` doesn't match the current pending slot, so a stale event from a
+  rotated/cancelled turn never lands on a new placeholder; the `queued` emit
+  uses a separate `emitProgressTo(sender, …)` path because it must fire _before_
+  the pending slot is set.
 - **Context bytes:** the session tracks a running UTF-8 byte count covering the
   system prompt, every stdin user-turn body, and every stdout assistant content
   body. Reset on respawn. Surfaced as `RequestUsage.contextBytes` for the
