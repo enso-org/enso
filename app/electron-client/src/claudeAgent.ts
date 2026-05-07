@@ -39,13 +39,8 @@ const RESPAWN_WINDOW_MS = 30_000
 const MAX_RESPAWNS_IN_WINDOW = 3
 const PRIMING_PROMPT =
   'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
-/**
- * Synthetic request id used for the priming turn. Never exposed to the renderer (priming runs
- * with `sender = null`, so no progress events are emitted), but kept on the pending slot so the
- * single `requestId`-keyed plumbing — `cancelTurn`, `activeRequest`, `emitProgress` — doesn't
- * have to special-case priming. The renderer cannot target this id because UUIDs collide
- * astronomically rarely with this literal.
- */
+
+/** Synthetic request id used for the priming turn. */
 const PRIMING_REQUEST_ID = 'priming'
 /**
  * Watchdog window between SIGINT (graceful cancel — close the in-flight HTTPS stream to

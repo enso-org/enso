@@ -5,7 +5,7 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { ipcMain, type WebContents } from 'electron'
+import { ipcMain } from 'electron'
 import type { AiToolCallReply, AiToolCallRequest } from 'enso-common/src/ai'
 import { randomUUID } from 'node:crypto'
 import * as fs from 'node:fs'
@@ -18,7 +18,10 @@ import { Channel } from './ipc.js'
 
 const TOOL_CALL_TIMEOUT_MS = 30_000
 
-/** Resolves the renderer + request id driving the currently-running AI turn, or `null` between turns. */
+/**
+ * Resolve the renderer + request id pair driving the currently-in-flight Claude turn. Returns
+ * `null` when no AI turn is in flight (or during priming).
+ */
 export type ActiveRequestResolver = () => ActiveRequest | null
 
 /** Returned by {@link startAiMcpServer}; `mcpConfigPath` is the value for the CLI's `--mcp-config`. */
