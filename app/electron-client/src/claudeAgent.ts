@@ -352,7 +352,7 @@ interface PendingTurn {
   sender: WebContents | null
 }
 
-/** Renderer + request id driving a turn — read atomically by {@link AiMcpServer}. */
+/** Renderer + request id driving a turn. */
 export interface ActiveRequest {
   readonly requestId: string
   readonly sender: WebContents
@@ -415,7 +415,7 @@ export class ClaudeAgentSession {
 
   /**
    * The renderer + request id driving the in-flight turn, or `null` between turns / when the
-   * renderer was destroyed. Read atomically (one pending-slot read) so callers never see a skew.
+   * renderer was destroyed.
    */
   get activeRequest(): ActiveRequest | null {
     const pending = this.pending

@@ -75,9 +75,7 @@ export interface AiApi {
   readonly onToolCall: (handler: (request: AiToolCallRequest) => void) => () => void
   readonly replyToolCall: (reply: AiToolCallReply) => void
   /**
-   * Subscribe to live progress events for in-flight AI component requests. The renderer is
-   * expected to route each event to the placeholder it stored under the same `requestId`.
-   * Returns a disposer that unsubscribes the handler.
+   * Subscribe to live progress events for in-flight AI component requests.
    */
   readonly onProgress: (handler: (event: AiProgressEvent) => void) => () => void
   /**

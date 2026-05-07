@@ -67,11 +67,7 @@ const props = defineProps<{
   graphEditorRoot: Opt<HTMLElement>
 }>()
 
-/**
- * Payload emitted when the user accepts an AI prompt. Carries only what the parent needs to
- * enqueue the placeholder; the AI response itself never reaches the parent any more — the
- * `aiPrompts` store handles the IPC and the eventual AST commit.
- */
+/** Payload emitted when the user accepts an AI prompt. */
 export interface AiPromptSubmission {
   readonly prompt: string
   readonly sourceIdentifier: string | undefined

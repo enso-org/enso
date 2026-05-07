@@ -18,7 +18,7 @@ import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
-import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import ComponentBrowser, { type AiPromptSubmission } from '@/components/ComponentBrowser.vue'
 import type { Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
@@ -516,16 +516,13 @@ function commitComponentBrowser(
   hideComponentBrowser()
 }
 
-function handleAiAccepted(payload: { prompt: string; sourceIdentifier: string | undefined }) {
+function handleAiAccepted(payload: AiPromptSubmission) {
   const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
   if (!graphStore.currentMethod.ast.ok || currentMethodName == null) {
     toasts.userActionFailed.show('Cannot create AI component: no current method loaded.')
     hideComponentBrowser()
     return
   }
-  // The AST commit happens later (when the agent replies) inside the aiPrompts store. Capture
-  // the method context now so a navigation-away after submit still inserts the new node into
-  // the method the user was looking at.
   aiPrompts.enqueue({
     prompt: payload.prompt,
     sourceIdentifier: payload.sourceIdentifier,

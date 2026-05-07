@@ -1,6 +1,10 @@
 /** @file Renderer-side queue and placeholder nodes for in-flight AI component prompts. */
 
-import { useCurrentProject, useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
+import {
+  useCurrentProject,
+  useGraphStore,
+  useProjectNames,
+} from '$/components/WithCurrentProject.vue'
 import { proxyRefs } from '$/utils/reactivity'
 import { useAI } from '@/components/ComponentBrowser/ai'
 import { createAiNode } from '@/components/GraphEditor/aiNode'
@@ -89,9 +93,7 @@ function aiPromptsStoreFactory() {
         // Tool args (raw expressions / file paths) tend to be cryptic to the user — log them to the
         // web console for debugging and let the placeholder keep showing the model's last text
         // narration, which describes what the agent is actually trying to do.
-        console.log(
-          `[AI] ${event.toolName}${event.description ? `: ${event.description}` : ''}`,
-        )
+        console.log(`[AI] ${event.toolName}${event.description ? `: ${event.description}` : ''}`)
         break
     }
   }
@@ -103,7 +105,7 @@ function aiPromptsStoreFactory() {
     return undefined
   }
 
-  /** Add a placeholder for a new AI prompt and lazily kick the dispatcher. */
+  /** Add a placeholder for a new AI prompt and kick the dispatcher. */
   function enqueue(args: EnqueueArgs): string {
     const id = newId()
     const requestId = newId()
@@ -246,7 +248,10 @@ function aiPromptsStoreFactory() {
   })
 }
 
-export const [provideAiPrompts, useAiPrompts] = createContextStore('aiPrompts', aiPromptsStoreFactory)
+export const [provideAiPrompts, useAiPrompts] = createContextStore(
+  'aiPrompts',
+  aiPromptsStoreFactory,
+)
 
 function truncate(value: string, max: number): string {
   if (value.length <= max) return value
