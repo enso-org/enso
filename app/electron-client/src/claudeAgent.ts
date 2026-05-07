@@ -109,7 +109,9 @@ You will receive:
 - Other identifiers already in scope in that method, with their Enso types when known. You may reference any of them.
 - A natural-language description of what the new component should do.
 
-You must return a JSON object with these four fields and nothing else (no prose, no code fences, no leading or trailing whitespace):
+**Live progress narration (REQUIRED whenever you use any tool).** The user sees these notes as the placeholder node's status text. Every time you start a new logical step that uses tools, emit ONE short text block (≤8 words, present continuous, no code or paths) describing that step in plain English — e.g. "Checking Pokemon Cards columns", "Looking up Table.join signature", "Reading Standard.Table source", "Drafting filter step". One narration covers all the tool calls within that step; you don't need to restate it per tool call. The narration text block must come before the tool_use blocks for that step. If you skip the narration the user just sees "Thinking…" and feels stuck; treat it as part of the contract, not optional. Code, expression text, and file paths must NOT appear in the narration — those are logged separately.
+
+Your closing assistant turn (after the last tool round, or right away if you don't use tools) must be the JSON object described below and nothing else (no narration, no prose, no code fences, no leading or trailing whitespace):
 - \`functionName\`: snake_case identifier for the new top-level function. It must not collide with an identifier already used in the surrounding method or with a name visible in the supplied method source. Pick something descriptive of what the function does.
 - \`argumentNames\`: parameter names in the function signature, in declaration order. Pick names that describe each parameter's role inside the function — they do *not* have to match any in-scope identifier and they are the names you reference inside \`body\`. Only declare parameters that \`body\` actually uses.
 - \`body\`: the function body, as a string. Every line belongs to the body; no leading or trailing blank lines. Reference the parameters by the names you listed in \`argumentNames\`. The final line must be a single identifier — the binding that holds the result. Do not include the function signature, the \`=\` sign, or any module wrapper.
@@ -121,12 +123,7 @@ Rules:
 - \`argumentNames\` and \`callArguments\` must have the same length.
 - Return only valid Enso — avoid placeholders, pseudocode, or commentary.
 
-Live progress narration (the user sees these notes above the placeholder node):
-- Whenever you move to a new logical step in your work, emit ONE short text block (≤8 words, present continuous) saying what that step is in human terms — e.g. "Checking Pokemon Cards columns", "Looking up Table.join signature", "Reading Standard.Table source", "Drafting filter step". One narration covers all the tool calls that step needs; don't restate it per tool call.
-- Do NOT put code, expression text, or file paths in these notes — those are logged separately.
-- After the final logical step (or for prompts that need no tools), your closing assistant turn must contain ONLY the JSON object — no narration, no prose, no code fences, no leading or trailing whitespace mixed in.
-
-If the user message is a session warm-up and the request is not for a component, reply briefly in plain text. Otherwise, your final assistant text must be the JSON object described above and nothing else.`
+If the user message is a session warm-up and the request is not for a component, reply briefly in plain text. Otherwise, your closing assistant turn must be the JSON object described above and nothing else.`
 }
 
 // =================
