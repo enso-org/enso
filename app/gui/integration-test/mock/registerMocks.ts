@@ -97,6 +97,8 @@ async function mockElectronApi(page: Page) {
                   }
               return { result: { ok: true, value }, usage: null }
             },
+            onToolCall: () => () => {},
+            replyToolCall: () => {},
           },
         }, // satisfies import('$/electronApi').ElectronApi,
       })
