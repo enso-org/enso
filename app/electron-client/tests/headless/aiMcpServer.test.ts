@@ -30,6 +30,10 @@ function fakeSender(opts: { destroyed?: boolean } = {}): FakeSender {
   }
 }
 
+function fakeActiveRequest(sender: FakeSender, requestId = 'test-request') {
+  return { requestId, sender: sender as unknown as Electron.WebContents }
+}
+
 /** Reach into the MCP server's private dispatch path to test it without an HTTP client. */
 function dispatch(
   server: InstanceType<typeof AiMcpServer>,
@@ -67,7 +71,7 @@ describe('AiMcpServer', () => {
 
   test('round-trips a renderer reply', async () => {
     const sender = fakeSender()
-    const server = new AiMcpServer(() => sender as unknown as Electron.WebContents)
+    const server = new AiMcpServer(() => fakeActiveRequest(sender))
     const promise = dispatch(server, { tool: 'evaluateExpression', expression: 'x.column_names' })
     // Microtask queue: let dispatch reach the sender.
     await Promise.resolve()
@@ -86,7 +90,7 @@ describe('AiMcpServer', () => {
 
   test('returns "renderer destroyed" when the sender is already gone', async () => {
     const sender = fakeSender({ destroyed: true })
-    const server = new AiMcpServer(() => sender as unknown as Electron.WebContents)
+    const server = new AiMcpServer(() => fakeActiveRequest(sender))
     const reply = await dispatch(server, { tool: 'evaluateExpression', expression: 'x' })
     expect(reply).toEqual({ ok: false, error: expect.stringMatching(/destroyed/) })
     // The sender should not have been used to send anything.
@@ -96,7 +100,7 @@ describe('AiMcpServer', () => {
   test('per-call 30s timeout fires when the renderer never replies', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     const sender = fakeSender()
-    const server = new AiMcpServer(() => sender as unknown as Electron.WebContents)
+    const server = new AiMcpServer(() => fakeActiveRequest(sender))
     const promise = dispatch(server, { tool: 'evaluateExpression', expression: 'x' })
     await Promise.resolve()
     expect(sender.send).toHaveBeenCalled()
@@ -119,7 +123,7 @@ describe('AiMcpServer', () => {
 
   test('shutdown rejects in-flight dispatches with a clean error', async () => {
     const sender = fakeSender()
-    const server = new AiMcpServer(() => sender as unknown as Electron.WebContents)
+    const server = new AiMcpServer(() => fakeActiveRequest(sender))
     const promise = dispatch(server, { tool: 'evaluateExpression', expression: 'x' })
     await Promise.resolve()
     await server.shutdown()
@@ -130,7 +134,7 @@ describe('AiMcpServer', () => {
 
   test('stale replies (after timeout/shutdown) are dropped silently', async () => {
     const sender = fakeSender()
-    const server = new AiMcpServer(() => sender as unknown as Electron.WebContents)
+    const server = new AiMcpServer(() => fakeActiveRequest(sender))
     // Manually create a request that has already been resolved by shutdown.
     const promise = dispatch(server, { tool: 'evaluateExpression', expression: 'x' })
     await Promise.resolve()

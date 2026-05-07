@@ -24,8 +24,34 @@ export interface AiComponentContext {
 
 /** Payload sent from the renderer to the Electron main process. */
 export interface AiComponentRequest {
+  /**
+   * Renderer-generated UUID identifying this request. Echoed back on every {@link AiProgressEvent}
+   * and used as the cancellation key for {@link AiCancelRequest}; the renderer also keys its
+   * pending-prompt placeholder by this id.
+   */
+  readonly requestId: string
   readonly prompt: string
   readonly context: AiComponentContext
+}
+
+/**
+ * Live progress signal dispatched over `Channel.aiProgress`. The renderer routes each event to
+ * the placeholder identified by `requestId` and updates its visible status text. `tool.description`
+ * is the most informative string summary of the call's args (expression text or path).
+ */
+export type AiProgressEvent =
+  | { readonly requestId: string; readonly kind: 'queued' | 'started' }
+  | { readonly requestId: string; readonly kind: 'text'; readonly text: string }
+  | {
+      readonly requestId: string
+      readonly kind: 'tool'
+      readonly toolName: string
+      readonly description: string
+    }
+
+/** Renderer → main payload for `Channel.cancelAiComponent`. */
+export interface AiCancelRequest {
+  readonly requestId: string
 }
 
 /**

@@ -3,7 +3,6 @@ import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
-import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
@@ -17,7 +16,6 @@ const props = defineProps<{
   usage: Usage
   mode: ComponentBrowserMode
   nodeColor: string
-  processing?: boolean
 }>()
 
 const graphStore = useGraphStore()
@@ -35,7 +33,6 @@ const { editorView } = useCodeMirror(editorRoot, {
   extensions: [syncExt],
   contentTestId: 'component-editor-content',
   lineMode: 'single',
-  readonly: () => props.processing === true,
 })
 
 watch(content, ({ text, selection }) => setText(editorView, text, selection), { immediate: true })
@@ -75,8 +72,7 @@ const rootStyle = computed(() => {
 <template>
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
-      <GrowingSpinner v-if="props.processing" :size="16" phase="loading-medium" />
-      <SvgIcon v-else :name="icon" />
+      <SvgIcon :name="icon" />
     </div>
     <div class="componentEditorContent">
       <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />

@@ -60,6 +60,7 @@ class FakeChild extends EventEmitter {
 }
 
 const exampleRequest: AiComponentRequest = {
+  requestId: 'req-test',
   prompt: 'filter to rows with value over 5',
   context: {
     sourceIdentifier: 'source',
@@ -69,6 +70,15 @@ const exampleRequest: AiComponentRequest = {
     inScopeBindings: [{ identifier: 'helper', typeName: 'Standard.Base.Number' }],
     moduleImports: ['from Standard.Base import all', 'from Standard.Table import all'],
   },
+}
+
+/** Build a request with a unique id, defaulting to {@link exampleRequest}'s shape. */
+function makeRequest(overrides: Partial<AiComponentRequest> = {}): AiComponentRequest {
+  return {
+    ...exampleRequest,
+    requestId: overrides.requestId ?? `req-${Math.random().toString(36).slice(2)}`,
+    ...overrides,
+  }
 }
 
 const exampleResponse: AiComponentResponse = {
@@ -341,23 +351,24 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
-  test('activeSender returns null between turns and the live sender mid-turn', async () => {
+  test('activeRequest returns null between turns and the live sender + id mid-turn', async () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
-    expect(session.activeSender).toBeNull()
+    expect(session.activeRequest).toBeNull()
 
     const sender = fakeSender()
-    const replyPromise = session.runRequest(exampleRequest, sender)
+    const request = makeRequest()
+    const replyPromise = session.runRequest(request, sender)
     await settle()
-    expect(session.activeSender).toBe(sender)
+    expect(session.activeRequest).toEqual({ requestId: request.requestId, sender })
 
     children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
     await replyPromise
-    expect(session.activeSender).toBeNull()
+    expect(session.activeRequest).toBeNull()
     session.shutdown()
   })
 
-  test('activeSender returns null when the in-flight sender has been destroyed mid-turn', async () => {
+  test('activeRequest returns null when the in-flight sender has been destroyed mid-turn', async () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
     let destroyed = false
@@ -366,12 +377,13 @@ describe('ClaudeAgentSession', () => {
       send: vi.fn(),
     } as unknown as Electron.WebContents
 
-    const replyPromise = session.runRequest(exampleRequest, sender)
+    const request = makeRequest()
+    const replyPromise = session.runRequest(request, sender)
     await settle()
-    expect(session.activeSender).toBe(sender)
+    expect(session.activeRequest).toEqual({ requestId: request.requestId, sender })
 
     destroyed = true
-    expect(session.activeSender).toBeNull()
+    expect(session.activeRequest).toBeNull()
 
     children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
     await replyPromise
@@ -389,5 +401,147 @@ describe('ClaudeAgentSession', () => {
     expect(reply.result.ok).toBe(false)
     if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/shutting down/)
     expect(children[0]!.killCalls).toContain('SIGTERM')
+  })
+
+  test('emits ai-progress: started + text on a successful turn', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    const sender = fakeSender()
+    // The send mock on `sender` is the one to inspect. Cast back to access it.
+    const sendMock = (sender as unknown as { send: ReturnType<typeof vi.fn> }).send
+    const request = makeRequest({ requestId: 'req-progress' })
+    const replyPromise = session.runRequest(request, sender)
+    await settle()
+    // `started` should fire as soon as the turn begins (right after pending is set).
+    const startedCalls = sendMock.mock.calls.filter(
+      (c) => c[0] === 'ai-progress' && c[1].kind === 'started',
+    )
+    expect(startedCalls).toHaveLength(1)
+    expect(startedCalls[0]![1]).toEqual({ requestId: 'req-progress', kind: 'started' })
+
+    // Synthesize an assistant envelope with a text block — captureAssistantContent should fire
+    // a `text` progress event.
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'assistant',
+        message: { content: [{ type: 'text', text: 'Reading the table…' }] },
+      }),
+    )
+    await settle()
+    const textCalls = sendMock.mock.calls.filter(
+      (c) => c[0] === 'ai-progress' && c[1].kind === 'text',
+    )
+    expect(textCalls).toHaveLength(1)
+    expect(textCalls[0]![1]).toEqual({
+      requestId: 'req-progress',
+      kind: 'text',
+      text: 'Reading the table…',
+    })
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await replyPromise
+    session.shutdown()
+  })
+
+  test('emits ai-progress: tool with description for built-in and MCP tool_use blocks', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    const sender = fakeSender()
+    const sendMock = (sender as unknown as { send: ReturnType<typeof vi.fn> }).send
+    const request = makeRequest({ requestId: 'req-tool' })
+    const replyPromise = session.runRequest(request, sender)
+    await settle()
+
+    // Built-in `Read` tool: description should come from `file_path`.
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            { type: 'tool_use', name: 'Read', input: { file_path: '/lib/Standard/Table/0.0.0/Main.enso' } },
+          ],
+        },
+      }),
+    )
+    // MCP `evaluateExpression`: description should come from `expression`.
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              name: 'mcp__enso__evaluateExpression',
+              input: { expression: 'source.column_names.to_json' },
+            },
+          ],
+        },
+      }),
+    )
+    await settle()
+    const toolCalls = sendMock.mock.calls.filter(
+      (c) => c[0] === 'ai-progress' && c[1].kind === 'tool',
+    )
+    expect(toolCalls).toHaveLength(2)
+    expect(toolCalls[0]![1]).toEqual({
+      requestId: 'req-tool',
+      kind: 'tool',
+      toolName: 'Read',
+      description: '/lib/Standard/Table/0.0.0/Main.enso',
+    })
+    expect(toolCalls[1]![1]).toEqual({
+      requestId: 'req-tool',
+      kind: 'tool',
+      toolName: 'mcp__enso__evaluateExpression',
+      description: 'source.column_names.to_json',
+    })
+
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await replyPromise
+    session.shutdown()
+  })
+
+  test('cancelTurn on the in-flight request resolves with cancellation Err and SIGINTs the child', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    const sender = fakeSender()
+    const request = makeRequest({ requestId: 'req-cancel' })
+    const replyPromise = session.runRequest(request, sender)
+    await settle()
+    // Mid-turn: the renderer cancels.
+    session.cancelTurn(request.requestId)
+    const reply = await replyPromise
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/cancelled by user/)
+    // SIGINT should have been sent to the live child (FakeChild treats kill as terminal — the
+    // 2-second SIGTERM watchdog never fires because the child has already exited via SIGINT).
+    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    session.shutdown()
+  })
+
+  test('cancelTurn on a queued request short-circuits without writing stdin', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    const sender1 = fakeSender()
+    const sender2 = fakeSender()
+    const request1 = makeRequest({ requestId: 'req-q1' })
+    const request2 = makeRequest({ requestId: 'req-q2' })
+    const r1 = session.runRequest(request1, sender1)
+    const r2 = session.runRequest(request2, sender2)
+    await settle()
+    // Only request1 has reached `runOneTurn` so far.
+    expect(children[0]!.stdinWrites).toHaveLength(2) // priming + r1
+    // Cancel the still-queued r2 before r1 finishes.
+    session.cancelTurn(request2.requestId)
+
+    // Finish r1 normally.
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    await r1
+    // r2 should have short-circuited without ever writing to stdin.
+    const r2Reply = await r2
+    expect(r2Reply.result.ok).toBe(false)
+    if (!r2Reply.result.ok) expect(r2Reply.result.error.payload).toMatch(/Cancelled by user/)
+    expect(children[0]!.stdinWrites).toHaveLength(2) // still just priming + r1
+    session.shutdown()
   })
 })

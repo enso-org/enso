@@ -257,10 +257,25 @@ Findings from the probe at the time the long-lived design landed:
 
 ### Runtime behavior
 
-- **FIFO queue:** overlapping IPC calls (possible because the renderer's
-  `processingAIPrompt` gate is per-window) are serialized through a shared
-  `AsyncQueue` from `enso-common/src/utilities/async`. Only one stdin write is
-  in flight at a time.
+- **FIFO queue:** the renderer's `aiPrompts` store enforces single-in-flight at
+  the window level, but overlapping IPC calls (multi-window, or main-process
+  priming overlap) are still serialized through a shared `AsyncQueue` from
+  `enso-common/src/utilities/async`. Only one stdin write is in flight at a time.
+- **Cancellation:** `Channel.cancelAiComponent` carries the renderer's
+  `requestId`. On match against the pending slot, the session nulls pending
+  synchronously, resolves the originating turn with
+  `Err('Claude agent: cancelled by user')`, and sends SIGINT to the child to
+  abort the in-flight HTTPS stream to Anthropic. A 2-second watchdog escalates
+  to SIGTERM if the CLI ignores SIGINT in `-p stream-json` mode (the watcher
+  then sees the child exit and auto-respawns — the warm context is lost, but
+  the user got a fast cancel). For a queued request that hasn't reached
+  `runOneTurn` yet, the id is filed in a `cancelled` set; the queue task
+  consumes it on entry and short-circuits without any signal needed. SIGINT
+  behavior in stream-json mode is not officially documented; if the CLI exits
+  on SIGINT, the watcher just respawns. We did NOT add an "in-stdin cancel
+  message" path: the CLI is turn-based, so a cancel line submitted mid-turn
+  queues for AFTER the current turn finishes, by which point the tokens are
+  already spent.
 - **Crash recovery:** an unexpected child exit fails any in-flight request with
   a structured `Err(...)`, then auto-respawns and re-primes. A crash-loop guard
   suspends auto-respawn after 3 unexpected exits within 30 seconds; the next IPC
@@ -269,6 +284,15 @@ Findings from the probe at the time the long-lived design landed:
 - **Per-request timeout** (360s) returns `Err(timeout)` to the renderer but does
   **not** kill the still-warm child — the next request will reuse it. The late
   reply from the timed-out turn is dropped by the parser (`pending` is null).
+- **Live progress:** `Channel.aiProgress` carries `AiProgressEvent`s tagged
+  with the originating `requestId`. `started` fires once stdin has been written;
+  `text` fires for every non-empty text block in an `assistant` envelope;
+  `tool` fires for every `tool_use` block (covers both built-in
+  `Read`/`Glob`/`Grep` and the MCP `evaluateExpression`). The renderer's
+  `aiPrompts` store routes each event to the placeholder it created and
+  updates the visible status text. `emitProgress` filters events whose
+  `requestId` doesn't match the current pending slot, so a stale event from a
+  rotated/cancelled turn never lands on a new placeholder.
 - **Context bytes:** the session tracks a running UTF-8 byte count covering the
   system prompt, every stdin user-turn body, and every stdout assistant content
   body. Reset on respawn. Surfaced as `RequestUsage.contextBytes` for the

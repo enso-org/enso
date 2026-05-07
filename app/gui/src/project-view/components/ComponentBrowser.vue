@@ -15,7 +15,6 @@ import type { Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
-import type { AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
@@ -68,13 +67,23 @@ const props = defineProps<{
   graphEditorRoot: Opt<HTMLElement>
 }>()
 
+/**
+ * Payload emitted when the user accepts an AI prompt. Carries only what the parent needs to
+ * enqueue the placeholder; the AI response itself never reaches the parent any more — the
+ * `aiPrompts` store handles the IPC and the eventual AST commit.
+ */
+export interface AiPromptSubmission {
+  readonly prompt: string
+  readonly sourceIdentifier: string | undefined
+}
+
 const emit = defineEmits<{
   accepted: [
     searcherExpression: string,
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
-  acceptedAi: [payload: AcceptedAiPayload]
+  acceptedAi: [payload: AiPromptSubmission]
   canceled: []
   selectedSuggestionId: [id: SuggestionId | undefined]
   isAiPrompt: [boolean]
@@ -99,7 +108,7 @@ const cbOpen: Interaction = {
   },
   end: () => {
     if (input.mode.mode === 'aiPrompt') {
-      void acceptAiInput()
+      acceptAiInput()
     } else {
       acceptInput()
     }
@@ -323,16 +332,12 @@ function acceptInput() {
   interaction.ended(cbOpen)
 }
 
-async function acceptAiInput() {
-  // Ignore further accept attempts while an AI prompt is already running — keeps the CB
-  // open so the user sees the spinner instead of being dismissed by a second Enter.
-  if (input.mode.mode !== 'aiPrompt' || input.processingAIPrompt) return
-  const result = await input.applyAIPrompt()
-  if (result != null && result.ok) {
-    emit('acceptedAi', { prompt: input.mode.prompt, response: result.value })
-  } else {
-    emit('canceled')
-  }
+function acceptAiInput() {
+  if (input.mode.mode !== 'aiPrompt') return
+  emit('acceptedAi', {
+    prompt: input.mode.prompt,
+    sourceIdentifier: input.selfArgument,
+  })
   interaction.ended(cbOpen)
 }
 
@@ -368,7 +373,7 @@ const actions = registerHandlers({
   },
   'componentBrowser.acceptAIPrompt': {
     available: () => input.mode.mode == 'aiPrompt',
-    action: () => void acceptAiInput(),
+    action: acceptAiInput,
   },
   'componentBrowser.switchPanelFocus': { action: () => componentList.value?.switchPanelFocus() },
   'list.moveUp': { action: () => componentList.value?.moveUp() },
@@ -435,7 +440,6 @@ const listsHandler = listBindings.handler({
       :usage="usage"
       :mode="input.mode"
       :nodeColor="nodeColor"
-      :processing="input.processingAIPrompt"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     />
     <div class="show-visualization">

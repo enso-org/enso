@@ -10,8 +10,10 @@ import spawn from 'cross-spawn'
 import { ipcMain, type WebContents } from 'electron'
 import {
   aiComponentResponseSchema,
+  type AiCancelRequest,
   type AiComponentIpcReply,
   type AiComponentRequest,
+  type AiProgressEvent,
   type RequestUsage,
 } from 'enso-common/src/ai'
 import { AsyncQueue, createDeferred, type Deferred } from 'enso-common/src/utilities/async'
@@ -37,6 +39,23 @@ const RESPAWN_WINDOW_MS = 30_000
 const MAX_RESPAWNS_IN_WINDOW = 3
 const PRIMING_PROMPT =
   'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
+/**
+ * Synthetic request id used for the priming turn. Never exposed to the renderer (priming runs
+ * with `sender = null`, so no progress events are emitted), but kept on the pending slot so the
+ * single `requestId`-keyed plumbing — `cancelTurn`, `activeRequest`, `emitProgress` — doesn't
+ * have to special-case priming. The renderer cannot target this id because UUIDs collide
+ * astronomically rarely with this literal.
+ */
+const PRIMING_REQUEST_ID = 'priming'
+/**
+ * Watchdog window between SIGINT (graceful cancel — close the in-flight HTTPS stream to
+ * Anthropic; preserve the warm session for the next turn) and SIGTERM (force respawn — pays the
+ * priming cost again). 2s is enough for a CLI that handles SIGINT to settle but short enough
+ * that an ignored SIGINT doesn't leave a phantom turn cooking.
+ */
+const CANCEL_SIGINT_TO_SIGTERM_MS = 2_000
+/** Truncation limit for tool-call descriptions surfaced as live progress to the renderer. */
+const TOOL_DESCRIPTION_MAX_CHARS = 120
 
 /** Configuration for the long-lived `claude` session. */
 export interface ClaudeSessionConfig {
@@ -167,6 +186,37 @@ function truncateStderr(stderr: string): string {
   return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
 }
 
+/**
+ * Pick the most informative single-string summary of a tool call's args for surfacing as live
+ * progress to the renderer. Per-tool field preferences mirror what the user is most likely to
+ * recognize: file paths for filesystem tools, the expression text for `evaluateExpression`.
+ * Falls back to the first string-valued arg, then the empty string when the input shape is
+ * unrecognized. Always truncated to {@link TOOL_DESCRIPTION_MAX_CHARS}.
+ */
+function describeToolUse(toolName: string, input: unknown): string {
+  if (input == null || typeof input !== 'object') return ''
+  const args = input as Record<string, unknown>
+  const candidates: readonly string[] =
+    toolName === 'Read' ? ['file_path', 'path']
+    : toolName === 'Glob' ? ['pattern', 'path']
+    : toolName === 'Grep' ? ['pattern', 'path']
+    : toolName === 'mcp__enso__evaluateExpression' ? ['expression']
+    : []
+  for (const key of candidates) {
+    const value = args[key]
+    if (typeof value === 'string' && value.length > 0) return truncateForUi(value)
+  }
+  for (const value of Object.values(args)) {
+    if (typeof value === 'string' && value.length > 0) return truncateForUi(value)
+  }
+  return ''
+}
+
+function truncateForUi(value: string): string {
+  if (value.length <= TOOL_DESCRIPTION_MAX_CHARS) return value
+  return `${value.slice(0, TOOL_DESCRIPTION_MAX_CHARS - 1)}…`
+}
+
 // ====================================
 // === Stream-json wire format glue ===
 // ====================================
@@ -227,6 +277,10 @@ const tokenUsageSchema = z.object({
 })
 /* eslint-enable camelcase */
 
+// `text` blocks carry the model's natural-language output; `tool_use` blocks carry the model's
+// decision to call a tool (`name` is the tool name, `input` is the args payload). The fields
+// below cover both shapes so we can route each block in `captureAssistantContent` without a
+// second parse — anything else is ignored.
 const assistantEnvelopeSchema = z.object({
   type: z.literal('assistant'),
   message: z.object({
@@ -234,6 +288,8 @@ const assistantEnvelopeSchema = z.object({
       z.object({
         type: z.string(),
         text: z.string().optional(),
+        name: z.string().optional(),
+        input: z.unknown().optional(),
       }),
     ),
   }),
@@ -262,6 +318,12 @@ interface TurnOutcome {
 
 interface PendingTurn {
   /**
+   * Renderer-supplied request id (or {@link PRIMING_REQUEST_ID} for the priming turn). Used as
+   * the cancellation key, the routing key for `aiProgress` IPC, and the discriminator that lets
+   * `aiMcpServer` tag tool dispatches against the originating turn.
+   */
+  readonly requestId: string
+  /**
    * Accepts an outcome without `durationMs` — `runOneTurn`'s wrapper computes it from the
    * pending's `startedAt` so callers (timeout handler, crash handler, stdout parser) don't
    * each have to plumb the start time through.
@@ -270,6 +332,16 @@ interface PendingTurn {
   textChunks: string[]
   // Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming.
   sender: WebContents | null
+}
+
+/**
+ * The renderer + request id pair currently driving a turn, exposed to {@link AiMcpServer} so it
+ * can dispatch tool calls and tag `aiProgress` events without two separate getter calls (which
+ * could disagree if the pending slot rotated between them).
+ */
+export interface ActiveRequest {
+  readonly requestId: string
+  readonly sender: WebContents
 }
 
 // ============================
@@ -290,6 +362,14 @@ export class ClaudeAgentSession {
   private contextBytes = 0
   private stderrTail = ''
   private disposed = false
+  /**
+   * Request ids the renderer cancelled before they reached `runOneTurn` (typically because they
+   * were behind another turn in {@link queue}). Each entry is consumed by the queue task on entry
+   * and short-circuits with a `cancelled by user` error; entries for already-running turns end up
+   * in {@link cancelTurn}'s synchronous-pending branch instead, so anything left here is purely
+   * "queued but not yet started".
+   */
+  private readonly cancelled = new Set<string>()
 
   /** Spawn the child eagerly and kick off the priming turn in the background. */
   constructor(config: ClaudeSessionConfig) {
@@ -326,15 +406,15 @@ export class ClaudeAgentSession {
   }
 
   /**
-   * Renderer that originated the in-flight turn, or `null` between turns or after the renderer
-   * was destroyed mid-turn. Read by the MCP server to dispatch tool calls back to the right window.
+   * The renderer + request id driving the in-flight turn, or `null` between turns / when the
+   * renderer was destroyed. Read atomically (one pending-slot read) so callers never see a skew.
    */
-  get activeSender(): WebContents | null {
+  get activeRequest(): ActiveRequest | null {
     const pending = this.pending
     if (pending == null) return null
     const sender = pending.sender
     if (sender == null || sender.isDestroyed()) return null
-    return sender
+    return { requestId: pending.requestId, sender }
   }
 
   /** Run an AI component request through the long-lived session. */
@@ -348,6 +428,13 @@ export class ClaudeAgentSession {
         return
       }
       this.queue.pushTask(async () => {
+        // Cancellation that arrived while the request was queued behind another turn: the
+        // pending slot didn't match this `requestId` at cancel time, so the cancel was filed in
+        // the `cancelled` set. Consume it here before paying the cost of a real turn.
+        if (this.cancelled.delete(request.requestId)) {
+          resolveOuter({ result: Err('Cancelled by user'), usage: null })
+          return
+        }
         if (this.disposed) {
           resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
           return
@@ -368,10 +455,73 @@ export class ClaudeAgentSession {
           })
           return
         }
-        const turn = await this.runOneTurn(buildUserPrompt(request), REQUEST_TIMEOUT_MS, sender)
+        const turn = await this.runOneTurn(
+          buildUserPrompt(request),
+          REQUEST_TIMEOUT_MS,
+          sender,
+          request.requestId,
+        )
         resolveOuter(this.replyFromTurn(turn))
       })
     })
+  }
+
+  /**
+   * Cancel a request the renderer previously dispatched. If the request is currently in flight,
+   * the pending slot is nulled synchronously (so a late `result` envelope is dropped by the
+   * existing `if (!this.pending) return` guard) and the originating turn is resolved with a
+   * cancellation `Err` immediately — the renderer's pending promise settles without waiting on
+   * the CLI. SIGINT is then sent to the child to close the in-flight HTTPS stream to Anthropic;
+   * a 2-second watchdog escalates to SIGTERM (which forces the watcher to respawn) if the CLI
+   * ignores SIGINT in `-p stream-json` mode.
+   *
+   * If the request hasn't reached `runOneTurn` yet — typically because it's queued behind
+   * another turn in {@link queue} — the id is filed in {@link cancelled}, and the queue task
+   * short-circuits when it runs. Idempotent: cancelling an unknown id is a no-op (it just
+   * leaves an entry in `cancelled` that the queue task will eventually delete on entry, or
+   * never, if the id never enters the queue — bounded by user action so the leak is small).
+   */
+  cancelTurn(requestId: string): void {
+    if (this.disposed) return
+    const pending = this.pending
+    if (pending != null && pending.requestId === requestId) {
+      this.pending = null
+      pending.resolve({
+        state: 'crash',
+        text: '',
+        usage: null,
+        errorReason: 'cancelled by user',
+      })
+      this.signalCancel()
+      return
+    }
+    this.cancelled.add(requestId)
+  }
+
+  /**
+   * Send SIGINT to the child to abort the in-flight Anthropic API call, then a 2-second
+   * watchdog that escalates to SIGTERM if the child is still alive (which the watcher then
+   * sees as an unexpected exit and respawns). Best-effort; errors from `kill` are swallowed
+   * because the cancellation outcome has already been delivered to the renderer.
+   */
+  private signalCancel(): void {
+    const handle = this.watcher.current
+    if (handle == null || !handle.alive) return
+    try {
+      handle.child.kill('SIGINT')
+    } catch {
+      // ignore — already exiting
+    }
+    setTimeout(() => {
+      const stillAliveHandle = this.watcher.current
+      if (stillAliveHandle == null || !stillAliveHandle.alive) return
+      if (stillAliveHandle !== handle) return
+      try {
+        stillAliveHandle.child.kill('SIGTERM')
+      } catch {
+        // ignore
+      }
+    }, CANCEL_SIGINT_TO_SIGTERM_MS)
   }
 
   /** Request graceful shutdown of the child and reject any pending work. */
@@ -447,7 +597,12 @@ export class ClaudeAgentSession {
   }
 
   private async prime(): Promise<void> {
-    const outcome = await this.runOneTurn(PRIMING_PROMPT, PRIMING_TIMEOUT_MS, null)
+    const outcome = await this.runOneTurn(
+      PRIMING_PROMPT,
+      PRIMING_TIMEOUT_MS,
+      null,
+      PRIMING_REQUEST_ID,
+    )
     if (outcome.state !== 'completed') {
       throw new Error(`priming turn ${outcome.state}: ${outcome.errorReason ?? '(no detail)'}`)
     }
@@ -460,6 +615,7 @@ export class ClaudeAgentSession {
     content: string,
     timeoutMs: number,
     sender: WebContents | null,
+    requestId: string,
   ): Promise<TurnOutcome> {
     return new Promise<TurnOutcome>((resolveTurn) => {
       const handle = this.watcher.current
@@ -478,6 +634,7 @@ export class ClaudeAgentSession {
       this.contextBytes += Buffer.byteLength(line, 'utf8')
       const startedAt = performance.now()
       const pending: PendingTurn = {
+        requestId,
         resolve: (outcome) => {
           if (timeoutHandle != null) clearTimeout(timeoutHandle)
           const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
@@ -487,6 +644,10 @@ export class ClaudeAgentSession {
         sender,
       }
       this.pending = pending
+      // Emit `started` after `pending` is set so `emitProgress` can find the sender, and before
+      // the stdin write so the renderer flips queued→running close to when the prompt actually
+      // begins traveling toward the API.
+      this.emitProgress({ requestId, kind: 'started' })
       const timeoutHandle = setTimeout(() => {
         if (this.pending !== pending) return
         // Drop the pending claim so subsequent stdout for this turn is discarded; the runtime
@@ -530,11 +691,42 @@ export class ClaudeAgentSession {
   }
 
   private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
-    if (!this.pending) return
+    const pending = this.pending
+    if (!pending) return
+    const requestId = pending.requestId
     for (const block of env.message.content) {
-      if (block.type !== 'text' || block.text == null) continue
-      this.pending.textChunks.push(block.text)
-      this.contextBytes += Buffer.byteLength(block.text, 'utf8')
+      if (block.type === 'text' && block.text != null) {
+        pending.textChunks.push(block.text)
+        this.contextBytes += Buffer.byteLength(block.text, 'utf8')
+        if (block.text.trim().length > 0) {
+          this.emitProgress({ requestId, kind: 'text', text: block.text })
+        }
+      } else if (block.type === 'tool_use' && block.name != null) {
+        // Emitted from here (not `aiMcpServer.dispatchToRenderer`) because the assistant
+        // envelope is the only place where ALL tool calls show up — `Read`/`Glob`/`Grep` are
+        // run by the CLI itself and never reach our MCP server. Firing on the assistant
+        // envelope catches both built-in and MCP tools at the moment the model decides to
+        // invoke them, which is what the renderer wants to display.
+        const description = describeToolUse(block.name, block.input)
+        this.emitProgress({ requestId, kind: 'tool', toolName: block.name, description })
+      }
+    }
+  }
+
+  /**
+   * Send an {@link AiProgressEvent} to the renderer that originated the current turn. Drops
+   * silently when there is no pending turn, when the slot has rotated to a different request
+   * since `event.requestId` was generated, or when the originating sender has been destroyed.
+   */
+  private emitProgress(event: AiProgressEvent): void {
+    const pending = this.pending
+    if (pending == null || pending.requestId !== event.requestId) return
+    const sender = pending.sender
+    if (sender == null || sender.isDestroyed()) return
+    try {
+      sender.send(Channel.aiProgress, event)
+    } catch {
+      // Renderer destroyed mid-emit; nothing to do — the next progress check will short-circuit.
     }
   }
 
@@ -611,7 +803,7 @@ let mcpServer: AiMcpServer | null = null
  */
 export async function initAiMcpServer(): Promise<string | undefined> {
   try {
-    const started = await startAiMcpServer(() => session?.activeSender ?? null)
+    const started = await startAiMcpServer(() => session?.activeRequest ?? null)
     mcpServer = started.server
     console.info(`[AI] MCP server config at ${started.mcpConfigPath}`)
     return started.mcpConfigPath
@@ -656,6 +848,9 @@ export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
     async (event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>
       currentSession.runRequest(request, event.sender),
   )
+  ipcMain.on(Channel.cancelAiComponent, (_event, payload: AiCancelRequest) => {
+    currentSession.cancelTurn(payload.requestId)
+  })
 }
 
 /** Tear down the long-lived session and MCP server. Wired to `app.on('before-quit', ...)`. */

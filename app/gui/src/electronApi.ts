@@ -3,6 +3,7 @@ import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type {
   AiComponentIpcReply,
   AiComponentRequest,
+  AiProgressEvent,
   AiToolCallReply,
   AiToolCallRequest,
 } from 'enso-common/src/ai'
@@ -73,6 +74,18 @@ export interface AiApi {
    */
   readonly onToolCall: (handler: (request: AiToolCallRequest) => void) => () => void
   readonly replyToolCall: (reply: AiToolCallReply) => void
+  /**
+   * Subscribe to live progress events for in-flight AI component requests. The renderer is
+   * expected to route each event to the placeholder it stored under the same `requestId`.
+   * Returns a disposer that unsubscribes the handler.
+   */
+  readonly onProgress: (handler: (event: AiProgressEvent) => void) => () => void
+  /**
+   * Cancel an in-flight or queued AI component request. Settles the original
+   * `generateComponent` promise with a structured cancellation error. Idempotent — cancelling
+   * an unknown id is a no-op.
+   */
+  readonly cancel: (requestId: string) => void
 }
 
 export interface ElectronApi {

@@ -12,7 +12,9 @@ import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/dat
 
 /**
  * Resolves Component Browser AI prompts by invoking the local Claude agent in the Electron main
- * process. Returns the generated User Defined Component plus its call site.
+ * process. `dispatch()` is one IPC round-trip; the renderer-side queue (`stores/aiPrompts.ts`)
+ * owns scheduling, placeholders, cancellation, and the `requestId` that threads through
+ * `aiProgress` events and the cancel channel.
  */
 export function useAI(
   graphStore: GraphStore = useGraphStore(),
@@ -70,9 +72,10 @@ export function useAI(
     })
   }
 
-  async function query(
+  async function dispatch(
     prompt: string,
     sourceIdentifier: string | undefined,
+    requestId: string,
   ): Promise<Result<AiComponentResponse>> {
     return withContext(
       () => 'When running the AI component generator',
@@ -85,7 +88,11 @@ export function useAI(
         }
         const context = buildContext(sourceIdentifier)
         if (!context.ok) return context
-        const reply = await electronApi.ai.generateComponent({ prompt, context: context.value })
+        const reply = await electronApi.ai.generateComponent({
+          requestId,
+          prompt,
+          context: context.value,
+        })
         logUsage(reply.usage)
         // Electron's structured clone strips the `ResultError` prototype, so rebuild it here.
         return reply.result.ok ? Ok(reply.result.value) : Err(reply.result.error.payload)
@@ -94,7 +101,7 @@ export function useAI(
   }
 
   return {
-    query,
+    dispatch,
   }
 }
 

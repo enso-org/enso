@@ -16,15 +16,12 @@ import {
   type SuggestionId,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
-import { useAI } from '@/components/ComponentBrowser/ai'
 import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
 import { Ast } from '@/util/ast'
 import { selfArgSeparator } from '@/util/ast/abstract'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
-import { useToast } from '@/util/toast'
-import type { AiComponentResponse } from 'enso-common/src/ai'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, readonly, ref, shallowRef, toRef, toValue, type ComputedRef } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
@@ -60,16 +57,11 @@ export type ComponentBrowserMode =
 export function useComponentBrowserInput(
   graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
   suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
-  ai: {
-    query(query: string, sourcePort: string | undefined): Promise<Result<AiComponentResponse>>
-  } = useAI(),
 ) {
   const text = ref('')
   const cbUsage = ref<Usage>()
   const selection = ref(Range.empty)
   const imports = shallowRef<RequiredImport[]>([])
-  const processingAIPrompt = ref(false)
-  const toastError = useToast.error()
   const sourceNodeIdentifier = ref<Ast.Identifier>()
   const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionEntry }>()
 
@@ -282,30 +274,6 @@ export function useComponentBrowserInput(
     return { text: expression, textOffset: 0, sourceNodeIdentifier: undefined }
   }
 
-  async function applyAIPrompt(): Promise<Result<AiComponentResponse> | null> {
-    if (processingAIPrompt.value || mode.value.mode !== 'aiPrompt') {
-      if (!processingAIPrompt.value) {
-        console.error('Cannot apply AI prompt: not in AI mode.')
-      }
-      return null
-    }
-    processingAIPrompt.value = true
-    try {
-      const result = await ai.query(mode.value.prompt, sourceNodeIdentifier.value)
-      if (!result.ok) {
-        toastError.reportError(result.error, 'Applying AI prompt failed')
-      }
-      return result
-    } catch (err) {
-      const message = `Applying AI prompt failed: ${err instanceof Error ? err.message : String(err)}`
-      console.error(message)
-      toastError.show(message)
-      return Err(message)
-    } finally {
-      processingAIPrompt.value = false
-    }
-  }
-
   function applySourceNode(text: string) {
     return sourceNodeIdentifier.value ?
         `${sourceNodeIdentifier.value}${selfArgSeparator(text)}${text}`
@@ -325,16 +293,12 @@ export function useComponentBrowserInput(
     selfArgument: sourceNodeIdentifier,
     /** The current selection (or cursor position if start is equal to end). */
     selection,
-    /** Flag indicating that we're waiting for AI's answer for user's prompt. */
-    processingAIPrompt,
     /** Re-initializes the input for given usage. */
     reset,
     /** Apply given suggested entry to the input. It will switch mode to code editing. */
     applySuggestion,
     /** Switch to code edit mode with input as-is */
     switchToCodeEditMode,
-    /** Apply the currently written AI prompt. */
-    applyAIPrompt,
     /** A list of imports to add when the suggestion is accepted. */
     importsToAdd,
   })

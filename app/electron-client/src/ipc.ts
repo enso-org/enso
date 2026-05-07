@@ -39,4 +39,15 @@ export enum Channel {
   aiToolCall = 'ai-tool-call',
   /** Renderer → main: reply to a previously-issued {@link Channel.aiToolCall}. */
   aiToolReply = 'ai-tool-reply',
+  /**
+   * Main → renderer: live progress events while a Claude turn runs. Each carries the originating
+   * request's id so the renderer can route to the correct placeholder. Payload shape is
+   * {@link AiProgressEvent} from `enso-common/src/ai`.
+   */
+  aiProgress = 'ai-progress',
+  /**
+   * Renderer → main: cancel an in-flight or queued AI component request, identified by the
+   * `requestId` carried in the original {@link generateAiComponent} payload.
+   */
+  cancelAiComponent = 'cancel-ai-component',
 }

@@ -10,6 +10,7 @@ import type * as accessToken from 'enso-common/src/accessToken'
 import type {
   AiComponentIpcReply,
   AiComponentRequest,
+  AiProgressEvent,
   AiToolCallReply,
   AiToolCallRequest,
 } from 'enso-common/src/ai'
@@ -206,6 +207,17 @@ const ai: ElectronApi['ai'] = {
   },
   replyToolCall: (reply: AiToolCallReply): void => {
     electron.ipcRenderer.send(ipc.Channel.aiToolReply, reply)
+  },
+  onProgress: (handler: (event: AiProgressEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: AiProgressEvent) =>
+      handler(payload)
+    electron.ipcRenderer.on(ipc.Channel.aiProgress, listener)
+    return () => {
+      electron.ipcRenderer.removeListener(ipc.Channel.aiProgress, listener)
+    }
+  },
+  cancel: (requestId: string): void => {
+    electron.ipcRenderer.send(ipc.Channel.cancelAiComponent, { requestId })
   },
 }
 
