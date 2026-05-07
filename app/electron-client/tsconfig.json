@@ -57,6 +57,7 @@
     "./tests/gettingStarted.spec.ts",
     "./tests/headless/aiMcpServer.test.ts",
     "./tests/headless/claudeAgent.test.ts",
+    "./tests/headless/extractJsonObject.test.ts",
     "./tests/headless/writeFile.test.ts",
     "./tests/localWorkflow.spec.ts",
     "./vitest.config.ts",

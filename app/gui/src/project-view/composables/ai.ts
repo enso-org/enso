@@ -11,10 +11,10 @@ import type {
 import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 
 /**
- * Resolves Component Browser AI prompts by invoking the local Claude agent in the Electron main
- * process. `dispatch()` is one IPC round-trip; the renderer-side queue (`stores/aiPrompts.ts`)
- * owns scheduling, placeholders, cancellation, and the `requestId` that threads through
- * `aiProgress` events and the cancel channel.
+ * Resolves an AI component prompt by invoking the local Claude agent in the Electron main
+ * process. `dispatch()` is one IPC round-trip; the renderer-side queue
+ * (`stores/ongoingAiPrompts.ts`) owns scheduling, placeholders, cancellation, and the
+ * `requestId` that threads through `aiProgress` events and the cancel channel.
  */
 export function useAI(
   graphStore: GraphStore = useGraphStore(),

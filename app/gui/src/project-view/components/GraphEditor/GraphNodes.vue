@@ -10,7 +10,7 @@ import { useArrows, useEvent } from '@/composables/events'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { useGraphSelection } from '@/providers/graphSelection'
-import { useAiPrompts } from '@/stores/aiPrompts'
+import { useOngoingAiPrompts } from '@/stores/ongoingAiPrompts'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import type { Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
@@ -27,7 +27,7 @@ const selection = useGraphSelection()
 const graphStore = useGraphStore()
 const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
-const aiPrompts = useAiPrompts()
+const aiPrompts = useOngoingAiPrompts()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
   const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))

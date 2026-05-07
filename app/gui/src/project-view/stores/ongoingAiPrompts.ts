@@ -6,7 +6,7 @@ import {
   useProjectNames,
 } from '$/components/WithCurrentProject.vue'
 import { proxyRefs } from '$/utils/reactivity'
-import { useAI } from '@/components/ComponentBrowser/ai'
+import { useAI } from '@/composables/ai'
 import { createAiNode } from '@/components/GraphEditor/aiNode'
 import { createContextStore } from '@/providers'
 import type { Vec2 } from '@/util/data/vec2'
@@ -15,7 +15,7 @@ import type { AiComponentResponse, AiProgressEvent } from 'enso-common/src/ai'
 import { computed, onScopeDispose, reactive } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
-/** `failed` is the brief post-error display before the placeholder is removed. */
+/** A `failed` placeholder stays on screen until the user dismisses it via the cancel button. */
 export type PendingStatus = 'queued' | 'running' | 'failed'
 
 /** A pending AI prompt rendered as a placeholder node on the graph. */
@@ -43,10 +43,9 @@ export interface EnqueueArgs {
   readonly position: Vec2
 }
 
-export type AiPromptsStore = ReturnType<typeof aiPromptsStoreFactory>
+export type OngoingAiPromptsStore = ReturnType<typeof ongoingAiPromptsStoreFactory>
 
 const STATUS_TEXT_MAX_CHARS = 120
-const FAILED_DISPLAY_MS = 3_000
 const QUEUED_LABEL = 'Queued…'
 const STARTED_LABEL = 'Thinking…'
 
@@ -54,10 +53,10 @@ const STARTED_LABEL = 'Thinking…'
  * Owns the placeholder nodes for in-flight AI prompts and serializes their dispatch to the
  * Electron main process — only one request is in flight at a time because the `claude` CLI is
  * single-stream stdin/stdout. Live progress events update each placeholder's `statusText`;
- * cancelling either drops a still-queued entry or sends a cancel IPC for a running one. The
- * store is local-only (not broadcast over Yjs awareness).
+ * cancelling either drops a still-queued/failed entry or sends a cancel IPC for a running one.
+ * The store is local-only (not broadcast over Yjs awareness).
  */
-function aiPromptsStoreFactory() {
+function ongoingAiPromptsStoreFactory() {
   const graphStore = useGraphStore()
   const projectNames = useProjectNames()
   const { module } = useCurrentProject()
@@ -90,10 +89,10 @@ function aiPromptsStoreFactory() {
         break
       }
       case 'tool':
-        // Tool args (raw expressions / file paths) tend to be cryptic to the user — log them to the
-        // web console for debugging and let the placeholder keep showing the model's last text
-        // narration, which describes what the agent is actually trying to do.
-        console.log(`[AI] ${event.toolName}${event.description ? `: ${event.description}` : ''}`)
+        // Tool args (raw expressions / file paths) tend to be cryptic to the user — surface them
+        // in the web console for debugging and let the placeholder keep showing the model's last
+        // text narration, which describes what the agent is actually trying to do.
+        console.log(`[AI] ${event.toolName}`, event.input)
         break
     }
   }
@@ -127,9 +126,10 @@ function aiPromptsStoreFactory() {
   }
 
   /**
-   * Drop a placeholder. For a `running` entry the cancel IPC is sent and removal happens later
-   * when the dispatcher's pending dispatch resolves with a cancellation `Err` — keeps the
-   * one-request-one-settle bookkeeping linear.
+   * Drop a placeholder. `running` entries are cancelled over IPC and removed when the dispatcher's
+   * pending dispatch resolves with a cancellation `Err` — keeps the one-request-one-settle
+   * bookkeeping linear. `queued` and `failed` entries are removed immediately; this is also how
+   * the user dismisses a failed placeholder.
    */
   function cancel(id: string): void {
     const entry = entries.get(id)
@@ -195,7 +195,6 @@ function aiPromptsStoreFactory() {
     toastError.show(message)
     entry.status = 'failed'
     entry.statusText = truncate(message, STATUS_TEXT_MAX_CHARS)
-    setTimeout(() => entries.delete(entry.id), FAILED_DISPLAY_MS)
   }
 
   function commit(entry: AiPending, response: AiComponentResponse): void {
@@ -232,7 +231,7 @@ function aiPromptsStoreFactory() {
     return list
   })
 
-  /** Count placeholders that haven't completed yet — used to show "Queued (N pending)". */
+  /** Active = not-yet-settled. Used to render the "Queued (N pending)" count on new entries. */
   function countActive(): number {
     let n = 0
     for (const entry of entries.values()) {
@@ -248,9 +247,9 @@ function aiPromptsStoreFactory() {
   })
 }
 
-export const [provideAiPrompts, useAiPrompts] = createContextStore(
-  'aiPrompts',
-  aiPromptsStoreFactory,
+export const [provideOngoingAiPrompts, useOngoingAiPrompts] = createContextStore(
+  'ongoingAiPrompts',
+  ongoingAiPromptsStoreFactory,
 )
 
 function truncate(value: string, max: number): string {

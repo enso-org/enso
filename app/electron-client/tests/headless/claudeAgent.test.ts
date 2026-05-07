@@ -443,7 +443,7 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
-  test('emits ai-progress: tool with description for built-in and MCP tool_use blocks', async () => {
+  test('emits ai-progress: tool with raw input for built-in and MCP tool_use blocks', async () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)
     const sender = fakeSender()
@@ -452,7 +452,6 @@ describe('ClaudeAgentSession', () => {
     const replyPromise = session.runRequest(request, sender)
     await settle()
 
-    // Built-in `Read` tool: description should come from `file_path`.
     /* eslint-disable camelcase -- mirrors the snake_case `file_path` key the real CLI emits. */
     children[0]!.pushStdoutLine(
       JSON.stringify({
@@ -465,7 +464,6 @@ describe('ClaudeAgentSession', () => {
       }),
     )
     /* eslint-enable camelcase */
-    // MCP `evaluateExpression`: description should come from `expression`.
     children[0]!.pushStdoutLine(
       JSON.stringify({
         type: 'assistant',
@@ -489,13 +487,14 @@ describe('ClaudeAgentSession', () => {
       requestId: 'req-tool',
       kind: 'tool',
       toolName: 'Read',
-      description: '/lib/Standard/Table/0.0.0/Main.enso',
+      // eslint-disable-next-line camelcase -- the raw input is forwarded as-is, snake_case included.
+      input: { file_path: '/lib/Standard/Table/0.0.0/Main.enso' },
     })
     expect(toolCalls[1]![1]).toEqual({
       requestId: 'req-tool',
       kind: 'tool',
       toolName: 'mcp__enso__evaluateExpression',
-      description: 'source.column_names.to_json',
+      input: { expression: 'source.column_names.to_json' },
     })
 
     children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))

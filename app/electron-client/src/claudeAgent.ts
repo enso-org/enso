@@ -44,8 +44,6 @@ const PRIMING_PROMPT =
 const PRIMING_REQUEST_ID = 'priming'
 /** SIGINT (graceful) to SIGTERM (force respawn) escalation window. */
 const CANCEL_SIGINT_TO_SIGTERM_MS = 2_000
-/** Truncation limit for tool-call descriptions surfaced as live progress to the renderer. */
-const TOOL_DESCRIPTION_MAX_CHARS = 120
 
 /** Configuration for the long-lived `claude` session. */
 export interface ClaudeSessionConfig {
@@ -177,7 +175,7 @@ function parseJsonSafe(text: string): unknown {
  * `{…}` object in the text. The fallback covers the case where the model leaks narration prose
  * into its closing turn instead of emitting JSON-only.
  */
-function extractJsonObject(text: string): unknown {
+export function extractJsonObject(text: string): unknown {
   const direct = parseJsonSafe(text)
   if (direct != null && typeof direct === 'object') return direct
   let depth = 0
@@ -221,31 +219,6 @@ function truncateStderr(stderr: string): string {
   const trimmed = stderr.trim()
   if (trimmed.length <= STDERR_TAIL_CHARS) return trimmed
   return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
-}
-
-/** Pick the most informative single-string summary of a tool's args; truncated for the UI bubble. */
-function describeToolUse(toolName: string, input: unknown): string {
-  if (input == null || typeof input !== 'object') return ''
-  const args = input as Record<string, unknown>
-  const candidates: readonly string[] =
-    toolName === 'Read' ? ['file_path', 'path']
-    : toolName === 'Glob' ? ['pattern', 'path']
-    : toolName === 'Grep' ? ['pattern', 'path']
-    : toolName === 'mcp__enso__evaluateExpression' ? ['expression']
-    : []
-  for (const key of candidates) {
-    const value = args[key]
-    if (typeof value === 'string' && value.length > 0) return truncateForUi(value)
-  }
-  for (const value of Object.values(args)) {
-    if (typeof value === 'string' && value.length > 0) return truncateForUi(value)
-  }
-  return ''
-}
-
-function truncateForUi(value: string): string {
-  if (value.length <= TOOL_DESCRIPTION_MAX_CHARS) return value
-  return `${value.slice(0, TOOL_DESCRIPTION_MAX_CHARS - 1)}…`
 }
 
 // ====================================
@@ -338,7 +311,11 @@ interface TurnOutcome {
   state: 'completed' | 'crash'
   text: string
   usage: RawTokenUsage | null
-  /** Stdin-write to outcome wall-clock; `0` when we returned early without starting a measurement. */
+  /**
+   * Wall-clock ms from the moment we wrote the user turn to stdin until the turn settled
+   * (completed, crashed, timed out, or was cancelled). `0` means the turn never started — the
+   * child wasn't alive when {@link runOneTurn} was called, so there was no clock to measure.
+   */
   durationMs: number
   errorReason?: string
 }
@@ -698,8 +675,12 @@ export class ClaudeAgentSession {
       } else if (block.type === 'tool_use' && block.name != null) {
         // Emit from here (not `aiMcpServer.dispatchToRenderer`) so built-in `Read`/`Glob`/`Grep`
         // — which the CLI runs itself and never sends to our MCP server — are also captured.
-        const description = describeToolUse(block.name, block.input)
-        this.emitProgress({ requestId, kind: 'tool', toolName: block.name, description })
+        this.emitProgress({
+          requestId,
+          kind: 'tool',
+          toolName: block.name,
+          input: block.input ?? null,
+        })
       }
     }
   }

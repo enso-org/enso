@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
-import type { AiPending } from '@/stores/aiPrompts'
+import SvgButton from '@/components/SvgButton.vue'
+import type { AiPending } from '@/stores/ongoingAiPrompts'
 import { computed } from 'vue'
 
 const { pending } = defineProps<{ pending: AiPending }>()
@@ -41,15 +42,12 @@ function onKeydown(event: KeyboardEvent) {
         phase="loading-medium"
       />
       <span class="prompt">AI: {{ pending.prompt }}</span>
-      <button
-        type="button"
+      <SvgButton
         class="cancel"
+        name="close"
         title="Cancel AI prompt (Backspace)"
-        aria-label="Cancel AI prompt"
-        @click.stop="emit('cancel')"
-      >
-        ×
-      </button>
+        @activate="emit('cancel')"
+      />
     </div>
   </div>
 </template>
@@ -65,9 +63,11 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .bubble {
+  /* Match `.beforeNode` in GraphNode.vue so the bubble lines up with comments and stays clear of
+   * the node's circular menu when it expands above. */
   position: absolute;
   bottom: calc(100% + var(--node-vertical-gap, 4px));
-  left: 0;
+  left: 24px;
   max-width: 800px;
   padding: 4px 10px;
   border-radius: 12px;
@@ -116,21 +116,5 @@ function onKeydown(event: KeyboardEvent) {
 
 .cancel {
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.08);
-  color: inherit;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.cancel:hover {
-  background: rgba(0, 0, 0, 0.18);
 }
 </style>

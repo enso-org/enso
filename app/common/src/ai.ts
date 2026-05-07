@@ -35,8 +35,9 @@ export interface AiComponentRequest {
 
 /**
  * Live progress signal dispatched over `Channel.aiProgress`. The renderer routes each event to
- * the placeholder identified by `requestId` and updates its visible status text. `tool.description`
- * is the most informative string summary of the call's args (expression text or path).
+ * the placeholder identified by `requestId` and updates its visible status text. The placeholder
+ * shows narration text only; `tool.input` is the raw args payload, surfaced in the renderer's
+ * web console for debugging.
  */
 export type AiProgressEvent =
   | { readonly requestId: string; readonly kind: 'queued' | 'started' }
@@ -45,7 +46,7 @@ export type AiProgressEvent =
       readonly requestId: string
       readonly kind: 'tool'
       readonly toolName: string
-      readonly description: string
+      readonly input: unknown
     }
 
 /** Renderer → main payload for `Channel.cancelAiComponent`. */

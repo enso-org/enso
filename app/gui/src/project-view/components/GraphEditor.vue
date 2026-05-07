@@ -51,7 +51,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
-import { provideAiPrompts } from '@/stores/aiPrompts'
+import { provideOngoingAiPrompts } from '@/stores/ongoingAiPrompts'
 import { providePersisted } from '@/stores/persisted'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
@@ -97,7 +97,7 @@ provideLanguageSupportExtensions({
 })
 
 const nodeExecution = provideNodeExecution(projectStore)
-const aiPrompts = provideAiPrompts()
+const aiPrompts = provideOngoingAiPrompts()
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
