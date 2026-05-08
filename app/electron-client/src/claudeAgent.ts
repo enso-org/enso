@@ -354,20 +354,14 @@ interface TurnOutcome {
 interface PendingTurn {
   /** Renderer-supplied id, or {@link PRIMING_REQUEST_ID} for priming. */
   readonly requestId: string
-  /**
-   * Crash callers pass only the four core fields; the wrapper installed in {@link runOneTurn}
-   * injects `durationMs`, `lastHopUsage`, and `hopCount` from the pending state so they don't
-   * need to be threaded through every error path.
-   */
   resolve: (outcome: Omit<TurnOutcome, 'durationMs' | 'lastHopUsage' | 'hopCount'>) => void
   textChunks: string[]
   /** Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming. */
   sender: WebContents | null
   /**
    * Most recent `assistant` envelope's `message.usage` we observed in this turn. Used as the
-   * "current context window occupancy" signal at turn end — the final hop's prompt size is
-   * the most-loaded state of the turn. `null` when the CLI doesn't surface per-envelope
-   * `usage`, in which case `snapshotUsage` falls back to the terminal `result.usage`.
+   * "current context window occupancy" signal at turn end. `null` when the CLI doesn't surface per-envelope
+   * `usage`.
    */
   lastHopUsage: RawTokenUsage | null
   /** Number of `assistant` envelopes seen this turn. */
@@ -697,8 +691,6 @@ export class ClaudeAgentSession {
           resolveTurn({
             ...outcome,
             durationMs,
-            // Snapshot from the pending state — captures whatever was observed before the
-            // turn settled (success, crash, or cancel mid-turn).
             lastHopUsage: pending.lastHopUsage,
             hopCount: pending.hopCount,
           })
@@ -759,10 +751,6 @@ export class ClaudeAgentSession {
     const pending = this.pending
     if (!pending) return
     pending.hopCount += 1
-    // Overwrite (rather than coalesce) so `lastHopUsage` reflects whether the *final*
-    // envelope carried `usage`, not just whether any envelope did. If the final synthesis
-    // call's envelope omits `usage`, an earlier hop's value is stale and would mislead the
-    // context-window-occupancy signal.
     pending.lastHopUsage = env.message.usage ?? null
     const requestId = pending.requestId
     for (const block of env.message.content) {

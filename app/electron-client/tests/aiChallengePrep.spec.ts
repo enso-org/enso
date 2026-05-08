@@ -24,11 +24,7 @@
  * successful run the test appends one CSV row to `<dir>/<sanitized-test-name>.csv` summarizing
  * the run (timestamp, current commit SHA or `WIP` if dirty, per-AI-node durations, hop count,
  * the full `usage` breakdown — input / cache_read / cache_creation / output tokens — and the
- * last-hop `contextTokens`). See `./aiMetrics.ts` for the schema. Note: the CSV schema has
- * churned a few times recently (bytes → tokens → cache breakdown columns → hop count).
- * Delete any pre-existing CSV in the metrics directory before resuming — `appendMetricsRow`
- * writes the header only when the file does not yet exist, so otherwise new rows are appended
- * under stale, positionally-misaligned column names.
+ * last-hop `contextTokens`). See `./aiMetrics.ts` for the schema.
  *
  * Expected layout under $ENSO_TEST_AI_CHALLENGES_DIR (flat — files at the top level):
  *   Gym Leader Set Cards.xlsx          # week 32; 3 sheets: Trainer Cards, Pokemon Cards, Leader Order
