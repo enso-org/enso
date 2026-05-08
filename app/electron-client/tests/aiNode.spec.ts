@@ -70,10 +70,7 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   // 1) Fresh project: exactly one node (the welcome-table source).
   await expect(graphNodes).toHaveCount(1)
 
-  // 2) First AI prompt with the source node selected. CB closes on submit and a placeholder
-  // node appears in its place; once the agent finishes, the placeholder is replaced by the
-  // committed node. The agent can take tens of seconds, so bump the timeout well above
-  // Playwright's 30s default.
+  // 2) First AI prompt with the source node selected.
   await graphNodes.first().click()
   await page.keyboard.press('Enter')
   await expect(cbInput).toBeVisible()
@@ -104,9 +101,7 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   await page.keyboard.press('Enter')
   await expect(graphNodes).toHaveCount(4, { timeout: 120_000 })
 
-  // 6) Visualize the cross-join node. The sentinel is unique to the manually-added Table.input,
-  // so its presence in the active visualization proves both rows of the cross product made it
-  // through.
+  // 6) Visualize the cross-join node.
   await graphNodes.nth(3).click()
   await visualizeData(page)
   await expect(page.getByText(CROSS_JOIN_SENTINEL)).toBeVisible()
@@ -116,12 +111,6 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   // `Plain_Text`, and the line layout uses `key: value` with inconsistent whitespace — so the
   // agent has to peek at a real value to pick a parser. This step's primary purpose is to
   // exercise the renderer-side `useAiToolHandler` subscription end-to-end.
-  //
-  // Use a single freestanding CB (via `addNewNode`) rather than chaining: the cross-join
-  // visualization opened in step 6 overlaps the bottom of the graph, and the
-  // `click-then-Enter` chained-CB pattern observed in steps 2/5 only works after AI prompts
-  // dismiss prior visualizations as a side effect. A freestanding submission sidesteps that
-  // entire dependency.
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'enso-ai-tool-'))
   const dummyPath = path.join(tmpDir, 'dummy.csv')
   await fs.writeFile(dummyPath, DUMMY_TEXT_CONTENT)
@@ -135,7 +124,6 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
 
   // The agent could only have produced a working parser by inspecting a sample value. The
   // renderer logs `Tool called [#…]` for every dispatch from the MCP server (see
-  // `aiToolHandler.ts`); the absence of these lines is the symptom of the regression we just
-  // fixed.
+  // `aiToolHandler.ts`).
   expect(consoleLines.some((line) => line.startsWith('Tool called ['))).toBe(true)
 })

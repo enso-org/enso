@@ -1,5 +1,5 @@
 ---
-name: package-testing
+name: testing-and-evaluation
 description:
   Instructions for changes verification. It's a mandatory read when 1. asked for
   running any kind of tests, or 2. Finished implementing a milestone - always
@@ -8,12 +8,16 @@ description:
 
 # Required Verification steps
 
-- Typecheck and lint of modified packages
-- Unit tests of modified packages
-- if GUI part was changed, run playwright integration tests from app/gui
-- always after reaching a milestone or finishing plan implementation, regardless
-  of what was changed: electron package tests from app/electron-client,
-  including AI tests.
+- Cheap steps, do after finishing a modification task:
+  - typecheck of modified packages
+  - prettier of modified files
+- After every bigger step:
+  - lint of modified packages
+  - Unit tests of modified packages
+- After reaching a milestone or finishing plan implementation:
+  - if GUI part was changed, run playwright integration tests from app/gui
+  - always, regardless of what was changed: electron package tests from
+    app/electron-client, including AI tests.
 
 # How to run Electron Package tests
 

@@ -8,10 +8,6 @@ import { onScopeDispose } from 'vue'
  * Subscribe to mid-turn `evaluateExpression` calls from the AI MCP server, evaluate them against
  * the active project, and reply over `Channel.aiToolReply`. Auto-disposes on scope dispose.
  *
- * Mounted by `GraphEditor.vue` so the subscription lives for the whole project session — the
- * Component Browser closes immediately on AI-prompt submission, so anchoring this handler to
- * the CB scope would tear it down before the agent dispatches its first tool call.
- *
  * The expression is anchored on the current method body so it sees every method binding;
  * see `docs/infrastructure/ydoc.md` ("Scope semantics of `nodeExternalId` for `inFrame`
  * one-shots") for why other anchors are wrong.

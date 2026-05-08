@@ -16,8 +16,9 @@ description: Typescript coding guidelines and conventions. Use this skill whenev
 
 - The docstrings should be created for exported, or non-obvious private
   entities.
-- They should be short, focusing on properties which are not easily readible
-  from code itself.
+- They goal is to understand what given entity _is_. Do not focus on how it is
+  used, unless it is useful as an example to understand the entity itself. Do
+  not mention details which are easily deduced from the name or code itself.
 - They should not focus on implementation details, unless it may be somehow
   important to the dev using the entity (like time complexity).
 - @file documentation should be a very short summary of module. The more
