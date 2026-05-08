@@ -325,15 +325,23 @@ Findings from the probe at the time the long-lived design landed:
     the **last** assistant envelope before the result. That is the synthesis
     call's actual prompt size, the most-loaded state of the turn — the right
     number to compare to a context window. It grows approximately monotonically
-    across turns. If the CLI ever omits per-envelope `usage`, this falls back to
-    the result-envelope sum (and reverts to non-monotonic behavior).
+    across turns. If the final envelope omits `usage` (`captureAssistantContent`
+    overwrites `lastHopUsage` with `null` rather than coalescing, so a stale
+    earlier value never leaks through), this falls back to the result-envelope
+    sum. The renderer's `logUsage` flips `ctxSrc=fallback` and emits a
+    `console.warn`; `aiMetrics.appendMetricsRow` refuses to write the CSV row
+    when any sample has `hopCount > 0` and `contextFromLastHop=false`, failing
+    the Playwright run so the developer notices broken telemetry instead of
+    silently archiving misleading data.
+  - `contextFromLastHop` exposes the source of `contextTokens` so consumers can
+    validate; see above for the metrics writer's enforcement.
   - `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheCreationTokens`,
     `hopCount` are turn totals from `result.usage` (and the count of assistant
     envelopes seen). They are the right inputs for billing and for explaining
     why a heavy-hops turn cost what it did.
 
   The renderer logs both:
-  `prompt=…t out=…t context=<n.n>k hops=N (cacheRead=…t cacheCreate=…t) time=…ms`.
+  `prompt=…t out=…t context=<n.n>k hops=N ctxSrc=<lastHop|fallback> (cacheRead=…t cacheCreate=…t) time=…ms`.
   Conversation history accumulates in CLI process memory across the session
   (there is no auto-compact in `-p` mode — that's an interactive-mode feature),
   so `contextTokens` resets only on child respawn or process restart.

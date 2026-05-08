@@ -87,6 +87,13 @@ export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
  * times the model produced a response, including any tool-loop intermediates. Useful for
  * sanity-checking variance in the cost-side fields.
  *
+ * `contextFromLastHop` is `true` when `contextTokens` came from the final assistant
+ * envelope's per-hop `usage`, and `false` when we had to fall back to the cost-side sum
+ * (because the CLI didn't surface `message.usage` on the final envelope). On a multi-hop
+ * turn, `false` means `contextTokens` overstates actual context occupancy and the value
+ * should not be trusted for context-window analysis — see `aiMetrics.appendMetricsRow`,
+ * which refuses to write a CSV row when any sample with `hopCount > 0` was a fallback.
+ *
  * `durationMs` is the main-process round-trip from stdin write to the terminal `result`
  * envelope.
  */
@@ -96,6 +103,7 @@ export interface RequestUsage {
   readonly cacheReadTokens: number
   readonly cacheCreationTokens: number
   readonly contextTokens: number
+  readonly contextFromLastHop: boolean
   readonly hopCount: number
   readonly durationMs: number
 }

@@ -17,10 +17,12 @@ const execFileAsync = promisify(execFile)
  * prompt size in kilo-tokens with one decimal — we round-trip through `* 1000` so the CSV
  * stores integer tokens (the rounding loss is at most a few hundred tokens per sample,
  * acceptable noise on hundred-thousand-token contexts). Cost-side fields (`prompt`, `out`,
- * `cacheRead`, `cacheCreate`) parse as lossless integers.
+ * `cacheRead`, `cacheCreate`) parse as lossless integers. `ctxSrc` carries the
+ * `contextFromLastHop` flag so {@link appendMetricsRow} can reject rows where the CLI
+ * omitted per-hop usage on the final assistant envelope and the context value is unreliable.
  */
 const AI_USAGE_LINE_REGEX =
-  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k hops=(\d+) \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
+  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k hops=(\d+) ctxSrc=(lastHop|fallback) \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
 
 /**
  * Parse one `[AI] usage:` renderer console line into a `RequestUsage`, or `null` if it doesn't
@@ -36,9 +38,10 @@ export function parseAiUsageLine(text: string): RequestUsage | null {
     outputTokens: Number(m[2]),
     contextTokens: Math.round(Number(m[3]) * 1000),
     hopCount: Number(m[4]),
-    cacheReadTokens: Number(m[5]),
-    cacheCreationTokens: Number(m[6]),
-    durationMs: Number(m[7]),
+    contextFromLastHop: m[5] === 'lastHop',
+    cacheReadTokens: Number(m[6]),
+    cacheCreationTokens: Number(m[7]),
+    durationMs: Number(m[8]),
   }
 }
 
@@ -135,8 +138,23 @@ interface AppendMetricsRowArgs {
  * Append a single CSV row summarizing one successful test run. Writes the header line first
  * if the target file does not yet exist. Per-node arrays are joined with `;` so the cell
  * never contains a comma; CSV-escaping still runs in case a future column ever does.
+ *
+ * Throws (and writes nothing) when any sample with `hopCount > 0` had `contextFromLastHop`
+ * false — i.e. the CLI omitted `message.usage` on the final assistant envelope and the
+ * context value fell back to the cost-side sum. Such rows would obscure context-window
+ * analysis, and an exception here propagates through the test's `recordSuccess` to fail the
+ * Playwright run so the developer notices broken telemetry instead of silently archiving it.
  */
 export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void> {
+  const broken = args.samples.filter((s) => !s.contextFromLastHop && s.hopCount > 0)
+  if (broken.length > 0) {
+    throw new Error(
+      `[aiMetrics] refusing to write CSV: ${broken.length}/${args.samples.length} sample(s) had ` +
+        `\`contextFromLastHop=false\` with \`hopCount > 0\`. The CLI omitted \`message.usage\` on ` +
+        `the final assistant envelope, so \`contextTokens\` is the cost-side sum and overstates ` +
+        `actual context-window occupancy. Investigate before resuming metrics collection.`,
+    )
+  }
   await fs.mkdir(args.dir, { recursive: true })
   const csvPath = path.join(args.dir, sanitizeForFilename(args.testName))
   const exists = await fs

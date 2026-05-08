@@ -209,12 +209,15 @@ describe('ClaudeAgentSession', () => {
     expect(reply.usage!.cacheReadTokens).toBe(exampleUsage.cache_read_input_tokens)
     expect(reply.usage!.cacheCreationTokens).toBe(exampleUsage.cache_creation_input_tokens)
     // No `assistant` envelope was pushed in this test, so `lastHopUsage` is null and
-    // `contextTokens` falls back to the `result.usage` sum (= the prior behavior).
+    // `contextTokens` falls back to the `result.usage` sum (= the prior behavior). The flag
+    // surfaces the fallback to consumers; with `hopCount == 0` it's the degenerate "no model
+    // output observed" case rather than the broken "tool turn missed final usage" case.
     expect(reply.usage!.contextTokens).toBe(
       exampleUsage.input_tokens +
         exampleUsage.cache_read_input_tokens +
         exampleUsage.cache_creation_input_tokens,
     )
+    expect(reply.usage!.contextFromLastHop).toBe(false)
     expect(reply.usage!.hopCount).toBe(0)
     session.shutdown()
   })
@@ -266,7 +269,52 @@ describe('ClaudeAgentSession', () => {
         finalHop.cache_read_input_tokens +
         finalHop.cache_creation_input_tokens,
     )
+    expect(reply.usage!.contextFromLastHop).toBe(true)
     expect(reply.usage!.hopCount).toBe(2)
+    session.shutdown()
+  })
+
+  test('contextFromLastHop is false when the final assistant envelope omits usage', async () => {
+    // Captures the broken case the user is concerned about: an early hop carries `usage`,
+    // but the final synthesis envelope (post-tool) omits it. We must NOT keep the stale
+    // earlier value — `lastHopUsage` is overwritten with `null` on every envelope, so the
+    // flag flips to false and consumers (the metrics writer) can refuse to record the row.
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+
+    /* eslint-disable camelcase */
+    const earlyHop = {
+      input_tokens: 5,
+      output_tokens: 10,
+      cache_read_input_tokens: 100,
+      cache_creation_input_tokens: 0,
+    }
+    const resultUsage = {
+      input_tokens: 99,
+      output_tokens: 99,
+      cache_read_input_tokens: 9999,
+      cache_creation_input_tokens: 999,
+    }
+    /* eslint-enable camelcase */
+
+    const replyPromise = session.runRequest(exampleRequest, fakeSender())
+    await settle()
+    children[0]!.pushStdoutLine(assistantEnvelope('thinking…', earlyHop))
+    // Final envelope: no `usage` — simulates the broken case.
+    children[0]!.pushStdoutLine(assistantEnvelope(JSON.stringify(exampleResponse)))
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse, resultUsage))
+    const reply = await replyPromise
+
+    expect(reply.usage).not.toBeNull()
+    expect(reply.usage!.contextFromLastHop).toBe(false)
+    expect(reply.usage!.hopCount).toBe(2)
+    // contextTokens fell back to the result-envelope sum (NOT `earlyHop`'s — the early hop's
+    // value would be stale and misleading).
+    expect(reply.usage!.contextTokens).toBe(
+      resultUsage.input_tokens +
+        resultUsage.cache_read_input_tokens +
+        resultUsage.cache_creation_input_tokens,
+    )
     session.shutdown()
   })
 

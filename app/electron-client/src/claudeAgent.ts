@@ -759,7 +759,11 @@ export class ClaudeAgentSession {
     const pending = this.pending
     if (!pending) return
     pending.hopCount += 1
-    if (env.message.usage != null) pending.lastHopUsage = env.message.usage
+    // Overwrite (rather than coalesce) so `lastHopUsage` reflects whether the *final*
+    // envelope carried `usage`, not just whether any envelope did. If the final synthesis
+    // call's envelope omits `usage`, an earlier hop's value is stale and would mislead the
+    // context-window-occupancy signal.
+    pending.lastHopUsage = env.message.usage ?? null
     const requestId = pending.requestId
     for (const block of env.message.content) {
       if (block.type === 'text' && block.text != null) {
@@ -842,8 +846,10 @@ export class ClaudeAgentSession {
     if (!raw) return null
     // Prefer the final assistant envelope's `usage` for the context-window signal — that's the
     // synthesis call's actual prompt size, the most-loaded state of the turn. Fall back to the
-    // result-envelope sum (the prior behavior) only if the CLI didn't surface per-envelope
-    // `usage`, since the sum overstates occupancy on multi-hop turns.
+    // result-envelope sum only if the CLI didn't surface per-envelope `usage`, since the sum
+    // overstates occupancy on multi-hop turns. The renderer warns on fallback when
+    // `hopCount > 0` so the developer notices broken context telemetry.
+    const contextFromLastHop = lastHop != null
     const contextSource = lastHop ?? raw
     const contextInput = contextSource.input_tokens ?? 0
     const contextCacheRead = contextSource.cache_read_input_tokens ?? 0
@@ -854,6 +860,7 @@ export class ClaudeAgentSession {
       cacheReadTokens: raw.cache_read_input_tokens ?? 0,
       cacheCreationTokens: raw.cache_creation_input_tokens ?? 0,
       contextTokens: contextInput + contextCacheRead + contextCacheCreation,
+      contextFromLastHop,
       hopCount,
       durationMs,
     }

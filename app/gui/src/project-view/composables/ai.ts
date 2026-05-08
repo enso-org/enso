@@ -110,8 +110,19 @@ function logUsage(usage: RequestUsage | null): void {
   // `context=` is the last-hop prompt size (the synthesis call's actual context occupancy);
   // `hops=` and the cache breakdown that follow are turn totals from `result.usage`, useful
   // for cost analysis and for sanity-checking why a heavy-hops turn cost what it did.
+  // `ctxSrc=` marks whether `context=` came from the last assistant envelope (`lastHop`) or
+  // had to fall back to the cost-side sum (`fallback`). Metrics scrapers use this flag to
+  // refuse writing rows for broken turns (see `aiMetrics.appendMetricsRow`).
   const contextKt = (usage.contextTokens / 1000).toFixed(1)
+  const ctxSrc = usage.contextFromLastHop ? 'lastHop' : 'fallback'
   console.log(
-    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k hops=${usage.hopCount} (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k hops=${usage.hopCount} ctxSrc=${ctxSrc} (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
   )
+  if (!usage.contextFromLastHop && usage.hopCount > 0) {
+    console.warn(
+      `[AI] WARN: contextTokens fell back to result.usage sum because the final assistant ` +
+        `envelope of this turn carried no per-hop \`message.usage\` (hopCount=${usage.hopCount}). ` +
+        `The reported context size is the cost-side sum, not actual context-window occupancy.`,
+    )
+  }
 }
