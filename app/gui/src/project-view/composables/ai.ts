@@ -107,10 +107,13 @@ export function useAI(
 
 function logUsage(usage: RequestUsage | null): void {
   if (!usage) return
-  // Display the context size in kilo-tokens to match Claude Code's interactive "Context: …k"
-  // indicator. One decimal so small turns don't all round to "0k".
+  // `context` is the sum `prompt + cacheRead + cacheCreate` for this turn's `usage`; the cache
+  // breakdown is logged after it because the sum can fluctuate turn-to-turn even on a growing
+  // conversation, and the split helps diagnose where the variance comes from. `prompt=` and
+  // `out=` precede the breakdown to match the historical format (cheap to keep stable for
+  // anyone scraping these lines).
   const contextKt = (usage.contextTokens / 1000).toFixed(1)
   console.log(
-    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k time=${usage.durationMs}ms`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
   )
 }

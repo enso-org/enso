@@ -69,17 +69,22 @@ export const aiComponentResponseSchema = z.object({
 export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
 
 /**
- * Per-request usage telemetry from the `claude` session. `contextTokens` is the API-reported
- * input size for this turn's final completion (`input_tokens + cache_read_input_tokens +
- * cache_creation_input_tokens`) — the same number Claude Code's interactive "Context: …k"
- * indicator displays, so it grows monotonically across a long-lived session and includes the
- * full conversation history, every `tool_use` block, and every `tool_result` body the CLI fed
- * back into the conversation (e.g. file contents the built-in `Read` tool returned). Reported
- * in tokens.
+ * Per-request usage telemetry from the `claude` session. `contextTokens` is the sum
+ * `inputTokens + cacheReadTokens + cacheCreationTokens` from the terminal `result` envelope's
+ * `usage`. Useful for cost accounting and as a coarse signal of turn weight; do **not** treat
+ * as a monotonic context-window-occupancy gauge — observed values fluctuate turn-to-turn even
+ * on a steadily-growing conversation, because the CLI's per-turn `usage` semantics in
+ * multi-hop turns (model → tool_use → tool_result → model continues …) are not documented for
+ * stream-json mode. The breakdown fields are exposed so callers can analyze cache behavior or
+ * compute true cost (cache_read tokens are billed at a discount, cache_creation at a premium).
+ * `durationMs` is the main-process round-trip from stdin write to the terminal `result`
+ * envelope.
  */
 export interface RequestUsage {
   readonly inputTokens: number
   readonly outputTokens: number
+  readonly cacheReadTokens: number
+  readonly cacheCreationTokens: number
   readonly contextTokens: number
   readonly durationMs: number
 }

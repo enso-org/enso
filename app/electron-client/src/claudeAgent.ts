@@ -800,12 +800,14 @@ export class ClaudeAgentSession {
   private snapshotUsage(raw: RawTokenUsage | null, durationMs: number): RequestUsage | null {
     if (!raw) return null
     const inputTokens = raw.input_tokens ?? 0
-    const cacheRead = raw.cache_read_input_tokens ?? 0
-    const cacheCreation = raw.cache_creation_input_tokens ?? 0
+    const cacheReadTokens = raw.cache_read_input_tokens ?? 0
+    const cacheCreationTokens = raw.cache_creation_input_tokens ?? 0
     return {
       inputTokens,
       outputTokens: raw.output_tokens ?? 0,
-      contextTokens: inputTokens + cacheRead + cacheCreation,
+      cacheReadTokens,
+      cacheCreationTokens,
+      contextTokens: inputTokens + cacheReadTokens + cacheCreationTokens,
       durationMs,
     }
   }

@@ -311,19 +311,23 @@ Findings from the probe at the time the long-lived design landed:
   rotated/cancelled turn never lands on a new placeholder; the `queued` emit
   uses a separate `emitProgressTo(sender, …)` path because it must fire _before_
   the pending slot is set.
-- **Context tokens:** `RequestUsage.contextTokens` is the API-reported input
-  size for this turn's final completion —
-  `usage.input_tokens + cache_read_input_tokens + cache_creation_input_tokens`
-  from the terminal `result` envelope. This is the same number Claude Code's
-  interactive "Context: …k" indicator displays, so it covers the full context
-  the API saw: system prompt, the entire prior conversation, every `tool_use`
-  block, and every `tool_result` body the CLI fed back into the conversation
-  (including file contents the built-in `Read`/`Glob`/`Grep` tools returned). It
-  grows monotonically across a long-lived session because conversation history
-  accumulates in the CLI's process memory; there is **no** auto-compact in `-p`
-  mode (that is an interactive-mode feature), so the only resets are child
-  respawn and process restart. The renderer logs it as `context=<n.n>k` for
-  parity with the interactive bar.
+- **Context tokens:** `RequestUsage.contextTokens` is the sum
+  `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` from
+  the terminal `result` envelope's `usage`. The CLI emits one `result` envelope
+  per turn, but a single turn can drive several underlying completion calls
+  (model → `tool_use` → `tool_result` → model continues …). The semantics of
+  `result.usage` across multi-hop turns are not documented for stream-json mode,
+  and observed values fluctuate turn-to-turn on the same growing conversation —
+  turns with heavier tool use trend higher, but the sequence is not monotonic.
+  Treat `contextTokens` as a coarse signal of turn weight and as the input to
+  cost accounting, **not** as a current-context-window-occupancy gauge. The
+  renderer logs it as `context=<n.n>k` followed by a `(cacheRead=… cacheCreate=…)`
+  breakdown (the non-cached `prompt=…t` field at the head of the line is the
+  third component of the sum), so the variance source is visible in DevTools
+  without re-running. Conversation history still accumulates
+  in CLI process memory across the session (there is no auto-compact in `-p`
+  mode — that is an interactive-mode feature), so the only resets are child
+  respawn and process restart.
 
 ### Gotchas
 

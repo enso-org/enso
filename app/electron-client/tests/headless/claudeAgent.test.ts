@@ -195,6 +195,8 @@ describe('ClaudeAgentSession', () => {
     expect(reply.usage).not.toBeNull()
     expect(reply.usage!.inputTokens).toBe(exampleUsage.input_tokens)
     expect(reply.usage!.outputTokens).toBe(exampleUsage.output_tokens)
+    expect(reply.usage!.cacheReadTokens).toBe(exampleUsage.cache_read_input_tokens)
+    expect(reply.usage!.cacheCreationTokens).toBe(exampleUsage.cache_creation_input_tokens)
     // contextTokens sums input + cache_read + cache_creation — see `snapshotUsage`.
     expect(reply.usage!.contextTokens).toBe(
       exampleUsage.input_tokens +
