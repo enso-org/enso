@@ -375,9 +375,7 @@ export class ClaudeAgentSession {
   private readonly cancelled = new Set<string>()
   /**
    * Ids currently in the queue or running. Populated synchronously in {@link runRequest} before
-   * the task is pushed, cleared in the task's `finally` once it settles. {@link cancelTurn} only
-   * files into {@link cancelled} for ids it sees here, which prevents cancellations for
-   * already-settled (or never-issued) requests from accumulating in the set.
+   * the task is pushed, cleared in the task's `finally` once it settles.
    */
   private readonly liveRequests = new Set<string>()
   /**

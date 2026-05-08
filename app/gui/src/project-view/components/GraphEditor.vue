@@ -99,9 +99,6 @@ provideLanguageSupportExtensions({
 
 const nodeExecution = provideNodeExecution(projectStore)
 const aiPrompts = provideOngoingAiPrompts()
-// Pass the store explicitly: the default `useOngoingAiPrompts()` resolves via Vue's regular
-// `inject`, which doesn't see a provider set up in the same component. Passing here avoids
-// switching the store's inject hook to `injectImmediate` and the `getCurrentInstance` cost.
 useAiToolHandler(aiPrompts)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
@@ -530,8 +527,6 @@ function handleAiAccepted(payload: AiPromptSubmission) {
   }
   const methodAst = graphStore.currentMethod.ast.value
   if (methodAst.body == null) {
-    // The agent's `evaluateExpression` tool needs the body's externalId as the LS scope anchor;
-    // without a body there's no scope to evaluate in.
     toasts.userActionFailed.show('Cannot create AI component: current method has no body.')
     hideComponentBrowser()
     return

@@ -170,7 +170,7 @@ export class AiMcpServer {
         }
       }, TOOL_CALL_TIMEOUT_MS)
       this.pending.set(requestId, { resolve, timer })
-      const request: AiToolCallRequest = { requestId, aiRequestId: active.requestId, ...payload }
+      const request: AiToolCallRequest = { requestId, turnRequestId: active.requestId, ...payload }
       try {
         sender.send(Channel.aiToolCall, request)
       } catch (err) {

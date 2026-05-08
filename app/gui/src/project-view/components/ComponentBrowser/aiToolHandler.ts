@@ -48,12 +48,10 @@ async function handleToolCall(
   if (currentProject == null) {
     return fail('no active project')
   }
-  const entry = aiPrompts.findByRequestId(request.aiRequestId)
+  const entry = aiPrompts.findByRequestId(request.turnRequestId)
   if (entry == null) {
     // The originating AI request is no longer tracked — the store was disposed (project switch),
-    // the entry was already cancelled, or the renderer was rebuilt mid-turn. Failing fast here is
-    // safer than evaluating against the currently-visible method, which can be a different scope
-    // than the agent prepared its prompt for.
+    // the entry was already cancelled, or the renderer was rebuilt mid-turn.
     return fail('matching AI request is no longer active')
   }
   const projectStore = currentProject.store.value

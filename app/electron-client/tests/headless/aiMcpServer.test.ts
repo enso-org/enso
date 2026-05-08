@@ -78,7 +78,7 @@ describe('AiMcpServer', () => {
     const request = lastDispatchedRequest(sender)
     expect(request.tool).toBe('evaluateExpression')
     expect(request.expression).toBe('x.column_names')
-    expect(request.aiRequestId).toBe('ai-req-1')
+    expect(request.turnRequestId).toBe('ai-req-1')
     answer(request, { ok: true, value: '["a","b"]' })
     expect(await promise).toEqual({ ok: true, value: '["a","b"]' })
   })
