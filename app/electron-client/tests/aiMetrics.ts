@@ -13,12 +13,14 @@ const execFileAsync = promisify(execFile)
 
 /**
  * Matches the renderer log line emitted by `logUsage` in
- * `app/gui/src/project-view/composables/ai.ts`. The displayed `context=…k` value is dropped
- * from the regex because it is a lossy kilo-format representation; we recover the exact
- * `contextTokens` sum from the integer triplet `prompt` + `cacheRead` + `cacheCreate`.
+ * `app/gui/src/project-view/composables/ai.ts`. The displayed `context=…k` is the last-hop
+ * prompt size in kilo-tokens with one decimal — we round-trip through `* 1000` so the CSV
+ * stores integer tokens (the rounding loss is at most a few hundred tokens per sample,
+ * acceptable noise on hundred-thousand-token contexts). Cost-side fields (`prompt`, `out`,
+ * `cacheRead`, `cacheCreate`) parse as lossless integers.
  */
 const AI_USAGE_LINE_REGEX =
-  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=[\d.]+k \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
+  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k hops=(\d+) \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
 
 /**
  * Parse one `[AI] usage:` renderer console line into a `RequestUsage`, or `null` if it doesn't
@@ -29,16 +31,14 @@ const AI_USAGE_LINE_REGEX =
 export function parseAiUsageLine(text: string): RequestUsage | null {
   const m = AI_USAGE_LINE_REGEX.exec(text)
   if (!m) return null
-  const inputTokens = Number(m[1])
-  const cacheReadTokens = Number(m[3])
-  const cacheCreationTokens = Number(m[4])
   return {
-    inputTokens,
+    inputTokens: Number(m[1]),
     outputTokens: Number(m[2]),
-    cacheReadTokens,
-    cacheCreationTokens,
-    contextTokens: inputTokens + cacheReadTokens + cacheCreationTokens,
-    durationMs: Number(m[5]),
+    contextTokens: Math.round(Number(m[3]) * 1000),
+    hopCount: Number(m[4]),
+    cacheReadTokens: Number(m[5]),
+    cacheCreationTokens: Number(m[6]),
+    durationMs: Number(m[7]),
   }
 }
 
@@ -94,12 +94,14 @@ const CSV_COLUMNS = [
   'test_name',
   'node_count',
   'total_duration_ms',
+  'total_hops',
   'total_input_tokens',
   'total_output_tokens',
   'total_cache_read_tokens',
   'total_cache_creation_tokens',
   'final_context_tokens',
   'per_node_durations_ms',
+  'per_node_hops',
   'per_node_input_tokens',
   'per_node_output_tokens',
   'per_node_cache_read_tokens',
@@ -143,6 +145,7 @@ export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void
     .catch(() => false)
 
   const totalDurationMs = args.samples.reduce((acc, s) => acc + s.durationMs, 0)
+  const totalHops = args.samples.reduce((acc, s) => acc + s.hopCount, 0)
   const totalInputTokens = args.samples.reduce((acc, s) => acc + s.inputTokens, 0)
   const totalOutputTokens = args.samples.reduce((acc, s) => acc + s.outputTokens, 0)
   const totalCacheReadTokens = args.samples.reduce((acc, s) => acc + s.cacheReadTokens, 0)
@@ -156,12 +159,14 @@ export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void
     args.testName,
     String(args.samples.length),
     String(totalDurationMs),
+    String(totalHops),
     String(totalInputTokens),
     String(totalOutputTokens),
     String(totalCacheReadTokens),
     String(totalCacheCreationTokens),
     String(finalContextTokens),
     args.samples.map((s) => s.durationMs).join(';'),
+    args.samples.map((s) => s.hopCount).join(';'),
     args.samples.map((s) => s.inputTokens).join(';'),
     args.samples.map((s) => s.outputTokens).join(';'),
     args.samples.map((s) => s.cacheReadTokens).join(';'),

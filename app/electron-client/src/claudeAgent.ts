@@ -306,7 +306,11 @@ const tokenUsageSchema = z.object({
 // `text` blocks carry the model's natural-language output; `tool_use` blocks carry the model's
 // decision to call a tool (`name` is the tool name, `input` is the args payload). The fields
 // below cover both shapes so we can route each block in `captureAssistantContent` without a
-// second parse — anything else is ignored.
+// second parse — anything else is ignored. The CLI may also surface `message.usage` on each
+// envelope (Anthropic Messages API standard); when present it's the *per-hop* `usage` for the
+// completion call that produced this assistant message — captured to estimate the actual
+// context window occupancy of the turn's final synthesis call. Optional because some CLI
+// versions / envelope shapes may omit it.
 const assistantEnvelopeSchema = z.object({
   type: z.literal('assistant'),
   message: z.object({
@@ -318,6 +322,7 @@ const assistantEnvelopeSchema = z.object({
         input: z.unknown().optional(),
       }),
     ),
+    usage: tokenUsageSchema.optional(),
   }),
 })
 
@@ -333,6 +338,10 @@ interface TurnOutcome {
   state: 'completed' | 'crash'
   text: string
   usage: RawTokenUsage | null
+  /** `usage` from the final `assistant` envelope; `null` when none seen / CLI omitted it. */
+  lastHopUsage: RawTokenUsage | null
+  /** Number of `assistant` envelopes seen this turn. `0` for crash-before-first-response. */
+  hopCount: number
   /**
    * Wall-clock ms from the moment we wrote the user turn to stdin until the turn settled
    * (completed, crashed, timed out, or was cancelled). `0` means the turn never started — the
@@ -345,10 +354,24 @@ interface TurnOutcome {
 interface PendingTurn {
   /** Renderer-supplied id, or {@link PRIMING_REQUEST_ID} for priming. */
   readonly requestId: string
-  resolve: (outcome: Omit<TurnOutcome, 'durationMs'>) => void
+  /**
+   * Crash callers pass only the four core fields; the wrapper installed in {@link runOneTurn}
+   * injects `durationMs`, `lastHopUsage`, and `hopCount` from the pending state so they don't
+   * need to be threaded through every error path.
+   */
+  resolve: (outcome: Omit<TurnOutcome, 'durationMs' | 'lastHopUsage' | 'hopCount'>) => void
   textChunks: string[]
   /** Pinned per turn (not per session) so crash/shutdown drop the slot for free; `null` for priming. */
   sender: WebContents | null
+  /**
+   * Most recent `assistant` envelope's `message.usage` we observed in this turn. Used as the
+   * "current context window occupancy" signal at turn end — the final hop's prompt size is
+   * the most-loaded state of the turn. `null` when the CLI doesn't surface per-envelope
+   * `usage`, in which case `snapshotUsage` falls back to the terminal `result.usage`.
+   */
+  lastHopUsage: RawTokenUsage | null
+  /** Number of `assistant` envelopes seen this turn. */
+  hopCount: number
 }
 
 /** Renderer + request id driving a turn. */
@@ -657,6 +680,8 @@ export class ClaudeAgentSession {
           state: 'crash',
           text: '',
           usage: null,
+          lastHopUsage: null,
+          hopCount: 0,
           durationMs: 0,
           errorReason: 'child process is not alive',
         })
@@ -669,10 +694,19 @@ export class ClaudeAgentSession {
         resolve: (outcome) => {
           if (timeoutHandle != null) clearTimeout(timeoutHandle)
           const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
-          resolveTurn({ ...outcome, durationMs })
+          resolveTurn({
+            ...outcome,
+            durationMs,
+            // Snapshot from the pending state — captures whatever was observed before the
+            // turn settled (success, crash, or cancel mid-turn).
+            lastHopUsage: pending.lastHopUsage,
+            hopCount: pending.hopCount,
+          })
         },
         textChunks: [],
         sender,
+        lastHopUsage: null,
+        hopCount: 0,
       }
       this.pending = pending
       // Emit `started` after `pending` is set so `emitProgress` can find the sender, and before
@@ -724,6 +758,8 @@ export class ClaudeAgentSession {
   private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
     const pending = this.pending
     if (!pending) return
+    pending.hopCount += 1
+    if (env.message.usage != null) pending.lastHopUsage = env.message.usage
     const requestId = pending.requestId
     for (const block of env.message.content) {
       if (block.type === 'text' && block.text != null) {
@@ -775,7 +811,7 @@ export class ClaudeAgentSession {
   }
 
   private replyFromTurn(turn: TurnOutcome): AiComponentIpcReply {
-    const usage = this.snapshotUsage(turn.usage, turn.durationMs)
+    const usage = this.snapshotUsage(turn.usage, turn.lastHopUsage, turn.hopCount, turn.durationMs)
     if (turn.state !== 'completed') {
       const reason = turn.errorReason ?? 'claude turn failed'
       return { result: Err(`Claude agent: ${reason}`), usage }
@@ -797,17 +833,28 @@ export class ClaudeAgentSession {
     return { result: Ok(parsed.data), usage }
   }
 
-  private snapshotUsage(raw: RawTokenUsage | null, durationMs: number): RequestUsage | null {
+  private snapshotUsage(
+    raw: RawTokenUsage | null,
+    lastHop: RawTokenUsage | null,
+    hopCount: number,
+    durationMs: number,
+  ): RequestUsage | null {
     if (!raw) return null
-    const inputTokens = raw.input_tokens ?? 0
-    const cacheReadTokens = raw.cache_read_input_tokens ?? 0
-    const cacheCreationTokens = raw.cache_creation_input_tokens ?? 0
+    // Prefer the final assistant envelope's `usage` for the context-window signal — that's the
+    // synthesis call's actual prompt size, the most-loaded state of the turn. Fall back to the
+    // result-envelope sum (the prior behavior) only if the CLI didn't surface per-envelope
+    // `usage`, since the sum overstates occupancy on multi-hop turns.
+    const contextSource = lastHop ?? raw
+    const contextInput = contextSource.input_tokens ?? 0
+    const contextCacheRead = contextSource.cache_read_input_tokens ?? 0
+    const contextCacheCreation = contextSource.cache_creation_input_tokens ?? 0
     return {
-      inputTokens,
+      inputTokens: raw.input_tokens ?? 0,
       outputTokens: raw.output_tokens ?? 0,
-      cacheReadTokens,
-      cacheCreationTokens,
-      contextTokens: inputTokens + cacheReadTokens + cacheCreationTokens,
+      cacheReadTokens: raw.cache_read_input_tokens ?? 0,
+      cacheCreationTokens: raw.cache_creation_input_tokens ?? 0,
+      contextTokens: contextInput + contextCacheRead + contextCacheCreation,
+      hopCount,
       durationMs,
     }
   }

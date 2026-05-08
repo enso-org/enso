@@ -107,6 +107,17 @@ function resultEnvelope(textOrObject: unknown, usage = exampleUsage): string {
     usage,
   })
 }
+
+/**
+ * Build a synthetic `assistant` envelope. When `usage` is non-null, it lands on `message.usage`
+ * — the same shape Anthropic's Messages API returns and the CLI passes through, used here to
+ * exercise the per-hop `contextTokens` capture path in `captureAssistantContent`.
+ */
+function assistantEnvelope(text: string, usage: typeof exampleUsage | null = null): string {
+  const message: Record<string, unknown> = { content: [{ type: 'text', text }] }
+  if (usage != null) message.usage = usage
+  return JSON.stringify({ type: 'assistant', message })
+}
 /* eslint-enable camelcase */
 
 function readyEnvelope(): string {
@@ -197,12 +208,65 @@ describe('ClaudeAgentSession', () => {
     expect(reply.usage!.outputTokens).toBe(exampleUsage.output_tokens)
     expect(reply.usage!.cacheReadTokens).toBe(exampleUsage.cache_read_input_tokens)
     expect(reply.usage!.cacheCreationTokens).toBe(exampleUsage.cache_creation_input_tokens)
-    // contextTokens sums input + cache_read + cache_creation — see `snapshotUsage`.
+    // No `assistant` envelope was pushed in this test, so `lastHopUsage` is null and
+    // `contextTokens` falls back to the `result.usage` sum (= the prior behavior).
     expect(reply.usage!.contextTokens).toBe(
       exampleUsage.input_tokens +
         exampleUsage.cache_read_input_tokens +
         exampleUsage.cache_creation_input_tokens,
     )
+    expect(reply.usage!.hopCount).toBe(0)
+    session.shutdown()
+  })
+
+  test('contextTokens comes from the LAST assistant envelope, not result.usage', async () => {
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+
+    /* eslint-disable camelcase */
+    const earlyHop = {
+      input_tokens: 10,
+      output_tokens: 20,
+      cache_read_input_tokens: 1000,
+      cache_creation_input_tokens: 500,
+    }
+    const finalHop = {
+      input_tokens: 30,
+      output_tokens: 40,
+      cache_read_input_tokens: 70_000,
+      cache_creation_input_tokens: 2_000,
+    }
+    // Result usage is the cost-side roll-up (CLI sums across hops); deliberately distinct from
+    // either per-hop value so the assertions can tell them apart.
+    const resultUsage = {
+      input_tokens: 999,
+      output_tokens: 888,
+      cache_read_input_tokens: 77_777,
+      cache_creation_input_tokens: 6_666,
+    }
+    /* eslint-enable camelcase */
+
+    const replyPromise = session.runRequest(exampleRequest, fakeSender())
+    await settle()
+    children[0]!.pushStdoutLine(assistantEnvelope('thinking…', earlyHop))
+    children[0]!.pushStdoutLine(assistantEnvelope(JSON.stringify(exampleResponse), finalHop))
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse, resultUsage))
+    const reply = await replyPromise
+
+    expect(reply.usage).not.toBeNull()
+    // Cost-side fields come from the result envelope.
+    expect(reply.usage!.inputTokens).toBe(resultUsage.input_tokens)
+    expect(reply.usage!.outputTokens).toBe(resultUsage.output_tokens)
+    expect(reply.usage!.cacheReadTokens).toBe(resultUsage.cache_read_input_tokens)
+    expect(reply.usage!.cacheCreationTokens).toBe(resultUsage.cache_creation_input_tokens)
+    // contextTokens uses the LAST assistant envelope's usage (the synthesis call's actual
+    // prompt size), not the cost-side sum.
+    expect(reply.usage!.contextTokens).toBe(
+      finalHop.input_tokens +
+        finalHop.cache_read_input_tokens +
+        finalHop.cache_creation_input_tokens,
+    )
+    expect(reply.usage!.hopCount).toBe(2)
     session.shutdown()
   })
 

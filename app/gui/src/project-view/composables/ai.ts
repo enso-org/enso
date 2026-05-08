@@ -107,13 +107,11 @@ export function useAI(
 
 function logUsage(usage: RequestUsage | null): void {
   if (!usage) return
-  // `context` is the sum `prompt + cacheRead + cacheCreate` for this turn's `usage`; the cache
-  // breakdown is logged after it because the sum can fluctuate turn-to-turn even on a growing
-  // conversation, and the split helps diagnose where the variance comes from. `prompt=` and
-  // `out=` precede the breakdown to match the historical format (cheap to keep stable for
-  // anyone scraping these lines).
+  // `context=` is the last-hop prompt size (the synthesis call's actual context occupancy);
+  // `hops=` and the cache breakdown that follow are turn totals from `result.usage`, useful
+  // for cost analysis and for sanity-checking why a heavy-hops turn cost what it did.
   const contextKt = (usage.contextTokens / 1000).toFixed(1)
   console.log(
-    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k hops=${usage.hopCount} (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
   )
 }

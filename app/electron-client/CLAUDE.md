@@ -252,8 +252,11 @@ Findings from the probe at the time the long-lived design landed:
      **repeats every turn**, not just at startup. Filter on `type==='system'`.
   2. `{"type":"rate_limit_event", ...}` — emitted at least on the first turn.
      Filter.
-  3. `{"type":"assistant","message":{...,content:[{"type":"text","text":"..."}]}}`
-     — the assistant reply (one event in non-partial mode).
+  3. `{"type":"assistant","message":{...,content:[...],usage:{...}}}` — one
+     event per completion call. A multi-hop turn (with tool_use loops) emits one
+     assistant envelope per hop, each carrying `message.usage` for that specific
+     completion. The final envelope before the result holds the synthesis call's
+     usage and is the source for `RequestUsage.contextTokens`.
   4. `{"type":"result","subtype":"success","is_error":false,"terminal_reason":"completed", "result":<text>,"usage":{...},...}`
      — terminal envelope. `result.usage` carries `input_tokens`,
      `output_tokens`, `cache_creation_input_tokens`, and
@@ -311,23 +314,29 @@ Findings from the probe at the time the long-lived design landed:
   rotated/cancelled turn never lands on a new placeholder; the `queued` emit
   uses a separate `emitProgressTo(sender, …)` path because it must fire _before_
   the pending slot is set.
-- **Context tokens:** `RequestUsage.contextTokens` is the sum
-  `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` from
-  the terminal `result` envelope's `usage`. The CLI emits one `result` envelope
-  per turn, but a single turn can drive several underlying completion calls
-  (model → `tool_use` → `tool_result` → model continues …). The semantics of
-  `result.usage` across multi-hop turns are not documented for stream-json mode,
-  and observed values fluctuate turn-to-turn on the same growing conversation —
-  turns with heavier tool use trend higher, but the sequence is not monotonic.
-  Treat `contextTokens` as a coarse signal of turn weight and as the input to
-  cost accounting, **not** as a current-context-window-occupancy gauge. The
-  renderer logs it as `context=<n.n>k` followed by a `(cacheRead=… cacheCreate=…)`
-  breakdown (the non-cached `prompt=…t` field at the head of the line is the
-  third component of the sum), so the variance source is visible in DevTools
-  without re-running. Conversation history still accumulates
-  in CLI process memory across the session (there is no auto-compact in `-p`
-  mode — that is an interactive-mode feature), so the only resets are child
-  respawn and process restart.
+- **Context vs. cost split in `RequestUsage`.** Every `assistant` envelope the
+  CLI emits carries Anthropic's per-completion `message.usage`; the terminal
+  `result` envelope carries a roll-up that is empirically the **sum across all
+  hops in the turn** (model → `tool_use` → `tool_result` → model continues …).
+  We capture both:
+
+  - `contextTokens` =
+    `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` from
+    the **last** assistant envelope before the result. That is the synthesis
+    call's actual prompt size, the most-loaded state of the turn — the right
+    number to compare to a context window. It grows approximately monotonically
+    across turns. If the CLI ever omits per-envelope `usage`, this falls back to
+    the result-envelope sum (and reverts to non-monotonic behavior).
+  - `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheCreationTokens`,
+    `hopCount` are turn totals from `result.usage` (and the count of assistant
+    envelopes seen). They are the right inputs for billing and for explaining
+    why a heavy-hops turn cost what it did.
+
+  The renderer logs both:
+  `prompt=…t out=…t context=<n.n>k hops=N (cacheRead=…t cacheCreate=…t) time=…ms`.
+  Conversation history accumulates in CLI process memory across the session
+  (there is no auto-compact in `-p` mode — that's an interactive-mode feature),
+  so `contextTokens` resets only on child respawn or process restart.
 
 ### Gotchas
 
