@@ -297,9 +297,7 @@ const tokenUsageSchema = z.object({
   input_tokens: z.number().optional(),
   output_tokens: z.number().optional(),
   // Anthropic API reports the input split between non-cached and cache-served tokens; sum all
-  // three to recover the actual context size the API saw for this completion. Today both cache
-  // fields are 0 in stream-json mode (caching does not auto-engage) but the CLI may light them
-  // up in the future, in which case we want to count them.
+  // three to recover the actual context size the API saw for this completion.
   cache_creation_input_tokens: z.number().optional(),
   cache_read_input_tokens: z.number().optional(),
 })

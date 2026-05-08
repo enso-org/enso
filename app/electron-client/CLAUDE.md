@@ -204,16 +204,14 @@ shared request/response types live in `enso-common/src/ai.ts`. The IPC return
 shape is
 `AiComponentIpcReply = { result: Result<AiComponentResponse>, usage: RequestUsage | null }`
 — `result` carries the parsed/validated component (or an error), and `usage`
-carries `inputTokens`/`outputTokens` plus the session's cumulative context-byte
-total for that turn. The renderer logs a one-line `[AI] usage:` summary to its
-DevTools console so context growth is observable on real data. Cache-hit fields
-are intentionally not surfaced — the CLI's stream-json mode doesn't engage
-Anthropic prompt caching (see "Stream-json wire format" below), so there is
-nothing useful to log there. At main-process startup `initClaudeAgentIpc()`
-attaches a one-time diagnostic to `session.ready` so a missing CLI logs an
-install hint immediately, without spawning a separate `--version` probe — the
-session itself surfaces ENOENT through the watcher (synchronous spawner throws
-via `firstSpawn`, async `'error'` events captured by `ChildProcessHandle`'s
+carries `inputTokens`/`outputTokens` plus `contextTokens` (the API-reported
+input size for this turn — see "Context tokens" below). The renderer logs a
+one-line `[AI] usage:` summary to its DevTools console so context growth is
+observable on real data. At main-process startup `initClaudeAgentIpc()` attaches
+a one-time diagnostic to `session.ready` so a missing CLI logs an install hint
+immediately, without spawning a separate `--version` probe — the session itself
+surfaces ENOENT through the watcher (synchronous spawner throws via
+`firstSpawn`, async `'error'` events captured by `ChildProcessHandle`'s
 `exitError` and forwarded through `UnexpectedExitInfo`). The first real IPC call
 surfaces the same error to the renderer as a toast.
 
@@ -257,15 +255,11 @@ Findings from the probe at the time the long-lived design landed:
   3. `{"type":"assistant","message":{...,content:[{"type":"text","text":"..."}]}}`
      — the assistant reply (one event in non-partial mode).
   4. `{"type":"result","subtype":"success","is_error":false,"terminal_reason":"completed", "result":<text>,"usage":{...},...}`
-     — terminal envelope. `result.usage` carries `input_tokens` and
-     `output_tokens` (the cache-related fields are also present but always 0;
-     see the prompt-caching note). This is the unambiguous end-of-turn signal.
+     — terminal envelope. `result.usage` carries `input_tokens`,
+     `output_tokens`, `cache_creation_input_tokens`, and
+     `cache_read_input_tokens`. This is the unambiguous end-of-turn signal.
 - **Multi-turn:** the same child accepts subsequent turns; `session_id` is
   stable and conversation history is maintained on the CLI side.
-- **Prompt caching does NOT auto-engage** in stream-json mode —
-  `cache_read_input_tokens` is observed at 0 even with a substantial system
-  prompt. The win from the long-lived design is cold-start avoidance, not cache
-  reuse.
 - **Malformed stdin is fatal:** sending an unparsable line makes the CLI emit
   `Error parsing streaming input line: …` on stderr and `exit 1`. We always
   write `JSON.stringify(...)`, so we never trigger this — the crash-respawn path
