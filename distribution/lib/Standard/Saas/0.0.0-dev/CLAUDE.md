@@ -26,18 +26,13 @@ provider = Email_Provider_SMTP.SMTP server="smtp.gmail.com" username="user@gmail
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Salesforce.enso` — CRM client.
 - `src/Strava.enso` — Strava client.
 - `src/Email_Provider_SMTP.enso` — SMTP email provider, registered as an
   `Email_Provider` SPI.
-- `src/Internal/` — **private**; service implementations.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths and `*_Implementation` modules.
-- Anything marked `private: true`.
-- Hardcoding credentials — always use `Enso_Secret`.
 - Ignoring token-refresh failures — re-initialize the client when an
   authentication error fires rather than retrying with a stale token.
 - Salesforce: grouped or multi-dimensional reports are not supported through

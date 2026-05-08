@@ -105,29 +105,40 @@ in the engine and is only correctly observable through the LS.
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
 on top of the model's own output, and tighter budgets started clipping
 legitimate turns. `PRIMING_TIMEOUT_MS` is 180 s (was 60 s) because the priming
-turn now Reads dozens of files (see "Priming" below).
+turn does ~12 file reads before replying (see "Priming" below).
 
 ### Priming
 
 `buildPrimingPrompt(config)` returns one of two prompts. With `stdlibRoot`
-available (the normal case), the priming user turn instructs the agent to
-**(1) Read every per-library `<stdlibRoot>/<Name>/0.0.0-dev/CLAUDE.md`** and
-**(2) Glob + Read every `.enso` file under `Image/0.0.0-dev/src/`** before
-replying with `READY`. Image is a small, real library (~9 files, ~64 kB) used
-as a syntax demo so the model internalises idiomatic Enso (constructor
-patterns, `## ` doc blocks, polyglot interop) once per session. The Reads'
-results live in the conversation context for every subsequent turn — once
-primed, the agent doesn't need to re-Read these files; the per-turn input cost
-they add is what `[AI] usage:` `context=` reports. The fallback prompt (no
+available (the normal case), the priming user turn tells the agent two things.
+First, Read three CLAUDE.mds — the top-level `<stdlibRoot>/CLAUDE.md` plus
+`Base/0.0.0-dev/CLAUDE.md` and `Table/0.0.0-dev/CLAUDE.md`. Second, Glob and
+Read every `.enso` file under `Image/0.0.0-dev/src/`. Only after both does the
+agent reply `READY`.
+
+The split is intentional: the top-level file documents universal stdlib
+conventions and per-library files describe library-specific surface only, so
+loading the universal file plus the two most-used libraries covers the common
+case at a fraction of the per-turn token cost of loading every library. Image is
+a small, real library (~9 files, ~64 kB) used as a syntax demo so the model
+internalises idiomatic Enso (constructor patterns, `## ` doc blocks, polyglot
+interop) once per session. Other libraries are loaded **on demand**: the system
+prompt instructs the agent to Read `<Name>/0.0.0-dev/CLAUDE.md` the first time
+it needs that library, and the result then lives in context for the rest of the
+session.
+
+The Reads' results live in the conversation context for every subsequent turn —
+once primed, the agent doesn't need to re-Read these files; the per-turn input
+cost they add is what `[AI] usage:` `context=` reports. The fallback prompt (no
 stdlib) is still the one-line "say READY" form — when the agent has no Read
 access there is nothing to ingest.
 
 Priming runs with `sender == null`, so `evaluateExpression` would fail in the
 priming turn; that's fine — Read/Glob/Grep are CLI-internal tools and need no
 renderer. If a per-library `CLAUDE.md` happens to be missing (older engine
-bundle), Glob silently skips it and the agent continues — there is no
-all-or-nothing gate. The system prompt's stdlib bullets describe this same
-material (`## ` doc blocks, `Internal/` and `private: true` warnings, the
+bundle), the priming Reads degrade fail-soft (the missing files return a clean
+error, the agent continues). The system prompt's stdlib bullets describe this
+same material (`## ` doc blocks, `Internal/` and `private: true` warnings, the
 per-library CLAUDE.md location), so even if priming partially fails the agent
 still has the high-level rules in front of it.
 

@@ -31,24 +31,21 @@ cred = AWS_Credential.Profile "my-aws-profile"
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/AWS_Credential.enso` — credential types.
 - `src/AWS_Region.enso` — region selection.
 - `src/S3/` — S3 bucket and object operations.
 - `src/Database/` — Redshift connector for `Standard.Database`.
 - `src/SES/` — Simple Email Service.
 - `src/Errors.enso` — AWS-specific errors.
-- `src/Internal/` — **private** implementation.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` and `src/S3/Internal/` (path parsing, low-level SDK calls).
-- Anything marked `private: true`.
-- Hardcoding access keys; prefer `AWS_Credential.Default` (env/instance role)
-  or `AWS_Credential.Profile`. Use `Enso_Secret` for stored secrets.
+- For credentials, prefer `AWS_Credential.Default` (env/instance role) or
+  `AWS_Credential.Profile`; the universal `Enso_Secret` rule applies for stored
+  access keys.
 - Catching `S3_Error` / `S3_Bucket_Not_Found` / `S3_Key_Not_Found` swallows
-  legitimate failures — let dataflow errors propagate unless you have a
-  specific recovery.
+  legitimate failures — let dataflow errors propagate unless you have a specific
+  recovery.
 
 ## Where to read more
 

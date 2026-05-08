@@ -1,9 +1,9 @@
 # Standard.Visualization
 
 Preprocessors and helpers used by the Enso IDE to render values as charts,
-tables, geo maps, etc. The IDE invokes these automatically — **user code
-should not import this library**. The agent should not generate code that
-imports from it either.
+tables, geo maps, etc. The IDE invokes these automatically — **user code should
+not import this library**. The agent should not generate code that imports from
+it either.
 
 ## Main entry points (IDE-facing only)
 
@@ -22,23 +22,21 @@ components and workflows should not.
 
 ## Layout
 
-- `src/Main.enso` — IDE-facing entry points.
 - `src/Preprocessor.enso` — default visualization preprocessor.
 - `src/Helpers.enso` — display utilities (truncation, formatting, timing).
 - `src/Table.enso` — IDE-side table rendering.
 - `src/Geo_Map.enso`, `src/Histogram.enso`, `src/Scatter_Plot.enso` —
   per-visualization preprocessors.
 - `src/AI.enso` — AI assistant prompt construction.
-- `src/Widgets.enso`, `src/Id.enso`, `src/Warnings.enso`,
-  `src/File_Upload.enso` — supporting IDE utilities.
-- `src/Internal/`, `src/SQL/` — **private** internals.
+- `src/Widgets.enso`, `src/Id.enso`, `src/Warnings.enso`, `src/File_Upload.enso`
+  — supporting IDE utilities.
 
 ## Things to avoid in generated code
 
-- **Do not import `Standard.Visualization` in user code.** It is internal to
-  the IDE; the JSON shape is not stable.
-- Do not call `Preprocessor.*` or `*.process_to_json_text` — the IDE calls
-  them on your behalf when a node is visualized.
+- **Do not import `Standard.Visualization` in user code.** It is internal to the
+  IDE; the JSON shape is not stable.
+- Do not call `Preprocessor.*` or `*.process_to_json_text` — the IDE calls them
+  on your behalf when a node is visualized.
 - Do not depend on the JSON encoding produced; treat it as IDE-internal.
 
 ## Where to read more

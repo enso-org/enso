@@ -8,8 +8,7 @@ username/password and key-pair authentication; queries and bulk-load.
 - `Snowflake_Details` — `Database.connect` argument:
   `Snowflake_Details.Snowflake account credentials database schema warehouse`.
 - `Snowflake_Connection` — connection type returned by `Database.connect`.
-- `Key_Pair_Credentials` — private-key authentication helper for
-  `credentials=`.
+- `Key_Pair_Credentials` — private-key authentication helper for `credentials=`.
 - `Snowflake_Data_Link` — persisted data-link reference.
 - `File_Format` — Snowflake-specific file format options.
 
@@ -31,19 +30,14 @@ t.select_into_database_table conn "MY_NEW_TABLE"
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Snowflake_Connection.enso` — connection type.
 - `src/Connection/Snowflake_Details.enso` — connection constructor.
 - `src/Connection/Key_Pair_Credentials.enso` — key-pair auth.
 - `src/File_Format.enso` — Snowflake-specific options.
 - `src/Errors.enso` — Snowflake error types.
-- `src/Internal/` — **private**; dialect and type mappings.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths.
-- Anything marked `private: true`.
-- Hardcoding credentials — use `Enso_Secret` and `Credentials`.
 - Forgetting the `warehouse` parameter when the account uses multiple
   warehouses; without it queries either fail or hit a default that isn't what
   you want.

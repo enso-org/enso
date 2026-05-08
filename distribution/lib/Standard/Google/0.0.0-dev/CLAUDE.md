@@ -7,8 +7,8 @@ Reporting API, and Google credentials.
 
 - `Google_Credential` — credentials backed by an `Enso_Secret`.
 - `Google_Sheets` — open a workbook by ID; `Google_Sheets.read id credentials`.
-- `Google_Sheets_Workbook` — workbook handle with sheet metadata, named
-  ranges, and `read`/`read_many` for individual sheets.
+- `Google_Sheets_Workbook` — workbook handle with sheet metadata, named ranges,
+  and `read`/`read_many` for individual sheets.
 - `Google_Analytics`, `Google_Analytics_Account`, `Google_Analytics_Property`,
   `Google_Analytics_Field` — Analytics Reporting API entry points.
 
@@ -26,21 +26,15 @@ multi = wb.read_many ['Sheet1','Sheet2'] ..Has_Headers
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Google_Sheets.enso` — Sheets entry point.
 - `src/Google_Sheets_Workbook.enso` — workbook operations.
 - `src/Google_Analytics.enso` — Analytics queries.
 - `src/Google_Analytics_Account.enso`, `Google_Analytics_Property.enso`,
   `Google_Analytics_Field.enso` — Analytics metadata types.
 - `src/Google_Credential.enso` — credential configuration.
-- `src/Internal/` — **private** implementation.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths.
-- Anything marked `private: true`.
-- Hardcoding credentials; use `Enso_Secret.get "name"` and store secrets in
-  Enso Cloud.
 - Ignoring `Duplicate_Output_Column_Names` and `Empty_Sheet` warnings — they
   often indicate the sheet's header row isn't where you expect.
 

@@ -1,9 +1,9 @@
 # Standard.Database
 
-SQL abstraction for relational databases. Returns a deferred `DB_Table`
-(query plan, not data) that mirrors the in-memory `Table` API; call `.read`
-to materialize. Backends (SQLite, Postgres, DuckDB, Snowflake, SQL Server, …)
-ship in their own libraries — `Standard.DuckDB`, `Standard.Snowflake`,
+SQL abstraction for relational databases. Returns a deferred `DB_Table` (query
+plan, not data) that mirrors the in-memory `Table` API; call `.read` to
+materialize. Backends (SQLite, Postgres, DuckDB, Snowflake, SQL Server, …) ship
+in their own libraries — `Standard.DuckDB`, `Standard.Snowflake`,
 `Standard.Microsoft`, etc.
 
 ## Main entry points
@@ -18,8 +18,8 @@ ship in their own libraries — `Standard.DuckDB`, `Standard.Snowflake`,
 - `db_table.read` — materialize a deferred table to in-memory `Table`.
 - `db_table.filter`, `.sort`, `.aggregate`, `.join`, `.set`, `.at` — same
   interface as in-memory `Table`; the operations build SQL.
-- `db_table.select_into_database_table connection "name"` — bulk-load
-  in-memory rows into the database.
+- `db_table.select_into_database_table connection "name"` — bulk-load in-memory
+  rows into the database.
 
 ## Common usage
 
@@ -37,24 +37,18 @@ raw = conn.query (..Raw_SQL "SELECT id, name FROM users WHERE active = true")
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Connection/` — `Connection`, connection options, credentials.
 - `src/DB_Table.enso` — deferred table type.
 - `src/DB_Column.enso` — deferred column type.
 - `src/SQL_Query.enso` — query construction (`..Table_Name`, `..Raw_SQL`).
 - `src/SQL_Statement.enso` — prepared SQL statement.
 - `src/Dialect.enso` — dialect dispatch (each backend implements one).
-- `src/Internal/` — **private**; SQL generation, type mappings.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths (the SQL generator, IR helpers).
-- Anything marked `private: true`.
-- Forgetting `.read` — `DB_Table` is a query plan, not data; chained ops
-  build a bigger query.
 - Assuming all backends support the same SQL — operations that work on one
-  backend may fail on another (verify by looking at the backend library's
-  test suite).
+  backend may fail on another (verify by looking at the backend library's test
+  suite).
 - Reaching into raw SQL when the high-level API would do — generated SQL is
   dialect-aware, raw SQL is not.
 
@@ -62,7 +56,7 @@ raw = conn.query (..Raw_SQL "SELECT id, name FROM users WHERE active = true")
 
 - `src/Connection/Connection.enso` — connection methods.
 - `src/DB_Table.enso` — deferred table operations.
-- `test/Table_Tests/src/Common_Table_Operations/` — the same suite runs
-  against both in-memory and database backends.
+- `test/Table_Tests/src/Common_Table_Operations/` — the same suite runs against
+  both in-memory and database backends.
 - `test/DuckDB_Tests/`, `test/Snowflake_Tests/`, `test/Microsoft_Tests/` —
   backend-specific examples.

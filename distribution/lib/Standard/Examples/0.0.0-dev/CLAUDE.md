@@ -1,8 +1,8 @@
 # Standard.Examples
 
-Example values and fixtures used by `## Examples` doc blocks across the
-stdlib. End-user workflows rarely import this — its purpose is to make doc
-examples runnable.
+Example values and fixtures used by `## Examples` doc blocks across the stdlib.
+End-user workflows rarely import this — its purpose is to make doc examples
+runnable.
 
 ## Main entry points
 
@@ -13,8 +13,8 @@ examples runnable.
 - `Examples.inventory_table`, `Examples.popularity_table`,
   `Examples.transactions_table` — sample tables.
 - `Examples.integer_column`, `Examples.text_column_1` — sample columns.
-- `Examples.Example_Error_Type`, `Examples.My_Error`,
-  `Examples.throw_error`, `Examples.throw_panic` — example error fixtures.
+- `Examples.Example_Error_Type`, `Examples.My_Error`, `Examples.throw_error`,
+  `Examples.throw_panic` — example error fixtures.
 
 ## Common usage
 
@@ -30,13 +30,14 @@ doc_value = Examples.json
 
 ## Layout
 
-- `src/Main.enso` — defines and re-exports every example value.
+- `src/Main.enso` — defines and re-exports every example value (this library
+  exposes everything from `Main.enso`, with no separate top-level files).
 - `data/` — sample CSV, XLSX, XLSB files and other static fixtures.
 
 ## Things to avoid in generated code
 
-- Importing `Standard.Examples` in production workflows — the example data
-  files are shipped with the engine but are not intended as a stable dataset.
+- Importing `Standard.Examples` in production workflows — the example data files
+  are shipped with the engine but are not intended as a stable dataset.
 - Mutating example values — they are shared across many doc blocks.
 
 ## Where to read more

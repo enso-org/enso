@@ -1,14 +1,14 @@
 # Standard.Test
 
 The Enso testing framework: declare test suites and groups, write assertions,
-test for panics and dataflow errors, generate fake data, run benchmarks. Used
-by every project under `test/` in this repo. End-user workflows rarely import
-this library.
+test for panics and dataflow errors, generate fake data, run benchmarks. Used by
+every project under `test/` in this repo. End-user workflows rarely import this
+library.
 
 ## Main entry points
 
-- `Test.build builder` — build a `Suite` from a function that adds groups
-  and specs to a builder.
+- `Test.build builder` — build a `Suite` from a function that adds groups and
+  specs to a builder.
 - `suite_builder.group "name" group_builder->` — declare a group.
 - `group_builder.specify "case" <| <expr>` — declare a single test.
 - `Test.expect_panic_with action panic_type` — assert that running `action`
@@ -37,19 +37,15 @@ main = Test.build add_specs . run
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Test.enso` — `Test.build`, `Test.expect_panic_with`, panic helpers.
 - `src/Suite.enso` — `Suite.run`, suite-builder type.
-- `src/Extensions.enso` — assertion methods (`should_equal`,
-  `should_fail_with`, `should_contain`, `should_be_a`, `should_be_true`, …).
+- `src/Extensions.enso` — assertion methods (`should_equal`, `should_fail_with`,
+  `should_contain`, `should_be_a`, `should_be_true`, …).
 - `src/Bench.enso` — benchmarking.
 - `src/Faker.enso` — fake data generation.
-- `src/Internal/` — **private** helpers.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths.
-- Anything marked `private: true`.
 - Calling assertion methods outside a `specify` block — they expect a test
   context.
 - Importing `Standard.Test` in production code; reserve it for test projects.

@@ -6,14 +6,14 @@ distances, GeoJSON to `Table` conversion, distance unit selection.
 ## Main entry points
 
 - `Geo.point latitude longitude elevation=0` — build a JSON point object.
-- `Geo.distance lat1 lon1 lat2 lon2 unit=..Kilometers` — great-circle
-  distance between two coordinates.
+- `Geo.distance lat1 lon1 lat2 lon2 unit=..Kilometers` — great-circle distance
+  between two coordinates.
 - `Geo.geo_json_to_table json fields` — flatten a GeoJSON `FeatureCollection`
   into rows.
-- `..Meters`, `..Kilometers`, `..Feet`, `..Miles` — `Distance_Units`
-  autoscope variants.
-- `table.geo_distance lat1_col lon1_col lat2_col lon2_col unit out_col` —
-  add a per-row distance column to a `Table`.
+- `..Meters`, `..Kilometers`, `..Feet`, `..Miles` — `Distance_Units` autoscope
+  variants.
+- `table.geo_distance lat1_col lon1_col lat2_col lon2_col unit out_col` — add a
+  per-row distance column to a `Table`.
 
 ## Common usage
 
@@ -28,15 +28,13 @@ result_table = table.geo_distance (..Name "lat1") (..Name "lng1") (..Name "lat2"
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Geo.enso` — point creation, distance, GeoJSON to table.
-- `src/Table_Extensions.enso` — `Table.geo_distance` method,
-  `Distance_Units` enum.
-- `src/Helpers.enso` — **private** GeoJSON parsing utilities.
+- `src/Table_Extensions.enso` — `Table.geo_distance` method, `Distance_Units`
+  enum.
+- `src/Helpers.enso` — private GeoJSON parsing utilities (do not import).
 
 ## Things to avoid in generated code
 
-- `src/Helpers.enso` and any function marked `private: true`.
 - Coordinates outside WGS84 bounds (latitude `[-90, 90]`, longitude
   `[-180, 180]`) — results are unspecified.
 - Passing column references to `geo_distance` as bare strings — use

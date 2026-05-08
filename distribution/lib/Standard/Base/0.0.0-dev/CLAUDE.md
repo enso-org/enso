@@ -8,8 +8,8 @@ from `Standard.Base`. Most types here are imported automatically by
 ## Main entry points
 
 **Data types:** `Vector`, `Array`, `List`, `Map`, `Dictionary`, `Hashset`,
-`Pair`, `Text`, `Numbers` (`Integer`, `Float`, `Decimal`), `Boolean`,
-`Nothing`, `Date`, `Time_Of_Day`, `Date_Time`, `Duration`, `Range`, `Interval`.
+`Pair`, `Text`, `Numbers` (`Integer`, `Float`, `Decimal`), `Boolean`, `Nothing`,
+`Date`, `Time_Of_Day`, `Date_Time`, `Duration`, `Range`, `Interval`.
 
 **Collections & utilities:** `Ordering`, `Sort_Direction`, `Index_Sub_Range`,
 `Locale`, `Encoding`, `Regex`.
@@ -22,8 +22,7 @@ from `Standard.Base`. Most types here are imported automatically by
 **Networking:** `HTTP`, `URI`, `Email`, `Data.fetch`, `Data.post`.
 
 **Error handling:** `Error`, `Panic`, common errors (`Missing_Argument`,
-`Index_Out_Of_Bounds`, `Type_Error`, `Illegal_Argument`, …),
-`Problem_Behavior`.
+`Index_Out_Of_Bounds`, `Type_Error`, `Illegal_Argument`, …), `Problem_Behavior`.
 
 **Runtime & reflection:** `Meta`, `Runtime`, `Random`, `Polyglot`, `Any`.
 
@@ -52,7 +51,6 @@ result = "not a number".parse_integer.catch _-> 0
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Data/` — foundational types: `Vector`, `Array`, `Text`, `Numbers`,
   `Boolean`, `Date`/`Time`, `Map`, `Pair`, `Dictionary`, `Range`, `Interval`,
   `Json`, `XML`, `Regex`.
@@ -62,15 +60,11 @@ result = "not a number".parse_integer.catch _-> 0
 - `src/Enso_Cloud/` — `Enso_File`, `Enso_Secret`, `Enso_User`.
 - `src/Runtime/` — runtime utilities, contexts, debugging.
 - `src/Meta/` — runtime type introspection.
-- `src/Internal/` — **private** implementation helpers, do not import.
 
 ## Things to avoid in generated code
 
-- Anything under `src/Internal/` (e.g. `Boolean_Helpers`, `Error_Builtins`,
-  `Polyglot_Helpers`, `Array_Like_Helpers`).
-- Methods or types whose `## ---` metadata block contains `private: true`
-  or `advanced: true`.
-- Methods marked `@Builtin_Method` — use the public wrappers instead.
+- `advanced: true` entities — these are escape hatches the IDE searcher hides.
+  Use the regular API.
 - Direct `polyglot java import` of internal classes — only the stdlib should
   reach across the polyglot boundary.
 

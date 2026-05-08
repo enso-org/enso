@@ -3,9 +3,9 @@
 Image manipulation backed by an OpenCV polyglot import. Read/write image files
 in common formats; arithmetic on images and matrices; histograms.
 
-This is a small, real Enso library — a good reference for idiomatic Enso
-syntax (constructor patterns, doc blocks, polyglot Java interop, conversion
-methods, `private: true`).
+This is a small, real Enso library — a good reference for idiomatic Enso syntax
+(constructor patterns, doc blocks, polyglot Java interop, conversion methods,
+`private: true`).
 
 ## Main entry points
 
@@ -41,7 +41,6 @@ diff = img - mat
 
 ## Layout
 
-- `src/Main.enso` — re-exports `Image`, `Matrix`, `Read_Flag`, `Write_Flag`.
 - `src/Image.enso` — `Image` type, arithmetic operators, conversions.
 - `src/Matrix.enso` — `Matrix` type with `zeros`, `ones`, `identity`,
   `from_vector`, arithmetic operators.
@@ -55,10 +54,10 @@ diff = img - mat
 ## Things to avoid in generated code
 
 - Internal helper functions in `src/Image.enso` marked `private: true`
-  (`core_op`, `core_op_handler`, `Image_Comparator`, `Image.Value`
-  constructor — use `Image.read` / `Image.from_vector` instead).
-- Direct use of `polyglot java import org.opencv.…` types — these are
-  marshalled through the public API, not exposed as Enso types.
+  (`core_op`, `core_op_handler`, `Image_Comparator`, `Image.Value` constructor —
+  use `Image.read` / `Image.from_vector` instead).
+- Direct use of `polyglot java import org.opencv.…` types — these are marshalled
+  through the public API, not exposed as Enso types.
 - Mutating an `Image` in place — operators return new `Image` values; the
   underlying OpenCV `Mat` is not safe to mutate from Enso.
 - Mismatched dimensions in arithmetic against a `Matrix`: triggers
@@ -66,7 +65,7 @@ diff = img - mat
 
 ## Where to read more
 
-- `src/Image.enso` — every method has a `## ---` doc block with arguments
-  and runnable `## Examples` snippets.
+- `src/Image.enso` — every method has a `## ---` doc block with arguments and
+  runnable `## Examples` snippets.
 - `src/Matrix.enso` — matrix operators and conversions.
 - `test/Image_Tests/src/` — read/write/arithmetic test specs.

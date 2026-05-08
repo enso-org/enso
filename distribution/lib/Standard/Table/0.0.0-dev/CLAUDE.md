@@ -38,7 +38,6 @@ pivot = (Table.new [['Id', ['A','A']], ['B', ['Name','Country']], ['C', ['Ada','
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Table.enso` — `Table` type and operations.
 - `src/Column.enso` — `Column` type.
 - `src/Aggregate_Column.enso` — aggregation specs (`..Count`, `..Sum`, …).
@@ -47,24 +46,16 @@ pivot = (Table.new [['Id', ['A','A']], ['B', ['Name','Country']], ['C', ['Ada','
 - `src/Excel/` — Excel format handling.
 - `src/Parquet/` — Parquet support.
 - `src/Extensions/` — type-extension methods (e.g. `Vector.to_table`).
-- `src/Internal/` — **private**; do not import.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths (column manipulation helpers, expression builders).
-- Anything marked `private: true`.
-- Floating-point equality comparisons in `filter`/`sort`/`aggregate` — match
-  by integer column or use a tolerance comparator.
 - Joins with mismatched key types silently produce mismatch markers — verify
   column types are compatible before joining.
-- Constructors typed as a *union* (e.g. `Filter_Condition | Text`): use the
-  qualified `Filter_Condition.Equal x` form instead of the `..Equal x`
-  autoscope, which only resolves when the parameter type is a single type.
 
 ## Where to read more
 
 - `src/Table.enso` — type definition with method docs.
 - `src/Aggregate_Column.enso` — list of aggregation constructors.
 - `test/Table_Tests/src/In_Memory/` — comprehensive in-memory examples.
-- `test/Table_Tests/src/Common_Table_Operations/` — operations that work on
-  both in-memory and database tables.
+- `test/Table_Tests/src/Common_Table_Operations/` — operations that work on both
+  in-memory and database tables.

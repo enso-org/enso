@@ -1,7 +1,7 @@
 # Standard.Tableau
 
-Tableau Hyper extract (`.hyper`) file format support: read and write Hyper
-files for use with Tableau Desktop, Tableau Server, or Tableau Cloud.
+Tableau Hyper extract (`.hyper`) file format support: read and write Hyper files
+for use with Tableau Desktop, Tableau Server, or Tableau Cloud.
 
 ## Main entry points
 
@@ -29,22 +29,18 @@ my_table.write "out.hyper" (..Hyper_File "MySchema" "MyTable")
 
 ## Layout
 
-- `src/Main.enso` — public API re-exports.
 - `src/Hyper_File.enso` — open and explore `.hyper` files.
 - `src/Hyper_Table.enso` — read individual tables.
 - `src/Hyper_Column.enso` — column metadata.
 - `src/Tableau_Format.enso` — file format SPI for `Table.write`.
 - `src/Hyper_Errors.enso` — error types.
-- `src/Internal/` — **private** Java interop and telemetry.
 
 ## Things to avoid in generated code
 
-- `src/Internal/` paths.
-- Anything marked `private: true` (e.g. internal handles to Java pointers).
-- Reading from `Hyper_File` without first checking that the schema/table
-  exists — `Table_Not_Found` errors are unrecoverable mid-workflow.
-- Holding an open `Hyper_File` across long-running operations; Tableau's
-  Hyper engine is process-bound.
+- Reading from `Hyper_File` without first checking that the schema/table exists
+  — `Table_Not_Found` errors are unrecoverable mid-workflow.
+- Holding an open `Hyper_File` across long-running operations; Tableau's Hyper
+  engine is process-bound.
 
 ## Where to read more
 
