@@ -107,8 +107,10 @@ export function useAI(
 
 function logUsage(usage: RequestUsage | null): void {
   if (!usage) return
-  const contextKB = (usage.contextBytes / 1024).toFixed(1)
+  // Display the context size in kilo-tokens to match Claude Code's interactive "Context: …k"
+  // indicator. One decimal so small turns don't all round to "0k".
+  const contextKt = (usage.contextTokens / 1000).toFixed(1)
   console.log(
-    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKB}kB time=${usage.durationMs}ms`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k time=${usage.durationMs}ms`,
   )
 }

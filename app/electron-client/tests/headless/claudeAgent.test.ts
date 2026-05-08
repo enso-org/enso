@@ -92,6 +92,8 @@ const exampleResponse: AiComponentResponse = {
 const exampleUsage = {
   input_tokens: 1234,
   output_tokens: 56,
+  cache_read_input_tokens: 5000,
+  cache_creation_input_tokens: 2000,
 }
 
 function resultEnvelope(textOrObject: unknown, usage = exampleUsage): string {
@@ -193,7 +195,12 @@ describe('ClaudeAgentSession', () => {
     expect(reply.usage).not.toBeNull()
     expect(reply.usage!.inputTokens).toBe(exampleUsage.input_tokens)
     expect(reply.usage!.outputTokens).toBe(exampleUsage.output_tokens)
-    expect(reply.usage!.contextBytes).toBeGreaterThan(0)
+    // contextTokens sums input + cache_read + cache_creation — see `snapshotUsage`.
+    expect(reply.usage!.contextTokens).toBe(
+      exampleUsage.input_tokens +
+        exampleUsage.cache_read_input_tokens +
+        exampleUsage.cache_creation_input_tokens,
+    )
     session.shutdown()
   })
 

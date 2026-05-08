@@ -147,7 +147,7 @@ export class AiMcpServer {
   }
 
   private async dispatchToRenderer(
-    payload: Omit<AiToolCallRequest, 'requestId' | 'aiRequestId'>,
+    payload: Omit<AiToolCallRequest, 'requestId' | 'turnRequestId'>,
   ): Promise<AiToolCallReply['result']> {
     const active = this.resolveActiveRequest()
     if (active == null) {

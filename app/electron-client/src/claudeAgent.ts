@@ -296,6 +296,12 @@ function userTurnLine(content: string): string {
 const tokenUsageSchema = z.object({
   input_tokens: z.number().optional(),
   output_tokens: z.number().optional(),
+  // Anthropic API reports the input split between non-cached and cache-served tokens; sum all
+  // three to recover the actual context size the API saw for this completion. Today both cache
+  // fields are 0 in stream-json mode (caching does not auto-engage) but the CLI may light them
+  // up in the future, in which case we want to count them.
+  cache_creation_input_tokens: z.number().optional(),
+  cache_read_input_tokens: z.number().optional(),
 })
 /* eslint-enable camelcase */
 
@@ -368,7 +374,6 @@ export class ClaudeAgentSession {
   private readyDeferred: Deferred<void> = createDeferred()
   private readonly queue = new AsyncQueue<void>(Promise.resolve())
   private pending: PendingTurn | null = null
-  private contextBytes = 0
   private stderrTail = ''
   private disposed = false
   /** Ids cancelled while still queued behind another turn; consumed by the queue task on entry. */
@@ -574,7 +579,6 @@ export class ClaudeAgentSession {
   // -------------- private --------------
 
   private onChildStarted(handle: ChildProcessHandle): void {
-    this.contextBytes = Buffer.byteLength(buildSystemPrompt(this.config), 'utf8')
     this.stderrTail = ''
     this.pending = null
 
@@ -661,7 +665,6 @@ export class ClaudeAgentSession {
         return
       }
       const line = userTurnLine(content)
-      this.contextBytes += Buffer.byteLength(line, 'utf8')
       const startedAt = performance.now()
       const pending: PendingTurn = {
         requestId,
@@ -727,7 +730,6 @@ export class ClaudeAgentSession {
     for (const block of env.message.content) {
       if (block.type === 'text' && block.text != null) {
         pending.textChunks.push(block.text)
-        this.contextBytes += Buffer.byteLength(block.text, 'utf8')
         if (block.text.trim().length > 0) {
           this.emitProgress({ requestId, kind: 'text', text: block.text })
         }
@@ -799,10 +801,13 @@ export class ClaudeAgentSession {
 
   private snapshotUsage(raw: RawTokenUsage | null, durationMs: number): RequestUsage | null {
     if (!raw) return null
+    const inputTokens = raw.input_tokens ?? 0
+    const cacheRead = raw.cache_read_input_tokens ?? 0
+    const cacheCreation = raw.cache_creation_input_tokens ?? 0
     return {
-      inputTokens: raw.input_tokens ?? 0,
+      inputTokens,
       outputTokens: raw.output_tokens ?? 0,
-      contextBytes: this.contextBytes,
+      contextTokens: inputTokens + cacheRead + cacheCreation,
       durationMs,
     }
   }

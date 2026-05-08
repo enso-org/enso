@@ -13,16 +13,20 @@ const execFileAsync = promisify(execFile)
 
 /**
  * Matches the renderer log line emitted by `logUsage` in
- * `app/gui/src/project-view/components/ComponentBrowser/ai.ts`. The renderer renders
- * `contextBytes` as kilobytes with one decimal (e.g. `46.3kB`); we round-trip through
- * `kB * 1024` so the CSV reports bytes consistent with the in-memory `RequestUsage` type.
+ * `app/gui/src/project-view/composables/ai.ts`. The renderer formats `contextTokens` as
+ * kilo-tokens with one decimal (e.g. `46.3k`) for parity with Claude Code's interactive
+ * "Context: …k" indicator; we round-trip through `k * 1000` so the CSV reports raw tokens
+ * consistent with the in-memory `RequestUsage` type. The `* 1000` round-trip loses up to a
+ * few hundred tokens of precision per sample — acceptable noise on hundred-thousand-token
+ * contexts.
  */
-const AI_USAGE_LINE_REGEX = /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)kB time=(\d+)ms/
+const AI_USAGE_LINE_REGEX = /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k time=(\d+)ms/
 
 /**
- * Parse one "[AI] renderer console line into a `RequestUsage`, or `null` if it doesn't match.
+ * Parse one `[AI] usage:` renderer console line into a `RequestUsage`, or `null` if it doesn't
+ * match.
  *
- * The line is defined in `logUsage` in `app/gui/src/project-view/components/ComponentBrowser/ai.ts`
+ * The line is defined in `logUsage` in `app/gui/src/project-view/composables/ai.ts`.
  */
 export function parseAiUsageLine(text: string): RequestUsage | null {
   const m = AI_USAGE_LINE_REGEX.exec(text)
@@ -30,7 +34,7 @@ export function parseAiUsageLine(text: string): RequestUsage | null {
   return {
     inputTokens: Number(m[1]),
     outputTokens: Number(m[2]),
-    contextBytes: Math.round(Number(m[3]) * 1024),
+    contextTokens: Math.round(Number(m[3]) * 1000),
     durationMs: Number(m[4]),
   }
 }
@@ -89,11 +93,11 @@ const CSV_COLUMNS = [
   'total_duration_ms',
   'total_input_tokens',
   'total_output_tokens',
-  'final_context_bytes',
+  'final_context_tokens',
   'per_node_durations_ms',
   'per_node_input_tokens',
   'per_node_output_tokens',
-  'per_node_context_bytes',
+  'per_node_context_tokens',
 ] as const
 
 function csvEscape(value: string): string {
@@ -134,8 +138,8 @@ export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void
   const totalDurationMs = args.samples.reduce((acc, s) => acc + s.durationMs, 0)
   const totalInputTokens = args.samples.reduce((acc, s) => acc + s.inputTokens, 0)
   const totalOutputTokens = args.samples.reduce((acc, s) => acc + s.outputTokens, 0)
-  const finalContextBytes =
-    args.samples.length > 0 ? args.samples[args.samples.length - 1]!.contextBytes : 0
+  const finalContextTokens =
+    args.samples.length > 0 ? args.samples[args.samples.length - 1]!.contextTokens : 0
 
   const row = buildRow([
     args.timestamp,
@@ -145,11 +149,11 @@ export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void
     String(totalDurationMs),
     String(totalInputTokens),
     String(totalOutputTokens),
-    String(finalContextBytes),
+    String(finalContextTokens),
     args.samples.map((s) => s.durationMs).join(';'),
     args.samples.map((s) => s.inputTokens).join(';'),
     args.samples.map((s) => s.outputTokens).join(';'),
-    args.samples.map((s) => s.contextBytes).join(';'),
+    args.samples.map((s) => s.contextTokens).join(';'),
   ])
 
   const payload = exists ? row : buildRow(CSV_COLUMNS) + row

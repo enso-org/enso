@@ -69,14 +69,19 @@ export const aiComponentResponseSchema = z.object({
 export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
 
 /**
- * Per-request usage telemetry from the `claude` session. `contextBytes` is the running UTF-8
- * byte count of the system prompt plus every user/assistant turn since the last spawn;
- * `durationMs` is the main-process round-trip from stdin write to the terminal `result` envelope.
+ * Per-request usage telemetry from the `claude` session. `contextTokens` is the API-reported
+ * input size for this turn's final completion (`input_tokens + cache_read_input_tokens +
+ * cache_creation_input_tokens`) — the same number Claude Code's interactive "Context: …k"
+ * indicator displays, so it grows monotonically across a long-lived session and includes the
+ * full conversation history, every `tool_use` block, and every `tool_result` body the CLI fed
+ * back into the conversation (e.g. file contents the built-in `Read` tool returned). Reported
+ * in tokens; divide by 1000 to compare to the interactive bar's `Nk` reading. `durationMs` is
+ * the main-process round-trip from stdin write to the terminal `result` envelope.
  */
 export interface RequestUsage {
   readonly inputTokens: number
   readonly outputTokens: number
-  readonly contextBytes: number
+  readonly contextTokens: number
   readonly durationMs: number
 }
 
