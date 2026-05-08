@@ -90,6 +90,16 @@ session still spawns but without filesystem access and with the stdlib hint
 omitted from the system prompt — the agent shouldn't be told it has tools it
 can't actually use.
 
+**Cwd sandboxing.** The spawned `claude` is launched with `cwd` set to a
+fresh empty temp dir (`<tmpdir>/enso-claude-cwd-<rand>/`), removed on
+`shutdown()`. The Read/Glob/Grep tools resolve filesystem operations against
+the cwd plus any `--add-dir` paths; without an explicit cwd the child would
+inherit Electron's, putting the user's home directory and `/tmp` within reach.
+The empty-dir cwd plus `--add-dir <stdlibRoot>` confines those tools to the
+stdlib alone. User data is never accessible by `Read` — it only flows back
+through `evaluateExpression`, which is the right boundary anyway because user
+data lives in the engine and is only correctly observable through the LS.
+
 `REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
 on top of the model's own output, and tighter budgets started clipping
@@ -164,12 +174,15 @@ wired.
 
 **Renderer side:**
 `app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts` exposes
-a `useAiToolHandler()` Vue composable mounted by `ComponentBrowser.vue`. It
-subscribes to `window.api.ai.onToolCall`, resolves the LS scope-anchor (the
-current method body's `externalId`, mirroring the `ComponentBrowser.vue` preview
-path — see the long-form scope-semantics docstring at the top of
-`aiToolHandler.ts` for why this is the right anchor and why graph node ids are
-not), calls `queuedExecuteExpressionRaw(anchor, expression)` from the project
+a `useAiToolHandler()` Vue composable mounted by `GraphEditor.vue` so the IPC
+subscription lives for the whole project session — the Component Browser
+closes on AI-prompt submission and would otherwise tear the handler down
+before the agent issues its first tool call. It subscribes to
+`window.api.ai.onToolCall`, resolves the LS scope-anchor (the current method
+body's `externalId`, mirroring the `ComponentBrowser.vue` preview path — see
+the long-form scope-semantics docstring at the top of `aiToolHandler.ts` for
+why this is the right anchor and why graph node ids are not), calls
+`queuedExecuteExpressionRaw(anchor, expression)` from the project
 store (the **raw** variant — JSON parsing is intentionally bypassed so the agent
 controls the encoding; the queued variant cooperates with the
 `MAX_IN_PROGRESS=5` cap and retry/backoff in `project.ts`), and forwards the

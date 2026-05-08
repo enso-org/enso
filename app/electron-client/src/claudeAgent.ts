@@ -23,6 +23,9 @@ import {
   type UnexpectedExitInfo,
 } from 'enso-common/src/utilities/childProcess'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
 import readline from 'node:readline'
 import { z } from 'zod'
 import { startAiMcpServer, type AiMcpServer } from './aiMcpServer.js'
@@ -370,10 +373,20 @@ export class ClaudeAgentSession {
   private disposed = false
   /** Ids cancelled while still queued behind another turn; consumed by the queue task on entry. */
   private readonly cancelled = new Set<string>()
+  /**
+   * Empty temp dir used as the spawned `claude` process's cwd. Without it the child inherits
+   * Electron's cwd and the agent's `Read` tool can reach arbitrary paths under it (user home,
+   * `/tmp`, ...). Pairing an empty cwd with `--add-dir <stdlibRoot>` confines `Read`/`Glob`/
+   * `Grep` to the stdlib, forcing the agent to use `evaluateExpression` for any user-data
+   * inspection — which is the right boundary anyway, since user data lives in the engine and
+   * is only correctly observable through the LS.
+   */
+  private readonly sandboxCwd: string
 
   /** Spawn the child eagerly and kick off the priming turn in the background. */
   constructor(config: ClaudeSessionConfig) {
     this.config = config
+    this.sandboxCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'enso-claude-cwd-'))
     // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
     // unhandled rejection when no `runRequest` happens to be awaiting `ready` at the time.
     // Awaiters that arrive later attach their own .then/.catch and still observe the rejection.
@@ -386,6 +399,7 @@ export class ClaudeAgentSession {
         spawn(CLAUDE_EXECUTABLE, streamJsonArgs(this.config), {
           stdio: ['pipe', 'pipe', 'pipe'],
           env: process.env,
+          cwd: this.sandboxCwd,
         }),
       {
         onChildStarted: this.onChildStarted.bind(this),
@@ -530,6 +544,11 @@ export class ClaudeAgentSession {
       })
     }
     void this.watcher.close()
+    try {
+      fs.rmSync(this.sandboxCwd, { recursive: true, force: true })
+    } catch {
+      // Already gone or filesystem-level failure; nothing meaningful to do here.
+    }
   }
 
   // -------------- private --------------

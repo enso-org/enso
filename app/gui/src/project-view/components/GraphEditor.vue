@@ -18,6 +18,7 @@ import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
+import { useAiToolHandler } from '@/components/ComponentBrowser/aiToolHandler'
 import ComponentBrowser, { type AiPromptSubmission } from '@/components/ComponentBrowser.vue'
 import type { Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
@@ -98,6 +99,7 @@ provideLanguageSupportExtensions({
 
 const nodeExecution = provideNodeExecution(projectStore)
 const aiPrompts = provideOngoingAiPrompts()
+useAiToolHandler()
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
