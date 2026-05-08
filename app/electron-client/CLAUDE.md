@@ -56,10 +56,11 @@ once `./run ide build` has produced the engine bundle.
 `src/claudeAgent.ts` owns a **single long-lived `claude` CLI subprocess** that
 serves every AI-component IPC for the lifetime of the Electron app. The session
 is constructed eagerly (but non-blockingly) when `initClaudeAgentIpc(config)`
-runs, primed with a small acknowledgment turn so the system prompt is ingested
-up-front, and torn down via SIGTERM on `before-quit`. The CLI is launched via
-`cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows
-— which arrives as `claude.cmd` — is resolved without forcing `shell: true`.
+runs, primed with a warm-up turn that pre-loads stdlib documentation into
+context (see "Priming" below), and torn down via SIGTERM on `before-quit`. The
+CLI is launched via `cross-spawn` (not `node:child_process`) so npm-installed
+Claude Code on Windows — which arrives as `claude.cmd` — is resolved without
+forcing `shell: true`.
 
 Invocation flags:
 `-p --input-format stream-json --output-format stream-json --verbose --system-prompt <SYSTEM_PROMPT> --add-dir <stdlibRoot> --allowedTools "Read,Glob,Grep" --setting-sources "" --no-session-persistence`.
@@ -103,8 +104,32 @@ in the engine and is only correctly observable through the LS.
 `REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
 on top of the model's own output, and tighter budgets started clipping
-legitimate turns. The priming timeout (60 s) and the per-stdin write
-retry/backoff are unchanged.
+legitimate turns. `PRIMING_TIMEOUT_MS` is 180 s (was 60 s) because the priming
+turn now Reads dozens of files (see "Priming" below).
+
+### Priming
+
+`buildPrimingPrompt(config)` returns one of two prompts. With `stdlibRoot`
+available (the normal case), the priming user turn instructs the agent to
+**(1) Read every per-library `<stdlibRoot>/<Name>/0.0.0-dev/CLAUDE.md`** and
+**(2) Glob + Read every `.enso` file under `Image/0.0.0-dev/src/`** before
+replying with `READY`. Image is a small, real library (~9 files, ~64 kB) used
+as a syntax demo so the model internalises idiomatic Enso (constructor
+patterns, `## ` doc blocks, polyglot interop) once per session. The Reads'
+results live in the conversation context for every subsequent turn — once
+primed, the agent doesn't need to re-Read these files; the per-turn input cost
+they add is what `[AI] usage:` `context=` reports. The fallback prompt (no
+stdlib) is still the one-line "say READY" form — when the agent has no Read
+access there is nothing to ingest.
+
+Priming runs with `sender == null`, so `evaluateExpression` would fail in the
+priming turn; that's fine — Read/Glob/Grep are CLI-internal tools and need no
+renderer. If a per-library `CLAUDE.md` happens to be missing (older engine
+bundle), Glob silently skips it and the agent continues — there is no
+all-or-nothing gate. The system prompt's stdlib bullets describe this same
+material (`## ` doc blocks, `Internal/` and `private: true` warnings, the
+per-library CLAUDE.md location), so even if priming partially fails the agent
+still has the high-level rules in front of it.
 
 ### AI tool bridge (MCP `evaluateExpression`)
 

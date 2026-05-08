@@ -36,12 +36,28 @@ const CLAUDE_EXECUTABLE = 'claude'
 // single turn can do half a dozen sub-second LS queries on top of the model's own output. The
 // pre-tools value was 120s; tripled with headroom for the worst-case fan-out.
 const REQUEST_TIMEOUT_MS = 360_000
-const PRIMING_TIMEOUT_MS = 60_000
+// Priming now reads every per-library `CLAUDE.md` plus the entire `Standard.Image` source as a
+// syntax demo (when stdlib is available), so it can run dozens of tool calls before replying.
+// 60s was too tight for that workload; 180s leaves headroom while staying well under
+// REQUEST_TIMEOUT_MS. The fallback path (no stdlib) only does the trivial "say READY" turn and
+// completes in well under a second, so the higher cap costs nothing on that path.
+const PRIMING_TIMEOUT_MS = 180_000
 const STDERR_TAIL_CHARS = 2_000
 const RESPAWN_WINDOW_MS = 30_000
 const MAX_RESPAWNS_IN_WINDOW = 3
-const PRIMING_PROMPT =
-  'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
+
+function buildPrimingPrompt(config: ClaudeSessionConfig): string {
+  if (config.stdlibRoot == null) {
+    return 'Acknowledge readiness with the single word READY. This is a session warm-up; do not return JSON.'
+  }
+  return `This is a session warm-up. Before any user request arrives, study the bundled Enso standard library so you can produce correct code for it.
+
+Step 1. Read all CLAUDE.md file under \`${config.stdlibRoot}\`. These per-library overviews summarize each module's purpose, public entry points, common usage patterns, and what to avoid (Internal/private code). Read them entirely, not only beginning, do not skip paragraphs.
+
+Step 2. Glob \`Image/0.0.0-dev/src/**/*.enso\` under \`${config.stdlibRoot}\` and Read every match. The Image library is small (~9 files) and shows idiomatic Enso syntax in a real, complete library — types, methods, conversions, doc blocks.
+
+Once you have finished both steps, reply with a single word: READY. Do not return JSON for this warm-up.`
+}
 
 /** Synthetic request id used for the priming turn. */
 const PRIMING_REQUEST_ID = 'priming'
@@ -89,6 +105,9 @@ function buildSystemPrompt(config: ClaudeSessionConfig): string {
   if (config.stdlibRoot != null) {
     toolLines.push(
       `- \`Read\`, \`Glob\`, and \`Grep\` against the Enso standard library at \`${config.stdlibRoot}\`. Prefer reading the actual \`.enso\` source files when in doubt about a function's exact name, signature, or available overloads — your built-in cheat sheet is incomplete. Stay inside that directory; do not attempt to read anything else.`,
+      `- Each library has a \`CLAUDE.md\` at \`${config.stdlibRoot}/<Name>/0.0.0-dev/CLAUDE.md\` summarising its public API, common usage patterns, and pitfalls. You read these at session start; consult them again if you forget the shape of a library before reaching for \`Glob\`/\`Grep\`.`,
+      `- When unsure about a method's arguments, return type, or usage examples, \`Read\` the source file containing it and consult the \`## \` doc block immediately preceding the definition. Doc blocks list arguments under \`## Arguments\` and runnable examples under \`## Examples\`; they are the authoritative reference, more reliable than guessing from the name alone.`,
+      `- Do not call into anything under an \`Internal/\` module path, or any entity whose \`## ---\` metadata block contains \`private: true\`, or any module whose first non-blank source line is \`private\`. These are unstable helpers without API guarantees. Prefer the public API re-exported from each library's \`Main.enso\`.`,
     )
   }
   if (config.mcpConfigPath != null) {
@@ -647,7 +666,7 @@ export class ClaudeAgentSession {
 
   private async prime(): Promise<void> {
     const outcome = await this.runOneTurn(
-      PRIMING_PROMPT,
+      buildPrimingPrompt(this.config),
       PRIMING_TIMEOUT_MS,
       null,
       PRIMING_REQUEST_ID,

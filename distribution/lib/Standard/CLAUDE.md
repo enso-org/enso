@@ -4,6 +4,11 @@ The Enso standard library sources, shipped as-is with every release. One
 directory per namespace/module. Versioned under `<Module>/0.0.0-dev/` (a
 placeholder that the release pipeline rewrites).
 
+Each module ships its own `CLAUDE.md` at `<Module>/0.0.0-dev/CLAUDE.md`
+summarising its public API, common usage, and pitfalls. The local Claude agent
+(see `app/electron-client/CLAUDE.md`) reads all of them at session start; humans
+should treat them as the canonical per-library overview.
+
 ## Modules
 
 - `Base/` — Core types, I/O, HTTP, errors, file system, datetime, Enso Cloud

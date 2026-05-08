@@ -192,7 +192,11 @@ describe('ClaudeAgentSession', () => {
 
     await primeChild(children[0]!)
     expect(children[0]!.stdinWrites).toHaveLength(1)
-    expect(children[0]!.stdinWrites[0]).toContain('Acknowledge readiness')
+    // With stdlib available, priming asks the agent to study every per-library CLAUDE.md and the
+    // Image source before it acknowledges. Path of the stdlib root is interpolated into the prompt.
+    expect(children[0]!.stdinWrites[0]).toContain('CLAUDE.md')
+    expect(children[0]!.stdinWrites[0]).toContain(FAKE_STDLIB_ROOT)
+    expect(children[0]!.stdinWrites[0]).toContain('READY')
 
     const replyPromise = session.runRequest(exampleRequest, fakeSender())
     await settle()
