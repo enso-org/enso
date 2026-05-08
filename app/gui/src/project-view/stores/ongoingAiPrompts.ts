@@ -27,6 +27,13 @@ export interface AiPending {
   readonly requestId: string
   /** Captured at enqueue so a navigation-away still commits the new node into the right method. */
   readonly methodId: ExternalId
+  /**
+   * Captured at enqueue: the externalId of the current method's *body*, used as the LS scope
+   * anchor for mid-turn `evaluateExpression` tool calls. Pinned per entry so a tool call evaluates
+   * in the scope the agent was prompted with, even if the user navigates between methods while
+   * the turn is in flight.
+   */
+  readonly methodBodyId: ExternalId
   /** Captured at enqueue for the same reason as {@link methodId}. */
   readonly methodName: string
   readonly position: Vec2
@@ -47,6 +54,7 @@ export interface EnqueueArgs {
   readonly prompt: string
   readonly sourceIdentifier: string | undefined
   readonly methodId: ExternalId
+  readonly methodBodyId: ExternalId
   readonly methodName: string
   readonly position: Vec2
 }
@@ -150,6 +158,7 @@ function ongoingAiPromptsStoreFactory() {
       id,
       requestId,
       methodId: args.methodId,
+      methodBodyId: args.methodBodyId,
       methodName: args.methodName,
       position: args.position,
       prompt: args.prompt,
@@ -164,17 +173,22 @@ function ongoingAiPromptsStoreFactory() {
   }
 
   /**
-   * Drop a placeholder. Entries that have already been dispatched to the main process (whether
-   * the user-visible `status` is still `'queued'` or has flipped to `'running'`) are cancelled
-   * over IPC and removed when the pending dispatch resolves with a cancellation `Err` — keeps
-   * the one-request-one-settle bookkeeping linear. Renderer-only queued entries (`dispatched`
-   * still `false`) and failed entries are removed immediately; the latter is how the user
-   * dismisses a failed placeholder.
+   * Drop a placeholder. Three explicit branches:
+   * - `failed`: the dispatch already settled with an error and the placeholder is parked for
+   *   user-visible diagnosis. Clicking cancel just dismisses it.
+   * - `dispatched` (and not failed): an IPC is already in flight — send a cancel and let the
+   *   reply (a cancellation `Err`) drop the entry through {@link runEntry}, keeping
+   *   one-request-one-settle bookkeeping linear.
+   * - otherwise (renderer-side queued, no IPC sent yet): drop locally.
    */
   function cancel(id: string): void {
     const entry = entries.get(id)
     if (entry == null) return
-    if (entry.dispatched && entry.status !== 'failed') {
+    if (entry.status === 'failed') {
+      entries.delete(id)
+      return
+    }
+    if (entry.dispatched) {
       electronApi?.ai.cancel(entry.requestId)
       return
     }
@@ -285,6 +299,7 @@ function ongoingAiPromptsStoreFactory() {
   return proxyRefs({
     enqueue,
     cancel,
+    findByRequestId,
     entriesForCurrentMethod,
   })
 }

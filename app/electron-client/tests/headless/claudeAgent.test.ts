@@ -538,6 +538,24 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
+  test('cancelTurn for an id that was never issued does not poison a later request reusing that id', async () => {
+    // Regression guard: previously, `cancelTurn` always added to the `cancelled` set. A cancel
+    // arriving for an id that hadn't been (or would never be) enqueued would sit there forever,
+    // and a future `runRequest` reusing the same id would short-circuit on entry. Tightened so
+    // unknown ids are dropped.
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+    session.cancelTurn('stranger-id')
+    const reply = session.runRequest(makeRequest({ requestId: 'stranger-id' }), fakeSender())
+    await settle()
+    // Priming + the new request — the request was NOT short-circuited.
+    expect(children[0]!.stdinWrites).toHaveLength(2)
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    const settled = await reply
+    expect(settled.result.ok).toBe(true)
+    session.shutdown()
+  })
+
   test('cancelTurn on a queued request short-circuits without writing stdin', async () => {
     const { session, children } = buildSession()
     await primeChild(children[0]!)

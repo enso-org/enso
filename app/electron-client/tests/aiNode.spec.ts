@@ -123,7 +123,7 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   await expect(graphNodes).toHaveCount(5, { timeout: 240_000 })
 
   // The agent could only have produced a working parser by inspecting a sample value. The
-  // renderer logs `Tool called [#…]` for every dispatch from the MCP server (see
-  // `aiToolHandler.ts`).
-  expect(consoleLines.some((line) => line.startsWith('Tool called ['))).toBe(true)
+  // renderer logs `[AI tool] called [#…]` for every dispatch from the MCP server (see
+  // `aiToolHandler.ts`);
+  expect(consoleLines.some((line) => line.startsWith('[AI tool] called ['))).toBe(true)
 })

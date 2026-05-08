@@ -71,13 +71,14 @@ describe('AiMcpServer', () => {
 
   test('round-trips a renderer reply', async () => {
     const sender = fakeSender()
-    const server = new AiMcpServer(() => fakeActiveRequest(sender))
+    const server = new AiMcpServer(() => fakeActiveRequest(sender, 'ai-req-1'))
     const promise = dispatch(server, { tool: 'evaluateExpression', expression: 'x.column_names' })
     // Microtask queue: let dispatch reach the sender.
     await Promise.resolve()
     const request = lastDispatchedRequest(sender)
     expect(request.tool).toBe('evaluateExpression')
     expect(request.expression).toBe('x.column_names')
+    expect(request.aiRequestId).toBe('ai-req-1')
     answer(request, { ok: true, value: '["a","b"]' })
     expect(await promise).toEqual({ ok: true, value: '["a","b"]' })
   })

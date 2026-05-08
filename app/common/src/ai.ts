@@ -91,7 +91,14 @@ export interface AiComponentIpcReply {
  * against the active project and replies with {@link AiToolCallReply} echoing `requestId`.
  */
 export interface AiToolCallRequest {
+  /** Per-tool-call correlation id, echoed in {@link AiToolCallReply}. */
   readonly requestId: string
+  /**
+   * The AI session's `requestId` for the turn this tool call belongs to. The renderer routes the
+   * call to the originating placeholder so evaluation runs in the scope captured at enqueue —
+   * not in whatever method happens to be visible at tool-call time.
+   */
+  readonly aiRequestId: string
   readonly tool: 'evaluateExpression'
   /** Plain Enso expression evaluated in the scope where the AI's new node would land. */
   readonly expression: string

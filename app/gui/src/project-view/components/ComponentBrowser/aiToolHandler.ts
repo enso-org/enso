@@ -1,6 +1,7 @@
+/** @file Bridge between the main-process AI MCP server and per-project LS expression evaluation. */
 import type { CurrentProjectStore } from '$/components/WithCurrentProject.vue'
-import { useCurrentProject, useGraphStore } from '$/components/WithCurrentProject.vue'
-import type { GraphStore } from '$/providers/openedProjects/graph'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useOngoingAiPrompts, type OngoingAiPromptsStore } from '@/stores/ongoingAiPrompts'
 import type { AiToolCallReply, AiToolCallRequest } from 'enso-common/src/ai'
 import { onScopeDispose } from 'vue'
 
@@ -8,12 +9,12 @@ import { onScopeDispose } from 'vue'
  * Subscribe to mid-turn `evaluateExpression` calls from the AI MCP server, evaluate them against
  * the active project, and reply over `Channel.aiToolReply`. Auto-disposes on scope dispose.
  *
- * The expression is anchored on the current method body so it sees every method binding;
- * see `docs/infrastructure/ydoc.md` ("Scope semantics of `nodeExternalId` for `inFrame`
- * one-shots") for why other anchors are wrong.
+ * The expression is anchored on the AI request's *captured* method body (not the currently-visible
+ * one). See `docs/infrastructure/ydoc.md` ("Scope semantics of `nodeExternalId` for `inFrame`
+ * one-shots") for why the body's externalId is the right anchor and why graph node ids are not.
  */
 export function useAiToolHandler(
-  graphStore: GraphStore = useGraphStore(),
+  aiPrompts: OngoingAiPromptsStore = useOngoingAiPrompts(),
   currentProject: CurrentProjectStore | undefined = useCurrentProject(true),
 ): void {
   const electronApi = typeof window === 'undefined' ? undefined : window.api
@@ -22,10 +23,10 @@ export function useAiToolHandler(
   const dispose = electronApi.ai.onToolCall((request) => {
     const callId = ++nextCallId
     const t0 = performance.now()
-    console.log(`Tool called [#${callId}]`, request.expression)
-    void handleToolCall(request, graphStore, currentProject).then((reply) => {
+    console.log(`[AI tool] called [#${callId}]`, request.expression)
+    void handleToolCall(request, aiPrompts, currentProject).then((reply) => {
       const elapsedMs = Math.round(performance.now() - t0)
-      console.log(`Tool response [#${callId}, ${elapsedMs}ms]`, reply.result)
+      console.log(`[AI tool] response [#${callId}, ${elapsedMs}ms]`, reply.result)
       electronApi.ai.replyToolCall(reply)
     })
   })
@@ -34,7 +35,7 @@ export function useAiToolHandler(
 
 async function handleToolCall(
   request: AiToolCallRequest,
-  graphStore: GraphStore,
+  aiPrompts: OngoingAiPromptsStore,
   currentProject: CurrentProjectStore | undefined,
 ): Promise<AiToolCallReply> {
   const fail = (error: string): AiToolCallReply => ({
@@ -47,19 +48,23 @@ async function handleToolCall(
   if (currentProject == null) {
     return fail('no active project')
   }
+  const entry = aiPrompts.findByRequestId(request.aiRequestId)
+  if (entry == null) {
+    // The originating AI request is no longer tracked — the store was disposed (project switch),
+    // the entry was already cancelled, or the renderer was rebuilt mid-turn. Failing fast here is
+    // safer than evaluating against the currently-visible method, which can be a different scope
+    // than the agent prepared its prompt for.
+    return fail('matching AI request is no longer active')
+  }
   const projectStore = currentProject.store.value
-  if (!graphStore.currentMethod.ast.ok) {
-    return fail('current method has no parsed AST')
-  }
-  const body = graphStore.currentMethod.ast.value.body
-  if (body == null) {
-    return fail('current method has no body to anchor scope')
-  }
-  const anchor = body.externalId
   try {
     // 25s budget: under the main-process MCP server's 30s timeout so renderer-side errors
     // surface first with an actionable message.
-    const result = await projectStore.queuedExecuteExpressionRaw(anchor, request.expression, 25_000)
+    const result = await projectStore.queuedExecuteExpressionRaw(
+      entry.methodBodyId,
+      request.expression,
+      25_000,
+    )
     if (result == null) {
       return fail('expression evaluation returned no result')
     }

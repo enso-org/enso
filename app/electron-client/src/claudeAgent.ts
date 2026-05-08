@@ -374,6 +374,13 @@ export class ClaudeAgentSession {
   /** Ids cancelled while still queued behind another turn; consumed by the queue task on entry. */
   private readonly cancelled = new Set<string>()
   /**
+   * Ids currently in the queue or running. Populated synchronously in {@link runRequest} before
+   * the task is pushed, cleared in the task's `finally` once it settles. {@link cancelTurn} only
+   * files into {@link cancelled} for ids it sees here, which prevents cancellations for
+   * already-settled (or never-issued) requests from accumulating in the set.
+   */
+  private readonly liveRequests = new Set<string>()
+  /**
    * Empty temp dir used as the spawned `claude` process's cwd. Without it the child inherits
    * Electron's cwd and the agent's `Read` tool can reach arbitrary paths under it (user home,
    * `/tmp`, ...). Pairing an empty cwd with `--add-dir <stdlibRoot>` confines `Read`/`Glob`/
@@ -441,46 +448,57 @@ export class ClaudeAgentSession {
         })
         return
       }
+      // Tracked synchronously here so a cancel arriving between this point and the task's
+      // entry-check is recognized as live and gets filed into `cancelled` rather than dropped.
+      this.liveRequests.add(request.requestId)
       this.queue.pushTask(async () => {
-        // Cancellation that arrived while the request was queued behind another turn: the
-        // pending slot didn't match this `requestId` at cancel time, so the cancel was filed in
-        // the `cancelled` set. Consume it here before paying the cost of a real turn.
-        if (this.cancelled.delete(request.requestId)) {
-          resolveOuter({ result: Err('Cancelled by user'), usage: null })
-          return
-        }
-        // Acknowledge IPC receipt now that we know we're going to actually run the turn. For
-        // an uncontended request `started` follows microseconds later, but multi-window or
-        // post-priming contention can keep us here long enough for the renderer to want a
-        // "we got it" signal.
-        emitProgressTo(sender, { requestId: request.requestId, kind: 'queued' })
-        if (this.disposed) {
-          resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
-          return
-        }
-        if (this.watcher.respawnSuspended && !this.watcher.current?.alive) {
-          // The watcher's recent-exits buffer is preserved across respawn(), so a quick re-crash
-          // trips the guard again and we don't loop indefinitely.
-          this.readyDeferred = createDeferred()
-          this.readyDeferred.promise.catch(() => undefined)
-          await this.watcher.respawn()
-        }
         try {
-          await this.ready
-        } catch (err) {
-          resolveOuter({
-            result: Err(this.formatNotReadyError(err)),
-            usage: null,
-          })
-          return
+          // Cancellation that arrived while the request was queued behind another turn: the
+          // pending slot didn't match this `requestId` at cancel time, so the cancel was filed in
+          // the `cancelled` set. Consume it here before paying the cost of a real turn.
+          if (this.cancelled.delete(request.requestId)) {
+            resolveOuter({ result: Err('Cancelled by user'), usage: null })
+            return
+          }
+          // Acknowledge IPC receipt now that we know we're going to actually run the turn. For
+          // an uncontended request `started` follows microseconds later, but multi-window or
+          // post-priming contention can keep us here long enough for the renderer to want a
+          // "we got it" signal.
+          emitProgressTo(sender, { requestId: request.requestId, kind: 'queued' })
+          if (this.disposed) {
+            resolveOuter({ result: Err('Claude agent has been shut down'), usage: null })
+            return
+          }
+          if (this.watcher.respawnSuspended && !this.watcher.current?.alive) {
+            // The watcher's recent-exits buffer is preserved across respawn(), so a quick
+            // re-crash trips the guard again and we don't loop indefinitely.
+            this.readyDeferred = createDeferred()
+            this.readyDeferred.promise.catch(() => undefined)
+            await this.watcher.respawn()
+          }
+          try {
+            await this.ready
+          } catch (err) {
+            resolveOuter({
+              result: Err(this.formatNotReadyError(err)),
+              usage: null,
+            })
+            return
+          }
+          const turn = await this.runOneTurn(
+            buildUserPrompt(request),
+            REQUEST_TIMEOUT_MS,
+            sender,
+            request.requestId,
+          )
+          resolveOuter(this.replyFromTurn(turn))
+        } finally {
+          // Drop both bookkeeping entries no matter how the task settled (success, early-return,
+          // throw). This is what bounds {@link cancelled} — any id added by a `cancelTurn` whose
+          // task body has already passed the entry-check gets cleaned up here.
+          this.cancelled.delete(request.requestId)
+          this.liveRequests.delete(request.requestId)
         }
-        const turn = await this.runOneTurn(
-          buildUserPrompt(request),
-          REQUEST_TIMEOUT_MS,
-          sender,
-          request.requestId,
-        )
-        resolveOuter(this.replyFromTurn(turn))
       })
     })
   }
@@ -505,7 +523,11 @@ export class ClaudeAgentSession {
       this.signalCancel()
       return
     }
-    this.cancelled.add(requestId)
+    // Only file a deferred cancel when the id is one we're tracking — cancels for ids that have
+    // already settled, or that were never issued, would otherwise accumulate in the set forever.
+    if (this.liveRequests.has(requestId)) {
+      this.cancelled.add(requestId)
+    }
   }
 
   /** SIGINT then SIGTERM-after-2s; best-effort, since the cancellation Err already landed. */
