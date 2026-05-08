@@ -23,10 +23,7 @@
  * Optional: `ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path` enables effectiveness telemetry. On a
  * successful run the test appends one CSV row to `<dir>/<sanitized-test-name>.csv` summarizing
  * the run (timestamp, current commit SHA or `WIP` if dirty, per-AI-node durations, token counts,
- * context tokens). See `./aiMetrics.ts` for the schema. Note: the schema changed when context
- * accounting moved from bytes to tokens; delete or rename pre-existing CSVs in the metrics
- * directory before resuming, otherwise old (byte-scaled) and new (token-scaled) values will be
- * concatenated under headers from the first run.
+ * context tokens). See `./aiMetrics.ts` for the schema.
  *
  * Expected layout under $ENSO_TEST_AI_CHALLENGES_DIR (flat — files at the top level):
  *   Gym Leader Set Cards.xlsx          # week 32; 3 sheets: Trainer Cards, Pokemon Cards, Leader Order

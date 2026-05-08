@@ -75,8 +75,7 @@ export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
  * indicator displays, so it grows monotonically across a long-lived session and includes the
  * full conversation history, every `tool_use` block, and every `tool_result` body the CLI fed
  * back into the conversation (e.g. file contents the built-in `Read` tool returned). Reported
- * in tokens; divide by 1000 to compare to the interactive bar's `Nk` reading. `durationMs` is
- * the main-process round-trip from stdin write to the terminal `result` envelope.
+ * in tokens.
  */
 export interface RequestUsage {
   readonly inputTokens: number
