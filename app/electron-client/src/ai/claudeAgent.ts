@@ -144,8 +144,10 @@ export function extractJsonObject(text: string): unknown {
 /**
  * Send a progress event to a specific renderer without going through the per-turn `pending` slot.
  * Used for `queued` acknowledgments emitted before the turn begins (and thus before any
- * `pending` is set on a child) — `ChildAgent.emitProgress` requires a matching pending
- * requestId, which we don't have yet at that point.
+ * `pending` is set on a child) — once `pending` is set, {@link ChildAgent.emitProgress} is the
+ * canonical emitter; it gates on a matching pending requestId, which we don't have yet at this
+ * point. The two functions exist side-by-side because the `queued` event has to fire *before*
+ * any child knows about the request.
  */
 function emitProgressTo(sender: WebContents, event: AiProgressEvent): void {
   if (sender.isDestroyed()) return
@@ -203,10 +205,13 @@ export class ClaudeAgentSession {
    */
   private readonly liveRequests = new Set<string>()
   /**
-   * Set inside {@link promotePrimedWarming} the moment a warming child is promoted; consumed by
-   * the next {@link replyFromTurn} so the IPC reply's `RequestUsage.freshAgent` flips `true`
-   * for that single turn, then back to `false`. The renderer's `logUsage` includes the flag in
-   * the `[AI] usage:` line so e2e tests can assert rotation actually fired.
+   * Set inside {@link promotePrimedWarming} the moment a warming child is promoted, and cleared
+   * by the first {@link replyFromTurn} that emits non-null usage — i.e. the first turn whose
+   * outcome actually reaches the renderer. The cleared bit flips `RequestUsage.freshAgent` to
+   * `true` for that single reply, then back to `false`. Cancellations/disposed-session
+   * short-circuits and `ready`-rejections do NOT consume the flag, because their replies carry
+   * no usage and the conversation history is still fresh for whatever runs next. The renderer's
+   * `logUsage` echoes the flag in the `[AI] usage:` line so e2e tests can assert rotation fired.
    */
   private freshAgentPending = false
 
@@ -276,6 +281,9 @@ export class ClaudeAgentSession {
               console.warn(
                 `[AI] warming child failed to prime; falling back to primary: ${(err as Error)?.message ?? String(err)}`,
               )
+              // `this.warming === warming` guards against a concurrent `shutdown()` having
+              // already nulled the slot during the await — without it, we'd reset `swapMode`
+              // and clobber state owned by the (already-disposed) shutdown path.
               if (this.warming === warming) {
                 warming.shutdown()
                 this.warming = null
@@ -292,6 +300,15 @@ export class ClaudeAgentSession {
             await this.primary.ready
           } catch (err) {
             resolveOuter({ result: Err(formatNotReadyError(err)), usage: null })
+            return
+          }
+          // Re-check the deferred-cancel set: a `cancelTurn` arriving during any of the awaits
+          // above (warming readiness in hard mode, primary respawn, primary readiness) is filed
+          // into `cancelled` because no child's `pending` slot matches yet. Consuming it here —
+          // immediately before the stdin write — keeps the entry-check at the top of the task
+          // from being the only window in which a queued-time cancel can take effect.
+          if (this.cancelled.delete(request.requestId)) {
+            resolveOuter({ result: Err('Cancelled by user'), usage: null })
             return
           }
           const turn = await this.primary.runTurn(
@@ -386,6 +403,11 @@ export class ClaudeAgentSession {
   private evaluateThresholds(contextTokens: number): void {
     if (this.warming != null) {
       // Already warming. Upgrade to hard if the latest turn pushed us past it.
+      // The reverse — tearing the warming child down when `contextTokens` falls back below
+      // soft — is deliberately not implemented: once we've paid the spawn + priming cost the
+      // ready-to-rotate state is worth keeping, and the on-CLI conversation history on
+      // `primary` only ever grows, so a dip is almost certainly transient (e.g. a tool-light
+      // turn whose synthesis-hop prompt was smaller than the previous turn's).
       if (contextTokens > this.thresholds.hard && this.swapMode !== 'hard') {
         console.info(
           `[AI] context ${contextTokens} > hard ${this.thresholds.hard}; upgrading swap to hard.`,
@@ -415,8 +437,13 @@ export class ClaudeAgentSession {
   }
 
   private replyFromTurn(turn: TurnOutcome): AiComponentIpcReply {
-    const freshAgent = this.freshAgentPending
-    this.freshAgentPending = false
+    // Only consume the rotation flag when the reply will actually carry a `RequestUsage` to
+    // the renderer. A crashed turn (no `turn.usage`) yields `usage: null` from
+    // {@link snapshotUsage}, so its `freshAgent` would be lost; keeping `freshAgentPending`
+    // armed in that case lets the first turn that *does* carry usage signal the rotation.
+    const willEmitUsage = turn.usage != null
+    const freshAgent = willEmitUsage && this.freshAgentPending
+    if (willEmitUsage) this.freshAgentPending = false
     const usage = snapshotUsage(
       turn.usage,
       turn.lastHopUsage,

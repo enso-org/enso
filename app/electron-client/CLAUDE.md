@@ -206,7 +206,7 @@ but a tool call needs to dispatch back to the _specific_ renderer that
 originated the in-flight turn. `runRequest(request, sender)` pins the
 `WebContents` to the per-turn `pending` slot (not to the session — that way
 crashes and `shutdown()` reject in-flight bridge promises by construction). The
-MCP server reads it via `session.activeSender`, which returns `null` between
+MCP server reads it via `session.activeRequest`, which returns `null` between
 turns and also when the in-flight sender has since been destroyed. Tool calls
 that find `null` reply with a clean `Err("no active AI turn …")` so the model
 recovers cleanly instead of hanging.

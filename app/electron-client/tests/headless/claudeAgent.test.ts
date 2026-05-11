@@ -317,7 +317,10 @@ describe('ClaudeAgentSession', () => {
     const r1 = session.runRequest(makeRequest({ requestId: 'r1' }), fakeSender())
     await settle()
     children[0]!.pushStdoutLine(resultEnvelope(exampleResponse, highContextUsage(150_000)))
-    await r1
+    // r1 ran on the still-original primary — `freshAgent` must be false because no rotation
+    // has fired yet (the warming child is being spawned in r1's `finally`).
+    const r1Reply = await r1
+    expect(r1Reply.usage?.freshAgent).toBe(false)
     await settle()
     expect(children).toHaveLength(2)
 
@@ -333,6 +336,15 @@ describe('ClaudeAgentSession', () => {
     children[1]!.pushStdoutLine(resultEnvelope(exampleResponse, highContextUsage(50_000)))
     const reply = await r2
     expect(reply.result.ok).toBe(true)
+    // r2 is the first turn on the freshly-promoted child — the rotation flag must fire here.
+    expect(reply.usage?.freshAgent).toBe(true)
+
+    // A subsequent turn on the same (now-stable) primary must NOT see the flag again.
+    const r3 = session.runRequest(makeRequest({ requestId: 'r3' }), fakeSender())
+    await settle()
+    children[1]!.pushStdoutLine(resultEnvelope(exampleResponse, highContextUsage(50_000)))
+    const r3Reply = await r3
+    expect(r3Reply.usage?.freshAgent).toBe(false)
     session.shutdown()
   })
 
@@ -396,6 +408,48 @@ describe('ClaudeAgentSession', () => {
     expect(children[1]!.stdinWrites).toHaveLength(2) // priming + r3
     children[1]!.pushStdoutLine(resultEnvelope(exampleResponse, highContextUsage(50_000)))
     await r3
+    session.shutdown()
+  })
+
+  test('freshAgent flag survives a crashed turn and lands on the next successful reply', async () => {
+    // Regression guard for the `freshAgentPending` semantic: a crashed turn carries no `usage`,
+    // so its reply doesn't surface the flag to the renderer. The flag must remain armed and
+    // fire on the first subsequent turn whose reply *does* carry usage — otherwise a
+    // mid-rotation crash would silently swallow the rotation signal that e2e tests rely on.
+    const { session, children } = buildSession({ softThreshold: 100_000, hardThreshold: 200_000 })
+    await primeChild(children[0]!)
+
+    // Turn 1: cross soft to spawn warming.
+    const r1 = session.runRequest(makeRequest({ requestId: 'r1' }), fakeSender())
+    await settle()
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse, highContextUsage(150_000)))
+    await r1
+    await settle()
+    expect(children).toHaveLength(2)
+
+    // Prime warming so the next queue task promotes it.
+    await primeChild(children[1]!)
+
+    // Turn 2: runs on freshly-promoted primary, then crashes mid-turn (reply.usage is null).
+    const r2 = session.runRequest(makeRequest({ requestId: 'r2' }), fakeSender())
+    await settle()
+    children[1]!.crash(1, 'boom')
+    const r2Reply = await r2
+    expect(r2Reply.result.ok).toBe(false)
+    expect(r2Reply.usage).toBeNull()
+    await settle()
+
+    // Auto-respawn produced a fresh child to replace the crashed primary. Prime it.
+    expect(children.length).toBeGreaterThanOrEqual(3)
+    await primeChild(children[2]!)
+
+    // Turn 3: first reply after rotation that actually carries usage; the flag surfaces here.
+    const r3 = session.runRequest(makeRequest({ requestId: 'r3' }), fakeSender())
+    await settle()
+    children[2]!.pushStdoutLine(resultEnvelope(exampleResponse, highContextUsage(50_000)))
+    const r3Reply = await r3
+    expect(r3Reply.result.ok).toBe(true)
+    expect(r3Reply.usage?.freshAgent).toBe(true)
     session.shutdown()
   })
 
@@ -531,6 +585,33 @@ describe('ClaudeAgentSession', () => {
   })
 
   // ----- end of context-rotation tests -----
+
+  test('cancelTurn during the primary-ready await short-circuits before stdin is written', async () => {
+    // Regression guard for the cancel-during-await race: a cancel arriving while the queue task
+    // is parked on `await primary.ready` is filed into the `cancelled` set (no pending slot
+    // matches the user's id yet). The entry-check at the top of the queue task already ran, so
+    // the re-check immediately before `runTurn` is the only window that observes this cancel.
+    const { session, children } = buildSession()
+    // Issue the request before priming completes so the queue task parks on `primary.ready`.
+    const request = makeRequest({ requestId: 'req-during-await' })
+    const replyPromise = session.runRequest(request, fakeSender())
+    await settle()
+    expect(children[0]!.stdinWrites).toHaveLength(1) // priming only — user prompt not yet written
+
+    session.cancelTurn(request.requestId)
+    await settle()
+    // Even after another settle, no user prompt has hit stdin — the queue task is still parked.
+    expect(children[0]!.stdinWrites).toHaveLength(1)
+
+    // Resume the queue task by completing priming. The re-check must consume the deferred cancel.
+    await primeChild(children[0]!)
+    const reply = await replyPromise
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/Cancelled by user/)
+    // The user prompt must never have been written.
+    expect(children[0]!.stdinWrites).toHaveLength(1)
+    session.shutdown()
+  })
 
   test('cancelTurn on a queued request short-circuits without writing stdin', async () => {
     const { session, children } = buildSession()

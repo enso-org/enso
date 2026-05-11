@@ -409,6 +409,14 @@ export class ChildAgent {
         errorReason: 'Claude agent shutting down',
       })
     }
+    // Reject the readiness promise if it's still pending — `watcher.close()` sets the watcher's
+    // `closed` flag, which suppresses the `onUnexpectedExit` path that would normally reject
+    // `readyDeferred`. Without this, a caller `await`ing `this.ready` mid-priming would hang
+    // forever. Resolved (or already-rejected) deferreds ignore further calls, so this is safe
+    // to call unconditionally.
+    if (!this.isReadyResolved) {
+      this.readyDeferred.reject(new Error('Claude agent shutting down'))
+    }
     void this.watcher.close()
     try {
       fs.rmSync(this.sandboxCwd, { recursive: true, force: true })
@@ -542,7 +550,12 @@ export class ChildAgent {
     }
   }
 
-  /** Drops silently when the pending slot has rotated or the originating sender is gone. */
+  /**
+   * Drops silently when the pending slot has rotated or the originating sender is gone. The
+   * pending-slot gate is what distinguishes this from `claudeAgent.ts`'s top-level
+   * `emitProgressTo`, which is used for `queued` events that must fire *before* any pending
+   * slot exists.
+   */
   private emitProgress(event: AiProgressEvent): void {
     const pending = this.pending
     if (pending == null || pending.requestId !== event.requestId) return
