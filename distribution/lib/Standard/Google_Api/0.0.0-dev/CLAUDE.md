@@ -1,7 +1,7 @@
 # Standard.Google_Api
 
-**Deprecated placeholder.** This library was renamed to `Standard.Google`. It
-is retained only because workflows on disk may still import it; it must not be
+**Deprecated placeholder.** This library was renamed to `Standard.Google`. It is
+retained only because workflows on disk may still import it; it must not be
 extended.
 
 `src/Main.enso` is empty save for the placeholder note.

@@ -37,11 +37,10 @@ const CLAUDE_EXECUTABLE = 'claude'
 // pre-tools value was 120s; tripled with headroom for the worst-case fan-out.
 const REQUEST_TIMEOUT_MS = 360_000
 // Priming reads three CLAUDE.md files (top-level, Base, Table) plus the entire `Standard.Image`
-// source as a syntax demo (when stdlib is available); ~12 tool calls before replying. Other
-// libraries' CLAUDE.mds are not pre-loaded — the system prompt instructs the agent to Read them
-// on demand. 180s leaves comfortable headroom while staying well under REQUEST_TIMEOUT_MS. The
-// fallback path (no stdlib) only does the trivial "say READY" turn and completes in well under
-// a second, so the higher cap costs nothing on that path.
+// source as a syntax demo (when stdlib is available); ~12 tool calls before replying. 180s leaves
+// comfortable headroom while staying well under REQUEST_TIMEOUT_MS. The fallback path (no stdlib)
+// only does the trivial "say READY" turn and completes in well under a second, so the higher cap
+// costs nothing on that path.
 const PRIMING_TIMEOUT_MS = 180_000
 const STDERR_TAIL_CHARS = 2_000
 const RESPAWN_WINDOW_MS = 30_000
