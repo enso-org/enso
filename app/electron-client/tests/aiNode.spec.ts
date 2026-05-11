@@ -150,7 +150,10 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
     const parsed = parseAiUsageLine(line)
     return parsed ? [parsed] : []
   })
-  expect(samples.length, '[AI] usage: lines were not captured from the renderer console').toBeGreaterThanOrEqual(2)
+  expect(
+    samples.length,
+    '[AI] usage: lines were not captured from the renderer console',
+  ).toBeGreaterThanOrEqual(2)
   const freshFlags = samples.map((s) => s.freshAgent === true)
   expect(
     freshFlags.some(Boolean),

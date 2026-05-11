@@ -131,10 +131,7 @@ export function resultEnvelope(textOrObject: unknown, usage = exampleUsage): str
  * — the same shape Anthropic's Messages API returns and the CLI passes through, used to
  * exercise the per-hop `contextTokens` capture path.
  */
-export function assistantEnvelope(
-  text: string,
-  usage: typeof exampleUsage | null = null,
-): string {
+export function assistantEnvelope(text: string, usage: typeof exampleUsage | null = null): string {
   const message: Record<string, unknown> = { content: [{ type: 'text', text }] }
   if (usage != null) message.usage = usage
   return JSON.stringify({ type: 'assistant', message })
