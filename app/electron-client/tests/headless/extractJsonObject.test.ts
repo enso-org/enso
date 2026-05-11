@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from 'vitest'
 vi.mock('cross-spawn', () => ({ default: vi.fn() }))
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn(), on: vi.fn() } }))
 
-const { extractJsonObject } = await import('../../src/claudeAgent')
+const { extractJsonObject } = await import('../../src/ai/claudeAgent')
 
 describe('extractJsonObject', () => {
   test('parses a clean JSON object directly', () => {

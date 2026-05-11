@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn(), on: ipcOn, removeListener: ipcRemoveListener },
 }))
 
-const { AiMcpServer } = await import('../../src/aiMcpServer')
+const { AiMcpServer } = await import('../../src/ai/aiMcpServer')
 
 interface FakeSender {
   isDestroyed: () => boolean

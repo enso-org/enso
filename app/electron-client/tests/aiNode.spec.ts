@@ -3,10 +3,11 @@
  * one AI prompt, then a manually-typed `Table.input` node, then a second AI prompt that
  * cross-joins both tables, then a third AI prompt parsing a synthetic plain-text file the
  * agent has to inspect at runtime via the `evaluateExpression` MCP tool. Verifies that
- * (a) multiple requests reuse the same `claude` subprocess, (b) the agent reads the
- * current method's in-scope bindings to pick up nodes that were added between turns, and
- * (c) the renderer-side `useAiToolHandler` subscription survives Component Browser
- * close/reopen cycles so MCP tool calls actually reach the renderer.
+ * (a) multiple requests reuse the same `claude` subprocess (with rotation kicking in when
+ * the context grows past the configured thresholds), (b) the agent reads the current
+ * method's in-scope bindings to pick up nodes that were added between turns, and (c) the
+ * renderer-side `useAiToolHandler` subscription survives Component Browser close/reopen
+ * cycles so MCP tool calls actually reach the renderer.
  *
  * Requires the user-installed `claude` CLI to be on `PATH` and authenticated. CI doesn't
  * have that yet, so this spec is skipped by default — set `ENSO_TEST_AI=1` to enable it.
@@ -16,6 +17,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { expect } from 'playwright/test'
+import { parseAiUsageLine } from './aiMetrics'
 import {
   closeWelcome,
   createNewProject,
@@ -23,6 +25,16 @@ import {
   test,
   visualizeData,
 } from './electronTest'
+
+// Force a context-rotation during the test. Defaults (300K soft / 400K hard) won't fire on
+// a 3-prompt session, so we set thresholds well below what a single primed turn produces:
+// every real prompt then crosses soft, the warming child primes during the next turn or two,
+// and the rotation lands before the spec finishes. The assertion at the end confirms it.
+// `process.env` is typed read-only here, so set via the index notation that escapes the
+// typed `ProcessEnv` declaration (matches how Node-side scripts set env vars elsewhere).
+const env = process.env as Record<string, string | undefined>
+env.ENSO_AI_SOFT_CONTEXT_THRESHOLD = '5000'
+env.ENSO_AI_HARD_CONTEXT_THRESHOLD = '50000'
 
 const FIRST_AI_PROMPT = "AI: count 'a' letters in all cells of the table"
 // Deterministic expected output for `FIRST_AI_PROMPT` against `Examples.welcome`. Update this
@@ -126,4 +138,23 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   // renderer logs `[AI tool] called [#…]` for every dispatch from the MCP server (see
   // `aiToolHandler.ts`);
   expect(consoleLines.some((line) => line.startsWith('[AI tool] called ['))).toBe(true)
+
+  // Context-threshold rotation assertion. With env-var thresholds at 5K/50K (set at the top
+  // of this file), the soft threshold trips after the first AI turn and the warming agent
+  // takes over once it has primed. The session sets `freshAgent=true` on the very first turn
+  // run on a newly-promoted primary, and the renderer logs that as the bare ` fresh` keyword
+  // in the `[AI] usage:` line. Asserting on that flag is the only robust signal —
+  // `contextTokens` alone can grow monotonically with or without rotation when later prompts
+  // are heavier than earlier ones (e.g. the dummy-text step does dozens of stdlib reads).
+  const samples = consoleLines.flatMap((line) => {
+    const parsed = parseAiUsageLine(line)
+    return parsed ? [parsed] : []
+  })
+  expect(samples.length, '[AI] usage: lines were not captured from the renderer console').toBeGreaterThanOrEqual(2)
+  const freshFlags = samples.map((s) => s.freshAgent === true)
+  expect(
+    freshFlags.some(Boolean),
+    `expected at least one turn to run on a freshly-rotated claude agent; ` +
+      `samples flags ${JSON.stringify(freshFlags)}, contexts ${JSON.stringify(samples.map((s) => s.contextTokens))}.`,
+  ).toBe(true)
 })

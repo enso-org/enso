@@ -1,4 +1,4 @@
-import { initAiMcpServer, initClaudeAgentIpc } from '@/claudeAgent'
+import { initAiMcpServer, initClaudeAgentIpc } from '@/ai/claudeAgent'
 import { Channel } from '@/ipc'
 import * as paths from '@/paths'
 import { dialog, ipcMain, shell, type BrowserWindow } from 'electron'

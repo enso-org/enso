@@ -115,8 +115,13 @@ function logUsage(usage: RequestUsage | null): void {
   // refuse writing rows for broken turns (see `aiMetrics.appendMetricsRow`).
   const contextKt = (usage.contextTokens / 1000).toFixed(1)
   const ctxSrc = usage.contextFromLastHop ? 'lastHop' : 'fallback'
+  // The bare `fresh` keyword marks the first turn after a context-rotation in `claudeAgent.ts`
+  // — the conversation history was reset by the threshold-driven swap, so this turn's
+  // `contextTokens` is comparable against earlier turns to confirm the rotation actually fired.
+  // Omitted entirely for non-rotation turns to keep the dense log line readable.
+  const fresh = usage.freshAgent ? ' fresh' : ''
   console.log(
-    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k hops=${usage.hopCount} ctxSrc=${ctxSrc} (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
+    `[AI] usage: prompt=${usage.inputTokens}t out=${usage.outputTokens}t context=${contextKt}k hops=${usage.hopCount} ctxSrc=${ctxSrc}${fresh} (cacheRead=${usage.cacheReadTokens}t cacheCreate=${usage.cacheCreationTokens}t) time=${usage.durationMs}ms`,
   )
   if (!usage.contextFromLastHop && usage.hopCount > 0) {
     console.warn(

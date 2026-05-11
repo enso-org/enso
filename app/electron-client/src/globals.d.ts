@@ -65,6 +65,13 @@ declare global {
       readonly ELECTRON_DEV_MODE?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly NODE_ENV?: string
+
+      // === AI agent context-rotation thresholds (see `claudeAgent.ts`) ===
+
+      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+      readonly ENSO_AI_SOFT_CONTEXT_THRESHOLD?: string
+      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+      readonly ENSO_AI_HARD_CONTEXT_THRESHOLD?: string
     }
   }
 }

@@ -32,10 +32,23 @@ desktop binary (AppImage/DMG/exe + installer).
 Currently driven by `./run ide build` (the legacy Enso build CLI). Don't call
 `electron-builder` or `pnpm run dist` manually unless you're debugging packaging
 — the build CLI wires the engine bundle, GUI, and Electron together with the
-right env vars. Always checkout submodules before building - they contain
-important environment information. For testing, always build with
-`--mode staging`, to not pollute production backend and telemetry with test
-runs.
+right env vars.
+
+**Always run `git submodule update --init --recursive` before building.** In
+particular, `app/gui/.dev-env/` (a private submodule) holds `.env.staging` /
+`.env.production` with the Cognito client ids and the staging cloud API URL.
+A fresh worktree starts with that submodule empty. The build does **not**
+hard-fail when it's missing — the symlink `app/gui/.env.staging` becomes
+broken, vite silently falls back to defaults, and the resulting Electron app
+points the dashboard at the production cloud regardless of `--mode staging`.
+The end-to-end tests then fail at the login screen (`Loading Enso…` →
+`Error while fetching configuration [Error: Failed to fetch]`) because the
+in-renderer fetch hits a URL the auth flow can't handshake. Init the
+submodules before any IDE build (and before running the e2e suite that loads
+that build).
+
+For testing, always build with `--mode staging`, to not pollute production
+backend and telemetry with test runs.
 
 `./run` is slated to be replaced by a Bazel target; check for one before
 assuming `./run` is the only path.
@@ -53,14 +66,23 @@ once `./run ide build` has produced the engine bundle.
 
 ## Local Claude agent
 
-`src/claudeAgent.ts` owns a **single long-lived `claude` CLI subprocess** that
-serves every AI-component IPC for the lifetime of the Electron app. The session
-is constructed eagerly (but non-blockingly) when `initClaudeAgentIpc(config)`
-runs, primed with a warm-up turn that pre-loads stdlib documentation into
-context (see "Priming" below), and torn down via SIGTERM on `before-quit`. The
-CLI is launched via `cross-spawn` (not `node:child_process`) so npm-installed
-Claude Code on Windows — which arrives as `claude.cmd` — is resolved without
-forcing `shell: true`.
+The agent code lives under `src/ai/`. `src/ai/claudeAgent.ts` owns
+`ClaudeAgentSession` — the session-level orchestration (FIFO queue, IPC
+binding, context-rotation policy). `src/ai/claudeAgentChild.ts` owns `ChildAgent`
+— the per-child plumbing (one spawned `claude`, its priming turn, stream-json
+parsing, signal-cancel, crash bookkeeping). System, priming, and per-turn user
+prompt builders live in `src/ai/prompts.ts`. The session composes one (or, mid
+context-rotation, two) `ChildAgent` instances; everything below describes how
+they cooperate.
+
+The session serves every AI-component IPC for the lifetime of the Electron
+app. It is constructed eagerly (but non-blockingly) when
+`initClaudeAgentIpc(config)` runs, the primary `ChildAgent` is primed with a
+warm-up turn that pre-loads stdlib documentation into context (see "Priming"
+below), and the session (plus any active warming child) is torn down via
+SIGTERM on `before-quit`. The CLI is launched via `cross-spawn` (not
+`node:child_process`) so npm-installed Claude Code on Windows — which arrives
+as `claude.cmd` — is resolved without forcing `shell: true`.
 
 Invocation flags:
 `-p --input-format stream-json --output-format stream-json --verbose --system-prompt <SYSTEM_PROMPT> --add-dir <stdlibRoot> --allowedTools "Read,Glob,Grep" --setting-sources "" --no-session-persistence`.
@@ -144,7 +166,7 @@ still has the high-level rules in front of it.
 
 ### AI tool bridge (MCP `evaluateExpression`)
 
-`src/aiMcpServer.ts` owns an in-process MCP server bound to a random localhost
+`src/ai/aiMcpServer.ts` owns an in-process MCP server bound to a random localhost
 port at app startup. Its single tool, `evaluateExpression(expression)`, lets the
 model run a plain Enso expression in the scope where the AI's new node would
 land — exactly the same scope the generated `body` will see, so every in-scope
@@ -380,7 +402,57 @@ Findings from the probe at the time the long-lived design landed:
   `prompt=…t out=…t context=<n.n>k hops=N ctxSrc=<lastHop|fallback> (cacheRead=…t cacheCreate=…t) time=…ms`.
   Conversation history accumulates in CLI process memory across the session
   (there is no auto-compact in `-p` mode — that's an interactive-mode feature),
-  so `contextTokens` resets only on child respawn or process restart.
+  so `contextTokens` resets only on child respawn, process restart, or a
+  context-threshold rotation (see below).
+
+### Context-threshold rotation
+
+Conversation history grows across turns; left unbounded the agent eventually
+hits the model's context window. The session watches each turn's
+`RequestUsage.contextTokens` (preferred from the final assistant envelope's
+`message.usage`; falls back to the result-envelope sum when the CLI omits it)
+and rotates to a fresh `claude` child once it crosses one of two thresholds:
+
+- **Soft threshold** (default 300_000 tokens, override with
+  `ENSO_AI_SOFT_CONTEXT_THRESHOLD`). A second `ChildAgent` ("warming") is
+  spawned in the background and starts priming. The primary continues to serve
+  new turns. Once the warming child's priming completes, the **next** queue
+  task promotes it (old primary is SIGTERM'd inside `oldPrimary.shutdown()`).
+- **Hard threshold** (default 400_000 tokens, override with
+  `ENSO_AI_HARD_CONTEXT_THRESHOLD`). The warming child is spawned (if not
+  already) and `swapMode` flips to `'hard'` — new queue tasks `await
+  warming.ready` before running, so no further turn is sent to the old primary.
+
+Threshold evaluation runs in the queue task's `finally` block, so it operates
+on the **just-finished** turn's usage. The next queue task observes the new
+`swapMode` at its task-start gate. As a consequence, **already-running turns
+are never cancelled by a rotation** — the in-flight HTTPS stream to Anthropic
+on the old primary always completes normally; only future turns are gated.
+
+If `hard < soft` after env-var resolution, both fall back to defaults with a
+warning. If env-var values aren't valid positive integers, that var alone falls
+back to its default.
+
+**Failure handling.** Warming priming can fail (transient CLI bug, ENOENT,
+crash-loop guard tripped). The session reacts:
+
+- In **soft mode**, the next queue task's `promotePrimedWarming()` notices
+  `warming.respawnSuspended && !warming.alive` and discards the warming child
+  with a warning. `swapMode` resets to `'none'`. The next over-threshold turn
+  re-arms a fresh warming attempt.
+- In **hard mode**, the queue task currently `await`ing `warming.ready`
+  catches the rejection, calls `warming.shutdown()` (which sets the watcher's
+  `closed` flag so any pending auto-respawn aborts), nulls the warming slot,
+  and resets `swapMode` to `'none'` — the request **falls back to primary**
+  rather than failing the user's prompt over a transient priming flake.
+
+**Two children, one queue.** The `AsyncQueue` is session-level: only one turn
+ever runs at a time across both children. That keeps per-child `pending`
+slots simple — primary's stdout drives primary's pending, warming's stdout
+drives warming's (which during priming carries `sender: null` so it doesn't
+collide with `activeRequest`'s "is a real request in flight?" predicate).
+`session.activeRequest` returns `primary.activeRequest ?? warming?.activeRequest ?? null` — the MCP server reads this to dispatch tool calls back to the
+correct renderer regardless of which child the turn happens to be running on.
 
 ### Gotchas
 

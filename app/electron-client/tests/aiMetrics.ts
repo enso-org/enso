@@ -20,9 +20,12 @@ const execFileAsync = promisify(execFile)
  * `cacheRead`, `cacheCreate`) parse as lossless integers. `ctxSrc` carries the
  * `contextFromLastHop` flag so {@link appendMetricsRow} can reject rows where the CLI
  * omitted per-hop usage on the final assistant envelope and the context value is unreliable.
+ * The bare ` fresh` keyword (no value) marks the first turn after a context-rotation (a fresh
+ * `ChildAgent`); it's omitted entirely otherwise. The capture group is optional so logs
+ * without the marker still parse.
  */
 const AI_USAGE_LINE_REGEX =
-  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k hops=(\d+) ctxSrc=(lastHop|fallback) \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
+  /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k hops=(\d+) ctxSrc=(lastHop|fallback)( fresh)? \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
 
 /**
  * Parse one `[AI] usage:` renderer console line into a `RequestUsage`, or `null` if it doesn't
@@ -39,9 +42,10 @@ export function parseAiUsageLine(text: string): RequestUsage | null {
     contextTokens: Math.round(Number(m[3]) * 1000),
     hopCount: Number(m[4]),
     contextFromLastHop: m[5] === 'lastHop',
-    cacheReadTokens: Number(m[6]),
-    cacheCreationTokens: Number(m[7]),
-    durationMs: Number(m[8]),
+    freshAgent: m[6] === ' fresh',
+    cacheReadTokens: Number(m[7]),
+    cacheCreationTokens: Number(m[8]),
+    durationMs: Number(m[9]),
   }
 }
 

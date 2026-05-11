@@ -13,8 +13,8 @@ import { createServer, type Server as HttpServer } from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { z } from 'zod'
+import { Channel } from '../ipc.js'
 import type { ActiveRequest } from './claudeAgent.js'
-import { Channel } from './ipc.js'
 
 const TOOL_CALL_TIMEOUT_MS = 30_000
 

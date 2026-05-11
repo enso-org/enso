@@ -68,44 +68,54 @@ export const aiComponentResponseSchema = z.object({
 })
 export type AiComponentResponse = z.infer<typeof aiComponentResponseSchema>
 
-/**
- * Per-request usage telemetry from the `claude` session.
- *
- * Cost-side fields (`inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheCreationTokens`)
- * come from the terminal `result` envelope's `usage` — empirically a sum across all
- * underlying completion calls in the turn (multi-hop turns are model → `tool_use` →
- * `tool_result` → model continues …), so these are the right inputs to billing math.
- *
- * `contextTokens` is the **last hop's** prompt size — `input + cache_read + cache_creation`
- * pulled from the `usage` field on the *final* `assistant` envelope before the `result`. That
- * represents the actual context the model saw on the synthesis call, so it grows
- * approximately monotonically across turns and is the right number to compare against the
- * model's context window. If the CLI ever omits per-envelope `usage`, this field falls back
- * to the cost-side sum (and matches the previous semantics).
- *
- * `hopCount` is the number of `assistant` envelopes observed in the turn — i.e. how many
- * times the model produced a response, including any tool-loop intermediates. Useful for
- * sanity-checking variance in the cost-side fields.
- *
- * `contextFromLastHop` is `true` when `contextTokens` came from the final assistant
- * envelope's per-hop `usage`, and `false` when we had to fall back to the cost-side sum
- * (because the CLI didn't surface `message.usage` on the final envelope). On a multi-hop
- * turn, `false` means `contextTokens` overstates actual context occupancy and the value
- * should not be trusted for context-window analysis — see `aiMetrics.appendMetricsRow`,
- * which refuses to write a CSV row when any sample with `hopCount > 0` was a fallback.
- *
- * `durationMs` is the main-process round-trip from stdin write to the terminal `result`
- * envelope.
- */
+/** Per-request usage telemetry from the `claude` session. */
 export interface RequestUsage {
+  /**
+   * Prompt tokens billed for this turn. Sourced from the terminal `result` envelope's `usage`,
+   * which the CLI sums across all underlying completion calls on a multi-hop turn (model →
+   * `tool_use` → `tool_result` → model continues …). The right input for billing math, but
+   * not comparable to the model's context-window size — use `contextTokens` for that.
+   */
   readonly inputTokens: number
+  /** Completion tokens billed for this turn. Sourced like {@link inputTokens}. */
   readonly outputTokens: number
+  /** Cache-read tokens billed for this turn. Sourced like {@link inputTokens}. */
   readonly cacheReadTokens: number
+  /** Cache-creation tokens billed for this turn. Sourced like {@link inputTokens}. */
   readonly cacheCreationTokens: number
+  /**
+   * Size of the prompt on the **last hop** of the turn — `input + cache_read + cache_creation`
+   * pulled from the `usage` field on the *final* `assistant` envelope before the `result`.
+   * Represents the actual context the model saw on the synthesis call, so it grows
+   * approximately monotonically across turns and is the right number to compare against the
+   * model's context window. Falls back to the cost-side sum when the CLI omits per-envelope
+   * `usage`; see {@link contextFromLastHop} to distinguish the two cases.
+   */
   readonly contextTokens: number
+  /**
+   * `true` when {@link contextTokens} came from the final assistant envelope's per-hop `usage`,
+   * `false` when it fell back to the cost-side sum (because the CLI didn't surface
+   * `message.usage` on the final envelope). On a multi-hop turn, `false` means
+   * `contextTokens` overstates actual context occupancy and the value should not be trusted
+   * for context-window analysis — see `aiMetrics.appendMetricsRow`, which refuses to write a
+   * CSV row when any sample with `hopCount > 0` was a fallback.
+   */
   readonly contextFromLastHop: boolean
+  /**
+   * Number of `assistant` envelopes observed in the turn — i.e. how many times the model
+   * produced a response, including any tool-loop intermediates. Useful for sanity-checking
+   * variance in the cost-side fields.
+   */
   readonly hopCount: number
+  /** Main-process round-trip from stdin write to the terminal `result` envelope. */
   readonly durationMs: number
+  /**
+   * `true` when this turn ran on a `ChildAgent` that was promoted from "warming" to "primary"
+   * just before this turn started — i.e. the conversation history was reset by a context-rotation
+   * (see `claudeAgent.ts`'s threshold-rotation policy). `undefined`/`false` for normal turns.
+   * Surfaced via `logUsage` so e2e tests can assert that rotation actually fired.
+   */
+  readonly freshAgent?: boolean
 }
 
 /** IPC reply shape for `Channel.generateAiComponent`. */
