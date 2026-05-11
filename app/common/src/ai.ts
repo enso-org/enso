@@ -113,7 +113,6 @@ export interface RequestUsage {
    * `true` when this turn ran on a `ChildAgent` that was promoted from "warming" to "primary"
    * just before this turn started — i.e. the conversation history was reset by a context-rotation
    * (see `claudeAgent.ts`'s threshold-rotation policy). `undefined`/`false` for normal turns.
-   * Surfaced via `logUsage` so e2e tests can assert that rotation actually fired.
    */
   readonly freshAgent?: boolean
 }
