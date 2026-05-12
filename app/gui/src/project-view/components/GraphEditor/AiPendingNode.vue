@@ -31,7 +31,7 @@ const transform = computed(() => {
         :size="16"
         phase="loading-medium"
       />
-      <span class="prompt">AI: {{ pending.prompt }}</span>
+      <span class="prompt">{{ pending.prompt }}</span>
       <SvgButton class="cancel" name="close" title="Cancel AI prompt" @activate="emit('cancel')" />
     </div>
   </div>

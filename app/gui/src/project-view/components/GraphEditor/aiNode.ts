@@ -120,7 +120,16 @@ export function createAiNode(options: CreateAiNodeOptions): Result {
 export function readAiCallTarget(
   assignment: Ast.Assignment,
   topLevel: Ast.BodyBlock,
-): { functionName: Identifier; functionDef: Ast.FunctionDef; definitionCode: string } | null {
+): {
+  functionName: Identifier
+  functionDef: Ast.FunctionDef
+  definitionCode: string
+  /**
+   * Index of the FunctionDef within `topLevel.lines` — captured so an edit can replace the
+   * definition at the same line rather than appending below `main`.
+   */
+  topLevelIndex: number
+} | null {
   // The call is shaped `Main.<functionName> a b c`. Walk through `Ast.App` to find the
   // innermost function expression, which should be the `Main.<functionName>` property access.
   let fn: Ast.Expression = assignment.expression
@@ -135,6 +144,7 @@ export function readAiCallTarget(
     functionName: asIdent.value,
     functionDef: found.statement,
     definitionCode: found.statement.code(),
+    topLevelIndex: found.index,
   }
 }
 
@@ -220,8 +230,8 @@ export function updateAiNode(options: UpdateAiNodeOptions): Result {
     docs.insert(0, newDocs)
   }
 
-  // Insert the new FunctionDef at the top of the module body. Placement isn't load-bearing —
-  // `createAiNode` inserts before the current method; here we keep it consistent.
-  topLevel.insert(topLevel.lines.length, functionDef, undefined)
+  // Re-insert the new FunctionDef at the line where the old one was, so an edit doesn't
+  // shuffle methods around the module.
+  topLevel.insert(existing.topLevelIndex, functionDef, undefined)
   return Ok()
 }

@@ -72,7 +72,7 @@ function pickMode(mode: SelectedMode): void {
   <div v-if="modeLocked" class="ModeMenu locked">
     <SvgIcon :name="currentIcon" />
   </div>
-  <DropdownMenu v-else class="ModeMenu" :showArrow="false">
+  <DropdownMenu v-else class="ModeMenu" showArrow="always">
     <template #button>
       <SvgIcon :name="currentIcon" />
     </template>
@@ -104,6 +104,29 @@ function pickMode(mode: SelectedMode): void {
 
 .ModeMenu.locked {
   cursor: default;
+}
+
+/* The mode-switch trigger sits inside `.componentEditorIcon` which already provides the round
+ * port background, so neutralize the wrapping DropdownMenu and its trigger MenuButton — the
+ * margin, padding, sizing, and hover/toggled backgrounds would otherwise stack a second pill
+ * on top of the port. Scoped to the trigger only (`> .MenuButton`) so the dropdown panel's
+ * MenuButtons keep their default appearance. */
+.ModeMenu :deep(.DropdownMenu) {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+.ModeMenu :deep(.DropdownMenu > .MenuButton) {
+  --button-padding: 0;
+  --button-height: auto;
+  background-color: transparent;
+  backdrop-filter: none;
+}
+.ModeMenu :deep(.DropdownMenu > .MenuButton):hover,
+.ModeMenu :deep(.DropdownMenu > .MenuButton):focus,
+.ModeMenu :deep(.DropdownMenu > .MenuButton):active,
+.ModeMenu :deep(.DropdownMenu > .MenuButton.toggledOn) {
+  background-color: transparent;
 }
 
 .modeMenuPanel {
