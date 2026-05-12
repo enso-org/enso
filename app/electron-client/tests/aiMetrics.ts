@@ -1,6 +1,6 @@
 /**
  * @file Helpers for collecting AI-effectiveness telemetry from Playwright e2e tests and
- * appending one CSV row per successful test run to a configurable directory.
+ * appending one CSV row per test run (pass or fail) to a configurable directory.
  */
 import type { RequestUsage } from 'enso-common/src/ai'
 import { execFile } from 'node:child_process'
@@ -18,11 +18,11 @@ const execFileAsync = promisify(execFile)
  * stores integer tokens (the rounding loss is at most a few hundred tokens per sample,
  * acceptable noise on hundred-thousand-token contexts). Cost-side fields (`prompt`, `out`,
  * `cacheRead`, `cacheCreate`) parse as lossless integers. `ctxSrc` carries the
- * `contextFromLastHop` flag so {@link appendMetricsRow} can reject rows where the CLI
- * omitted per-hop usage on the final assistant envelope and the context value is unreliable.
- * The bare ` fresh` keyword (no value) marks the first turn after a context-rotation (a fresh
- * `ChildAgent`); it's omitted entirely otherwise. The capture group is optional so logs
- * without the marker still parse.
+ * `contextFromLastHop` flag so {@link appendMetricsRow} can suffix the `status` column with
+ * ` (broken)` on rows where the CLI omitted per-hop usage on the final assistant envelope and
+ * the context value is unreliable. The bare ` fresh` keyword (no value) marks the first turn
+ * after a context-rotation (a fresh `ChildAgent`); it's omitted entirely otherwise. The capture
+ * group is optional so logs without the marker still parse.
  */
 const AI_USAGE_LINE_REGEX =
   /\[AI\] usage: prompt=(\d+)t out=(\d+)t context=([\d.]+)k hops=(\d+) ctxSrc=(lastHop|fallback)( fresh)? \(cacheRead=(\d+)t cacheCreate=(\d+)t\) time=(\d+)ms/
@@ -157,8 +157,9 @@ interface AppendMetricsRowArgs {
  * (the CLI omitted `message.usage` on the final assistant envelope, so `contextTokens` fell
  * back to the cost-side sum and overstates actual context-window occupancy), a
  * ` (broken)` suffix is appended — yielding `pass`, `pass (broken)`, `fail`, or
- * `fail (broken)`. Never throws; broken telemetry is surfaced in-band so a failed run is still
- * recorded and downstream analysis can filter on the `(broken)` rows.
+ * `fail (broken)`. Broken telemetry is surfaced in-band rather than rejected so a failed run
+ * is still recorded and downstream analysis can filter on the `(broken)` rows. Filesystem
+ * errors from `mkdir` / `appendFile` still propagate to the caller.
  */
 export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void> {
   const telemetryBroken = args.samples.some((s) => !s.contextFromLastHop && s.hopCount > 0)

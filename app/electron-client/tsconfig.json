@@ -58,6 +58,7 @@
     "./tests/electronTest.ts",
     "./tests/gettingStarted.spec.ts",
     "./tests/headless/aiMcpServer.test.ts",
+    "./tests/headless/aiMetrics.test.ts",
     "./tests/headless/claudeAgent.test.ts",
     "./tests/headless/claudeAgentChild.test.ts",
     "./tests/headless/claudeAgentTestHarness.ts",

@@ -97,8 +97,8 @@ export interface RequestUsage {
    * `false` when it fell back to the cost-side sum (because the CLI didn't surface
    * `message.usage` on the final envelope). On a multi-hop turn, `false` means
    * `contextTokens` overstates actual context occupancy and the value should not be trusted
-   * for context-window analysis — see `aiMetrics.appendMetricsRow`, which refuses to write a
-   * CSV row when any sample with `hopCount > 0` was a fallback.
+   * for context-window analysis — see `aiMetrics.appendMetricsRow`, which flags such samples
+   * by suffixing the metrics-row `status` column with ` (broken)`.
    */
   readonly contextFromLastHop: boolean
   /**

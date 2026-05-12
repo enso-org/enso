@@ -90,7 +90,7 @@ function resolveThresholds(config: ClaudeSessionConfig): ResolvedThresholds {
 
 /**
  * Read `ENSO_AI_CLAUDE_EXTRA_ARGS` and split on whitespace; empty/unset → `undefined`.
- * No  shell-style quoting — values containing whitespace aren't expressible.
+ * No shell-style quoting — values containing whitespace aren't expressible.
  */
 function readExtraArgsEnv(): readonly string[] | undefined {
   const raw = process.env.ENSO_AI_CLAUDE_EXTRA_ARGS

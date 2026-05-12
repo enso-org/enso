@@ -386,12 +386,12 @@ Findings from the probe at the time the long-lived design landed:
     overwrites `lastHopUsage` with `null` rather than coalescing, so a stale
     earlier value never leaks through), this falls back to the result-envelope
     sum. The renderer's `logUsage` flips `ctxSrc=fallback` and emits a
-    `console.warn`; `aiMetrics.appendMetricsRow` refuses to write the CSV row
-    when any sample has `hopCount > 0` and `contextFromLastHop=false`, failing
-    the Playwright run so the developer notices broken telemetry instead of
-    silently archiving misleading data.
+    `console.warn`; `aiMetrics.appendMetricsRow` flags such rows by suffixing
+    the `status` column with ` (broken)` (yielding `pass (broken)` or
+    `fail (broken)`) so downstream analysis can filter them out without losing
+    the rest of the run's signal.
   - `contextFromLastHop` exposes the source of `contextTokens` so consumers can
-    validate; see above for the metrics writer's enforcement.
+    validate; see above for how the metrics writer surfaces it.
   - `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheCreationTokens`,
     `hopCount` are turn totals from `result.usage` (and the count of assistant
     envelopes seen). They are the right inputs for billing and for explaining
