@@ -58,9 +58,7 @@ export interface ChildAgentConfig {
   readonly logLabel?: string
   /**
    * Extra CLI tokens appended verbatim to the built-in `claude -p …` flag list (e.g.
-   * `['--model', 'claude-sonnet-4-6']`). Sourced from `ENSO_AI_CLAUDE_EXTRA_ARGS` and used
-   * by the AI-effectiveness suite to compare models / effort levels — see
-   * `tests/aiChallengePrep.spec.ts`. Appended last so that, for last-wins flag parsers, a
+   * `['--model', 'claude-sonnet-4-6']`). Appended last so that, for last-wins flag parsers, a
    * user-supplied value overrides the built-in one.
    */
   readonly extraArgs?: readonly string[] | undefined

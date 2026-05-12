@@ -89,10 +89,8 @@ function resolveThresholds(config: ClaudeSessionConfig): ResolvedThresholds {
 }
 
 /**
- * Read `ENSO_AI_CLAUDE_EXTRA_ARGS` and split on whitespace; empty/unset → `undefined`. Used by
- * the AI-effectiveness suite to compare models or reasoning levels (see
- * `tests/aiChallengePrep.spec.ts`). No shell-style quoting — values containing whitespace
- * aren't expressible, but no flag we'd plausibly pass needs that.
+ * Read `ENSO_AI_CLAUDE_EXTRA_ARGS` and split on whitespace; empty/unset → `undefined`.
+ * No  shell-style quoting — values containing whitespace aren't expressible.
  */
 function readExtraArgsEnv(): readonly string[] | undefined {
   const raw = process.env.ENSO_AI_CLAUDE_EXTRA_ARGS
