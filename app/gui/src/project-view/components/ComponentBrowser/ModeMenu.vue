@@ -107,20 +107,29 @@ function pickMode(mode: SelectedMode): void {
 }
 
 /* The mode-switch trigger sits inside `.componentEditorIcon` which already provides the round
- * port background, so neutralize the wrapping DropdownMenu and its trigger MenuButton — the
- * margin, padding, sizing, and hover/toggled backgrounds would otherwise stack a second pill
- * on top of the port. Scoped to the trigger only (`> .MenuButton`) so the dropdown panel's
- * MenuButtons keep their default appearance. */
+ * port background, so neutralize the wrapping DropdownMenu and its trigger MenuButton —
+ * margin, padding, intrinsic sizing, and hover/toggled backgrounds would otherwise stack a
+ * second pill on top of the port and make it oval. Scoped to the trigger only
+ * (`> .MenuButton`) so the dropdown panel's option buttons keep their default appearance. */
 .ModeMenu :deep(.DropdownMenu) {
   margin: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 .ModeMenu :deep(.DropdownMenu > .MenuButton) {
   --button-padding: 0;
-  --button-height: auto;
+  --button-height: var(--icon-size, 16px);
+  /* Override MenuButton's `min-width: max-content` (which would let the button grow taller
+   * than wide once the user-agent button styles kick in). Pin to the icon's intrinsic size so
+   * the surrounding port background stays a circle. */
+  min-width: var(--icon-size, 16px);
+  width: var(--icon-size, 16px);
+  height: var(--icon-size, 16px);
+  box-sizing: content-box;
   background-color: transparent;
   backdrop-filter: none;
+  line-height: 0;
 }
 .ModeMenu :deep(.DropdownMenu > .MenuButton):hover,
 .ModeMenu :deep(.DropdownMenu > .MenuButton):focus,
