@@ -1,6 +1,6 @@
 /**
  * @file Long-running e2e tests that simulate a user solving Preppin' Data challenges almost
- * entirely through `AI:` prompts (only the `Data.read` source nodes are user-typed).
+ * entirely through AI prompts (only the `Data.read` source nodes are user-typed).
  *
  *   - week 32 — flips green once the agent can read Standard library `.enso` source files.
  *     Prompts deliberately spell out any value-dependent context (gym leader order, gym set
@@ -83,6 +83,9 @@ test.skip(
   DATASETS_DIR == null,
   "Set ENSO_TEST_AI_CHALLENGES_DIR to the directory holding manually-downloaded Preppin' Data inputs.",
 )
+
+// These specs use the real Claude agent; opt out of the test-suite-wide ENSO_AI_DISABLED=1.
+test.use({ aiEnabled: true })
 
 async function resolveDataFiles<T extends Readonly<Record<string, string>>>(
   files: T,
@@ -192,7 +195,8 @@ async function runAIPromptOnLastNode(page: Page, prompt: string, expectedNodeCou
   await page.keyboard.press('Enter')
   const cbInput = page.getByTestId('component-editor-content')
   await expect(cbInput).toBeVisible()
-  await page.keyboard.insertText(`AI: ${prompt}`)
+  // AI mode is now the default when claude is available — no `AI:` prefix needed.
+  await page.keyboard.insertText(prompt)
   await page.keyboard.press('Enter')
   await expect(graphNodes).toHaveCount(expectedNodeCount, { timeout: AI_PROMPT_TIMEOUT_MS })
   await assertNoNodeErrors(page, `AI prompt: ${prompt}`)

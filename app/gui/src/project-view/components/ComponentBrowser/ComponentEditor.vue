@@ -2,10 +2,11 @@
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
-import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
-import SvgIcon from '@/components/SvgIcon.vue'
+import type { ComponentBrowserMode, SelectedMode, Usage } from '@/components/ComponentBrowser/input'
+import ModeMenu from '@/components/ComponentBrowser/ModeMenu.vue'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
@@ -15,8 +16,12 @@ const content = defineModel<DeepReadonly<{ text: string; selection: Range | unde
 const props = defineProps<{
   usage: Usage
   mode: ComponentBrowserMode
+  selectedMode: SelectedMode
+  modeLocked: boolean
+  aiAvailable: boolean
   nodeColor: string
 }>()
+const emit = defineEmits<{ 'update:selectedMode': [mode: SelectedMode] }>()
 
 const graphStore = useGraphStore()
 
@@ -37,8 +42,7 @@ const { editorView } = useCodeMirror(editorRoot, {
 
 watch(content, ({ text, selection }) => setText(editorView, text, selection), { immediate: true })
 
-const icon = computed(() => {
-  if (props.mode.mode === 'componentBrowsing') return 'find'
+const codeEditIcon = computed<Icon>(() => {
   if (props.usage.type === 'editNode') {
     return iconOfNode(props.usage.node, graphStore.db)
   }
@@ -72,7 +76,13 @@ const rootStyle = computed(() => {
 <template>
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
-      <SvgIcon :name="icon" />
+      <ModeMenu
+        :selectedMode="props.selectedMode"
+        :aiAvailable="props.aiAvailable"
+        :modeLocked="props.modeLocked"
+        :codeEditIcon="codeEditIcon"
+        @update:selectedMode="emit('update:selectedMode', $event)"
+      />
     </div>
     <div class="componentEditorContent">
       <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />

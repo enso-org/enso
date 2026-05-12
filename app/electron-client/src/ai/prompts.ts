@@ -120,7 +120,13 @@ ${formatBinding(context.sourceIdentifier, context.sourceTypeName)}
 
 `
     : ''
-  return `Current method: ${context.currentMethodName}
+  const editSection =
+    context.editContext != null ?
+      `${formatEditContextSection(context.editContext)}
+
+`
+    : ''
+  return `${editSection}Current method: ${context.currentMethodName}
 Current method source:
 \`\`\`
 ${context.currentMethodCode}
@@ -133,4 +139,18 @@ ${sourceSection}Other in-scope bindings:
 ${otherBindingsList}
 
 User request: ${prompt}`
+}
+
+function formatEditContextSection(editContext: NonNullable<AiComponentRequest['context']['editContext']>): string {
+  const previousDefinitionBlock =
+    editContext.previousDefinition != null ?
+      `\n\nPrevious function definition:
+\`\`\`
+${editContext.previousDefinition}
+\`\`\``
+    : ''
+  return `This is an edit of an existing AI node. The previous prompt and generated function definition (when recoverable) are shown below for reference. You MAY change the function name, parameter list, body, and call arguments to best satisfy the new prompt — these are all under your control. The only thing preserved across the edit is the call-site binding identifier on the user's graph.
+
+Previous prompt:
+${editContext.previousPrompt}${previousDefinitionBlock}`
 }

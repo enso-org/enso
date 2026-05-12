@@ -4,6 +4,7 @@ import {
   useProjectNames,
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
+import type { NodeId } from '$/providers/openedProjects/graph'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
@@ -21,6 +22,7 @@ import { groupColorStyle } from '@/composables/nodeColors'
 import { registerHandlers, toggledAction, type Action } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { useAiAvailability } from '@/stores/aiAvailability'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -70,6 +72,12 @@ const props = defineProps<{
 export interface AiPromptSubmission {
   readonly prompt: string
   readonly sourceIdentifier: string | undefined
+  /**
+   * When set, the prompt is an edit of an existing AI node identified by `nodeId`. The agent's
+   * reply will rewrite that node's FunctionDef and call AST in place rather than inserting a new
+   * one.
+   */
+  readonly editing?: { readonly nodeId: NodeId }
 }
 
 const emit = defineEmits<{
@@ -189,7 +197,9 @@ const selectedSuggestion = computed(() => {
 
 // === Input and Filtering ===
 
-const input = useComponentBrowserInput()
+const aiAvailability = useAiAvailability()
+const aiAvailable = computed(() => aiAvailability.available.value)
+const input = useComponentBrowserInput(undefined, undefined, aiAvailable)
 
 onUnmounted(() => {
   graphStore.cbEditedEdge = undefined
@@ -327,9 +337,16 @@ function acceptInput() {
 
 function acceptAiInput() {
   if (input.mode.mode !== 'aiPrompt') return
+  // When the CB was opened on an existing AI node, `reset()` sets `modeLocked` to `true` and
+  // selects `aiPrompt` — that's the signal that this submission is an edit of `usage.node`.
+  const editing =
+    props.usage.type === 'editNode' && input.modeLocked ?
+      ({ nodeId: props.usage.node } as const)
+    : undefined
   emit('acceptedAi', {
     prompt: input.mode.prompt,
     sourceIdentifier: input.selfArgument,
+    ...(editing != null ? { editing } : {}),
   })
   interaction.ended(cbOpen)
 }
@@ -337,10 +354,22 @@ function acceptAiInput() {
 // === Action Handlers ===
 
 const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
+const editSuggestionEnabled = computed(
+  () =>
+    !input.modeLocked &&
+    (input.mode.mode === 'componentBrowsing' || input.mode.mode === 'aiPrompt'),
+)
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
-    enabled: insideComponentBrowsing,
+    enabled: editSuggestionEnabled,
     action: () => {
+      if (input.selectedMode === 'aiPrompt') {
+        // In AI mode, Shift+Enter switches to component search. The typed text is preserved as
+        // the search filter — the user often wants to triage components matching what they
+        // started typing as an AI prompt.
+        input.setSelectedMode('componentBrowsing')
+        return
+      }
       const result = applyComponent()
       if (!result.ok) result.error.log('Cannot apply component')
     },
@@ -432,8 +461,12 @@ const listsHandler = listBindings.handler({
       v-model="input.content"
       :usage="usage"
       :mode="input.mode"
+      :selectedMode="input.selectedMode"
+      :modeLocked="input.modeLocked"
+      :aiAvailable="aiAvailable"
       :nodeColor="nodeColor"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
+      @update:selectedMode="input.setSelectedMode"
     />
     <div class="show-visualization">
       <ActionButton action="component.toggleVisualization" />

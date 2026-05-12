@@ -225,6 +225,15 @@ export class ClaudeAgentSession {
   }
 
   /**
+   * Resolves to `true` once the primary `claude` child has spawned without a synchronous
+   * ENOENT-style failure, `false` if the spawn failed. Decoupled from priming — the CLI counts
+   * as "available" as soon as the process is alive.
+   */
+  get isAvailable(): Promise<boolean> {
+    return this.primary.firstSpawnSettled
+  }
+
+  /**
    * The renderer + request id driving the in-flight turn, or `null` between turns / when the
    * renderer was destroyed. Only one of (primary, warming) ever has a non-null `activeRequest`
    * at a time, since the AsyncQueue serializes turn execution across both.
@@ -526,8 +535,28 @@ export async function initAiMcpServer(): Promise<string | undefined> {
 /**
  * Spawn the long-lived agent session and register the {@link Channel.generateAiComponent} IPC
  * handler. Pass `mcpConfigPath` from {@link initAiMcpServer} (or `undefined` to disable MCP).
+ *
+ * Honors `ENSO_AI_DISABLED=1`: when set, the session is NOT spawned, `aiIsAvailable` reports
+ * `false`, and any stray call to `generateAiComponent` returns a structured error. This is the
+ * hook the Electron test fixture uses to prevent a developer's locally-installed `claude` from
+ * being invoked during non-AI tests.
  */
 export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
+  if (process.env.ENSO_AI_DISABLED === '1') {
+    console.info(`[AI] ENSO_AI_DISABLED=1; skipping 'claude' session startup.`)
+    ipcMain.handle(Channel.aiIsAvailable, async () => false)
+    ipcMain.handle(
+      Channel.generateAiComponent,
+      async (): Promise<AiComponentIpcReply> => ({
+        result: Err('AI is disabled by ENSO_AI_DISABLED'),
+        usage: null,
+      }),
+    )
+    ipcMain.on(Channel.cancelAiComponent, () => {
+      // No-op: there's no session to cancel against.
+    })
+    return
+  }
   if (config.stdlibRoot == null) {
     console.warn(
       `[AI] could not locate the bundled engine's lib/Standard directory; the agent will run without stdlib filesystem access.`,
@@ -548,6 +577,7 @@ export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
       console.warn(`[AI] failed to start 'claude' session: ${errno?.message ?? String(err)}`)
     }
   })
+  ipcMain.handle(Channel.aiIsAvailable, async () => currentSession.isAvailable)
   ipcMain.handle(
     Channel.generateAiComponent,
     async (event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>

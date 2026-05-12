@@ -195,6 +195,7 @@ const system: ElectronApi['system'] = {
 }
 
 const ai: ElectronApi['ai'] = {
+  isAvailable: (): Promise<boolean> => electron.ipcRenderer.invoke(ipc.Channel.aiIsAvailable),
   generateComponent: (request: AiComponentRequest): Promise<AiComponentIpcReply> =>
     electron.ipcRenderer.invoke(ipc.Channel.generateAiComponent, request),
   onToolCall: (handler: (request: AiToolCallRequest) => void): (() => void) => {

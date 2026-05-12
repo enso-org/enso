@@ -71,8 +71,14 @@ export default defineConfig({
   // Make test preview use the same port as test URL, so that svg icons are properly displayed.
   // When reusing running dev server, the port will have to be different and icons will unfortunately
   // not show properly. This is only a visual glitch in the reporter and does not impact test results.
+  // Pair `list` (live progress on stdout) with `html` (browsable report on disk). The HTML
+  // reporter is configured with `open: 'never'` so the local run does not block holding open a
+  // background server after the suite finishes — open the report explicitly with
+  // `pnpm exec playwright show-report` when you actually need it.
   reporter:
-    isCI ? [['list'], ['blob']] : [['html', { port: await findFreePortInRange(port, port + 5) }]],
+    isCI ?
+      [['list'], ['blob']]
+    : [['list'], ['html', { open: 'never', port: await findFreePortInRange(port, port + 5) }]],
   retries: isCI ? 1 : 0,
   timeout: TIMEOUT_MS,
   expect: {

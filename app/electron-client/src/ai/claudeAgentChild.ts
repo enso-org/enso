@@ -260,6 +260,19 @@ export class ChildAgent {
   }
 
   /**
+   * Resolves to `true` once the underlying `firstSpawn` succeeds (the OS reports the child
+   * process as alive), and `false` if it rejects (synchronous spawn failure — usually ENOENT
+   * because `claude` is not on PATH). Decoupled from {@link ready}, which additionally waits
+   * for the priming turn — this Promise is for "is the CLI installed at all?" probes.
+   */
+  get firstSpawnSettled(): Promise<boolean> {
+    return this.watcher.firstSpawn.then(
+      () => true,
+      () => false,
+    )
+  }
+
+  /**
    * Synchronous query: has the most recent `readyDeferred` resolved? Useful for the session
    * to ask "is warming primed yet?" without `await`ing.
    */

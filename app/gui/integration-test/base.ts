@@ -13,6 +13,12 @@ export type * from 'playwright/test'
 
 export const test = base.extend<{
   featureFlags: Partial<FeatureFlags>
+  /**
+   * Whether the mocked Electron API should report the local Claude agent as available. Most
+   * specs assume `false` so the Component Browser defaults to component-search mode (matching
+   * current product behavior). AI specs opt in with `test.use({ aiAvailable: true })`.
+   */
+  aiAvailable: boolean
   setupApi: {
     cloud?: (api: MockCloudApi) => void
     local?: (api: MockLocalApi) => void
@@ -25,6 +31,7 @@ export const test = base.extend<{
   editorPage: EditorPageActions
 }>({
   featureFlags: [{}, { option: true }],
+  aiAvailable: [false, { option: true }],
   setupApi: [{}, { option: true }],
   cloudApi: async ({ page, setupApi }, use) => {
     const api = await mockCloudApi(page)
@@ -47,10 +54,10 @@ export const test = base.extend<{
     setupApi.local?.(api)
     return use(api)
   },
-  loginPage: async ({ page, cloudApi, localApi, featureFlags }, use) => {
+  loginPage: async ({ page, cloudApi, localApi, featureFlags, aiAvailable }, use) => {
     // Only make sure that API mocks are registered, do not actually use the values
     const _ = { cloudApi, localApi }
-    await registerMocks(page, featureFlags)
+    await registerMocks(page, featureFlags, { aiAvailable })
 
     const loginPage = new LoginPageActions(page, {}).do(async () => {
       await page.goto('/')

@@ -17,8 +17,10 @@ import {
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
+import { isAiAssignment, readAiPrompt } from '@/components/GraphEditor/aiNode'
 import { Ast } from '@/util/ast'
 import { selfArgSeparator } from '@/util/ast/abstract'
+import { nodeDocumentationText } from '@/util/ast/node'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
@@ -33,8 +35,11 @@ export type Usage =
 
 /**
  * One of the modes of the component browser:
- * "component browsing" when user wants to add new component
- * "code editing" for editing existing, or just added nodes
+ * - `componentBrowsing` when the user is searching the suggestion list to add a new component,
+ * - `codeEditing` for free-form code editing on a new or existing node,
+ * - `aiPrompt` for typing a natural-language prompt that the local Claude agent expands into a
+ *   User Defined Component.
+ *
  * See https://github.com/enso-org/enso/issues/10598 for design details.
  */
 export type ComponentBrowserMode =
@@ -53,10 +58,14 @@ export type ComponentBrowserMode =
       prompt: string
     }
 
+/** The user-selectable mode tag. `ComponentBrowserMode` is the same set, projected as a `mode` field. */
+export type SelectedMode = ComponentBrowserMode['mode']
+
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
   graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
   suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
+  aiAvailable: ToValue<boolean> = () => false,
 ) {
   const text = ref('')
   const cbUsage = ref<Usage>()
@@ -64,6 +73,8 @@ export function useComponentBrowserInput(
   const imports = shallowRef<RequiredImport[]>([])
   const sourceNodeIdentifier = ref<Ast.Identifier>()
   const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionEntry }>()
+  const selectedMode = ref<SelectedMode>('componentBrowsing')
+  const modeLocked = ref<boolean>(false)
 
   // Text Model to being edited externally (by user).
   //
@@ -102,11 +113,10 @@ export function useComponentBrowserInput(
   }
 
   const mode: ComputedRef<ComponentBrowserMode> = computed(() => {
-    const aiPromptMatch = /^AI:(.*)$/.exec(text.value)
-    if (aiPromptMatch) {
-      return { mode: 'aiPrompt', prompt: aiPromptMatch[1] ?? ' ' }
+    if (selectedMode.value === 'aiPrompt') {
+      return { mode: 'aiPrompt', prompt: text.value }
     }
-    if (switchedToCodeMode.value || cbUsage.value?.type === 'editNode') {
+    if (selectedMode.value === 'codeEditing') {
       return {
         mode: 'codeEditing',
         code: applySourceNode(text.value),
@@ -114,22 +124,21 @@ export function useComponentBrowserInput(
           { appliedSuggestion: switchedToCodeMode.value.appliedSuggestion }
         : {}),
       }
+    }
+    let literal: Ast.MutableTextLiteral | Ast.NumericLiteral | Ast.NegationApp | undefined =
+      Ast.TextLiteral.tryParse(text.value)
+    if (literal == null) {
+      literal = Ast.NumericLiteral.tryParseWithSign(text.value)
     } else {
-      let literal: Ast.MutableTextLiteral | Ast.NumericLiteral | Ast.NegationApp | undefined =
-        Ast.TextLiteral.tryParse(text.value)
-      if (literal == null) {
-        literal = Ast.NumericLiteral.tryParseWithSign(text.value)
-      } else {
-        literal.fixBoundaries()
-      }
-      return {
-        mode: 'componentBrowsing',
-        filter: {
-          pattern: text.value,
-          ...(sourceNodeType.value != null ? { selfArg: sourceNodeType.value } : {}),
-        },
-        literal,
-      }
+      literal.fixBoundaries()
+    }
+    return {
+      mode: 'componentBrowsing',
+      filter: {
+        pattern: text.value,
+        ...(sourceNodeType.value != null ? { selfArg: sourceNodeType.value } : {}),
+      },
+      literal,
     }
   })
 
@@ -149,6 +158,7 @@ export function useComponentBrowserInput(
     const entry = suggestionDbValue.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
     switchedToCodeMode.value = { appliedSuggestion: entry }
+    selectedMode.value = 'codeEditing'
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
     const newTextWithSuffix = suffix ? `${newText}${suffix}` : newText
     text.value = newTextWithSuffix
@@ -169,6 +179,22 @@ export function useComponentBrowserInput(
 
   function switchToCodeEditMode() {
     switchedToCodeMode.value = {}
+    selectedMode.value = 'codeEditing'
+  }
+
+  /**
+   * User-driven mode change (from the mode menu or the Shift+Enter shortcut). Refuses when the
+   * input is mode-locked (i.e. we're editing an existing node and the mode is determined by
+   * the node type). When leaving `codeEditing`, the `switchedToCodeMode` tracker is cleared so
+   * the next entry to `codeEditing` re-derives the `appliedSuggestion` from scratch.
+   */
+  function setSelectedMode(mode: SelectedMode): void {
+    if (modeLocked.value) return
+    if (selectedMode.value === mode) return
+    if (selectedMode.value === 'codeEditing') {
+      switchedToCodeMode.value = undefined
+    }
+    selectedMode.value = mode
   }
 
   function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
@@ -231,8 +257,11 @@ export function useComponentBrowserInput(
 
   function reset(usage: Usage) {
     const graphDbValue = toValue(graphDb)
+    switchedToCodeMode.value = undefined
     switch (usage.type) {
       case 'newNode':
+        modeLocked.value = false
+        selectedMode.value = toValue(aiAvailable) ? 'aiPrompt' : 'componentBrowsing'
         if (usage.sourcePort) {
           const ident = graphDbValue.getOutputPortIdentifier(usage.sourcePort)
           sourceNodeIdentifier.value = ident != null && Ast.isIdentifier(ident) ? ident : undefined
@@ -243,12 +272,21 @@ export function useComponentBrowserInput(
         selection.value = Range.empty
         break
       case 'editNode': {
-        const parsed = extractSourceNode(
-          graphDbValue.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? '',
-        )
-        text.value = parsed.text
-        sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
-        selection.value = Range.emptyAt(usage.cursorPos - parsed.textOffset)
+        const editedNode = graphDbValue.nodeIdToNode.get(usage.node)
+        modeLocked.value = true
+        if (editedNode && isAiAssignment(editedNode.outerAst)) {
+          const prompt = readAiPrompt(nodeDocumentationText(editedNode)) ?? ''
+          selectedMode.value = 'aiPrompt'
+          sourceNodeIdentifier.value = undefined
+          text.value = prompt
+          selection.value = Range.emptyAt(prompt.length)
+        } else {
+          selectedMode.value = 'codeEditing'
+          const parsed = extractSourceNode(editedNode?.innerExpr.code() ?? '')
+          text.value = parsed.text
+          sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
+          selection.value = Range.emptyAt(usage.cursorPos - parsed.textOffset)
+        }
         break
       }
     }
@@ -289,6 +327,10 @@ export function useComponentBrowserInput(
     code: computed(() => applySourceNode(text.value)),
     /** The component browser mode. See {@link ComponentBrowserMode} */
     mode,
+    /** The user-selected mode tag (drives {@link mode}). */
+    selectedMode: readonly(selectedMode),
+    /** When `true`, the mode is determined by `usage` (an existing node's type) and cannot be changed. */
+    modeLocked: readonly(modeLocked),
     /** Initial self argument to place before the displayed text in the inserted code. */
     selfArgument: sourceNodeIdentifier,
     /** The current selection (or cursor position if start is equal to end). */
@@ -299,6 +341,8 @@ export function useComponentBrowserInput(
     applySuggestion,
     /** Switch to code edit mode with input as-is */
     switchToCodeEditMode,
+    /** Change the selected mode; refuses when {@link modeLocked} is `true`. */
+    setSelectedMode,
     /** A list of imports to add when the suggestion is accepted. */
     importsToAdd,
   })

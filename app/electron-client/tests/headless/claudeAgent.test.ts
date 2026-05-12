@@ -638,4 +638,31 @@ describe('ClaudeAgentSession', () => {
     expect(children[0]!.stdinWrites).toHaveLength(2) // still just priming + r1
     session.shutdown()
   })
+
+  test('isAvailable resolves true once cross-spawn returns an alive child', async () => {
+    const { session, children } = buildSession()
+    // The fake child returned by `attachSpawnMock` is alive from construction time, so its
+    // underlying `firstSpawn` promise resolves on the next microtask.
+    expect(children).toHaveLength(1)
+    await expect(session.isAvailable).resolves.toBe(true)
+    session.shutdown()
+  })
+
+  test('isAvailable resolves false when cross-spawn throws synchronously (ENOENT)', async () => {
+    // Wire the mock to throw ENOENT directly (no `attachSpawnMock` here — it would override
+    // the mock back to a happy-path child). The `WatchedChildProcess` wrapper catches the
+    // synchronous throw inside `spawnNext` and rejects `firstSpawn`, which `firstSpawnSettled`
+    // converts to `false`.
+    spawnMock.mockImplementation(() => {
+      const err = new Error("spawn 'claude' ENOENT") as NodeJS.ErrnoException
+      err.code = 'ENOENT'
+      throw err
+    })
+    const session = new ClaudeAgentSession({
+      stdlibRoot: FAKE_STDLIB_ROOT,
+      mcpConfigPath: undefined,
+    })
+    await expect(session.isAvailable).resolves.toBe(false)
+    session.shutdown()
+  })
 })

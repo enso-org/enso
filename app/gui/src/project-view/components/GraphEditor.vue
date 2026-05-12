@@ -52,6 +52,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
+import { provideAiAvailability } from '@/stores/aiAvailability'
 import { provideOngoingAiPrompts } from '@/stores/ongoingAiPrompts'
 import { providePersisted } from '@/stores/persisted'
 import { provideVisualizationStore } from '@/stores/visualization'
@@ -98,6 +99,7 @@ provideLanguageSupportExtensions({
 })
 
 const nodeExecution = provideNodeExecution(projectStore)
+provideAiAvailability()
 const aiPrompts = provideOngoingAiPrompts()
 useAiToolHandler(aiPrompts)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -531,14 +533,25 @@ function handleAiAccepted(payload: AiPromptSubmission) {
     hideComponentBrowser()
     return
   }
-  aiPrompts.enqueue({
-    prompt: payload.prompt,
-    sourceIdentifier: payload.sourceIdentifier,
-    methodId: methodAst.externalId,
-    methodBodyId: methodAst.body.externalId,
-    methodName: currentMethodName,
-    position: componentBrowserNodePosition.value,
-  })
+  if (payload.editing != null) {
+    aiPrompts.enqueueEdit({
+      prompt: payload.prompt,
+      sourceIdentifier: payload.sourceIdentifier,
+      methodId: methodAst.externalId,
+      methodBodyId: methodAst.body.externalId,
+      methodName: currentMethodName,
+      editNodeId: payload.editing.nodeId,
+    })
+  } else {
+    aiPrompts.enqueue({
+      prompt: payload.prompt,
+      sourceIdentifier: payload.sourceIdentifier,
+      methodId: methodAst.externalId,
+      methodBodyId: methodAst.body.externalId,
+      methodName: currentMethodName,
+      position: componentBrowserNodePosition.value,
+    })
+  }
   hideComponentBrowser()
 }
 
