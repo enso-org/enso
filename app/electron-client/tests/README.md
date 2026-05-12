@@ -105,10 +105,35 @@ publishes the inputs under different filenames, edit the `WEEK_32_FILES` /
 #### Effectiveness metrics (optional)
 
 Set `ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path` alongside the dataset env var to
-collect per-run AI-effectiveness telemetry. On a **successful** test the spec
-appends one CSV row per run to `<dir>/<sanitized-test-name>.csv`, with totals
-plus semicolon-separated per-AI-node breakdowns of duration, input/output
-tokens, and running context size. The row's `commit` column carries the current
-HEAD SHA when the working tree is clean and the literal `WIP` otherwise, so runs
-from in-progress branches are still recorded but won't be confused with
-clean-tree benchmarks. Failed tests append nothing.
+collect per-run AI-effectiveness telemetry. **Every** run (pass OR fail) appends
+one CSV row to `<dir>/<sanitized-test-name>.csv`, with totals plus
+semicolon-separated per-AI-node breakdowns of duration, input/output tokens, and
+running context size. The row's `commit` column carries the current HEAD SHA
+when the working tree is clean and the literal `WIP` otherwise, so runs from
+in-progress branches are still recorded but won't be confused with clean-tree
+benchmarks. Skipped tests (missing inputs) append nothing.
+
+The `status` column reports one of `pass`, `pass (broken)`, `fail`, or
+`fail (broken)`. The `(broken)` suffix flags rows where at least one AI-node
+sample had its `contextTokens` value derived from the cost-side fallback rather
+than the final assistant envelope — the number then overstates real
+context-window occupancy. The pass/fail half of the status reflects the
+Playwright assertions independently, so a failed run with broken telemetry still
+surfaces as a failure for downstream analysis.
+
+#### Comparing models or effort levels
+
+Set `ENSO_AI_CLAUDE_EXTRA_ARGS` to extra flags forwarded verbatim to the spawned
+`claude` CLI (whitespace-split, no shell quoting):
+
+```bash
+ENSO_TEST_AI_CHALLENGES_DIR=/abs/path/to/preppin-data \
+ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path/to/metrics \
+ENSO_AI_CLAUDE_EXTRA_ARGS="--model claude-sonnet-4-6" \
+  corepack pnpm -r --filter enso ide-integration-test \
+    tests/aiChallengePrep.spec.ts
+```
+
+The verbatim env-var value is captured in each row's `ai_parameters` column, so
+multiple runs with different flag combinations can be grouped and compared in
+the same CSV. An empty `ai_parameters` cell means the default model was used.

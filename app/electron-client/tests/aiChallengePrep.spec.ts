@@ -20,11 +20,14 @@
  * inputs in the layout below. The spec skips silently when the env var is unset; per-test skips
  * fire when that test's specific files are missing under the path.
  *
- * Optional: `ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path` enables effectiveness telemetry. On a
- * successful run the test appends one CSV row to `<dir>/<sanitized-test-name>.csv` summarizing
- * the run (timestamp, current commit SHA or `WIP` if dirty, per-AI-node durations, hop count,
- * the full `usage` breakdown — input / cache_read / cache_creation / output tokens — and the
- * last-hop `contextTokens`). See `./aiMetrics.ts` for the schema.
+ * Optional: `ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path` enables effectiveness telemetry. Each
+ * run (pass OR fail) appends one CSV row to `<dir>/<sanitized-test-name>.csv` summarizing the
+ * run: timestamp, current commit SHA or `WIP` if dirty, the verbatim value of
+ * `ENSO_AI_CLAUDE_EXTRA_ARGS` in the `ai_parameters` column (for grouping by model / effort),
+ * the `status` (`pass` / `pass (broken)` / `fail` / `fail (broken)`), per-AI-node durations,
+ * hop count, the full `usage` breakdown — input / cache_read / cache_creation / output tokens
+ * — and the last-hop `contextTokens`. Skipped runs (missing input files) write nothing. See
+ * `./aiMetrics.ts` for the schema and the `(broken)` suffix semantics.
  *
  * Expected layout under $ENSO_TEST_AI_CHALLENGES_DIR (flat — files at the top level):
  *   Gym Leader Set Cards.xlsx          # week 32; 3 sheets: Trainer Cards, Pokemon Cards, Leader Order
@@ -60,7 +63,11 @@ const MANUAL_NODE_TIMEOUT_MS = 30_000
 // commit-tag resolution works regardless of where the test runner is invoked from.
 const REPO_ROOT = path.resolve(import.meta.dirname, '../../..')
 
-async function recordSuccess(testInfo: TestInfo, samples: readonly RequestUsage[]) {
+async function recordResult(
+  testInfo: TestInfo,
+  samples: readonly RequestUsage[],
+  outcome: 'pass' | 'fail',
+) {
   if (!METRICS_DIR) return
   await appendMetricsRow({
     dir: METRICS_DIR,
@@ -68,6 +75,8 @@ async function recordSuccess(testInfo: TestInfo, samples: readonly RequestUsage[
     samples,
     commit: await gitCommitTag(REPO_ROOT),
     timestamp: new Date().toISOString(),
+    aiParameters: process.env.ENSO_AI_CLAUDE_EXTRA_ARGS ?? '',
+    outcome,
   })
 }
 
@@ -213,80 +222,88 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
   test.setTimeout(45 * 60_000)
   const files = await resolveDataFiles(WEEK_32_FILES)
   const usage = collectAiUsage(page)
-  await loginAsTestUser(page)
-  await closeWelcome(page)
-  await createNewProject(page)
-  await closeRightPanel(page)
-  await clearWelcomeNode(page)
+  // Track the outcome explicitly so the `finally` records pass/fail regardless of which
+  // assertion threw. `testInfo.status` is not reliable inside a test body (it's set after the
+  // test resolves), so a manual flag is the only honest signal here.
+  let passed = false
+  try {
+    await loginAsTestUser(page)
+    await closeWelcome(page)
+    await createNewProject(page)
+    await closeRightPanel(page)
+    await clearWelcomeNode(page)
 
-  const graphNodes = page.locator('.GraphNode')
+    const graphNodes = page.locator('.GraphNode')
 
-  // Manual: 4 Data.read source nodes — three sheets out of `Gym Leader Set Cards.xlsx` and the
-  // Pokemon sheet of `Pokemon Input.xlsx`. The agent identifies which source is which by reading
-  // the sheet name out of the method source it receives in its context.
-  //
-  // Order matters: Pokemon Cards is added last so it ends up auto-selected, and the first AI
-  // prompt's chained Component Browser opens off it (the prompt operates on the Card column,
-  // which only Pokemon Cards has).
-  const sources = [
-    `Data.read "${files.pokemonInput}" (..Sheet "Pokemon")`,
-    `Data.read "${files.cardsWorkbook}" (..Sheet "Leader Order")`,
-    `Data.read "${files.cardsWorkbook}" (..Sheet "Trainer Cards")`,
-    `Data.read "${files.cardsWorkbook}" (..Sheet "Pokemon Cards")`,
-  ]
-  let nodeCount = 0
-  for (const expr of sources) {
-    nodeCount += 1
-    await addFreestandingNode(page, expr, nodeCount)
+    // Manual: 4 Data.read source nodes — three sheets out of `Gym Leader Set Cards.xlsx` and the
+    // Pokemon sheet of `Pokemon Input.xlsx`. The agent identifies which source is which by reading
+    // the sheet name out of the method source it receives in its context.
+    //
+    // Order matters: Pokemon Cards is added last so it ends up auto-selected, and the first AI
+    // prompt's chained Component Browser opens off it (the prompt operates on the Card column,
+    // which only Pokemon Cards has).
+    const sources = [
+      `Data.read "${files.pokemonInput}" (..Sheet "Pokemon")`,
+      `Data.read "${files.cardsWorkbook}" (..Sheet "Leader Order")`,
+      `Data.read "${files.cardsWorkbook}" (..Sheet "Trainer Cards")`,
+      `Data.read "${files.cardsWorkbook}" (..Sheet "Pokemon Cards")`,
+    ]
+    let nodeCount = 0
+    for (const expr of sources) {
+      nodeCount += 1
+      await addFreestandingNode(page, expr, nodeCount)
+    }
+
+    // Each prompt spells out any value-dependent context (column names, gym set tiebreaker, …) so
+    // this test isolates the "agent knows stdlib" capability — see the file-level note before
+    // weakening any prompt. The schemas below mirror the actual sheets:
+    //   Pokemon Cards: level, name, number, set_name (where `name` holds e.g. "Brock's Rhydon")
+    //   Pokemon Input: Pokédex #, Name, Type, ...
+    //   Trainer Cards: Leader, Gym Set, Number, Card
+    //   Leader Order:  Order, Leader
+    const prompts = [
+      'In the Pokemon Cards table (columns: level, name, number, set_name), the `name` column holds' +
+        ' apostrophe-s combinations like "Brock\'s Rhydon". Split `name` into two new columns:' +
+        ' `Leader` (the part before the apostrophe-s, e.g. "Brock") and `Card` (the part after,' +
+        ' e.g. "Rhydon"). Drop the original `name` column; keep level, number, set_name.',
+      'Join the result with the Pokemon Input table (columns: Pokédex #, Name, Type, ...) on the' +
+        " result's `Card` column matching Pokemon Input's `Name` column, bringing in just the" +
+        ' `Pokédex #` column.',
+      'Deduplicate the rows by the combination of (Leader, Card, number, set_name).',
+      'Rename columns: `set_name` to `Gym Set`, `number` to `Number`, `level` to `Level`. Add a new' +
+        ' column `Card Type` with the constant value "Pokémon".',
+      'Union with the Trainer Cards table (columns: Leader, Gym Set, Number, Card). For rows coming' +
+        ' from Trainer Cards, set `Card Type` to "Trainer".',
+      'For rows where `Leader` is null or empty, set `Leader` to "Leftover Trainers".',
+      'Join with the Leader Order table (columns: Order, Leader) on the `Leader` column, bringing in' +
+        ' `Order` and renaming it to `Sort Order`. For "Leftover Trainers" rows where `Sort Order`' +
+        ' is null, set `Sort Order` to 100 so they sort last.',
+      'Sort the rows by: Sort Order ascending, then Card Type ascending, then for Trainer rows' +
+        " Gym Set with 'Gym Heroes' before 'Gym Challenge', then Number ascending, then" +
+        ' `Pokédex #` ascending, then Level ascending.',
+      'Project the table to only these columns, in this order: Sort Order, Leader, Gym Set, Number,' +
+        ' Card, Card Type.',
+    ]
+    for (const prompt of prompts) {
+      nodeCount += 1
+      await runAIPromptOnLastNode(page, prompt, nodeCount)
+    }
+
+    await graphNodes.last().click()
+    await visualizeData(page)
+    for (const col of ['Sort Order', 'Leader', 'Gym Set', 'Number', 'Card', 'Card Type']) {
+      // Pick the first `.TableVisualization` — multiple may be rendered at once (inline preview
+      // for the selected node plus a focused/fullscreen overlay), and the bare class selector
+      // would trip Playwright's strict-mode check.
+      await expect(page.locator('.TableVisualization').first()).toContainText(col)
+    }
+    await expect(page.getByText('Total Row Count: 252')).toBeVisible({
+      timeout: MANUAL_NODE_TIMEOUT_MS,
+    })
+    passed = true
+  } finally {
+    await recordResult(testInfo, usage.samples, passed ? 'pass' : 'fail')
   }
-
-  // Each prompt spells out any value-dependent context (column names, gym set tiebreaker, …) so
-  // this test isolates the "agent knows stdlib" capability — see the file-level note before
-  // weakening any prompt. The schemas below mirror the actual sheets:
-  //   Pokemon Cards: level, name, number, set_name (where `name` holds e.g. "Brock's Rhydon")
-  //   Pokemon Input: Pokédex #, Name, Type, ...
-  //   Trainer Cards: Leader, Gym Set, Number, Card
-  //   Leader Order:  Order, Leader
-  const prompts = [
-    'In the Pokemon Cards table (columns: level, name, number, set_name), the `name` column holds' +
-      ' apostrophe-s combinations like "Brock\'s Rhydon". Split `name` into two new columns:' +
-      ' `Leader` (the part before the apostrophe-s, e.g. "Brock") and `Card` (the part after,' +
-      ' e.g. "Rhydon"). Drop the original `name` column; keep level, number, set_name.',
-    'Join the result with the Pokemon Input table (columns: Pokédex #, Name, Type, ...) on the' +
-      " result's `Card` column matching Pokemon Input's `Name` column, bringing in just the" +
-      ' `Pokédex #` column.',
-    'Deduplicate the rows by the combination of (Leader, Card, number, set_name).',
-    'Rename columns: `set_name` to `Gym Set`, `number` to `Number`, `level` to `Level`. Add a new' +
-      ' column `Card Type` with the constant value "Pokémon".',
-    'Union with the Trainer Cards table (columns: Leader, Gym Set, Number, Card). For rows coming' +
-      ' from Trainer Cards, set `Card Type` to "Trainer".',
-    'For rows where `Leader` is null or empty, set `Leader` to "Leftover Trainers".',
-    'Join with the Leader Order table (columns: Order, Leader) on the `Leader` column, bringing in' +
-      ' `Order` and renaming it to `Sort Order`. For "Leftover Trainers" rows where `Sort Order`' +
-      ' is null, set `Sort Order` to 100 so they sort last.',
-    'Sort the rows by: Sort Order ascending, then Card Type ascending, then for Trainer rows' +
-      " Gym Set with 'Gym Heroes' before 'Gym Challenge', then Number ascending, then" +
-      ' `Pokédex #` ascending, then Level ascending.',
-    'Project the table to only these columns, in this order: Sort Order, Leader, Gym Set, Number,' +
-      ' Card, Card Type.',
-  ]
-  for (const prompt of prompts) {
-    nodeCount += 1
-    await runAIPromptOnLastNode(page, prompt, nodeCount)
-  }
-
-  await graphNodes.last().click()
-  await visualizeData(page)
-  for (const col of ['Sort Order', 'Leader', 'Gym Set', 'Number', 'Card', 'Card Type']) {
-    // Pick the first `.TableVisualization` — multiple may be rendered at once (inline preview
-    // for the selected node plus a focused/fullscreen overlay), and the bare class selector
-    // would trip Playwright's strict-mode check.
-    await expect(page.locator('.TableVisualization').first()).toContainText(col)
-  }
-  await expect(page.getByText('Total Row Count: 252')).toBeVisible({
-    timeout: MANUAL_NODE_TIMEOUT_MS,
-  })
-  await recordSuccess(testInfo, usage.samples)
 })
 
 test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isolation)", async ({
@@ -296,49 +313,54 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
   test.setTimeout(30 * 60_000)
   const files = await resolveDataFiles(WEEK_51_FILES)
   const usage = collectAiUsage(page)
-  await loginAsTestUser(page)
-  await closeWelcome(page)
-  await createNewProject(page)
-  await closeRightPanel(page)
-  await clearWelcomeNode(page)
+  let passed = false
+  try {
+    await loginAsTestUser(page)
+    await closeWelcome(page)
+    await createNewProject(page)
+    await closeRightPanel(page)
+    await clearWelcomeNode(page)
 
-  const graphNodes = page.locator('.GraphNode')
+    const graphNodes = page.locator('.GraphNode')
 
-  await addFreestandingNode(page, `Data.read "${files.scores}"`, 1)
+    await addFreestandingNode(page, `Data.read "${files.scores}"`, 1)
 
-  // Input columns: Series, Week, Couple, Scores, Dance, Music, Result, Film, Broadway musical,
-  // Musical, Country, CelebratingBBC. Step 3 deliberately does NOT spell out the `Scores` field's
-  // wire format — the agent has to look at a sample value to figure out the parser. See the
-  // file-level note.
-  const prompts = [
-    'drop rows that look like leaked header rows (the data was scraped, so the column-header row' +
-      ' repeats throughout the body)',
-    'convert the `Week` column to a numeric type and drop rows that fail to parse',
-    'parse the `Scores` column into a `total_score` (number) column and a `judges_count` (number)' +
-      ' column, then add an `avg_judges_score` column equal to `total_score / judges_count`',
-    "keep only each Couple's first dance (their lowest Week) and any of their dances in the" +
-      ' final round; restrict to couples who reached the final',
-    'aggregate the final-round rows per Couple by averaging `avg_judges_score`',
-    "compute the percentage change between each Couple's first-dance `avg_judges_score` and" +
-      ' their final-round average; project to the columns Series, Couple, Finalist Positions,' +
-      " Avg Judge's Score, % Change",
-  ]
-  let nodeCount = 1
-  for (const prompt of prompts) {
-    nodeCount += 1
-    await runAIPromptOnLastNode(page, prompt, nodeCount)
+    // Input columns: Series, Week, Couple, Scores, Dance, Music, Result, Film, Broadway musical,
+    // Musical, Country, CelebratingBBC. Step 3 deliberately does NOT spell out the `Scores` field's
+    // wire format — the agent has to look at a sample value to figure out the parser. See the
+    // file-level note.
+    const prompts = [
+      'drop rows that look like leaked header rows (the data was scraped, so the column-header row' +
+        ' repeats throughout the body)',
+      'convert the `Week` column to a numeric type and drop rows that fail to parse',
+      'parse the `Scores` column into a `total_score` (number) column and a `judges_count` (number)' +
+        ' column, then add an `avg_judges_score` column equal to `total_score / judges_count`',
+      "keep only each Couple's first dance (their lowest Week) and any of their dances in the" +
+        ' final round; restrict to couples who reached the final',
+      'aggregate the final-round rows per Couple by averaging `avg_judges_score`',
+      "compute the percentage change between each Couple's first-dance `avg_judges_score` and" +
+        ' their final-round average; project to the columns Series, Couple, Finalist Positions,' +
+        " Avg Judge's Score, % Change",
+    ]
+    let nodeCount = 1
+    for (const prompt of prompts) {
+      nodeCount += 1
+      await runAIPromptOnLastNode(page, prompt, nodeCount)
+    }
+
+    await graphNodes.last().click()
+    await visualizeData(page)
+    for (const col of ['Series', 'Couple', 'Finalist Positions', "Avg Judge's Score", '% Change']) {
+      // Pick the first `.TableVisualization` — multiple may be rendered at once (inline preview
+      // for the selected node plus a focused/fullscreen overlay), and the bare class selector
+      // would trip Playwright's strict-mode check.
+      await expect(page.locator('.TableVisualization').first()).toContainText(col)
+    }
+    await expect(page.getByText('Total Row Count: 62')).toBeVisible({
+      timeout: MANUAL_NODE_TIMEOUT_MS,
+    })
+    passed = true
+  } finally {
+    await recordResult(testInfo, usage.samples, passed ? 'pass' : 'fail')
   }
-
-  await graphNodes.last().click()
-  await visualizeData(page)
-  for (const col of ['Series', 'Couple', 'Finalist Positions', "Avg Judge's Score", '% Change']) {
-    // Pick the first `.TableVisualization` — multiple may be rendered at once (inline preview
-    // for the selected node plus a focused/fullscreen overlay), and the bare class selector
-    // would trip Playwright's strict-mode check.
-    await expect(page.locator('.TableVisualization').first()).toContainText(col)
-  }
-  await expect(page.getByText('Total Row Count: 62')).toBeVisible({
-    timeout: MANUAL_NODE_TIMEOUT_MS,
-  })
-  await recordSuccess(testInfo, usage.samples)
 })

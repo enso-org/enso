@@ -26,12 +26,17 @@ interface ChildHarness {
 }
 
 function buildChild(
-  config: { stdlibRoot?: string | undefined; mcpConfigPath?: string | undefined } = {},
+  config: {
+    stdlibRoot?: string | undefined
+    mcpConfigPath?: string | undefined
+    extraArgs?: readonly string[]
+  } = {},
 ): ChildHarness {
   const { children } = attachSpawnMock(spawnMock)
   const child = new ChildAgent({
     stdlibRoot: 'stdlibRoot' in config ? config.stdlibRoot : FAKE_STDLIB_ROOT,
     mcpConfigPath: 'mcpConfigPath' in config ? config.mcpConfigPath : undefined,
+    extraArgs: config.extraArgs,
   })
   return { child, children }
 }
@@ -266,6 +271,21 @@ describe('ChildAgent', () => {
     expect(allowedToolsIdx).toBeGreaterThan(-1)
     // With both stdlib + MCP enabled, all three filesystem tools plus the MCP tool show up.
     expect(args[allowedToolsIdx + 1]).toBe('Read,Glob,Grep,mcp__enso__evaluateExpression')
+    child.shutdown()
+  })
+
+  test('extraArgs are appended verbatim after the built-in flags', () => {
+    const { child } = buildChild({ extraArgs: ['--model', 'claude-sonnet-4-6'] })
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    const [, args] = spawnMock.mock.calls[0]!
+    const modelIdx = args.indexOf('--model')
+    expect(modelIdx).toBeGreaterThan(-1)
+    expect(args[modelIdx + 1]).toBe('claude-sonnet-4-6')
+    // Extra args land after the built-in `--no-session-persistence` so a last-wins flag parser
+    // would let user-supplied values override the built-in ones.
+    const sessionIdx = args.indexOf('--no-session-persistence')
+    expect(sessionIdx).toBeGreaterThan(-1)
+    expect(modelIdx).toBeGreaterThan(sessionIdx)
     child.shutdown()
   })
 

@@ -56,6 +56,14 @@ export interface ChildAgentConfig {
    * session running two children stay disambiguated. Empty string means no label.
    */
   readonly logLabel?: string
+  /**
+   * Extra CLI tokens appended verbatim to the built-in `claude -p …` flag list (e.g.
+   * `['--model', 'claude-sonnet-4-6']`). Sourced from `ENSO_AI_CLAUDE_EXTRA_ARGS` and used
+   * by the AI-effectiveness suite to compare models / effort levels — see
+   * `tests/aiChallengePrep.spec.ts`. Appended last so that, for last-wins flag parsers, a
+   * user-supplied value overrides the built-in one.
+   */
+  readonly extraArgs?: readonly string[] | undefined
 }
 
 /** Renderer + request id driving a turn. */
@@ -102,6 +110,7 @@ function streamJsonArgs(config: ChildAgentConfig): string[] {
     '--setting-sources',
     '',
     '--no-session-persistence',
+    ...(config.extraArgs ?? []),
   ]
 }
 

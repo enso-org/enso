@@ -72,6 +72,11 @@ declare global {
       readonly ENSO_AI_SOFT_CONTEXT_THRESHOLD?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ENSO_AI_HARD_CONTEXT_THRESHOLD?: string
+
+      // === Extra CLI args appended to the spawned `claude` invocation (see `claudeAgent.ts`) ===
+
+      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+      readonly ENSO_AI_CLAUDE_EXTRA_ARGS?: string
     }
   }
 }

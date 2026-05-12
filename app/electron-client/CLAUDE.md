@@ -433,6 +433,16 @@ If `hard < soft` after env-var resolution, both fall back to defaults with a
 warning. If env-var values aren't valid positive integers, that var alone falls
 back to its default.
 
+### Pass-through CLI flags (`ENSO_AI_CLAUDE_EXTRA_ARGS`)
+
+`ENSO_AI_CLAUDE_EXTRA_ARGS` is split on whitespace and appended verbatim to the
+spawned `claude -p …` flag list, after the built-in flags. Used by the
+AI-effectiveness suite (`tests/aiChallengePrep.spec.ts`) to compare models and
+reasoning levels — e.g. `ENSO_AI_CLAUDE_EXTRA_ARGS="--model claude-sonnet-4-6"`.
+No shell-style quoting: values containing whitespace aren't expressible. Args
+are forwarded to both the primary and any warming child so a context rotation
+preserves the user-selected model.
+
 **Failure handling.** Warming priming can fail (transient CLI bug, ENOENT,
 crash-loop guard tripped). The session reacts:
 

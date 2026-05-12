@@ -88,6 +88,19 @@ function resolveThresholds(config: ClaudeSessionConfig): ResolvedThresholds {
   return { soft, hard }
 }
 
+/**
+ * Read `ENSO_AI_CLAUDE_EXTRA_ARGS` and split on whitespace; empty/unset → `undefined`. Used by
+ * the AI-effectiveness suite to compare models or reasoning levels (see
+ * `tests/aiChallengePrep.spec.ts`). No shell-style quoting — values containing whitespace
+ * aren't expressible, but no flag we'd plausibly pass needs that.
+ */
+function readExtraArgsEnv(): readonly string[] | undefined {
+  const raw = process.env.ENSO_AI_CLAUDE_EXTRA_ARGS
+  if (raw == null) return undefined
+  const tokens = raw.split(/\s+/).filter((t) => t.length > 0)
+  return tokens.length > 0 ? tokens : undefined
+}
+
 function parseJsonSafe(text: string): unknown {
   try {
     return JSON.parse(text)
@@ -190,6 +203,7 @@ type SwapMode = 'none' | 'soft' | 'hard'
 export class ClaudeAgentSession {
   private readonly config: ClaudeSessionConfig
   private readonly thresholds: ResolvedThresholds
+  private readonly extraArgs: readonly string[] | undefined
   private primary: ChildAgent
   private warming: ChildAgent | null = null
   private swapMode: SwapMode = 'none'
@@ -216,6 +230,7 @@ export class ClaudeAgentSession {
   constructor(config: ClaudeSessionConfig) {
     this.config = config
     this.thresholds = resolveThresholds(config)
+    this.extraArgs = config.extraArgs ?? readExtraArgsEnv()
     this.primary = new ChildAgent({ ...this.childConfig(), logLabel: 'primary' })
   }
 
@@ -363,6 +378,7 @@ export class ClaudeAgentSession {
     return {
       stdlibRoot: this.config.stdlibRoot,
       mcpConfigPath: this.config.mcpConfigPath,
+      extraArgs: this.extraArgs,
     }
   }
 

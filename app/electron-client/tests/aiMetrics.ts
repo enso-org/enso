@@ -98,6 +98,8 @@ export function sanitizeForFilename(testName: string): string {
 const CSV_COLUMNS = [
   'timestamp',
   'commit',
+  'ai_parameters',
+  'status',
   'test_name',
   'node_count',
   'total_duration_ms',
@@ -136,29 +138,31 @@ interface AppendMetricsRowArgs {
   readonly commit: string
   /** ISO 8601 timestamp for the `timestamp` column. */
   readonly timestamp: string
+  /**
+   * Verbatim value of `ENSO_AI_CLAUDE_EXTRA_ARGS` (or empty string when unset). Recorded as
+   * the `ai_parameters` column so later analysis can group rows by model / effort settings.
+   */
+  readonly aiParameters: string
+  /** Test result: `pass` if the Playwright assertions all succeeded, `fail` otherwise. */
+  readonly outcome: 'pass' | 'fail'
 }
 
 /**
- * Append a single CSV row summarizing one successful test run. Writes the header line first
+ * Append a single CSV row summarizing one test run (pass OR fail). Writes the header line first
  * if the target file does not yet exist. Per-node arrays are joined with `;` so the cell
  * never contains a comma; CSV-escaping still runs in case a future column ever does.
  *
- * Throws (and writes nothing) when any sample with `hopCount > 0` had `contextFromLastHop`
- * false — i.e. the CLI omitted `message.usage` on the final assistant envelope and the
- * context value fell back to the cost-side sum. Such rows would obscure context-window
- * analysis, and an exception here propagates through the test's `recordSuccess` to fail the
- * Playwright run so the developer notices broken telemetry instead of silently archiving it.
+ * The `status` cell is composed from {@link AppendMetricsRowArgs.outcome} plus a
+ * telemetry-health check: if any sample had `hopCount > 0` and `contextFromLastHop === false`
+ * (the CLI omitted `message.usage` on the final assistant envelope, so `contextTokens` fell
+ * back to the cost-side sum and overstates actual context-window occupancy), a
+ * ` (broken)` suffix is appended — yielding `pass`, `pass (broken)`, `fail`, or
+ * `fail (broken)`. Never throws; broken telemetry is surfaced in-band so a failed run is still
+ * recorded and downstream analysis can filter on the `(broken)` rows.
  */
 export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void> {
-  const broken = args.samples.filter((s) => !s.contextFromLastHop && s.hopCount > 0)
-  if (broken.length > 0) {
-    throw new Error(
-      `[aiMetrics] refusing to write CSV: ${broken.length}/${args.samples.length} sample(s) had ` +
-        `\`contextFromLastHop=false\` with \`hopCount > 0\`. The CLI omitted \`message.usage\` on ` +
-        `the final assistant envelope, so \`contextTokens\` is the cost-side sum and overstates ` +
-        `actual context-window occupancy. Investigate before resuming metrics collection.`,
-    )
-  }
+  const telemetryBroken = args.samples.some((s) => !s.contextFromLastHop && s.hopCount > 0)
+  const status = telemetryBroken ? `${args.outcome} (broken)` : args.outcome
   await fs.mkdir(args.dir, { recursive: true })
   const csvPath = path.join(args.dir, sanitizeForFilename(args.testName))
   const exists = await fs
@@ -178,6 +182,8 @@ export async function appendMetricsRow(args: AppendMetricsRowArgs): Promise<void
   const row = buildRow([
     args.timestamp,
     args.commit,
+    args.aiParameters,
+    status,
     args.testName,
     String(args.samples.length),
     String(totalDurationMs),
