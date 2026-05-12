@@ -330,12 +330,11 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
     // wire format — the agent has to look at a sample value to figure out the parser. See the
     // file-level note.
     const prompts = [
-      'drop rows that look like leaked header rows (the data was scraped, so the column-header row' +
-        ' repeats throughout the body)',
-      'convert the `Week` column to a numeric type and drop rows that fail to parse',
+      'drop rows where cell value is actually its column name',
+      'convert the `Week` column to a numeric type',
       'parse the `Scores` column into a `total_score` (number) column and a `judges_count` (number)' +
         ' column, then add an `avg_judges_score` column equal to `total_score / judges_count`',
-      "keep only each Couple's first dance (their lowest Week) and any of their dances in the" +
+      "keep only each Couple's first dance (a row with their lowest Week) and all rows of their dances in the" +
         ' final round; restrict to couples who reached the final',
       'aggregate the final-round rows per Couple by averaging `avg_judges_score`',
       "compute the percentage change between each Couple's first-dance `avg_judges_score` and" +
