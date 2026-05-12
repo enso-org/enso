@@ -11,6 +11,8 @@ description: Typescript coding guidelines and conventions. Use this skill whenev
 - The type aliases should be used only when the type is really complex (multiple
   nested generic arguments, for example), or if the aliast name would provide
   useful information besides the variable's/parameter's name.
+- If writing comments, do not mention code's history or how things _no longer_
+  run, except as a cautionary tale to not repeat errors.
 
 ## Documentation Comments
 

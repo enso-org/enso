@@ -4,11 +4,6 @@ import type { Page, Route } from 'playwright'
 import LATEST_GITHUB_RELEASES from './data/latestGithubReleases.json' with { type: 'json' }
 
 export interface RegisterMocksOptions {
-  /**
-   * Whether the mocked Electron API should report the local Claude agent as available. Defaults
-   * to `false` so the Component Browser opens in component-search mode (matching existing
-   * product behavior). AI specs override to `true`.
-   */
   readonly aiAvailable?: boolean
 }
 

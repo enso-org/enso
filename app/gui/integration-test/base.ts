@@ -15,8 +15,7 @@ export const test = base.extend<{
   featureFlags: Partial<FeatureFlags>
   /**
    * Whether the mocked Electron API should report the local Claude agent as available. Most
-   * specs assume `false` so the Component Browser defaults to component-search mode (matching
-   * current product behavior). AI specs opt in with `test.use({ aiAvailable: true })`.
+   * specs assume `false`. AI specs opt in with `test.use({ aiAvailable: true })`.
    */
   aiAvailable: boolean
   setupApi: {

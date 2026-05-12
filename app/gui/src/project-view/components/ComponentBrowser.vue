@@ -33,7 +33,7 @@ import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { Ok } from 'enso-common/src/utilities/data/result'
 import type { ComponentInstance } from 'vue'
-import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRef, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Range } from 'ydoc-shared/util/data/range'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
@@ -72,11 +72,7 @@ const props = defineProps<{
 export interface AiPromptSubmission {
   readonly prompt: string
   readonly sourceIdentifier: string | undefined
-  /**
-   * When set, the prompt is an edit of an existing AI node identified by `nodeId`. The agent's
-   * reply will rewrite that node's FunctionDef and call AST in place rather than inserting a new
-   * one.
-   */
+  /** When set, the prompt is an edit of an existing AI node identified by `nodeId`. */
   readonly editing?: { readonly nodeId: NodeId }
 }
 
@@ -198,7 +194,7 @@ const selectedSuggestion = computed(() => {
 // === Input and Filtering ===
 
 const aiAvailability = useAiAvailability()
-const aiAvailable = computed(() => aiAvailability.available.value)
+const aiAvailable = toRef(aiAvailability, 'available')
 const input = useComponentBrowserInput(undefined, undefined, aiAvailable)
 
 onUnmounted(() => {

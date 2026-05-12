@@ -60,9 +60,7 @@ export interface AiPending {
   /**
    * When set, this entry rewrites an existing AI-generated node rather than creating a new one.
    * Captured at enqueue time so the prompt + previous definition sent to the agent are pinned
-   * regardless of subsequent edits to the underlying AST. While the entry is queued or running,
-   * the target node is hidden from the graph (see {@link hiddenNodeIds}) and the placeholder
-   * stands in for it visually.
+   * regardless of subsequent edits to the underlying AST.
    */
   editTarget?: {
     readonly nodeId: NodeId
@@ -205,8 +203,7 @@ function ongoingAiPromptsStoreFactory() {
   /**
    * Enqueue an edit of an existing AI node. Captures the previous prompt and the previous
    * function definition source at enqueue time so the agent sees a stable snapshot even if the
-   * AST is mutated while the request is in flight. Positions the placeholder at the target
-   * node's current location so the hidden node is replaced visually one-for-one.
+   * AST is mutated while the request is in flight.
    */
   function enqueueEdit(args: EnqueueEditArgs): string {
     const node = graphStore.db.nodeIdToNode.get(args.editNodeId)

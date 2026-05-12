@@ -2,7 +2,6 @@
 import { expect, test, type Page } from 'integration-test/base'
 import * as locate from './locate'
 
-// AI mode must be available for the CB to default to AI prompts in this spec.
 test.use({ aiAvailable: true })
 
 const aiPendingNode = (page: Page) => page.locator('.AiPendingNode')

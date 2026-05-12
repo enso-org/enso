@@ -163,9 +163,8 @@ export interface UpdateAiNodeOptions {
  * `Assignment.pattern`) is preserved. The existing top-level FunctionDef is removed and replaced
  * with a freshly built one at the same index; the call AST under the Assignment is replaced.
  *
- * Returns `Err` when the agent's response can't be turned into a valid AST. Returns `Err`
- * when the FunctionDef the assignment refers to is no longer in the module (the caller should
- * surface this as a toast and abort the surrounding `module.edit` so partial work rolls back).
+ * Returns `Err` when the agent's response can't be turned into a valid AST, or when the
+ * FunctionDef the assignment refers to is no longer in the module.
  */
 export function updateAiNode(options: UpdateAiNodeOptions): Result {
   const { edit, topLevel, assignment, prompt, response } = options

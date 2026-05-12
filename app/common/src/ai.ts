@@ -20,8 +20,7 @@ export interface AiEditContext {
   /** The previous natural-language prompt that produced the current node. */
   readonly previousPrompt: string
   /**
-   * The previous top-level `FunctionDef` source — signature, parameters, and body. Includes the
-   * function header so the agent can see (and rename) parameters and the function name itself.
+   * The previous top-level `FunctionDef` source — signature, parameters, and body.
    * Absent when the previous definition could not be recovered (e.g. the user manually deleted
    * the top-level function), in which case the rewrite degrades to a fresh generation.
    */

@@ -537,9 +537,7 @@ export async function initAiMcpServer(): Promise<string | undefined> {
  * handler. Pass `mcpConfigPath` from {@link initAiMcpServer} (or `undefined` to disable MCP).
  *
  * Honors `ENSO_AI_DISABLED=1`: when set, the session is NOT spawned, `aiIsAvailable` reports
- * `false`, and any stray call to `generateAiComponent` returns a structured error. This is the
- * hook the Electron test fixture uses to prevent a developer's locally-installed `claude` from
- * being invoked during non-AI tests.
+ * `false`, and any stray call to `generateAiComponent` returns a structured error.
  */
 export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
   if (process.env.ENSO_AI_DISABLED === '1') {

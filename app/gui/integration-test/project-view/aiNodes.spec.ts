@@ -1,8 +1,6 @@
 import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
 
-// AI mode is hidden when `claude` isn't on PATH; the spec exercises the AI flow, so opt in to
-// the mocked `isAvailable=true` to make the CB default to AI mode.
 test.use({ aiAvailable: true })
 
 test('AI prompt creates a User Defined Component node', async ({ editorPage, page }) => {
@@ -16,8 +14,7 @@ test('AI prompt creates a User Defined Component node', async ({ editorPage, pag
 
   // The mocked `window.api.ai.generateComponent` (see `mock/registerMocks.ts`) returns a
   // hardcoded body — we just need to drive the AI flow end-to-end and inspect the
-  // generated graph node. With `aiAvailable: true`, the CB defaults to AI mode, so the
-  // typed text becomes the prompt directly (no `AI:` prefix needed).
+  // generated graph node.
   const PROMPT = 'convert to table'
   await page.keyboard.insertText(PROMPT)
   await expect(page.locator('.ComponentList')).toBeHidden()

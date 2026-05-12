@@ -39,8 +39,6 @@ const env = process.env as Record<string, string | undefined>
 env.ENSO_AI_SOFT_CONTEXT_THRESHOLD = '5000'
 env.ENSO_AI_HARD_CONTEXT_THRESHOLD = '50000'
 
-// Prompts are typed verbatim — the CB defaults to AI mode when claude is available, so the
-// historical `AI:` prefix is no longer needed.
 const FIRST_AI_PROMPT = "count 'a' letters in all cells of the table"
 // Deterministic expected output for `FIRST_AI_PROMPT` against `Examples.welcome`. Update this
 // alongside the welcome sample if it ever changes.
@@ -64,7 +62,6 @@ test.skip(
   'The local `claude` CLI is required; set ENSO_TEST_AI=1 to run this spec.',
 )
 
-// This spec needs the real Claude agent; opt out of the test-suite-wide ENSO_AI_DISABLED=1.
 test.use({ aiEnabled: true })
 
 test('creates three AI nodes plus two manual nodes in one session', async ({ page }) => {
