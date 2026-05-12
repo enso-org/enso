@@ -161,3 +161,71 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
       `samples flags ${JSON.stringify(freshFlags)}, contexts ${JSON.stringify(samples.map((s) => s.contextTokens))}.`,
   ).toBe(true)
 })
+
+test('cancelling a running AI prompt leaves the queue healthy for follow-up prompts', async ({
+  page,
+}) => {
+  // Three AI turns plus a long-running first prompt that's cancelled mid-flight; an extra-fat
+  // budget so a slow re-prime after the cancel doesn't time us out.
+  test.setTimeout(15 * 60_000)
+
+  await loginAsTestUser(page)
+  await closeWelcome(page)
+  await createNewProject(page)
+
+  const graphNodes = page.locator('.GraphNode')
+  const cbInput = page.getByTestId('component-editor-content')
+  const addNewNode = page.getByTestId('add-component-button')
+  const placeholder = page.locator('.AiPendingNode')
+  const placeholderStatus = placeholder.locator('[data-testid="ai-pending-status"]')
+
+  await expect(graphNodes).toHaveCount(1)
+
+  // 1) Long-running first prompt: ask the agent directly to wait ~2 minutes before responding.
+  // The actual sleep length is irrelevant — we cancel as soon as the placeholder flips to
+  // "Thinking…", so the only thing that matters is that the turn has reached `started`.
+  await addNewNode.click()
+  await expect(cbInput).toBeVisible()
+  await page.keyboard.type(
+    'AI: Wait at least 2 minutes before replying (write a long, slow narration if you must), ' +
+      'then return a node that evaluates to 2 + 2.',
+  )
+  await page.keyboard.press('Enter')
+
+  // 2) Placeholder visible, transitions queued → running.
+  await expect(placeholder).toHaveCount(1)
+  await expect(placeholderStatus).toHaveText('Thinking…', { timeout: 60_000 })
+
+  // 3) Cancel mid-flight via the placeholder's cancel button (same selector the renderer-side
+  // integration tests use; the button has no `data-testid` today). The placeholder clears
+  // once the cancel IPC roundtrips through the main process.
+  await placeholder.locator('.cancel').click()
+  await expect(placeholder).toHaveCount(0, { timeout: 30_000 })
+  await expect(graphNodes).toHaveCount(1)
+
+  // 4) Second prompt — a trivial 2 + 2. Must complete and produce a node whose visualization
+  // shows 4. This is the regression we're guarding: the cancel must NOT leave the queue
+  // wedged or the next turn's child in an unusable state.
+  await addNewNode.click()
+  await expect(cbInput).toBeVisible()
+  await page.keyboard.type('AI: type the literal Enso expression 2 + 2')
+  await page.keyboard.press('Enter')
+  await expect(graphNodes).toHaveCount(2, { timeout: 180_000 })
+  await graphNodes.nth(1).click()
+  await visualizeData(page)
+  // Use `exact: true` because UI chrome (status-bar clocks, etc.) contains substrings like
+  // "14:03" that include the digit 4. The visualization can render the value into more than
+  // one widget (JSON link plus table row) — `.first()` is enough to confirm it landed.
+  await expect(page.getByText('4', { exact: true }).first()).toBeVisible()
+
+  // 5) Third prompt — confirms a fresh prompt submitted after a cancel-then-recovery cycle
+  // also flows through normally.
+  await addNewNode.click()
+  await expect(cbInput).toBeVisible()
+  await page.keyboard.type('AI: type the literal Enso expression 6 * 7')
+  await page.keyboard.press('Enter')
+  await expect(graphNodes).toHaveCount(3, { timeout: 180_000 })
+  await graphNodes.nth(2).click()
+  await visualizeData(page)
+  await expect(page.getByText('42', { exact: true }).first()).toBeVisible()
+})

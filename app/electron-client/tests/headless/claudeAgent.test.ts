@@ -251,6 +251,47 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
+  test('a queued request submitted right after a cancel runs on the respawned child, not the dying one', async () => {
+    // Regression guard for the cancel-race bug: today's `claude` (2.x stream-json mode) exits
+    // cleanly within ~700 ms of SIGINT, so the watcher auto-respawns and re-primes a new child.
+    // Before the fix, the next queue task's `await primary.ready` resolved immediately against
+    // the OLD (still-resolved-from-first-prime) deferred and then wrote a fresh user line into
+    // the dying child's stdin — surfacing as `Err('Claude agent: stdin write failed: …')` or
+    // `Err('Claude agent: exited with code …')` to the renderer. The fix pre-swaps
+    // `readyDeferred` inside `cancelInFlight` so the second request synchronizes on the new
+    // child's priming instead.
+    const { session, children } = buildSession()
+    await primeChild(children[0]!)
+
+    // Request 1 enters the queue and writes stdin; we cancel before pushing a result.
+    const r1 = session.runRequest(makeRequest({ requestId: 'r1' }), fakeSender())
+    await settle()
+    expect(children[0]!.stdinWrites).toHaveLength(2) // priming + r1
+    session.cancelTurn('r1')
+    const reply1 = await r1
+    expect(reply1.result.ok).toBe(false)
+    if (!reply1.result.ok) expect(reply1.result.error.payload).toMatch(/cancelled by user/)
+    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+
+    // Request 2 is enqueued before the FakeChild's exit microtask has finished propagating
+    // through the watcher. With the fix in place, its task body awaits the upcoming respawn's
+    // prime; without the fix, it would have raced past the OLD `ready` and resolved with an
+    // `stdin write failed` Err here.
+    const r2 = session.runRequest(makeRequest({ requestId: 'r2' }), fakeSender())
+    await settle()
+    expect(spawnMock).toHaveBeenCalledTimes(2)
+    // The respawned child has been primed (stdinWrites[0] is the priming prompt); request 2's
+    // stdin write only lands AFTER we push READY.
+    expect(children[1]!.stdinWrites).toHaveLength(1)
+
+    await primeChild(children[1]!)
+    expect(children[1]!.stdinWrites).toHaveLength(2) // priming + r2
+    children[1]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    const reply2 = await r2
+    expect(reply2.result.ok).toBe(true)
+    session.shutdown()
+  })
+
   test('cancelTurn for an id that was never issued does not poison a later request reusing that id', async () => {
     // Regression guard: previously, `cancelTurn` always added to the `cancelled` set. A cancel
     // arriving for an id that hadn't been (or would never be) enqueued would sit there forever,

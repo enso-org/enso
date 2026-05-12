@@ -222,6 +222,13 @@ export class ChildAgent {
    */
   private readonly sandboxCwd: string
   private isReadyResolved = false
+  /**
+   * Set inside {@link cancelInFlight} for the lifetime of one cancel-induced child exit.
+   * Tells {@link onUnexpectedExit} that the upcoming exit is one we triggered ourselves, that
+   * the ready deferred has already been pre-swapped, and that no further reject/swap is needed.
+   * Cleared on the next `onUnexpectedExit` (success path) or on `shutdown()`.
+   */
+  private cancelInProgress = false
 
   /** Spawn the child eagerly and kick off the priming turn in the background. */
   constructor(config: ChildAgentConfig) {
@@ -391,6 +398,16 @@ export class ChildAgent {
       usage: null,
       errorReason: 'cancelled by user',
     })
+    // Pre-swap `readyDeferred` to a fresh pending one BEFORE we signal. Today's `claude`
+    // (2.x stream-json mode) exits cleanly within ~700 ms of SIGINT (see the probe at
+    // /tmp/claude-sigint-probe.mjs), and the watcher's auto-respawn then re-primes a new
+    // child whose `onChildStarted` resolves whichever `readyDeferred` we left here. Without
+    // this pre-swap, the next queue task's `await primary.ready` would race against the
+    // (still-resolved-from-first-prime) OLD deferred — returning immediately and writing
+    // a fresh user line into the dying child's stdin. The {@link cancelInProgress} flag
+    // tells `onUnexpectedExit` not to double-swap or reject the deferred we just installed.
+    this.cancelInProgress = true
+    this.swapInReadyDeferred()
     this.signalCancel()
     return true
   }
@@ -477,6 +494,26 @@ export class ChildAgent {
         errorReason: reason,
       })
     }
+    const wasCancelInitiated = this.cancelInProgress
+    this.cancelInProgress = false
+
+    if (wasCancelInitiated) {
+      // {@link cancelInFlight} has already pre-swapped `readyDeferred` to a fresh pending one,
+      // so the next task awaits the upcoming auto-respawn's prime rather than racing past a
+      // resolved-from-first-prime OLD deferred. Skip the reject + swap that the
+      // not-cancel-initiated branch does — the OLD deferred is unreferenced and the fresh one
+      // is the right thing to leave pending. On a crash-loop guard trip we still need to
+      // reject (auto-respawn won't fire, so the fresh deferred would hang otherwise).
+      if (info.exceedsCrashLimit) {
+        this.readyDeferred.reject(info.exitError ?? new Error(reason))
+        this.isReadyResolved = false
+        console.warn(
+          `[AI${labelTag}] claude crash-loop guard tripped (${MAX_RESPAWNS_IN_WINDOW} crashes within ${RESPAWN_WINDOW_MS}ms); auto-respawn is suspended until the next request.`,
+        )
+      }
+      return
+    }
+
     // Reject the priming promise so any task awaiting `ready` fails fast. Prefer the original
     // error object (when 'error' fired on the child, e.g. ENOENT) so the consumer can surface
     // the install hint via `.code` instead of parsing the reason string.

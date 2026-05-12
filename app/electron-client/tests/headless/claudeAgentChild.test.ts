@@ -218,6 +218,45 @@ describe('ChildAgent', () => {
     child.shutdown()
   })
 
+  test('cancelInFlight pre-swaps the ready deferred so a new task waits for respawn priming', async () => {
+    // Regression guard for the cancel-race bug. Today's `claude` (2.x stream-json mode) exits
+    // cleanly within ~700 ms of SIGINT, and the watcher auto-respawns + re-primes. Before the
+    // fix, the OLD `readyDeferred` (resolved at first-prime time) stayed in place until
+    // `onUnexpectedExit` fired, leaving a window where a queue task could race past
+    // `await primary.ready` and write a fresh user line to the dying child's stdin. The fix
+    // pre-swaps the deferred synchronously inside `cancelInFlight`, so `isReady` flips to false
+    // the moment the cancel is observed — and `onUnexpectedExit` is told to leave the new
+    // pending deferred alone (the upcoming respawn's `onChildStarted` will resolve it).
+    const { child, children } = buildChild()
+    await primeChild(children[0]!)
+    expect(child.isReady).toBe(true)
+
+    const turn = child.runTurn('go', 60_000, fakeSender(), 'req-1')
+    await settle()
+    expect(children[0]!.stdinWrites).toHaveLength(2) // priming + user turn
+
+    child.cancelInFlight('req-1')
+    // The synchronous post-cancel state is what catches the bug: without the pre-swap,
+    // isReady stays true (the OLD prime's resolved deferred is still in place) and the next
+    // task body would race past `await primary.ready`.
+    expect(child.isReady).toBe(false)
+
+    const outcome = await turn
+    expect(outcome.state).toBe('crash')
+    expect(outcome.errorReason).toMatch(/cancelled by user/)
+    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+
+    // Watcher auto-respawn after the SIGINT-induced exit: a fresh child is spawned and starts
+    // priming. `isReady` stays false until that prime completes.
+    await settle()
+    expect(spawnMock).toHaveBeenCalledTimes(2)
+    expect(child.isReady).toBe(false)
+
+    await primeChild(children[1]!)
+    expect(child.isReady).toBe(true)
+    child.shutdown()
+  })
+
   test('per-turn timeout returns crash without killing the child', async () => {
     const { child, children } = buildChild()
     // Prime with real timers (setImmediate-driven flush); switch to fake timers only for the

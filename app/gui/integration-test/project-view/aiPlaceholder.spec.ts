@@ -234,3 +234,86 @@ test('failed placeholder stays until dismissed via the cancel button', async ({
   await expect(failed).toHaveCount(0)
   await expect(placeholders).toHaveCount(1)
 })
+
+test('cancelling a running placeholder lets the queued one run to completion', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+  await enableDeferredAiMock(page)
+
+  // Two prompts back-to-back: only the first reaches the mock's `pending` map because the
+  // renderer's `kickDispatcher` is serial — entry 2 is held renderer-side as `queued`.
+  await openAiPrompt(page, 'first')
+  await openAiPrompt(page, 'second')
+
+  const placeholders = aiPendingNode(page)
+  await expect(placeholders).toHaveCount(2)
+  const probe = await probeAiMock(page)
+  expect(probe.ids).toHaveLength(1)
+  const firstId = probe.ids[0]!
+
+  // Drive `started` on the first so it's user-visibly running before we cancel it.
+  await emitProgress(page, { requestId: firstId, kind: 'started' })
+  await expect(aiPendingStatus(placeholders.nth(0))).toHaveText('Thinking…')
+
+  // Cancel the running first prompt. The mock's `cancel` handler records the id and resolves
+  // its pending entry with a cancellation `Err`; the renderer drops entry 1 silently and the
+  // dispatcher loop should immediately advance to entry 2.
+  await placeholders.nth(0).locator('.cancel').click()
+  await expect(placeholders).toHaveCount(1)
+
+  await expect.poll(() => probeAiMock(page).then((p) => p.ids), { timeout: 10_000 }).toHaveLength(1)
+  const afterCancel = await probeAiMock(page)
+  expect(afterCancel.cancels).toEqual([firstId])
+  const secondId = afterCancel.ids[0]!
+  expect(secondId).not.toBe(firstId)
+
+  // Now drive the second prompt through to completion and confirm a node lands.
+  await emitProgress(page, { requestId: secondId, kind: 'started' })
+  await expect(aiPendingStatus(placeholders.nth(0))).toHaveText('Thinking…')
+  await resolveAi(page, secondId)
+  await expect(placeholders).toHaveCount(0)
+  await expect(locate.graphNodeByBinding(page, 'ai_component1')).toBeVisible()
+})
+
+test('after a cancel, a freshly submitted prompt is dispatched and completes', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+  await enableDeferredAiMock(page)
+
+  // Round 1: submit, run, cancel.
+  await openAiPrompt(page, 'first')
+  const placeholders = aiPendingNode(page)
+  await expect(placeholders).toHaveCount(1)
+  const firstProbe = await probeAiMock(page)
+  const firstId = firstProbe.ids[0]!
+  await emitProgress(page, { requestId: firstId, kind: 'started' })
+  await placeholders.nth(0).locator('.cancel').click()
+  await expect(placeholders).toHaveCount(0)
+
+  // Round 2: a fresh prompt arrives *after* the cancel has fully settled. The dispatcher must
+  // not be wedged on a stale `dispatching` flag or a leaked `pending` entry; the IPC for
+  // entry 2 should reach the (mock) main process and the placeholder should clear on resolve.
+  await openAiPrompt(page, 'second')
+  await expect(placeholders).toHaveCount(1)
+  await expect
+    .poll(
+      async () => {
+        const probe = await probeAiMock(page)
+        return probe.ids.find((id) => id !== firstId)
+      },
+      { timeout: 10_000 },
+    )
+    .not.toBeUndefined()
+  const secondProbe = await probeAiMock(page)
+  expect(secondProbe.cancels).toEqual([firstId])
+  const secondId = secondProbe.ids.find((id) => id !== firstId)!
+
+  await emitProgress(page, { requestId: secondId, kind: 'started' })
+  await resolveAi(page, secondId)
+  await expect(placeholders).toHaveCount(0)
+  await expect(locate.graphNodeByBinding(page, 'ai_component1')).toBeVisible()
+})

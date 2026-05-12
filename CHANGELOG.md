@@ -1,5 +1,14 @@
 # Next Release
 
+#### Enso IDE
+
+- Fix AI prompt cancellation leaving the queue wedged. Cancelling an in-flight
+  prompt could leave the next prompt failing with `stdin write failed`, and any
+  subsequent prompt stuck on "waiting"; the cancel path now pre-swaps the
+  child's readiness deferred so follow-up prompts synchronize on the respawned
+  `claude` child instead of racing past a stale `ready` and writing into a dying
+  stdin.
+
 #### Enso Language & Runtime
 
 - [Extending `Boolean`, `Nothing`, `Text` via extension methods][14980]
