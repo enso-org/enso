@@ -4,26 +4,34 @@
  * currently selected mode; clicking the icon opens a dropdown letting the user pick another
  * mode (component search, code edit, or AI). When the mode is locked (i.e. the CB was opened
  * on an existing node and the mode is determined by the node type), only the icon renders —
- * the dropdown does not open.
+ * the dropdown does not open. Owns its own round "port" background so the surrounding editor
+ * doesn't need to wrap us in another container.
  */
-import type { SelectedMode } from '@/components/ComponentBrowser/input'
-import DropdownMenu from '@/components/DropdownMenu.vue'
-import MenuButton from '@/components/MenuButton.vue'
+import type { ComponentBrowserMode } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { injectInteractionHandler } from '@/providers/interactionHandler'
+import { usePopoverRoot } from '@/providers/popoverRoot'
+import { endOnClickOutside } from '@/util/autoBlur'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { computed } from 'vue'
+import { shift, useFloating } from '@floating-ui/vue'
+import { computed, shallowRef } from 'vue'
 
-const { selectedMode, aiAvailable, modeLocked, codeEditIcon } = defineProps<{
-  selectedMode: SelectedMode
+const { selectedMode, aiAvailable, modeLocked, codeEditIcon, asPort } = defineProps<{
+  selectedMode: ComponentBrowserMode
   aiAvailable: boolean
   modeLocked: boolean
   /** The icon to display for the "code editing" mode (varies by suggestion / node type). */
   codeEditIcon: Icon
+  /**
+   * When `true`, render the surrounding node-port background (the round colored disc that
+   * stands in for the output port the CB will emit from).
+   */
+  asPort: boolean
 }>()
-const emit = defineEmits<{ 'update:selectedMode': [mode: SelectedMode] }>()
+const emit = defineEmits<{ 'update:selectedMode': [mode: ComponentBrowserMode] }>()
 
 interface ModeOption {
-  readonly mode: SelectedMode
+  readonly mode: ComponentBrowserMode
   readonly icon: Icon
   readonly label: string
   readonly disabled: boolean
@@ -63,82 +71,116 @@ const currentIcon = computed<Icon>(() => {
   return codeEditIcon
 })
 
-function pickMode(mode: SelectedMode): void {
+const trigger = shallowRef<HTMLElement>()
+const popover = shallowRef<HTMLElement>()
+const popoverRoot = usePopoverRoot(true)
+const open = shallowRef(false)
+const { floatingStyles } = useFloating(trigger, popover, {
+  placement: () => 'bottom-start',
+  middleware: [shift()],
+})
+
+const closePopover = () => {
+  open.value = false
+}
+const interaction = endOnClickOutside(popover, {
+  cancel: closePopover,
+  end: closePopover,
+  parentInteraction: undefined,
+})
+injectInteractionHandler().setWhenWithParent(open, (parentInteraction) => {
+  interaction.parentInteraction = parentInteraction
+  return interaction
+})
+
+function toggleOpen() {
+  if (modeLocked) return
+  open.value = !open.value
+}
+
+function pickMode(mode: ComponentBrowserMode, disabled: boolean) {
+  if (disabled) return
+  open.value = false
   emit('update:selectedMode', mode)
 }
 </script>
 
 <template>
-  <div v-if="modeLocked" class="ModeMenu locked">
-    <SvgIcon :name="currentIcon" />
-  </div>
-  <DropdownMenu v-else class="ModeMenu" showArrow="always">
-    <template #button>
-      <SvgIcon :name="currentIcon" />
-    </template>
-    <template #menu>
-      <div class="modeMenuPanel">
-        <MenuButton
+  <div
+    ref="trigger"
+    class="ModeMenu"
+    :class="{ port: asPort, locked: modeLocked, interactive: !modeLocked }"
+    :title="modeLocked ? undefined : 'Switch component browser mode'"
+    @pointerdown.prevent
+    @click="toggleOpen"
+  >
+    <SvgIcon :name="currentIcon" class="modeIcon" />
+    <SvgIcon v-if="!modeLocked" name="arrow_right_head_only" class="arrow" />
+    <Teleport :to="popoverRoot ?? 'body'">
+      <div
+        v-if="open"
+        ref="popover"
+        class="ModeMenuPopover"
+        :style="floatingStyles"
+        @pointerdown.prevent
+      >
+        <button
           v-for="option in options"
           :key="option.mode"
+          type="button"
           class="modeOption"
-          :class="{ selected: option.mode === selectedMode }"
+          :class="{ selected: option.mode === selectedMode, disabled: option.disabled }"
           :disabled="option.disabled"
           :title="option.title"
-          @activate="!option.disabled && pickMode(option.mode)"
+          @click.stop="pickMode(option.mode, option.disabled)"
         >
           <SvgIcon :name="option.icon" class="optionIcon" />
           <span class="optionLabel">{{ option.label }}</span>
           <SvgIcon v-if="option.mode === selectedMode" name="check" class="checkIcon" />
-        </MenuButton>
+        </button>
       </div>
-    </template>
-  </DropdownMenu>
+    </Teleport>
+  </div>
 </template>
 
 <style scoped>
 .ModeMenu {
+  position: relative;
   display: inline-flex;
   align-items: center;
-}
-
-.ModeMenu.locked {
-  cursor: default;
-}
-
-/* The mode-switch trigger sits inside `.componentEditorIcon` which already provides the round
- * port background, so neutralize the wrapping DropdownMenu and its trigger MenuButton —
- * margin, padding, intrinsic sizing, and hover/toggled backgrounds would otherwise stack a
- * second pill on top of the port and make it oval. Scoped to the trigger only
- * (`> .MenuButton`) so the dropdown panel's option buttons keep their default appearance. */
-.ModeMenu :deep(.DropdownMenu) {
-  margin: 0;
-  display: flex;
-  align-items: center;
   justify-content: center;
-}
-.ModeMenu :deep(.DropdownMenu > .MenuButton) {
-  --button-padding: 0;
-  --button-height: var(--icon-size, 16px);
-  /* Override MenuButton's `min-width: max-content` (which would let the button grow taller
-   * than wide once the user-agent button styles kick in). Pin to the icon's intrinsic size so
-   * the surrounding port background stays a circle. */
-  min-width: var(--icon-size, 16px);
   width: var(--icon-size, 16px);
   height: var(--icon-size, 16px);
+  padding: var(--port-padding, 4px);
+  border-radius: var(--radius-full);
   box-sizing: content-box;
-  background-color: transparent;
-  backdrop-filter: none;
-  line-height: 0;
-}
-.ModeMenu :deep(.DropdownMenu > .MenuButton):hover,
-.ModeMenu :deep(.DropdownMenu > .MenuButton):focus,
-.ModeMenu :deep(.DropdownMenu > .MenuButton):active,
-.ModeMenu :deep(.DropdownMenu > .MenuButton.toggledOn) {
-  background-color: transparent;
+  isolation: isolate;
 }
 
-.modeMenuPanel {
+.ModeMenu.port {
+  background-color: var(--color-edge-from-node);
+  color: white;
+}
+
+.ModeMenu.interactive {
+  cursor: pointer;
+}
+
+.modeIcon {
+  display: block;
+}
+
+.arrow {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  opacity: 0.8;
+  pointer-events: none;
+  --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);
+  --icon-transform-origin: center;
+}
+
+.ModeMenuPopover {
   background-color: var(--color-app-bg, #fff);
   border-radius: var(--radius-default, 8px);
   padding: 4px;
@@ -147,18 +189,34 @@ function pickMode(mode: SelectedMode): void {
   gap: 2px;
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
   min-width: 180px;
+  z-index: var(--drop-down-panel-z-index, 20);
 }
 
 .modeOption {
-  --button-right-radius: var(--radius-default, 6px);
-  --button-left-radius: var(--radius-default, 6px);
-  justify-content: flex-start;
+  display: flex;
+  align-items: center;
   gap: 8px;
   padding: 6px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-default, 6px);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.modeOption:hover:not(.disabled) {
+  background-color: var(--color-menu-entry-hover-bg, rgb(0 0 0 / 0.05));
 }
 
 .modeOption.selected {
   background-color: var(--color-menu-entry-selected-bg, rgb(0 0 0 / 0.05));
+}
+
+.modeOption.disabled {
+  cursor: default;
+  opacity: 0.4;
 }
 
 .optionLabel {

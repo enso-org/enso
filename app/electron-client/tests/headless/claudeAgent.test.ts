@@ -25,7 +25,9 @@ const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 vi.mock('cross-spawn', () => ({ default: spawnMock }))
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn(), on: vi.fn() } }))
 
-const { ClaudeAgentSession } = await import('../../src/ai/claudeAgent')
+const { ClaudeAgentSession, initClaudeAgentIpc } = await import('../../src/ai/claudeAgent')
+const { ipcMain } = await import('electron')
+const { Channel } = await import('../../src/ipc.js')
 
 interface SessionHarness {
   session: InstanceType<typeof ClaudeAgentSession>
@@ -664,5 +666,39 @@ describe('ClaudeAgentSession', () => {
     })
     await expect(session.isAvailable).resolves.toBe(false)
     session.shutdown()
+  })
+})
+
+describe('initClaudeAgentIpc with ENSO_AI_DISABLED=1', () => {
+  beforeEach(() => {
+    spawnMock.mockReset()
+    vi.mocked(ipcMain.handle).mockReset()
+    vi.mocked(ipcMain.on).mockReset()
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  test('skips child spawn and registers disabled-mode IPC handlers', async () => {
+    vi.stubEnv('ENSO_AI_DISABLED', '1')
+    initClaudeAgentIpc({ stdlibRoot: FAKE_STDLIB_ROOT, mcpConfigPath: undefined })
+
+    expect(spawnMock).not.toHaveBeenCalled()
+
+    const handleCalls = vi.mocked(ipcMain.handle).mock.calls
+    const aiIsAvailableHandler = handleCalls.find((call) => call[0] === Channel.aiIsAvailable)?.[1]
+    expect(aiIsAvailableHandler).toBeDefined()
+    await expect((aiIsAvailableHandler as () => Promise<boolean>)()).resolves.toBe(false)
+
+    const generateHandler = handleCalls.find((call) => call[0] === Channel.generateAiComponent)?.[1]
+    expect(generateHandler).toBeDefined()
+    const reply = await (generateHandler as () => Promise<{
+      result: { ok: boolean; error?: { payload: string } }
+    }>)()
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok) expect(reply.result.error!.payload).toMatch(/ENSO_AI_DISABLED/)
+
+    const onCalls = vi.mocked(ipcMain.on).mock.calls
+    expect(onCalls.some((call) => call[0] === Channel.cancelAiComponent)).toBe(true)
   })
 })

@@ -106,7 +106,7 @@ const cbOpen: Interaction = {
     emit('canceled')
   },
   end: () => {
-    if (input.mode.mode === 'aiPrompt') {
+    if (input.state.mode === 'aiPrompt') {
       acceptAiInput()
     } else {
       acceptInput()
@@ -257,7 +257,7 @@ const nodeColor = computed(() => {
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
 const previewedSuggestionTypeInfo = computed(() => {
-  const appliedEntry = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
+  const appliedEntry = input.state.mode === 'codeEditing' ? input.state.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
@@ -270,7 +270,7 @@ const previewedSuggestionTypeInfo = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
-  if (input.mode.mode !== 'codeEditing') return
+  if (input.state.mode !== 'codeEditing') return
   if (!previewedCode.value.trim()) return
   if (!graphStore.currentMethod.ast.ok) return
   const body = graphStore.currentMethod.ast.value.body
@@ -294,7 +294,7 @@ const isVisualizationVisible = ref(true)
 
 watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id))
 watch(
-  () => input.mode,
+  () => input.state,
   (mode) => emit('isAiPrompt', mode.mode === 'aiPrompt'),
 )
 
@@ -324,15 +324,15 @@ function acceptComponent(component: Opt<Component> = null) {
 
 function acceptInput() {
   const appliedReturnType =
-    input.mode.mode === 'codeEditing' ?
-      input.mode.appliedSuggestion?.returnType(projectNames)
+    input.state.mode === 'codeEditing' ?
+      input.state.appliedSuggestion?.returnType(projectNames)
     : undefined
   emit('accepted', input.code.trim(), input.importsToAdd(), appliedReturnType)
   interaction.ended(cbOpen)
 }
 
 function acceptAiInput() {
-  if (input.mode.mode !== 'aiPrompt') return
+  if (input.state.mode !== 'aiPrompt') return
   // When the CB was opened on an existing AI node, `reset()` sets `modeLocked` to `true` and
   // selects `aiPrompt` — that's the signal that this submission is an edit of `usage.node`.
   const editing =
@@ -340,7 +340,7 @@ function acceptAiInput() {
       ({ nodeId: props.usage.node } as const)
     : undefined
   emit('acceptedAi', {
-    prompt: input.mode.prompt,
+    prompt: input.state.prompt,
     sourceIdentifier: input.selfArgument,
     ...(editing != null ? { editing } : {}),
   })
@@ -349,11 +349,11 @@ function acceptAiInput() {
 
 // === Action Handlers ===
 
-const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
+const insideComponentBrowsing = computed(() => input.state.mode === 'componentBrowsing')
 const editSuggestionEnabled = computed(
   () =>
     !input.modeLocked &&
-    (input.mode.mode === 'componentBrowsing' || input.mode.mode === 'aiPrompt'),
+    (input.state.mode === 'componentBrowsing' || input.state.mode === 'aiPrompt'),
 )
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
@@ -375,7 +375,7 @@ const actions = registerHandlers({
     action: () => acceptComponent(),
   },
   'componentBrowser.acceptInputAsCode': {
-    available: () => input.mode.mode === 'codeEditing',
+    available: () => input.state.mode === 'codeEditing',
     action: acceptInput,
   },
   'componentBrowser.switchToCodeEditMode': {
@@ -384,13 +384,13 @@ const actions = registerHandlers({
   },
   'component.toggleVisualization': {
     ...toggledAction(isVisualizationVisible),
-    available: () => input.mode.mode === 'codeEditing' && !isVisualizationVisible.value,
+    available: () => input.state.mode === 'codeEditing' && !isVisualizationVisible.value,
   },
   'componentBrowser.acceptInput': {
     action: acceptInput,
   },
   'componentBrowser.acceptAIPrompt': {
-    available: () => input.mode.mode == 'aiPrompt',
+    available: () => input.state.mode == 'aiPrompt',
     action: acceptAiInput,
   },
   'componentBrowser.switchPanelFocus': { action: () => componentList.value?.switchPanelFocus() },
@@ -435,7 +435,7 @@ const listsHandler = listBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      :show="input.mode.mode === 'codeEditing' && isVisualizationVisible"
+      :show="input.state.mode === 'codeEditing' && isVisualizationVisible"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
@@ -456,7 +456,7 @@ const listsHandler = listBindings.handler({
       ref="inputElement"
       v-model="input.content"
       :usage="usage"
-      :mode="input.mode"
+      :mode="input.state"
       :selectedMode="input.selectedMode"
       :modeLocked="input.modeLocked"
       :aiAvailable="aiAvailable"
@@ -468,10 +468,10 @@ const listsHandler = listBindings.handler({
       <ActionButton action="component.toggleVisualization" />
     </div>
     <ComponentList
-      v-if="input.mode.mode === 'componentBrowsing'"
+      v-if="input.state.mode === 'componentBrowsing'"
       ref="componentList"
-      :filter="input.mode.filter"
-      :literal="input.mode.literal"
+      :filter="input.state.filter"
+      :literal="input.state.literal"
       @acceptSuggestion="acceptComponent($event)"
       @update:selectedComponent="selected = $event"
     />

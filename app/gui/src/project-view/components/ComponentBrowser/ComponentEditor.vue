@@ -2,7 +2,11 @@
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
-import type { ComponentBrowserMode, SelectedMode, Usage } from '@/components/ComponentBrowser/input'
+import type {
+  ComponentBrowserMode,
+  ComponentBrowserState,
+  Usage,
+} from '@/components/ComponentBrowser/input'
 import ModeMenu from '@/components/ComponentBrowser/ModeMenu.vue'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
@@ -15,13 +19,13 @@ const content = defineModel<DeepReadonly<{ text: string; selection: Range | unde
 })
 const props = defineProps<{
   usage: Usage
-  mode: ComponentBrowserMode
-  selectedMode: SelectedMode
+  state: ComponentBrowserState
+  selectedMode: ComponentBrowserMode
   modeLocked: boolean
   aiAvailable: boolean
   nodeColor: string
 }>()
-const emit = defineEmits<{ 'update:selectedMode': [mode: SelectedMode] }>()
+const emit = defineEmits<{ 'update:selectedMode': [mode: ComponentBrowserMode] }>()
 
 const graphStore = useGraphStore()
 
@@ -46,8 +50,8 @@ const codeEditIcon = computed<Icon>(() => {
   if (props.usage.type === 'editNode') {
     return iconOfNode(props.usage.node, graphStore.db)
   }
-  if (props.mode.mode === 'codeEditing' && props.mode.appliedSuggestion) {
-    return suggestionEntryToIcon(props.mode.appliedSuggestion)
+  if (props.state.mode === 'codeEditing' && props.state.appliedSuggestion) {
+    return suggestionEntryToIcon(props.state.appliedSuggestion)
   }
   return DEFAULT_ICON
 })
@@ -75,26 +79,25 @@ const rootStyle = computed(() => {
 
 <template>
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
-    <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
-      <ModeMenu
-        :selectedMode="props.selectedMode"
-        :aiAvailable="props.aiAvailable"
-        :modeLocked="props.modeLocked"
-        :codeEditIcon="codeEditIcon"
-        @update:selectedMode="emit('update:selectedMode', $event)"
-      />
-    </div>
+    <ModeMenu
+      :selectedMode="props.selectedMode"
+      :aiAvailable="props.aiAvailable"
+      :modeLocked="props.modeLocked"
+      :codeEditIcon="codeEditIcon"
+      :asPort="props.state.mode !== 'componentBrowsing'"
+      @update:selectedMode="emit('update:selectedMode', $event)"
+    />
     <div class="componentEditorContent">
       <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
-      <div v-if="props.mode.mode === 'componentBrowsing'" class="typeLabel">
+      <div v-if="props.state.mode === 'componentBrowsing'" class="typeLabel">
         <ComponentTypeLabel
           testId="component-editor-label"
           :typeInfo="
-            props.mode.filter.selfArg?.type === 'known' ?
-              props.mode.filter.selfArg.typeInfo
+            props.state.filter.selfArg?.type === 'known' ?
+              props.state.filter.selfArg.typeInfo
             : undefined
           "
-          :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
+          :unknownLabel="props.state.filter.selfArg == null ? 'Input' : undefined"
         />
       </div>
     </div>
@@ -117,19 +120,6 @@ const rootStyle = computed(() => {
 
 :deep(.cm-editor) {
   flex-grow: 1;
-}
-
-.componentEditorIcon {
-  position: relative;
-  text-align: center;
-  border-radius: var(--radius-full);
-  padding: var(--port-padding);
-  margin: 0;
-  isolation: isolate;
-  &.port {
-    background-color: var(--color-edge-from-node);
-    color: white;
-  }
 }
 
 .componentEditorContent {

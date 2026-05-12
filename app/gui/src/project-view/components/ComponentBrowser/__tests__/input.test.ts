@@ -6,8 +6,13 @@ import {
 import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
 import { makeMethod, makeType } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
+import { Ast } from '@/util/ast'
+import { MutableModule } from '@/util/ast/abstract'
+import { Vec2 } from '@/util/data/vec2'
 import { stdPath } from '@/util/projectPath'
-import { expect, test } from 'vitest'
+import { tryIdentifier } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
+import { describe, expect, test } from 'vitest'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 
@@ -47,8 +52,8 @@ test.each`
   const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb())
   input.reset({ type: 'newNode' })
   input.content = { text: inputContent, selection: Range.empty }
-  assert(input.mode.mode === 'componentBrowsing')
-  expect(input.mode.literal?.code()).toBe(expectedLiteral)
+  assert(input.state.mode === 'componentBrowsing')
+  expect(input.state.literal?.code()).toBe(expectedLiteral)
 })
 
 test.each`
@@ -96,4 +101,130 @@ test.each`
   input.reset({ type: 'newNode', sourcePort })
   input.applySuggestion(suggestionId, undefined)
   expect(input.code).toBe(expectedCode)
+})
+
+const aiNodeId = '7c1d8e34-9f0a-4b6e-bd11-1a4c0f2e8b73' as NodeId
+const codeNodeId = '8b2e7c45-7e90-4d2f-c1a4-2c5f3d8e9d72' as NodeId
+
+function mockGraphDbWithAiNode() {
+  const computedValueRegistryMock = ComputedValueRegistry.Mock()
+  const db = GraphDb.Mock(computedValueRegistryMock)
+  db.mockNode('operator1', operator1Id, 'Data.read')
+  // Build an AI-marked assignment by hand (mockNode doesn't accept a documentation string).
+  const edit = MutableModule.Transient()
+  const aiBinding = unwrap(tryIdentifier('ai_node1'))
+  const aiExpr = Ast.parseExpression('Main.ai_generated 0', edit)!
+  const aiAssignment = Ast.Assignment.new(aiBinding, aiExpr, {
+    edit,
+    documentation: 'AI: count things',
+  })
+  db.nodeIdToNode.set(aiNodeId, {
+    type: 'component',
+    position: Vec2.Zero,
+    height: undefined,
+    vis: undefined,
+    prefixes: { enableRecording: undefined },
+    primaryApplication: { function: null, accessChain: null, selfArgument: null },
+    colorOverride: undefined,
+    conditionalPorts: new Set(),
+    outerAst: aiAssignment,
+    pattern: aiAssignment.pattern,
+    rootExpr: aiExpr,
+    innerExpr: aiExpr,
+    zIndex: 1,
+    argIndex: undefined,
+    isExpanded: false,
+  })
+  // A vanilla code node — same shape mockNode would produce, used for editNode-non-AI tests.
+  db.mockNode('code_node1', codeNodeId, 'operator1.add 1')
+  return db
+}
+
+describe('useComponentBrowserInput mode selection', () => {
+  test('newNode defaults to componentBrowsing when AI is unavailable', () => {
+    const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), () => false)
+    input.reset({ type: 'newNode' })
+    expect(input.selectedMode).toBe('componentBrowsing')
+    expect(input.modeLocked).toBe(false)
+    expect(input.state.mode).toBe('componentBrowsing')
+  })
+
+  test('newNode defaults to aiPrompt when AI is available', () => {
+    const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), () => true)
+    input.reset({ type: 'newNode' })
+    expect(input.selectedMode).toBe('aiPrompt')
+    expect(input.modeLocked).toBe(false)
+    expect(input.state.mode).toBe('aiPrompt')
+  })
+
+  test('setSelectedMode switches between unlocked modes', () => {
+    const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), () => true)
+    input.reset({ type: 'newNode' })
+    expect(input.selectedMode).toBe('aiPrompt')
+    input.setSelectedMode('componentBrowsing')
+    expect(input.selectedMode).toBe('componentBrowsing')
+    expect(input.state.mode).toBe('componentBrowsing')
+    input.setSelectedMode('codeEditing')
+    expect(input.selectedMode).toBe('codeEditing')
+    expect(input.state.mode).toBe('codeEditing')
+  })
+
+  test('editNode on an AI assignment locks into aiPrompt with the previous prompt', () => {
+    const input = useComponentBrowserInput(mockGraphDbWithAiNode(), new SuggestionDb(), () => true)
+    input.reset({ type: 'editNode', node: aiNodeId, cursorPos: 0 })
+    expect(input.selectedMode).toBe('aiPrompt')
+    expect(input.modeLocked).toBe(true)
+    expect(input.text).toBe('count things')
+    assert(input.state.mode === 'aiPrompt')
+    expect(input.state.prompt).toBe('count things')
+  })
+
+  test('editNode on a non-AI assignment locks into codeEditing', () => {
+    const input = useComponentBrowserInput(mockGraphDbWithAiNode(), new SuggestionDb(), () => true)
+    input.reset({ type: 'editNode', node: codeNodeId, cursorPos: 0 })
+    expect(input.selectedMode).toBe('codeEditing')
+    expect(input.modeLocked).toBe(true)
+    assert(input.state.mode === 'codeEditing')
+  })
+
+  test('setSelectedMode is a no-op when modeLocked', () => {
+    const input = useComponentBrowserInput(mockGraphDbWithAiNode(), new SuggestionDb(), () => true)
+    input.reset({ type: 'editNode', node: codeNodeId, cursorPos: 0 })
+    expect(input.selectedMode).toBe('codeEditing')
+    input.setSelectedMode('aiPrompt')
+    expect(input.selectedMode).toBe('codeEditing')
+    input.setSelectedMode('componentBrowsing')
+    expect(input.selectedMode).toBe('codeEditing')
+  })
+
+  test('applySuggestion switches to codeEditing and exposes the applied entry', () => {
+    const input = useComponentBrowserInput(mockGraphDb(), mockSuggestionDb(), () => true)
+    input.reset({ type: 'newNode' })
+    expect(input.selectedMode).toBe('aiPrompt')
+    input.applySuggestion(3, undefined)
+    expect(input.selectedMode).toBe('codeEditing')
+    assert(input.state.mode === 'codeEditing')
+    expect(input.state.appliedSuggestion).toBeDefined()
+  })
+
+  test('setSelectedMode away from codeEditing clears the applied-suggestion association', () => {
+    const input = useComponentBrowserInput(mockGraphDb(), mockSuggestionDb(), () => true)
+    input.reset({ type: 'newNode' })
+    input.applySuggestion(3, undefined)
+    assert(input.state.mode === 'codeEditing')
+    expect(input.state.appliedSuggestion).toBeDefined()
+    input.setSelectedMode('aiPrompt')
+    input.setSelectedMode('codeEditing')
+    assert(input.state.mode === 'codeEditing')
+    expect(input.state.appliedSuggestion).toBeUndefined()
+  })
+
+  test('switchToCodeEditMode sets codeEditing with no applied suggestion', () => {
+    const input = useComponentBrowserInput(mockGraphDb(), mockSuggestionDb(), () => true)
+    input.reset({ type: 'newNode' })
+    input.applySuggestion(3, undefined)
+    input.switchToCodeEditMode()
+    assert(input.state.mode === 'codeEditing')
+    expect(input.state.appliedSuggestion).toBeUndefined()
+  })
 })
