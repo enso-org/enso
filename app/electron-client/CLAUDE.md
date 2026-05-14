@@ -125,8 +125,9 @@ in the engine and is only correctly observable through the LS.
 `REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
 on top of the model's own output, and tighter budgets started clipping
-legitimate turns. `PRIMING_TIMEOUT_MS` is 180 s (was 60 s) because the priming
-turn does ~12 file reads before replying (see "Priming" below).
+legitimate turns. `PRIMING_TIMEOUT_MS` is 600 s (was 180 s, originally 60 s)
+because the priming turn now does ~36 file reads — every top-level `.enso`
+under `Standard.Table` — before replying (see "Priming" below).
 
 ### Priming
 
@@ -134,18 +135,24 @@ turn does ~12 file reads before replying (see "Priming" below).
 available (the normal case), the priming user turn tells the agent two things.
 First, Read three CLAUDE.mds — the top-level `<stdlibRoot>/CLAUDE.md` plus
 `Base/0.0.0-dev/CLAUDE.md` and `Table/0.0.0-dev/CLAUDE.md`. Second, Glob and
-Read every `.enso` file under `Image/0.0.0-dev/src/`. Only after both does the
-agent reply `READY`.
+Read every top-level `.enso` file under `Table/0.0.0-dev/src/` — the pattern is
+`*.enso` (single `*`), so the format/IO subdirectories (`Internal/`, `Excel/`,
+`Delimited/`, `Conversions/`, etc.) are deliberately skipped. Only after both
+does the agent reply `READY`.
 
 The split is intentional: the top-level file documents universal stdlib
-conventions and per-library files describe library-specific surface only, so
-loading the universal file plus the two most-used libraries covers the common
-case at a fraction of the per-turn token cost of loading every library. Image is
-a small, real library (~9 files, ~64 kB) used as a syntax demo so the model
-internalises idiomatic Enso (constructor patterns, `## ` doc blocks, polyglot
-interop) once per session. Other libraries are loaded **on demand**: the system
-prompt instructs the agent to Read `<Name>/0.0.0-dev/CLAUDE.md` the first time
-it needs that library, and the result then lives in context for the rest of the
+conventions and per-library files describe library-specific surface only.
+Pre-loading Table's top-level source (~36 files, ~12 K lines covering
+`Table.enso`, `Column.enso`, `Aggregate_Column.enso`, `Value_Type.enso`,
+`Expression.enso`, `Join_Condition`/`Join_Kind`, and the small spec types)
+covers the entire Table public surface the test suites exercise. Earlier
+revisions of this priming used `Image/0.0.0-dev/src/**/*.enso` (~9 files, ~64 kB)
+as a syntax demo, but Image is not actually used by the test surface and the
+swap to Table gave the agent first-class signatures and doc blocks for the
+methods it actually invokes. The subdirectory format/IO modules and other
+libraries are loaded on demand: the system prompt instructs the agent to Read
+`<Name>/0.0.0-dev/CLAUDE.md` (and source files under that library) the first
+time it needs them, and the result then lives in context for the rest of the
 session.
 
 The Reads' results live in the conversation context for every subsequent turn —

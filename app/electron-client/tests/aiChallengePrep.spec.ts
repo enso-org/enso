@@ -334,8 +334,9 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
       'convert the `Week` column to a numeric type',
       'parse the `Scores` column into a `total_score` (number) column and a `judges_count` (number)' +
         ' column, then add an `avg_judges_score` column equal to `total_score / judges_count`',
-      "keep only each Couple's first dance (a row with their lowest Week) and all rows of their dances in the" +
-        ' final round; restrict to couples who reached the final',
+      "keep only each Couple's first dance (a row with their lowest Week) and their final-round rows." +
+        ' A final-round row is one where the `Result` column is "Winners", "Runners-up", or "Third place"' +
+        ' Drop any couple that never appears in a final-round row.',
       'aggregate the final-round rows per Couple by averaging `avg_judges_score`',
       "compute the percentage change between each Couple's first-dance `avg_judges_score` and" +
         ' their final-round average; project to the columns Series, Couple, Finalist Positions,' +

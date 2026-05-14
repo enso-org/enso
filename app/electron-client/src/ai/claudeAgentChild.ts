@@ -29,12 +29,13 @@ export const PRIMING_REQUEST_ID = 'priming'
 
 /**
  * Default priming-turn timeout (ms). Priming reads three CLAUDE.md files (top-level, Base,
- * Table) plus the entire `Standard.Image` source as a syntax demo (when stdlib is available);
- * ~12 tool calls before replying. 180s leaves comfortable headroom while staying well under
- * `REQUEST_TIMEOUT_MS`. The fallback path (no stdlib) only does the trivial "say READY" turn
- * and completes in well under a second, so the higher cap costs nothing on that path.
+ * Table) plus every top-level `.enso` file under `Standard.Table` (when stdlib is available);
+ * ~36 tool calls before replying, with several files >2k lines (`Table.enso`, `Column.enso`).
+ * 600s leaves comfortable headroom while staying well under `REQUEST_TIMEOUT_MS`. The fallback
+ * path (no stdlib) only does the trivial "say READY" turn and completes in well under a second,
+ * so the higher cap costs nothing on that path.
  */
-export const PRIMING_TIMEOUT_MS = 180_000
+export const PRIMING_TIMEOUT_MS = 600_000
 
 /** SIGINT (graceful) to SIGTERM (force respawn) escalation window during cancellation. */
 const CANCEL_SIGINT_TO_SIGTERM_MS = 2_000
