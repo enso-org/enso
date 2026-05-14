@@ -126,8 +126,8 @@ in the engine and is only correctly observable through the LS.
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
 on top of the model's own output, and tighter budgets started clipping
 legitimate turns. `PRIMING_TIMEOUT_MS` is 600 s (was 180 s, originally 60 s)
-because the priming turn now does ~36 file reads — every top-level `.enso`
-under `Standard.Table` — before replying (see "Priming" below).
+because the priming turn now does ~36 file reads — every top-level `.enso` under
+`Standard.Table` — before replying (see "Priming" below).
 
 ### Priming
 
@@ -146,8 +146,8 @@ Pre-loading Table's top-level source (~36 files, ~12 K lines covering
 `Table.enso`, `Column.enso`, `Aggregate_Column.enso`, `Value_Type.enso`,
 `Expression.enso`, `Join_Condition`/`Join_Kind`, and the small spec types)
 covers the entire Table public surface the test suites exercise. Earlier
-revisions of this priming used `Image/0.0.0-dev/src/**/*.enso` (~9 files, ~64 kB)
-as a syntax demo, but Image is not actually used by the test surface and the
+revisions of this priming used `Image/0.0.0-dev/src/**/*.enso` (~9 files, ~64
+kB) as a syntax demo, but Image is not actually used by the test surface and the
 swap to Table gave the agent first-class signatures and doc blocks for the
 methods it actually invokes. The subdirectory format/IO modules and other
 libraries are loaded on demand: the system prompt instructs the agent to Read
