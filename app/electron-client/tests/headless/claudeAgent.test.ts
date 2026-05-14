@@ -233,7 +233,9 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
-  test('cancelTurn on the in-flight request resolves with cancellation Err and SIGINTs the child', async () => {
+  test('cancelTurn on the in-flight request resolves with cancellation Err and writes a control_request (no SIGINT)', async () => {
+    // Modern Claude Code honors an in-band `control_request`/`interrupt` envelope, so the
+    // common cancel path no longer kills the child — the warm conversation context is kept.
     const { session, children } = buildSession()
     await primeChild(children[0]!)
     const sender = fakeSender()
@@ -245,25 +247,22 @@ describe('ClaudeAgentSession', () => {
     const reply = await replyPromise
     expect(reply.result.ok).toBe(false)
     if (!reply.result.ok) expect(reply.result.error.payload).toMatch(/cancelled by user/)
-    // SIGINT should have been sent to the live child (FakeChild treats kill as terminal — the
-    // 2-second SIGTERM watchdog never fires because the child has already exited via SIGINT).
-    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    // No process signals — cancel goes through stdin.
+    expect(children[0]!.killCalls).toHaveLength(0)
+    // Last stdin write is the SDK-shaped interrupt envelope.
+    const lastWrite = children[0]!.stdinWrites[children[0]!.stdinWrites.length - 1]!
+    const envelope = JSON.parse(lastWrite.trim())
+    expect(envelope.type).toBe('control_request')
+    expect(envelope.request).toEqual({ subtype: 'interrupt' })
     session.shutdown()
   })
 
-  test('a queued request submitted right after a cancel runs on the respawned child, not the dying one', async () => {
-    // Regression guard for the cancel-race bug: today's `claude` (2.x stream-json mode) exits
-    // cleanly within ~700 ms of SIGINT, so the watcher auto-respawns and re-primes a new child.
-    // Before the fix, the next queue task's `await primary.ready` resolved immediately against
-    // the OLD (still-resolved-from-first-prime) deferred and then wrote a fresh user line into
-    // the dying child's stdin — surfacing as `Err('Claude agent: stdin write failed: …')` or
-    // `Err('Claude agent: exited with code …')` to the renderer. The fix pre-swaps
-    // `readyDeferred` inside `cancelInFlight` so the second request synchronizes on the new
-    // child's priming instead.
+  test('a queued request submitted right after a cancel runs on the SAME child (no respawn)', async () => {
+    // With the in-band interrupt path, cancel does NOT exit the child. The next queued request
+    // reuses the same primed child; warm conversation context is preserved.
     const { session, children } = buildSession()
     await primeChild(children[0]!)
 
-    // Request 1 enters the queue and writes stdin; we cancel before pushing a result.
     const r1 = session.runRequest(makeRequest({ requestId: 'r1' }), fakeSender())
     await settle()
     expect(children[0]!.stdinWrites).toHaveLength(2) // priming + r1
@@ -271,22 +270,49 @@ describe('ClaudeAgentSession', () => {
     const reply1 = await r1
     expect(reply1.result.ok).toBe(false)
     if (!reply1.result.ok) expect(reply1.result.error.payload).toMatch(/cancelled by user/)
-    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    expect(children[0]!.killCalls).toHaveLength(0)
 
-    // Request 2 is enqueued before the FakeChild's exit microtask has finished propagating
-    // through the watcher. With the fix in place, its task body awaits the upcoming respawn's
-    // prime; without the fix, it would have raced past the OLD `ready` and resolved with an
-    // `stdin write failed` Err here.
+    // Push the wire sequence the CLI would emit after a successful interrupt: control_response
+    // success + the synthetic user echo + the aborted_streaming result envelope.
+    const interruptEnvelope = JSON.parse(
+      children[0]!.stdinWrites[children[0]!.stdinWrites.length - 1]!.trim(),
+    )
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'control_response',
+        // eslint-disable-next-line camelcase
+        response: { subtype: 'success', request_id: interruptEnvelope.request_id },
+      }),
+    )
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'user',
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: '[Request interrupted by user]' }],
+        },
+      }),
+    )
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'result',
+        subtype: 'error_during_execution',
+        /* eslint-disable camelcase */
+        is_error: true,
+        terminal_reason: 'aborted_streaming',
+        /* eslint-enable camelcase */
+        result: '',
+      }),
+    )
+
+    // Request 2 lands on the same primed child — no respawn, no priming overhead.
     const r2 = session.runRequest(makeRequest({ requestId: 'r2' }), fakeSender())
     await settle()
-    expect(spawnMock).toHaveBeenCalledTimes(2)
-    // The respawned child has been primed (stdinWrites[0] is the priming prompt); request 2's
-    // stdin write only lands AFTER we push READY.
-    expect(children[1]!.stdinWrites).toHaveLength(1)
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    expect(children).toHaveLength(1)
+    expect(children[0]!.stdinWrites).toHaveLength(4) // priming + r1 + control_request + r2
 
-    await primeChild(children[1]!)
-    expect(children[1]!.stdinWrites).toHaveLength(2) // priming + r2
-    children[1]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
     const reply2 = await r2
     expect(reply2.result.ok).toBe(true)
     session.shutdown()

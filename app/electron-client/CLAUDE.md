@@ -339,35 +339,47 @@ Findings from the probe at the time the long-lived design landed:
 - **Cancellation:** `Channel.cancelAiComponent` carries the renderer's
   `requestId`. On match against the pending slot, the session nulls pending
   synchronously, resolves the originating turn with
-  `Err('Claude agent: cancelled by user')`, **pre-swaps `readyDeferred` to a
-  fresh pending one** (see below), and sends SIGINT to the child. A 2-second
-  watchdog escalates to SIGTERM if the CLI ignores SIGINT. Empirically on Claude
-  Code 2.x stream-json mode SIGINT _does_ exit the child cleanly within ~700 ms
-  (probed via `/tmp/claude-sigint-probe.mjs`), so the watcher auto- respawns and
-  the new child has to be re-primed — the warm context is lost, but the user got
-  a fast cancel. For a queued request that hasn't reached `runOneTurn` yet, the
-  id is filed in a `cancelled` set; the queue task consumes it on entry and
-  short-circuits without any signal needed. We did NOT add an "in-stdin cancel
-  message" path: the CLI is turn-based, so a cancel line submitted mid-turn
-  queues for AFTER the current turn finishes, by which point the tokens are
-  already spent.
+  `Err('Claude agent: cancelled by user')`, and writes an SDK-shaped
+  `control_request`/`interrupt` envelope to the child's stdin
+  (`{"type":"control_request","request_id":"req_…","request":{"subtype":"interrupt"}}`).
+  Modern Claude Code (2.x+ stream-json mode) replies with `control_response`
+  `subtype: success` within milliseconds and emits an
+  `aborted_streaming`/`is_error: true` `result` envelope for the cancelled
+  turn — **without exiting the child**, so the next turn reuses the same primed
+  conversation context. Wire format and timing confirmed via
+  `/tmp/claude-interrupt-probe.mjs` (interrupt→result was 3 ms; the follow-up
+  trivial turn completed on the same primed child with no re-prime). For a
+  queued request that hasn't reached `runOneTurn` yet, the id is filed in a
+  `cancelled` set; the queue task consumes it on entry and short-circuits
+  without any envelope written.
 
-  **Why the pre-swap of `readyDeferred`.** Without it, the next queue task's
-  `await primary.ready` resolves immediately against the OLD (still-resolved-
-  from-first-prime) deferred — the watcher's `onUnexpectedExit` only swaps in a
-  fresh pending deferred AFTER the child's exit propagates, which is the same
-  ~10–100 ms window in which the renderer's cancel→reply→re-dispatch IPC
-  roundtrip lands. The next task then falls through to `runTurn` and writes a
-  user line into the dying child's stdin, surfacing as `stdin write failed: …`
-  or `exited with code …` to the renderer. The fix in `cancelInFlight` calls
-  `swapInReadyDeferred()` synchronously and sets a `cancelInProgress` flag;
-  `onUnexpectedExit` honours the flag and leaves the new pending deferred alone
-  (the upcoming auto-respawn's `onChildStarted` → `prime` resolves it).
+  **Fallback ladder.** If no `control_response` arrives within
+  `CANCEL_CONTROL_FALLBACK_MS` (1000 ms), or if the CLI replies
+  `subtype: error`, `escalateSignalCancel` takes over: SIGINT now,
+  SIGTERM after `CANCEL_SIGINT_TO_SIGTERM_MS` (2000 ms) if the child is still
+  alive. The escalation path also pre-swaps `readyDeferred` and arms the
+  `cancelInProgress` flag (since the child *does* exit on this path) so the
+  next queue task's `await primary.ready` synchronizes on the upcoming
+  respawn's prime instead of racing past a stale resolved deferred.
+  `onUnexpectedExit` honors the flag and leaves the new pending deferred alone
+  (the auto-respawn's `onChildStarted` → `prime` resolves it). The common path
+  doesn't touch `readyDeferred` — the child stays alive and primed.
+
+  **Aborted-result filter.** After a successful interrupt the CLI emits a
+  `result` envelope with `is_error: true` and `terminal_reason: aborted_streaming`
+  on the same stdout stream as future turns' results. `resolveTerminal` drops
+  these explicitly so a late-arriving aborted envelope can't tear down the next
+  turn's pending state.
+
   Regression tests live in `tests/headless/claudeAgentChild.test.ts`
-  (`cancelInFlight pre-swaps the ready deferred …`) and
+  (`cancelInFlight writes a control_request interrupt envelope …`,
+  `… control_response success keeps the child usable …`,
+  `… no control_response within the fallback window escalates to SIGINT`,
+  `… control_response error escalates to SIGINT immediately`) and
   `tests/headless/claudeAgent.test.ts`
-  (`a queued request submitted right after a cancel runs on the respawned child …`);
-  the end-to-end behaviour is exercised in `tests/aiNode.spec.ts`
+  (`cancelTurn on the in-flight request … (no SIGINT)`,
+  `a queued request submitted right after a cancel runs on the SAME child …`);
+  end-to-end behaviour is in `tests/aiNode.spec.ts`
   (`cancelling a running AI prompt leaves the queue healthy …`).
 
 - **Crash recovery:** an unexpected child exit fails any in-flight request with

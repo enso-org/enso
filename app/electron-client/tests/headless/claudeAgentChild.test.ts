@@ -218,15 +218,11 @@ describe('ChildAgent', () => {
     child.shutdown()
   })
 
-  test('cancelInFlight pre-swaps the ready deferred so a new task waits for respawn priming', async () => {
-    // Regression guard for the cancel-race bug. Today's `claude` (2.x stream-json mode) exits
-    // cleanly within ~700 ms of SIGINT, and the watcher auto-respawns + re-primes. Before the
-    // fix, the OLD `readyDeferred` (resolved at first-prime time) stayed in place until
-    // `onUnexpectedExit` fired, leaving a window where a queue task could race past
-    // `await primary.ready` and write a fresh user line to the dying child's stdin. The fix
-    // pre-swaps the deferred synchronously inside `cancelInFlight`, so `isReady` flips to false
-    // the moment the cancel is observed — and `onUnexpectedExit` is told to leave the new
-    // pending deferred alone (the upcoming respawn's `onChildStarted` will resolve it).
+  test('cancelInFlight writes a control_request interrupt envelope and keeps the child alive', async () => {
+    // Modern Claude Code (2.x+ stream-json mode) honors an SDK-shaped
+    // `control_request`/`interrupt` envelope on stdin, aborting the in-flight HTTPS stream
+    // without exiting the process — preserving the primed conversation context for the next
+    // turn. Wire format confirmed by `/tmp/claude-interrupt-probe.mjs`.
     const { child, children } = buildChild()
     await primeChild(children[0]!)
     expect(child.isReady).toBe(true)
@@ -236,24 +232,133 @@ describe('ChildAgent', () => {
     expect(children[0]!.stdinWrites).toHaveLength(2) // priming + user turn
 
     child.cancelInFlight('req-1')
-    // The synchronous post-cancel state is what catches the bug: without the pre-swap,
-    // isReady stays true (the OLD prime's resolved deferred is still in place) and the next
-    // task body would race past `await primary.ready`.
-    expect(child.isReady).toBe(false)
+
+    // No signals — the cancel is in-band.
+    expect(children[0]!.killCalls).toHaveLength(0)
+    // A third stdin write: the SDK-shaped interrupt control envelope.
+    expect(children[0]!.stdinWrites).toHaveLength(3)
+    const envelope = JSON.parse(children[0]!.stdinWrites[2]!.trim())
+    expect(envelope.type).toBe('control_request')
+    expect(envelope.request).toEqual({ subtype: 'interrupt' })
+    expect(typeof envelope.request_id).toBe('string')
+
+    // Child is still alive and primed; no respawn pending.
+    expect(child.isReady).toBe(true)
+    expect(spawnMock).toHaveBeenCalledTimes(1)
 
     const outcome = await turn
     expect(outcome.state).toBe('crash')
     expect(outcome.errorReason).toMatch(/cancelled by user/)
-    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    child.shutdown()
+  })
 
-    // Watcher auto-respawn after the SIGINT-induced exit: a fresh child is spawned and starts
-    // priming. `isReady` stays false until that prime completes.
+  test('cancelInFlight: control_response success keeps the child usable for the next turn', async () => {
+    // End-to-end happy path: cancel → CLI replies with control_response success → the same
+    // child takes a second user turn on the same primed context, no respawn, no signals.
+    const { child, children } = buildChild()
+    await primeChild(children[0]!)
+    const turn1 = child.runTurn('go', 60_000, fakeSender(), 'req-1')
     await settle()
-    expect(spawnMock).toHaveBeenCalledTimes(2)
-    expect(child.isReady).toBe(false)
 
-    await primeChild(children[1]!)
+    child.cancelInFlight('req-1')
+    const envelope = JSON.parse(children[0]!.stdinWrites[2]!.trim())
+
+    // Mirror the real wire sequence (probed): control_response success + synthetic user echo
+    // + aborted_streaming result envelope.
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'control_response',
+        // eslint-disable-next-line camelcase
+        response: { subtype: 'success', request_id: envelope.request_id },
+      }),
+    )
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'user',
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: '[Request interrupted by user]' }],
+        },
+      }),
+    )
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'result',
+        subtype: 'error_during_execution',
+        /* eslint-disable camelcase -- snake_case mirrors what the CLI emits. */
+        is_error: true,
+        terminal_reason: 'aborted_streaming',
+        /* eslint-enable camelcase */
+        result: '',
+      }),
+    )
+    const outcome1 = await turn1
+    expect(outcome1.state).toBe('crash')
+    expect(outcome1.errorReason).toMatch(/cancelled by user/)
+    expect(children).toHaveLength(1)
+    expect(children[0]!.killCalls).toHaveLength(0)
+
+    // Same child accepts the next turn — warm context preserved.
+    const turn2 = child.runTurn('next', 60_000, fakeSender(), 'req-2')
+    await settle()
+    expect(children[0]!.stdinWrites).toHaveLength(4) // priming + r1 + control_request + r2
+    children[0]!.pushStdoutLine(resultEnvelope(exampleResponse))
+    const outcome2 = await turn2
+    expect(outcome2.state).toBe('completed')
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    child.shutdown()
+  })
+
+  test('cancelInFlight: no control_response within the fallback window escalates to SIGINT', async () => {
+    // Older or unhealthy CLI builds may not honor `control_request`. After
+    // `CANCEL_CONTROL_FALLBACK_MS` of silence we escalate to SIGINT (and the existing
+    // SIGTERM-after-2s watchdog), trading warm context for a guaranteed cancel.
+    const { child, children } = buildChild()
+    await primeChild(children[0]!)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    child.runTurn('go', 60_000, fakeSender(), 'req-1')
+    // Drain microtasks so the runTurn stdin write completes before we touch the cancel path.
+    for (let i = 0; i < 4; i++) await Promise.resolve()
+
+    child.cancelInFlight('req-1')
+    expect(children[0]!.killCalls).toHaveLength(0)
+    // Pre-fallback: isReady is still true; the in-band path expects the CLI to respond.
     expect(child.isReady).toBe(true)
+
+    // Advance past the control-response fallback window — SIGINT escalation fires.
+    await vi.advanceTimersByTimeAsync(1_100)
+    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    // The escalation pre-swaps the ready deferred so the next queue task awaits the upcoming
+    // respawn's prime instead of racing past a stale resolved deferred.
+    expect(child.isReady).toBe(false)
+    child.shutdown()
+  })
+
+  test('cancelInFlight: control_response error escalates to SIGINT immediately', async () => {
+    const { child, children } = buildChild()
+    await primeChild(children[0]!)
+    const turn1 = child.runTurn('go', 60_000, fakeSender(), 'req-1')
+    await settle()
+
+    child.cancelInFlight('req-1')
+    const envelope = JSON.parse(children[0]!.stdinWrites[2]!.trim())
+    // CLI rejects the interrupt (hypothetical: unknown subtype on an older build). We escalate.
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'control_response',
+        response: {
+          subtype: 'error',
+          // eslint-disable-next-line camelcase
+          request_id: envelope.request_id,
+          error: 'unknown subtype',
+        },
+      }),
+    )
+    await settle()
+    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    expect(child.isReady).toBe(false)
+    await turn1 // already resolved synchronously by cancelInFlight
     child.shutdown()
   })
 
