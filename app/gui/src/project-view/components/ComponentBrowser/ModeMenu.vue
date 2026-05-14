@@ -77,18 +77,16 @@ function pickMode(mode: ComponentBrowserMode, disabled: boolean): void {
 </script>
 
 <template>
-  <div v-if="modeLocked" class="ModeMenu locked" :class="{ port: asPort }" @pointerdown.prevent>
-    <SvgIcon :name="currentIcon" />
-  </div>
-  <DropdownMenu
-    v-else
-    class="ModeMenu"
-    :class="{ port: asPort }"
-    title="Switch component browser mode"
-    showArrow="always"
-  >
-    <template #button>
+  <div v-if="modeLocked" class="ModeMenu locked" @pointerdown.prevent>
+    <div class="iconDisc" :class="{ port: asPort }">
       <SvgIcon :name="currentIcon" />
+    </div>
+  </div>
+  <DropdownMenu v-else class="ModeMenu" title="Switch component browser mode" showArrow="always">
+    <template #button>
+      <div class="iconDisc" :class="{ port: asPort }">
+        <SvgIcon :name="currentIcon" />
+      </div>
     </template>
     <template #menu>
       <MenuPanel class="modeMenuPanel">
@@ -115,39 +113,37 @@ function pickMode(mode: ComponentBrowserMode, disabled: boolean): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /*
-   * Push the arrow indicator further below the port disc so it lands fully on the
-   * surrounding white background, instead of straddling the edge of the colored circle.
-   */
+  margin: 0;
   --arrow-offset: 4px;
-}
-
-/*
- * Paint the port disc on the trigger `MenuButton` itself rather than on this wrapper. The
- * disc then shares its bounds with the button's hover highlight by construction — they
- * occupy the same circle. The icon stays white against the colored disc; the arrow lives
- * outside the button and inherits the app default color so it remains legible.
- */
-.ModeMenu.port :deep(.MenuButton) {
-  background-color: var(--color-edge-from-node);
-  color: white;
 }
 
 .ModeMenu.locked {
   cursor: default;
 }
 
-.ModeMenu.locked.port {
+.iconDisc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  padding: var(--port-padding, 4px);
+}
+
+.MenuButton > .iconDisc {
+  margin: -4px;
+}
+
+.iconDisc.port {
   background-color: var(--color-edge-from-node);
   color: white;
   border-radius: var(--radius-full);
-  padding: var(--button-padding, 4px);
 }
 
 .modeMenuPanel {
   min-width: 180px;
   gap: 2px;
   padding: 4px;
+  --button-padding: unset;
 }
 
 .modeOption {
