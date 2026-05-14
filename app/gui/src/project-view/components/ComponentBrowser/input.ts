@@ -34,13 +34,15 @@ export type Usage =
   | { type: 'editNode'; node: NodeId; cursorPos: number }
 
 /**
- * The full runtime state of the component browser for a given mode. The `mode` tag identifies
- * which of the three operating modes the CB is in; the remaining fields carry mode-specific
- * data the surrounding view needs to render the panel.
+ * The current effective interpretation of the component browser's input, derived from the
+ * selected mode and the user-typed text. The `mode` tag identifies which of the three
+ * operating modes the CB is in; the remaining fields carry mode-specific data the
+ * surrounding view needs to render the panel. Computed, not stored — the underlying state
+ * is `selectedMode` plus the text/selection model.
  *
  * See https://github.com/enso-org/enso/issues/10598 for design details.
  */
-export type ComponentBrowserState =
+export type ComponentBrowserInterpretation =
   | {
       mode: 'componentBrowsing'
       filter: Filter
@@ -57,13 +59,13 @@ export type ComponentBrowserState =
     }
 
 /**
- * The user-selectable mode tag — the `mode` discriminator of {@link ComponentBrowserState}:
+ * The user-selectable mode tag — the `mode` discriminator of {@link ComponentBrowserInterpretation}:
  * - `componentBrowsing` when the user is searching the suggestion list to add a new component,
  * - `codeEditing` for free-form code editing on a new or existing node,
  * - `aiPrompt` for typing a natural-language prompt that the local Claude agent expands into a
  *   User Defined Component.
  */
-export type ComponentBrowserMode = ComponentBrowserState['mode']
+export type ComponentBrowserMode = ComponentBrowserInterpretation['mode']
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
@@ -77,7 +79,7 @@ export function useComponentBrowserInput(
   const imports = shallowRef<RequiredImport[]>([])
   const sourceNodeIdentifier = ref<Ast.Identifier>()
   /**
-   * The suggestion the user just accepted, if any. Surfaced through {@link state} so the
+   * The suggestion the user just accepted, if any. Surfaced through {@link interpretation} so the
    * editor can show the suggestion's icon while the user is fine-tuning its arguments.
    * Cleared on `reset`, on `setSelectedMode` away from `codeEditing`, and on
    * `switchToCodeEditMode` (which only carries text, no suggestion).
@@ -131,7 +133,7 @@ export function useComponentBrowserInput(
       .clip(Range.fromStartAndLength(0, newText.length))
   }
 
-  const state: ComputedRef<ComponentBrowserState> = computed(() => {
+  const interpretation: ComputedRef<ComponentBrowserInterpretation> = computed(() => {
     if (selectedMode.value === 'aiPrompt') {
       return { mode: 'aiPrompt', prompt: text.value }
     }
@@ -340,9 +342,9 @@ export function useComponentBrowserInput(
     content: contentModel,
     /** The current input's full code. */
     code: computed(() => applySourceNode(text.value)),
-    /** The full component browser state. See {@link ComponentBrowserState}. */
-    state,
-    /** The user-selected mode tag (drives {@link state}). */
+    /** The current interpretation of the input under the selected mode. See {@link ComponentBrowserInterpretation}. */
+    interpretation,
+    /** The user-selected mode tag (drives {@link interpretation}). */
     selectedMode: readonly(selectedMode),
     /** When `true`, the mode is determined by `usage` (an existing node's type) and cannot be changed. */
     modeLocked,

@@ -25,7 +25,9 @@ const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 vi.mock('cross-spawn', () => ({ default: spawnMock }))
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn(), on: vi.fn() } }))
 
-const { ClaudeAgentSession, initClaudeAgentIpc } = await import('../../src/ai/claudeAgent')
+const { ClaudeAgentSession, initClaudeAgentIpc, shutdownClaudeAgent } = await import(
+  '../../src/ai/claudeAgent'
+)
 const { ipcMain } = await import('electron')
 const { Channel } = await import('../../src/ipc.js')
 
@@ -669,17 +671,36 @@ describe('ClaudeAgentSession', () => {
   })
 })
 
-describe('initClaudeAgentIpc with ENSO_AI_DISABLED=1', () => {
+describe('initClaudeAgentIpc', () => {
   beforeEach(() => {
     spawnMock.mockReset()
     vi.mocked(ipcMain.handle).mockReset()
     vi.mocked(ipcMain.on).mockReset()
   })
   afterEach(() => {
+    shutdownClaudeAgent()
     vi.unstubAllEnvs()
   })
 
-  test('skips child spawn and registers disabled-mode IPC handlers', async () => {
+  test('without ENSO_AI_DISABLED: spawns the session and registers live IPC handlers', async () => {
+    attachSpawnMock(spawnMock)
+    initClaudeAgentIpc({ stdlibRoot: FAKE_STDLIB_ROOT, mcpConfigPath: undefined })
+
+    // Session construction triggers cross-spawn for the primary child.
+    expect(spawnMock).toHaveBeenCalled()
+
+    const handleCalls = vi.mocked(ipcMain.handle).mock.calls
+    const aiIsAvailableHandler = handleCalls.find((call) => call[0] === Channel.aiIsAvailable)?.[1]
+    expect(aiIsAvailableHandler).toBeDefined()
+    // FakeChild is alive from construction, so `firstSpawnSettled` resolves true.
+    await expect((aiIsAvailableHandler as () => Promise<boolean>)()).resolves.toBe(true)
+
+    expect(handleCalls.some((call) => call[0] === Channel.generateAiComponent)).toBe(true)
+    const onCalls = vi.mocked(ipcMain.on).mock.calls
+    expect(onCalls.some((call) => call[0] === Channel.cancelAiComponent)).toBe(true)
+  })
+
+  test('with ENSO_AI_DISABLED=1: skips child spawn and registers disabled-mode IPC handlers', async () => {
     vi.stubEnv('ENSO_AI_DISABLED', '1')
     initClaudeAgentIpc({ stdlibRoot: FAKE_STDLIB_ROOT, mcpConfigPath: undefined })
 

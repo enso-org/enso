@@ -8,13 +8,12 @@
  * doesn't need to wrap us in another container.
  */
 import type { ComponentBrowserMode } from '@/components/ComponentBrowser/input'
+import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuButton from '@/components/MenuButton.vue'
+import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { injectInteractionHandler } from '@/providers/interactionHandler'
-import { usePopoverRoot } from '@/providers/popoverRoot'
-import { endOnClickOutside } from '@/util/autoBlur'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { shift, useFloating } from '@floating-ui/vue'
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 
 const { selectedMode, aiAvailable, modeLocked, codeEditIcon, asPort } = defineProps<{
   selectedMode: ComponentBrowserMode
@@ -71,152 +70,85 @@ const currentIcon = computed<Icon>(() => {
   return codeEditIcon
 })
 
-const trigger = shallowRef<HTMLElement>()
-const popover = shallowRef<HTMLElement>()
-const popoverRoot = usePopoverRoot(true)
-const open = shallowRef(false)
-const { floatingStyles } = useFloating(trigger, popover, {
-  placement: () => 'bottom-start',
-  middleware: [shift()],
-})
-
-const closePopover = () => {
-  open.value = false
-}
-const interaction = endOnClickOutside(popover, {
-  cancel: closePopover,
-  end: closePopover,
-  parentInteraction: undefined,
-})
-injectInteractionHandler().setWhenWithParent(open, (parentInteraction) => {
-  interaction.parentInteraction = parentInteraction
-  return interaction
-})
-
-function toggleOpen() {
-  if (modeLocked) return
-  open.value = !open.value
-}
-
-function pickMode(mode: ComponentBrowserMode, disabled: boolean) {
+function pickMode(mode: ComponentBrowserMode, disabled: boolean): void {
   if (disabled) return
-  open.value = false
   emit('update:selectedMode', mode)
 }
 </script>
 
 <template>
-  <div
-    ref="trigger"
+  <div v-if="modeLocked" class="ModeMenu locked" :class="{ port: asPort }" @pointerdown.prevent>
+    <SvgIcon :name="currentIcon" />
+  </div>
+  <DropdownMenu
+    v-else
     class="ModeMenu"
-    :class="{ port: asPort, locked: modeLocked, interactive: !modeLocked }"
-    :title="modeLocked ? undefined : 'Switch component browser mode'"
-    @pointerdown.prevent
-    @click="toggleOpen"
+    :class="{ port: asPort }"
+    title="Switch component browser mode"
+    showArrow="always"
   >
-    <SvgIcon :name="currentIcon" class="modeIcon" />
-    <SvgIcon v-if="!modeLocked" name="arrow_right_head_only" class="arrow" />
-    <Teleport :to="popoverRoot ?? 'body'">
-      <div
-        v-if="open"
-        ref="popover"
-        class="ModeMenuPopover"
-        :style="floatingStyles"
-        @pointerdown.prevent
-      >
-        <button
+    <template #button>
+      <SvgIcon :name="currentIcon" />
+    </template>
+    <template #menu>
+      <MenuPanel class="modeMenuPanel">
+        <MenuButton
           v-for="option in options"
           :key="option.mode"
-          type="button"
           class="modeOption"
-          :class="{ selected: option.mode === selectedMode, disabled: option.disabled }"
+          :class="{ selected: option.mode === selectedMode }"
           :disabled="option.disabled"
           :title="option.title"
-          @click.stop="pickMode(option.mode, option.disabled)"
+          @activate="pickMode(option.mode, option.disabled)"
         >
           <SvgIcon :name="option.icon" class="optionIcon" />
           <span class="optionLabel">{{ option.label }}</span>
           <SvgIcon v-if="option.mode === selectedMode" name="check" class="checkIcon" />
-        </button>
-      </div>
-    </Teleport>
-  </div>
+        </MenuButton>
+      </MenuPanel>
+    </template>
+  </DropdownMenu>
 </template>
 
 <style scoped>
 .ModeMenu {
-  position: relative;
+  /*
+   * The trigger sits in a `DropdownMenu` whose root has `margin: -4px` (so its hover
+   * highlight visually "bleeds" into adjacent toolbar buttons in the normal usage). Our
+   * usage is the opposite — we want a tight, self-contained port disc — so compensate
+   * with matching `padding: 4px` here. With matching numbers the disc lands flush around
+   * the 24px (icon + `--button-padding`) trigger button.
+   */
+  padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--icon-size, 16px);
-  height: var(--icon-size, 16px);
-  padding: var(--port-padding, 4px);
-  border-radius: var(--radius-full);
-  box-sizing: content-box;
-  isolation: isolate;
 }
 
 .ModeMenu.port {
   background-color: var(--color-edge-from-node);
   color: white;
+  border-radius: var(--radius-full);
 }
 
-.ModeMenu.interactive {
-  cursor: pointer;
+.ModeMenu.locked {
+  cursor: default;
 }
 
-.modeIcon {
-  display: block;
-}
-
-.arrow {
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  opacity: 0.8;
-  pointer-events: none;
-  --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);
-  --icon-transform-origin: center;
-}
-
-.ModeMenuPopover {
-  background-color: var(--color-app-bg, #fff);
-  border-radius: var(--radius-default, 8px);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+.modeMenuPanel {
   min-width: 180px;
-  z-index: var(--drop-down-panel-z-index, 20);
+  gap: 2px;
+  padding: 4px;
 }
 
 .modeOption {
-  display: flex;
-  align-items: center;
+  --button-padding: 6px 10px;
+  justify-content: flex-start;
   gap: 8px;
-  padding: 6px 10px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-default, 6px);
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.modeOption:hover:not(.disabled) {
-  background-color: var(--color-menu-entry-hover-bg, rgb(0 0 0 / 0.05));
 }
 
 .modeOption.selected {
   background-color: var(--color-menu-entry-selected-bg, rgb(0 0 0 / 0.05));
-}
-
-.modeOption.disabled {
-  cursor: default;
-  opacity: 0.4;
 }
 
 .optionLabel {

@@ -52,8 +52,8 @@ test.each`
   const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb())
   input.reset({ type: 'newNode' })
   input.content = { text: inputContent, selection: Range.empty }
-  assert(input.state.mode === 'componentBrowsing')
-  expect(input.state.literal?.code()).toBe(expectedLiteral)
+  assert(input.interpretation.mode === 'componentBrowsing')
+  expect(input.interpretation.literal?.code()).toBe(expectedLiteral)
 })
 
 test.each`
@@ -146,7 +146,7 @@ describe('useComponentBrowserInput mode selection', () => {
     input.reset({ type: 'newNode' })
     expect(input.selectedMode).toBe('componentBrowsing')
     expect(input.modeLocked).toBe(false)
-    expect(input.state.mode).toBe('componentBrowsing')
+    expect(input.interpretation.mode).toBe('componentBrowsing')
   })
 
   test('newNode defaults to aiPrompt when AI is available', () => {
@@ -154,7 +154,7 @@ describe('useComponentBrowserInput mode selection', () => {
     input.reset({ type: 'newNode' })
     expect(input.selectedMode).toBe('aiPrompt')
     expect(input.modeLocked).toBe(false)
-    expect(input.state.mode).toBe('aiPrompt')
+    expect(input.interpretation.mode).toBe('aiPrompt')
   })
 
   test('setSelectedMode switches between unlocked modes', () => {
@@ -163,10 +163,10 @@ describe('useComponentBrowserInput mode selection', () => {
     expect(input.selectedMode).toBe('aiPrompt')
     input.setSelectedMode('componentBrowsing')
     expect(input.selectedMode).toBe('componentBrowsing')
-    expect(input.state.mode).toBe('componentBrowsing')
+    expect(input.interpretation.mode).toBe('componentBrowsing')
     input.setSelectedMode('codeEditing')
     expect(input.selectedMode).toBe('codeEditing')
-    expect(input.state.mode).toBe('codeEditing')
+    expect(input.interpretation.mode).toBe('codeEditing')
   })
 
   test('editNode on an AI assignment locks into aiPrompt with the previous prompt', () => {
@@ -175,8 +175,8 @@ describe('useComponentBrowserInput mode selection', () => {
     expect(input.selectedMode).toBe('aiPrompt')
     expect(input.modeLocked).toBe(true)
     expect(input.text).toBe('count things')
-    assert(input.state.mode === 'aiPrompt')
-    expect(input.state.prompt).toBe('count things')
+    assert(input.interpretation.mode === 'aiPrompt')
+    expect(input.interpretation.prompt).toBe('count things')
   })
 
   test('editNode on a non-AI assignment locks into codeEditing', () => {
@@ -184,7 +184,7 @@ describe('useComponentBrowserInput mode selection', () => {
     input.reset({ type: 'editNode', node: codeNodeId, cursorPos: 0 })
     expect(input.selectedMode).toBe('codeEditing')
     expect(input.modeLocked).toBe(true)
-    assert(input.state.mode === 'codeEditing')
+    assert(input.interpretation.mode === 'codeEditing')
   })
 
   test('setSelectedMode is a no-op when modeLocked', () => {
@@ -203,20 +203,20 @@ describe('useComponentBrowserInput mode selection', () => {
     expect(input.selectedMode).toBe('aiPrompt')
     input.applySuggestion(3, undefined)
     expect(input.selectedMode).toBe('codeEditing')
-    assert(input.state.mode === 'codeEditing')
-    expect(input.state.appliedSuggestion).toBeDefined()
+    assert(input.interpretation.mode === 'codeEditing')
+    expect(input.interpretation.appliedSuggestion).toBeDefined()
   })
 
   test('setSelectedMode away from codeEditing clears the applied-suggestion association', () => {
     const input = useComponentBrowserInput(mockGraphDb(), mockSuggestionDb(), () => true)
     input.reset({ type: 'newNode' })
     input.applySuggestion(3, undefined)
-    assert(input.state.mode === 'codeEditing')
-    expect(input.state.appliedSuggestion).toBeDefined()
+    assert(input.interpretation.mode === 'codeEditing')
+    expect(input.interpretation.appliedSuggestion).toBeDefined()
     input.setSelectedMode('aiPrompt')
     input.setSelectedMode('codeEditing')
-    assert(input.state.mode === 'codeEditing')
-    expect(input.state.appliedSuggestion).toBeUndefined()
+    assert(input.interpretation.mode === 'codeEditing')
+    expect(input.interpretation.appliedSuggestion).toBeUndefined()
   })
 
   test('switchToCodeEditMode sets codeEditing with no applied suggestion', () => {
@@ -224,7 +224,7 @@ describe('useComponentBrowserInput mode selection', () => {
     input.reset({ type: 'newNode' })
     input.applySuggestion(3, undefined)
     input.switchToCodeEditMode()
-    assert(input.state.mode === 'codeEditing')
-    expect(input.state.appliedSuggestion).toBeUndefined()
+    assert(input.interpretation.mode === 'codeEditing')
+    expect(input.interpretation.appliedSuggestion).toBeUndefined()
   })
 })

@@ -3,8 +3,8 @@ import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
 import type {
+  ComponentBrowserInterpretation,
   ComponentBrowserMode,
-  ComponentBrowserState,
   Usage,
 } from '@/components/ComponentBrowser/input'
 import ModeMenu from '@/components/ComponentBrowser/ModeMenu.vue'
@@ -19,7 +19,7 @@ const content = defineModel<DeepReadonly<{ text: string; selection: Range | unde
 })
 const props = defineProps<{
   usage: Usage
-  state: ComponentBrowserState
+  interpretation: ComponentBrowserInterpretation
   selectedMode: ComponentBrowserMode
   modeLocked: boolean
   aiAvailable: boolean
@@ -50,8 +50,8 @@ const codeEditIcon = computed<Icon>(() => {
   if (props.usage.type === 'editNode') {
     return iconOfNode(props.usage.node, graphStore.db)
   }
-  if (props.state.mode === 'codeEditing' && props.state.appliedSuggestion) {
-    return suggestionEntryToIcon(props.state.appliedSuggestion)
+  if (props.interpretation.mode === 'codeEditing' && props.interpretation.appliedSuggestion) {
+    return suggestionEntryToIcon(props.interpretation.appliedSuggestion)
   }
   return DEFAULT_ICON
 })
@@ -84,20 +84,20 @@ const rootStyle = computed(() => {
       :aiAvailable="props.aiAvailable"
       :modeLocked="props.modeLocked"
       :codeEditIcon="codeEditIcon"
-      :asPort="props.state.mode !== 'componentBrowsing'"
+      :asPort="props.interpretation.mode !== 'componentBrowsing'"
       @update:selectedMode="emit('update:selectedMode', $event)"
     />
     <div class="componentEditorContent">
       <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
-      <div v-if="props.state.mode === 'componentBrowsing'" class="typeLabel">
+      <div v-if="props.interpretation.mode === 'componentBrowsing'" class="typeLabel">
         <ComponentTypeLabel
           testId="component-editor-label"
           :typeInfo="
-            props.state.filter.selfArg?.type === 'known' ?
-              props.state.filter.selfArg.typeInfo
+            props.interpretation.filter.selfArg?.type === 'known' ?
+              props.interpretation.filter.selfArg.typeInfo
             : undefined
           "
-          :unknownLabel="props.state.filter.selfArg == null ? 'Input' : undefined"
+          :unknownLabel="props.interpretation.filter.selfArg == null ? 'Input' : undefined"
         />
       </div>
     </div>
