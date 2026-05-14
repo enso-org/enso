@@ -1,5 +1,6 @@
 /** @file Project states definitions and a composable for transitions between them. */
 import { backendMutationOptions } from '@/composables/backend'
+import { useAiAvailability } from '@/stores/aiAvailability'
 import { assert, assertDefined } from '@/util/assert'
 import * as vueQuery from '@tanstack/vue-query'
 import {
@@ -159,6 +160,7 @@ export function useProjectStates() {
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
   const httpClient = useHttpClient()
+  const aiAvailability = useAiAvailability()
 
   const openLocalProject = vueQuery.useMutation(
     backendMutationOptions('openProject', backends.localBackend),
@@ -426,6 +428,11 @@ export function useProjectStates() {
     const suggestionDb = scope.run(() => createSuggestionDbStore(store, projectNames))!
     const module = await scope.run(() => createModuleStore(store, projectNames, suggestionDb))!
     if (!module.ok) return module
+
+    // Resolve the local Claude agent's availability before declaring the project initialized.
+    // The Component Browser reads the cached value synchronously when opened, and a deferred
+    // probe would race with the user clicking "new node" right after the editor mounts.
+    await aiAvailability.promise
 
     return scope.run(() => {
       const graph = createGraphStore(store, suggestionDb, projectNames, module.value)

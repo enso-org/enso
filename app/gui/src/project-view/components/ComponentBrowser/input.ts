@@ -69,9 +69,9 @@ export type ComponentBrowserMode = ComponentBrowserInterpretation['mode']
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
+  aiAvailable: ToValue<boolean> = () => false,
   graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
   suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
-  aiAvailable: ToValue<boolean> = () => false,
 ) {
   const text = ref('')
   const cbUsage = ref<Usage>()
@@ -197,6 +197,7 @@ export function useComponentBrowserInput(
   }
 
   function switchToCodeEditMode() {
+    if (modeLocked.value) return
     appliedSuggestion.value = undefined
     selectedMode.value = 'codeEditing'
   }

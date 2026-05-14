@@ -13,7 +13,7 @@ import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const { selectedMode, aiAvailable, modeLocked, codeEditIcon, asPort } = defineProps<{
   selectedMode: ComponentBrowserMode
@@ -70,9 +70,12 @@ const currentIcon = computed<Icon>(() => {
   return codeEditIcon
 })
 
+const dropdownOpen = ref(false)
+
 function pickMode(mode: ComponentBrowserMode, disabled: boolean): void {
   if (disabled) return
   emit('update:selectedMode', mode)
+  dropdownOpen.value = false
 }
 </script>
 
@@ -82,7 +85,13 @@ function pickMode(mode: ComponentBrowserMode, disabled: boolean): void {
       <SvgIcon :name="currentIcon" />
     </div>
   </div>
-  <DropdownMenu v-else class="ModeMenu" title="Switch component browser mode" showArrow="always">
+  <DropdownMenu
+    v-else
+    v-model:open="dropdownOpen"
+    class="ModeMenu"
+    title="Switch component browser mode"
+    showArrow="always"
+  >
     <template #button>
       <div class="iconDisc" :class="{ port: asPort }">
         <SvgIcon :name="currentIcon" />

@@ -52,7 +52,6 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
-import { provideAiAvailability } from '@/stores/aiAvailability'
 import { provideOngoingAiPrompts } from '@/stores/ongoingAiPrompts'
 import { providePersisted } from '@/stores/persisted'
 import { provideVisualizationStore } from '@/stores/visualization'
@@ -99,7 +98,6 @@ provideLanguageSupportExtensions({
 })
 
 const nodeExecution = provideNodeExecution(projectStore)
-provideAiAvailability()
 const aiPrompts = provideOngoingAiPrompts()
 useAiToolHandler(aiPrompts)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -521,6 +519,10 @@ function commitComponentBrowser(
 }
 
 function handleAiAccepted(payload: AiPromptSubmission) {
+  if (payload.prompt.trim() === '') {
+    hideComponentBrowser()
+    return
+  }
   const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
   if (!graphStore.currentMethod.ast.ok || currentMethodName == null) {
     toasts.userActionFailed.show('Cannot create AI component: no current method loaded.')
@@ -534,7 +536,7 @@ function handleAiAccepted(payload: AiPromptSubmission) {
     return
   }
   if (payload.editing != null) {
-    aiPrompts.enqueueEdit({
+    const result = aiPrompts.enqueueEdit({
       prompt: payload.prompt,
       sourceIdentifier: payload.sourceIdentifier,
       methodId: methodAst.externalId,
@@ -542,6 +544,7 @@ function handleAiAccepted(payload: AiPromptSubmission) {
       methodName: currentMethodName,
       editNodeId: payload.editing.nodeId,
     })
+    if (!result.ok) toasts.userActionFailed.reportError(result.error, 'Cannot edit AI prompt')
   } else {
     aiPrompts.enqueue({
       prompt: payload.prompt,

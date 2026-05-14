@@ -214,6 +214,7 @@ describe('updateAiNode', () => {
       edit,
       topLevel,
       assignment: mutableAssignment,
+      currentMethodName: 'main',
       prompt: 'rewritten',
       response: exampleResponse({
         functionName: 'ai_rewritten',
@@ -255,8 +256,66 @@ describe('updateAiNode', () => {
       edit,
       topLevel,
       assignment: mutableAssignment,
+      currentMethodName: 'main',
       prompt: 'rewritten',
       response: exampleResponse({ functionName: 'Not An Identifier!' }),
+    })
+    expect(result.ok).toBe(false)
+  })
+
+  test('rejects when the agent returns an invalid argument name', () => {
+    const { edit, topLevel } = buildModule()
+    createAiNode({
+      edit,
+      topLevel,
+      currentMethodName: 'main',
+      binding: unwrap(tryIdentifier('ai_node1')),
+      position: Vec2.Zero,
+      payload: { prompt: 'p', response: exampleResponse() },
+    })
+    const mainStatement = Ast.findModuleMethod(topLevel, 'main')!.statement
+    const assignmentId = [...mainStatement.bodyAsBlock().statements()].find(
+      (st): st is Ast.Assignment =>
+        st instanceof Ast.Assignment && st.pattern.code() === 'ai_node1',
+    )!.id
+    const mutableAssignment = edit.get(assignmentId) as Ast.MutableAssignment
+    const result = updateAiNode({
+      edit,
+      topLevel,
+      assignment: mutableAssignment,
+      currentMethodName: 'main',
+      prompt: 'rewritten',
+      response: exampleResponse({
+        argumentNames: ['Bad Name!'],
+        callArguments: ['x'],
+      }),
+    })
+    expect(result.ok).toBe(false)
+  })
+
+  test('rejects when callArguments and argumentNames have mismatched lengths', () => {
+    const { edit, topLevel } = buildModule()
+    createAiNode({
+      edit,
+      topLevel,
+      currentMethodName: 'main',
+      binding: unwrap(tryIdentifier('ai_node1')),
+      position: Vec2.Zero,
+      payload: { prompt: 'p', response: exampleResponse() },
+    })
+    const mainStatement = Ast.findModuleMethod(topLevel, 'main')!.statement
+    const assignmentId = [...mainStatement.bodyAsBlock().statements()].find(
+      (st): st is Ast.Assignment =>
+        st instanceof Ast.Assignment && st.pattern.code() === 'ai_node1',
+    )!.id
+    const mutableAssignment = edit.get(assignmentId) as Ast.MutableAssignment
+    const result = updateAiNode({
+      edit,
+      topLevel,
+      assignment: mutableAssignment,
+      currentMethodName: 'main',
+      prompt: 'rewritten',
+      response: exampleResponse({ argumentNames: ['a', 'b'], callArguments: ['x'] }),
     })
     expect(result.ok).toBe(false)
   })
@@ -281,6 +340,7 @@ describe('updateAiNode', () => {
       edit,
       topLevel,
       assignment: mutableAssignment,
+      currentMethodName: 'main',
       prompt: 'updated',
       response: exampleResponse({ body: 'arg1 + 99' }),
     })
@@ -291,5 +351,124 @@ describe('updateAiNode', () => {
     // old definition was removed first so there is no collision to resolve.
     expect(moduleCode).not.toMatch(/ai_generated_\d+\b/)
     expect(moduleCode).toContain('arg1 + 99')
+  })
+
+  test('falls back to fresh insertion when the previous FunctionDef has been removed', () => {
+    const { edit, topLevel } = buildModule()
+    createAiNode({
+      edit,
+      topLevel,
+      currentMethodName: 'main',
+      binding: unwrap(tryIdentifier('ai_node1')),
+      position: Vec2.Zero,
+      payload: { prompt: 'original', response: exampleResponse() },
+    })
+    // Simulate the user manually deleting the AI-generated top-level FunctionDef.
+    const oldFn = Ast.findModuleMethod(topLevel, 'ai_generated')!.statement
+    const mutableOldFn = edit.get(oldFn.id) as Ast.MutableFunctionDef
+    Ast.deleteFromParentBlock(mutableOldFn)
+    expect(Ast.findModuleMethod(topLevel, 'ai_generated')).toBeUndefined()
+
+    const mainStatement = Ast.findModuleMethod(topLevel, 'main')!.statement
+    const assignmentId = [...mainStatement.bodyAsBlock().statements()].find(
+      (st): st is Ast.Assignment =>
+        st instanceof Ast.Assignment && st.pattern.code() === 'ai_node1',
+    )!.id
+    const mutableAssignment = edit.get(assignmentId) as Ast.MutableAssignment
+
+    const result = updateAiNode({
+      edit,
+      topLevel,
+      assignment: mutableAssignment,
+      currentMethodName: 'main',
+      prompt: 'rewritten',
+      response: exampleResponse({ functionName: 'ai_recovered', body: 'arg1' }),
+    })
+    expect(result.ok).toBe(true)
+    const moduleCode = topLevel.code()
+    expect(moduleCode).toContain('ai_recovered arg1')
+    expect(moduleCode).toContain('ai_node1 = Main.ai_recovered x')
+    expect(moduleCode.indexOf('ai_recovered')).toBeLessThan(moduleCode.indexOf('main'))
+  })
+
+  test('rejects fallback when the enclosing method cannot be located', () => {
+    const { edit, topLevel } = buildModule()
+    createAiNode({
+      edit,
+      topLevel,
+      currentMethodName: 'main',
+      binding: unwrap(tryIdentifier('ai_node1')),
+      position: Vec2.Zero,
+      payload: { prompt: 'p', response: exampleResponse() },
+    })
+    const oldFn = Ast.findModuleMethod(topLevel, 'ai_generated')!.statement
+    const mutableOldFn = edit.get(oldFn.id) as Ast.MutableFunctionDef
+    Ast.deleteFromParentBlock(mutableOldFn)
+    const mainStatement = Ast.findModuleMethod(topLevel, 'main')!.statement
+    const assignmentId = [...mainStatement.bodyAsBlock().statements()].find(
+      (st): st is Ast.Assignment =>
+        st instanceof Ast.Assignment && st.pattern.code() === 'ai_node1',
+    )!.id
+    const mutableAssignment = edit.get(assignmentId) as Ast.MutableAssignment
+
+    const result = updateAiNode({
+      edit,
+      topLevel,
+      assignment: mutableAssignment,
+      currentMethodName: 'nonexistent_method',
+      prompt: 'rewritten',
+      response: exampleResponse(),
+    })
+    expect(result.ok).toBe(false)
+  })
+
+  test('preserves all node metadata across an edit', () => {
+    const { edit, topLevel } = buildModule()
+    createAiNode({
+      edit,
+      topLevel,
+      currentMethodName: 'main',
+      binding: unwrap(tryIdentifier('ai_node1')),
+      position: new Vec2(42, 17),
+      payload: { prompt: 'original', response: exampleResponse() },
+    })
+    const mainStatement = Ast.findModuleMethod(topLevel, 'main')!.statement
+    const assignment = [...mainStatement.bodyAsBlock().statements()].find(
+      (st): st is Ast.Assignment =>
+        st instanceof Ast.Assignment && st.pattern.code() === 'ai_node1',
+    )!
+    const callBefore = edit.get(assignment.expression.id)!
+    // Decorate the call expression with the full range of node-metadata fields the user might
+    // have set, plus an arbitrary widget metadata blob.
+    callBefore.setNodeMetadata({
+      colorOverride: '#abcdef',
+      displayMode: 'collapsed',
+      visualization: {
+        identifier: { module: { kind: 'CurrentProject' }, name: 'Table' },
+        visible: true,
+        width: 320,
+        height: 240,
+      },
+    })
+    callBefore.setWidgetMetadata('myWidget', { someState: 7 })
+    const mutableAssignment = edit.get(assignment.id) as Ast.MutableAssignment
+
+    const result = updateAiNode({
+      edit,
+      topLevel,
+      assignment: mutableAssignment,
+      currentMethodName: 'main',
+      prompt: 'rewritten',
+      response: exampleResponse({ functionName: 'ai_v2', body: 'arg1 * 2' }),
+    })
+    expect(result.ok).toBe(true)
+
+    const newExpr = mutableAssignment.expression
+    const meta = newExpr.nodeMetadata
+    expect(meta.get('position')).toEqual({ x: 42, y: 17 })
+    expect(meta.get('colorOverride')).toBe('#abcdef')
+    expect(meta.get('displayMode')).toBe('collapsed')
+    expect(meta.get('visualization')?.identifier?.name).toBe('Table')
+    expect(newExpr.widgetMetadata('myWidget')).toEqual({ someState: 7 })
   })
 })

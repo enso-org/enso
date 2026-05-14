@@ -23,6 +23,7 @@ import { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import type { AiComponentResponse, AiEditContext, AiProgressEvent } from 'enso-common/src/ai'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, onScopeDispose, reactive } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
@@ -203,13 +204,12 @@ function ongoingAiPromptsStoreFactory() {
   /**
    * Enqueue an edit of an existing AI node. Captures the previous prompt and the previous
    * function definition source at enqueue time so the agent sees a stable snapshot even if the
-   * AST is mutated while the request is in flight.
+   * AST is mutated while the request is in flight. Returns the placeholder id.
    */
-  function enqueueEdit(args: EnqueueEditArgs): string {
+  function enqueueEdit(args: EnqueueEditArgs): Result<string> {
     const node = graphStore.db.nodeIdToNode.get(args.editNodeId)
     if (!node || !isAiAssignment(node.outerAst)) {
-      toastError.show('Cannot edit AI prompt: node is no longer an AI-generated component.')
-      return ''
+      return Err('Node is no longer an AI-generated component.')
     }
     const previousPrompt = readAiPrompt(nodeDocumentationText(node)) ?? ''
     const topLevel = module.value.root
@@ -240,7 +240,7 @@ function ongoingAiPromptsStoreFactory() {
     }
     entries.set(id, placeholder)
     void kickDispatcher()
-    return id
+    return Ok(id)
   }
 
   /**
@@ -370,15 +370,13 @@ function ongoingAiPromptsStoreFactory() {
         const mutableTopLevel = edit.getVersion(topLevel)
         const mutableAssignment = edit.get(assignmentId)
         if (!(mutableAssignment instanceof Ast.MutableAssignment)) {
-          return {
-            ok: false,
-            error: new Error('Cannot resolve edited AI node in module edit.'),
-          } as never
+          return Err('Cannot resolve edited AI node in module edit.')
         }
         return updateAiNode({
           edit,
           topLevel: mutableTopLevel,
           assignment: mutableAssignment,
+          currentMethodName: entry.methodName,
           prompt: entry.prompt,
           response,
         })

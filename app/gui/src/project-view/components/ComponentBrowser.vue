@@ -193,9 +193,8 @@ const selectedSuggestion = computed(() => {
 
 // === Input and Filtering ===
 
-const aiAvailability = useAiAvailability()
-const aiAvailable = toRef(aiAvailability, 'available')
-const input = useComponentBrowserInput(undefined, undefined, aiAvailable)
+const aiAvailable = toRef(useAiAvailability(), 'availability')
+const input = useComponentBrowserInput(aiAvailable)
 
 onUnmounted(() => {
   graphStore.cbEditedEdge = undefined
@@ -257,7 +256,8 @@ const nodeColor = computed(() => {
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
 const previewedSuggestionTypeInfo = computed(() => {
-  const appliedEntry = input.interpretation.mode === 'codeEditing' ? input.interpretation.appliedSuggestion : undefined
+  const appliedEntry =
+    input.interpretation.mode === 'codeEditing' ? input.interpretation.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
@@ -333,12 +333,10 @@ function acceptInput() {
 
 function acceptAiInput() {
   if (input.interpretation.mode !== 'aiPrompt') return
-  // When the CB was opened on an existing AI node, `reset()` sets `modeLocked` to `true` and
-  // selects `aiPrompt` — that's the signal that this submission is an edit of `usage.node`.
+  // Reaching `aiPrompt` mode on an `editNode` usage means `reset()` recognised an AI assignment
+  // and locked the mode to it — that's the signal that this submission is an edit of `usage.node`.
   const editing =
-    props.usage.type === 'editNode' && input.modeLocked ?
-      ({ nodeId: props.usage.node } as const)
-    : undefined
+    props.usage.type === 'editNode' ? ({ nodeId: props.usage.node } as const) : undefined
   emit('acceptedAi', {
     prompt: input.interpretation.prompt,
     sourceIdentifier: input.selfArgument,
