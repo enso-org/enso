@@ -292,7 +292,10 @@ export function useComponentBrowserInput(
         break
       case 'editNode': {
         const editedNode = graphDbValue.nodeIdToNode.get(usage.node)
-        if (editedNode && isAiAssignment(editedNode.outerAst)) {
+        // An AI assignment opens in AI-prompt mode only if AI is currently available; without
+        // a live agent there is no way to submit a new prompt, so fall through to code
+        // editing instead of leaving the user staring at a disabled AI mode.
+        if (editedNode && isAiAssignment(editedNode.outerAst) && toValue(aiAvailable)) {
           const prompt = readAiPrompt(nodeDocumentationText(editedNode)) ?? ''
           selectedMode.value = 'aiPrompt'
           sourceNodeIdentifier.value = undefined

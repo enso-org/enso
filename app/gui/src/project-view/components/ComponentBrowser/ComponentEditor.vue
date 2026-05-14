@@ -78,7 +78,11 @@ const rootStyle = computed(() => {
 </script>
 
 <template>
-  <div class="ComponentEditor define-node-colors" :style="rootStyle">
+  <div
+    class="ComponentEditor define-node-colors"
+    :class="{ asNewNode: props.usage.type !== 'editNode' }"
+    :style="rootStyle"
+  >
     <ModeMenu
       :selectedMode="props.selectedMode"
       :aiAvailable="props.aiAvailable"
@@ -116,6 +120,16 @@ const rootStyle = computed(() => {
   flex-direction: row;
   gap: 8px;
   align-items: center;
+}
+
+/*
+ * When the CB is creating a new node (no underlying node to align with), nudge the leading
+ * port disc inward so its center lands on the rounded corner's curvature instead of clinging
+ * to the left edge. In edit mode we keep the standard inset so the disc sits where the
+ * original node's port was.
+ */
+.ComponentEditor.asNewNode {
+  padding-left: 10px;
 }
 
 :deep(.cm-editor) {

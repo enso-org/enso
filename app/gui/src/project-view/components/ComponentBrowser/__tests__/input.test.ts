@@ -179,6 +179,16 @@ describe('useComponentBrowserInput mode selection', () => {
     expect(input.interpretation.prompt).toBe('count things')
   })
 
+  test('editNode on an AI assignment falls back to codeEditing when AI is unavailable', () => {
+    const input = useComponentBrowserInput(mockGraphDbWithAiNode(), new SuggestionDb(), () => false)
+    input.reset({ type: 'editNode', node: aiNodeId, cursorPos: 0 })
+    expect(input.selectedMode).toBe('codeEditing')
+    expect(input.modeLocked).toBe(true)
+    assert(input.interpretation.mode === 'codeEditing')
+    // The original AI call expression is shown for inline editing.
+    expect(input.text).toBe('Main.ai_generated 0')
+  })
+
   test('editNode on a non-AI assignment locks into codeEditing', () => {
     const input = useComponentBrowserInput(mockGraphDbWithAiNode(), new SuggestionDb(), () => true)
     input.reset({ type: 'editNode', node: codeNodeId, cursorPos: 0 })

@@ -112,27 +112,36 @@ function pickMode(mode: ComponentBrowserMode, disabled: boolean): void {
 
 <style scoped>
 .ModeMenu {
-  /*
-   * The trigger sits in a `DropdownMenu` whose root has `margin: -4px` (so its hover
-   * highlight visually "bleeds" into adjacent toolbar buttons in the normal usage). Our
-   * usage is the opposite — we want a tight, self-contained port disc — so compensate
-   * with matching `padding: 4px` here. With matching numbers the disc lands flush around
-   * the 24px (icon + `--button-padding`) trigger button.
-   */
-  padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /*
+   * Push the arrow indicator further below the port disc so it lands fully on the
+   * surrounding white background, instead of straddling the edge of the colored circle.
+   */
+  --arrow-offset: 4px;
 }
 
-.ModeMenu.port {
+/*
+ * Paint the port disc on the trigger `MenuButton` itself rather than on this wrapper. The
+ * disc then shares its bounds with the button's hover highlight by construction — they
+ * occupy the same circle. The icon stays white against the colored disc; the arrow lives
+ * outside the button and inherits the app default color so it remains legible.
+ */
+.ModeMenu.port :deep(.MenuButton) {
   background-color: var(--color-edge-from-node);
   color: white;
-  border-radius: var(--radius-full);
 }
 
 .ModeMenu.locked {
   cursor: default;
+}
+
+.ModeMenu.locked.port {
+  background-color: var(--color-edge-from-node);
+  color: white;
+  border-radius: var(--radius-full);
+  padding: var(--button-padding, 4px);
 }
 
 .modeMenuPanel {
