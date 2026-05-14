@@ -2,13 +2,12 @@
 
 #### Enso IDE
 
-- AI mode in the Component Browser is now a first-class option, with a
-  three-way mode switch (robot / search / code) accessible by clicking the
-  icon next to the Component Browser input. The mode defaults to AI when the
-  local `claude` CLI is found, and to component search otherwise. Existing
-  AI nodes can be edited by reopening the Component Browser on them — the
-  prior prompt is sent back to the agent so the function definition is
-  rewritten in place.
+- AI mode in the Component Browser is now a first-class option, with a three-way
+  mode switch (robot / search / code) accessible by clicking the icon next to
+  the Component Browser input. The mode defaults to AI when the local `claude`
+  CLI is found, and to component search otherwise. Existing AI nodes can be
+  edited by reopening the Component Browser on them — the prior prompt is sent
+  back to the agent so the function definition is rewritten in place.
 
 #### Enso Language & Runtime
 

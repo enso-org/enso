@@ -713,9 +713,11 @@ describe('initClaudeAgentIpc', () => {
 
     const generateHandler = handleCalls.find((call) => call[0] === Channel.generateAiComponent)?.[1]
     expect(generateHandler).toBeDefined()
-    const reply = await (generateHandler as () => Promise<{
-      result: { ok: boolean; error?: { payload: string } }
-    }>)()
+    const reply = await (
+      generateHandler as () => Promise<{
+        result: { ok: boolean; error?: { payload: string } }
+      }>
+    )()
     expect(reply.result.ok).toBe(false)
     if (!reply.result.ok) expect(reply.result.error!.payload).toMatch(/ENSO_AI_DISABLED/)
 

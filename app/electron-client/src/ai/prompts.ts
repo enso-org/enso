@@ -141,7 +141,9 @@ ${otherBindingsList}
 User request: ${prompt}`
 }
 
-function formatEditContextSection(editContext: NonNullable<AiComponentRequest['context']['editContext']>): string {
+function formatEditContextSection(
+  editContext: NonNullable<AiComponentRequest['context']['editContext']>,
+): string {
   const previousDefinitionBlock =
     editContext.previousDefinition != null ?
       `\n\nPrevious function definition:

@@ -40,9 +40,7 @@ async function resolveLastRequest(
   }, reply)
 }
 
-async function readLastRequest(
-  page: Page,
-): Promise<{
+async function readLastRequest(page: Page): Promise<{
   prompt: string
   editContext?: { previousPrompt: string; previousDefinition?: string }
 }> {
@@ -108,10 +106,7 @@ test('Editing an existing AI node sends prior prompt + definition and updates th
   await expect(aiNode.locator('.WidgetAiPrompt')).toHaveText('second prompt')
 })
 
-test('Cancelling an in-flight AI edit restores the original node', async ({
-  editorPage,
-  page,
-}) => {
+test('Cancelling an in-flight AI edit restores the original node', async ({ editorPage, page }) => {
   await editorPage
 
   await locate.addNewNodeButton(page).click()
