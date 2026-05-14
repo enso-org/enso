@@ -309,10 +309,10 @@ describe('ChildAgent', () => {
     child.shutdown()
   })
 
-  test('cancelInFlight: no control_response within the fallback window escalates to SIGINT', async () => {
+  test('cancelInFlight: no control_response within the fallback window escalates to SIGTERM', async () => {
     // Older or unhealthy CLI builds may not honor `control_request`. After
-    // `CANCEL_CONTROL_FALLBACK_MS` of silence we escalate to SIGINT (and the existing
-    // SIGTERM-after-2s watchdog), trading warm context for a guaranteed cancel.
+    // `CANCEL_CONTROL_FALLBACK_MS` of silence we escalate to SIGTERM (and the
+    // SIGKILL-after-2s watchdog), trading warm context for a guaranteed cancel.
     const { child, children } = buildChild()
     await primeChild(children[0]!)
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
@@ -326,16 +326,16 @@ describe('ChildAgent', () => {
     // Pre-fallback: isReady is still true; the in-band path expects the CLI to respond.
     expect(child.isReady).toBe(true)
 
-    // Advance past the control-response fallback window — SIGINT escalation fires.
+    // Advance past the control-response fallback window — SIGTERM escalation fires.
     await vi.advanceTimersByTimeAsync(1_100)
-    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    expect(children[0]!.killCalls[0]).toBe('SIGTERM')
     // The escalation pre-swaps the ready deferred so the next queue task awaits the upcoming
     // respawn's prime instead of racing past a stale resolved deferred.
     expect(child.isReady).toBe(false)
     child.shutdown()
   })
 
-  test('cancelInFlight: control_response error escalates to SIGINT immediately', async () => {
+  test('cancelInFlight: control_response error escalates to SIGTERM immediately', async () => {
     const { child, children } = buildChild()
     await primeChild(children[0]!)
     const turn1 = child.runTurn('go', 60_000, fakeSender(), 'req-1')
@@ -356,7 +356,7 @@ describe('ChildAgent', () => {
       }),
     )
     await settle()
-    expect(children[0]!.killCalls[0]).toBe('SIGINT')
+    expect(children[0]!.killCalls[0]).toBe('SIGTERM')
     expect(child.isReady).toBe(false)
     await turn1 // already resolved synchronously by cancelInFlight
     child.shutdown()

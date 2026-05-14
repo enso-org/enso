@@ -355,12 +355,16 @@ Findings from the probe at the time the long-lived design landed:
 
   **Fallback ladder.** If no `control_response` arrives within
   `CANCEL_CONTROL_FALLBACK_MS` (1000 ms), or if the CLI replies
-  `subtype: error`, `escalateSignalCancel` takes over: SIGINT now,
-  SIGTERM after `CANCEL_SIGINT_TO_SIGTERM_MS` (2000 ms) if the child is still
-  alive. The escalation path also pre-swaps `readyDeferred` and arms the
-  `cancelInProgress` flag (since the child *does* exit on this path) so the
-  next queue task's `await primary.ready` synchronizes on the upcoming
-  respawn's prime instead of racing past a stale resolved deferred.
+  `subtype: error`, `escalateSignalCancel` takes over: SIGTERM now,
+  SIGKILL after `CANCEL_SIGTERM_TO_SIGKILL_MS` (2000 ms) if the child is still
+  alive. SIGINT is intentionally skipped — once we've decided to escalate,
+  the goal is a guaranteed exit so the watcher can respawn; SIGTERM is the
+  polite shutdown (the child exits in ~220 ms with code 143 — see the
+  stream-json wire-format section), and SIGKILL is the hammer for the rare
+  case SIGTERM is ignored. The escalation path also pre-swaps `readyDeferred`
+  and arms the `cancelInProgress` flag (since the child *does* exit on this
+  path) so the next queue task's `await primary.ready` synchronizes on the
+  upcoming respawn's prime instead of racing past a stale resolved deferred.
   `onUnexpectedExit` honors the flag and leaves the new pending deferred alone
   (the auto-respawn's `onChildStarted` → `prime` resolves it). The common path
   doesn't touch `readyDeferred` — the child stays alive and primed.

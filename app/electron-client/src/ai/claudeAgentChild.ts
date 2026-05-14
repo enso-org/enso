@@ -36,15 +36,15 @@ export const PRIMING_REQUEST_ID = 'priming'
  */
 export const PRIMING_TIMEOUT_MS = 180_000
 
-/** SIGINT (graceful) to SIGTERM (force respawn) escalation window during cancellation. */
-const CANCEL_SIGINT_TO_SIGTERM_MS = 2_000
+/** SIGTERM (graceful exit) to SIGKILL (force kill) escalation window during cancellation. */
+const CANCEL_SIGTERM_TO_SIGKILL_MS = 2_000
 
 /**
  * How long to wait for the `control_response` to a `control_request`/`interrupt` envelope
  * before we conclude the CLI either doesn't speak the control protocol or is stuck, and
- * escalate the cancel to SIGINT (followed by the {@link CANCEL_SIGINT_TO_SIGTERM_MS} watchdog).
- * Modern Claude Code (2.x+ stream-json mode) answers within milliseconds; the cushion is for
- * older or unhealthy builds.
+ * escalate the cancel to SIGTERM (followed by the {@link CANCEL_SIGTERM_TO_SIGKILL_MS}
+ * watchdog). Modern Claude Code (2.x+ stream-json mode) answers within milliseconds; the
+ * cushion is for older or unhealthy builds.
  */
 const CANCEL_CONTROL_FALLBACK_MS = 1_000
 
@@ -202,6 +202,19 @@ const controlResponseEnvelopeSchema = z.object({
   }),
 })
 /* eslint-enable camelcase */
+
+/**
+ * Every envelope type the parser dispatches on. Discriminating on `type` in a single parse
+ * pass cuts repeated `safeParse` work and lets the dispatch switch enforce exhaustiveness as
+ * new envelope types are added. Other envelope types the CLI emits (`system:init`, the
+ * synthetic interrupt user echo, `rate_limit_event`, unknown future types) fail the schema
+ * and are dropped silently.
+ */
+const stdoutEnvelopeSchema = z.discriminatedUnion('type', [
+  assistantEnvelopeSchema,
+  controlResponseEnvelopeSchema,
+  resultEnvelopeSchema,
+])
 
 /** Token-usage shape the CLI surfaces on every assistant/result envelope. */
 export type RawTokenUsage = z.infer<typeof tokenUsageSchema>
@@ -446,7 +459,7 @@ export class ChildAgent {
    * with a cancellation `Err` and writes a `control_request`/`interrupt` envelope to stdin —
    * the SDK-shaped in-band cancel that aborts the HTTPS stream without exiting the child, so
    * the next turn reuses the same primed context. If no `control_response` lands within
-   * {@link CANCEL_CONTROL_FALLBACK_MS} we escalate to SIGINT (and SIGTERM-after-2s). Returns
+   * {@link CANCEL_CONTROL_FALLBACK_MS} we escalate to SIGTERM (and SIGKILL-after-2s). Returns
    * `true` iff cancellation took effect.
    */
   cancelInFlight(requestId: string): boolean {
@@ -603,24 +616,21 @@ export class ChildAgent {
   }
 
   private onStdoutLine(line: string): void {
-    const envelope = parseJsonSafe(line)
-    if (envelope == null) return
-    const assistant = assistantEnvelopeSchema.safeParse(envelope)
-    if (assistant.success) {
-      this.captureAssistantContent(assistant.data)
-      return
+    const json = parseJsonSafe(line)
+    if (json == null) return
+    const parsed = stdoutEnvelopeSchema.safeParse(json)
+    if (!parsed.success) return
+    switch (parsed.data.type) {
+      case 'assistant':
+        this.captureAssistantContent(parsed.data)
+        return
+      case 'control_response':
+        this.handleControlResponse(parsed.data)
+        return
+      case 'result':
+        this.resolveTerminal(parsed.data)
+        return
     }
-    const controlResp = controlResponseEnvelopeSchema.safeParse(envelope)
-    if (controlResp.success) {
-      this.handleControlResponse(controlResp.data)
-      return
-    }
-    const result = resultEnvelopeSchema.safeParse(envelope)
-    if (result.success) {
-      this.resolveTerminal(result.data)
-    }
-    // Other envelope types (system init, synthetic interrupt user echo, rate_limit_event,
-    // unknown): ignore.
   }
 
   private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
@@ -719,7 +729,7 @@ export class ChildAgent {
       this.pendingInterruptId = null
       const labelTag = this.config.logLabel ? `:${this.config.logLabel}` : ''
       console.warn(
-        `[AI${labelTag}] no control_response within ${CANCEL_CONTROL_FALLBACK_MS}ms; escalating to SIGINT`,
+        `[AI${labelTag}] no control_response within ${CANCEL_CONTROL_FALLBACK_MS}ms; escalating to SIGTERM`,
       )
       const stillCurrent = this.watcher.current
       if (stillCurrent != null && stillCurrent.alive) {
@@ -729,10 +739,11 @@ export class ChildAgent {
   }
 
   /**
-   * Fallback ladder used when the CLI rejects (or ignores) the in-band interrupt. SIGINT now,
-   * SIGTERM after {@link CANCEL_SIGINT_TO_SIGTERM_MS}. This path *does* exit the child, so swap
-   * `readyDeferred` synchronously and arm {@link cancelInProgress} so `onUnexpectedExit` leaves
-   * the new pending deferred alone (the upcoming respawn's prime will resolve it).
+   * Fallback ladder used when the CLI rejects (or ignores) the in-band interrupt. SIGTERM
+   * now, SIGKILL after {@link CANCEL_SIGTERM_TO_SIGKILL_MS}. This path *does* exit the child,
+   * so swap `readyDeferred` synchronously and arm {@link cancelInProgress} so
+   * `onUnexpectedExit` leaves the new pending deferred alone (the upcoming respawn's prime
+   * will resolve it).
    */
   private escalateSignalCancel(handle: ChildProcessHandle): void {
     this.pendingInterruptId = null
@@ -740,7 +751,7 @@ export class ChildAgent {
     this.cancelInProgress = true
     this.swapInReadyDeferred()
     try {
-      handle.child.kill('SIGINT')
+      handle.child.kill('SIGTERM')
     } catch {
       // ignore — already exiting
     }
@@ -749,11 +760,11 @@ export class ChildAgent {
       if (stillAliveHandle == null || !stillAliveHandle.alive) return
       if (stillAliveHandle !== handle) return
       try {
-        stillAliveHandle.child.kill('SIGTERM')
+        stillAliveHandle.child.kill('SIGKILL')
       } catch {
         // ignore
       }
-    }, CANCEL_SIGINT_TO_SIGTERM_MS)
+    }, CANCEL_SIGTERM_TO_SIGKILL_MS)
   }
 
   private handleControlResponse(env: z.infer<typeof controlResponseEnvelopeSchema>): void {
@@ -766,7 +777,7 @@ export class ChildAgent {
       if (handle == null || !handle.alive) return
       const labelTag = this.config.logLabel ? `:${this.config.logLabel}` : ''
       console.warn(
-        `[AI${labelTag}] interrupt control_request rejected (${env.response.error ?? 'no detail'}); escalating to SIGINT`,
+        `[AI${labelTag}] interrupt control_request rejected (${env.response.error ?? 'no detail'}); escalating to SIGTERM`,
       )
       this.escalateSignalCancel(handle)
     }
