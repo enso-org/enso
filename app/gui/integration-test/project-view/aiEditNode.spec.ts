@@ -75,7 +75,7 @@ test('Editing an existing AI node sends prior prompt + definition and updates th
   await aiNode.click({ modifiers: [isMac ? 'Meta' : 'Control'] })
   await expect(locate.componentBrowser(page)).toBeVisible()
   // The CB's CodeMirror content is pre-filled with the previous prompt; the icon menu is locked.
-  await expect(page.locator('.componentEditorIcon.port .ModeMenu.locked')).toBeVisible()
+  await expect(page.locator('.ModeMenu.locked')).toBeVisible()
   // Replace the prompt — Mod+A then type to overwrite the prefilled text.
   await page.keyboard.press(isMac ? 'Meta+A' : 'Control+A')
   await page.keyboard.type('second prompt')
