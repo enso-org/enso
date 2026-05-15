@@ -51,14 +51,14 @@ import {
   loginAsTestUser,
   test,
   visualizeData,
-  withFeedbackWatchdog,
 } from './electronTest'
 
 const DATASETS_DIR = process.env.ENSO_TEST_AI_CHALLENGES_DIR
 const METRICS_DIR = process.env.ENSO_AI_CHALLENGES_METRICS_DIR
-// Per-prompt budget upper bound; the real safety net is `AI_PROMPT_MAX_IDLE_MS` below.
+// 15-min per-prompt ceiling. Stall detection lives in the main process: a turn whose stream-json
+// channel falls silent for `IDLE_TIMEOUT_MS` (5 min) errors out and fails this assertion well
+// before the per-prompt budget. No test-side watchdog — the prompt-failure signal is enough.
 const AI_PROMPT_TIMEOUT_MS = 900_000
-const AI_PROMPT_MAX_IDLE_MS = 60_000
 const MANUAL_NODE_TIMEOUT_MS = 30_000
 
 // `app/electron-client/tests/aiChallengePrep.spec.ts` → repo root is three `..` up, matching
@@ -212,12 +212,7 @@ async function runAIPromptOnLastNode(page: Page, prompt: string, expectedNodeCou
   await expect(cbInput).toBeVisible()
   await page.keyboard.insertText(prompt)
   await page.keyboard.press('Enter')
-  // 15-min upper bound paired with a 60-s placeholder-text-stall watchdog: the realistic
-  // happy-path completion is unchanged, but a stuck turn surfaces fast instead of consuming
-  // the whole budget.
-  await withFeedbackWatchdog(page, { maxIdleMs: AI_PROMPT_MAX_IDLE_MS }, () =>
-    expect(graphNodes).toHaveCount(expectedNodeCount, { timeout: AI_PROMPT_TIMEOUT_MS }),
-  )
+  await expect(graphNodes).toHaveCount(expectedNodeCount, { timeout: AI_PROMPT_TIMEOUT_MS })
   await assertNoNodeErrors(page, `AI prompt: ${prompt}`)
   // AI-generated nodes are NOT auto-selected after creation (unlike CB-typed nodes — see
   // localWorkflow.spec.ts:120). Without this re-selection, the next iteration's Enter would
@@ -231,9 +226,9 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
   page,
 }, testInfo) => {
   // 9 AI calls × up to 15 min each upper bound, plus 4 manual source nodes and the final
-  // visualization. The realistic wall clock is far smaller because the per-prompt watchdog
-  // (60-s placeholder-text-stall) cuts a stuck turn fast; this 120-min cap leaves slack for a
-  // few prompts genuinely running long.
+  // visualization. Realistic wall clock is far smaller; the cap leaves slack for a few prompts
+  // genuinely running long. Stuck turns surface as a 5-min idle-timeout error from the main
+  // process (`IDLE_TIMEOUT_MS`) and fail the assertion immediately — no test-side watchdog.
   test.setTimeout(120 * 60_000)
   const files = await resolveDataFiles(WEEK_32_FILES)
   const usage = collectAiUsage(page)
@@ -325,8 +320,8 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
   page,
 }, testInfo) => {
   // 6 AI calls × up to 15 min each upper bound, plus the manual source node and the final
-  // visualization. The 60-s placeholder-text-stall watchdog keeps realistic time well below
-  // this cap.
+  // visualization. Stuck turns surface as a 5-min idle-timeout error from the main process
+  // (`IDLE_TIMEOUT_MS`) and fail the assertion immediately — no test-side watchdog.
   test.setTimeout(90 * 60_000)
   const files = await resolveDataFiles(WEEK_51_FILES)
   const usage = collectAiUsage(page)

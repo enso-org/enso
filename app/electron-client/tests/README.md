@@ -59,19 +59,14 @@ enso> corepack pnpm -r --filter enso ide-integration-test tests/gettingStarted.s
 
 Two AI-driven specs are gated on env vars and skipped silently otherwise.
 
-Both specs wrap their per-prompt waits in `withFeedbackWatchdog` (see
-`electronTest.ts`): the per-prompt budget is generous (10 min for
-`aiNode.spec.ts`, 15 min for `aiChallengePrep.spec.ts`), but the watchdog fails
-the test the moment the visible AI placeholder bubble
-(`data-testid="ai-pending-status"`) sits on the same text for 60 s. The 60 s
-threshold matches the system prompt's "max 60 s between feedback" contract, so a
-stuck turn surfaces immediately instead of consuming the full per-prompt budget.
-
-The "Waiting…" / "Waiting (#N)" label gets a 10× looser threshold (10 min by
-default) — that state covers both the renderer-side queue (a previous prompt is
-still in flight) and the wait on the long-lived `claude` child priming (~36
-stdlib reads on first session start). Both can legitimately outlast 60 s for
-reasons unrelated to a stuck model.
+Per-prompt budgets are generous (10 min for `aiNode.spec.ts`, 15 min for
+`aiChallengePrep.spec.ts`) because deep-thinking turns on `--effort max` can
+genuinely run for several minutes of channel silence (the underlying API does
+not surface per-token thinking deltas). Stall detection lives in the main
+process: `IDLE_TIMEOUT_MS` (5 min) errors out a turn whose stream-json channel
+falls silent for that long, which fails the assertion well before the per-prompt
+budget. There is no test-side feedback watchdog — the prompt-failure signal is
+enough.
 
 ### `aiNode.spec.ts` — quick smoke (~1 min)
 

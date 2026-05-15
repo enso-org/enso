@@ -31,13 +31,13 @@ export const PRIMING_REQUEST_ID = 'priming'
  * Inactivity timeout for the priming turn (ms). Priming reads three CLAUDE.md files (top-level,
  * Base, Table) plus every top-level `.enso` file under `Standard.Table` (when stdlib is
  * available); ~36 tool calls before replying. Each Read fires its own `assistant` envelope, so
- * realistic gaps between envelopes are sub-second; 120 s of true idleness during priming means
+ * realistic gaps between envelopes are sub-second; 5 min of true idleness during priming means
  * the CLI is stuck. The fallback path (no stdlib) does the trivial "say READY" turn and emits a
- * single envelope well under the cap. Same value as the per-request idle cap, so the constant
- * could in principle collapse to one — kept separate for now to localise priming-specific
- * tuning if it ever needs to differ.
+ * single envelope well under the cap. Matches the per-request idle cap, so the constant could in
+ * principle collapse to one — kept separate to localise priming-specific tuning if it ever
+ * needs to differ.
  */
-export const PRIMING_IDLE_TIMEOUT_MS = 120_000
+export const PRIMING_IDLE_TIMEOUT_MS = 300_000
 
 /** SIGTERM (graceful exit) to SIGKILL (force kill) escalation window during cancellation. */
 const CANCEL_SIGTERM_TO_SIGKILL_MS = 2_000

@@ -376,14 +376,14 @@ describe('ChildAgent', () => {
     await primeChild(children[0]!)
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
 
-    const turnPromise = child.runTurn('go', 120_000, fakeSender(), 'req-1')
+    const turnPromise = child.runTurn('go', 300_000, fakeSender(), 'req-1')
     for (let i = 0; i < 4; i++) await Promise.resolve()
     expect(children[0]!.stdinWrites.length).toBeGreaterThanOrEqual(2)
 
-    await vi.advanceTimersByTimeAsync(121_000)
+    await vi.advanceTimersByTimeAsync(301_000)
     const turn = await turnPromise
     expect(turn.state).toBe('crash')
-    expect(turn.errorReason).toMatch(/no feedback for 120000ms/)
+    expect(turn.errorReason).toMatch(/no feedback for 300000ms/)
 
     // Child should NOT have been killed by the timeout.
     expect(children[0]!.killCalls).toHaveLength(0)
@@ -399,24 +399,24 @@ describe('ChildAgent', () => {
     // when we `await settle()` after each `pushStdoutLine`.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
 
-    const turnPromise = child.runTurn('go', 120_000, fakeSender(), 'req-1')
+    const turnPromise = child.runTurn('go', 300_000, fakeSender(), 'req-1')
     for (let i = 0; i < 4; i++) await Promise.resolve()
 
     // Sit just under the window twice with a text envelope in between — without the reset,
     // the second advance would have crossed the original deadline and the turn would have
     // crashed already. With the reset, only the third silent advance should fire it.
-    await vi.advanceTimersByTimeAsync(110_000)
+    await vi.advanceTimersByTimeAsync(290_000)
     children[0]!.pushStdoutLine(assistantEnvelope('still working — drafting body'))
     await settle()
-    await vi.advanceTimersByTimeAsync(110_000)
+    await vi.advanceTimersByTimeAsync(290_000)
     children[0]!.pushStdoutLine(assistantEnvelope('refining filter predicate'))
     await settle()
 
     // Third stretch goes the full window without an envelope — fires the timeout.
-    await vi.advanceTimersByTimeAsync(121_000)
+    await vi.advanceTimersByTimeAsync(301_000)
     const turn = await turnPromise
     expect(turn.state).toBe('crash')
-    expect(turn.errorReason).toMatch(/no feedback for 120000ms/)
+    expect(turn.errorReason).toMatch(/no feedback for 300000ms/)
     // Two envelopes were captured before the silent window.
     expect(turn.hopCount).toBe(2)
     expect(children[0]!.killCalls).toHaveLength(0)
@@ -432,10 +432,10 @@ describe('ChildAgent', () => {
     await primeChild(children[0]!)
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
 
-    const turnPromise = child.runTurn('go', 120_000, fakeSender(), 'req-1')
+    const turnPromise = child.runTurn('go', 300_000, fakeSender(), 'req-1')
     for (let i = 0; i < 4; i++) await Promise.resolve()
 
-    await vi.advanceTimersByTimeAsync(110_000)
+    await vi.advanceTimersByTimeAsync(290_000)
     children[0]!.pushStdoutLine(
       JSON.stringify({
         type: 'assistant',
@@ -450,16 +450,16 @@ describe('ChildAgent', () => {
     )
     await settle()
 
-    // Without the reset this would have fired at the original 120s deadline (we're at 220s
-    // total). The reset re-armed the deadline at 230s, so this advance should leave us at 220s
-    // with the turn still alive.
-    await vi.advanceTimersByTimeAsync(110_000)
+    // Without the reset this would have fired at the original 300s deadline (we're at 580s
+    // total). The reset re-armed the deadline after the tool_use envelope, so this advance
+    // leaves us short of the new deadline with the turn still alive.
+    await vi.advanceTimersByTimeAsync(290_000)
 
     // Now go fully silent past the new window.
-    await vi.advanceTimersByTimeAsync(121_000)
+    await vi.advanceTimersByTimeAsync(301_000)
     const turn = await turnPromise
     expect(turn.state).toBe('crash')
-    expect(turn.errorReason).toMatch(/no feedback for 120000ms/)
+    expect(turn.errorReason).toMatch(/no feedback for 300000ms/)
     expect(turn.hopCount).toBe(1)
 
     child.shutdown()

@@ -122,19 +122,24 @@ data is never accessible by `Read` — it only flows back through
 `evaluateExpression`, which is the right boundary anyway because user data lives
 in the engine and is only correctly observable through the LS.
 
-`IDLE_TIMEOUT_MS` (in `claudeAgent.ts`) is the per-turn inactivity cap: 120 s of
+`IDLE_TIMEOUT_MS` (in `claudeAgent.ts`) is the per-turn inactivity cap: 5 min of
 silence on the stream-json channel — no `assistant` envelope, no tool use —
 fires the timeout. It resets on every `assistant` envelope (see
 `captureAssistantContent`), so a turn that keeps narrating or fanning out tool
 calls runs as long as it needs and the timeout fires only when the model is
 genuinely stuck. Earlier revisions used a hard 360 s wall-clock cap (originally
 120 s pre-tools); the wall-clock approach clipped legitimate long but healthy
-turns, while the new idle window is shorter than the old wall cap _and_ harder
-to game — the system prompt instructs the model to emit text every ~30 s and
-never go more than 60 s without feedback, so the 120 s window is double the
-prompt-side rule. `PRIMING_IDLE_TIMEOUT_MS` (in `claudeAgentChild.ts`) is the
-same 120 s — each priming Read fires its own `assistant` envelope, so realistic
-gaps are sub-second; 120 s of true idleness during priming is a stuck CLI.
+turns. The current idle approach lets healthy turns run as long as the model
+keeps producing output. The 5 min ceiling is sized to tolerate the worst-case
+single thinking block on `--effort max`: the underlying API doesn't ship
+per-token thinking deltas on the CLI's auth path (we probed it — only
+`message_start` and `content_block_start:thinking` arrive at ~+3 s, then nothing
+until the block closes), so a long thinking phase is, from our side, just
+silence. Asking the model to "narrate more often" via the system prompt does not
+help — it can't emit text mid-thinking — so the only correct knob is runtime
+tolerance. `PRIMING_IDLE_TIMEOUT_MS` (in `claudeAgentChild.ts`) is the same 5
+min — each priming Read fires its own `assistant` envelope, so realistic gaps
+are sub-second; sustained idleness during priming is a stuck CLI.
 
 ### Priming
 
@@ -235,7 +240,7 @@ per-turn map.
 
 **Timeouts:** per-tool-call 30 s on the main-process side (the MCP server
 rejects with a clean error after that), nested inside the per-turn
-`IDLE_TIMEOUT_MS` (120 s of channel inactivity — see "Local Claude agent"
+`IDLE_TIMEOUT_MS` (5 min of channel inactivity — see "Local Claude agent"
 above). The 30 s per-tool-call cap also keeps a hung renderer evaluation from
 silently consuming the outer idle window, since a tool result whose dispatch
 times out lets the model produce its next `assistant` envelope and that resets
@@ -407,13 +412,13 @@ Findings from the probe at the time the long-lived design landed:
   suspends auto-respawn after 3 unexpected exits within 30 seconds; the next IPC
   call attempts one more spawn before failing fast (so the user can recover by
   retrying after fixing the underlying issue).
-- **Per-request idle timeout** (`IDLE_TIMEOUT_MS`, 120 s) returns
-  `Err("no feedback for 120000ms (idle timeout)")` to the renderer but does
+- **Per-request idle timeout** (`IDLE_TIMEOUT_MS`, 5 min) returns
+  `Err("no feedback for 300000ms (idle timeout)")` to the renderer but does
   **not** kill the still-warm child — the next request will reuse it. The late
   reply from the timed-out turn is dropped by the parser (`pending` is null).
   The timer resets on every `assistant` envelope, so a turn keeps running as
   long as the model produces output; it fires only when the channel stays silent
-  for a full 120 s window.
+  for a full 5 min window.
 - **Live progress:** `Channel.aiProgress` carries `AiProgressEvent`s tagged with
   the originating `requestId`. `queued` fires once the IPC reaches the
   AsyncQueue (acknowledging receipt — useful when a previous turn hasn't yet
