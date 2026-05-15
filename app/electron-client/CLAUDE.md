@@ -344,8 +344,8 @@ Findings from the probe at the time the long-lived design landed:
   (`{"type":"control_request","request_id":"req_…","request":{"subtype":"interrupt"}}`).
   Modern Claude Code (2.x+ stream-json mode) replies with `control_response`
   `subtype: success` within milliseconds and emits an
-  `aborted_streaming`/`is_error: true` `result` envelope for the cancelled
-  turn — **without exiting the child**, so the next turn reuses the same primed
+  `aborted_streaming`/`is_error: true` `result` envelope for the cancelled turn
+  — **without exiting the child**, so the next turn reuses the same primed
   conversation context. Wire format and timing confirmed via
   `/tmp/claude-interrupt-probe.mjs` (interrupt→result was 3 ms; the follow-up
   trivial turn completed on the same primed child with no re-prime). For a
@@ -355,33 +355,33 @@ Findings from the probe at the time the long-lived design landed:
 
   **Fallback ladder.** If no `control_response` arrives within
   `CANCEL_CONTROL_FALLBACK_MS` (1000 ms), or if the CLI replies
-  `subtype: error`, `escalateSignalCancel` takes over: SIGTERM now,
-  SIGKILL after `CANCEL_SIGTERM_TO_SIGKILL_MS` (2000 ms) if the child is still
-  alive. SIGINT is intentionally skipped — once we've decided to escalate,
-  the goal is a guaranteed exit so the watcher can respawn; SIGTERM is the
-  polite shutdown (the child exits in ~220 ms with code 143 — see the
-  stream-json wire-format section), and SIGKILL is the hammer for the rare
-  case SIGTERM is ignored. The escalation path also pre-swaps `readyDeferred`
-  and arms the `cancelInProgress` flag (since the child *does* exit on this
-  path) so the next queue task's `await primary.ready` synchronizes on the
-  upcoming respawn's prime instead of racing past a stale resolved deferred.
-  `onUnexpectedExit` honors the flag and leaves the new pending deferred alone
-  (the auto-respawn's `onChildStarted` → `prime` resolves it). The common path
-  doesn't touch `readyDeferred` — the child stays alive and primed.
+  `subtype: error`, `escalateSignalCancel` takes over: SIGTERM now, SIGKILL
+  after `CANCEL_SIGTERM_TO_SIGKILL_MS` (2000 ms) if the child is still alive.
+  SIGINT is intentionally skipped — once we've decided to escalate, the goal is
+  a guaranteed exit so the watcher can respawn; SIGTERM is the polite shutdown
+  (the child exits in ~220 ms with code 143 — see the stream-json wire-format
+  section), and SIGKILL is the hammer for the rare case SIGTERM is ignored. The
+  escalation path also pre-swaps `readyDeferred` and arms the `cancelInProgress`
+  flag (since the child _does_ exit on this path) so the next queue task's
+  `await primary.ready` synchronizes on the upcoming respawn's prime instead of
+  racing past a stale resolved deferred. `onUnexpectedExit` honors the flag and
+  leaves the new pending deferred alone (the auto-respawn's `onChildStarted` →
+  `prime` resolves it). The common path doesn't touch `readyDeferred` — the
+  child stays alive and primed.
 
   **Aborted-result filter.** After a successful interrupt the CLI emits a
-  `result` envelope with `is_error: true` and `terminal_reason: aborted_streaming`
-  on the same stdout stream as future turns' results. `resolveTerminal` drops
-  these explicitly so a late-arriving aborted envelope can't tear down the next
-  turn's pending state.
+  `result` envelope with `is_error: true` and
+  `terminal_reason: aborted_streaming` on the same stdout stream as future
+  turns' results. `resolveTerminal` drops these explicitly so a late-arriving
+  aborted envelope can't tear down the next turn's pending state.
 
   Regression tests live in `tests/headless/claudeAgentChild.test.ts`
   (`cancelInFlight writes a control_request interrupt envelope …`,
-  `… control_response success keeps the child usable …`,
-  `… no control_response within the fallback window escalates to SIGINT`,
-  `… control_response error escalates to SIGINT immediately`) and
+  `cancelInFlight: control_response success keeps the child usable …`,
+  `cancelInFlight: no control_response within the fallback window escalates to SIGTERM`,
+  `cancelInFlight: control_response error escalates to SIGTERM immediately`) and
   `tests/headless/claudeAgent.test.ts`
-  (`cancelTurn on the in-flight request … (no SIGINT)`,
+  (`cancelTurn on the in-flight request resolves with cancellation Err and writes a control_request`,
   `a queued request submitted right after a cancel runs on the SAME child …`);
   end-to-end behaviour is in `tests/aiNode.spec.ts`
   (`cancelling a running AI prompt leaves the queue healthy …`).

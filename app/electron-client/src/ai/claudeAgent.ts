@@ -331,9 +331,10 @@ export class ClaudeAgentSession {
 
   /**
    * Cancel a previously-dispatched request. For the in-flight slot the originating turn resolves
-   * synchronously with a cancellation `Err` and the child is SIGINT'd (with a 2s SIGTERM watchdog
-   * if SIGINT is ignored). Queued requests file the id in {@link cancelled} for the queue task to
-   * short-circuit. Idempotent.
+   * synchronously with a cancellation `Err` and an in-band `control_request`/`interrupt`
+   * envelope is written to the child's stdin — the warm conversation context is preserved when
+   * the CLI honors it (falling back to a SIGTERM→SIGKILL escalation only if it doesn't). Queued
+   * requests file the id in {@link cancelled} for the queue task to short-circuit. Idempotent.
    */
   cancelTurn(requestId: string): void {
     if (this.disposed) return
