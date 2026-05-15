@@ -260,3 +260,75 @@ export async function openDropdownInWidget(page: Page, label: string) {
 export function addFirstElementToWidgetVector(locator: Locator) {
   return locator.getByRole('list').filter({ hasText: /^$/ }).getByLabel('Add a new item').click()
 }
+
+/**
+ * Multiplier applied to `maxIdleMs` while the placeholder bubble is showing the "Waiting…" /
+ * "Waiting (#N)" labels. That state covers both the renderer-side queue (a previous prompt is
+ * still in flight) and the main-process wait on `claude` priming (~36 stdlib reads on the first
+ * session start, several minutes wall clock). Both can legitimately outlast the regular
+ * `maxIdleMs` for reasons unrelated to a stuck model, so apply a looser threshold while the
+ * bubble is in that state — a 10× factor matches the old `PRIMING_TIMEOUT_MS = 600 s` priming
+ * cap when callers pass the standard `maxIdleMs: 60_000`.
+ */
+const WAITING_IDLE_FACTOR = 10
+
+/**
+ * Run `action` (typically a Playwright assertion waiting on an AI-generated node to commit) but
+ * fail fast when the visible AI placeholder bubble — `data-testid="ai-pending-status"` inside a
+ * non-failed `.AiPendingNode` — sits on the same text for `maxIdleMs`. Mirrors what a user
+ * staring at the bubble would notice and matches the system prompt's "max 60 s between feedback"
+ * contract, so a stuck turn surfaces immediately instead of burning the action's full per-prompt
+ * budget. The baseline resets while no active placeholder is on screen, so the watchdog only
+ * counts time during which a turn is genuinely in flight. While the bubble shows the
+ * "Waiting…" label the threshold is multiplied by {@link WAITING_IDLE_FACTOR} (queue/priming
+ * legitimately outlast the regular budget).
+ */
+export async function withFeedbackWatchdog(
+  page: Page,
+  opts: { maxIdleMs: number },
+  action: () => Promise<void>,
+): Promise<void> {
+  const placeholderText = page.locator(
+    '.AiPendingNode:not(.failed) [data-testid="ai-pending-status"]',
+  )
+  let lastText = ''
+  let lastChangeAt = Date.now()
+  let watchdogReject!: (err: Error) => void
+  const watchdog = new Promise<never>((_, reject) => {
+    watchdogReject = reject
+  })
+  const intervalId = setInterval(async () => {
+    try {
+      const count = await placeholderText.count()
+      if (count === 0) {
+        lastText = ''
+        lastChangeAt = Date.now()
+        return
+      }
+      const text = (await placeholderText.first().textContent()) ?? ''
+      if (text !== lastText) {
+        lastText = text
+        lastChangeAt = Date.now()
+        return
+      }
+      const idleFor = Date.now() - lastChangeAt
+      const effectiveMax =
+        text.startsWith('Waiting') ? opts.maxIdleMs * WAITING_IDLE_FACTOR : opts.maxIdleMs
+      if (idleFor > effectiveMax) {
+        watchdogReject(
+          new Error(
+            `AI placeholder text "${text}" unchanged for ${idleFor} ms (max ${effectiveMax} ms)`,
+          ),
+        )
+      }
+    } catch {
+      // Locator queries can race a DOM update mid-tick; ignore and retry next interval. Real
+      // bugs surface either via the `action` promise or the next tick's stall detection.
+    }
+  }, 1000)
+  try {
+    await Promise.race([action(), watchdog])
+  } finally {
+    clearInterval(intervalId)
+  }
+}

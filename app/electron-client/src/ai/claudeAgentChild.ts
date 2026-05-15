@@ -28,14 +28,16 @@ const MAX_RESPAWNS_IN_WINDOW = 3
 export const PRIMING_REQUEST_ID = 'priming'
 
 /**
- * Default priming-turn timeout (ms). Priming reads three CLAUDE.md files (top-level, Base,
- * Table) plus every top-level `.enso` file under `Standard.Table` (when stdlib is available);
- * ~36 tool calls before replying, with several files >2k lines (`Table.enso`, `Column.enso`).
- * 600s leaves comfortable headroom while staying well under `REQUEST_TIMEOUT_MS`. The fallback
- * path (no stdlib) only does the trivial "say READY" turn and completes in well under a second,
- * so the higher cap costs nothing on that path.
+ * Inactivity timeout for the priming turn (ms). Priming reads three CLAUDE.md files (top-level,
+ * Base, Table) plus every top-level `.enso` file under `Standard.Table` (when stdlib is
+ * available); ~36 tool calls before replying. Each Read fires its own `assistant` envelope, so
+ * realistic gaps between envelopes are sub-second; 120 s of true idleness during priming means
+ * the CLI is stuck. The fallback path (no stdlib) does the trivial "say READY" turn and emits a
+ * single envelope well under the cap. Same value as the per-request idle cap, so the constant
+ * could in principle collapse to one — kept separate for now to localise priming-specific
+ * tuning if it ever needs to differ.
  */
-export const PRIMING_TIMEOUT_MS = 600_000
+export const PRIMING_IDLE_TIMEOUT_MS = 120_000
 
 /** SIGTERM (graceful exit) to SIGKILL (force kill) escalation window during cancellation. */
 const CANCEL_SIGTERM_TO_SIGKILL_MS = 2_000
@@ -256,6 +258,13 @@ interface PendingTurn {
   lastHopUsage: RawTokenUsage | null
   /** Number of `assistant` envelopes seen this turn. */
   hopCount: number
+  /**
+   * Reset the inactivity timer to its full window. Called once before the stdin write to arm
+   * the initial deadline, then by {@link ChildAgent.captureAssistantContent} on every assistant
+   * envelope. The closure clears the previous handle and schedules a new one; if the timer
+   * fires, it resolves this turn with a "no feedback" crash but does not kill the child.
+   */
+  resetIdleTimer: () => void
 }
 
 // ============================
@@ -397,12 +406,14 @@ export class ChildAgent {
 
   /**
    * Run one turn. Writes the user content to stdin and awaits the `result` envelope (or a
-   * crash/timeout). The caller is responsible for serializing turns — this class never
-   * cancels a previous turn implicitly.
+   * crash/idle-timeout). `idleTimeoutMs` is an inactivity window: it resets on every
+   * `assistant` envelope (text or tool_use), so a turn that keeps producing output runs as
+   * long as it needs and the timer fires only when the channel falls silent. The caller is
+   * responsible for serializing turns — this class never cancels a previous turn implicitly.
    */
   runTurn(
     content: string,
-    timeoutMs: number,
+    idleTimeoutMs: number,
     sender: WebContents | null,
     requestId: string,
   ): Promise<TurnOutcome> {
@@ -423,10 +434,17 @@ export class ChildAgent {
       }
       const line = userTurnLine(content)
       const startedAt = performance.now()
+      let timeoutHandle: NodeJS.Timeout | null = null
+      const clearIdleTimer = () => {
+        if (timeoutHandle != null) {
+          clearTimeout(timeoutHandle)
+          timeoutHandle = null
+        }
+      }
       const pending: PendingTurn = {
         requestId,
         resolve: (outcome) => {
-          if (timeoutHandle != null) clearTimeout(timeoutHandle)
+          clearIdleTimer()
           const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
           resolveTurn({
             ...outcome,
@@ -439,24 +457,30 @@ export class ChildAgent {
         sender,
         lastHopUsage: null,
         hopCount: 0,
+        resetIdleTimer: () => {
+          clearIdleTimer()
+          timeoutHandle = setTimeout(() => {
+            // Re-check the pending slot: a turn that already settled (success, cancel, crash)
+            // would have nulled `this.pending`, and we must not stomp on whatever is now in flight.
+            if (this.pending !== pending) return
+            this.pending = null
+            pending.resolve({
+              state: 'crash',
+              text: '',
+              usage: null,
+              errorReason: `no feedback for ${idleTimeoutMs}ms (idle timeout)`,
+            })
+          }, idleTimeoutMs)
+        },
       }
       this.pending = pending
       // Emit `started` after `pending` is set so `emitProgress` can find the sender, and before
       // the stdin write so the renderer flips queued→running close to when the prompt actually
       // begins traveling toward the API.
       this.emitProgress({ requestId, kind: 'started' })
-      const timeoutHandle = setTimeout(() => {
-        if (this.pending !== pending) return
-        // Drop the pending claim so subsequent stdout for this turn is discarded; the runtime
-        // does NOT kill the child, because the next turn can still reuse it.
-        this.pending = null
-        pending.resolve({
-          state: 'crash',
-          text: '',
-          usage: null,
-          errorReason: `timed out after ${timeoutMs}ms`,
-        })
-      }, timeoutMs)
+      // Arm the initial idle window before writing — covers the model's pre-first-envelope
+      // ramp-up. Subsequent `assistant` envelopes reset it via `captureAssistantContent`.
+      pending.resetIdleTimer()
       child.stdin.write(line, (err) => {
         if (!err) return
         if (this.pending === pending) {
@@ -623,7 +647,7 @@ export class ChildAgent {
   private async prime(): Promise<void> {
     const outcome = await this.runTurn(
       buildPrimingPrompt(this.config.stdlibRoot),
-      PRIMING_TIMEOUT_MS,
+      PRIMING_IDLE_TIMEOUT_MS,
       null,
       PRIMING_REQUEST_ID,
     )
@@ -656,6 +680,11 @@ export class ChildAgent {
   private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
     const pending = this.pending
     if (!pending) return
+    // Reset the idle timer first thing — we now know the model is producing output, regardless
+    // of which kind of block(s) the envelope carries (text, tool_use, or both) and regardless
+    // of whether the per-block `emitProgress` calls below will fire (priming has `sender == null`
+    // which short-circuits emitProgress, but the model is still demonstrably alive).
+    pending.resetIdleTimer()
     pending.hopCount += 1
     pending.lastHopUsage = env.message.usage ?? null
     const requestId = pending.requestId

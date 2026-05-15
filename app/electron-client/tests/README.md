@@ -59,6 +59,20 @@ enso> corepack pnpm -r --filter enso ide-integration-test tests/gettingStarted.s
 
 Two AI-driven specs are gated on env vars and skipped silently otherwise.
 
+Both specs wrap their per-prompt waits in `withFeedbackWatchdog` (see
+`electronTest.ts`): the per-prompt budget is generous (10 min for
+`aiNode.spec.ts`, 15 min for `aiChallengePrep.spec.ts`), but the watchdog fails
+the test the moment the visible AI placeholder bubble
+(`data-testid="ai-pending-status"`) sits on the same text for 60 s. The 60 s
+threshold matches the system prompt's "max 60 s between feedback" contract, so a
+stuck turn surfaces immediately instead of consuming the full per-prompt budget.
+
+The "Waiting…" / "Waiting (#N)" label gets a 10× looser threshold (10 min by
+default) — that state covers both the renderer-side queue (a previous prompt is
+still in flight) and the wait on the long-lived `claude` child priming (~36
+stdlib reads on first session start). Both can legitimately outlast 60 s for
+reasons unrelated to a stuck model.
+
 ### `aiNode.spec.ts` — quick smoke (~1 min)
 
 Requires the `claude` CLI on `PATH` and authenticated. Set `ENSO_TEST_AI=1`.

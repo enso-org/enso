@@ -122,12 +122,19 @@ data is never accessible by `Read` — it only flows back through
 `evaluateExpression`, which is the right boundary anyway because user data lives
 in the engine and is only correctly observable through the LS.
 
-`REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
-now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
-on top of the model's own output, and tighter budgets started clipping
-legitimate turns. `PRIMING_TIMEOUT_MS` is 600 s (was 180 s, originally 60 s)
-because the priming turn now does ~36 file reads — every top-level `.enso` under
-`Standard.Table` — before replying (see "Priming" below).
+`IDLE_TIMEOUT_MS` (in `claudeAgent.ts`) is the per-turn inactivity cap: 120 s of
+silence on the stream-json channel — no `assistant` envelope, no tool use —
+fires the timeout. It resets on every `assistant` envelope (see
+`captureAssistantContent`), so a turn that keeps narrating or fanning out tool
+calls runs as long as it needs and the timeout fires only when the model is
+genuinely stuck. Earlier revisions used a hard 360 s wall-clock cap (originally
+120 s pre-tools); the wall-clock approach clipped legitimate long but healthy
+turns, while the new idle window is shorter than the old wall cap _and_ harder
+to game — the system prompt instructs the model to emit text every ~30 s and
+never go more than 60 s without feedback, so the 120 s window is double the
+prompt-side rule. `PRIMING_IDLE_TIMEOUT_MS` (in `claudeAgentChild.ts`) is the
+same 120 s — each priming Read fires its own `assistant` envelope, so realistic
+gaps are sub-second; 120 s of true idleness during priming is a stuck CLI.
 
 ### Priming
 
@@ -227,14 +234,16 @@ multi-window AI becomes common the `pending` slot would need to grow into a
 per-turn map.
 
 **Timeouts:** per-tool-call 30 s on the main-process side (the MCP server
-rejects with a clean error after that), nested inside the 360 s outer
-`REQUEST_TIMEOUT_MS`. So the model's worst case is "spent the whole turn on tool
-calls, none replied" — which still leaves room for it to wrap up. The
-`--allowedTools` list is built dynamically: `Read,Glob,Grep` are added when the
-stdlib path is available, `mcp__enso__evaluateExpression` is added when the MCP
-server started successfully — the system prompt's "Tools you have available"
-list mirrors that, so we don't lie to the model about capabilities that aren't
-wired.
+rejects with a clean error after that), nested inside the per-turn
+`IDLE_TIMEOUT_MS` (120 s of channel inactivity — see "Local Claude agent"
+above). The 30 s per-tool-call cap also keeps a hung renderer evaluation from
+silently consuming the outer idle window, since a tool result whose dispatch
+times out lets the model produce its next `assistant` envelope and that resets
+the idle timer. The `--allowedTools` list is built dynamically: `Read,Glob,Grep`
+are added when the stdlib path is available, `mcp__enso__evaluateExpression` is
+added when the MCP server started successfully — the system prompt's "Tools you
+have available" list mirrors that, so we don't lie to the model about
+capabilities that aren't wired.
 
 **Renderer side:**
 `app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts` exposes
@@ -398,9 +407,13 @@ Findings from the probe at the time the long-lived design landed:
   suspends auto-respawn after 3 unexpected exits within 30 seconds; the next IPC
   call attempts one more spawn before failing fast (so the user can recover by
   retrying after fixing the underlying issue).
-- **Per-request timeout** (360s) returns `Err(timeout)` to the renderer but does
+- **Per-request idle timeout** (`IDLE_TIMEOUT_MS`, 120 s) returns
+  `Err("no feedback for 120000ms (idle timeout)")` to the renderer but does
   **not** kill the still-warm child — the next request will reuse it. The late
   reply from the timed-out turn is dropped by the parser (`pending` is null).
+  The timer resets on every `assistant` envelope, so a turn keeps running as
+  long as the model produces output; it fires only when the channel stays silent
+  for a full 120 s window.
 - **Live progress:** `Channel.aiProgress` carries `AiProgressEvent`s tagged with
   the originating `requestId`. `queued` fires once the IPC reaches the
   AsyncQueue (acknowledging receipt — useful when a previous turn hasn't yet

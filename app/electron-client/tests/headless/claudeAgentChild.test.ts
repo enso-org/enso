@@ -367,7 +367,7 @@ describe('ChildAgent', () => {
     child.shutdown()
   })
 
-  test('per-turn timeout returns crash without killing the child', async () => {
+  test('idle timeout returns crash without killing the child when no envelope arrives', async () => {
     const { child, children } = buildChild()
     // Prime with real timers (setImmediate-driven flush); switch to fake timers only for the
     // timeout assertion itself. ChildAgent's `runTurn` doesn't internally await `ready`, so
@@ -376,18 +376,91 @@ describe('ChildAgent', () => {
     await primeChild(children[0]!)
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
 
-    const turnPromise = child.runTurn('go', 360_000, fakeSender(), 'req-1')
+    const turnPromise = child.runTurn('go', 120_000, fakeSender(), 'req-1')
     for (let i = 0; i < 4; i++) await Promise.resolve()
     expect(children[0]!.stdinWrites.length).toBeGreaterThanOrEqual(2)
 
-    await vi.advanceTimersByTimeAsync(361_000)
+    await vi.advanceTimersByTimeAsync(121_000)
     const turn = await turnPromise
     expect(turn.state).toBe('crash')
-    expect(turn.errorReason).toMatch(/timed out/)
+    expect(turn.errorReason).toMatch(/no feedback for 120000ms/)
 
     // Child should NOT have been killed by the timeout.
     expect(children[0]!.killCalls).toHaveLength(0)
     expect(spawnMock).toHaveBeenCalledTimes(1)
+
+    child.shutdown()
+  })
+
+  test('idle timeout resets on each text envelope; fires only after a full silent window', async () => {
+    const { child, children } = buildChild()
+    await primeChild(children[0]!)
+    // setImmediate stays real so readline's macrotask-driven 'line' emissions still flush
+    // when we `await settle()` after each `pushStdoutLine`.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    const turnPromise = child.runTurn('go', 120_000, fakeSender(), 'req-1')
+    for (let i = 0; i < 4; i++) await Promise.resolve()
+
+    // Sit just under the window twice with a text envelope in between — without the reset,
+    // the second advance would have crossed the original deadline and the turn would have
+    // crashed already. With the reset, only the third silent advance should fire it.
+    await vi.advanceTimersByTimeAsync(110_000)
+    children[0]!.pushStdoutLine(assistantEnvelope('still working — drafting body'))
+    await settle()
+    await vi.advanceTimersByTimeAsync(110_000)
+    children[0]!.pushStdoutLine(assistantEnvelope('refining filter predicate'))
+    await settle()
+
+    // Third stretch goes the full window without an envelope — fires the timeout.
+    await vi.advanceTimersByTimeAsync(121_000)
+    const turn = await turnPromise
+    expect(turn.state).toBe('crash')
+    expect(turn.errorReason).toMatch(/no feedback for 120000ms/)
+    // Two envelopes were captured before the silent window.
+    expect(turn.hopCount).toBe(2)
+    expect(children[0]!.killCalls).toHaveLength(0)
+
+    child.shutdown()
+  })
+
+  test('idle timeout resets on a tool_use-only envelope (no text)', async () => {
+    // Mirrors the `Read`-heavy priming pattern, where every reset comes from a `tool_use`
+    // block rather than narration text. Regression guard: the reset must not depend on any
+    // particular block kind inside the envelope.
+    const { child, children } = buildChild()
+    await primeChild(children[0]!)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    const turnPromise = child.runTurn('go', 120_000, fakeSender(), 'req-1')
+    for (let i = 0; i < 4; i++) await Promise.resolve()
+
+    await vi.advanceTimersByTimeAsync(110_000)
+    children[0]!.pushStdoutLine(
+      JSON.stringify({
+        type: 'assistant',
+        message: {
+          /* eslint-disable camelcase -- mirrors the snake_case `file_path` key the CLI emits. */
+          content: [
+            { type: 'tool_use', name: 'Read', input: { file_path: '/lib/Standard/Table.enso' } },
+          ],
+          /* eslint-enable camelcase */
+        },
+      }),
+    )
+    await settle()
+
+    // Without the reset this would have fired at the original 120s deadline (we're at 220s
+    // total). The reset re-armed the deadline at 230s, so this advance should leave us at 220s
+    // with the turn still alive.
+    await vi.advanceTimersByTimeAsync(110_000)
+
+    // Now go fully silent past the new window.
+    await vi.advanceTimersByTimeAsync(121_000)
+    const turn = await turnPromise
+    expect(turn.state).toBe('crash')
+    expect(turn.errorReason).toMatch(/no feedback for 120000ms/)
+    expect(turn.hopCount).toBe(1)
 
     child.shutdown()
   })
