@@ -233,7 +233,7 @@ describe('ClaudeAgentSession', () => {
     session.shutdown()
   })
 
-  test('cancelTurn on the in-flight request resolves with cancellation Err and writes a control_request (no SIGINT)', async () => {
+  test('cancelTurn on the in-flight request resolves with cancellation Err and writes a control_request', async () => {
     // Modern Claude Code honors an in-band `control_request`/`interrupt` envelope, so the
     // common cancel path no longer kills the child — the warm conversation context is kept.
     const { session, children } = buildSession()
