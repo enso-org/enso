@@ -125,8 +125,9 @@ in the engine and is only correctly observable through the LS.
 `REQUEST_TIMEOUT_MS` was bumped from 120 s (pre-tools) to 360 s — a single turn
 now does up to a handful of stdlib lookups plus `evaluateExpression` round-trips
 on top of the model's own output, and tighter budgets started clipping
-legitimate turns. `PRIMING_TIMEOUT_MS` is 180 s (was 60 s) because the priming
-turn does ~12 file reads before replying (see "Priming" below).
+legitimate turns. `PRIMING_TIMEOUT_MS` is 600 s (was 180 s, originally 60 s)
+because the priming turn now does ~36 file reads — every top-level `.enso` under
+`Standard.Table` — before replying (see "Priming" below).
 
 ### Priming
 
@@ -134,18 +135,24 @@ turn does ~12 file reads before replying (see "Priming" below).
 available (the normal case), the priming user turn tells the agent two things.
 First, Read three CLAUDE.mds — the top-level `<stdlibRoot>/CLAUDE.md` plus
 `Base/0.0.0-dev/CLAUDE.md` and `Table/0.0.0-dev/CLAUDE.md`. Second, Glob and
-Read every `.enso` file under `Image/0.0.0-dev/src/`. Only after both does the
-agent reply `READY`.
+Read every top-level `.enso` file under `Table/0.0.0-dev/src/` — the pattern is
+`*.enso` (single `*`), so the format/IO subdirectories (`Internal/`, `Excel/`,
+`Delimited/`, `Conversions/`, etc.) are deliberately skipped. Only after both
+does the agent reply `READY`.
 
 The split is intentional: the top-level file documents universal stdlib
-conventions and per-library files describe library-specific surface only, so
-loading the universal file plus the two most-used libraries covers the common
-case at a fraction of the per-turn token cost of loading every library. Image is
-a small, real library (~9 files, ~64 kB) used as a syntax demo so the model
-internalises idiomatic Enso (constructor patterns, `## ` doc blocks, polyglot
-interop) once per session. Other libraries are loaded **on demand**: the system
-prompt instructs the agent to Read `<Name>/0.0.0-dev/CLAUDE.md` the first time
-it needs that library, and the result then lives in context for the rest of the
+conventions and per-library files describe library-specific surface only.
+Pre-loading Table's top-level source (~36 files, ~12 K lines covering
+`Table.enso`, `Column.enso`, `Aggregate_Column.enso`, `Value_Type.enso`,
+`Expression.enso`, `Join_Condition`/`Join_Kind`, and the small spec types)
+covers the entire Table public surface the test suites exercise. Earlier
+revisions of this priming used `Image/0.0.0-dev/src/**/*.enso` (~9 files, ~64
+kB) as a syntax demo, but Image is not actually used by the test surface and the
+swap to Table gave the agent first-class signatures and doc blocks for the
+methods it actually invokes. The subdirectory format/IO modules and other
+libraries are loaded on demand: the system prompt instructs the agent to Read
+`<Name>/0.0.0-dev/CLAUDE.md` (and source files under that library) the first
+time it needs them, and the result then lives in context for the rest of the
 session.
 
 The Reads' results live in the conversation context for every subsequent turn —
@@ -422,12 +429,12 @@ Findings from the probe at the time the long-lived design landed:
     overwrites `lastHopUsage` with `null` rather than coalescing, so a stale
     earlier value never leaks through), this falls back to the result-envelope
     sum. The renderer's `logUsage` flips `ctxSrc=fallback` and emits a
-    `console.warn`; `aiMetrics.appendMetricsRow` refuses to write the CSV row
-    when any sample has `hopCount > 0` and `contextFromLastHop=false`, failing
-    the Playwright run so the developer notices broken telemetry instead of
-    silently archiving misleading data.
+    `console.warn`; `aiMetrics.appendMetricsRow` flags such rows by suffixing
+    the `status` column with ` (broken)` (yielding `pass (broken)` or
+    `fail (broken)`) so downstream analysis can filter them out without losing
+    the rest of the run's signal.
   - `contextFromLastHop` exposes the source of `contextTokens` so consumers can
-    validate; see above for the metrics writer's enforcement.
+    validate; see above for how the metrics writer surfaces it.
   - `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheCreationTokens`,
     `hopCount` are turn totals from `result.usage` (and the count of assistant
     envelopes seen). They are the right inputs for billing and for explaining
@@ -468,6 +475,16 @@ old primary always completes normally; only future turns are gated.
 If `hard < soft` after env-var resolution, both fall back to defaults with a
 warning. If env-var values aren't valid positive integers, that var alone falls
 back to its default.
+
+### Pass-through CLI flags (`ENSO_AI_CLAUDE_EXTRA_ARGS`)
+
+`ENSO_AI_CLAUDE_EXTRA_ARGS` is split on whitespace and appended verbatim to the
+spawned `claude -p …` flag list, after the built-in flags. Used by the
+AI-effectiveness suite (`tests/aiChallengePrep.spec.ts`) to compare models and
+reasoning levels — e.g. `ENSO_AI_CLAUDE_EXTRA_ARGS="--model claude-sonnet-4-6"`.
+No shell-style quoting: values containing whitespace aren't expressible. Args
+are forwarded to both the primary and any warming child so a context rotation
+preserves the user-selected model.
 
 **Failure handling.** Warming priming can fail (transient CLI bug, ENOENT,
 crash-loop guard tripped). The session reacts:
@@ -535,7 +552,7 @@ flag in the plan's verification section so per-step smokes still exercise it
 locally.
 
 `tests/aiChallengePrep.spec.ts` is the heavy AI suite — it drives full Preppin'
-Data challenge solves through `AI:` prompts. It's gated on
+Data challenge solves through Component Browser AI-mode prompts. It's gated on
 `ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at manually-downloaded inputs
 (see `tests/README.md` for the expected layout) because the inputs aren't
 checked in and the agent budget is real.

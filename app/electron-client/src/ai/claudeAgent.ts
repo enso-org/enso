@@ -88,6 +88,17 @@ function resolveThresholds(config: ClaudeSessionConfig): ResolvedThresholds {
   return { soft, hard }
 }
 
+/**
+ * Read `ENSO_AI_CLAUDE_EXTRA_ARGS` and split on whitespace; empty/unset → `undefined`.
+ * No shell-style quoting — values containing whitespace aren't expressible.
+ */
+function readExtraArgsEnv(): readonly string[] | undefined {
+  const raw = process.env.ENSO_AI_CLAUDE_EXTRA_ARGS
+  if (raw == null) return undefined
+  const tokens = raw.split(/\s+/).filter((t) => t.length > 0)
+  return tokens.length > 0 ? tokens : undefined
+}
+
 function parseJsonSafe(text: string): unknown {
   try {
     return JSON.parse(text)
@@ -190,6 +201,7 @@ type SwapMode = 'none' | 'soft' | 'hard'
 export class ClaudeAgentSession {
   private readonly config: ClaudeSessionConfig
   private readonly thresholds: ResolvedThresholds
+  private readonly extraArgs: readonly string[] | undefined
   private primary: ChildAgent
   private warming: ChildAgent | null = null
   private swapMode: SwapMode = 'none'
@@ -216,12 +228,22 @@ export class ClaudeAgentSession {
   constructor(config: ClaudeSessionConfig) {
     this.config = config
     this.thresholds = resolveThresholds(config)
+    this.extraArgs = config.extraArgs ?? readExtraArgsEnv()
     this.primary = new ChildAgent({ ...this.childConfig(), logLabel: 'primary' })
   }
 
   /** Resolves once the current primary child has spawned and accepted the priming turn. */
   get ready(): Promise<void> {
     return this.primary.ready
+  }
+
+  /**
+   * Resolves to `true` once the primary `claude` child has spawned without a synchronous
+   * ENOENT-style failure, `false` if the spawn failed. Decoupled from priming — the CLI counts
+   * as "available" as soon as the process is alive.
+   */
+  get isAvailable(): Promise<boolean> {
+    return this.primary.firstSpawnSettled
   }
 
   /**
@@ -364,6 +386,7 @@ export class ClaudeAgentSession {
     return {
       stdlibRoot: this.config.stdlibRoot,
       mcpConfigPath: this.config.mcpConfigPath,
+      extraArgs: this.extraArgs,
     }
   }
 
@@ -527,8 +550,26 @@ export async function initAiMcpServer(): Promise<string | undefined> {
 /**
  * Spawn the long-lived agent session and register the {@link Channel.generateAiComponent} IPC
  * handler. Pass `mcpConfigPath` from {@link initAiMcpServer} (or `undefined` to disable MCP).
+ *
+ * Honors `ENSO_AI_DISABLED=1`: when set, the session is NOT spawned, `aiIsAvailable` reports
+ * `false`, and any stray call to `generateAiComponent` returns a structured error.
  */
 export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
+  if (process.env.ENSO_AI_DISABLED === '1') {
+    console.info(`[AI] ENSO_AI_DISABLED=1; skipping 'claude' session startup.`)
+    ipcMain.handle(Channel.aiIsAvailable, async () => false)
+    ipcMain.handle(
+      Channel.generateAiComponent,
+      async (): Promise<AiComponentIpcReply> => ({
+        result: Err('AI is disabled by ENSO_AI_DISABLED'),
+        usage: null,
+      }),
+    )
+    ipcMain.on(Channel.cancelAiComponent, () => {
+      // No-op: there's no session to cancel against.
+    })
+    return
+  }
   if (config.stdlibRoot == null) {
     console.warn(
       `[AI] could not locate the bundled engine's lib/Standard directory; the agent will run without stdlib filesystem access.`,
@@ -549,6 +590,7 @@ export function initClaudeAgentIpc(config: ClaudeSessionConfig): void {
       console.warn(`[AI] failed to start 'claude' session: ${errno?.message ?? String(err)}`)
     }
   })
+  ipcMain.handle(Channel.aiIsAvailable, async () => currentSession.isAvailable)
   ipcMain.handle(
     Channel.generateAiComponent,
     async (event, request: AiComponentRequest): Promise<AiComponentIpcReply> =>

@@ -1,6 +1,8 @@
 import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
 
+test.use({ aiAvailable: true })
+
 test('AI prompt creates a User Defined Component node', async ({ editorPage, page }) => {
   await editorPage
 
@@ -14,7 +16,7 @@ test('AI prompt creates a User Defined Component node', async ({ editorPage, pag
   // hardcoded body — we just need to drive the AI flow end-to-end and inspect the
   // generated graph node.
   const PROMPT = 'convert to table'
-  await page.keyboard.insertText(`AI:${PROMPT}`)
+  await page.keyboard.insertText(PROMPT)
   await expect(page.locator('.ComponentList')).toBeHidden()
   await page.keyboard.press('Enter')
   // Once the agent resolves, the CB closes and the new UDC call-site node appears.
@@ -53,7 +55,7 @@ test('AI prompt without a source node still renders the category icon', async ({
   await expect(locate.componentBrowser(page)).toBeVisible()
 
   const PROMPT = 'no source needed'
-  await page.keyboard.insertText(`AI:${PROMPT}`)
+  await page.keyboard.insertText(PROMPT)
   await expect(page.locator('.ComponentList')).toBeHidden()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()

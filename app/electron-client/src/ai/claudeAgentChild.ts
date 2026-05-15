@@ -29,12 +29,13 @@ export const PRIMING_REQUEST_ID = 'priming'
 
 /**
  * Default priming-turn timeout (ms). Priming reads three CLAUDE.md files (top-level, Base,
- * Table) plus the entire `Standard.Image` source as a syntax demo (when stdlib is available);
- * ~12 tool calls before replying. 180s leaves comfortable headroom while staying well under
- * `REQUEST_TIMEOUT_MS`. The fallback path (no stdlib) only does the trivial "say READY" turn
- * and completes in well under a second, so the higher cap costs nothing on that path.
+ * Table) plus every top-level `.enso` file under `Standard.Table` (when stdlib is available);
+ * ~36 tool calls before replying, with several files >2k lines (`Table.enso`, `Column.enso`).
+ * 600s leaves comfortable headroom while staying well under `REQUEST_TIMEOUT_MS`. The fallback
+ * path (no stdlib) only does the trivial "say READY" turn and completes in well under a second,
+ * so the higher cap costs nothing on that path.
  */
-export const PRIMING_TIMEOUT_MS = 180_000
+export const PRIMING_TIMEOUT_MS = 600_000
 
 /** SIGTERM (graceful exit) to SIGKILL (force kill) escalation window during cancellation. */
 const CANCEL_SIGTERM_TO_SIGKILL_MS = 2_000
@@ -65,6 +66,12 @@ export interface ChildAgentConfig {
    * session running two children stay disambiguated. Empty string means no label.
    */
   readonly logLabel?: string
+  /**
+   * Extra CLI tokens appended verbatim to the built-in `claude -p …` flag list (e.g.
+   * `['--model', 'claude-sonnet-4-6']`). Appended last so that, for last-wins flag parsers, a
+   * user-supplied value overrides the built-in one.
+   */
+  readonly extraArgs?: readonly string[] | undefined
 }
 
 /** Renderer + request id driving a turn. */
@@ -111,6 +118,7 @@ function streamJsonArgs(config: ChildAgentConfig): string[] {
     '--setting-sources',
     '',
     '--no-session-persistence',
+    ...(config.extraArgs ?? []),
   ]
 }
 
@@ -332,6 +340,19 @@ export class ChildAgent {
   /** Resolves once the current child has spawned and accepted the priming turn. */
   get ready(): Promise<void> {
     return this.readyDeferred.promise
+  }
+
+  /**
+   * Resolves to `true` once the underlying `firstSpawn` succeeds (the OS reports the child
+   * process as alive), and `false` if it rejects (synchronous spawn failure — usually ENOENT
+   * because `claude` is not on PATH). Decoupled from {@link ready}, which additionally waits
+   * for the priming turn — this Promise is for "is the CLI installed at all?" probes.
+   */
+  get firstSpawnSettled(): Promise<boolean> {
+    return this.watcher.firstSpawn.then(
+      () => true,
+      () => false,
+    )
   }
 
   /**

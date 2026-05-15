@@ -67,6 +67,14 @@ export interface LogApi {
 }
 
 export interface AiApi {
+  /**
+   * Query whether the local Claude agent is available — i.e. the `claude` CLI was found on
+   * PATH and spawned without a synchronous error. Does NOT wait for the priming turn to
+   * complete. Returns `false` when the main process was started with `ENSO_AI_DISABLED=1`.
+   * The renderer typically calls this once at app start and caches the result in
+   * {@link useAiAvailability}.
+   */
+  readonly isAvailable: () => Promise<boolean>
   readonly generateComponent: (request: AiComponentRequest) => Promise<AiComponentIpcReply>
   /**
    * Subscribe to mid-turn tool calls; the handler must reply via {@link AiApi.replyToolCall}

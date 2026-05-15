@@ -5,6 +5,7 @@ import { Ast } from '@/util/ast'
 import type {
   AiComponentRequest,
   AiComponentResponse,
+  AiEditContext,
   AiInScopeBinding,
   RequestUsage,
 } from 'enso-common/src/ai'
@@ -22,6 +23,7 @@ export function useAI(
 ) {
   function buildContext(
     sourceIdentifier: string | undefined,
+    editContext: AiEditContext | undefined,
   ): Result<AiComponentRequest['context']> {
     const graphDb = graphStore.db
     if (sourceIdentifier != null && !graphDb.getIdentDefiningNode(sourceIdentifier)) {
@@ -69,6 +71,7 @@ export function useAI(
       currentMethodCode,
       inScopeBindings,
       moduleImports,
+      ...(editContext != null ? { editContext } : {}),
     })
   }
 
@@ -76,6 +79,7 @@ export function useAI(
     prompt: string,
     sourceIdentifier: string | undefined,
     requestId: string,
+    editContext?: AiEditContext,
   ): Promise<Result<AiComponentResponse>> {
     return withContext(
       () => 'When running the AI component generator',
@@ -86,7 +90,7 @@ export function useAI(
             'AI component generation requires the desktop runtime (window.api is unavailable).',
           )
         }
-        const context = buildContext(sourceIdentifier)
+        const context = buildContext(sourceIdentifier, editContext)
         if (!context.ok) return context
         const reply = await electronApi.ai.generateComponent({
           requestId,

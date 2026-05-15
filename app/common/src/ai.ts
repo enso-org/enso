@@ -9,6 +9,24 @@ export interface AiInScopeBinding {
   readonly typeName?: string
 }
 
+/**
+ * Captured when the user re-opens the Component Browser on an existing AI-generated node and
+ * commits an updated prompt. The agent uses this to rewrite the existing User Defined Component
+ * rather than generating a fresh one. The agent is free to change the function name, parameter
+ * list, body, and call arguments; only the call-site binding identifier on the user's graph is
+ * preserved across the edit.
+ */
+export interface AiEditContext {
+  /** The previous natural-language prompt that produced the current node. */
+  readonly previousPrompt: string
+  /**
+   * The previous top-level `FunctionDef` source — signature, parameters, and body.
+   * Absent when the previous definition could not be recovered (e.g. the user manually deleted
+   * the top-level function), in which case the rewrite degrades to a fresh generation.
+   */
+  readonly previousDefinition?: string
+}
+
 /** Runtime context the renderer attaches to each AI component request. */
 export interface AiComponentContext {
   /** Source binding the user dropped into the prompt; absent when generating from scratch. */
@@ -20,6 +38,8 @@ export interface AiComponentContext {
   readonly inScopeBindings: readonly AiInScopeBinding[]
   /** Verbatim `import` / `from … import …` statements at the top of the module, in source order. */
   readonly moduleImports: readonly string[]
+  /** When set, the request is an edit of an existing AI node. See {@link AiEditContext}. */
+  readonly editContext?: AiEditContext
 }
 
 /** Payload sent from the renderer to the Electron main process. */
@@ -97,8 +117,8 @@ export interface RequestUsage {
    * `false` when it fell back to the cost-side sum (because the CLI didn't surface
    * `message.usage` on the final envelope). On a multi-hop turn, `false` means
    * `contextTokens` overstates actual context occupancy and the value should not be trusted
-   * for context-window analysis — see `aiMetrics.appendMetricsRow`, which refuses to write a
-   * CSV row when any sample with `hopCount > 0` was a fallback.
+   * for context-window analysis — see `aiMetrics.appendMetricsRow`, which flags such samples
+   * by suffixing the metrics-row `status` column with ` (broken)`.
    */
   readonly contextFromLastHop: boolean
   /**

@@ -24,6 +24,7 @@
     "./src/project-view/components/ComponentBrowser/__tests__/input.test.ts",
     "./src/project-view/components/ComponentBrowser/__tests__/placement.test.ts",
     "./src/project-view/components/ComponentHelp/__tests__/history.test.ts",
+    "./src/project-view/components/GraphEditor/__tests__/aiNode.test.ts",
     "./src/project-view/components/GraphEditor/__tests__/clipboard.test.ts",
     "./src/project-view/components/GraphEditor/__tests__/collapsing.test.ts",
     "./src/project-view/components/GraphEditor/__tests__/detaching.test.ts",

@@ -50,4 +50,11 @@ export enum Channel {
    * `requestId` carried in the original {@link generateAiComponent} payload.
    */
   cancelAiComponent = 'cancel-ai-component',
+  /**
+   * Renderer → main: query whether the local Claude agent is available — i.e. the `claude`
+   * binary was found on PATH and the child process spawned without a synchronous ENOENT.
+   * Resolves once the spawn outcome is known; does NOT wait for the priming turn to complete.
+   * Returns `false` when `ENSO_AI_DISABLED=1` is set in the main process environment.
+   */
+  aiIsAvailable = 'ai-is-available',
 }

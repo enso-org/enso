@@ -66,6 +66,7 @@
     "./integration-test/mock/lsHandler.ts",
     "./integration-test/mock/registerMocks.ts",
     "./integration-test/project-view/actions.ts",
+    "./integration-test/project-view/aiEditNode.spec.ts",
     "./integration-test/project-view/aiNodes.spec.ts",
     "./integration-test/project-view/aiPlaceholder.spec.ts",
     "./integration-test/project-view/aligningNodes.spec.ts",

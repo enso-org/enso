@@ -67,7 +67,7 @@ const layerStyle = computed(() => ({
       v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
       :key="id"
       :node="node"
-      :edited="id === graphStore.editedNodeInfo?.id"
+      :edited="id === graphStore.editedNodeInfo?.id || aiPrompts.hiddenNodeIds.has(id)"
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"

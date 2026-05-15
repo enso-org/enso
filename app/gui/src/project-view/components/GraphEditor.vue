@@ -519,6 +519,10 @@ function commitComponentBrowser(
 }
 
 function handleAiAccepted(payload: AiPromptSubmission) {
+  if (payload.prompt.trim() === '') {
+    hideComponentBrowser()
+    return
+  }
   const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
   if (!graphStore.currentMethod.ast.ok || currentMethodName == null) {
     toasts.userActionFailed.show('Cannot create AI component: no current method loaded.')
@@ -531,14 +535,26 @@ function handleAiAccepted(payload: AiPromptSubmission) {
     hideComponentBrowser()
     return
   }
-  aiPrompts.enqueue({
-    prompt: payload.prompt,
-    sourceIdentifier: payload.sourceIdentifier,
-    methodId: methodAst.externalId,
-    methodBodyId: methodAst.body.externalId,
-    methodName: currentMethodName,
-    position: componentBrowserNodePosition.value,
-  })
+  if (payload.editing != null) {
+    const result = aiPrompts.enqueueEdit({
+      prompt: payload.prompt,
+      sourceIdentifier: payload.sourceIdentifier,
+      methodId: methodAst.externalId,
+      methodBodyId: methodAst.body.externalId,
+      methodName: currentMethodName,
+      editNodeId: payload.editing.nodeId,
+    })
+    if (!result.ok) toasts.userActionFailed.reportError(result.error, 'Cannot edit AI prompt')
+  } else {
+    aiPrompts.enqueue({
+      prompt: payload.prompt,
+      sourceIdentifier: payload.sourceIdentifier,
+      methodId: methodAst.externalId,
+      methodBodyId: methodAst.body.externalId,
+      methodName: currentMethodName,
+      position: componentBrowserNodePosition.value,
+    })
+  }
   hideComponentBrowser()
 }
 

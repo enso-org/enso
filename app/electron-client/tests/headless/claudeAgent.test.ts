@@ -25,7 +25,11 @@ const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 vi.mock('cross-spawn', () => ({ default: spawnMock }))
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn(), on: vi.fn() } }))
 
-const { ClaudeAgentSession } = await import('../../src/ai/claudeAgent')
+const { ClaudeAgentSession, initClaudeAgentIpc, shutdownClaudeAgent } = await import(
+  '../../src/ai/claudeAgent'
+)
+const { ipcMain } = await import('electron')
+const { Channel } = await import('../../src/ipc.js')
 
 interface SessionHarness {
   session: InstanceType<typeof ClaudeAgentSession>
@@ -704,5 +708,87 @@ describe('ClaudeAgentSession', () => {
     if (!r2Reply.result.ok) expect(r2Reply.result.error.payload).toMatch(/Cancelled by user/)
     expect(children[0]!.stdinWrites).toHaveLength(2) // still just priming + r1
     session.shutdown()
+  })
+
+  test('isAvailable resolves true once cross-spawn returns an alive child', async () => {
+    const { session, children } = buildSession()
+    // The fake child returned by `attachSpawnMock` is alive from construction time, so its
+    // underlying `firstSpawn` promise resolves on the next microtask.
+    expect(children).toHaveLength(1)
+    await expect(session.isAvailable).resolves.toBe(true)
+    session.shutdown()
+  })
+
+  test('isAvailable resolves false when cross-spawn throws synchronously (ENOENT)', async () => {
+    // Wire the mock to throw ENOENT directly (no `attachSpawnMock` here — it would override
+    // the mock back to a happy-path child). The `WatchedChildProcess` wrapper catches the
+    // synchronous throw inside `spawnNext` and rejects `firstSpawn`, which `firstSpawnSettled`
+    // converts to `false`.
+    spawnMock.mockImplementation(() => {
+      const err = new Error("spawn 'claude' ENOENT") as NodeJS.ErrnoException
+      err.code = 'ENOENT'
+      throw err
+    })
+    const session = new ClaudeAgentSession({
+      stdlibRoot: FAKE_STDLIB_ROOT,
+      mcpConfigPath: undefined,
+    })
+    await expect(session.isAvailable).resolves.toBe(false)
+    session.shutdown()
+  })
+})
+
+describe('initClaudeAgentIpc', () => {
+  beforeEach(() => {
+    spawnMock.mockReset()
+    vi.mocked(ipcMain.handle).mockReset()
+    vi.mocked(ipcMain.on).mockReset()
+  })
+  afterEach(() => {
+    shutdownClaudeAgent()
+    vi.unstubAllEnvs()
+  })
+
+  test('without ENSO_AI_DISABLED: spawns the session and registers live IPC handlers', async () => {
+    attachSpawnMock(spawnMock)
+    initClaudeAgentIpc({ stdlibRoot: FAKE_STDLIB_ROOT, mcpConfigPath: undefined })
+
+    // Session construction triggers cross-spawn for the primary child.
+    expect(spawnMock).toHaveBeenCalled()
+
+    const handleCalls = vi.mocked(ipcMain.handle).mock.calls
+    const aiIsAvailableHandler = handleCalls.find((call) => call[0] === Channel.aiIsAvailable)?.[1]
+    expect(aiIsAvailableHandler).toBeDefined()
+    // FakeChild is alive from construction, so `firstSpawnSettled` resolves true.
+    await expect((aiIsAvailableHandler as () => Promise<boolean>)()).resolves.toBe(true)
+
+    expect(handleCalls.some((call) => call[0] === Channel.generateAiComponent)).toBe(true)
+    const onCalls = vi.mocked(ipcMain.on).mock.calls
+    expect(onCalls.some((call) => call[0] === Channel.cancelAiComponent)).toBe(true)
+  })
+
+  test('with ENSO_AI_DISABLED=1: skips child spawn and registers disabled-mode IPC handlers', async () => {
+    vi.stubEnv('ENSO_AI_DISABLED', '1')
+    initClaudeAgentIpc({ stdlibRoot: FAKE_STDLIB_ROOT, mcpConfigPath: undefined })
+
+    expect(spawnMock).not.toHaveBeenCalled()
+
+    const handleCalls = vi.mocked(ipcMain.handle).mock.calls
+    const aiIsAvailableHandler = handleCalls.find((call) => call[0] === Channel.aiIsAvailable)?.[1]
+    expect(aiIsAvailableHandler).toBeDefined()
+    await expect((aiIsAvailableHandler as () => Promise<boolean>)()).resolves.toBe(false)
+
+    const generateHandler = handleCalls.find((call) => call[0] === Channel.generateAiComponent)?.[1]
+    expect(generateHandler).toBeDefined()
+    const reply = await (
+      generateHandler as () => Promise<{
+        result: { ok: boolean; error?: { payload: string } }
+      }>
+    )()
+    expect(reply.result.ok).toBe(false)
+    if (!reply.result.ok) expect(reply.result.error!.payload).toMatch(/ENSO_AI_DISABLED/)
+
+    const onCalls = vi.mocked(ipcMain.on).mock.calls
+    expect(onCalls.some((call) => call[0] === Channel.cancelAiComponent)).toBe(true)
   })
 })

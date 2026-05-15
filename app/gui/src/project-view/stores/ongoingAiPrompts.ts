@@ -5,15 +5,25 @@ import {
   useGraphStore,
   useProjectNames,
 } from '$/components/WithCurrentProject.vue'
+import type { NodeId } from '$/providers/openedProjects/graph'
 import { proxyRefs } from '$/utils/reactivity'
 import { DEFAULT_NODE_SIZE } from '@/components/ComponentBrowser/placement'
-import { createAiNode } from '@/components/GraphEditor/aiNode'
+import {
+  createAiNode,
+  isAiAssignment,
+  readAiCallTarget,
+  readAiPrompt,
+  updateAiNode,
+} from '@/components/GraphEditor/aiNode'
 import { useAI } from '@/composables/ai'
 import { createContextStore } from '@/providers'
+import { Ast } from '@/util/ast'
+import { nodeDocumentationText } from '@/util/ast/node'
 import { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
-import type { AiComponentResponse, AiProgressEvent } from 'enso-common/src/ai'
+import type { AiComponentResponse, AiEditContext, AiProgressEvent } from 'enso-common/src/ai'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, onScopeDispose, reactive } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
@@ -48,6 +58,16 @@ export interface AiPending {
   dispatched: boolean
   /** Live status text shown above the placeholder; updated by progress events. */
   statusText: string
+  /**
+   * When set, this entry rewrites an existing AI-generated node rather than creating a new one.
+   * Captured at enqueue time so the prompt + previous definition sent to the agent are pinned
+   * regardless of subsequent edits to the underlying AST.
+   */
+  editTarget?: {
+    readonly nodeId: NodeId
+    readonly previousPrompt: string
+    readonly previousDefinition: string | undefined
+  }
 }
 
 export interface EnqueueArgs {
@@ -57,6 +77,15 @@ export interface EnqueueArgs {
   readonly methodBodyId: ExternalId
   readonly methodName: string
   readonly position: Vec2
+}
+
+export interface EnqueueEditArgs {
+  readonly prompt: string
+  readonly sourceIdentifier: string | undefined
+  readonly methodId: ExternalId
+  readonly methodBodyId: ExternalId
+  readonly methodName: string
+  readonly editNodeId: NodeId
 }
 
 export type OngoingAiPromptsStore = ReturnType<typeof ongoingAiPromptsStoreFactory>
@@ -173,6 +202,63 @@ function ongoingAiPromptsStoreFactory() {
   }
 
   /**
+   * Enqueue an edit of an existing AI node. Captures the previous prompt and the previous
+   * function definition source at enqueue time so the agent sees a stable snapshot even if the
+   * AST is mutated while the request is in flight. Returns the placeholder id.
+   */
+  function enqueueEdit(args: EnqueueEditArgs): Result<string> {
+    const node = graphStore.db.nodeIdToNode.get(args.editNodeId)
+    if (!node || !isAiAssignment(node.outerAst)) {
+      return Err('Node is no longer an AI-generated component.')
+    }
+    const previousPrompt = readAiPrompt(nodeDocumentationText(node)) ?? ''
+    const topLevel = module.value.root
+    let previousDefinition: string | undefined = undefined
+    if (topLevel != null && node.outerAst instanceof Ast.Assignment) {
+      previousDefinition = readAiCallTarget(node.outerAst, topLevel)?.definitionCode
+    }
+    const id = newId()
+    const requestId = newId()
+    const ahead = countActive()
+    const placeholder: AiPending = {
+      id,
+      requestId,
+      methodId: args.methodId,
+      methodBodyId: args.methodBodyId,
+      methodName: args.methodName,
+      position: node.position,
+      prompt: args.prompt,
+      sourceIdentifier: args.sourceIdentifier,
+      status: 'queued',
+      dispatched: false,
+      statusText: ahead === 0 ? QUEUED_LABEL : queuedPositionLabel(ahead + 1),
+      editTarget: {
+        nodeId: args.editNodeId,
+        previousPrompt,
+        previousDefinition,
+      },
+    }
+    entries.set(id, placeholder)
+    void kickDispatcher()
+    return Ok(id)
+  }
+
+  /**
+   * Set of node ids that should be visually hidden while an edit-AI-prompt request is in flight
+   * — the placeholder stands in for them. Excludes `failed` entries so a parked failure leaves
+   * the underlying node visible (the user can read its current state while resolving the error).
+   */
+  const hiddenNodeIds = computed<ReadonlySet<NodeId>>(() => {
+    const ids = new Set<NodeId>()
+    for (const entry of entries.values()) {
+      if (entry.editTarget != null && entry.status !== 'failed') {
+        ids.add(entry.editTarget.nodeId)
+      }
+    }
+    return ids
+  })
+
+  /**
    * Drop a placeholder. Three explicit branches:
    * - `failed`: the dispatch already settled with an error and the placeholder is parked for
    *   user-visible diagnosis. Clicking cancel just dismisses it.
@@ -221,9 +307,23 @@ function ongoingAiPromptsStoreFactory() {
     // `dispatched` here so cancel() routes through IPC instead of dropping locally — the IPC has
     // already left the renderer.
     entry.dispatched = true
+    const editContextPayload: AiEditContext | undefined =
+      entry.editTarget != null ?
+        {
+          previousPrompt: entry.editTarget.previousPrompt,
+          ...(entry.editTarget.previousDefinition != null ?
+            { previousDefinition: entry.editTarget.previousDefinition }
+          : {}),
+        }
+      : undefined
     let result
     try {
-      result = await ai.dispatch(entry.prompt, entry.sourceIdentifier, entry.requestId)
+      result = await ai.dispatch(
+        entry.prompt,
+        entry.sourceIdentifier,
+        entry.requestId,
+        editContextPayload,
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       handleFailure(entry, `AI component generation failed: ${message}`)
@@ -257,6 +357,35 @@ function ongoingAiPromptsStoreFactory() {
     const topLevel = module.value.root
     if (topLevel == null) {
       handleFailure(entry, 'Cannot create AI component: module root not loaded.')
+      return
+    }
+    if (entry.editTarget != null) {
+      const node = graphStore.db.nodeIdToNode.get(entry.editTarget.nodeId)
+      if (!node || !(node.outerAst instanceof Ast.Assignment)) {
+        handleFailure(entry, 'AI node was removed before the update could land.')
+        return
+      }
+      const assignmentId = node.outerAst.id
+      const editResult = module.value.edit((edit) => {
+        const mutableTopLevel = edit.getVersion(topLevel)
+        const mutableAssignment = edit.get(assignmentId)
+        if (!(mutableAssignment instanceof Ast.MutableAssignment)) {
+          return Err('Cannot resolve edited AI node in module edit.')
+        }
+        return updateAiNode({
+          edit,
+          topLevel: mutableTopLevel,
+          assignment: mutableAssignment,
+          currentMethodName: entry.methodName,
+          prompt: entry.prompt,
+          response,
+        })
+      })
+      if (!editResult.ok) {
+        handleFailure(entry, editResult.error.message('Cannot update AI component'))
+        return
+      }
+      entries.delete(entry.id)
       return
     }
     const editResult = module.value.edit((edit) =>
@@ -298,9 +427,11 @@ function ongoingAiPromptsStoreFactory() {
 
   return proxyRefs({
     enqueue,
+    enqueueEdit,
     cancel,
     findByRequestId,
     entriesForCurrentMethod,
+    hiddenNodeIds,
   })
 }
 

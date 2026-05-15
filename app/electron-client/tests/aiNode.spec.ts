@@ -1,13 +1,16 @@
 /**
  * @file End-to-end test for the AI node flow exercising the long-lived `claude` session:
  * one AI prompt, then a manually-typed `Table.input` node, then a second AI prompt that
- * cross-joins both tables, then a third AI prompt parsing a synthetic plain-text file the
- * agent has to inspect at runtime via the `evaluateExpression` MCP tool. Verifies that
- * (a) multiple requests reuse the same `claude` subprocess (with rotation kicking in when
- * the context grows past the configured thresholds), (b) the agent reads the current
- * method's in-scope bindings to pick up nodes that were added between turns, and (c) the
- * renderer-side `useAiToolHandler` subscription survives Component Browser close/reopen
- * cycles so MCP tool calls actually reach the renderer.
+ * cross-joins both tables, then a manual `Data.read` node on a `.csv` file (Enso parses it
+ * as a single-column table because the lines hold no commas), then a third AI prompt that
+ * splits that column into three numeric columns — the agent has to inspect a real cell value
+ * via the `evaluateExpression` MCP tool because the `key: value` layout can't be inferred
+ * from the column type alone. Verifies that (a) multiple requests reuse the same `claude`
+ * subprocess (with rotation kicking in when the context grows past the configured
+ * thresholds), (b) the agent reads the current method's in-scope bindings to pick up nodes
+ * that were added between turns, and (c) the renderer-side `useAiToolHandler` subscription
+ * survives Component Browser close/reopen cycles so MCP tool calls actually reach the
+ * renderer.
  *
  * Requires the user-installed `claude` CLI to be on `PATH` and authenticated. CI doesn't
  * have that yet, so this spec is skipped by default — set `ENSO_TEST_AI=1` to enable it.
@@ -36,7 +39,7 @@ const env = process.env as Record<string, string | undefined>
 env.ENSO_AI_SOFT_CONTEXT_THRESHOLD = '5000'
 env.ENSO_AI_HARD_CONTEXT_THRESHOLD = '50000'
 
-const FIRST_AI_PROMPT = "AI: count 'a' letters in all cells of the table"
+const FIRST_AI_PROMPT = "count 'a' letters in all cells of the table"
 // Deterministic expected output for `FIRST_AI_PROMPT` against `Examples.welcome`. Update this
 // alongside the welcome sample if it ever changes.
 const EXPECTED_COUNT = '23'
@@ -44,21 +47,24 @@ const EXPECTED_COUNT = '23'
 // final assertion is unambiguous (won't collide with any letter-count output).
 const CROSS_JOIN_SENTINEL = 'cross_join_ok'
 const TABLE_INPUT_EXPR = `Table.input [['marker', ['${CROSS_JOIN_SENTINEL}']]]`
-const SECOND_AI_PROMPT = 'AI: Cross join both tables'
+const SECOND_AI_PROMPT = 'Cross join both tables'
 
-// Quirky non-CSV content the agent has to inspect at runtime: the values use `key: value`
-// pairs with inconsistent whitespace, the file has a `.csv` extension that lies, and we read
-// it as `Plain_Text` so the agent's compile-time context only knows "Text". The only way to
-// pick a parser is to call `evaluateExpression` and look at a real line.
+// Quirky `key: value` content with no commas: Enso's CSV auto-detect parses each line as a
+// single field, yielding a one-column Table. The column type alone doesn't reveal the
+// `key: value` layout — the agent has to call `evaluateExpression` on a sample cell to pick
+// a parser.
 const DUMMY_TEXT_CONTENT =
   'x: 4 y: 5 size:12\nx:6 y: 7 size: 13\nx:4 y: 5 size:166\nx:13 y: 0124 size: 15\n'
+const PARSE_PROMPT = 'split this single column into three numeric columns named x, y, and size'
 
 test.skip(
   process.env.ENSO_TEST_AI !== '1',
   'The local `claude` CLI is required; set ENSO_TEST_AI=1 to run this spec.',
 )
 
-test('creates two AI nodes plus a manual node in one session', async ({ page }) => {
+test.use({ aiEnabled: true })
+
+test('creates three AI nodes plus two manual nodes in one session', async ({ page }) => {
   // Three AI prompts × up to ~120s each plus setup, manual nodes, and visualizations easily
   // outruns the playwright config's 180s default. Budget 15 min so a single slow AI turn can
   // cover its worst case without prematurely killing the test.
@@ -96,9 +102,12 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   await expect(page.getByText(EXPECTED_COUNT)).toBeVisible()
 
   // 4) Add a freestanding `Table.input` node between the two AI prompts. The unique sentinel
-  // value lets the final assertion identify the cross-join output unambiguously.
+  // value lets the final assertion identify the cross-join output unambiguously. The CB defaults
+  // to AI mode when claude is available, so we Shift+Enter to drop into component-search mode
+  // and have the literal expression committed as code (rather than sent as an AI prompt).
   await addNewNode.click()
   await expect(cbInput).toBeVisible()
+  await page.keyboard.press('Shift+Enter')
   await page.keyboard.type(TABLE_INPUT_EXPR)
   await page.keyboard.press('Enter')
   await expect(graphNodes).toHaveCount(3, { timeout: 30_000 })
@@ -118,21 +127,32 @@ test('creates two AI nodes plus a manual node in one session', async ({ page }) 
   await visualizeData(page)
   await expect(page.getByText(CROSS_JOIN_SENTINEL)).toBeVisible()
 
-  // 7) Force the agent to use `evaluateExpression`: feed it text whose shape can't be inferred
-  // from the file path or the static type. The file extension lies (`.csv`), the binding is
-  // `Plain_Text`, and the line layout uses `key: value` with inconsistent whitespace — so the
-  // agent has to peek at a real value to pick a parser. This step's primary purpose is to
-  // exercise the renderer-side `useAiToolHandler` subscription end-to-end.
+  // 7) Force the agent to use `evaluateExpression`: a `Data.read` source binding on a `.csv`
+  // file with no commas, so Enso parses each line as a single field — giving us a one-column
+  // Table whose column type doesn't reveal the `key: value` payload. The agent has to peek at
+  // a real cell to figure out how to split it. Creating the `Data.read` node manually (rather
+  // than asking the agent to construct the read + split in one prompt) trims the agent's work
+  // to just the split decision and keeps this step focused on exercising the renderer-side
+  // `useAiToolHandler` subscription end-to-end.
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'enso-ai-tool-'))
   const dummyPath = path.join(tmpDir, 'dummy.csv')
   await fs.writeFile(dummyPath, DUMMY_TEXT_CONTENT)
+  // Manual `Data.read` node — Shift+Enter drops the CB out of the default AI mode into
+  // component-search mode so the literal expression commits as code rather than a prompt.
   await addNewNode.click()
   await expect(cbInput).toBeVisible()
-  await page.keyboard.type(
-    `AI: read text from "${dummyPath}" with Plain_Text encoding and parse it into a Table with three numeric columns named x, y, and size`,
-  )
+  await page.keyboard.press('Shift+Enter')
+  await page.keyboard.type(`Data.read "${dummyPath}"`)
   await page.keyboard.press('Enter')
-  await expect(graphNodes).toHaveCount(5, { timeout: 240_000 })
+  await expect(graphNodes).toHaveCount(5, { timeout: 30_000 })
+  // The newly created node is auto-selected; Enter opens the CB on it as the source for a new
+  // AI prompt — no extra click needed (and clicks land in unintended places after the previous
+  // step's visualization shifts the canvas).
+  await page.keyboard.press('Enter')
+  await expect(cbInput).toBeVisible()
+  await page.keyboard.type(PARSE_PROMPT)
+  await page.keyboard.press('Enter')
+  await expect(graphNodes).toHaveCount(6, { timeout: 240_000 })
 
   // The agent could only have produced a working parser by inspecting a sample value. The
   // renderer logs `[AI tool] called [#…]` for every dispatch from the MCP server (see

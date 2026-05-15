@@ -57,6 +57,13 @@ export const electronExecutablePath = await (async () => {
 export const test = base.extend<{
   testRunId: string
   projectsDir: string
+  /**
+   * Whether the launched Electron process should spawn the local Claude agent. Default `false`
+   * — the test fixture sets `ENSO_AI_DISABLED=1` so a developer's locally-installed `claude` is
+   * not accidentally invoked during a non-AI spec. AI specs override with
+   * `test.use({ aiEnabled: true })`.
+   */
+  aiEnabled: boolean
   app: ElectronApplication
   page: Page
 }>({
@@ -68,9 +75,10 @@ export const test = base.extend<{
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
     await use(projectsDir)
   },
+  aiEnabled: [false, { option: true }],
 
   /** Setup for all tests: Create an electron-based app instance. */
-  app: async function ({ projectsDir, testRunId }, use) {
+  app: async function ({ projectsDir, testRunId, aiEnabled }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     const app = await _electron.launch({
       executablePath: electronExecutablePath,
@@ -79,6 +87,7 @@ export const test = base.extend<{
         ...process.env,
         ENSO_TEST: 'true',
         ENSO_TEST_PROJECTS_DIR: projectsDir.replace(/\\/g, '/'),
+        ...(aiEnabled ? {} : { ENSO_AI_DISABLED: '1' }),
       },
     })
     // Set the password as global var before turning on tracing.

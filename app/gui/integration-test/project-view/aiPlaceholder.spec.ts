@@ -2,6 +2,8 @@
 import { expect, test, type Page } from 'integration-test/base'
 import * as locate from './locate'
 
+test.use({ aiAvailable: true })
+
 const aiPendingNode = (page: Page) => page.locator('.AiPendingNode')
 const aiPendingStatus = (node: ReturnType<typeof aiPendingNode>) =>
   node.locator('[data-testid="ai-pending-status"]')
@@ -99,7 +101,7 @@ async function emitProgress(page: Page, event: Record<string, unknown>): Promise
 async function openAiPrompt(page: Page, prompt: string): Promise<void> {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toBeVisible()
-  await page.keyboard.insertText(`AI:${prompt}`)
+  await page.keyboard.insertText(prompt)
   await expect(page.locator('.ComponentList')).toBeHidden()
   await page.keyboard.press('Enter')
   // Component browser closes immediately on AI submit; the placeholder takes over.
