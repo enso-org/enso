@@ -57,7 +57,7 @@ const DATASETS_DIR = process.env.ENSO_TEST_AI_CHALLENGES_DIR
 const METRICS_DIR = process.env.ENSO_AI_CHALLENGES_METRICS_DIR
 // 15-min per-prompt ceiling. Stall detection lives in the main process: a turn whose stream-json
 // channel falls silent for `IDLE_TIMEOUT_MS` (5 min) errors out and fails this assertion well
-// before the per-prompt budget. No test-side watchdog — the prompt-failure signal is enough.
+// before the per-prompt budget.
 const AI_PROMPT_TIMEOUT_MS = 900_000
 const MANUAL_NODE_TIMEOUT_MS = 30_000
 
@@ -226,9 +226,7 @@ test("Preppin' Data week 32 — Pokemon Card Organising (stdlib-read isolation)"
   page,
 }, testInfo) => {
   // 9 AI calls × up to 15 min each upper bound, plus 4 manual source nodes and the final
-  // visualization. Realistic wall clock is far smaller; the cap leaves slack for a few prompts
-  // genuinely running long. Stuck turns surface as a 5-min idle-timeout error from the main
-  // process (`IDLE_TIMEOUT_MS`) and fail the assertion immediately — no test-side watchdog.
+  // visualization.
   test.setTimeout(120 * 60_000)
   const files = await resolveDataFiles(WEEK_32_FILES)
   const usage = collectAiUsage(page)
@@ -320,8 +318,7 @@ test("Preppin' Data week 51 — Strictly Positive Improvements (value-probe isol
   page,
 }, testInfo) => {
   // 6 AI calls × up to 15 min each upper bound, plus the manual source node and the final
-  // visualization. Stuck turns surface as a 5-min idle-timeout error from the main process
-  // (`IDLE_TIMEOUT_MS`) and fail the assertion immediately — no test-side watchdog.
+  // visualization.
   test.setTimeout(90 * 60_000)
   const files = await resolveDataFiles(WEEK_51_FILES)
   const usage = collectAiUsage(page)

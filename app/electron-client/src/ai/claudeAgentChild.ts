@@ -33,9 +33,7 @@ export const PRIMING_REQUEST_ID = 'priming'
  * available); ~36 tool calls before replying. Each Read fires its own `assistant` envelope, so
  * realistic gaps between envelopes are sub-second; 5 min of true idleness during priming means
  * the CLI is stuck. The fallback path (no stdlib) does the trivial "say READY" turn and emits a
- * single envelope well under the cap. Matches the per-request idle cap, so the constant could in
- * principle collapse to one — kept separate to localise priming-specific tuning if it ever
- * needs to differ.
+ * single envelope well under the cap.
  */
 export const PRIMING_IDLE_TIMEOUT_MS = 300_000
 
@@ -478,8 +476,7 @@ export class ChildAgent {
       // the stdin write so the renderer flips queued→running close to when the prompt actually
       // begins traveling toward the API.
       this.emitProgress({ requestId, kind: 'started' })
-      // Arm the initial idle window before writing — covers the model's pre-first-envelope
-      // ramp-up. Subsequent `assistant` envelopes reset it via `captureAssistantContent`.
+      // Arm the initial idle window before writing.
       pending.resetIdleTimer()
       child.stdin.write(line, (err) => {
         if (!err) return
@@ -680,10 +677,6 @@ export class ChildAgent {
   private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
     const pending = this.pending
     if (!pending) return
-    // Reset the idle timer first thing — we now know the model is producing output, regardless
-    // of which kind of block(s) the envelope carries (text, tool_use, or both) and regardless
-    // of whether the per-block `emitProgress` calls below will fire (priming has `sender == null`
-    // which short-circuits emitProgress, but the model is still demonstrably alive).
     pending.resetIdleTimer()
     pending.hopCount += 1
     pending.lastHopUsage = env.message.usage ?? null
