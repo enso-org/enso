@@ -60,7 +60,7 @@ enso> corepack pnpm -r --filter enso ide-integration-test tests/gettingStarted.s
 Two AI-driven specs are gated on env vars and skipped silently otherwise.
 
 Per-prompt budgets are generous (10 min for `aiNode.spec.ts`, 15 min for
-`aiChallengePrep.spec.ts`) because deep-thinking turns on `--effort max` can
+`aiChallenges.spec.ts`) because deep-thinking turns on `--effort max` can
 genuinely run for several minutes of channel silence (the underlying API does
 not surface per-token thinking deltas). Stall detection lives in the main
 process: `IDLE_TIMEOUT_MS` (5 min) errors out a turn whose stream-json channel
@@ -76,40 +76,57 @@ Requires the `claude` CLI on `PATH` and authenticated. Set `ENSO_TEST_AI=1`.
 enso> ENSO_TEST_AI=1 corepack pnpm -r --filter enso ide-integration-test tests/aiNode.spec.ts
 ```
 
-### `aiChallengePrep.spec.ts` — Preppin' Data challenge inputs (5–15 min/test)
+### `aiChallenges.spec.ts` — AI challenge inputs (5–15 min/test)
 
-Long-running e2e tests that drive AI nodes through a full Preppin' Data
-challenge.
+Long-running e2e tests that drive AI nodes through analytics workflows. Two
+flavors:
 
-These tests need the `claude` CLI **and** the original challenge inputs
-downloaded by hand (no fixtures are committed). Source URLs:
+- **Preppin' Data tests** isolate single capability gaps with prompts that spell
+  out value-dependent context.
+- **App-demo tests** (Colorado COVID, FX Rates History) describe a business goal
+  and verify the agent picks the right multi-step approach on its own.
+
+These tests need the `claude` CLI **and** (for the file-driven tests) the
+original inputs downloaded by hand — no fixtures are committed. Source URLs:
 
 - Week 32 — Pokemon Card Organising:
   <https://preppindata.blogspot.com/2024/08/2024-week-32-pokemon-card-organising.html>
 - Week 51 — Strictly Positive Improvements:
   <https://preppindata.blogspot.com/2024/12/2024-week-51-strictly-positive.html>
   (input is identical to Challenge 42)
+- Colorado COVID — `CDPHE_COVID19_County_Status_Metrics.csv` and
+  `ColoradoGeoData.db` (the SQLite holds a `ColoradoLatLong` table) live in the
+  local `~/dev/project-templates/Data/` checkout; copy both into the challenge
+  directory before running.
 
 Drop the downloaded files into a single directory (flat — no subfolders):
 
 ```
 $ENSO_TEST_AI_CHALLENGES_DIR/
-  Gym Leader Set Cards.xlsx          # week 32 (sheets: Trainer Cards, Pokemon Cards, Leader Order)
-  Pokemon Input.xlsx                 # week 32 (only the `Pokemon` sheet is used)
+  Gym Leader Set Cards.xlsx                         # week 32 (sheets: Trainer Cards, Pokemon Cards, Leader Order)
+  Pokemon Input.xlsx                                # week 32 (only the `Pokemon` sheet is used)
   strictly_come_dancing_series_1_to_21_tables.csv   # week 51
+  CDPHE_COVID19_County_Status_Metrics.csv           # Colorado COVID
+  ColoradoGeoData.db                                # Colorado COVID
 ```
+
+The FX Rates History test doesn't read any local file — it fetches the BoE
+exchange-rate CSV over HTTPS at runtime. The env var still gates it (so the test
+doesn't fire in default local runs), but the directory can be empty for this
+test; the network connection to `bankofengland.co.uk` is the real prerequisite.
 
 Then:
 
 ```bash
-enso> ENSO_TEST_AI_CHALLENGES_DIR=/abs/path/to/preppin-data \
-        corepack pnpm -r --filter enso ide-integration-test tests/aiChallengePrep.spec.ts
+enso> ENSO_TEST_AI_CHALLENGES_DIR=/abs/path/to/challenge-inputs \
+        corepack pnpm -r --filter enso ide-integration-test tests/aiChallenges.spec.ts
 ```
 
-Per-test skips fire when only one challenge's files are present, so a developer
-who has downloaded only week 51 can still run that one. If Preppin' Data
-publishes the inputs under different filenames, edit the `WEEK_32_FILES` /
-`WEEK_51_FILES` constants in the spec or rename the local copy.
+Per-test skips fire when only some challenges' files are present, so a developer
+who has downloaded only week 51 can still run that one. If a vendor publishes
+the inputs under different filenames, edit the corresponding `WEEK_32_FILES` /
+`WEEK_51_FILES` / `COLORADO_FILES` constant in the spec or rename the local
+copy.
 
 #### Effectiveness metrics (optional)
 
@@ -136,11 +153,11 @@ Set `ENSO_AI_CLAUDE_EXTRA_ARGS` to extra flags forwarded verbatim to the spawned
 `claude` CLI (whitespace-split, no shell quoting):
 
 ```bash
-ENSO_TEST_AI_CHALLENGES_DIR=/abs/path/to/preppin-data \
+ENSO_TEST_AI_CHALLENGES_DIR=/abs/path/to/challenge-inputs \
 ENSO_AI_CHALLENGES_METRICS_DIR=/abs/path/to/metrics \
 ENSO_AI_CLAUDE_EXTRA_ARGS="--model claude-sonnet-4-6" \
   corepack pnpm -r --filter enso ide-integration-test \
-    tests/aiChallengePrep.spec.ts
+    tests/aiChallenges.spec.ts
 ```
 
 The verbatim env-var value is captured in each row's `ai_parameters` column, so

@@ -51,7 +51,7 @@
     "./src/urlAssociations.ts",
     "./tasks/computeHashes.ts",
     "./tasks/signArchivesMacOs.ts",
-    "./tests/aiChallengePrep.spec.ts",
+    "./tests/aiChallenges.spec.ts",
     "./tests/aiMetrics.ts",
     "./tests/aiNode.spec.ts",
     "./tests/cloudWorkflow.spec.ts",

@@ -196,6 +196,20 @@ export async function visualizeData(page: Page) {
 }
 
 /**
+ * Click the eye button to hide an already-shown visualization. Used between checkpoints in
+ * multi-step AI tests so the next `.TableVisualization` locator only matches one element.
+ *
+ * When a visualization is open, the "Hide visualization (Space)" aria-label appears on both
+ * the inline node-header toggle and the viz-panel toolbar toggle (both targeting the same
+ * `isVisualizationEnabled` state, so clicking either dismisses the viz). `.first()` picks the
+ * inline button deterministically and avoids Playwright's strict-mode duplicate-match error.
+ */
+export async function hideVisualization(page: Page) {
+  const hideViz = page.getByLabel('Hide visualization (Space)').first()
+  await hideViz.click({ timeout: 5000 })
+}
+
+/**
  * Open new component browser refefencing the last created component
  */
 export async function createNewComponent(page: Page) {

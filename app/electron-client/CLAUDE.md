@@ -498,7 +498,7 @@ back to its default.
 
 `ENSO_AI_CLAUDE_EXTRA_ARGS` is split on whitespace and appended verbatim to the
 spawned `claude -p …` flag list, after the built-in flags. Used by the
-AI-effectiveness suite (`tests/aiChallengePrep.spec.ts`) to compare models and
+AI-effectiveness suite (`tests/aiChallenges.spec.ts`) to compare models and
 reasoning levels — e.g. `ENSO_AI_CLAUDE_EXTRA_ARGS="--model claude-sonnet-4-6"`.
 No shell-style quoting: values containing whitespace aren't expressible. Args
 are forwarded to both the primary and any warming child so a context rotation
@@ -569,8 +569,9 @@ describe block on an env flag (`process.env.ENSO_TEST_AI === '1'`) and note the
 flag in the plan's verification section so per-step smokes still exercise it
 locally.
 
-`tests/aiChallengePrep.spec.ts` is the heavy AI suite — it drives full Preppin'
-Data challenge solves through Component Browser AI-mode prompts. It's gated on
-`ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at manually-downloaded inputs
-(see `tests/README.md` for the expected layout) because the inputs aren't
-checked in and the agent budget is real.
+`tests/aiChallenges.spec.ts` is the heavy AI suite — it drives full analytics
+workflows through Component Browser AI-mode prompts (Preppin' Data weekly
+challenges plus app-demo workflows like Colorado COVID and FX Rates History).
+It's gated on `ENSO_TEST_AI_CHALLENGES_DIR=/abs/path` pointing at
+manually-downloaded inputs (see `tests/README.md` for the expected layout)
+because the inputs aren't checked in and the agent budget is real.
