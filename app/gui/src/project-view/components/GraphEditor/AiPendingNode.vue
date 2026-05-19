@@ -5,7 +5,7 @@ import type { AiPending } from '@/stores/ongoingAiPrompts'
 import { computed } from 'vue'
 
 const { pending } = defineProps<{ pending: AiPending }>()
-const emit = defineEmits<{ cancel: [] }>()
+const emit = defineEmits<{ cancel: []; refresh: [] }>()
 
 const transform = computed(() => {
   const { x, y } = pending.position
@@ -32,6 +32,14 @@ const transform = computed(() => {
         phase="loading-medium"
       />
       <span class="prompt">{{ pending.prompt }}</span>
+      <SvgButton
+        v-if="pending.status === 'running' || pending.status === 'failed'"
+        class="refresh"
+        data-testid="ai-pending-refresh"
+        name="refresh"
+        title="Retry AI prompt"
+        @activate="emit('refresh')"
+      />
       <SvgButton class="cancel" name="close" title="Cancel AI prompt" @activate="emit('cancel')" />
     </div>
   </div>
@@ -70,6 +78,8 @@ const transform = computed(() => {
   align-items: center;
   gap: 8px;
   min-height: var(--node-base-height, 32px);
+  /* Roughly match a default node's footprint so the placeholder reads as node-shaped, not pill-shaped. */
+  min-width: 300px;
   padding: 6px 12px;
   border-radius: var(--node-border-radius, 16px);
   background-color: var(--color-node-background-pending, #d8d8d8);
@@ -87,12 +97,14 @@ const transform = computed(() => {
 }
 
 .prompt {
+  /* Absorb skeleton slack so trailing buttons stay flush right when content is shorter than min-width. */
+  flex: 1 1 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
 }
 
+.refresh,
 .cancel {
   flex: 0 0 auto;
 }

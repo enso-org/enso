@@ -7,6 +7,8 @@ test.use({ aiAvailable: true })
 const aiPendingNode = (page: Page) => page.locator('.AiPendingNode')
 const aiPendingStatus = (node: ReturnType<typeof aiPendingNode>) =>
   node.locator('[data-testid="ai-pending-status"]')
+const aiPendingRefresh = (node: ReturnType<typeof aiPendingNode>) =>
+  node.locator('[data-testid="ai-pending-refresh"]')
 
 /** Switch the AI mock into deferred mode so each `generateComponent` waits for the test to drive it. */
 async function enableDeferredAiMock(page: Page): Promise<void> {
@@ -313,6 +315,110 @@ test('after a cancel, a freshly submitted prompt is dispatched and completes', a
   const secondProbe = await probeAiMock(page)
   expect(secondProbe.cancels).toEqual([firstId])
   const secondId = secondProbe.ids.find((id) => id !== firstId)!
+
+  await emitProgress(page, { requestId: secondId, kind: 'started' })
+  await resolveAi(page, secondId)
+  await expect(placeholders).toHaveCount(0)
+  await expect(locate.graphNodeByBinding(page, 'ai_component1')).toBeVisible()
+})
+
+test('refresh button is hidden while queued and visible once running or failed', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+  await enableDeferredAiMock(page)
+
+  // Two prompts: first runs, second sits queued behind it.
+  await openAiPrompt(page, 'first')
+  await openAiPrompt(page, 'second')
+  const placeholders = aiPendingNode(page)
+  await expect(placeholders).toHaveCount(2)
+
+  // Queued placeholder must not offer refresh.
+  await expect(aiPendingRefresh(placeholders.nth(1))).toHaveCount(0)
+  // The first placeholder is still queued (no `started` event yet) — also hidden.
+  await expect(aiPendingRefresh(placeholders.nth(0))).toHaveCount(0)
+
+  // Drive `started` on the first; refresh appears for the now-running entry only.
+  const probe = await probeAiMock(page)
+  await emitProgress(page, { requestId: probe.ids[0]!, kind: 'started' })
+  await expect(aiPendingRefresh(placeholders.nth(0))).toHaveCount(1)
+  await expect(aiPendingRefresh(placeholders.nth(1))).toHaveCount(0)
+
+  // Fail the first; refresh stays visible on the failed entry.
+  await failAi(page, probe.ids[0]!, 'Mock failure')
+  const failed = page.locator('.AiPendingNode.failed')
+  await expect(failed).toHaveCount(1)
+  await expect(aiPendingRefresh(failed)).toHaveCount(1)
+})
+
+test('refresh on a failed placeholder re-queues the same prompt', async ({ editorPage, page }) => {
+  await editorPage
+  await enableDeferredAiMock(page)
+
+  await openAiPrompt(page, 'first')
+  const placeholders = aiPendingNode(page)
+  await expect(placeholders).toHaveCount(1)
+  const { ids } = await probeAiMock(page)
+  const failedId = ids[0]!
+  await failAi(page, failedId, 'Mock failure for testing')
+
+  const failed = page.locator('.AiPendingNode.failed')
+  await expect(failed).toHaveCount(1)
+
+  // Click refresh: the failed placeholder is dismissed and a fresh request is enqueued.
+  await aiPendingRefresh(failed).click()
+  await expect(failed).toHaveCount(0)
+  await expect(placeholders).toHaveCount(1)
+
+  // A new request id appears in the mock — proves a fresh IPC went out.
+  await expect
+    .poll(
+      async () => {
+        const p = await probeAiMock(page)
+        return p.ids.find((id) => id !== failedId)
+      },
+      { timeout: 10_000 },
+    )
+    .not.toBeUndefined()
+  const probe = await probeAiMock(page)
+  const newId = probe.ids.find((id) => id !== failedId)!
+
+  await emitProgress(page, { requestId: newId, kind: 'started' })
+  await resolveAi(page, newId)
+  await expect(placeholders).toHaveCount(0)
+  await expect(locate.graphNodeByBinding(page, 'ai_component1')).toBeVisible()
+})
+
+test('refresh on a running placeholder cancels the in-flight prompt and re-queues it', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+  await enableDeferredAiMock(page)
+
+  await openAiPrompt(page, 'first')
+  const placeholders = aiPendingNode(page)
+  await expect(placeholders).toHaveCount(1)
+  const firstProbe = await probeAiMock(page)
+  const firstId = firstProbe.ids[0]!
+  await emitProgress(page, { requestId: firstId, kind: 'started' })
+
+  await aiPendingRefresh(placeholders.nth(0)).click()
+  // Original request is cancelled and a new one is dispatched.
+  await expect
+    .poll(
+      async () => {
+        const p = await probeAiMock(page)
+        return p.ids.find((id) => id !== firstId)
+      },
+      { timeout: 10_000 },
+    )
+    .not.toBeUndefined()
+  const afterRefresh = await probeAiMock(page)
+  expect(afterRefresh.cancels).toEqual([firstId])
+  const secondId = afterRefresh.ids.find((id) => id !== firstId)!
 
   await emitProgress(page, { requestId: secondId, kind: 'started' })
   await resolveAi(page, secondId)

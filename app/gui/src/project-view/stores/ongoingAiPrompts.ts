@@ -1,11 +1,12 @@
 /** @file Renderer-side queue and placeholder nodes for in-flight AI component prompts. */
 
 import {
+  type CurrentProjectStore,
   useCurrentProject,
   useGraphStore,
   useProjectNames,
 } from '$/components/WithCurrentProject.vue'
-import type { NodeId } from '$/providers/openedProjects/graph'
+import type { GraphStore, NodeId } from '$/providers/openedProjects/graph'
 import { proxyRefs } from '$/utils/reactivity'
 import { DEFAULT_NODE_SIZE } from '@/components/ComponentBrowser/placement'
 import {
@@ -90,6 +91,23 @@ export interface EnqueueEditArgs {
 
 export type OngoingAiPromptsStore = ReturnType<typeof ongoingAiPromptsStoreFactory>
 
+/**
+ * Dependencies the {@link ongoingAiPromptsStoreFactory} reaches for. Surfaced as a parameter
+ * so unit tests can wire in fakes; the production `createContextStore` lambda below resolves the
+ * real stores. Each entry is `Pick<>`-ed to just the methods actually called so test fakes need
+ * not re-implement the full upstream surface.
+ */
+export interface OngoingAiPromptsDeps {
+  readonly graphStore: Pick<
+    GraphStore,
+    'db' | 'currentMethod' | 'registerExtraOccupiedAreas' | 'generateLocallyUniqueIdent'
+  >
+  readonly module: CurrentProjectStore['module']
+  readonly ai: Pick<ReturnType<typeof useAI>, 'dispatch'>
+  readonly toastError: Pick<ReturnType<typeof useToast.error>, 'show'>
+  readonly electronApi: typeof window.api | undefined
+}
+
 const STATUS_TEXT_MAX_CHARS = 120
 const QUEUED_LABEL = 'Waiting…'
 const STARTED_LABEL = 'Thinking…'
@@ -105,17 +123,12 @@ function queuedPositionLabel(position: number): string {
  * cancelling either drops a still-queued/failed entry or sends a cancel IPC for a running one.
  * The store is local-only (not broadcast over Yjs awareness).
  */
-function ongoingAiPromptsStoreFactory() {
-  const graphStore = useGraphStore()
-  const projectNames = useProjectNames()
-  const { module } = useCurrentProject()
-  const ai = useAI(graphStore, projectNames)
-  const toastError = useToast.error()
+export function ongoingAiPromptsStoreFactory(deps: OngoingAiPromptsDeps) {
+  const { graphStore, module, ai, toastError, electronApi } = deps
 
   const entries = reactive(new Map<string, AiPending>())
   let dispatching = false
 
-  const electronApi = typeof window === 'undefined' ? undefined : window.api
   if (electronApi != null) {
     const dispose = electronApi.ai.onProgress(handleProgress)
     onScopeDispose(dispose)
@@ -281,6 +294,51 @@ function ongoingAiPromptsStoreFactory() {
     entries.delete(id)
   }
 
+  /**
+   * Re-queue the same prompt: cancel any in-flight dispatch for this entry and enqueue a fresh
+   * placeholder with the same args at the same position. The caller hides the refresh button on
+   * `queued` entries, so this is only invoked from `running` or `failed`.
+   *
+   * For edit entries, this recaptures `previousPrompt`/`previousDefinition` from the live AST — a
+   * deliberate "fresh start" so any manual edits the user made while the placeholder was failed
+   * feed into the retry.
+   *
+   * Unlike {@link cancel}, which lets {@link runEntry}'s cancellation reply delete the entry,
+   * this deletes the old entry synchronously. The `entries.has(entry.id)` guard inside
+   * {@link runEntry} keeps the late-arriving cancellation reply silent.
+   */
+  function refresh(id: string): void {
+    const entry = entries.get(id)
+    if (entry == null) return
+    if (entry.editTarget != null) {
+      const result = enqueueEdit({
+        prompt: entry.prompt,
+        sourceIdentifier: entry.sourceIdentifier,
+        methodId: entry.methodId,
+        methodBodyId: entry.methodBodyId,
+        methodName: entry.methodName,
+        editNodeId: entry.editTarget.nodeId,
+      })
+      if (!result.ok) {
+        toastError.show(result.error.message('Cannot retry AI prompt'))
+        return
+      }
+    } else {
+      enqueue({
+        prompt: entry.prompt,
+        sourceIdentifier: entry.sourceIdentifier,
+        methodId: entry.methodId,
+        methodBodyId: entry.methodBodyId,
+        methodName: entry.methodName,
+        position: entry.position,
+      })
+    }
+    if (entry.dispatched && entry.status !== 'failed') {
+      electronApi?.ai.cancel(entry.requestId)
+    }
+    entries.delete(id)
+  }
+
   async function kickDispatcher(): Promise<void> {
     if (dispatching) return
     dispatching = true
@@ -429,6 +487,7 @@ function ongoingAiPromptsStoreFactory() {
     enqueue,
     enqueueEdit,
     cancel,
+    refresh,
     findByRequestId,
     entriesForCurrentMethod,
     hiddenNodeIds,
@@ -437,7 +496,18 @@ function ongoingAiPromptsStoreFactory() {
 
 export const [provideOngoingAiPrompts, useOngoingAiPrompts] = createContextStore(
   'ongoingAiPrompts',
-  ongoingAiPromptsStoreFactory,
+  () => {
+    const graphStore = useGraphStore()
+    const projectNames = useProjectNames()
+    const { module } = useCurrentProject()
+    return ongoingAiPromptsStoreFactory({
+      graphStore,
+      module,
+      ai: useAI(graphStore, projectNames),
+      toastError: useToast.error(),
+      electronApi: typeof window === 'undefined' ? undefined : window.api,
+    })
+  },
 )
 
 function truncate(value: string, max: number): string {

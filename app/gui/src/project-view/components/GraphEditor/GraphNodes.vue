@@ -96,6 +96,7 @@ const layerStyle = computed(() => ({
       :key="entry.id"
       :pending="entry"
       @cancel="aiPrompts.cancel(entry.id)"
+      @refresh="aiPrompts.refresh(entry.id)"
     />
   </div>
 </template>
