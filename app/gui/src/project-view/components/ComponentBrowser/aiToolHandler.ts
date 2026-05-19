@@ -57,11 +57,19 @@ async function handleToolCall(
   const projectStore = currentProject.store.value
   try {
     // 25s budget: under the main-process MCP server's 30s timeout so renderer-side errors
-    // surface first with an actionable message.
+    // surface first with an actionable message. On timer expiry the `onTimeout` callback
+    // dispatches `executionContext/interrupt` to the LS so the abandoned evaluation does
+    // not block the AI's next verification call by occupying the (single-threaded) execution
+    // context. The interrupt is context-wide — see project-view/CLAUDE.md for the trade-off.
     const result = await projectStore.queuedExecuteExpressionRaw(
       entry.methodBodyId,
       request.expression,
       25_000,
+      () => {
+        void projectStore.lsRpcConnection.interruptExecutionContext(
+          projectStore.executionContext.id,
+        )
+      },
     )
     if (result == null) {
       return fail('expression evaluation returned no result')

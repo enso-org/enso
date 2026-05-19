@@ -267,13 +267,19 @@ export function createProjectStore(
   /**
    * Variant of {@link queuedExecuteExpression} that returns the raw decoded text the LS produced
    * (no JSON parsing). Failure semantics match {@link queuedExecuteExpression}.
+   *
+   * `onTimeout` fires after the awaiting promise has resolved on timer expiry — callers use it
+   * to issue out-of-band cleanup that shouldn't block the resolved Promise. The AI tool handler
+   * uses this to send `executionContext/interrupt` so a stuck eval doesn't block subsequent
+   * verification calls.
    */
   function queuedExecuteExpressionRaw(
     expressionId: ExternalId,
     expression: string,
     timeoutMs: number = 5000,
+    onTimeout?: () => void,
   ): Promise<Result<string> | null> {
-    return runExecuteExpressionSlot(expressionId, expression, timeoutMs)
+    return runExecuteExpressionSlot(expressionId, expression, timeoutMs, onTimeout)
   }
 
   /**
@@ -282,11 +288,13 @@ export function createProjectStore(
    * `timeoutMs` is `null`, wait indefinitely for the slot to terminate;
    * otherwise resolve with `Err(timeout)` once the deadline passes. Either way
    * the slot is removed from the subdoc before the returned promise settles.
+   * `onTimeout` is forwarded to {@link awaitExecuteSlot} — see its doc.
    */
   function runExecuteExpressionSlot(
     expressionId: ExternalId,
     expression: string,
     timeoutMs: number | null,
+    onTimeout?: () => void,
   ): Promise<Result<string> | null> {
     const visDoc = projectModel.visualizationsDoc
     if (!visDoc) {
@@ -310,7 +318,7 @@ export function createProjectStore(
       },
       requestId,
     )
-    return awaitExecuteSlot(vis, requestId, timeoutMs).finally(() => {
+    return awaitExecuteSlot(vis, requestId, timeoutMs, onTimeout).finally(() => {
       vis.removeSlot(requestId)
     })
   }
@@ -319,11 +327,17 @@ export function createProjectStore(
    * Observe slot `requestId` until it lands in a terminal state: `ready` → `Ok(text)` (UTF-8
    * decoded), `failed` → `Err(message)`, timeout → `Err(timeout)`. Always resolves; rejection
    * is reserved for catastrophic failures.
+   *
+   * `onTimeout`, if provided, fires after the awaiting promise has resolved on timer expiry —
+   * callers use it to issue out-of-band cleanup (e.g. `executionContext/interrupt`) that
+   * shouldn't block the resolved Promise but should run before the next consumer of the
+   * execution context.
    */
   function awaitExecuteSlot(
     vis: Visualizations,
     requestId: VisRequestId,
     timeoutMs: number | null,
+    onTimeout?: () => void,
   ): Promise<Result<string> | null> {
     return new Promise<Result<string> | null>((resolve) => {
       let unobserve: (() => void) | null = null
@@ -378,6 +392,7 @@ export function createProjectStore(
       if (timeoutMs != null) {
         timer = setTimeout(() => {
           finish(Err('executeExpression: Execution timed out.'))
+          onTimeout?.()
         }, timeoutMs)
       }
     })

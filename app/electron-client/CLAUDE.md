@@ -250,6 +250,24 @@ added when the MCP server started successfully — the system prompt's "Tools yo
 have available" list mirrors that, so we don't lie to the model about
 capabilities that aren't wired.
 
+The renderer enforces an inner 25 s budget on each `executeExpression` so the
+two timeouts don't fire simultaneously (renderer first, MCP cap as a safety
+net). When the 25 s timer fires, the renderer also dispatches
+`executionContext/interrupt` to the LS via the `onTimeout` callback plumbed
+through `queuedExecuteExpressionRaw` → `runExecuteExpressionSlot` →
+`awaitExecuteSlot` in `app/gui/src/providers/openedProjects/project/project.ts`.
+Without that interrupt, the LS keeps draining the abandoned `executeExpression`
+inside the single-threaded execution context, and the AI's next verification
+call queues behind it and inherits the 25 s timeout — even a literal-only probe.
+Interrupt is **context-wide** (LS protocol limitation: there is no per-slot
+cancel for `executeExpression`), so any concurrent visualization or
+user-triggered eval in the same context is also stopped; interrupted
+computations re-evaluate when next observed, so the trade-off is short-term
+re-render churn for unblocking the AI's verify loop. The 25 s budget itself is
+not the variable to tune here — Enso is meant for million-row datasets and
+verification must cap reads at the parser / SQL layer; the system prompt's "Cap
+verification reads at the lowest layer" section instructs the model accordingly.
+
 **Renderer side:**
 `app/gui/src/project-view/components/ComponentBrowser/aiToolHandler.ts` exposes
 a `useAiToolHandler()` Vue composable mounted by `GraphEditor.vue` so the IPC
