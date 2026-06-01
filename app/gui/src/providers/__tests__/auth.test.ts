@@ -44,9 +44,9 @@ describe('makeSyntheticUser', () => {
   })
 
   it('derives identifiers in the expected newtype shape', () => {
-    const user = makeSyntheticUser(fakeCognitoSession({ clientId: 'abc' }))
+    const user = makeSyntheticUser(fakeCognitoSession({ email: 'someone@enso.org' }))
     expect(isUserId(user.userId)).toBe(true)
-    expect(user.userId).toContain('abc')
+    expect(user.userId).toContain('someone@enso.org')
     expect(isOrganizationId(user.organizationId)).toBe(true)
     expect(isDirectoryId(user.rootDirectoryId)).toBe(true)
   })
@@ -57,8 +57,14 @@ describe('makeSyntheticUser', () => {
     expect(user.name).toBe('someone@enso.org')
   })
 
-  it('handles a missing clientId without producing an empty identifier', () => {
-    const user = makeSyntheticUser(fakeCognitoSession({ clientId: '' }))
+  it('keys identifiers on email so two users on the same Cognito app are distinct', () => {
+    const a = makeSyntheticUser(fakeCognitoSession({ email: 'a@enso.org' }))
+    const b = makeSyntheticUser(fakeCognitoSession({ email: 'b@enso.org' }))
+    expect(a.userId).not.toBe(b.userId)
+  })
+
+  it('handles a missing email without producing an empty identifier', () => {
+    const user = makeSyntheticUser(fakeCognitoSession({ email: '' }))
     expect(user.userId).toBe('user-cloud-unavailable-unknown')
   })
 })

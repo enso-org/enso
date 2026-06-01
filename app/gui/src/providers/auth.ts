@@ -23,6 +23,10 @@ export interface UserSession extends cognitoModule.UserSession {
    * `true` when this session is a placeholder synthesized after `users/me` failed with
    * a non-auth error. The user is signed in to Cognito and can use local projects, but
    * the `user` field is a stub — cloud features must be disabled by callers.
+   *
+   * Only set on deployments that have a local backend; cloud-only builds fall back to
+   * the existing redirect-to-login path when `users/me` fails, so this flag is never
+   * `true` there.
    */
   readonly isCloudDataUnavailable?: boolean
 }
@@ -72,6 +76,12 @@ export function createUsersMeQuery(
   let refetchCount = 0
   return vueQuery.queryOptions({
     queryKey: createUsersMeQueryKey(session, remoteBackend),
+    // Disable the default 3-retry backoff: a failed `users/me` should surface immediately
+    // so the degraded-auth UI can render instead of stalling navigation for ~10 s while
+    // the query retries. Unauthorized errors have a dedicated recovery flow in
+    // {@link useUnauthorizedRecovery}; transient network errors are handled by the
+    // user clicking the "Retry" button.
+    retry: false,
     queryFn: async (): Promise<UserSession | null> => {
       const sessionVal = toValue(session)
       if (!sessionVal) {
@@ -102,11 +112,14 @@ export function createUsersMeQuery(
  * response is unavailable. All cloud features must be treated as disabled — the
  * placeholder mirrors a real user without a licence (`isEnabled: false`,
  * `plan: Plan.free`) so the existing "not-enabled" rendering paths apply.
+ *
+ * Identifier fields embed the Cognito email so the placeholder is distinct per signed-in
+ * user (the Cognito app `clientId` is a deployment-wide constant and would alias users).
  */
 export function makeSyntheticUser(cognitoSession: cognitoModule.UserSession): backendModule.User {
-  const clientIdSuffix = cognitoSession.clientId || 'unknown'
+  const identitySuffix = cognitoSession.email || 'unknown'
   return {
-    userId: backendModule.UserId(`user-cloud-unavailable-${clientIdSuffix}`),
+    userId: backendModule.UserId(`user-cloud-unavailable-${identitySuffix}`),
     organizationId: backendModule.OrganizationId(
       'organization-00000000000000000000000000',
     ),
@@ -162,7 +175,13 @@ function createAuthStore(
   })
 
   const setUsername = async (username: string) => {
-    if (userData.value != null) {
+    if (isCloudDataUnavailable.value) {
+      throw new Error('Cannot set username while Enso Cloud is unavailable.')
+    }
+    // Branch on the real `users/me` result, not the (possibly synthetic) `userData`:
+    // a synthetic placeholder would otherwise route us into the update path and hit
+    // the failing remote.
+    if (usersMeQuery.data.value != null) {
       await updateUserMutation.mutateAsync({ username })
     } else {
       const orgId = await organizationId()
@@ -190,10 +209,13 @@ function createAuthStore(
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
 
-  let syntheticUserCache: { clientId: string; user: backendModule.User } | null = null
+  // Keyed on `email`, not `clientId`: `clientId` is the Cognito app integration ID and is
+  // identical across users on the same deployment, so caching on it would surface user A's
+  // placeholder for user B after a sign-out/sign-in.
+  let syntheticUserCache: { email: string; user: backendModule.User } | null = null
   const getSyntheticUser = (cognitoSession: cognitoModule.UserSession) => {
-    if (syntheticUserCache?.clientId !== cognitoSession.clientId) {
-      syntheticUserCache = { clientId: cognitoSession.clientId, user: makeSyntheticUser(cognitoSession) }
+    if (syntheticUserCache?.email !== cognitoSession.email) {
+      syntheticUserCache = { email: cognitoSession.email, user: makeSyntheticUser(cognitoSession) }
     }
     return syntheticUserCache.user
   }
@@ -202,7 +224,8 @@ function createAuthStore(
    * `true` when Cognito sign-in succeeded but the subsequent `users/me` fetch failed
    * with a non-auth error. Auth (401/403) failures are owned by `useUnauthorizedRecovery`
    * and excluded here. Requires a local backend so the synthesised session has somewhere
-   * to land — without one, callers fall back to the redirect-to-login path.
+   * to land — on cloud-only deployments without `localBackend`, this stays `false` and
+   * the user falls through to the existing redirect-to-login path.
    */
   const isCloudDataUnavailable = computed(() => {
     const cognitoSession = session.value

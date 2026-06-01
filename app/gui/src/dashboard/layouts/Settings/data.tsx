@@ -70,7 +70,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'accountSettingsTab',
     settingsTab: SettingsTabType.account,
     icon: 'settings',
-    visible: ({ isCloudDataUnavailable }) => !isCloudDataUnavailable,
+    // The tab stays visible in degraded-auth mode so the Cognito-only sections
+    // (password change, 2FA setup) remain reachable; the cloud-dependent sections
+    // hide themselves via their own `getVisible`.
     sections: [
       {
         nameId: 'userAccountSettingsSection',
@@ -89,6 +91,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 IanaTimeZone(getLocalTimeZone()),
               ),
             }),
+            getVisible: ({ isCloudDataUnavailable }) => !isCloudDataUnavailable,
             onSubmit: async (context, { name, timeZone }) => {
               const newTimeZone = timeZone != null ? tryGetTimeZoneFromDescription(timeZone) : null
               if (newTimeZone != null) {
@@ -229,6 +232,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             aliasesId: 'deleteUserAccountSettingsCustomEntryAliases',
+            getVisible: ({ isCloudDataUnavailable }) => !isCloudDataUnavailable,
             render: () => <DeleteUserAccountSettingsSection />,
           },
         ],
@@ -240,6 +244,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
+            getVisible: ({ isCloudDataUnavailable }) => !isCloudDataUnavailable,
             render: (context) => <ProfilePictureInput backend={context.backend} />,
           },
         ],

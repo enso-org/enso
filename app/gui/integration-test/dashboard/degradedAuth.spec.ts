@@ -1,7 +1,7 @@
 /** @file Verify the degraded-auth mode triggered when `users/me` fails for a non-auth reason. */
 import { expect, test } from 'integration-test/base'
 
-import { TEXT } from '../actions'
+import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '../actions'
 
 const HTTP_INTERNAL_SERVER_ERROR = 500
 const HTTP_UNAUTHORIZED = 401
@@ -54,11 +54,20 @@ test('401 keeps the existing recovery + logout path, no degraded UI', async ({
   loginPage,
   cloudApi,
 }) => {
+  // Submit credentials by hand: `loginPage.login()` asserts the login form disappears,
+  // but the 401-driven unauthorized-recovery flow logs the user back out almost
+  // immediately, so the form may never stay hidden long enough.
   cloudApi.setUsersMeFailureStatus(HTTP_UNAUTHORIZED)
 
-  await loginPage.login().do(async (page) => {
-    // The unauthorized-recovery flow eventually logs the user out, which makes the
-    // login form visible again. The degraded `cloud-unavailable` stub must never show.
+  await loginPage.do(async (page) => {
+    await page.getByPlaceholder(TEXT.emailPlaceholder).fill(VALID_EMAIL)
+    await page.getByPlaceholder(TEXT.passwordPlaceholder).fill(VALID_PASSWORD)
+    await page
+      .getByRole('button', { name: TEXT.login, exact: true })
+      .getByText(TEXT.login)
+      .click()
+    // After unauthorized recovery exhausts, the user is logged out and the login
+    // screen is shown again. The cloud-unavailable stub must never appear.
     await expect(
       page.getByRole('button', { name: TEXT.login, exact: true }),
     ).toBeVisible({ timeout: 30_000 })

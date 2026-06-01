@@ -5,6 +5,7 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetsTable from '#/layouts/AssetsTable'
@@ -56,6 +57,13 @@ function DriveInner(props: DriveProperties) {
   const { getText } = useText()
   const [category, setCategory] = useDriveCurrentCategory()
   const { setDefaultCategory } = useDriveLocation()
+  // The cloud-unavailable status is decoupled from `isCloud`: while the user is on the
+  // default category (no explicit choice yet) the stub takes over so cloud failure is
+  // surfaced no matter which category the default logic picked. Once the user explicitly
+  // picks a category — sidebar click or the "Switch to Local" button — `driveDisplay`
+  // becomes non-null and we defer to their choice for the local categories.
+  const [storedDriveDisplay] = useLocalStorageState('driveDisplay')
+  const hasExplicitCategory = storedDriveDisplay != null
 
   const isCloud = isCloudCategory(category)
 
@@ -69,7 +77,7 @@ function DriveInner(props: DriveProperties) {
 
   const status =
     isCloud && isOffline ? 'offline'
-    : isCloud && session.isCloudDataUnavailable ? 'cloud-unavailable'
+    : session.isCloudDataUnavailable && (isCloud || !hasExplicitCategory) ? 'cloud-unavailable'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
 
