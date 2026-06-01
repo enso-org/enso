@@ -46,6 +46,7 @@
     "./integration-test/dashboard/copy.spec.ts",
     "./integration-test/dashboard/createAsset.spec.ts",
     "./integration-test/dashboard/dataLinkEditor.spec.ts",
+    "./integration-test/dashboard/degradedAuth.spec.ts",
     "./integration-test/dashboard/delete.spec.ts",
     "./integration-test/dashboard/driveView.spec.ts",
     "./integration-test/dashboard/editAssetName.spec.ts",

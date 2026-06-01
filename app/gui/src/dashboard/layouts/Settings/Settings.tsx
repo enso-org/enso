@@ -21,7 +21,6 @@ import { includesPredicate } from '$/utils/data/array'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import {
-  ALL_SETTINGS_TABS,
   SETTINGS_DATA,
   SETTINGS_NO_RESULTS_SECTION_DATA,
   SETTINGS_TAB_DATA,
@@ -42,14 +41,18 @@ export function Settings() {
     SettingsTabType.account,
     includesPredicate(Object.values(SettingsTabType)),
   )
-  const { user, accessToken } = useFullUserSession()
+  const session = useFullUserSession()
+  const { user, accessToken } = session
+  const isCloudDataUnavailable = session.isCloudDataUnavailable ?? false
   const { changePassword } = useSession()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = usePortalContext()
   const { data: organization = null } = useQuery(
-    backendQueryOptions(backend, 'getOrganization', []),
+    backendQueryOptions(backend, 'getOrganization', [], {
+      enabled: !isCloudDataUnavailable,
+    }),
   )
   const isQueryBlank = !/\S/.test(query)
   const [preferredTimeZone, setPreferredTimeZone] = useLocalStorageState('preferredTimeZone')
@@ -85,6 +88,7 @@ export function Settings() {
       changePassword,
       preferredTimeZone,
       setPreferredTimeZone,
+      isCloudDataUnavailable,
     }),
     [
       accessToken,
@@ -103,6 +107,7 @@ export function Settings() {
       changePassword,
       preferredTimeZone,
       setPreferredTimeZone,
+      isCloudDataUnavailable,
     ],
   )
 
@@ -129,11 +134,16 @@ export function Settings() {
   )
 
   const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
+    const matchesVisibility = (tabData: SettingsTabData) =>
+      tabData.visible == null || tabData.visible(context)
     if (isQueryBlank) {
-      return ALL_SETTINGS_TABS
+      return SETTINGS_DATA.flatMap((tabSection) =>
+        tabSection.tabs.filter(matchesVisibility).map((tabData) => tabData.settingsTab),
+      )
     } else {
       return SETTINGS_DATA.flatMap((tabSection) =>
         tabSection.tabs
+          .filter(matchesVisibility)
           .filter((tabData) =>
             isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId)) ?
               true
@@ -144,7 +154,7 @@ export function Settings() {
           .map((tabData) => tabData.settingsTab),
       )
     }
-  }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
+  }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, context])
   const effectiveTab = tabsToShow.includes(tab) ? tab : (tabsToShow[0] ?? SettingsTabType.account)
 
   const data = React.useMemo<SettingsTabData>(() => {

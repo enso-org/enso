@@ -70,6 +70,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'accountSettingsTab',
     settingsTab: SettingsTabType.account,
     icon: 'settings',
+    visible: ({ isCloudDataUnavailable }) => !isCloudDataUnavailable,
     sections: [
       {
         nameId: 'userAccountSettingsSection',
@@ -558,6 +559,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'apiKeysSettingsTab',
     settingsTab: SettingsTabType.apiKeys,
     icon: 'key',
+    visible: ({ isCloudDataUnavailable }) => !isCloudDataUnavailable,
     sections: [
       {
         nameId: 'apiKeysSettingsSection',
@@ -651,6 +653,12 @@ export interface SettingsContext {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly preferredTimeZone: string | undefined
   readonly setPreferredTimeZone: (preferredTimeZone: string | undefined) => void
+  /**
+   * `true` when running in degraded-auth mode — the `user`/`organization` data is a
+   * placeholder because the Enso Cloud `users/me` call failed. Tabs that depend on the
+   * real cloud profile should hide themselves.
+   */
+  readonly isCloudDataUnavailable: boolean
 }
 
 /**

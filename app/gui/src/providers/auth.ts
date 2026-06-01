@@ -12,13 +12,19 @@ import * as backendModule from 'enso-common/src/services/Backend'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
-import { useBackends } from './backends'
+import { useBackends, type BackendsStore } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
 
 /** Object containing the currently signed-in user's session data. */
 export interface UserSession extends cognitoModule.UserSession {
   readonly user: backendModule.User
+  /**
+   * `true` when this session is a placeholder synthesized after `users/me` failed with
+   * a non-auth error. The user is signed in to Cognito and can use local projects, but
+   * the `user` field is a stub — cloud features must be disabled by callers.
+   */
+  readonly isCloudDataUnavailable?: boolean
 }
 
 const UsersMe = 'usersMe'
@@ -66,7 +72,7 @@ export function createUsersMeQuery(
   let refetchCount = 0
   return vueQuery.queryOptions({
     queryKey: createUsersMeQueryKey(session, remoteBackend),
-    queryFn: async () => {
+    queryFn: async (): Promise<UserSession | null> => {
       const sessionVal = toValue(session)
       if (!sessionVal) {
         return null
@@ -91,13 +97,39 @@ export function createUsersMeQuery(
   })
 }
 
+/**
+ * Synthesize a placeholder {@link backendModule.User} used while the real `users/me`
+ * response is unavailable. All cloud features must be treated as disabled — the
+ * placeholder mirrors a real user without a licence (`isEnabled: false`,
+ * `plan: Plan.free`) so the existing "not-enabled" rendering paths apply.
+ */
+export function makeSyntheticUser(cognitoSession: cognitoModule.UserSession): backendModule.User {
+  const clientIdSuffix = cognitoSession.clientId || 'unknown'
+  return {
+    userId: backendModule.UserId(`user-cloud-unavailable-${clientIdSuffix}`),
+    organizationId: backendModule.OrganizationId(
+      'organization-00000000000000000000000000',
+    ),
+    rootDirectoryId: backendModule.DirectoryId('directory-cloud-unavailable'),
+    name: cognitoSession.email,
+    email: backendModule.EmailAddress(cognitoSession.email),
+    isEnabled: false,
+    isOrganizationAdmin: false,
+    userGroups: null,
+    plan: backendModule.Plan.free,
+    groups: [],
+    isEnsoTeamMember: false,
+  }
+}
+
 export type AuthStore = ReturnType<typeof createAuthStore>
 function createAuthStore(
   onAuthenticated: ((accessToken: string | null) => void) | undefined = inject('onAuthenticated'),
   sessionData = useSession(),
-  { remoteBackend } = useBackends(),
+  backends: BackendsStore = useBackends(),
   { getText } = useText(),
 ) {
+  const { remoteBackend } = backends
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
@@ -157,10 +189,44 @@ function createAuthStore(
   const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, setUsername)
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
-  const userData = usersMeQuery.data
-  const user = computed(() =>
-    userData.value && 'user' in userData.value ? userData.value.user : null,
-  )
+
+  let syntheticUserCache: { clientId: string; user: backendModule.User } | null = null
+  const getSyntheticUser = (cognitoSession: cognitoModule.UserSession) => {
+    if (syntheticUserCache?.clientId !== cognitoSession.clientId) {
+      syntheticUserCache = { clientId: cognitoSession.clientId, user: makeSyntheticUser(cognitoSession) }
+    }
+    return syntheticUserCache.user
+  }
+
+  /**
+   * `true` when Cognito sign-in succeeded but the subsequent `users/me` fetch failed
+   * with a non-auth error. Auth (401/403) failures are owned by `useUnauthorizedRecovery`
+   * and excluded here. Requires a local backend so the synthesised session has somewhere
+   * to land — without one, callers fall back to the redirect-to-login path.
+   */
+  const isCloudDataUnavailable = computed(() => {
+    const cognitoSession = session.value
+    if (!cognitoSession) return false
+    if (sessionData.isLoggingOut || sessionData.isReconnectingSession) return false
+    if (backends.localBackend == null) return false
+    const error = usersMeQuery.error.value
+    if (!error || backendModule.isUnauthorizedError(error)) return false
+    return true
+  })
+
+  const userData = computed(() => {
+    const real = usersMeQuery.data.value
+    if (real) return real
+    if (!isCloudDataUnavailable.value) return null
+    const cognitoSession = session.value
+    if (!cognitoSession) return null
+    return {
+      ...cognitoSession,
+      user: getSyntheticUser(cognitoSession),
+      isCloudDataUnavailable: true,
+    } satisfies UserSession
+  })
+  const user = computed(() => userData.value?.user ?? null)
 
   const refetchSession = usersMeQuery.refetch
 
@@ -226,13 +292,15 @@ function createAuthStore(
 
   watchEffect(() => {
     if (userData.value) {
-      sentry.setUser({
-        id: userData.value.user.userId,
-        email: userData.value.email,
-        username: userData.value.user.name,
-        // eslint-disable-next-line camelcase
-        ip_address: '{{auto}}',
-      })
+      if (!userData.value.isCloudDataUnavailable) {
+        sentry.setUser({
+          id: userData.value.user.userId,
+          email: userData.value.email,
+          username: userData.value.user.name,
+          // eslint-disable-next-line camelcase
+          ip_address: '{{auto}}',
+        })
+      }
       onAuthenticated?.(userData.value.accessToken)
     }
   })
@@ -246,7 +314,17 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () => sessionData.waitForSession().then(() => waitForData(usersMeQuery)),
+    isCloudDataUnavailable,
+    waitForSession: async () => {
+      await sessionData.waitForSession()
+      // Resolve once `users/me` settles, regardless of outcome — a failure switches the
+      // store into the degraded-auth path rather than blocking navigation.
+      try {
+        await waitForData(usersMeQuery)
+      } catch {
+        // Ignore — `isCloudDataUnavailable` / `session` reflect the failure state.
+      }
+    },
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

@@ -49,7 +49,9 @@ export const Drive = React.memo(function Drive(props: DriveProperties) {
 function DriveInner(props: DriveProperties) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { user } = authProvider.useFullUserSession()
+  const session = authProvider.useFullUserSession()
+  const { user } = session
+  const auth = authProvider.useAuth()
   const { localBackend } = useBackends()
   const { getText } = useText()
   const [category, setCategory] = useDriveCurrentCategory()
@@ -58,13 +60,41 @@ function DriveInner(props: DriveProperties) {
   const isCloud = isCloudCategory(category)
 
   const supportLocalBackend = localBackend != null
+  const switchToLocal = useEventCallback(() => {
+    setCategory({ type: 'local' })
+  })
+  const retryUsersMe = useEventCallback(() => {
+    void auth.refetchSession()
+  })
 
   const status =
     isCloud && isOffline ? 'offline'
+    : isCloud && session.isCloudDataUnavailable ? 'cloud-unavailable'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
 
   switch (status) {
+    case 'cloud-unavailable': {
+      return (
+        <result.Result
+          status="error"
+          title={getText('cloudDataUnavailableTitle')}
+          testId="cloud-unavailable-stub"
+          subtitle={getText('cloudDataUnavailableSubtitle')}
+        >
+          <Button.Group align="center">
+            <Button variant="primary" size="medium" onPress={retryUsersMe}>
+              {getText('retry')}
+            </Button>
+            {supportLocalBackend && (
+              <Button size="medium" variant="outline" onPress={switchToLocal}>
+                {getText('switchToLocal')}
+              </Button>
+            )}
+          </Button.Group>
+        </result.Result>
+      )
+    }
     case 'not-enabled': {
       return (
         <result.Result
