@@ -120,9 +120,7 @@ export function makeSyntheticUser(cognitoSession: cognitoModule.UserSession): ba
   const identitySuffix = cognitoSession.email || 'unknown'
   return {
     userId: backendModule.UserId(`user-cloud-unavailable-${identitySuffix}`),
-    organizationId: backendModule.OrganizationId(
-      'organization-00000000000000000000000000',
-    ),
+    organizationId: backendModule.OrganizationId('organization-00000000000000000000000000'),
     rootDirectoryId: backendModule.DirectoryId('directory-cloud-unavailable'),
     name: cognitoSession.email,
     email: backendModule.EmailAddress(cognitoSession.email),

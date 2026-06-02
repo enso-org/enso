@@ -1,10 +1,5 @@
 import type { UserSession as CognitoUserSession } from '$/authentication/cognito'
-import {
-  isDirectoryId,
-  isOrganizationId,
-  isUserId,
-  Plan,
-} from 'enso-common/src/services/Backend'
+import { isDirectoryId, isOrganizationId, isUserId, Plan } from 'enso-common/src/services/Backend'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { describe, expect, it } from 'vitest'
 import { computed } from 'vue'
