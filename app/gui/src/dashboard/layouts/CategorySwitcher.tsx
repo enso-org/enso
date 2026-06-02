@@ -211,7 +211,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { isOffline } = offlineHooks.useOffline()
   const { localBackend } = useBackends()
-  const { user } = authProvider.useFullUserSession()
+  const session = authProvider.useFullUserSession()
+  const { user } = session
 
   const { cloudCategories, localCategories } = useCategoriesAPI()
 
@@ -221,12 +222,14 @@ function CategorySwitcher(props: CategorySwitcherProps) {
   const cloudDisabledReason = React.useMemo(() => {
     if (isOffline) {
       return getText('unavailableOffline')
+    } else if (session.isCloudDataUnavailable) {
+      return getText('cloudDataUnavailable')
     } else if (!user.isEnabled) {
       return getText('notEnabledSubtitle')
     } else {
       return null
     }
-  }, [isOffline, user, getText])
+  }, [isOffline, session, user, getText])
   const isCloudDisabled = cloudDisabledReason != null
 
   const localDisabledReason = React.useMemo(() => {

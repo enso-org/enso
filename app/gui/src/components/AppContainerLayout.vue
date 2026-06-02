@@ -60,9 +60,16 @@ export const dataLoader: DataLoader<Props> = {
     }
 
     const needsOrganizationSetup = PLANS_TO_SPECIFY_ORG_NAME.includes(plan)
+    const cloudDataUnavailable = computed(() => auth.session?.isCloudDataUnavailable ?? false)
 
-    const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
-    await waitForData(organizationQuery)
+    const organizationQuery = useQuery({
+      ...backendQueryOptions('getOrganization', [], backend),
+      // In degraded-auth mode the backend would reject this with a 5xx/network error;
+      // leave the query idle so cloud-dependent modals stay hidden. Reactive so the
+      // query auto-fires once `users/me` recovers without re-running the data loader.
+      enabled: computed(() => !cloudDataUnavailable.value),
+    })
+    if (!cloudDataUnavailable.value) await waitForData(organizationQuery)
 
     const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
 

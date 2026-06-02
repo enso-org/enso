@@ -43,10 +43,15 @@ export function Dashboard() {
   const { remoteBackend, localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const { router } = useRouter()
+  const session = useFullUserSession()
+  const { user } = session
   const { data: organization = null } = useQuery(
-    backendQueryOptions(remoteBackend, 'getOrganization', []),
+    backendQueryOptions(remoteBackend, 'getOrganization', [], {
+      // In degraded-auth mode the remote `getOrganization` would error; keep the query
+      // idle and let the existing `organization === null` fallback render the dashboard.
+      enabled: !session.isCloudDataUnavailable,
+    }),
   )
-  const { user } = useFullUserSession()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const openedProjects = useOpenedProjects()
   const closingOnAppExit = useVueValue(

@@ -5,13 +5,14 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
+import DriveProvider, { setDriveLocation, useCategoryId } from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -40,21 +41,57 @@ export const Drive = React.memo(function Drive() {
 function DriveInner() {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { user } = authProvider.useFullUserSession()
+  const session = authProvider.useFullUserSession()
+  const { user } = session
+  const auth = authProvider.useAuth()
   const { localBackend } = useBackends()
   const { getText } = useText()
   const { category } = useCategoriesAPI()
+  // The cloud-unavailable status is decoupled from `isCloud`: while the user is on the
+  // default category (no explicit choice yet) the stub takes over so cloud failure is
+  // surfaced no matter which category the default logic picked. Once the user explicitly
+  // picks a category — sidebar click or the "Switch to Local" button — the stored
+  // category id becomes non-null and we defer to their choice for the local categories.
+  const hasExplicitCategory = useCategoryId() != null
 
   const isCloud = categoryModule.isCloudCategory(category)
 
   const supportLocalBackend = localBackend != null
+  const switchToLocal = useEventCallback(() => {
+    setDriveLocation(null, 'local')
+  })
+  const retryUsersMe = useEventCallback(() => {
+    void auth.refetchSession()
+  })
 
   const status =
     isCloud && isOffline ? 'offline'
+    : session.isCloudDataUnavailable && (isCloud || !hasExplicitCategory) ? 'cloud-unavailable'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
 
   switch (status) {
+    case 'cloud-unavailable': {
+      return (
+        <result.Result
+          status="error"
+          title={getText('cloudDataUnavailableTitle')}
+          testId="cloud-unavailable-stub"
+          subtitle={getText('cloudDataUnavailableSubtitle')}
+        >
+          <Button.Group align="center">
+            <Button variant="primary" size="medium" onPress={retryUsersMe}>
+              {getText('retry')}
+            </Button>
+            {supportLocalBackend && (
+              <Button size="medium" variant="outline" onPress={switchToLocal}>
+                {getText('switchToLocal')}
+              </Button>
+            )}
+          </Button.Group>
+        </result.Result>
+      )
+    }
     case 'not-enabled': {
       return (
         <result.Result
