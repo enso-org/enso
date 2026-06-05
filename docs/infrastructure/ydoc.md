@@ -168,6 +168,39 @@ is no `detached` status. One-shot `inFrame` slots are terminal on `ready`. The
 client consumes the payload and removes the slot, no detach message is emitted
 because the runtime has already auto-detached the underlying oneshot.
 
+#### Scope semantics of `nodeExternalId` for `inFrame` one-shots
+
+For `inFrame` one-shot evaluations, the runtime treats `nodeExternalId` as the
+program point at which the snippet runs — as if a breakpoint paused execution
+there and the snippet were typed into the REPL. Symbols visible at that point
+are exactly the symbols visible to the snippet. Three useful anchors, given
+
+```
+main =
+    operator1 = 42
+    operator2 = operator1 + 1
+
+fun1 x = x.to_text
+```
+
+- **Method body** (the body block of `main`): all of the method's bindings are
+  in scope — `operator1`, `operator2`, plus the module-level `fun1`. This is the
+  strongest scope and the right anchor when the client wants the snippet to see
+  "everything the method defines".
+- **Binding statement** (e.g. the `operator2 = operator1 + 1` line as a whole):
+  the binding itself plus every previously declared binding is in scope.
+- **Arbitrary sub-expression** (e.g. the RHS `operator1 + 1`): only what's in
+  scope _at that expression_ is visible — `operator1` and `fun1`, but **not**
+  `operator2`, because the assignment hasn't run yet at the RHS's program point.
+
+The third rule is the trap for GUI clients: in the IDE's graph model, a "node
+id" identifies the **RHS expression** of its binding, not the binding statement.
+Anchoring on a node id therefore puts the snippet at the RHS program point,
+where the node's own binding is still uninitialized — references to the node's
+own name come back as `Uninitialized value`. Clients that want the snippet to
+see all bindings of a method should anchor on the method body's externalId
+instead. The IDE's ComponentBrowser preview and AI tool both do this.
+
 Requests are immutable: a client modify is expressed as
 `removeSlot(oldRequestId); createSlot(newRequestId)` with the same
 `visualizationId`. The bridge emits both `attach(new)` and `detach(old)`. The

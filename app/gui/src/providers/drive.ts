@@ -4,6 +4,7 @@ import { createContextStore } from '@/providers'
 import { isDirectoryId, type DirectoryId } from 'enso-common/src/services/Backend'
 import { computed, watch } from 'vue'
 import * as z from 'zod'
+import { useAuth } from './auth'
 import { useBackends } from './backends'
 import {
   CATEGORY_BACKEND,
@@ -39,12 +40,17 @@ export const [provideDriveLocation, useDriveLocation] = createContextStore(
   (startReactTransition: (action: () => void) => void) => {
     const backends = useBackends()
     const categories = useCategories()
+    const auth = useAuth()
     const localStorage = LocalStorage.getInstance()
     const storedDriveDisplay = computed(() => localStorage.get('driveDisplay'))
 
-    const defaultCategory = computed<Category>(() =>
-      backends.localBackend != null ? { type: 'local' } : { type: 'cloud' },
-    )
+    // In degraded-auth mode the user must land on cloud so the "Enso Cloud is unavailable"
+    // stub (rendered by the cloud-category view) is visible after sign-in. Otherwise the
+    // existing local-first default would silently hide the failure.
+    const defaultCategory = computed<Category>(() => {
+      if (auth.session?.isCloudDataUnavailable) return { type: 'cloud' }
+      return backends.localBackend != null ? { type: 'local' } : { type: 'cloud' }
+    })
 
     const currentCategory = computed({
       get: () =>

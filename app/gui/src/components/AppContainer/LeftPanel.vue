@@ -55,6 +55,8 @@ const driveToolbarReact: React.MutableRefObject<HTMLElement | null> = { current:
 const cloudDisabledReason = computed(() => {
   if (!isOnline.value) {
     return getText('unavailableOffline')
+  } else if (auth.session?.isCloudDataUnavailable) {
+    return getText('cloudDataUnavailable')
   } else if (!auth.session?.user.isEnabled) {
     return getText('notEnabledSubtitle')
   } else {

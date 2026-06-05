@@ -188,6 +188,12 @@ export async function mockCloudApi(page: Page) {
   let currentPassword = defaultPassword
   let currentOrganization: backend.OrganizationInfo | null = defaultOrganization
   let currentOrganizationProfilePicture: string | null = null
+  /**
+   * When non-null, the `users/me` endpoint responds with this HTTP status instead of the
+   * normal user payload. Used by integration tests to simulate cloud-data-unavailable
+   * (5xx) or unauthorized (401) flows.
+   */
+  let usersMeFailureStatus: number | null = null
 
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
@@ -1294,6 +1300,9 @@ export async function mockCloudApi(page: Page) {
     })
     await get(paths.USERS_ME_PATH, (route) => {
       called('usersMe', {})
+      if (usersMeFailureStatus != null) {
+        return route.fulfill({ status: usersMeFailureStatus })
+      }
       if (currentUser == null) {
         return route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
       }
@@ -1443,6 +1452,14 @@ export async function mockCloudApi(page: Page) {
     },
     goOnline: () => {
       isOnline = true
+    },
+    /**
+     * Force `users/me` to respond with the given HTTP status. Pass `null` to restore the
+     * default behavior. Use 500 to exercise the degraded-auth flow; use 401 to drive the
+     * unauthorized-recovery flow.
+     */
+    setUsersMeFailureStatus: (status: number | null) => {
+      usersMeFailureStatus = status
     },
     setPlan: (plan: backend.Plan) => {
       if (currentUser) {

@@ -1,0 +1,852 @@
+/**
+ * @file {@link ChildAgent} — driving one spawned `claude` subprocess. Wire format, spawn
+ * flags, and CLI gotchas are documented in `electron-client/CLAUDE.md`.
+ */
+import spawn from 'cross-spawn'
+import type { WebContents } from 'electron'
+import type { AiProgressEvent } from 'enso-common/src/ai'
+import { createDeferred, type Deferred } from 'enso-common/src/utilities/async'
+import {
+  ChildProcessHandle,
+  WatchedChildProcess,
+  type UnexpectedExitInfo,
+} from 'enso-common/src/utilities/childProcess'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
+import readline from 'node:readline'
+import { z } from 'zod'
+import { Channel } from '../ipc.js'
+import { buildPrimingPrompt, buildSystemPrompt } from './prompts.js'
+
+const CLAUDE_EXECUTABLE = 'claude'
+const STDERR_TAIL_CHARS = 2_000
+const RESPAWN_WINDOW_MS = 30_000
+const MAX_RESPAWNS_IN_WINDOW = 3
+
+/** Synthetic request id used for the priming turn. */
+export const PRIMING_REQUEST_ID = 'priming'
+
+/**
+ * Inactivity timeout for the priming turn (ms). Priming reads three CLAUDE.md files (top-level,
+ * Base, Table) plus every top-level `.enso` file under `Standard.Table` (when stdlib is
+ * available); ~36 tool calls before replying. Each Read fires its own `assistant` envelope, so
+ * realistic gaps between envelopes are sub-second; 5 min of true idleness during priming means
+ * the CLI is stuck. The fallback path (no stdlib) does the trivial "say READY" turn and emits a
+ * single envelope well under the cap.
+ */
+export const PRIMING_IDLE_TIMEOUT_MS = 300_000
+
+/** SIGTERM (graceful exit) to SIGKILL (force kill) escalation window during cancellation. */
+const CANCEL_SIGTERM_TO_SIGKILL_MS = 2_000
+
+/**
+ * How long to wait for the `control_response` to a `control_request`/`interrupt` envelope
+ * before we conclude the CLI either doesn't speak the control protocol or is stuck, and
+ * escalate the cancel to SIGTERM (followed by the {@link CANCEL_SIGTERM_TO_SIGKILL_MS}
+ * watchdog). Modern Claude Code (2.x+ stream-json mode) answers within milliseconds; the
+ * cushion is for older or unhealthy builds.
+ */
+const CANCEL_CONTROL_FALLBACK_MS = 1_000
+
+/** Spawn-time configuration for one `claude` child. */
+export interface ChildAgentConfig {
+  /**
+   * Bundled engine's `lib/Standard` directory, exposed to the agent via `--add-dir` plus the
+   * `Read`/`Glob`/`Grep` tools. `undefined` disables stdlib filesystem access.
+   */
+  readonly stdlibRoot: string | undefined
+  /**
+   * Config file produced by the in-process MCP server, exposing the `evaluateExpression` tool.
+   * `undefined` runs the agent without MCP (used by headless tests).
+   */
+  readonly mcpConfigPath: string | undefined
+  /**
+   * Optional label included in console warnings (e.g. "primary", "warming") so logs from a
+   * session running two children stay disambiguated. Empty string means no label.
+   */
+  readonly logLabel?: string
+  /**
+   * Extra CLI tokens appended verbatim to the built-in `claude -p …` flag list (e.g.
+   * `['--model', 'claude-sonnet-4-6']`). Appended last so that, for last-wins flag parsers, a
+   * user-supplied value overrides the built-in one.
+   */
+  readonly extraArgs?: readonly string[] | undefined
+}
+
+/** Renderer + request id driving a turn. */
+export interface ActiveRequest {
+  readonly requestId: string
+  readonly sender: WebContents
+}
+
+// ====================================
+// === Stream-json wire format glue ===
+// ====================================
+
+// `--verbose` is required by the CLI alongside `--output-format stream-json` (without it the
+// child exits 1 immediately with "When using --print, --output-format=stream-json requires
+// --verbose"). The extra system/init and rate_limit_event envelopes the verbose output emits
+// are filtered out by the schema-based parser in `onStdoutLine`.
+//
+// `--add-dir <stdlib>` plus `--allowedTools "Read,Glob,Grep"` lets the model browse the bundled
+// standard library when it's unsure of an API. We pre-grant those tools (`--allowedTools`) so the
+// CLI doesn't try to prompt — there's no UI to prompt against in `-p` mode.
+function streamJsonArgs(config: ChildAgentConfig): string[] {
+  // MCP tools are namespaced as `mcp__<server>__<tool>`. Conditional so a tool-less session
+  // (e.g. headless tests) doesn't claim capabilities to the model.
+  const allowedTools = [
+    ...(config.stdlibRoot != null ? ['Read', 'Glob', 'Grep'] : []),
+    ...(config.mcpConfigPath != null ? ['mcp__enso__evaluateExpression'] : []),
+  ]
+  return [
+    '-p',
+    '--input-format',
+    'stream-json',
+    '--output-format',
+    'stream-json',
+    '--verbose',
+    '--system-prompt',
+    buildSystemPrompt(config),
+    ...(config.stdlibRoot != null ? ['--add-dir', config.stdlibRoot] : []),
+    // `--strict-mcp-config` makes the CLI ignore project- and user-level MCP configs so the
+    // session is hermetic and only sees our in-process server.
+    ...(config.mcpConfigPath != null ?
+      ['--mcp-config', config.mcpConfigPath, '--strict-mcp-config']
+    : []),
+    ...(allowedTools.length > 0 ? ['--allowedTools', allowedTools.join(',')] : []),
+    '--setting-sources',
+    '',
+    '--no-session-persistence',
+    ...(config.extraArgs ?? []),
+  ]
+}
+
+function userTurnLine(content: string): string {
+  return JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n'
+}
+
+/**
+ * Wire format the Python/TS SDKs use to interrupt the in-flight HTTPS stream without exiting
+ * the CLI: `{"type":"control_request","request_id":"...","request":{"subtype":"interrupt"}}`.
+ * The CLI replies with a matching `control_response` and emits an `aborted_streaming` `result`
+ * envelope for the cancelled turn. Wire format verified with `/tmp/claude-interrupt-probe.mjs`.
+ */
+function interruptRequestLine(requestId: string): string {
+  return (
+    JSON.stringify({
+      type: 'control_request',
+      // eslint-disable-next-line camelcase -- mirrors the snake_case key the CLI expects.
+      request_id: requestId,
+      request: { subtype: 'interrupt' },
+    }) + '\n'
+  )
+}
+
+function parseJsonSafe(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+function truncateStderr(stderr: string): string {
+  const trimmed = stderr.trim()
+  if (trimmed.length <= STDERR_TAIL_CHARS) return trimmed
+  return `…${trimmed.slice(-STDERR_TAIL_CHARS)}`
+}
+
+// Probe-confirmed shape of the envelopes the CLI emits in stream-json mode. The format is
+// undocumented (see https://github.com/anthropics/claude-code/issues/24594); discovery notes
+// and per-turn emission order are in app/electron-client/CLAUDE.md.
+
+/* eslint-disable camelcase -- mirrors the snake_case keys the CLI emits. */
+const tokenUsageSchema = z.object({
+  input_tokens: z.number().optional(),
+  output_tokens: z.number().optional(),
+  cache_creation_input_tokens: z.number().optional(),
+  cache_read_input_tokens: z.number().optional(),
+})
+/* eslint-enable camelcase */
+
+const assistantEnvelopeSchema = z.object({
+  type: z.literal('assistant'),
+  message: z.object({
+    content: z.array(
+      z.object({
+        type: z.string(),
+        text: z.string().optional(),
+        name: z.string().optional(),
+        input: z.unknown().optional(),
+      }),
+    ),
+    usage: tokenUsageSchema.optional(),
+  }),
+})
+
+const resultEnvelopeSchema = z.object({
+  type: z.literal('result'),
+  subtype: z.string().optional(),
+  /* eslint-disable camelcase -- mirrors the snake_case keys the CLI emits. */
+  is_error: z.boolean().optional(),
+  terminal_reason: z.string().optional(),
+  /* eslint-enable camelcase */
+  result: z.string().optional(),
+  usage: tokenUsageSchema.optional(),
+})
+
+/**
+ * `control_response` is the CLI's reply to a `control_request` we wrote on stdin (used here
+ * exclusively for the `interrupt` subtype). `request_id` echoes ours; `subtype` is `success`
+ * for accepted control requests and `error` when the CLI rejected the request.
+ */
+/* eslint-disable camelcase -- mirrors snake_case keys the CLI emits. */
+const controlResponseEnvelopeSchema = z.object({
+  type: z.literal('control_response'),
+  response: z.object({
+    subtype: z.enum(['success', 'error']),
+    request_id: z.string(),
+    error: z.string().optional(),
+  }),
+})
+/* eslint-enable camelcase */
+
+/** Every envelope type the parser dispatches on. */
+const stdoutEnvelopeSchema = z.discriminatedUnion('type', [
+  assistantEnvelopeSchema,
+  controlResponseEnvelopeSchema,
+  resultEnvelopeSchema,
+])
+
+/** Token-usage shape the CLI surfaces on every assistant/result envelope. */
+export type RawTokenUsage = z.infer<typeof tokenUsageSchema>
+
+/** Outcome of a single user→model turn on one child. */
+export interface TurnOutcome {
+  state: 'completed' | 'crash'
+  text: string
+  /** Result envelope's `usage` (cost-side roll-up). */
+  usage: RawTokenUsage | null
+  /** `usage` from the final `assistant` envelope; `null` when none seen / CLI omitted it. */
+  lastHopUsage: RawTokenUsage | null
+  /** Number of `assistant` envelopes seen this turn. `0` for crash-before-first-response. */
+  hopCount: number
+  /**
+   * Wall-clock ms from the moment we wrote the user turn to stdin until the turn settled
+   * (completed, crashed, timed out, or was cancelled). `0` means the turn never started — the
+   * child wasn't alive when {@link ChildAgent.runTurn} was called.
+   */
+  durationMs: number
+  errorReason?: string
+}
+
+interface PendingTurn {
+  /** Renderer-supplied id, or {@link PRIMING_REQUEST_ID} for priming. */
+  readonly requestId: string
+  resolve: (outcome: Omit<TurnOutcome, 'durationMs' | 'lastHopUsage' | 'hopCount'>) => void
+  textChunks: string[]
+  /** Pinned per turn (not per child) so crash/shutdown drop the slot for free; `null` for priming. */
+  sender: WebContents | null
+  /**
+   * Most recent `assistant` envelope's `message.usage` we observed in this turn. Used as the
+   * "current context window occupancy" signal at turn end. `null` when the CLI doesn't surface
+   * per-envelope `usage`.
+   */
+  lastHopUsage: RawTokenUsage | null
+  /** Number of `assistant` envelopes seen this turn. */
+  hopCount: number
+  /**
+   * Reset the inactivity timer to its full window. Called once before the stdin write to arm
+   * the initial deadline, then by {@link ChildAgent.captureAssistantContent} on every assistant
+   * envelope. The closure clears the previous handle and schedules a new one; if the timer
+   * fires, it resolves this turn with a "no feedback" crash but does not kill the child.
+   */
+  resetIdleTimer: () => void
+}
+
+// ============================
+// === ChildAgent           ===
+// ============================
+
+/**
+ * Owns one `claude` subprocess and the per-child glue around it: priming, stream-json
+ * envelope parsing, single-turn execution, cancellation signaling, and crash/respawn
+ * bookkeeping (with a crash-loop guard that suspends auto-respawn after repeated failures).
+ */
+export class ChildAgent {
+  private readonly config: ChildAgentConfig
+  private readonly watcher: WatchedChildProcess
+  private readyDeferred: Deferred<void> = createDeferred()
+  private pending: PendingTurn | null = null
+  private stderrTail = ''
+  private disposed = false
+  /**
+   * Empty temp dir used as the spawned `claude` process's cwd. Without it the child inherits
+   * Electron's cwd and the agent's `Read` tool can reach arbitrary paths under it (user home,
+   * `/tmp`, ...). Pairing an empty cwd with `--add-dir <stdlibRoot>` confines `Read`/`Glob`/
+   * `Grep` to the stdlib, forcing the agent to use `evaluateExpression` for any user-data
+   * inspection — which is the right boundary anyway, since user data lives in the engine and
+   * is only correctly observable through the LS.
+   */
+  private readonly sandboxCwd: string
+  private isReadyResolved = false
+  /**
+   * Set inside {@link escalateSignalCancel} when the in-band `control_request`/`interrupt`
+   * fallback escalates to SIGTERM. Tells {@link onUnexpectedExit} that the upcoming exit is one
+   * we triggered ourselves, that the ready deferred has already been pre-swapped, and that no
+   * further reject/swap is needed. Cleared on the next `onUnexpectedExit` or on `shutdown()`.
+   * Stays `false` for the common path (CLI honored the control envelope, child stayed alive).
+   */
+  private cancelInProgress = false
+  /**
+   * Correlation id for the most recent `control_request`/`interrupt` envelope we wrote to
+   * stdin. Used to (a) match the CLI's `control_response` so we can clear the fallback timer
+   * and (b) detect rejection so we can escalate to SIGTERM. `null` between cancels.
+   */
+  private pendingInterruptId: string | null = null
+  /**
+   * Fallback timer armed alongside the `control_request`/`interrupt` envelope. Fires if no
+   * `control_response` arrives within {@link CANCEL_CONTROL_FALLBACK_MS}, escalating to SIGTERM.
+   */
+  private cancelFallbackTimer: ReturnType<typeof setTimeout> | null = null
+  /** SIGTERM→SIGKILL escalation timer armed by {@link escalateSignalCancel}. */
+  private cancelSigkillTimer: ReturnType<typeof setTimeout> | null = null
+
+  /** Spawn the child eagerly and kick off the priming turn in the background. */
+  constructor(config: ChildAgentConfig) {
+    this.config = config
+    this.sandboxCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'enso-claude-cwd-'))
+    // Attach a no-op rejection handler so that a crash mid-priming doesn't surface as an
+    // unhandled rejection when no caller happens to be awaiting `ready` at the time. Awaiters
+    // that arrive later attach their own .then/.catch and still observe the rejection.
+    this.observeReadyDeferred(this.readyDeferred)
+    this.watcher = new WatchedChildProcess(
+      // `cross-spawn` (not `node:child_process`) so npm-installed Claude Code on Windows works:
+      // npm wraps the package's bin entry as `claude.cmd`, which Node's `spawn` won't resolve
+      // without `shell: true`. cross-spawn handles `.cmd`/`.ps1` lookup on Windows, no-op on POSIX.
+      () =>
+        spawn(CLAUDE_EXECUTABLE, streamJsonArgs(this.config), {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: process.env,
+          cwd: this.sandboxCwd,
+        }),
+      {
+        onChildStarted: this.onChildStarted.bind(this),
+        onUnexpectedExit: this.onUnexpectedExit.bind(this),
+        crashLoopLimit: { maxCrashes: MAX_RESPAWNS_IN_WINDOW, windowMs: RESPAWN_WINDOW_MS },
+      },
+    )
+    // Synchronous spawner failures (e.g. cross-spawn rejecting on a missing CLI) are reported
+    // via firstSpawn so awaiters of `this.ready` see the underlying error rather than hanging.
+    this.watcher.firstSpawn.catch((err) => {
+      this.readyDeferred.reject(err)
+    })
+  }
+
+  /** Resolves once the current child has spawned and accepted the priming turn. */
+  get ready(): Promise<void> {
+    return this.readyDeferred.promise
+  }
+
+  /**
+   * Resolves to `true` once the underlying `firstSpawn` succeeds (the OS reports the child
+   * process as alive), and `false` if it rejects (synchronous spawn failure — usually ENOENT
+   * because `claude` is not on PATH). Decoupled from {@link ready}, which additionally waits
+   * for the priming turn — this Promise is for "is the CLI installed at all?" probes.
+   */
+  get firstSpawnSettled(): Promise<boolean> {
+    return this.watcher.firstSpawn.then(
+      () => true,
+      () => false,
+    )
+  }
+
+  /**
+   * Synchronous query: has the most recent `readyDeferred` resolved? Useful for the session
+   * to ask "is warming primed yet?" without `await`ing.
+   */
+  get isReady(): boolean {
+    return this.isReadyResolved
+  }
+
+  /**
+   * The renderer + request id driving the in-flight turn, or `null` between turns / when the
+   * renderer was destroyed / during priming (priming has `sender == null`).
+   */
+  get activeRequest(): ActiveRequest | null {
+    const pending = this.pending
+    if (pending == null) return null
+    const sender = pending.sender
+    if (sender == null || sender.isDestroyed()) return null
+    return { requestId: pending.requestId, sender }
+  }
+
+  /** Whether the underlying watcher's auto-respawn has been suspended (crash-loop guard). */
+  get respawnSuspended(): boolean {
+    return this.watcher.respawnSuspended
+  }
+
+  /** Whether the underlying child process is currently alive. */
+  get alive(): boolean {
+    return this.watcher.current?.alive === true
+  }
+
+  /**
+   * Manually spawn a fresh child after the auto-respawn was suspended. The watcher's
+   * recent-exits buffer is preserved across `respawn()`, so a quick re-crash trips the guard
+   * again and we don't loop indefinitely.
+   */
+  async respawn(): Promise<void> {
+    this.swapInReadyDeferred()
+    await this.watcher.respawn()
+  }
+
+  /**
+   * Run one turn. Writes the user content to stdin and awaits the `result` envelope (or a
+   * crash/idle-timeout). `idleTimeoutMs` is an inactivity window: it resets on every
+   * `assistant` envelope (text or tool_use), so a turn that keeps producing output runs as
+   * long as it needs and the timer fires only when the channel falls silent. The caller is
+   * responsible for serializing turns — this class never cancels a previous turn implicitly.
+   */
+  runTurn(
+    content: string,
+    idleTimeoutMs: number,
+    sender: WebContents | null,
+    requestId: string,
+  ): Promise<TurnOutcome> {
+    return new Promise<TurnOutcome>((resolveTurn) => {
+      const handle = this.watcher.current
+      const child = handle?.child
+      if (!handle?.alive || !child?.stdin || child.stdin.destroyed) {
+        resolveTurn({
+          state: 'crash',
+          text: '',
+          usage: null,
+          lastHopUsage: null,
+          hopCount: 0,
+          durationMs: 0,
+          errorReason: 'child process is not alive',
+        })
+        return
+      }
+      const line = userTurnLine(content)
+      const startedAt = performance.now()
+      let timeoutHandle: NodeJS.Timeout | null = null
+      const clearIdleTimer = () => {
+        if (timeoutHandle != null) {
+          clearTimeout(timeoutHandle)
+          timeoutHandle = null
+        }
+      }
+      const pending: PendingTurn = {
+        requestId,
+        resolve: (outcome) => {
+          clearIdleTimer()
+          const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+          resolveTurn({
+            ...outcome,
+            durationMs,
+            lastHopUsage: pending.lastHopUsage,
+            hopCount: pending.hopCount,
+          })
+        },
+        textChunks: [],
+        sender,
+        lastHopUsage: null,
+        hopCount: 0,
+        resetIdleTimer: () => {
+          clearIdleTimer()
+          timeoutHandle = setTimeout(() => {
+            // Re-check the pending slot: a turn that already settled (success, cancel, crash)
+            // would have nulled `this.pending`, and we must not stomp on whatever is now in flight.
+            if (this.pending !== pending) return
+            this.pending = null
+            pending.resolve({
+              state: 'crash',
+              text: '',
+              usage: null,
+              errorReason: `no feedback for ${idleTimeoutMs}ms (idle timeout)`,
+            })
+          }, idleTimeoutMs)
+        },
+      }
+      this.pending = pending
+      // Emit `started` after `pending` is set so `emitProgress` can find the sender, and before
+      // the stdin write so the renderer flips queued→running close to when the prompt actually
+      // begins traveling toward the API.
+      this.emitProgress({ requestId, kind: 'started' })
+      // Arm the initial idle window before writing.
+      pending.resetIdleTimer()
+      child.stdin.write(line, (err) => {
+        if (!err) return
+        if (this.pending === pending) {
+          this.pending = null
+          pending.resolve({
+            state: 'crash',
+            text: '',
+            usage: null,
+            errorReason: `stdin write failed: ${err.message}`,
+          })
+        }
+      })
+    })
+  }
+
+  /**
+   * Cancel the in-flight turn whose id matches. Resolves the originating turn synchronously
+   * with a cancellation `Err` and writes a `control_request`/`interrupt` envelope to stdin —
+   * the SDK-shaped in-band cancel that aborts the HTTPS stream without exiting the child, so
+   * the next turn reuses the same primed context. If no `control_response` lands within
+   * {@link CANCEL_CONTROL_FALLBACK_MS} we escalate to SIGTERM (and SIGKILL-after-2s). Returns
+   * `true` iff cancellation took effect.
+   */
+  cancelInFlight(requestId: string): boolean {
+    const pending = this.pending
+    if (pending == null || pending.requestId !== requestId) return false
+    this.pending = null
+    pending.resolve({
+      state: 'crash',
+      text: '',
+      usage: null,
+      errorReason: 'cancelled by user',
+    })
+    this.signalCancel()
+    return true
+  }
+
+  /** Request graceful shutdown of the child and reject any pending work. Idempotent. */
+  shutdown(): void {
+    if (this.disposed) return
+    this.disposed = true
+    this.pendingInterruptId = null
+    this.clearCancelFallbackTimer()
+    this.clearCancelSigkillTimer()
+    if (this.pending) {
+      const pending = this.pending
+      this.pending = null
+      pending.resolve({
+        state: 'crash',
+        text: '',
+        usage: null,
+        errorReason: 'Claude agent shutting down',
+      })
+    }
+    // Reject the readiness promise if it's still pending — `watcher.close()` sets the watcher's
+    // `closed` flag, which suppresses the `onUnexpectedExit` path that would normally reject
+    // `readyDeferred`. Without this, a caller `await`ing `this.ready` mid-priming would hang
+    // forever. Resolved (or already-rejected) deferreds ignore further calls, so this is safe
+    // to call unconditionally.
+    if (!this.isReadyResolved) {
+      this.readyDeferred.reject(new Error('Claude agent shutting down'))
+    }
+    void this.watcher.close()
+    try {
+      fs.rmSync(this.sandboxCwd, { recursive: true, force: true })
+    } catch {
+      // Already gone or filesystem-level failure; nothing meaningful to do here.
+    }
+  }
+
+  // -------------- private --------------
+
+  private observeReadyDeferred(deferred: Deferred<void>): void {
+    deferred.promise.then(
+      () => {
+        if (this.readyDeferred === deferred) this.isReadyResolved = true
+      },
+      () => undefined,
+    )
+  }
+
+  private swapInReadyDeferred(): void {
+    this.isReadyResolved = false
+    this.readyDeferred = createDeferred()
+    this.observeReadyDeferred(this.readyDeferred)
+  }
+
+  private onChildStarted(handle: ChildProcessHandle): void {
+    this.stderrTail = ''
+    this.pending = null
+    this.pendingInterruptId = null
+    this.clearCancelFallbackTimer()
+    this.clearCancelSigkillTimer()
+
+    const child = handle.child
+    if (child.stdout) {
+      const rl = readline.createInterface({ input: child.stdout })
+      rl.on('line', (line) => this.onStdoutLine(line))
+    }
+    child.stderr?.on('data', (chunk: Buffer) => this.appendStderr(chunk.toString('utf8')))
+
+    // Capture the deferred for *this* spawn so that a fast crash-and-respawn doesn't cross the
+    // wires (a stale prime resolving the next spawn's deferred, or vice versa).
+    const deferred = this.readyDeferred
+    void this.prime().then(
+      () => deferred.resolve(),
+      (err) => deferred.reject(err),
+    )
+  }
+
+  private onUnexpectedExit(reason: string, info: UnexpectedExitInfo): undefined {
+    const stderrTail = truncateStderr(this.stderrTail)
+    const detail = stderrTail ? `: ${stderrTail}` : ''
+    const labelTag = this.config.logLabel ? `:${this.config.logLabel}` : ''
+    console.warn(`[AI${labelTag}] claude process crashed (${reason})${detail}`)
+    if (this.pending) {
+      const pending = this.pending
+      this.pending = null
+      pending.resolve({
+        state: 'crash',
+        text: '',
+        usage: null,
+        errorReason: reason,
+      })
+    }
+    const wasCancelInitiated = this.cancelInProgress
+    this.cancelInProgress = false
+
+    if (wasCancelInitiated) {
+      // {@link cancelInFlight} has already pre-swapped `readyDeferred` to a fresh pending one,
+      // so the next task awaits the upcoming auto-respawn's prime rather than racing past a
+      // resolved-from-first-prime OLD deferred. Skip the reject + swap that the
+      // not-cancel-initiated branch does — the OLD deferred is unreferenced and the fresh one
+      // is the right thing to leave pending. On a crash-loop guard trip we still need to
+      // reject (auto-respawn won't fire, so the fresh deferred would hang otherwise).
+      if (info.exceedsCrashLimit) {
+        this.readyDeferred.reject(info.exitError ?? new Error(reason))
+        this.isReadyResolved = false
+        console.warn(
+          `[AI${labelTag}] claude crash-loop guard tripped (${MAX_RESPAWNS_IN_WINDOW} crashes within ${RESPAWN_WINDOW_MS}ms); auto-respawn is suspended until the next request.`,
+        )
+      }
+      return
+    }
+
+    // Reject the priming promise so any task awaiting `ready` fails fast. Prefer the original
+    // error object (when 'error' fired on the child, e.g. ENOENT) so the consumer can surface
+    // the install hint via `.code` instead of parsing the reason string.
+    this.readyDeferred.reject(info.exitError ?? new Error(reason))
+    this.isReadyResolved = false
+
+    if (info.exceedsCrashLimit) {
+      console.warn(
+        `[AI${labelTag}] claude crash-loop guard tripped (${MAX_RESPAWNS_IN_WINDOW} crashes within ${RESPAWN_WINDOW_MS}ms); auto-respawn is suspended until the next request.`,
+      )
+      // Defer to the watcher's default for exceedsCrashLimit (suspend).
+      return
+    }
+    // Prepare a fresh deferred for the upcoming auto-respawn so awaiters that arrive between
+    // here and `onChildStarted` see a pending promise instead of the just-rejected one.
+    this.swapInReadyDeferred()
+  }
+
+  private async prime(): Promise<void> {
+    const outcome = await this.runTurn(
+      buildPrimingPrompt(this.config.stdlibRoot),
+      PRIMING_IDLE_TIMEOUT_MS,
+      null,
+      PRIMING_REQUEST_ID,
+    )
+    if (outcome.state !== 'completed') {
+      throw new Error(`priming turn ${outcome.state}: ${outcome.errorReason ?? '(no detail)'}`)
+    }
+    if (!outcome.text.trim()) {
+      throw new Error('priming turn produced no assistant text')
+    }
+  }
+
+  private onStdoutLine(line: string): void {
+    const json = parseJsonSafe(line)
+    if (json == null) return
+    const parsed = stdoutEnvelopeSchema.safeParse(json)
+    if (!parsed.success) return
+    switch (parsed.data.type) {
+      case 'assistant':
+        this.captureAssistantContent(parsed.data)
+        return
+      case 'control_response':
+        this.handleControlResponse(parsed.data)
+        return
+      case 'result':
+        this.resolveTerminal(parsed.data)
+        return
+    }
+  }
+
+  private captureAssistantContent(env: z.infer<typeof assistantEnvelopeSchema>): void {
+    const pending = this.pending
+    if (!pending) return
+    pending.resetIdleTimer()
+    pending.hopCount += 1
+    pending.lastHopUsage = env.message.usage ?? null
+    const requestId = pending.requestId
+    for (const block of env.message.content) {
+      if (block.type === 'text' && block.text != null) {
+        pending.textChunks.push(block.text)
+        if (block.text.trim().length > 0) {
+          this.emitProgress({ requestId, kind: 'text', text: block.text })
+        }
+      } else if (block.type === 'tool_use' && block.name != null) {
+        // Emit from here (not `aiMcpServer.dispatchToRenderer`) so built-in `Read`/`Glob`/`Grep`
+        // — which the CLI runs itself and never sends to our MCP server — are also captured.
+        this.emitProgress({
+          requestId,
+          kind: 'tool',
+          toolName: block.name,
+          input: block.input ?? null,
+        })
+      }
+    }
+  }
+
+  /**
+   * Drops silently when the pending slot has rotated or the originating sender is gone. The
+   * pending-slot gate is what distinguishes this from `claudeAgent.ts`'s top-level
+   * `emitProgressTo`, which is used for `queued` events that must fire *before* any pending
+   * slot exists.
+   */
+  private emitProgress(event: AiProgressEvent): void {
+    const pending = this.pending
+    if (pending == null || pending.requestId !== event.requestId) return
+    const sender = pending.sender
+    if (sender == null || sender.isDestroyed()) return
+    try {
+      sender.send(Channel.aiProgress, event)
+    } catch {
+      // Renderer destroyed mid-emit; nothing to do — the next progress check will short-circuit.
+    }
+  }
+
+  private resolveTerminal(env: z.infer<typeof resultEnvelopeSchema>): void {
+    // The aborted result envelope from a previously-cancelled turn arrives on the same stream
+    // as subsequent turns' results. The originating `runTurn` was already resolved synchronously
+    // inside {@link cancelInFlight}, so drop these.
+    if (env.is_error === true && env.terminal_reason === 'aborted_streaming') return
+    if (!this.pending) return
+    const pending = this.pending
+    this.pending = null
+    const text =
+      env.result != null && env.result.length > 0 ? env.result : pending.textChunks.join('')
+    pending.resolve({
+      state: 'completed',
+      text,
+      usage: env.usage ?? null,
+    })
+  }
+
+  private appendStderr(chunk: string): void {
+    this.stderrTail = (this.stderrTail + chunk).slice(-STDERR_TAIL_CHARS)
+  }
+
+  /**
+   * In-band cancel: write a `control_request`/`interrupt` envelope to stdin, arm a fallback
+   * timer that escalates to SIGTERM if the CLI doesn't reply within
+   * {@link CANCEL_CONTROL_FALLBACK_MS}. The escalation path also covers a missing handle and
+   * a destroyed/closed stdin.
+   */
+  private signalCancel(): void {
+    const handle = this.watcher.current
+    if (handle == null || !handle.alive) return
+    const child = handle.child
+    if (!child.stdin || child.stdin.destroyed) {
+      this.escalateSignalCancel(handle)
+      return
+    }
+    const interruptId = `req_${Math.random().toString(36).slice(2, 10)}`
+    this.pendingInterruptId = interruptId
+    try {
+      child.stdin.write(interruptRequestLine(interruptId))
+    } catch {
+      this.pendingInterruptId = null
+      this.escalateSignalCancel(handle)
+      return
+    }
+    this.clearCancelFallbackTimer()
+    this.cancelFallbackTimer = setTimeout(() => {
+      this.cancelFallbackTimer = null
+      if (this.pendingInterruptId !== interruptId) return
+      this.pendingInterruptId = null
+      const labelTag = this.config.logLabel ? `:${this.config.logLabel}` : ''
+      console.warn(
+        `[AI${labelTag}] no control_response within ${CANCEL_CONTROL_FALLBACK_MS}ms; escalating to SIGTERM`,
+      )
+      const stillCurrent = this.watcher.current
+      if (stillCurrent != null && stillCurrent.alive) {
+        this.escalateSignalCancel(stillCurrent)
+      }
+    }, CANCEL_CONTROL_FALLBACK_MS)
+  }
+
+  /**
+   * Fallback ladder used when the CLI rejects (or ignores) the in-band interrupt. SIGTERM
+   * now, SIGKILL after {@link CANCEL_SIGTERM_TO_SIGKILL_MS}.
+   */
+  private escalateSignalCancel(handle: ChildProcessHandle): void {
+    this.pendingInterruptId = null
+    this.clearCancelFallbackTimer()
+    this.cancelInProgress = true
+    this.swapInReadyDeferred()
+    try {
+      handle.child.kill('SIGTERM')
+    } catch {
+      // ignore — already exiting
+    }
+    this.clearCancelSigkillTimer()
+    this.cancelSigkillTimer = setTimeout(() => {
+      this.cancelSigkillTimer = null
+      const stillAliveHandle = this.watcher.current
+      if (stillAliveHandle == null || !stillAliveHandle.alive) return
+      if (stillAliveHandle !== handle) return
+      try {
+        stillAliveHandle.child.kill('SIGKILL')
+      } catch {
+        // ignore
+      }
+    }, CANCEL_SIGTERM_TO_SIGKILL_MS)
+  }
+
+  private handleControlResponse(env: z.infer<typeof controlResponseEnvelopeSchema>): void {
+    const interruptId = this.pendingInterruptId
+    if (interruptId == null || env.response.request_id !== interruptId) return
+    this.pendingInterruptId = null
+    this.clearCancelFallbackTimer()
+    if (env.response.subtype === 'error') {
+      const handle = this.watcher.current
+      if (handle == null || !handle.alive) return
+      const labelTag = this.config.logLabel ? `:${this.config.logLabel}` : ''
+      console.warn(
+        `[AI${labelTag}] interrupt control_request rejected (${env.response.error ?? 'no detail'}); escalating to SIGTERM`,
+      )
+      this.escalateSignalCancel(handle)
+    }
+  }
+
+  private clearCancelFallbackTimer(): void {
+    if (this.cancelFallbackTimer == null) return
+    clearTimeout(this.cancelFallbackTimer)
+    this.cancelFallbackTimer = null
+  }
+
+  private clearCancelSigkillTimer(): void {
+    if (this.cancelSigkillTimer == null) return
+    clearTimeout(this.cancelSigkillTimer)
+    this.cancelSigkillTimer = null
+  }
+}
+
+/**
+ * Format a `ready`-rejection error for the renderer-facing reply. ENOENT (`claude` not on
+ * PATH) gets a self-teaching hint; everything else keeps the underlying message.
+ */
+export function formatNotReadyError(err: unknown): string {
+  const errno = err as NodeJS.ErrnoException | null
+  if (errno?.code === 'ENOENT') {
+    return `'${CLAUDE_EXECUTABLE}' executable not found on PATH — install Claude Code to use the AI node feature`
+  }
+  const message = errno?.message ?? String(err ?? 'unknown error')
+  return `Claude agent is not ready: ${message}`
+}
+
+/** Internal name of the `claude` executable; surfaced for log-line assertions in tests. */
+export const CLAUDE_EXECUTABLE_NAME = CLAUDE_EXECUTABLE

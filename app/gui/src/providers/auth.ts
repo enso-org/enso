@@ -12,13 +12,23 @@ import * as backendModule from 'enso-common/src/services/Backend'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
-import { useBackends } from './backends'
+import { useBackends, type BackendsStore } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
 
 /** Object containing the currently signed-in user's session data. */
 export interface UserSession extends cognitoModule.UserSession {
   readonly user: backendModule.User
+  /**
+   * `true` when this session is a placeholder synthesized after `users/me` failed with
+   * a non-auth error. The user is signed in to Cognito and can use local projects, but
+   * the `user` field is a stub — cloud features must be disabled by callers.
+   *
+   * Only set on deployments that have a local backend; cloud-only builds fall back to
+   * the existing redirect-to-login path when `users/me` fails, so this flag is never
+   * `true` there.
+   */
+  readonly isCloudDataUnavailable?: boolean
 }
 
 const UsersMe = 'usersMe'
@@ -66,7 +76,13 @@ export function createUsersMeQuery(
   let refetchCount = 0
   return vueQuery.queryOptions({
     queryKey: createUsersMeQueryKey(session, remoteBackend),
-    queryFn: async () => {
+    // Disable the default 3-retry backoff: a failed `users/me` should surface immediately
+    // so the degraded-auth UI can render instead of stalling navigation for ~10 s while
+    // the query retries. Unauthorized errors have a dedicated recovery flow in
+    // {@link useUnauthorizedRecovery}; transient network errors are handled by the
+    // user clicking the "Retry" button.
+    retry: false,
+    queryFn: async (): Promise<UserSession | null> => {
       const sessionVal = toValue(session)
       if (!sessionVal) {
         return null
@@ -91,13 +107,40 @@ export function createUsersMeQuery(
   })
 }
 
+/**
+ * Synthesize a placeholder {@link backendModule.User} used while the real `users/me`
+ * response is unavailable. All cloud features must be treated as disabled — the
+ * placeholder mirrors a real user without a licence (`isEnabled: false`,
+ * `plan: Plan.free`) so the existing "not-enabled" rendering paths apply.
+ *
+ * Identifier fields embed the Cognito email so the placeholder is distinct per signed-in
+ * user (the Cognito app `clientId` is a deployment-wide constant and would alias users).
+ */
+export function makeSyntheticUser(cognitoSession: cognitoModule.UserSession): backendModule.User {
+  const identitySuffix = cognitoSession.email || 'unknown'
+  return {
+    userId: backendModule.UserId(`user-cloud-unavailable-${identitySuffix}`),
+    organizationId: backendModule.OrganizationId('organization-00000000000000000000000000'),
+    rootDirectoryId: backendModule.DirectoryId('directory-cloud-unavailable'),
+    name: cognitoSession.email,
+    email: backendModule.EmailAddress(cognitoSession.email),
+    isEnabled: false,
+    isOrganizationAdmin: false,
+    userGroups: null,
+    plan: backendModule.Plan.free,
+    groups: [],
+    isEnsoTeamMember: false,
+  }
+}
+
 export type AuthStore = ReturnType<typeof createAuthStore>
 function createAuthStore(
   onAuthenticated: ((accessToken: string | null) => void) | undefined = inject('onAuthenticated'),
   sessionData = useSession(),
-  { remoteBackend } = useBackends(),
+  backends: BackendsStore = useBackends(),
   { getText } = useText(),
 ) {
+  const { remoteBackend } = backends
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
@@ -130,7 +173,13 @@ function createAuthStore(
   })
 
   const setUsername = async (username: string) => {
-    if (userData.value != null) {
+    if (isCloudDataUnavailable.value) {
+      throw new Error('Cannot set username while Enso Cloud is unavailable.')
+    }
+    // Branch on the real `users/me` result, not the (possibly synthetic) `userData`:
+    // a synthetic placeholder would otherwise route us into the update path and hit
+    // the failing remote.
+    if (usersMeQuery.data.value != null) {
       await updateUserMutation.mutateAsync({ username })
     } else {
       const orgId = await organizationId()
@@ -157,10 +206,48 @@ function createAuthStore(
   const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, setUsername)
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
-  const userData = usersMeQuery.data
-  const user = computed(() =>
-    userData.value && 'user' in userData.value ? userData.value.user : null,
-  )
+
+  // Keyed on `email`, not `clientId`: `clientId` is the Cognito app integration ID and is
+  // identical across users on the same deployment, so caching on it would surface user A's
+  // placeholder for user B after a sign-out/sign-in.
+  let syntheticUserCache: { email: string; user: backendModule.User } | null = null
+  const getSyntheticUser = (cognitoSession: cognitoModule.UserSession) => {
+    if (syntheticUserCache?.email !== cognitoSession.email) {
+      syntheticUserCache = { email: cognitoSession.email, user: makeSyntheticUser(cognitoSession) }
+    }
+    return syntheticUserCache.user
+  }
+
+  /**
+   * `true` when Cognito sign-in succeeded but the subsequent `users/me` fetch failed
+   * with a non-auth error. Auth (401/403) failures are owned by `useUnauthorizedRecovery`
+   * and excluded here. Requires a local backend so the synthesised session has somewhere
+   * to land — on cloud-only deployments without `localBackend`, this stays `false` and
+   * the user falls through to the existing redirect-to-login path.
+   */
+  const isCloudDataUnavailable = computed(() => {
+    const cognitoSession = session.value
+    if (!cognitoSession) return false
+    if (sessionData.isLoggingOut || sessionData.isReconnectingSession) return false
+    if (backends.localBackend == null) return false
+    const error = usersMeQuery.error.value
+    if (!error || backendModule.isUnauthorizedError(error)) return false
+    return true
+  })
+
+  const userData = computed(() => {
+    const real = usersMeQuery.data.value
+    if (real) return real
+    if (!isCloudDataUnavailable.value) return null
+    const cognitoSession = session.value
+    if (!cognitoSession) return null
+    return {
+      ...cognitoSession,
+      user: getSyntheticUser(cognitoSession),
+      isCloudDataUnavailable: true,
+    } satisfies UserSession
+  })
+  const user = computed(() => userData.value?.user ?? null)
 
   const refetchSession = usersMeQuery.refetch
 
@@ -226,13 +313,15 @@ function createAuthStore(
 
   watchEffect(() => {
     if (userData.value) {
-      sentry.setUser({
-        id: userData.value.user.userId,
-        email: userData.value.email,
-        username: userData.value.user.name,
-        // eslint-disable-next-line camelcase
-        ip_address: '{{auto}}',
-      })
+      if (!userData.value.isCloudDataUnavailable) {
+        sentry.setUser({
+          id: userData.value.user.userId,
+          email: userData.value.email,
+          username: userData.value.user.name,
+          // eslint-disable-next-line camelcase
+          ip_address: '{{auto}}',
+        })
+      }
       onAuthenticated?.(userData.value.accessToken)
     }
   })
@@ -246,7 +335,17 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () => sessionData.waitForSession().then(() => waitForData(usersMeQuery)),
+    isCloudDataUnavailable,
+    waitForSession: async () => {
+      await sessionData.waitForSession()
+      // Resolve once `users/me` settles, regardless of outcome — a failure switches the
+      // store into the degraded-auth path rather than blocking navigation.
+      try {
+        await waitForData(usersMeQuery)
+      } catch {
+        // Ignore — `isCloudDataUnavailable` / `session` reflect the failure state.
+      }
+    },
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

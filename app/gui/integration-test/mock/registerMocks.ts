@@ -3,16 +3,21 @@ import { test } from 'integration-test/base'
 import type { Page, Route } from 'playwright'
 import LATEST_GITHUB_RELEASES from './data/latestGithubReleases.json' with { type: 'json' }
 
+export interface RegisterMocksOptions {
+  readonly aiAvailable?: boolean
+}
+
 /** Execute registration hooks for all playwright mocks that are shared across all tests. */
 export async function registerMocks(
   page: Page,
   featureFlags: Partial<FeatureFlags>,
+  options: RegisterMocksOptions = {},
 ): Promise<void> {
   await Promise.all([
     mockDate(page),
     mockUnneededUrls(page),
     mockFeatureFlags(page, featureFlags),
-    mockElectronApi(page),
+    mockElectronApi(page, options.aiAvailable ?? false),
     addMockClipboardInitScript(page),
   ])
 }
@@ -47,9 +52,9 @@ async function mockFeatureFlags(page: Page, featureFlags: Partial<FeatureFlags>)
 }
 
 // Mock FileBrowserApi that is usually provided by Electron.
-async function mockElectronApi(page: Page) {
+async function mockElectronApi(page: Page, aiAvailable: boolean) {
   await test.step('Mock electron API', () => {
-    return page.addInitScript(() => {
+    return page.addInitScript((aiAvailable) => {
       Object.defineProperty(window, 'api', {
         value: {
           authentication: {
@@ -78,12 +83,104 @@ async function mockElectronApi(page: Page) {
             electron: 'MOCK-electron-version',
             chrome: 'MOCK-chrome-version',
           },
-          ai: {
-            generateComponent: async () => ({ ok: true, value: { body: 'operator1' } }),
-          },
+          // The AI mock works in two modes. By default, `generateComponent` resolves immediately
+          // with a hardcoded body — that's what `aiNodes.spec.ts` exercises. Tests can flip
+          // `window.__aiMockController.deferred = true` to switch to driver mode, where each
+          // request waits in `pending` until the test resolves it; this is what
+          // `aiPlaceholder.spec.ts` uses to observe the placeholder lifecycle. The controller
+          // additionally records the most recent request payload so edit-flow tests can assert
+          // on the `editContext` field sent to the agent.
+          ai: ((): unknown => {
+            interface AiRequest {
+              requestId: string
+              prompt: string
+              context: {
+                sourceIdentifier?: string
+                editContext?: { previousPrompt: string; previousDefinition?: string }
+              }
+            }
+            interface AiReply {
+              result:
+                | { ok: true; value: unknown }
+                | { ok: false; error: { payload: string; context: never[] } }
+              usage: null
+            }
+            interface Controller {
+              aiAvailable: boolean
+              deferred: boolean
+              pending: Map<string, (reply: AiReply) => void>
+              progressHandlers: Array<(event: unknown) => void>
+              cancels: string[]
+              lastRequest: AiRequest | null
+              requests: AiRequest[]
+            }
+            const w = window as unknown as { __aiMockController: Controller }
+            w.__aiMockController = {
+              aiAvailable,
+              deferred: false,
+              pending: new Map(),
+              progressHandlers: [],
+              cancels: [],
+              lastRequest: null,
+              requests: [],
+            }
+            const immediateReply = (request: AiRequest): AiReply => {
+              const src = request.context.sourceIdentifier
+              const value =
+                src != null ?
+                  {
+                    functionName: 'ai_helper',
+                    argumentNames: ['input'],
+                    body: `result = input\nresult`,
+                    callArguments: [src],
+                  }
+                : {
+                    functionName: 'ai_helper',
+                    argumentNames: [],
+                    body: `result = 42\nresult`,
+                    callArguments: [],
+                  }
+              return { result: { ok: true, value }, usage: null }
+            }
+            return {
+              isAvailable: (): Promise<boolean> =>
+                Promise.resolve(w.__aiMockController.aiAvailable),
+              generateComponent: (request: AiRequest): Promise<AiReply> => {
+                w.__aiMockController.lastRequest = request
+                w.__aiMockController.requests.push(request)
+                if (!w.__aiMockController.deferred) {
+                  return Promise.resolve(immediateReply(request))
+                }
+                return new Promise((resolve) => {
+                  w.__aiMockController.pending.set(request.requestId, resolve)
+                })
+              },
+              onProgress: (handler: (event: unknown) => void): (() => void) => {
+                w.__aiMockController.progressHandlers.push(handler)
+                return () => {
+                  const list = w.__aiMockController.progressHandlers
+                  const idx = list.indexOf(handler)
+                  if (idx !== -1) list.splice(idx, 1)
+                }
+              },
+              cancel: (requestId: string): void => {
+                w.__aiMockController.cancels.push(requestId)
+                const resolve = w.__aiMockController.pending.get(requestId)
+                if (resolve != null) {
+                  w.__aiMockController.pending.delete(requestId)
+                  resolve({
+                    result: { ok: false, error: { payload: 'Cancelled by user', context: [] } },
+                    usage: null,
+                  })
+                }
+              },
+              onToolCall: () => () => {},
+              replyToolCall: () => {},
+            }
+          })(),
         }, // satisfies import('$/electronApi').ElectronApi,
       })
-    })
+    }, aiAvailable)
   })
 }
 

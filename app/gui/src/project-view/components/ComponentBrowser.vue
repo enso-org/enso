@@ -4,6 +4,7 @@ import {
   useProjectNames,
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
+import type { NodeId } from '$/providers/openedProjects/graph'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
@@ -14,7 +15,6 @@ import type { Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
-import type { AcceptedAiPayload } from '@/components/GraphEditor/aiNode'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
@@ -22,6 +22,7 @@ import { groupColorStyle } from '@/composables/nodeColors'
 import { registerHandlers, toggledAction, type Action } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { useAiAvailability } from '@/stores/aiAvailability'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -32,7 +33,7 @@ import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { Ok } from 'enso-common/src/utilities/data/result'
 import type { ComponentInstance } from 'vue'
-import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRef, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Range } from 'ydoc-shared/util/data/range'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
@@ -67,13 +68,21 @@ const props = defineProps<{
   graphEditorRoot: Opt<HTMLElement>
 }>()
 
+/** Payload emitted when the user accepts an AI prompt. */
+export interface AiPromptSubmission {
+  readonly prompt: string
+  readonly sourceIdentifier: string | undefined
+  /** When set, the prompt is an edit of an existing AI node identified by `nodeId`. */
+  readonly editing?: { readonly nodeId: NodeId }
+}
+
 const emit = defineEmits<{
   accepted: [
     searcherExpression: string,
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
-  acceptedAi: [payload: AcceptedAiPayload]
+  acceptedAi: [payload: AiPromptSubmission]
   canceled: []
   selectedSuggestionId: [id: SuggestionId | undefined]
   isAiPrompt: [boolean]
@@ -97,8 +106,8 @@ const cbOpen: Interaction = {
     emit('canceled')
   },
   end: () => {
-    if (input.mode.mode === 'aiPrompt') {
-      void acceptAiInput()
+    if (input.interpretation.mode === 'aiPrompt') {
+      acceptAiInput()
     } else {
       acceptInput()
     }
@@ -184,7 +193,8 @@ const selectedSuggestion = computed(() => {
 
 // === Input and Filtering ===
 
-const input = useComponentBrowserInput()
+const aiAvailable = toRef(useAiAvailability(), 'availability')
+const input = useComponentBrowserInput(aiAvailable)
 
 onUnmounted(() => {
   graphStore.cbEditedEdge = undefined
@@ -246,7 +256,8 @@ const nodeColor = computed(() => {
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
 const previewedSuggestionTypeInfo = computed(() => {
-  const appliedEntry = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
+  const appliedEntry =
+    input.interpretation.mode === 'codeEditing' ? input.interpretation.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
@@ -259,7 +270,7 @@ const previewedSuggestionTypeInfo = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
-  if (input.mode.mode !== 'codeEditing') return
+  if (input.interpretation.mode !== 'codeEditing') return
   if (!previewedCode.value.trim()) return
   if (!graphStore.currentMethod.ast.ok) return
   const body = graphStore.currentMethod.ast.value.body
@@ -283,8 +294,8 @@ const isVisualizationVisible = ref(true)
 
 watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id))
 watch(
-  () => input.mode,
-  (mode) => emit('isAiPrompt', mode.mode === 'aiPrompt'),
+  () => input.interpretation,
+  (interpretation) => emit('isAiPrompt', interpretation.mode === 'aiPrompt'),
 )
 
 // === Accepting Entry ===
@@ -313,37 +324,46 @@ function acceptComponent(component: Opt<Component> = null) {
 
 function acceptInput() {
   const appliedReturnType =
-    input.mode.mode === 'codeEditing' ?
-      input.mode.appliedSuggestion?.returnType(projectNames)
+    input.interpretation.mode === 'codeEditing' ?
+      input.interpretation.appliedSuggestion?.returnType(projectNames)
     : undefined
   emit('accepted', input.code.trim(), input.importsToAdd(), appliedReturnType)
   interaction.ended(cbOpen)
 }
 
-async function acceptAiInput() {
-  // Ignore further accept attempts while an AI prompt is already running — keeps the CB
-  // open so the user sees the spinner instead of being dismissed by a second Enter.
-  if (input.mode.mode !== 'aiPrompt' || input.processingAIPrompt) return
-  const result = await input.applyAIPrompt()
-  if (result != null && result.ok && input.selfArgument != null) {
-    emit('acceptedAi', {
-      prompt: input.mode.prompt,
-      body: result.value.body,
-      sourceIdentifier: input.selfArgument,
-    })
-  } else {
-    emit('canceled')
-  }
+function acceptAiInput() {
+  if (input.interpretation.mode !== 'aiPrompt') return
+  // Reaching `aiPrompt` mode on an `editNode` usage means `reset()` recognised an AI assignment
+  // and locked the mode to it — that's the signal that this submission is an edit of `usage.node`.
+  const editing =
+    props.usage.type === 'editNode' ? ({ nodeId: props.usage.node } as const) : undefined
+  emit('acceptedAi', {
+    prompt: input.interpretation.prompt,
+    sourceIdentifier: input.selfArgument,
+    ...(editing != null ? { editing } : {}),
+  })
   interaction.ended(cbOpen)
 }
 
 // === Action Handlers ===
 
-const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
+const insideComponentBrowsing = computed(() => input.interpretation.mode === 'componentBrowsing')
+const editSuggestionEnabled = computed(
+  () =>
+    !input.modeLocked &&
+    (input.interpretation.mode === 'componentBrowsing' || input.interpretation.mode === 'aiPrompt'),
+)
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
-    enabled: insideComponentBrowsing,
+    enabled: editSuggestionEnabled,
     action: () => {
+      if (input.selectedMode === 'aiPrompt') {
+        // In AI mode, Shift+Enter switches to component search. The typed text is preserved as
+        // the search filter — the user often wants to triage components matching what they
+        // started typing as an AI prompt.
+        input.setSelectedMode('componentBrowsing')
+        return
+      }
       const result = applyComponent()
       if (!result.ok) result.error.log('Cannot apply component')
     },
@@ -353,7 +373,7 @@ const actions = registerHandlers({
     action: () => acceptComponent(),
   },
   'componentBrowser.acceptInputAsCode': {
-    available: () => input.mode.mode === 'codeEditing',
+    available: () => input.interpretation.mode === 'codeEditing',
     action: acceptInput,
   },
   'componentBrowser.switchToCodeEditMode': {
@@ -362,14 +382,14 @@ const actions = registerHandlers({
   },
   'component.toggleVisualization': {
     ...toggledAction(isVisualizationVisible),
-    available: () => input.mode.mode === 'codeEditing' && !isVisualizationVisible.value,
+    available: () => input.interpretation.mode === 'codeEditing' && !isVisualizationVisible.value,
   },
   'componentBrowser.acceptInput': {
     action: acceptInput,
   },
   'componentBrowser.acceptAIPrompt': {
-    available: () => input.mode.mode == 'aiPrompt',
-    action: () => void acceptAiInput(),
+    available: () => input.interpretation.mode == 'aiPrompt',
+    action: acceptAiInput,
   },
   'componentBrowser.switchPanelFocus': { action: () => componentList.value?.switchPanelFocus() },
   'list.moveUp': { action: () => componentList.value?.moveUp() },
@@ -413,7 +433,7 @@ const listsHandler = listBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      :show="input.mode.mode === 'codeEditing' && isVisualizationVisible"
+      :show="input.interpretation.mode === 'codeEditing' && isVisualizationVisible"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
@@ -434,19 +454,22 @@ const listsHandler = listBindings.handler({
       ref="inputElement"
       v-model="input.content"
       :usage="usage"
-      :mode="input.mode"
+      :interpretation="input.interpretation"
+      :selectedMode="input.selectedMode"
+      :modeLocked="input.modeLocked"
+      :aiAvailable="aiAvailable"
       :nodeColor="nodeColor"
-      :processing="input.processingAIPrompt"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
+      @update:selectedMode="input.setSelectedMode"
     />
     <div class="show-visualization">
       <ActionButton action="component.toggleVisualization" />
     </div>
     <ComponentList
-      v-if="input.mode.mode === 'componentBrowsing'"
+      v-if="input.interpretation.mode === 'componentBrowsing'"
       ref="componentList"
-      :filter="input.mode.filter"
-      :literal="input.mode.literal"
+      :filter="input.interpretation.filter"
+      :literal="input.interpretation.literal"
       @acceptSuggestion="acceptComponent($event)"
       @update:selectedComponent="selected = $event"
     />

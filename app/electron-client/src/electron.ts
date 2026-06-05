@@ -1,5 +1,6 @@
-import { initClaudeAgentIpc } from '@/claudeAgent'
+import { initAiMcpServer, initClaudeAgentIpc } from '@/ai/claudeAgent'
 import { Channel } from '@/ipc'
+import * as paths from '@/paths'
 import { dialog, ipcMain, shell, type BrowserWindow } from 'electron'
 import { download } from 'electron-dl'
 import type { DownloadUrlOptions } from 'enso-common/src/download'
@@ -52,7 +53,11 @@ export function registerShortcuts(electron: Electron) {
  * Initialize Inter-Process Communication between the Electron application and the served
  * website.
  */
-export function initIpc(window: BrowserWindow | null) {
+export function initIpc(
+  window: BrowserWindow | null,
+  electron: Electron | undefined,
+  electronIsDev: boolean,
+) {
   ipcMain.on(Channel.error, (_event, data) => {
     console.error(...data)
   })
@@ -153,7 +158,12 @@ export function initIpc(window: BrowserWindow | null) {
     },
   )
 
-  initClaudeAgentIpc()
+  // Fire-and-forget: the MCP server's HTTP listener boots async, but startup must not block on it.
+  void (async () => {
+    const stdlibRoot = paths.stdlibRoot(electron, electronIsDev)
+    const mcpConfigPath = await initAiMcpServer()
+    initClaudeAgentIpc({ stdlibRoot, mcpConfigPath })
+  })()
 
   // Handling navigation events from renderer process
   ipcMain.on(Channel.goBack, () => {

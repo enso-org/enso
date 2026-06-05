@@ -60,7 +60,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let to_parse = std::sync::Arc::clone(&to_parse);
         std::thread::spawn(move || {
             let (to_parse, condvar) = &*to_parse;
-            while let Some(path) = to_read.lock().unwrap().pop() {
+            while let Some(path) = {
+                let mut to_read = to_read.lock().unwrap();
+                to_read.pop()
+            } {
                 let data = std::fs::read_to_string(&path).unwrap();
                 to_parse.lock().unwrap().0.push(WithSourcePath { path, value: data });
                 condvar.notify_one();

@@ -184,7 +184,7 @@ function isFunctionName(input: WidgetInput): input is WidgetInput & {
 export const widgetDefinition = defineWidget(
   isFunctionName,
   {
-    priority: 2,
+    priority: 3,
     score: Score.Perfect,
   },
   import.meta.hot,

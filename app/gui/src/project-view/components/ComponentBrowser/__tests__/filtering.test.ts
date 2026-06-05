@@ -14,7 +14,7 @@ import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filte
 import { stdPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 test.each([
   makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),
@@ -113,6 +113,29 @@ test('`Any` or ancestor type methods may be overshadowed', () => {
   const db = SuggestionDb.createMock([entry1, entry2, entry3])
   expect(filtering.filter(entry1, db)).not.toBeNull()
   expect(filtering.filter(entry2, db)).toBeNull()
+})
+
+test('Conversion-method overloads do not trigger duplicate-index warnings', () => {
+  // Engine reports each `Email_Attachment.from (that:X)` overload as a distinct
+  // `method` entry sharing the same `(name, selfType)` pair. Indexing them must
+  // not emit the "Attempt to repeatedly write the same key-value pair" warning,
+  // and the overshadow lookup must still answer correctly.
+  const fromFile = makeMethod('Standard.Base.Network.Email.Email_Attachment.Email_Attachment.from')
+  const fromUri = makeMethod('Standard.Base.Network.Email.Email_Attachment.Email_Attachment.from')
+  const fromText = makeMethod('Standard.Base.Network.Email.Email_Attachment.Email_Attachment.from')
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    const db = SuggestionDb.createMock([fromFile, fromUri, fromText])
+    expect(
+      db.hasMethodOnType(
+        stdPath('Standard.Base.Network.Email.Email_Attachment.Email_Attachment'),
+        'from',
+      ),
+    ).toBe(true)
+    expect(errorSpy).not.toHaveBeenCalled()
+  } finally {
+    errorSpy.mockRestore()
+  }
 })
 
 test('Hidden self types and ancestors are taken into account when filtering', () => {

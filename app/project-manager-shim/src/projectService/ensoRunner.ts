@@ -1,3 +1,8 @@
+import { createDeferred, type Deferred } from 'enso-common/src/utilities/async'
+import {
+  WatchedChildProcess,
+  type UnexpectedExitInfo,
+} from 'enso-common/src/utilities/childProcess'
 import extractZip from 'extract-zip'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
@@ -12,6 +17,8 @@ import { Path } from './types.js'
 const HEALTHCHECK_FAILURES_TO_RESTART = 3
 const LOAD_HEALTHCHECK_INTERVAL = 250
 const WATCHDOG_HEALTHCHECK_INTERVAL = 3000
+const LANGUAGE_SERVER_CRASH_LOOP_MAX = 5
+const LANGUAGE_SERVER_CRASH_LOOP_WINDOW_MS = 60_000
 
 export interface Runner {
   runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<number>
@@ -72,19 +79,31 @@ export type ShutdownHookType = keyof ShutdownHookRegistry
 const DEFAULT_JSONRPC_PORT = 30616
 const LANGUAGE_SERVER_STARTUP_TIMEOUT = 30000
 
+const TERMINATE_TIMEOUT_MS = 10_000
+
 class OpenedProject {
   loaded: Promise<void>
   shutdownHooks: Map<ShutdownHookType, () => void | Promise<void>> = new Map()
   private closed = false
   private nextWatchdogCheck: ReturnType<typeof setTimeout> | undefined
+  private readonly watcher: WatchedChildProcess
+  private loadedDeferred: Deferred<void> = createDeferred()
 
   private constructor(
     private path: Path,
-    public process: childProcess.ChildProcess,
     public sockets: LanguageServerSockets,
-    private spawner: () => Promise<childProcess.ChildProcess>,
+    spawner: () => Promise<childProcess.ChildProcess>,
   ) {
-    this.loaded = this.loadingRoutine()
+    this.loaded = this.loadedDeferred.promise
+    this.loadedDeferred.promise.catch(() => undefined)
+    this.watcher = new WatchedChildProcess(spawner, {
+      onChildStarted: () => this.startLoadingRoutine(),
+      onUnexpectedExit: (reason, info) => this.onUnexpectedExit(reason, info),
+      crashLoopLimit: {
+        maxCrashes: LANGUAGE_SERVER_CRASH_LOOP_MAX,
+        windowMs: LANGUAGE_SERVER_CRASH_LOOP_WINDOW_MS,
+      },
+    })
   }
 
   static async create(
@@ -97,16 +116,17 @@ class OpenedProject {
       jsonSocket: { host: '127.0.0.1', port: jsonPort },
       ydocSocket: { host: '127.0.0.1', port: ydocPort },
     }
-    const process = await spawner()
-
-    return new OpenedProject(path, process, sockets, spawner)
+    const project = new OpenedProject(path, sockets, spawner)
+    // Surface synchronous spawn failures (bad executable path, etc.) to the caller.
+    await project.watcher.firstSpawn
+    return project
   }
 
   async close() {
     console.log('Closing Project', this.path)
     this.closed = true
     clearTimeout(this.nextWatchdogCheck)
-    await this.terminateProcess()
+    await this.gracefulShutdown()
 
     for (const [hookType, hook] of this.shutdownHooks) {
       try {
@@ -121,57 +141,64 @@ class OpenedProject {
     }
   }
 
-  private loadingRoutine(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      let resolved = false
+  private startLoadingRoutine(): void {
+    const deferred = createDeferred<void>()
+    deferred.promise.catch(() => undefined)
+    this.loadedDeferred = deferred
+    this.loaded = deferred.promise
+    // Capture the *specific* handle this attempt is loading, so a stale timeout fired after a
+    // respawn doesn't kill the new child or reject the new deferred.
+    const handle = this.watcher.current
+    let resolved = false
 
-      const healthCheck = async () => {
-        const isReady = await this.checkServerHealth()
-        if (isReady) {
-          resolved = true
-          this.runWatchdog()
-          resolve()
-        } else {
-          // Not using setInterval to not pile slow-responding healthchecks.
-          setTimeout(healthCheck, LOAD_HEALTHCHECK_INTERVAL)
-        }
+    const healthCheck = async () => {
+      if (this.closed || resolved) return
+      if (await this.checkServerHealth()) {
+        resolved = true
+        this.startWatchdog()
+        deferred.resolve()
+        return
       }
-      setTimeout(healthCheck, 250)
+      // Not using setInterval to not pile slow-responding healthchecks.
+      setTimeout(healthCheck, LOAD_HEALTHCHECK_INTERVAL)
+    }
+    setTimeout(healthCheck, 250)
 
-      // Timeout if server doesn't start (skip timeout in debug mode)
-      const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
-      const isDebugMode = javaToolOptions?.includes('jdwp')
-      if (!isDebugMode) {
-        setTimeout(() => {
-          if (!resolved) {
-            this.process.kill('SIGKILL')
-            reject(new Error('Language server startup timeout'))
-          }
-        }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
-      }
-    })
+    // Timeout if server doesn't start (skip timeout in debug mode)
+    const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
+    const isDebugMode = javaToolOptions?.includes('jdwp')
+    if (!isDebugMode) {
+      setTimeout(() => {
+        if (resolved || this.closed) return
+        // SIGKILL the *specific* child this routine was waiting on. The watcher's
+        // onUnexpectedExit decides whether to respawn (which it does by default).
+        handle?.child.kill('SIGKILL')
+        deferred.reject(new Error('Language server startup timeout'))
+      }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
+    }
   }
 
-  private runWatchdog() {
-    const restart = async (processExited = false) => {
-      if (!processExited) await this.terminateProcess()
-      if (!this.closed) {
-        this.process = await this.spawner()
-        this.loaded = this.loadingRoutine()
-      }
+  private onUnexpectedExit(reason: string, info: UnexpectedExitInfo): boolean | undefined {
+    clearTimeout(this.nextWatchdogCheck)
+    if (this.closed) {
+      // Exit caused by our own gracefulShutdown — suppress respawn so the port frees up.
+      return false
     }
-
-    this.process.on('exit', () => {
-      if (this.closed) return
+    this.loadedDeferred.reject(new Error(reason))
+    if (info.exceedsCrashLimit) {
       console.error(
-        'Language Server process for project',
-        this.path,
-        ' exited unexpectedly, restarting',
+        `Language Server for project ${this.path} crashed ${LANGUAGE_SERVER_CRASH_LOOP_MAX} times within ${LANGUAGE_SERVER_CRASH_LOOP_WINDOW_MS}ms (${reason}); auto-respawn suspended.`,
       )
-      clearTimeout(this.nextWatchdogCheck)
-      restart(true)
-    })
+      // Defer to the watcher's default for exceedsCrashLimit (suspend). The healthcheck loop
+      // is no longer scheduled, so nothing will respawn until something external triggers it.
+      return
+    }
+    console.error(
+      `Language Server process for project ${this.path} exited unexpectedly (${reason}); restarting`,
+    )
+  }
 
+  private startWatchdog(): void {
     let failures = 0
     const check = async () => {
       if (this.closed) return
@@ -181,17 +208,13 @@ class OpenedProject {
         console.error('Healthcheck failed! Project:', this.path)
         failures += 1
       }
-
       if (failures >= HEALTHCHECK_FAILURES_TO_RESTART) {
         console.error(
-          'Healthcheck of ',
-          this.path,
-          'failed',
-          HEALTHCHECK_FAILURES_TO_RESTART,
-          'times in a row, restarting.',
+          `Healthcheck of ${this.path} failed ${HEALTHCHECK_FAILURES_TO_RESTART} times in a row, restarting.`,
         )
-        restart()
-        // do not schedule next check; the restart process does this once project is initialized.
+        // The respawn triggers `onUnexpectedExit` followed by `onChildStarted`, which restarts
+        // this watchdog loop on the new child. Don't schedule another `check` here.
+        void this.watcher.respawn(TERMINATE_TIMEOUT_MS)
       } else {
         // Not using setInterval to not pile slow-responding healthchecks.
         this.nextWatchdogCheck = setTimeout(check, WATCHDOG_HEALTHCHECK_INTERVAL)
@@ -200,33 +223,32 @@ class OpenedProject {
     this.nextWatchdogCheck = setTimeout(check, WATCHDOG_HEALTHCHECK_INTERVAL)
   }
 
-  private terminateProcess(): Promise<void> {
+  /**
+   * Trigger the language server's graceful shutdown protocol (a single newline written to
+   * stdin) and wait for the child to exit. SIGKILL after a timeout if it doesn't.
+   */
+  private async gracefulShutdown(): Promise<void> {
+    const handle = this.watcher.current
+    if (!handle?.alive) return
     console.log('Terminating language server process of', this.path)
-    const process = this.process
-    return new Promise((resolve) => {
-      // Set a timeout in case the process doesn't exit gracefully
-      const timeout = setTimeout(async () => {
-        if (!process.killed) {
+    if (handle.child.stdin && !handle.child.stdin.destroyed) {
+      handle.child.stdin.write('\n')
+      const killTimeout = setTimeout(() => {
+        if (handle.alive) {
           console.error('Language Server process of', this.path, "didn't finish in time. Killing.")
-          process.kill('SIGKILL')
+          handle.child.kill('SIGKILL')
         }
-        resolve()
-      }, 10000)
-
-      // Listen for the process to exit
-      process.on('exit', async () => {
-        console.log('Language server process of ', this.path, 'exited')
-        clearTimeout(timeout)
-        resolve()
-      })
-
-      // Send line break to stdin to trigger graceful shutdown
-      if (process.stdin && !process.stdin.destroyed) {
-        process.stdin.write('\n')
-      } else {
-        process.kill('SIGTERM')
+      }, TERMINATE_TIMEOUT_MS)
+      try {
+        await handle.waitForExit()
+      } finally {
+        clearTimeout(killTimeout)
       }
-    })
+      console.log('Language server process of', this.path, 'exited')
+      return
+    }
+    // No stdin to write to — fall back to SIGTERM with SIGKILL after timeout.
+    await handle.terminate({ timeoutMs: TERMINATE_TIMEOUT_MS })
   }
 
   // Health check function
@@ -647,6 +669,23 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
       return result
     }
   }
+}
+
+/**
+ * Bundled engine's `lib/Standard` directory, derived from the engine binary's location.
+ * `undefined` when the binary cannot be located or the derived directory does not exist.
+ */
+export function findStdlibRoot(workDir: string = '.'): Path | undefined {
+  const ensoPath = findEnsoExecutable(workDir)
+  if (!ensoPath) return undefined
+  const engineRoot = path.dirname(path.dirname(ensoPath))
+  const stdlib = path.join(engineRoot, 'lib', 'Standard')
+  try {
+    fs.accessSync(stdlib)
+  } catch {
+    return undefined
+  }
+  return Path(stdlib)
 }
 
 /**

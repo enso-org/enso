@@ -225,6 +225,50 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     }
   }
 
+  // Encoded by FQN; the receiver resolves it with Class.forName. Needed because
+  // log messages and exception stack frames sometimes carry Class instances
+  // (e.g. the trace wrappers in Ydoc.java that log `obj.getClass()`); without
+  // a Persistance for Class, those crossings throw "No persistance for
+  // java.lang.Class" and the ydoc subsystem dies on first WebSocket upgrade.
+  // JDK dynamic proxies live only in their generator's classloader, so we
+  // substitute the first implemented interface on write and fall back to
+  // Object.class if the receiver can't resolve a name.
+  @Persistable(id = 81913)
+  static final class PersistClass extends Persistance<Class> {
+    public PersistClass() {
+      super(Class.class, true, 81913);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected Class readObject(Persistance.Input in) throws IOException, ClassNotFoundException {
+      var name = in.readUTF();
+      try {
+        return Class.forName(name, false, PersistClass.class.getClassLoader());
+      } catch (ClassNotFoundException e) {
+        // Expected for proxy classes (whose names exist only in the sender's classloader); also
+        // covers genuine sender/receiver classpath skew, which we surface as a warning rather
+        // than fail the whole message.
+        System.getLogger("org.enso.jvm.interop")
+            .log(
+                System.Logger.Level.WARNING,
+                "PersistClass: cannot resolve {0} on receiver, falling back to Object.class",
+                name);
+        return Object.class;
+      }
+    }
+
+    @Override
+    protected void writeObject(Class obj, Persistance.Output out) throws IOException {
+      var name = obj.getName();
+      if (java.lang.reflect.Proxy.isProxyClass(obj)) {
+        var ifaces = obj.getInterfaces();
+        name = ifaces.length > 0 ? ifaces[0].getName() : "java.lang.Object";
+      }
+      out.writeUTF(name);
+    }
+  }
+
   @Persistable(id = 81914)
   static final class PersistStackTraceElement extends Persistance<java.lang.StackTraceElement> {
     public PersistStackTraceElement() {
@@ -234,20 +278,40 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @SuppressWarnings("unchecked")
     @Override
     protected java.lang.StackTraceElement readObject(Persistance.Input in) throws IOException {
-      var declaringClass = in.readUTF();
-      var methodName = in.readUTF();
-      var fileName = in.readUTF();
+      // Synthesized frames (native-image AOT, polyglot <js>) may have any of
+      // declaringClass / methodName / fileName null. StackTraceElement's
+      // constructor rejects null declaringClass/methodName, so we substitute
+      // an empty string when reading those back; fileName legitimately stays
+      // null on the read side.
+      var declaringClass = readNullableUTF(in);
+      var methodName = readNullableUTF(in);
+      var fileName = readNullableUTF(in);
       var lineNumber = in.readInt();
-      return new java.lang.StackTraceElement(declaringClass, methodName, fileName, lineNumber);
+      return new java.lang.StackTraceElement(
+          declaringClass != null ? declaringClass : "",
+          methodName != null ? methodName : "",
+          fileName,
+          lineNumber);
     }
 
     @Override
     protected void writeObject(java.lang.StackTraceElement obj, Persistance.Output out)
         throws IOException {
-      out.writeUTF(obj.getClassName());
-      out.writeUTF(obj.getMethodName());
-      out.writeUTF(obj.getFileName());
+      writeNullableUTF(out, obj.getClassName());
+      writeNullableUTF(out, obj.getMethodName());
+      writeNullableUTF(out, obj.getFileName());
       out.writeInt(obj.getLineNumber());
+    }
+
+    private static void writeNullableUTF(Persistance.Output out, String s) throws IOException {
+      out.writeBoolean(s != null);
+      if (s != null) {
+        out.writeUTF(s);
+      }
+    }
+
+    private static String readNullableUTF(Persistance.Input in) throws IOException {
+      return in.readBoolean() ? in.readUTF() : null;
     }
   }
 }

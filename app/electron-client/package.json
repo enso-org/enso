@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@electron/asar": "^3.2.9",
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "chalk": "^5.4.1",
     "commander": "^14.0.1",
     "create-servers": "3.2.0",
@@ -35,7 +36,7 @@
     "tar-stream": "^3.1.7",
     "vitest": "catalog:",
     "yargs": "17.6.2",
-    "yauzl": "^3.2.0",
+    "yauzl": "^3.2.1",
     "ydoc-server": "workspace:*",
     "zip-stream": "^7.0.2",
     "zod": "catalog:"

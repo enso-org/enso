@@ -57,6 +57,13 @@ export const electronExecutablePath = await (async () => {
 export const test = base.extend<{
   testRunId: string
   projectsDir: string
+  /**
+   * Whether the launched Electron process should spawn the local Claude agent. Default `false`
+   * — the test fixture sets `ENSO_AI_DISABLED=1` so a developer's locally-installed `claude` is
+   * not accidentally invoked during a non-AI spec. AI specs override with
+   * `test.use({ aiEnabled: true })`.
+   */
+  aiEnabled: boolean
   app: ElectronApplication
   page: Page
 }>({
@@ -68,9 +75,10 @@ export const test = base.extend<{
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
     await use(projectsDir)
   },
+  aiEnabled: [false, { option: true }],
 
   /** Setup for all tests: Create an electron-based app instance. */
-  app: async function ({ projectsDir, testRunId }, use) {
+  app: async function ({ projectsDir, testRunId, aiEnabled }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     const app = await _electron.launch({
       executablePath: electronExecutablePath,
@@ -79,6 +87,7 @@ export const test = base.extend<{
         ...process.env,
         ENSO_TEST: 'true',
         ENSO_TEST_PROJECTS_DIR: projectsDir.replace(/\\/g, '/'),
+        ...(aiEnabled ? {} : { ENSO_AI_DISABLED: '1' }),
       },
     })
     // Set the password as global var before turning on tracing.
@@ -184,6 +193,20 @@ export async function getNewestProject(page: Page): Promise<Locator> {
 export async function visualizeData(page: Page) {
   const showViz = page.getByLabel('Show visualization (Space)')
   await showViz.click({ timeout: 5000 })
+}
+
+/**
+ * Click the eye button to hide an already-shown visualization. Used between checkpoints in
+ * multi-step AI tests so the next `.TableVisualization` locator only matches one element.
+ *
+ * When a visualization is open, the "Hide visualization (Space)" aria-label appears on both
+ * the inline node-header toggle and the viz-panel toolbar toggle (both targeting the same
+ * `isVisualizationEnabled` state, so clicking either dismisses the viz). `.first()` picks the
+ * inline button deterministically and avoids Playwright's strict-mode duplicate-match error.
+ */
+export async function hideVisualization(page: Page) {
+  const hideViz = page.getByLabel('Hide visualization (Space)').first()
+  await hideViz.click({ timeout: 5000 })
 }
 
 /**

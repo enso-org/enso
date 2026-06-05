@@ -30,7 +30,8 @@ export const widgetDefinition = defineWidget(
   {
     // Lower than `WidgetFunctionName` (2) so we win the function-token slot before its editable
     // name widget latches on once the engine resolves the generated UDC's methodPointer.
-    priority: 1,
+    // But WidgetIcon should still take precedence.
+    priority: 2,
     score: (info, db) => {
       const tree = injectWidgetTree()
       const nodeId = asNodeId(tree.externalId)

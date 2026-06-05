@@ -1,9 +1,14 @@
 /** @file Shared API types exposed on `window.api` for both GUI and Electron. */
 import type * as saveAccessToken from 'enso-common/src/accessToken'
-import type { AiComponentRequest, AiComponentResponse } from 'enso-common/src/ai'
+import type {
+  AiComponentIpcReply,
+  AiComponentRequest,
+  AiProgressEvent,
+  AiToolCallReply,
+  AiToolCallRequest,
+} from 'enso-common/src/ai'
 import type { DownloadUrlOptions } from 'enso-common/src/download'
 import type { Path } from 'enso-common/src/services/Backend'
-import type { Result } from 'enso-common/src/utilities/data/result'
 import type { FileFilter } from './project-view/util/fileFilter'
 import type { MenuItem, MenuItemHandler } from './project-view/util/menuItems'
 
@@ -62,7 +67,31 @@ export interface LogApi {
 }
 
 export interface AiApi {
-  readonly generateComponent: (request: AiComponentRequest) => Promise<Result<AiComponentResponse>>
+  /**
+   * Query whether the local Claude agent is available — i.e. the `claude` CLI was found on
+   * PATH and spawned without a synchronous error. Does NOT wait for the priming turn to
+   * complete. Returns `false` when the main process was started with `ENSO_AI_DISABLED=1`.
+   * The renderer typically calls this once at app start and caches the result in
+   * {@link useAiAvailability}.
+   */
+  readonly isAvailable: () => Promise<boolean>
+  readonly generateComponent: (request: AiComponentRequest) => Promise<AiComponentIpcReply>
+  /**
+   * Subscribe to mid-turn tool calls; the handler must reply via {@link AiApi.replyToolCall}
+   * with the matching `requestId`. Returns a disposer.
+   */
+  readonly onToolCall: (handler: (request: AiToolCallRequest) => void) => () => void
+  readonly replyToolCall: (reply: AiToolCallReply) => void
+  /**
+   * Subscribe to live progress events for in-flight AI component requests.
+   */
+  readonly onProgress: (handler: (event: AiProgressEvent) => void) => () => void
+  /**
+   * Cancel an in-flight or queued AI component request. Settles the original
+   * `generateComponent` promise with a structured cancellation error. Idempotent — cancelling
+   * an unknown id is a no-op.
+   */
+  readonly cancel: (requestId: string) => void
 }
 
 export interface ElectronApi {

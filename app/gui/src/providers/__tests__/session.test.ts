@@ -12,6 +12,7 @@ import { withSetup } from '@/util/testing'
 import * as vueQuery from '@tanstack/vue-query'
 import { NotAuthorizedError } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
+import { createDeferred } from 'enso-common/src/utilities/async'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
@@ -28,16 +29,6 @@ function createUserSession(): UserSession {
     expireAt: Rfc3339DateTime(new Date(Date.now() + 5_000).toJSON()),
     clientId: 'clientId',
   }
-}
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => undefined
-  let reject: (reason: unknown) => void = () => undefined
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve
-    reject = promiseReject
-  })
-  return { promise, resolve, reject }
 }
 
 class MockAuthService implements ISessionProvider {

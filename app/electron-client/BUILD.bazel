@@ -20,7 +20,7 @@ ts_config(
 ts_project(
     name = "tsc",
     srcs = glob([
-        "src/*.ts",
+        "src/**/*.ts",
         "tasks/*.ts",
         "tests/**/*.ts",
         "*.ts",
@@ -220,7 +220,7 @@ write_tsconfig(
     },
     extends = "//:tsconfig",
     files = glob([
-        "src/*.ts",
+        "src/**/*.ts",
         "tasks/*.ts",
         "tests/**/*.ts",
         "*.ts",

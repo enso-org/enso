@@ -25,6 +25,7 @@ import { platform } from 'node:os'
 import { join as joinPath } from 'node:path'
 import process from 'node:process'
 import { downloadSamples, runHybridProjectByUrl, runLocalProjectByPath } from 'project-manager-shim'
+import { shutdownClaudeAgent } from './ai/claudeAgent.js'
 import { initAuthentication } from './authentication.js'
 import { parseArgs } from './configParser.js'
 import { VERSION } from './contentConfig.js'
@@ -145,6 +146,10 @@ class App {
 
       this.electron.app.on('before-quit', () => {
         this.isQuitting = true
+      })
+
+      this.electron.app.on('before-quit', () => {
+        shutdownClaudeAgent()
       })
 
       this.electron.app.on('second-instance', (_event, argv) => {
@@ -291,7 +296,7 @@ class App {
       }
       console.log('Starting the application with args', args)
       await this.createWindowIfEnabled(args)
-      initIpc(this.window)
+      initIpc(this.window, this.electron, this.electronIsDev)
       await this.loadWindowContent(args)
       if (this.electron) {
         /**

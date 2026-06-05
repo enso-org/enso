@@ -198,8 +198,8 @@
     "vite-plugin-wasm": "^3.5.0",
     "vitest": "catalog:",
     "vue-tsc": "^2.2.0",
-    "yaml": "^2.7.0",
-    "yauzl": "^3.2.0",
+    "yaml": "^2.8.3",
+    "yauzl": "^3.2.1",
     "ydoc-server": "workspace:*",
     "zip-stream": "^7.0.2"
   },
