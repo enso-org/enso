@@ -29,9 +29,12 @@ export function useNodesDisplacing() {
     if (!displacements) return
     const { moves, pullLimits } = displacements
     lastPushStart = pullLimits && [resizedId, pullLimits]
+    // Displacement is an automatic layout response to a primary user action (resize/toggle); it
+    // must not be tracked by the undo manager, or it would clobber the redo stack after every
+    // viz-preview hover.
     module.value.batchEdits(() => {
       for (const [i, pos] of moves) graph.value.setNodePosition(ids[i]!, pos)
-    })
+    }, 'local:autoLayout')
   }
 
   return { displaceNodesForResize }

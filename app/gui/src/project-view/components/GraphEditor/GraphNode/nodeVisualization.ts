@@ -112,11 +112,13 @@ export function useNodeVisualization({
   })
   let resizing = false
   watch(visibleSize, (size1, size0) => {
-    if (!resizing || !size1 || !size0 || size1.equals(size0) || !size1.x || !size1.y) return
-    const widgetsHeightVec = new Vec2(0, toValue(nodeWidgetsSize).y)
+    if (!resizing || !size1 || !size0 || size1.equals(size0)) return
+    const widgets = toValue(nodeWidgetsSize)
     const pos = toValue(nodePos)
-    const rect0 = new Rect(pos, size0.add(widgetsHeightVec))
-    const rect1 = new Rect(pos, size1.add(widgetsHeightVec))
+    const fullSize = (vizSize: Vec2) =>
+      new Vec2(Math.max(widgets.x, vizSize.x), widgets.y + vizSize.y)
+    const rect0 = new Rect(pos, fullSize(size0))
+    const rect1 = new Rect(pos, fullSize(size1))
     onResize?.(rect0, rect1)
   })
 
