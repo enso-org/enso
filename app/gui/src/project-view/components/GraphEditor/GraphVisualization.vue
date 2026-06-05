@@ -250,6 +250,9 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
     :class="{ isFocused }"
     @pointerenter="emit('update:hovered', true)"
     @pointerleave="emit('update:hovered', false)"
+    @pointerdown.stop.prevent
+    @pointerup.stop.prevent
+    @click.stop.prevent
   >
     <WithFullscreenMode
       v-model="isFullscreen"

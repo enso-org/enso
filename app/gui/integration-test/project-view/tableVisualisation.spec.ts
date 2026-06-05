@@ -91,6 +91,7 @@ test('Copy/paste from Table Visualization', async ({ page, editorPage }) => {
     page.evaluate(() => window.navigator.clipboard.readText()),
   )
   await editorPage
+
   await actions.openVisualization(page, 'Table')
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
@@ -129,19 +130,25 @@ test('Copy/paste from Table Visualization', async ({ page, editorPage }) => {
   await editorPage.press('Mod+V')
   await expectTableInputContent(page, node)
 
-  // Copy from table input widget
+  // Select a range in table input widget
   await node.getByText('0,0').hover()
   await page.mouse.down()
   await node.getByText('2,1').hover()
   await page.mouse.up()
+
+  // Copy from table input widget
   await editorPage.press('Mod+C')
   await expectClipboard.toMatch(/^0,0\t0,1\r\n1,0\t1,1\r\n2,0\t2,1$/)
 
-  // Copy from table input widget with headers
+  // Copy from table input widget by menu
   await node.getByText('0,0').hover()
-  await page.mouse.down()
-  await node.getByText('2,1').hover()
-  await page.mouse.up()
+  await page.mouse.down({ button: 'right' })
+  await page.mouse.up({ button: 'right' })
+  await page.getByText('Copy', { exact: true }).click()
+  await expectClipboard.toMatch(/^0,0\t0,1\r\n1,0\t1,1\r\n2,0\t2,1$/)
+
+  // Copy from table input widget by menu with headers
+  await node.getByText('0,0').hover()
   await page.mouse.down({ button: 'right' })
   await page.mouse.up({ button: 'right' })
   await page.getByText('Copy with Headers').click()

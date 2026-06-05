@@ -11,13 +11,10 @@ export type AgGridTableViewProps<TData, TValue> = {
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource?: IServerSideDatasource | boolean
+  datasource?: IServerSideDatasource | undefined
   rowCount?: number
-  isServerSideModel?: boolean
   gridIdHash?: string | null
-  getContextMenuItems?: (
-    params: GetContextMenuItemsParams,
-  ) => (MenuItemDef | string)[] | GetContextMenuItems
+  getContextMenuItems?: GetContextMenuItems<TData> | undefined
 }
 
 /**
@@ -39,7 +36,7 @@ const AGGRID_DEFAULT_PASTE_ICON =
   '<span class="ag-icon ag-icon-paste" unselectable="on" role="presentation"></span>'
 
 /** Whether to include column headers in copied clipboard content or not. See {@link sendToClipboard}. */
-const copyWithHeaders = ref(false)
+const copyWithHeaders = { value: false }
 
 export const commonContextMenuActions = {
   cut: {
@@ -109,7 +106,6 @@ import type {
   ColumnVisibleEvent,
   FirstDataRenderedEvent,
   GetContextMenuItems,
-  GetContextMenuItemsParams,
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
@@ -165,7 +161,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
   }
 }
 
-const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
+const rowModelType = computed(() => (props.datasource ? 'serverSide' : 'clientSide'))
 
 const gridKeyIncrement = ref(0)
 const gridKey = computed(() =>
@@ -366,7 +362,8 @@ function getRowHeight(params: RowHeightParams): number {
   return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
 }
 
-const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
+const { AgGridVue } = await import('@/components/shared/AgGridTableView/agGrid')
+const { themeAlpine } = await import('ag-grid-community')
 </script>
 
 <template>
@@ -404,7 +401,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :allowContextMenuWithControlKey="true"
       :cacheBlockSize="rowModelType === 'clientSide' ? undefined : 1000"
       :getContextMenuItems="getContextMenuItems"
-      :getRowHeight="rowModelType === 'clientSide' ? getRowHeight : null"
+      :getRowHeight="rowModelType === 'clientSide' ? getRowHeight : undefined"
+      :theme="themeAlpine"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"
@@ -423,6 +421,4 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
   </div>
 </template>
 
-<style src="@ag-grid-community/styles/ag-grid.css" />
-<style src="@ag-grid-community/styles/ag-theme-alpine.css" />
 <style src="@/components/shared/AgGridTableView/tableViewStyle.css" />

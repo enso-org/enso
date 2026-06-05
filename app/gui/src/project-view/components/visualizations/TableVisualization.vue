@@ -1,5 +1,6 @@
 <script lang="ts">
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
+import { onCellMouseOver } from '@/components/shared/AgGridTableView/workaroundAg16857'
 import {
   useTableVizToolbar,
   type SortModel,
@@ -16,12 +17,10 @@ import type {
   ColumnMovedEvent,
   ColumnVisibleEvent,
   GetContextMenuItems,
-  GetContextMenuItemsParams,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
   ITooltipParams,
-  MenuItemDef,
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -186,9 +185,7 @@ const grid = ref<
 const getSvgTemplate = (icon: string) =>
   `<svg viewBox="0 0 16 16" width="16" height="16"><use xlink:href="${svgUseHref(icon)}"/></svg>`
 
-const getContextMenuItems = (
-  params: GetContextMenuItemsParams,
-): (MenuItemDef | string)[] | GetContextMenuItems => {
+const getContextMenuItems: GetContextMenuItems = (params) => {
   const colId = params.column ? params.column.getColId() : null
   const { rowIndex } = params.node ?? {}
 
@@ -298,8 +295,8 @@ const ssrmServer = computed(() => {
 
 const refreshDataSource = ref(0)
 const ssrmDatasource = computed(() => {
-  const value = refreshDataSource.value
-  return isSSRM.value && createServerSideDatasource()
+  const _value = refreshDataSource.value
+  return isSSRM.value ? createServerSideDatasource() : undefined
 })
 
 const statusBar = computed(() => ({
@@ -1221,13 +1218,13 @@ config.setToolbar(
         :textFormatOption="textFormatterSelected"
         :datasource="ssrmDatasource"
         :rowCount="allRowCount"
-        :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         :gridIdHash="tableVersionHash"
         :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
         @columnVisibleChanged="onColumnStateChange"
         @columnMoved="onColumnStateChange"
+        @cellMouseOver="onCellMouseOver"
       />
     </Suspense>
   </div>
