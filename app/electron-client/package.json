@@ -65,7 +65,7 @@
     "electron-builder-squirrel-windows": "^26.8.1",
     "enso-common": "workspace:*",
     "enso-gui": "workspace:*",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "esbuild-plugin-wasm": "^1.1.0",
     "fast-glob": "^3.3.2",
     "playwright": "catalog:",
