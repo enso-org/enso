@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@types/ws": "^8.5.13",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "typescript": "catalog:"
   }
 }
