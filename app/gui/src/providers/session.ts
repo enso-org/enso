@@ -4,6 +4,10 @@ import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent, type ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
+import {
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '$/composables/userAgreements'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
@@ -125,10 +129,16 @@ export function createSessionStore(
     reportRepeatedUnauthorizedError: (error) => errorToast.reportError(error),
   })
 
-  const signUp = async (username: string, password: string, organizationId: string | null) => {
+  const signUp = async (
+    username: string,
+    password: string,
+    organizationId: string | null,
+    tosHash: string,
+    ppHash: string,
+  ) => {
     const auth = assertAuthService()
     analytics.cloudSignUp.before()
-    const result = await auth.signUp(username, password, organizationId)
+    const result = await auth.signUp(username, password, organizationId, tosHash, ppHash)
 
     if (result.err) {
       throw new Error(result.val.message)
@@ -327,6 +337,11 @@ export function createSessionStore(
     }
   }
 
+  const latestTermsOfServiceHash = async () =>
+    (await queryClient.fetchQuery(latestTermsOfServiceQueryOptions)).hash
+  const latestPrivacyPolicyHash = async () =>
+    (await queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)).hash
+
   watchEffect(() => {
     if (session.data.value) {
       // Save access token so can it be reused by backend services
@@ -360,6 +375,8 @@ export function createSessionStore(
     updateMFAPreference,
     verifyTotpToken,
     setupTOTP,
+    latestTermsOfServiceHash,
+    latestPrivacyPolicyHash,
   })
 }
 

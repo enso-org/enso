@@ -202,7 +202,6 @@ function createAuthStore(
 
     return true
   }
-
   const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, setUsername)
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)

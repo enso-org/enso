@@ -209,6 +209,8 @@ export interface ISessionProvider {
     username: string,
     password: string,
     organizationId: string | null,
+    tosHash: string,
+    ppHash: string,
   ) => Promise<results.Err<SignUpError> | results.Ok<unknown>>
   readonly confirmSignUp: (
     email: string,
@@ -322,13 +324,21 @@ export class Cognito implements ISessionProvider {
    *
    * Does not rely on federated identity providers (e.g., Google or GitHub).
    */
-  async signUp(username: string, password: string, organizationId: string | null) {
+  async signUp(
+    username: string,
+    password: string,
+    organizationId: string | null,
+    tosHash: string,
+    ppHash: string,
+  ) {
     const result = await results.Result.wrapAsync(async () => {
       const params = intoSignUpParams(
         this.supportsDeepLinks,
         username.toLowerCase(),
         password,
         organizationId,
+        tosHash,
+        ppHash,
       )
       await amplify.signUp(params)
     })
@@ -706,6 +716,8 @@ function intoSignUpParams(
   username: string,
   password: string,
   organizationId: string | null,
+  tosHashAccepted: string,
+  ppHashAccepted: string,
 ): amplify.SignUpInput {
   return {
     username,
@@ -721,6 +733,9 @@ function intoSignUpParams(
          */
         ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
         ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
+        /** Custom attributes that stores hashes of accepted terms of service and privacy policy. */
+        ...{ 'custom:initTosHash': tosHashAccepted },
+        ...{ 'custom:initPpHash': ppHashAccepted },
       },
     },
   }

@@ -177,6 +177,10 @@ export interface User extends UserInfo {
   readonly isEnsoTeamMember: boolean
   /** Information about any pending invitation to a different organization / team. */
   readonly invitation?: Invitation
+  /** String hash of accepted terms of service policy. */
+  readonly tosAccepted: string
+  /** String hash of accepted privacy policy. */
+  readonly ppAccepted: string
 }
 
 /** A user group related to the current user. */
@@ -1145,6 +1149,8 @@ export interface UpdateUserRequestBody {
   readonly username?: string
   readonly organizationId?: OrganizationId
   readonly switchOrganization?: boolean
+  readonly tosAccepted?: string
+  readonly ppAccepted?: string
 }
 
 /** HTTP request body for the "change user group" endpoint. */
