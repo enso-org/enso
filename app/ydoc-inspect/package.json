@@ -10,7 +10,7 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "dependencies": {
-    "ws": "^8.18.0",
+    "ws": "^8.21.0",
     "y-websocket": "^1.5.4",
     "ydoc-shared": "workspace:*",
     "yjs": "^13.6.21"
