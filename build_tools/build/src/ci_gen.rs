@@ -76,6 +76,14 @@ const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 /// pointed to by the `MICROSOFT_CODE_SIGNING_CERT` secret).
 pub const RELEASE_RUNNER_TYPE: RunnerType = RunnerType::GitHubHosted;
 
+/// Whether a release should deploy the runtime image to ECR and dispatch the Cloud build-image
+/// workflow.
+///
+/// Disable while the Enso Cloud is turned off. Publishing then no longer waits for these jobs.
+/// Both jobs authenticate with the `CI_PRIVATE_TOKEN` secret, which must be valid to re-enable
+/// them.
+pub const RELEASE_DEPLOYS_RUNTIME_TO_CLOUD: bool = false;
+
 pub const RELEASE_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
@@ -632,8 +640,10 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     let prepare_job_id = workflow.add(PRIMARY_TARGET, DraftRelease);
     let mut packaging_job_ids = vec![];
 
-    // Assumed, because Linux is necessary to deploy ECR runtime image.
-    assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
+    if RELEASE_DEPLOYS_RUNTIME_TO_CLOUD {
+        // Assumed, because Linux is necessary to deploy ECR runtime image.
+        assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
+    }
     for target in RELEASE_TARGETS {
         let backend_job_id = workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
 
@@ -642,7 +652,7 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         packaging_job_ids.push(build_ide_job_id.clone());
 
         // The backend image is deployed to ECR only on Linux.
-        if target.0 == OS::Linux {
+        if target.0 == OS::Linux && RELEASE_DEPLOYS_RUNTIME_TO_CLOUD {
             let runtime_requirements = [&prepare_job_id, &backend_job_id];
             let upload_runtime_job_id =
                 workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);

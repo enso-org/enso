@@ -43,7 +43,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -104,7 +104,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -164,7 +164,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -224,7 +224,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -286,7 +286,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -352,7 +352,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -438,7 +438,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -523,7 +523,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -608,7 +608,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -693,7 +693,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -755,7 +755,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -844,7 +844,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -932,7 +932,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1020,7 +1020,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1109,7 +1109,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1197,7 +1197,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1285,7 +1285,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1373,7 +1373,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1461,7 +1461,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -1549,7 +1549,7 @@ jobs:
         with:
           node-version-file: .node-version
       - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
-        run: npm install -g corepack@0.31.0 && corepack --version
+        run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:

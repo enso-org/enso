@@ -11,6 +11,10 @@ Run when:
 - You flip `RELEASE_RUNNER_TYPE` in `enso-build`'s `ci_gen` module — the knob
   that moves the release pipeline (`promote.yml` + `release.yml`, used by the
   nightly) between the self-hosted fleet and GitHub-hosted runners.
+- You flip `RELEASE_DEPLOYS_RUNTIME_TO_CLOUD` (same module) — whether releases
+  push the runtime image to ECR and dispatch the Cloud build-image workflow.
+  Off while the Enso Cloud is disabled; requires a valid `CI_PRIVATE_TOKEN` to
+  re-enable.
 
 Check in the regenerated YAML as part of the same commit. The CI enforces that
 the checked-in YAML matches what this tool would produce, so drift fails PRs.

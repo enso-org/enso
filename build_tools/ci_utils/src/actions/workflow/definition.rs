@@ -145,7 +145,9 @@ pub fn setup_node() -> Step {
 
 pub fn setup_corepack() -> Step {
     Step {
-        run: Some("npm install -g corepack@0.31.0 && corepack --version".into()),
+        // `--force` lets npm overwrite the `yarn`/`pnpm` bin shims pre-installed on GitHub-hosted
+        // Windows images, which it refuses to clobber otherwise.
+        run: Some("npm install -g --force corepack@0.31.0 && corepack --version".into()),
         // Self-hosted Linux runners have a recent corepack pre-installed, while GitHub-hosted
         // images may bundle one too old to verify current pnpm registry signatures.
         r#if: Some(format!("{} || {}", is_non_linux_runner(), is_github_hosted())),
