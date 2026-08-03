@@ -65,6 +65,14 @@ pub const PRIMARY_TARGET: Target = (OS::Linux, Arch::X86_64);
 
 const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 
+/// The runner type building release artifacts (the `promote` and `release` workflows).
+///
+/// Normally releases are built on the self-hosted fleet. Switch to [`RunnerType::GitHubHosted`]
+/// when the fleet is unavailable. Note that GitHub-hosted runners are slower, have little disk
+/// space, and lack state pre-installed on the fleet (e.g. the Windows code signing certificate
+/// pointed to by the `MICROSOFT_CODE_SIGNING_CERT` secret).
+pub const RELEASE_RUNNER_TYPE: RunnerType = RunnerType::GitHubHosted;
+
 pub const RELEASE_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
@@ -375,6 +383,38 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
         (OS::MacOS, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::MacOS],
         (OS::MacOS, RunnerType::GitHubHosted) => vec![RunnerLabel::MacOSLatest],
+    }
+}
+
+/// The GitHub-hosted runner labels equivalent to the given self-hosted ones, if any.
+///
+/// GitHub-hosted `macos-latest` runners are AArch64 machines, so they match the architecture of
+/// the self-hosted `[macOS, ARM64]` pool.
+fn github_hosted_equivalent(labels: &[RunnerLabel]) -> Option<Vec<RunnerLabel>> {
+    match labels {
+        [RunnerLabel::SelfHosted, RunnerLabel::Linux] => Some(vec![RunnerLabel::LinuxLatest]),
+        [RunnerLabel::SelfHosted, RunnerLabel::Windows] => Some(vec![RunnerLabel::WindowsLatest]),
+        [RunnerLabel::SelfHosted, RunnerLabel::MacOS, RunnerLabel::Arm64] => {
+            Some(vec![RunnerLabel::MacOSLatest])
+        }
+        _ => None,
+    }
+}
+
+/// Move all jobs of the workflow to the runner type chosen by [`RELEASE_RUNNER_TYPE`].
+///
+/// Jobs on runners that have no GitHub-hosted equivalent (e.g. nested workflow calls, which have
+/// no runner at all) are left unchanged.
+fn apply_release_runner_type(workflow: &mut Workflow) {
+    match RELEASE_RUNNER_TYPE {
+        RunnerType::SelfHosted => {}
+        RunnerType::GitHubHosted => {
+            for job in workflow.jobs.values_mut() {
+                if let Some(labels) = github_hosted_equivalent(&job.runs_on) {
+                    job.runs_on = labels;
+                }
+            }
+        }
     }
 }
 
@@ -693,6 +733,7 @@ pub fn release() -> Result<Workflow> {
     };
 
     add_release_steps(&mut workflow)?;
+    apply_release_runner_type(&mut workflow);
     let version_input_expression = get_input_expression("version");
     workflow.env(ENSO_EDITION.name, &version_input_expression);
     workflow.env(ENSO_VERSION.name, &version_input_expression);
@@ -715,6 +756,7 @@ pub fn promote() -> Result<Workflow> {
         .with_with("version", wrap_expression(version_input));
     release_job.needs(&promote_job_id);
     workflow.add_job(release_job);
+    apply_release_runner_type(&mut workflow);
 
     Ok(workflow)
 }
