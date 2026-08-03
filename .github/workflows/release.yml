@@ -20,12 +20,11 @@ jobs:
   enso-build-ci-gen-draft-release-linux-amd64:
     name: Create a release draft.
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -41,12 +40,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -65,12 +64,11 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-linux-amd64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -86,12 +84,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -122,12 +120,11 @@ jobs:
     needs:
       - enso-build-ci-gen-job-deploy-runtime-linux-amd64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -143,12 +140,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -172,12 +169,11 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -193,12 +189,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -230,13 +226,11 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
+      - macos-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -252,12 +246,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -284,12 +278,11 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -305,12 +298,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -341,12 +334,11 @@ jobs:
       - enso-build-ci-gen-upload-ide-macos-aarch64
       - enso-build-ci-gen-upload-ide-windows-amd64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -362,12 +354,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -403,12 +395,11 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-linux-amd64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -424,12 +415,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -456,6 +447,7 @@ jobs:
           ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
+          ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_SENTRY_ORGANIZATION: ${{ vars.ENSO_CLOUD_SENTRY_ORGANIZATION }}
           ENSO_IDE_SENTRY_PROJECT: ${{ vars.ENSO_CLOUD_SENTRY_PROJECT }}
@@ -482,13 +474,11 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-macos-aarch64
     runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
+      - macos-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -504,12 +494,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -543,6 +533,7 @@ jobs:
           ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
+          ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_SENTRY_ORGANIZATION: ${{ vars.ENSO_CLOUD_SENTRY_ORGANIZATION }}
           ENSO_IDE_SENTRY_PROJECT: ${{ vars.ENSO_CLOUD_SENTRY_PROJECT }}
@@ -569,12 +560,11 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-windows-amd64
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -590,12 +580,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -622,6 +612,7 @@ jobs:
           ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
+          ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_SENTRY_ORGANIZATION: ${{ vars.ENSO_CLOUD_SENTRY_ORGANIZATION }}
           ENSO_IDE_SENTRY_PROJECT: ${{ vars.ENSO_CLOUD_SENTRY_PROJECT }}

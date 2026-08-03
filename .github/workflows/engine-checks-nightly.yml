@@ -21,7 +21,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -37,12 +37,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -82,7 +82,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -98,12 +98,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -142,7 +142,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -158,12 +158,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -202,7 +202,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -218,12 +218,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -264,7 +264,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -280,12 +280,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -330,7 +330,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -346,12 +346,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -416,7 +416,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -432,12 +432,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -501,7 +501,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -517,12 +517,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -586,7 +586,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -602,12 +602,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -671,7 +671,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -687,12 +687,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -733,7 +733,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -749,12 +749,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -822,7 +822,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -838,12 +838,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -910,7 +910,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -926,12 +926,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -998,7 +998,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1014,12 +1014,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -1087,7 +1087,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1103,12 +1103,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -1175,7 +1175,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1191,12 +1191,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -1263,7 +1263,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1279,12 +1279,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -1351,7 +1351,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1367,12 +1367,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -1439,7 +1439,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1455,12 +1455,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -1527,7 +1527,7 @@ jobs:
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -1543,12 +1543,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-      - if: runner.os == 'macOS'
+      - if: runner.os == 'macOS' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - if: runner.os != 'Linux'
+      - if: runner.os != 'Linux' || (runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
         run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
