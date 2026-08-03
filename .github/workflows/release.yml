@@ -30,7 +30,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -74,7 +73,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -130,7 +128,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -179,7 +176,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -236,7 +232,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -288,7 +283,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -344,7 +338,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -405,7 +398,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -484,7 +476,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
@@ -570,7 +561,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
