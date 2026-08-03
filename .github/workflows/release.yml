@@ -521,6 +521,7 @@ jobs:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
 env:
+  COREPACK_INTEGRITY_KEYS: "0"
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   ENSO_EDITION: ${{ inputs.version }}
   ENSO_VERSION: ${{ inputs.version }}

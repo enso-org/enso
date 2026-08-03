@@ -444,6 +444,11 @@ fn apply_release_runner_type(workflow: &mut Workflow) {
                 }
                 drop_bazel_remote_cache(job);
             }
+            // On GitHub-hosted Windows the corepack bundled with `setup-node`'s toolcache wins the
+            // `PATH` race against the pinned one (the image presets `NPM_CONFIG_PREFIX` elsewhere)
+            // and is too old to verify current pnpm registry signatures. Disabling the signature
+            // check is safe: `packageManager` in `package.json` still pins the pnpm tarball hash.
+            workflow.env("COREPACK_INTEGRITY_KEYS", "0");
         }
     }
 }

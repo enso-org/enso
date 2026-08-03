@@ -81,4 +81,5 @@ jobs:
       version: ${{ needs.enso-build-ci-gen-promote-release-job-linux-amd64.outputs.ENSO_VERSION }}
     secrets: inherit
 env:
+  COREPACK_INTEGRITY_KEYS: "0"
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
