@@ -84,6 +84,16 @@ pub const RELEASE_RUNNER_TYPE: RunnerType = RunnerType::GitHubHosted;
 /// them.
 pub const RELEASE_DEPLOYS_RUNTIME_TO_CLOUD: bool = false;
 
+/// Published release providing the engine bundle for the macOS IDE build when the macOS backend
+/// cannot be built.
+///
+/// GitHub-hosted macOS runners have too little memory for the engine's native-image build. When
+/// this is set, the macOS backend job is omitted and the macOS IDE embeds the engine bundle of
+/// this (older) release, pairing a fresh GUI with that engine. Currently pinned to
+/// `2026.1.1-nightly.2026.5.11`, the last release built on the self-hosted fleet. Set to `None`
+/// once macOS backends can be built again.
+pub const MACOS_BACKEND_FALLBACK_RELEASE: Option<u64> = Some(320244025);
+
 pub const RELEASE_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
@@ -538,13 +548,20 @@ impl JobArchetype for PublishRelease {
 
 /// Build new IDE and upload it as a release asset.
 #[derive(Clone, Copy, Debug)]
-pub struct UploadIde;
+pub struct UploadIde {
+    /// Release providing the engine bundle; `None` means the release currently being built.
+    pub backend_release_override: Option<u64>,
+}
 
 impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new(
-            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts",
-        )
+        let backend_release = match self.backend_release_override {
+            Some(id) => id.to_string(),
+            None => "${{env.ENSO_RELEASE_ID}}".into(),
+        };
+        RunStepsBuilder::new(format!(
+            "ide upload --backend-source release --backend-release {backend_release} --sign-artifacts"
+        ))
         .cleaning(RELEASE_CLEANING_POLICY)
         .customize(move |step| {
             let mut steps = prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
@@ -650,20 +667,36 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
     }
     for target in RELEASE_TARGETS {
-        let backend_job_id = workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
+        let fallback_backend =
+            if target.0 == OS::MacOS { MACOS_BACKEND_FALLBACK_RELEASE } else { None };
+        match fallback_backend {
+            Some(backend_release) => {
+                let upload_ide = UploadIde { backend_release_override: Some(backend_release) };
+                let build_ide_job_id =
+                    workflow.add_dependent(target, upload_ide, [&prepare_job_id]);
+                packaging_job_ids.push(build_ide_job_id);
+            }
+            None => {
+                let backend_job_id =
+                    workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
+                let upload_ide = UploadIde { backend_release_override: None };
+                let build_ide_job_id =
+                    workflow.add_dependent(target, upload_ide, [&prepare_job_id, &backend_job_id]);
+                packaging_job_ids.push(build_ide_job_id);
 
-        let build_ide_job_id =
-            workflow.add_dependent(target, UploadIde, [&prepare_job_id, &backend_job_id]);
-        packaging_job_ids.push(build_ide_job_id.clone());
-
-        // The backend image is deployed to ECR only on Linux.
-        if target.0 == OS::Linux && RELEASE_DEPLOYS_RUNTIME_TO_CLOUD {
-            let runtime_requirements = [&prepare_job_id, &backend_job_id];
-            let upload_runtime_job_id =
-                workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
-            let dispatch_build_image_job_id =
-                workflow.add_dependent(target, job::DispatchBuildImage, [&upload_runtime_job_id]);
-            packaging_job_ids.push(dispatch_build_image_job_id);
+                // The backend image is deployed to ECR only on Linux.
+                if target.0 == OS::Linux && RELEASE_DEPLOYS_RUNTIME_TO_CLOUD {
+                    let runtime_requirements = [&prepare_job_id, &backend_job_id];
+                    let upload_runtime_job_id =
+                        workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
+                    let dispatch_build_image_job_id = workflow.add_dependent(
+                        target,
+                        job::DispatchBuildImage,
+                        [&upload_runtime_job_id],
+                    );
+                    packaging_job_ids.push(dispatch_build_image_job_id);
+                }
+            }
         }
     }
 

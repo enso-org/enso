@@ -127,4 +127,10 @@ pub enum Version {
     VS2019,
     #[serde(rename = "2022")]
     VS2022,
+    /// A version this tooling does not know yet, e.g. `18` (Visual Studio 2026).
+    ///
+    /// Newer Visual Studio versions may coexist with known-good ones on a machine, so a single
+    /// unrecognized instance must not fail parsing the whole `vswhere` output.
+    #[serde(other)]
+    Unknown,
 }
