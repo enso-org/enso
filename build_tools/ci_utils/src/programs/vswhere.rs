@@ -39,7 +39,10 @@ impl VsWhere {
 
         let stdout = command.run_stdout().await?;
         let instances = serde_json::from_str::<Vec<InstanceInfo>>(&stdout)?;
-        instances.into_iter().next().with_context(|| {
+        let (known, unknown): (Vec<_>, Vec<_>) = instances.into_iter().partition(|instance| {
+            instance.catalog.product_line_version != crate::programs::vs::Version::Unknown
+        });
+        known.into_iter().chain(unknown).next().with_context(|| {
             format!("No Visual Studio installation found with component {component}.")
         })
     }
@@ -266,5 +269,33 @@ mod tests {
 ]"#;
         let ret = serde_json::from_str::<Vec<InstanceInfo>>(sample_out);
         assert!(ret.is_ok());
+    }
+
+    /// Visual Studio 2026 reports `productLineVersion` as `18`, not as a year. An unrecognized
+    /// version must parse as [`vs::Version::Unknown`] rather than failing the whole output.
+    #[test]
+    fn parse_unknown_product_line_version() {
+        let sample_out = r#"
+[
+  {
+    "installDate": "2026-05-02T19:34:05Z",
+    "installationPath": "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise",
+    "installationVersion": "18.0.11205.152",
+    "isPrerelease": false,
+    "displayName": "Visual Studio Enterprise 2026",
+    "catalog": { "productLineVersion": "18" }
+  },
+  {
+    "installDate": "2025-11-20T09:11:44Z",
+    "installationPath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+    "installationVersion": "17.14.37502.11",
+    "isPrerelease": false,
+    "displayName": "Visual Studio Enterprise 2022",
+    "catalog": { "productLineVersion": "2022" }
+  }
+]"#;
+        let ret = serde_json::from_str::<Vec<InstanceInfo>>(sample_out).unwrap();
+        assert_eq!(ret[0].catalog.product_line_version, crate::programs::vs::Version::Unknown);
+        assert_eq!(ret[1].catalog.product_line_version, crate::programs::vs::Version::VS2022);
     }
 }

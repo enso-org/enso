@@ -15,6 +15,10 @@ Run when:
   push the runtime image to ECR and dispatch the Cloud build-image workflow.
   Off while the Enso Cloud is disabled; requires a valid `CI_PRIVATE_TOKEN` to
   re-enable.
+- You change `MACOS_BACKEND_FALLBACK_RELEASE` (same module) — when set, the
+  macOS backend job is omitted and the macOS IDE embeds the engine bundle of
+  the pinned older release (GitHub-hosted macs can't fit the native-image
+  build). `None` restores normal macOS backend builds.
 
 Check in the regenerated YAML as part of the same commit. The CI enforces that
 the checked-in YAML matches what this tool would produce, so drift fails PRs.
