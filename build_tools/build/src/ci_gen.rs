@@ -19,6 +19,7 @@ use ide_ci::actions::workflow::definition::setup_bazel_env;
 use ide_ci::actions::workflow::definition::setup_corepack;
 use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
@@ -32,6 +33,8 @@ use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::SETUP_BAZEL_ACTION;
+use ide_ci::actions::workflow::definition::SETUP_BAZEL_BAZELRC_INPUT;
 use ide_ci::actions::workflow::definition::Schedule;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
@@ -401,10 +404,26 @@ fn github_hosted_equivalent(labels: &[RunnerLabel]) -> Option<Vec<RunnerLabel>> 
     }
 }
 
+/// Remove the bazel remote cache configuration from the job's `setup-bazel` step.
+///
+/// The cache lives on the self-hosted infrastructure and is not reachable from GitHub-hosted
+/// runners; bazel fails the build outright when the configured cache cannot be queried.
+fn drop_bazel_remote_cache(job: &mut Job) {
+    let setup_bazel_steps =
+        job.steps.iter_mut().filter(|step| step.uses.as_deref() == Some(SETUP_BAZEL_ACTION));
+    for step in setup_bazel_steps {
+        if let Some(Argument::Other(args)) = &mut step.with {
+            args.remove(SETUP_BAZEL_BAZELRC_INPUT);
+        }
+    }
+}
+
 /// Move all jobs of the workflow to the runner type chosen by [`RELEASE_RUNNER_TYPE`].
 ///
 /// Jobs on runners that have no GitHub-hosted equivalent (e.g. nested workflow calls, which have
-/// no runner at all) are left unchanged.
+/// no runner at all) keep their runners. On GitHub-hosted runners the bazel remote cache
+/// configuration is dropped as well, as the cache is unreachable from outside the self-hosted
+/// infrastructure.
 fn apply_release_runner_type(workflow: &mut Workflow) {
     match RELEASE_RUNNER_TYPE {
         RunnerType::SelfHosted => {}
@@ -413,6 +432,7 @@ fn apply_release_runner_type(workflow: &mut Workflow) {
                 if let Some(labels) = github_hosted_equivalent(&job.runs_on) {
                     job.runs_on = labels;
                 }
+                drop_bazel_remote_cache(job);
             }
         }
     }

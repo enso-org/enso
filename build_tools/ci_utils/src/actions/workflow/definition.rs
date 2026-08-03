@@ -98,10 +98,16 @@ if (Test-Path "C:\BuildTools\VC") { "BAZEL_VC=C:\BuildTools\VC" >> $env:GITHUB_E
     }
 }
 
+/// The GitHub action that installs bazelisk and writes the shared `bazelrc`.
+pub const SETUP_BAZEL_ACTION: &str = "bazel-contrib/setup-bazel@0.15.0";
+
+/// Name of the [`SETUP_BAZEL_ACTION`] input holding the generated `bazelrc` contents.
+pub const SETUP_BAZEL_BAZELRC_INPUT: &str = "bazelrc";
+
 pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
-        uses: Some("bazel-contrib/setup-bazel@0.15.0".into()),
+        uses: Some(SETUP_BAZEL_ACTION.into()),
         with: Some(step::Argument::Other(BTreeMap::from([
             (
                 "output-base".to_string(),
@@ -112,7 +118,7 @@ pub fn setup_bazel() -> Step {
                 Value::String("1.x".to_string()),
             ),
             (
-                "bazelrc".to_string(),
+                SETUP_BAZEL_BAZELRC_INPUT.to_string(),
                 Value::String(
                     "build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header=\"authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}\"".to_string(),
                 ),
