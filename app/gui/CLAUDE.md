@@ -102,3 +102,31 @@ painful example of an invented name that rendered blank.
 Vite production builds need `NODE_OPTIONS=--max-old-space-size=6144` (already
 set in the `build` script). If you invoke Vite directly, re-export it or the
 Rollup chunker OOMs when sourcemaps are on.
+
+## Startup resilience: unreachable Enso Cloud
+
+Anything `await`ed in a vue-router guard or route data loader permanently
+aborts navigation if it rejects (`router.onError` only logs) — the app then
+shows the loading screen forever. This bit twice: the remote-config fetch in
+`src/providers/config.ts` and `useUserAgreements` (`/eula.json`). Never let
+such promises reject on network failure; degrade instead.
+
+The degraded path: `src/utils/cloudReachability.ts` (`isCloudUnreachableError`)
+classifies connection-level failures — only errors with **no HTTP status**
+(fetch `TypeError`, status-less `NetworkError`, `OfflineError`, Amplify
+"Network error"), never auth errors, so 401s keep the
+`useUnauthorizedRecovery` path. On unreachable cloud, config skips retries and
+still resolves, `providers/session.ts` sets `isCloudUnreachable`, and
+`providers/auth.ts` synthesizes a credential-less offline session with
+`isCloudDataUnavailable` (local projects work, cloud features off). Cloud-only
+builds (no `localBackend`) keep the redirect-to-login path. Regression test:
+`src/providers/__tests__/config.test.ts` (real router + failing fetch).
+
+## Gotcha: typecheck configs
+
+`vue-tsc --noEmit -p tsconfig.app.json` is the clean gate.
+`tsconfig.app.vitest.json` is broken at baseline (~410 pre-existing `TS6307`
+errors from a stale Bazel-generated file list) — don't try to zero it, only
+avoid adding new errors. Both tsconfigs enumerate files explicitly: a new
+source/test file must be added to them (hand-edit is fine;
+`bazel run //:write_all` regenerates but rewrites unrelated files too).
