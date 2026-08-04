@@ -109,9 +109,17 @@ pub fn setup_bazel() -> Step {
         name: Some("Setup bazel environment".into()),
         uses: Some(SETUP_BAZEL_ACTION.into()),
         with: Some(step::Argument::Other(BTreeMap::from([
+            // The output base must be short (Windows path length limits) and, on GitHub-hosted
+            // runners, on the same drive as the workspace (`d:`): `write_source_files`'s updater
+            // script uses a drive-crossing-incapable `cd`, so a `c:` output base makes it silently
+            // copy into the execroot instead of the workspace.
             (
                 "output-base".to_string(),
-                Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
+                Value::String(format!(
+                    "${{{{ {} && ({} && 'd:/_bazel' || 'c:/_bazel') || '' }}}}",
+                    is_windows_runner(),
+                    is_github_hosted(),
+                )),
             ),
             (
                 "bazelisk-version".to_string(),
