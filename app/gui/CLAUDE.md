@@ -122,6 +122,12 @@ still resolves, `providers/session.ts` sets `isCloudUnreachable`, and
 builds (no `localBackend`) keep the redirect-to-login path. Regression test:
 `src/providers/__tests__/config.test.ts` (real router + failing fetch).
 
+`isNotSignedIn` on that session additionally marks the no-identity case (no
+Cognito session could be read, so nobody is known to be signed in) — gate
+identity-bound UI on it, e.g. the sign-out menu entries. Local and hybrid
+project opens must not require a session: `openedProjects/projectStates.ts`
+builds Cognito credentials only for cloud opens.
+
 ## Gotcha: typecheck configs
 
 `vue-tsc --noEmit -p tsconfig.app.json` is the clean gate.

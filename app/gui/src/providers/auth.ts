@@ -31,6 +31,12 @@ export interface UserSession extends cognitoModule.UserSession {
    * the existing redirect-to-login path, so this flag is never `true` there.
    */
   readonly isCloudDataUnavailable?: boolean
+  /**
+   * `true` when this placeholder session carries no Cognito identity at all: the Cloud was
+   * unreachable and no session could be read, so nobody is known to be signed in.
+   * Identity-bound actions (e.g. signing out) must be disabled by callers.
+   */
+  readonly isNotSignedIn?: boolean
 }
 
 const UsersMe = 'usersMe'
@@ -294,6 +300,7 @@ export function createAuthStore(
       ...cognitoSession,
       user: getSyntheticUser(cognitoSession),
       isCloudDataUnavailable: true,
+      isNotSignedIn: session.value == null,
     } satisfies UserSession
   })
   const user = computed(() => userData.value?.user ?? null)

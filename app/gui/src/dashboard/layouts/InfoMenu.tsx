@@ -29,7 +29,7 @@ export function InfoMenu() {
               AboutModal.open()
             }}
           />
-          {session && (
+          {session && !session.isNotSignedIn && (
             <MenuEntry
               action="signOut"
               doAction={() => signOut().then(() => router.push(LOGIN_PATH))}
