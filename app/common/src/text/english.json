@@ -506,6 +506,7 @@
   "cloudDataUnavailable": "Enso Cloud is temporarily unavailable.",
   "cloudDataUnavailableTitle": "Enso Cloud is unavailable",
   "cloudDataUnavailableSubtitle": "Cannot reach Enso Cloud. Retry or work on local projects.",
+  "notSignedIn": "Not signed in",
   "loginUnavailableOffline": "Login functionality is unavailable offline. Please connect to the internet to log in.",
   "loginUnavailableOfflineLocal": "After logging in, you can work offline with your local projects.",
   "productionOnlyFeatures": "Production-only features",

@@ -132,6 +132,7 @@ describe('auth store while the Cloud is unreachable', () => {
     expect(store.session).not.toBeNull()
     expect(store.session?.isCloudDataUnavailable).toBe(true)
     expect(store.session?.user.isEnabled).toBe(false)
+    expect(store.session?.isNotSignedIn).toBe(true)
   })
 
   it('grants the stand-in session no credentials', async () => {
@@ -149,6 +150,7 @@ describe('auth store while the Cloud is unreachable', () => {
 
     expect(store.isCloudDataUnavailable).toBe(true)
     expect(store.session?.user.email).toBe('someone@enso.org')
+    expect(store.session?.isNotSignedIn).toBe(false)
   })
 
   it('redirects to login on cloud-only deployments instead of degrading', async () => {
@@ -186,6 +188,7 @@ describe('auth store while the Cloud is reachable but failing', () => {
 
     await vi.waitFor(() => expect(store.isCloudDataUnavailable).toBe(true))
     expect(store.session?.isCloudDataUnavailable).toBe(true)
+    expect(store.session?.isNotSignedIn).toBe(false)
   })
 
   it('leaves an unauthorized user to the sign-out flow', async () => {

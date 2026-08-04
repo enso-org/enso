@@ -28,7 +28,10 @@ export function UserMenu(props: UserMenuProps) {
   const { router } = useRouter()
   const { localBackend } = useBackends()
   const { signOut } = useSession()
-  const { user } = useFullUserSession()
+  const session = useFullUserSession()
+  const { user } = session
+  const isCloudDataUnavailable = session.isCloudDataUnavailable ?? false
+  const isNotSignedIn = session.isNotSignedIn ?? false
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
@@ -61,14 +64,17 @@ export function UserMenu(props: UserMenuProps) {
           toggleEnsoDevtools()
         },
       },
-    (user.plan === Plan.free || user.plan === Plan.solo) && {
-      action: 'upgradePlan',
-      doAction: () => {
-        onSignOut()
-        void router.push(SUBSCRIBE_PATH)
+    !isCloudDataUnavailable &&
+      (user.plan === Plan.free || user.plan === Plan.solo) && {
+        action: 'upgradePlan',
+        doAction: () => {
+          onSignOut()
+          void router.push(SUBSCRIBE_PATH)
+        },
       },
-    },
-    {
+    // With no identity there is nobody to sign out; the attempt would only fail against the
+    // unreachable Cognito host.
+    !isNotSignedIn && {
       action: 'signOut',
       doAction: () => {
         onSignOut()
@@ -84,9 +90,11 @@ export function UserMenu(props: UserMenuProps) {
           <ProfilePicture picture={user.profilePicture} name={user.name} />
           <div className="flex min-w-0 flex-col">
             <Text disableLineHeightCompensation variant="body" truncate="1" weight="semibold">
-              {user.name}
+              {isNotSignedIn ? getText('notSignedIn') : user.name}
             </Text>
-            <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
+            <Text disableLineHeightCompensation>
+              {isCloudDataUnavailable ? getText('cloudDataUnavailableTitle') : getText(user.plan)}
+            </Text>
           </div>
         </div>
         <div className="flex flex-col overflow-hidden">

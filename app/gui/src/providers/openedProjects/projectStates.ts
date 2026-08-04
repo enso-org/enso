@@ -187,14 +187,6 @@ export function useProjectStates() {
   async function openProject(project: NotOpened): Promise<Result<HybridOpened | Opened>>
   /** Open a project in given mode. */
   async function openProject(project: NotOpened): Promise<Result<HybridOpened | Opened>> {
-    if (session.session == null) return Err('No user session')
-    const cognitoCredentials = {
-      accessToken: session.session.accessToken,
-      refreshToken: session.session.refreshToken,
-      clientId: session.session.clientId,
-      expireAt: session.session.expireAt,
-      refreshUrl: session.session.refreshUrl,
-    }
     switch (project.info.mode) {
       case 'local': {
         if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
@@ -218,6 +210,16 @@ export function useProjectStates() {
         })
       }
       case 'cloud': {
+        // Cognito credentials are needed only for cloud opens; local and hybrid opens must keep
+        // working without a session (e.g. when the Cloud is unreachable).
+        if (session.session == null) return Err('No user session')
+        const cognitoCredentials = {
+          accessToken: session.session.accessToken,
+          refreshToken: session.session.refreshToken,
+          clientId: session.session.clientId,
+          expireAt: session.session.expireAt,
+          refreshUrl: session.session.refreshUrl,
+        }
         const result = await catchNetworkError(
           openRemoteProject.mutateAsync([
             project.info.id,
