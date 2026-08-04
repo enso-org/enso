@@ -14,6 +14,7 @@ import { NotAuthorizedError } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { createDeferred } from 'enso-common/src/utilities/async'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
+import { NetworkError } from 'enso-common/src/utilities/errors'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -463,5 +464,41 @@ describe('SessionProvider', () => {
 
     signOutDeferred.resolve(undefined)
     await signOutPromise
+  })
+
+  describe('when Cognito cannot be reached', () => {
+    it('resolves the session query rather than failing it', () =>
+      withSetup(async () => {
+        authService.userSession.mockRejectedValue(new NetworkError('Failed to fetch'))
+
+        const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+
+        // A failed session query would leave startup waiting on a query that never succeeds.
+        await expect.poll(() => session.isCloudUnreachable).toBe(true)
+        expect(session.session).toBeNull()
+      }))
+
+    it('does not confuse being signed out with being unable to ask', () =>
+      withSetup(async () => {
+        authService.userSession.mockResolvedValue(null)
+
+        const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+
+        await expect.poll(() => session.session).toBeNull()
+        expect(session.isCloudUnreachable).toBe(false)
+      }))
+
+    it('clears the flag once Cognito answers again', () =>
+      withSetup(async () => {
+        const queryClient = vueQuery.useQueryClient()
+        authService.userSession.mockRejectedValue(new NetworkError('Failed to fetch'))
+        const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+        await expect.poll(() => session.isCloudUnreachable).toBe(true)
+
+        authService.userSession.mockResolvedValue(createUserSession())
+        await queryClient.refetchQueries({ queryKey: USER_SESSION_QUERY_KEY })
+
+        expect(session.isCloudUnreachable).toBe(false)
+      }))
   })
 })

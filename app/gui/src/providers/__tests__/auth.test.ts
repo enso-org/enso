@@ -1,8 +1,22 @@
 import type { UserSession as CognitoUserSession } from '$/authentication/cognito'
-import { isDirectoryId, isOrganizationId, isUserId, Plan } from 'enso-common/src/services/Backend'
+import { createAuthStore } from '$/providers/auth'
+import { createQueryClient } from '$/utils/queryClient'
+import { VueQueryPlugin } from '@tanstack/vue-query'
+import {
+  isDirectoryId,
+  isOrganizationId,
+  isUserId,
+  NotAuthorizedError,
+  Plan,
+} from 'enso-common/src/services/Backend'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { defaultGetText } from 'enso-common/src/text'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
-import { describe, expect, it } from 'vitest'
-import { computed } from 'vue'
+import { NetworkError } from 'enso-common/src/utilities/errors'
+import { describe, expect, it, vi } from 'vitest'
+import { computed, createApp, reactive } from 'vue'
 import { isUsersMeQueryKey, makeSyntheticUser } from '../auth'
 
 function fakeCognitoSession(overrides: Partial<CognitoUserSession> = {}): CognitoUserSession {
@@ -61,5 +75,157 @@ describe('makeSyntheticUser', () => {
   it('handles a missing email without producing an empty identifier', () => {
     const user = makeSyntheticUser(fakeCognitoSession({ email: '' }))
     expect(user.userId).toBe('user-cloud-unavailable-unknown')
+  })
+})
+
+interface AuthStoreOptions {
+  /** The Cognito session, or `null` when the user is not (known to be) signed in. */
+  readonly cognitoSession?: CognitoUserSession | null
+  /** Whether a local backend is configured, i.e. this is not a cloud-only deployment. */
+  readonly hasLocalBackend?: boolean
+  /** Whether the configuration endpoint could not be reached. */
+  readonly isConfigUnreachable?: boolean
+  /** Whether Cognito could not be reached. */
+  readonly isCognitoUnreachable?: boolean
+  readonly usersMe?: () => Promise<never>
+}
+
+async function setupAuthStore({
+  cognitoSession = null,
+  hasLocalBackend = true,
+  isConfigUnreachable = false,
+  isCognitoUnreachable = false,
+  usersMe = () => Promise.reject(new NetworkError('Failed to fetch')),
+}: AuthStoreOptions = {}) {
+  const remoteBackend = new RemoteBackend({
+    apiUrl: 'https://cloud.invalid',
+    getText: defaultGetText,
+    client: new HttpClient(),
+    downloader: () => {},
+    downloadCloudProject: () => Promise.reject(new Error('unused')),
+    getProjectArchive: () => Promise.reject(new Error('unused')),
+  })
+  vi.spyOn(remoteBackend, 'usersMe').mockImplementation(usersMe)
+
+  const sessionData = reactive({
+    session: cognitoSession,
+    isLoggingOut: false,
+    isReconnectingSession: false,
+    isCloudUnreachable: isCognitoUnreachable,
+    organizationId: () => Promise.resolve(null),
+    signOut: () => Promise.resolve(),
+    waitForSession: () => Promise.resolve(),
+  })
+  const config = reactive({ isCloudUnreachable: isConfigUnreachable })
+  // `LocalBackend`'s behavior is irrelevant here; only its presence is, as it decides whether
+  // there is anywhere to degrade to.
+  const localBackend = hasLocalBackend ? (Object.create(null) as LocalBackend) : null
+
+  const queryClient = await createQueryClient()
+  let store: ReturnType<typeof createAuthStore> | undefined
+  const app = createApp({
+    setup() {
+      store = createAuthStore(
+        undefined,
+        sessionData,
+        { localBackend, remoteBackend },
+        { getText: defaultGetText },
+        config,
+      )
+      return () => {}
+    },
+  })
+  app.use(VueQueryPlugin, { queryClient })
+  app.mount(document.createElement('div'))
+  return { store: store!, sessionData, config }
+}
+
+describe('auth store while the Cloud is unreachable', () => {
+  it('degrades to a local-only session even though nobody could be signed in', async () => {
+    const { store } = await setupAuthStore({ cognitoSession: null, isConfigUnreachable: true })
+
+    expect(store.isCloudDataUnavailable).toBe(true)
+    // A session is required, or the app would bounce to a login screen that cannot work either.
+    expect(store.session).not.toBeNull()
+    expect(store.session?.isCloudDataUnavailable).toBe(true)
+    expect(store.session?.user.isEnabled).toBe(false)
+  })
+
+  it('degrades when only Cognito is unreachable', async () => {
+    const { store } = await setupAuthStore({ cognitoSession: null, isCognitoUnreachable: true })
+
+    expect(store.isCloudDataUnavailable).toBe(true)
+    expect(store.session?.isCloudDataUnavailable).toBe(true)
+  })
+
+  it('grants the stand-in session no credentials', async () => {
+    const { store } = await setupAuthStore({ cognitoSession: null, isConfigUnreachable: true })
+
+    expect(store.session?.accessToken).toBe('')
+    expect(store.session?.refreshToken).toBe('')
+  })
+
+  it('keeps the signed-in identity when one is already known', async () => {
+    const { store } = await setupAuthStore({
+      cognitoSession: fakeCognitoSession({ email: 'someone@enso.org' }),
+      isCognitoUnreachable: true,
+    })
+
+    expect(store.isCloudDataUnavailable).toBe(true)
+    expect(store.session?.user.email).toBe('someone@enso.org')
+  })
+
+  it('redirects to login on cloud-only deployments instead of degrading', async () => {
+    const { store } = await setupAuthStore({
+      cognitoSession: null,
+      hasLocalBackend: false,
+      isConfigUnreachable: true,
+    })
+
+    expect(store.isCloudDataUnavailable).toBe(false)
+    expect(store.session).toBeNull()
+  })
+
+  it('does not degrade while signing out', async () => {
+    const { store, sessionData } = await setupAuthStore({ isConfigUnreachable: true })
+    sessionData.isLoggingOut = true
+
+    expect(store.isCloudDataUnavailable).toBe(false)
+  })
+
+  it('recovers once the Cloud answers again', async () => {
+    const { store, config } = await setupAuthStore({ isConfigUnreachable: true })
+    expect(store.isCloudDataUnavailable).toBe(true)
+
+    config.isCloudUnreachable = false
+
+    expect(store.isCloudDataUnavailable).toBe(false)
+    expect(store.session).toBeNull()
+  })
+})
+
+describe('auth store while the Cloud is reachable but failing', () => {
+  it('degrades when `users/me` fails for a signed-in user', async () => {
+    const { store } = await setupAuthStore({ cognitoSession: fakeCognitoSession() })
+
+    await vi.waitFor(() => expect(store.isCloudDataUnavailable).toBe(true))
+    expect(store.session?.isCloudDataUnavailable).toBe(true)
+  })
+
+  it('leaves an unauthorized user to the sign-out flow', async () => {
+    const { store } = await setupAuthStore({
+      cognitoSession: fakeCognitoSession(),
+      usersMe: () => Promise.reject(new NotAuthorizedError('Not authorized', 401)),
+    })
+
+    await vi.waitFor(() => expect(store.session).toBeNull())
+    expect(store.isCloudDataUnavailable).toBe(false)
+  })
+
+  it('does not invent a session for a signed-out user', async () => {
+    const { store } = await setupAuthStore({ cognitoSession: null })
+
+    expect(store.isCloudDataUnavailable).toBe(false)
+    expect(store.session).toBeNull()
   })
 })

@@ -956,6 +956,7 @@
     "./src/utils/analytics/index.ts",
     "./src/utils/backendQuery.ts",
     "./src/utils/clipboard.d.ts",
+    "./src/utils/cloudReachability.ts",
     "./src/utils/data/array.ts",
     "./src/utils/data/callbacks.ts",
     "./src/utils/data/math.ts",

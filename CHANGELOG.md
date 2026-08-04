@@ -14,6 +14,13 @@
   CLI is found, and to component search otherwise. Existing AI nodes can be
   edited by reopening the Component Browser on them — the prior prompt is sent
   back to the agent so the function definition is rewritten in place.
+- Fix the IDE hanging on the loading screen forever when Enso Cloud cannot be
+  reached. If a Cloud hostname fails to resolve, startup no longer stalls: the
+  app now starts in local-projects mode with Cloud features disabled, instead of
+  waiting on a configuration request that can never succeed. Unreachable hosts
+  are also no longer retried, and are never mistaken for an expired session, so
+  there is no sign-out loop. Deployments without a local backend keep
+  redirecting to the login page as before.
 
 #### Enso Language & Runtime
 

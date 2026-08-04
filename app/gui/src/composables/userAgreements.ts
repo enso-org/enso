@@ -54,8 +54,29 @@ const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
 })
 
 /**
+ * Fetch the current version hash of an agreement document, or `undefined` if it cannot be
+ * retrieved.
+ *
+ * The caller runs inside a navigation guard, and a guard that rejects aborts the navigation for
+ * good — leaving the app on its loading screen. No failure to read an agreement document justifies
+ * that, so failures are reported and swallowed.
+ */
+async function fetchAgreementHash(fetchDocument: () => Promise<{ hash: string }>) {
+  try {
+    return (await fetchDocument()).hash
+  } catch (error) {
+    console.error('Cannot read the latest user agreements; will not ask to accept them.', error)
+    return undefined
+  }
+}
+
+/**
  * Composable checking and setting user agreements to the newest Terms of Service
  * and Privacy Policy.
+ *
+ * Returns `undefined` when the agreements cannot be read and none are cached, in which case the
+ * user cannot be asked to accept them. They are re-checked on every navigation and on an interval,
+ * so the prompt appears once the documents become reachable again.
  */
 export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
   const localStorage = LocalStorage.getInstance()
@@ -66,10 +87,11 @@ export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
   const scope = effectScope()
   const initialTosHash =
     cachedTosHash.value?.versionHash ??
-    (await queryClient.fetchQuery(latestTermsOfServiceQueryOptions)).hash
+    (await fetchAgreementHash(() => queryClient.fetchQuery(latestTermsOfServiceQueryOptions)))
   const initialPrivacyPolicyHash =
     cachedPrivacyPolicyHash.value?.versionHash ??
-    (await queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)).hash
+    (await fetchAgreementHash(() => queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)))
+  if (initialTosHash == null || initialPrivacyPolicyHash == null) return undefined
 
   return scope.run(() => {
     const { data: tosHash } = vueQuery.useQuery(
