@@ -84,6 +84,13 @@ pub const RELEASE_RUNNER_TYPE: RunnerType = RunnerType::GitHubHosted;
 /// them.
 pub const RELEASE_DEPLOYS_RUNTIME_TO_CLOUD: bool = false;
 
+/// Whether the macOS IDE build should sign and notarize its artifacts.
+///
+/// Requires a working Apple notarization setup (valid Apple Developer agreement and credentials).
+/// When disabled, the produced app is not notarized, so Gatekeeper requires manual approval to
+/// run it. Linux and Windows IDE builds are unaffected by this switch.
+pub const MACOS_SIGN_ARTIFACTS: bool = false;
+
 /// Published release providing the engine bundle for the macOS IDE build when the macOS backend
 /// cannot be built.
 ///
@@ -551,6 +558,8 @@ impl JobArchetype for PublishRelease {
 pub struct UploadIde {
     /// Release providing the engine bundle; `None` means the release currently being built.
     pub backend_release_override: Option<u64>,
+    /// Whether the build script should sign and notarize the artifacts.
+    pub sign_artifacts: bool,
 }
 
 impl JobArchetype for UploadIde {
@@ -559,8 +568,9 @@ impl JobArchetype for UploadIde {
             Some(id) => id.to_string(),
             None => "${{env.ENSO_RELEASE_ID}}".into(),
         };
+        let sign = if self.sign_artifacts { " --sign-artifacts" } else { "" };
         RunStepsBuilder::new(format!(
-            "ide upload --backend-source release --backend-release {backend_release} --sign-artifacts"
+            "ide upload --backend-source release --backend-release {backend_release}{sign}"
         ))
         .cleaning(RELEASE_CLEANING_POLICY)
         .customize(move |step| {
@@ -569,8 +579,8 @@ impl JobArchetype for UploadIde {
             let upload_ide = step::upload_artifact("Upload ide")
                 .with_custom_argument("name", format!("ide-{}-{}", target.0, target.1))
                 .with_custom_argument(
-                "path",
-                format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    "path",
+                    format!("dist/ide/enso-*.{}", target.0.package_extension()),
                 );
             steps.push(upload_ide);
 
@@ -669,9 +679,11 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     for target in RELEASE_TARGETS {
         let fallback_backend =
             if target.0 == OS::MacOS { MACOS_BACKEND_FALLBACK_RELEASE } else { None };
+        let sign_artifacts = target.0 != OS::MacOS || MACOS_SIGN_ARTIFACTS;
         match fallback_backend {
             Some(backend_release) => {
-                let upload_ide = UploadIde { backend_release_override: Some(backend_release) };
+                let upload_ide =
+                    UploadIde { backend_release_override: Some(backend_release), sign_artifacts };
                 let build_ide_job_id =
                     workflow.add_dependent(target, upload_ide, [&prepare_job_id]);
                 packaging_job_ids.push(build_ide_job_id);
@@ -679,7 +691,7 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
             None => {
                 let backend_job_id =
                     workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
-                let upload_ide = UploadIde { backend_release_override: None };
+                let upload_ide = UploadIde { backend_release_override: None, sign_artifacts };
                 let build_ide_job_id =
                     workflow.add_dependent(target, upload_ide, [&prepare_job_id, &backend_job_id]);
                 packaging_job_ids.push(build_ide_job_id);

@@ -19,6 +19,10 @@ Run when:
   macOS backend job is omitted and the macOS IDE embeds the engine bundle of
   the pinned older release (GitHub-hosted macs can't fit the native-image
   build). `None` restores normal macOS backend builds.
+- You flip `MACOS_SIGN_ARTIFACTS` (same module) — whether the macOS IDE build
+  signs and notarizes. Off while Apple notarization is unavailable (expired
+  Developer agreement / no portal access); the app then needs manual Gatekeeper
+  approval.
 
 Check in the regenerated YAML as part of the same commit. The CI enforces that
 the checked-in YAML matches what this tool would produce, so drift fails PRs.

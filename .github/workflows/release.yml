@@ -30,7 +30,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -72,7 +72,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -128,7 +128,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -182,7 +182,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -242,7 +242,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -319,7 +319,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -344,7 +344,7 @@ jobs:
         run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release 320244025 --sign-artifacts
+      - run: ./run ide upload --backend-source release --backend-release 320244025
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -404,7 +404,7 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
-          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+          output-base: ${{ runner.os == 'Windows' && ((runner.environment == 'github-hosted' || startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')) && 'd:/_bazel' || 'c:/_bazel') || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
