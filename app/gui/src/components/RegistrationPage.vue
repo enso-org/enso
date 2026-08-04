@@ -13,8 +13,10 @@ type Props = { userAgreedFn: () => void }
 export const dataLoader: DataLoader<Props> = {
   async beforeRouteEnter() {
     const queryClient = useQueryClient()
-    const { userAgreed } = await useUserAgreements(queryClient)
-    return Ok({ userAgreedFn: userAgreed })
+    const agreements = await useUserAgreements(queryClient)
+    // With no readable agreements there are no version hashes to record, but registration itself
+    // must still work.
+    return Ok({ userAgreedFn: agreements?.userAgreed ?? (() => {}) })
   },
 }
 </script>

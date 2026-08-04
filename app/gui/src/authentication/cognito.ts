@@ -43,6 +43,7 @@ import type * as saveAccessToken from 'enso-common/src/accessToken'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 import * as service from '$/authentication/service'
+import { isCloudUnreachableError } from '$/utils/cloudReachability'
 
 /**
  * String used to identify the GitHub federated identity provider in AWS Amplify.
@@ -282,11 +283,18 @@ export class Cognito implements ISessionProvider {
    * Return the current {@link UserSession}, or `None` if the user is not logged in.
    *
    * Will refresh the {@link UserSession} if it has expired.
+   * @throws if Cognito could not be reached. Being unable to ask who is signed in is not the
+   * same as nobody being signed in, and the two lead to different UI: a login screen for the
+   * latter, and local-only mode for the former.
    */
   async userSession() {
-    return amplify.Auth.currentSession()
-      .then((result) => parseUserSession(result, this.amplifyConfig.userPoolWebClientId))
-      .catch(() => null)
+    try {
+      const result = await amplify.Auth.currentSession()
+      return parseUserSession(result, this.amplifyConfig.userPoolWebClientId)
+    } catch (error) {
+      if (isCloudUnreachableError(error)) throw error
+      return null
+    }
   }
 
   /**

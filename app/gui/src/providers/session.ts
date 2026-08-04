@@ -6,6 +6,7 @@ import { AuthEvent, type ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
+import { isCloudUnreachableError } from '$/utils/cloudReachability'
 import { proxyRefs } from '@/util/reactivity'
 import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
@@ -20,11 +21,32 @@ import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
-/** Create a query for the user session. */
-export function createSessionQuery(authService: cognito.ISessionProvider) {
+export const USER_SESSION_QUERY_KEY = ['userSession'] as const
+
+/**
+ * Create a query for the user session.
+ *
+ * The query never fails: startup waits on it, so an error state here would stall the app instead
+ * of showing anything. A session that could not be read is reported as `null`, and
+ * `onCloudUnreachable` tells the two cases apart — nobody is signed in, or Cognito could not be
+ * asked.
+ */
+export function createSessionQuery(
+  authService: cognito.ISessionProvider,
+  onCloudUnreachable: (isUnreachable: boolean) => void = () => {},
+) {
   return vueQuery.queryOptions({
-    queryKey: ['userSession'],
-    queryFn: async () => authService.userSession().catch(() => null),
+    queryKey: USER_SESSION_QUERY_KEY,
+    queryFn: async () => {
+      try {
+        const session = await authService.userSession()
+        onCloudUnreachable(false)
+        return session
+      } catch (error) {
+        onCloudUnreachable(isCloudUnreachableError(error))
+        return null
+      }
+    },
   })
 }
 
@@ -51,7 +73,12 @@ export function createSessionStore(
 
   const isLoggingOut = ref(false)
 
-  const sessionQueryOptions = createSessionQuery(authService)
+  /** `true` when the last attempt to read the session failed because Cognito was unreachable. */
+  const isCloudUnreachable = ref(false)
+
+  const sessionQueryOptions = createSessionQuery(authService, (unreachable) => {
+    isCloudUnreachable.value = unreachable
+  })
   const session = vueQuery.useQuery(sessionQueryOptions)
 
   const refreshUserSessionMutation = vueQuery.useMutation({
@@ -328,6 +355,7 @@ export function createSessionStore(
     session: session.data,
     waitForSession: () => waitForData(session),
     isLoggingOut,
+    isCloudUnreachable,
     confirmSignUp,
     signInWithPassword,
     signInWithGitHub,

@@ -8,27 +8,31 @@ import type {
   UserSession,
 } from '$/authentication/cognito'
 import { withSetup } from '@/util/testing'
+import * as vueQuery from '@tanstack/vue-query'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
+import { NetworkError } from 'enso-common/src/utilities/errors'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { createSessionStore } from '../session'
+import { createSessionStore, USER_SESSION_QUERY_KEY } from '../session'
+
+function createUserSession(): UserSession {
+  return {
+    email: 'test@test.com',
+    accessToken: 'accessToken',
+    refreshToken: 'refreshToken',
+    refreshUrl: 'https://enso.dev',
+    expireAt: Rfc3339DateTime(new Date(Date.now() + 5_000).toJSON()),
+    clientId: 'clientId',
+  }
+}
 
 class MockAuthService implements ISessionProvider {
   saveAccessToken = vi.fn()
   refreshUserSession = vi.fn(() => Promise.resolve(null))
-  userSession = vi.fn(() =>
-    Promise.resolve<UserSession>({
-      email: 'test@test.com',
-      accessToken: 'accessToken',
-      refreshToken: 'refreshToken',
-      refreshUrl: 'https://enso.dev',
-      expireAt: Rfc3339DateTime(new Date(Date.now() + 5_000).toJSON()),
-      clientId: 'clientId',
-    }),
-  )
+  userSession = vi.fn((): Promise<UserSession | null> => Promise.resolve(createUserSession()))
   email = vi.fn().mockReturnValue('example@email.com')
   changePassword = vi.fn()
   forgotPassword = vi.fn()
@@ -91,4 +95,40 @@ describe('SessionProvider', () => {
       await nextTick()
       expect(registerAuthEventListener).toBeCalled()
     }))
+
+  describe('when Cognito cannot be reached', () => {
+    it('resolves the session query rather than failing it', () =>
+      withSetup(async () => {
+        authService.userSession.mockRejectedValue(new NetworkError('Failed to fetch'))
+
+        const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+
+        // A failed session query would leave startup waiting on a query that never succeeds.
+        await expect.poll(() => session.isCloudUnreachable).toBe(true)
+        expect(session.session).toBeNull()
+      }))
+
+    it('does not confuse being signed out with being unable to ask', () =>
+      withSetup(async () => {
+        authService.userSession.mockResolvedValue(null)
+
+        const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+
+        await expect.poll(() => session.session).toBeNull()
+        expect(session.isCloudUnreachable).toBe(false)
+      }))
+
+    it('clears the flag once Cognito answers again', () =>
+      withSetup(async () => {
+        const queryClient = vueQuery.useQueryClient()
+        authService.userSession.mockRejectedValue(new NetworkError('Failed to fetch'))
+        const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+        await expect.poll(() => session.isCloudUnreachable).toBe(true)
+
+        authService.userSession.mockResolvedValue(createUserSession())
+        await queryClient.refetchQueries({ queryKey: USER_SESSION_QUERY_KEY })
+
+        expect(session.isCloudUnreachable).toBe(false)
+      }))
+  })
 })
