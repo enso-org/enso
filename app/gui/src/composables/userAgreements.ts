@@ -58,14 +58,14 @@ const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
  * retrieved.
  *
  * The caller runs inside a navigation guard, and a guard that rejects aborts the navigation for
- * good — leaving the app on its loading screen. No failure to read an agreement document justifies
- * that, so failures are reported and swallowed.
+ * good — leaving the app on its loading screen. Failing to read a document must not do that, so
+ * failures are reported and swallowed; an unknown version counts as "not agreed to".
  */
 async function fetchAgreementHash(fetchDocument: () => Promise<{ hash: string }>) {
   try {
     return (await fetchDocument()).hash
   } catch (error) {
-    console.error('Cannot read the latest user agreements; will not ask to accept them.', error)
+    console.error('Cannot read the latest user agreements.', error)
     return undefined
   }
 }
@@ -74,9 +74,9 @@ async function fetchAgreementHash(fetchDocument: () => Promise<{ hash: string }>
  * Composable checking and setting user agreements to the newest Terms of Service
  * and Privacy Policy.
  *
- * Returns `undefined` when the agreements cannot be read and none are cached, in which case the
- * user cannot be asked to accept them. They are re-checked on every navigation and on an interval,
- * so the prompt appears once the documents become reachable again.
+ * An agreement whose current version cannot be read counts as not agreed to, so the user stays
+ * behind the prompt rather than reaching the Cloud without having accepted. The documents keep
+ * being refetched, so acceptance becomes possible again as soon as they are reachable.
  */
 export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
   const localStorage = LocalStorage.getInstance()
@@ -91,24 +91,39 @@ export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
   const initialPrivacyPolicyHash =
     cachedPrivacyPolicyHash.value?.versionHash ??
     (await fetchAgreementHash(() => queryClient.fetchQuery(latestPrivacyPolicyQueryOptions)))
-  if (initialTosHash == null || initialPrivacyPolicyHash == null) return undefined
 
   return scope.run(() => {
     const { data: tosHash } = vueQuery.useQuery(
-      { ...latestTermsOfServiceQueryOptions, initialData: { hash: initialTosHash } },
+      {
+        ...latestTermsOfServiceQueryOptions,
+        ...(initialTosHash != null ? { initialData: { hash: initialTosHash } } : {}),
+      },
       queryClient,
     )
     const { data: privacyPolicyHash } = vueQuery.useQuery(
-      { ...latestPrivacyPolicyQueryOptions, initialData: { hash: initialPrivacyPolicyHash } },
+      {
+        ...latestPrivacyPolicyQueryOptions,
+        ...(initialPrivacyPolicyHash != null ?
+          { initialData: { hash: initialPrivacyPolicyHash } }
+        : {}),
+      },
       queryClient,
     )
 
-    const agreedToTos = computed(() => tosHash.value === cachedTosHash.value?.versionHash)
+    // An unknown current version must never compare equal to an absent cached one, or a document
+    // that cannot be read would count as accepted.
+    const agreedToTos = computed(
+      () => tosHash.value != null && tosHash.value === cachedTosHash.value?.versionHash,
+    )
     const agreedToPrivacyPolicy = computed(
-      () => privacyPolicyHash.value === cachedPrivacyPolicyHash.value?.versionHash,
+      () =>
+        privacyPolicyHash.value != null &&
+        privacyPolicyHash.value === cachedPrivacyPolicyHash.value?.versionHash,
     )
 
     const userAgreed = () => {
+      // There is no version to record yet; the prompt stays up until the documents can be read.
+      if (tosHash.value == null || privacyPolicyHash.value == null) return
       localStorage.set('termsOfService', { versionHash: tosHash.value })
       localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash.value })
     }

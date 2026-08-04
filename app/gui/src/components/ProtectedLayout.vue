@@ -73,6 +73,17 @@ function requireUserAgreements(route: RouteLocation) {
   }
 }
 
+/**
+ * The agreements gate keeps the user out of the Cloud until they accept the current documents.
+ *
+ * It is skipped only once the Cloud is already unavailable: there is nothing left to gate, and the
+ * documents are likely unreachable for the same reason, so local projects would otherwise be held
+ * behind a prompt that cannot be satisfied.
+ */
+function agreementsRequired(route: RouteLocation, auth: AuthStore) {
+  return requireUserAgreements(route) && !auth.isCloudDataUnavailable
+}
+
 let scope: EffectScope | undefined
 
 type Props = {
@@ -90,7 +101,7 @@ export const dataLoader: DataLoader<Props> = {
       return Err(redirect(auth, localStorage) ?? false)
     }
 
-    if (requireUserAgreements(to)) {
+    if (agreementsRequired(to, auth)) {
       scope = effectScope()
       return Ok({ agreementsModalProps: await scope.run(() => useUserAgreements(queryClient)) })
     }
@@ -106,12 +117,12 @@ export const dataLoader: DataLoader<Props> = {
       if (!routeAllowed(to, auth)) {
         return redirect(auth, localStorage) ?? false
       }
-      const agreementsRequired = requireUserAgreements(to)
-      if (agreementsRequired && data.agreementsModalProps == null) {
+      const needsAgreements = agreementsRequired(to, auth)
+      if (needsAgreements && data.agreementsModalProps == null) {
         scope?.stop()
         scope = effectScope()
         data.agreementsModalProps = await scope.run(() => useUserAgreements(queryClient))
-      } else if (!agreementsRequired && data.agreementsModalProps != null) {
+      } else if (!needsAgreements && data.agreementsModalProps != null) {
         scope?.stop()
         data.agreementsModalProps = undefined
       }
