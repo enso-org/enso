@@ -22,8 +22,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -82,8 +82,8 @@ jobs:
       - Windows
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -144,8 +144,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -210,8 +210,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -295,8 +295,8 @@ jobs:
       - Windows
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -380,8 +380,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -440,8 +440,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -490,8 +490,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -578,8 +578,8 @@ jobs:
       - Windows
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -666,8 +666,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -754,8 +754,8 @@ jobs:
       - Windows
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -842,8 +842,8 @@ jobs:
       - Linux
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0

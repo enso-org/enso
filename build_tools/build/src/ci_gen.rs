@@ -238,6 +238,12 @@ impl RunsOn for BenchmarkRunner {
     }
 }
 
+/// Name of the step cleaning the runner before the main job command.
+const CLEAN_BEFORE_STEP_NAME: &str = "Clean before";
+
+/// Name of the step cleaning the runner after the main job command.
+const CLEAN_AFTER_STEP_NAME: &str = "Clean after";
+
 /// Condition under which the runner should be cleaned.
 #[derive(Clone, Copy, Debug, Default, PartialOrd, Ord, PartialEq, Eq)]
 pub enum CleaningCondition {
@@ -342,8 +348,9 @@ impl RunStepsBuilder {
 
     /// Build the steps.
     pub fn build(self) -> Vec<Step> {
-        let clean_before = cleaning_step("Clean before", [self.cleaning]);
-        let clean_after = cleaning_step("Clean after", [CleaningCondition::Always, self.cleaning]);
+        let clean_before = cleaning_step(CLEAN_BEFORE_STEP_NAME, [self.cleaning]);
+        let clean_after =
+            cleaning_step(CLEAN_AFTER_STEP_NAME, [CleaningCondition::Always, self.cleaning]);
         let run_step = run(self.run_command);
         let run_steps = match self.customize {
             Some(customize) => customize(run_step),
@@ -431,6 +438,16 @@ fn github_hosted_equivalent(labels: &[RunnerLabel]) -> Option<Vec<RunnerLabel>> 
     }
 }
 
+/// Remove the runner-cleaning steps from the job.
+///
+/// Ephemeral GitHub-hosted runners need no cleanup between jobs, and the cleanup can spuriously
+/// fail there, e.g. on files exceeding the Windows path length limit.
+fn drop_cleaning_steps(job: &mut Job) {
+    job.steps.retain(|step| {
+        !matches!(step.name.as_deref(), Some(CLEAN_BEFORE_STEP_NAME | CLEAN_AFTER_STEP_NAME))
+    });
+}
+
 /// Remove the bazel remote cache configuration from the job's `setup-bazel` step.
 ///
 /// The cache lives on the self-hosted infrastructure and is not reachable from GitHub-hosted
@@ -460,6 +477,7 @@ fn apply_release_runner_type(workflow: &mut Workflow) {
                     job.runs_on = labels;
                 }
                 drop_bazel_remote_cache(job);
+                drop_cleaning_steps(job);
             }
             // On GitHub-hosted Windows the corepack bundled with `setup-node`'s toolcache wins the
             // `PATH` race against the pinned one (the image presets `NPM_CONFIG_PREFIX` elsewhere)

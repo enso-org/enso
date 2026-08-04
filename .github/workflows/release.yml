@@ -23,8 +23,8 @@ jobs:
       - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -65,8 +65,8 @@ jobs:
       - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -92,11 +92,6 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ (always()) }}
-        name: Clean before
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -105,11 +100,6 @@ jobs:
         with:
           name: Edition File
           path: distribution/editions/*.yaml
-      - if: ${{ (always()) }}
-        name: Clean after
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
@@ -121,8 +111,8 @@ jobs:
       - windows-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -148,17 +138,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ (always()) }}
-        name: Clean before
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ (always()) }}
-        name: Clean after
-        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -175,8 +155,8 @@ jobs:
       - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -202,22 +182,12 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
-        name: Clean before
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download Edition File
         uses: actions/download-artifact@v4
         with:
           name: Edition File
           path: distribution/editions
       - run: ./run release publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
-        name: Clean after
-        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -235,8 +205,8 @@ jobs:
       - ubuntu-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -260,11 +230,6 @@ jobs:
         run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ (always()) }}
-        name: Clean before
-        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
@@ -296,11 +261,6 @@ jobs:
         with:
           name: ide-linux-amd64
           path: dist/ide/enso-*.AppImage
-      - if: ${{ (always()) }}
-        name: Clean after
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
@@ -312,8 +272,8 @@ jobs:
       - macos-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -337,11 +297,6 @@ jobs:
         run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ (always()) }}
-        name: Clean before
-        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --backend-source release --backend-release 320244025
@@ -380,11 +335,6 @@ jobs:
         with:
           name: ide-macos-aarch64
           path: dist/ide/enso-*.dmg
-      - if: ${{ (always()) }}
-        name: Clean after
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
@@ -397,8 +347,8 @@ jobs:
       - windows-latest
     steps:
       - if: runner.os == 'Windows'
-        name: Setup required bazel environment
-        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\n        "
+        name: Setup required Windows environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\nif (Test-Path \"C:\\BuildTools\\VC\") { \"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV }\ngit config --global core.longPaths true\n        "
         shell: pwsh
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -422,11 +372,6 @@ jobs:
         run: npm install -g --force corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ (always()) }}
-        name: Clean before
-        run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
@@ -460,11 +405,6 @@ jobs:
         with:
           name: ide-windows-amd64
           path: dist/ide/enso-*.exe
-      - if: ${{ (always()) }}
-        name: Clean after
-        run: corepack pnpm run git-clean --verbose --clean-bazel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}

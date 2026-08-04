@@ -82,15 +82,19 @@ pub fn is_github_hosted() -> String {
 
 pub fn setup_bazel_env() -> Step {
     Step {
-        name: Some("Setup required bazel environment".into()),
+        name: Some("Setup required Windows environment".into()),
         r#if: Some(is_windows_runner()),
         shell: Some(Shell::Pwsh),
         // The `BAZEL_VC` path exists only on our self-hosted runners; GitHub-hosted images have
         // Visual Studio in the standard location where bazel autodetects it.
+        //
+        // `core.longPaths` lets git handle the engine distribution's paths, which exceed the
+        // Windows `MAX_PATH` limit.
         run: Some(
             r#"
 "BAZEL_SH=C:\Program Files\Git\bin\bash.exe" >> $env:GITHUB_ENV
 if (Test-Path "C:\BuildTools\VC") { "BAZEL_VC=C:\BuildTools\VC" >> $env:GITHUB_ENV }
+git config --global core.longPaths true
         "#
             .to_string(), // 17.9.34728.123
         ),
