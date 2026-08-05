@@ -212,7 +212,13 @@ test.describe(() => {
   })
   test('edit name (empty name)', async ({ drivePage, page }) => {
     await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
-      const row = rows.nth(0)
+      // Target a row by name — a restored locally-opened project may occupy the first row —
+      // and pin it by id: while the row is edited its name is an input value, not text, so a
+      // text-based locator would silently resolve to a different row.
+      const someProjectRow = rows.filter({ hasText: 'Some Project' }).first()
+      await someProjectRow.click()
+      const rowId = await someProjectRow.getAttribute('data-id')
+      const row = rows.and(page.locator(`[data-id="${rowId}"]`))
       await locateAssetRowName(row).click()
 
       const nameEl = locateAssetRowName(row)
