@@ -72,18 +72,29 @@ pub fn get_input_expression(name: impl Into<String>) -> String {
 
 /// GH Actions expression piece that evaluates to `true` if run on a GitHub-hosted runner.
 pub fn is_github_hosted() -> String {
-    "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
+    let alternatives = [
+        "runner.environment == 'github-hosted'",
+        "startsWith(runner.name, 'GitHub Actions')",
+        "startsWith(runner.name, 'Hosted Agent')",
+    ];
+    format!("({})", alternatives.join(" || "))
 }
 
 pub fn setup_bazel_env() -> Step {
     Step {
-        name: Some("Setup required bazel environment".into()),
+        name: Some("Setup required Windows environment".into()),
         r#if: Some(is_windows_runner()),
         shell: Some(Shell::Pwsh),
+        // The `BAZEL_VC` path exists only on our self-hosted runners; GitHub-hosted images have
+        // Visual Studio in the standard location where bazel autodetects it.
+        //
+        // `core.longPaths` lets git handle the engine distribution's paths, which exceed the
+        // Windows `MAX_PATH` limit.
         run: Some(
             r#"
 "BAZEL_SH=C:\Program Files\Git\bin\bash.exe" >> $env:GITHUB_ENV
-"BAZEL_VC=C:\BuildTools\VC" >> $env:GITHUB_ENV
+if (Test-Path "C:\BuildTools\VC") { "BAZEL_VC=C:\BuildTools\VC" >> $env:GITHUB_ENV }
+git config --global core.longPaths true
         "#
             .to_string(), // 17.9.34728.123
         ),
@@ -91,21 +102,35 @@ pub fn setup_bazel_env() -> Step {
     }
 }
 
+/// The GitHub action that installs bazelisk and writes the shared `bazelrc`.
+pub const SETUP_BAZEL_ACTION: &str = "bazel-contrib/setup-bazel@0.15.0";
+
+/// Name of the [`SETUP_BAZEL_ACTION`] input holding the generated `bazelrc` contents.
+pub const SETUP_BAZEL_BAZELRC_INPUT: &str = "bazelrc";
+
 pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
-        uses: Some("bazel-contrib/setup-bazel@0.15.0".into()),
+        uses: Some(SETUP_BAZEL_ACTION.into()),
         with: Some(step::Argument::Other(BTreeMap::from([
+            // The output base must be short (Windows path length limits) and, on GitHub-hosted
+            // runners, on the same drive as the workspace (`d:`): `write_source_files`'s updater
+            // script uses a drive-crossing-incapable `cd`, so a `c:` output base makes it silently
+            // copy into the execroot instead of the workspace.
             (
                 "output-base".to_string(),
-                Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
+                Value::String(format!(
+                    "${{{{ {} && ({} && 'd:/_bazel' || 'c:/_bazel') || '' }}}}",
+                    is_windows_runner(),
+                    is_github_hosted(),
+                )),
             ),
             (
                 "bazelisk-version".to_string(),
                 Value::String("1.x".to_string()),
             ),
             (
-                "bazelrc".to_string(),
+                SETUP_BAZEL_BAZELRC_INPUT.to_string(),
                 Value::String(
                     "build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header=\"authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}\"".to_string(),
                 ),
@@ -123,15 +148,21 @@ pub fn setup_node() -> Step {
             "node-version-file".to_string(),
             Value::String(".node-version".to_string()),
         )]))),
-        r#if: Some(is_macos_runner()),
+        // Self-hosted Linux and Windows runners have the pinned node version pre-installed, while
+        // GitHub-hosted images may ship a different one.
+        r#if: Some(format!("{} || {}", is_macos_runner(), is_github_hosted())),
         ..default()
     }
 }
 
 pub fn setup_corepack() -> Step {
     Step {
-        run: Some("npm install -g corepack@0.31.0 && corepack --version".into()),
-        r#if: Some(is_non_linux_runner()),
+        // `--force` lets npm overwrite the `yarn`/`pnpm` bin shims pre-installed on GitHub-hosted
+        // Windows images, which it refuses to clobber otherwise.
+        run: Some("npm install -g --force corepack@0.31.0 && corepack --version".into()),
+        // Self-hosted Linux runners have a recent corepack pre-installed, while GitHub-hosted
+        // images may bundle one too old to verify current pnpm registry signatures.
+        r#if: Some(format!("{} || {}", is_non_linux_runner(), is_github_hosted())),
         ..default()
     }
 }

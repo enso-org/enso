@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
+use crate::ci_gen::WINDOWS_SIGN_ARTIFACTS;
 use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
@@ -879,7 +880,7 @@ impl JobArchetype for DispatchBuildImage {
 
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
-        OS::Windows => step
+        OS::Windows if WINDOWS_SIGN_ARTIFACTS => step
             .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide::web::env::WIN_CSC_LINK)
             .with_secret_exposed_as(
                 secret::WINDOWS_CERT_PASSWORD,

@@ -10,25 +10,33 @@ import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import * as backendModule from 'enso-common/src/services/Backend'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends, type BackendsStore } from './backends'
-import { useSession } from './session'
-import { useText } from './text'
+import { useConfig, type ConfigStore } from './config'
+import { useSession, type SessionStore } from './session'
+import { useText, type TextStore } from './text'
 
 /** Object containing the currently signed-in user's session data. */
 export interface UserSession extends cognitoModule.UserSession {
   readonly user: backendModule.User
   /**
-   * `true` when this session is a placeholder synthesized after `users/me` failed with
-   * a non-auth error. The user is signed in to Cognito and can use local projects, but
-   * the `user` field is a stub — cloud features must be disabled by callers.
+   * `true` when this session is a placeholder synthesized because the Cloud could not supply
+   * the real one — either `users/me` failed with a non-auth error, or no Cloud host could be
+   * reached at all. Local projects remain usable, but the `user` field is a stub — cloud
+   * features must be disabled by callers.
    *
    * Only set on deployments that have a local backend; cloud-only builds fall back to
-   * the existing redirect-to-login path when `users/me` fails, so this flag is never
-   * `true` there.
+   * the existing redirect-to-login path, so this flag is never `true` there.
    */
   readonly isCloudDataUnavailable?: boolean
+  /**
+   * `true` when this placeholder session carries no Cognito identity at all: the Cloud was
+   * unreachable and no session could be read, so nobody is known to be signed in.
+   * Identity-bound actions (e.g. signing out) must be disabled by callers.
+   */
+  readonly isNotSignedIn?: boolean
 }
 
 const UsersMe = 'usersMe'
@@ -108,6 +116,22 @@ export function createUsersMeQuery(
 }
 
 /**
+ * A stand-in for a Cognito session, used when no Cloud host can be reached and so there is no way
+ * to establish who — if anyone — is signed in.
+ *
+ * It deliberately carries no credentials: every field that could authenticate a Cloud request is
+ * empty, so it grants access to nothing beyond the local backend the user already owns.
+ */
+const OFFLINE_COGNITO_SESSION: cognitoModule.UserSession = {
+  email: '',
+  accessToken: '',
+  refreshToken: '',
+  refreshUrl: '',
+  expireAt: Rfc3339DateTime(new Date(0).toJSON()),
+  clientId: '',
+}
+
+/**
  * Synthesize a placeholder {@link backendModule.User} used while the real `users/me`
  * response is unavailable. All cloud features must be treated as disabled — the
  * placeholder mirrors a real user without a licence (`isEnabled: false`,
@@ -133,12 +157,31 @@ export function makeSyntheticUser(cognitoSession: cognitoModule.UserSession): ba
   }
 }
 
+/** The parts of the session state that the user's identity is derived from. */
+type AuthSessionData = Pick<
+  SessionStore,
+  | 'session'
+  | 'organizationId'
+  | 'signOut'
+  | 'isLoggingOut'
+  | 'isReconnectingSession'
+  | 'isCloudUnreachable'
+> & {
+  /** Resolves once the session settles; the resolved value is not used. */
+  readonly waitForSession: () => Promise<unknown>
+}
+
 export type AuthStore = ReturnType<typeof createAuthStore>
-function createAuthStore(
+/**
+ * Create a store exposing the signed-in user, falling back to a local-only session when the
+ * Cloud cannot supply one.
+ */
+export function createAuthStore(
   onAuthenticated: ((accessToken: string | null) => void) | undefined = inject('onAuthenticated'),
-  sessionData = useSession(),
-  backends: BackendsStore = useBackends(),
-  { getText } = useText(),
+  sessionData: AuthSessionData = useSession(),
+  backends: Pick<BackendsStore, 'localBackend' | 'remoteBackend'> = useBackends(),
+  { getText }: Pick<TextStore, 'getText'> = useText(),
+  config: Pick<ConfigStore, 'isCloudUnreachable'> = useConfig(),
 ) {
   const { remoteBackend } = backends
   const session = toRef(sessionData, 'session')
@@ -219,17 +262,28 @@ function createAuthStore(
   }
 
   /**
-   * `true` when Cognito sign-in succeeded but the subsequent `users/me` fetch failed
-   * with a non-auth error. Auth (401/403) failures are owned by `useUnauthorizedRecovery`
-   * and excluded here. Requires a local backend so the synthesised session has somewhere
-   * to land — on cloud-only deployments without `localBackend`, this stays `false` and
-   * the user falls through to the existing redirect-to-login path.
+   * `true` when no Cloud host answers — the configuration endpoint or Cognito could not be
+   * reached. Distinct from a rejected request: nothing about the credentials is known, so
+   * signing the user out would be both wrong and useless.
+   */
+  const isCloudUnreachable = computed(
+    () => config.isCloudUnreachable || sessionData.isCloudUnreachable,
+  )
+
+  /**
+   * `true` when the Cloud cannot supply the user's data: either it is unreachable, or sign-in
+   * succeeded but the subsequent `users/me` fetch failed with a non-auth error. Auth (401/403)
+   * failures are owned by `useUnauthorizedRecovery` and excluded here. Requires a local backend
+   * so the synthesised session has somewhere to land — on cloud-only deployments without
+   * `localBackend`, this stays `false` and the user falls through to the existing
+   * redirect-to-login path.
    */
   const isCloudDataUnavailable = computed(() => {
-    const cognitoSession = session.value
-    if (!cognitoSession) return false
     if (sessionData.isLoggingOut || sessionData.isReconnectingSession) return false
     if (backends.localBackend == null) return false
+    if (isCloudUnreachable.value) return true
+    // Without a Cognito session there is nothing to degrade from: the user is simply logged out.
+    if (!session.value) return false
     const error = usersMeQuery.error.value
     if (!error || backendModule.isUnauthorizedError(error)) return false
     return true
@@ -239,12 +293,14 @@ function createAuthStore(
     const real = usersMeQuery.data.value
     if (real) return real
     if (!isCloudDataUnavailable.value) return null
-    const cognitoSession = session.value
-    if (!cognitoSession) return null
+    // While the Cloud is unreachable the session cannot be read, so fall back to a credential-less
+    // stand-in rather than stranding the user on a login screen that cannot work either.
+    const cognitoSession = session.value ?? OFFLINE_COGNITO_SESSION
     return {
       ...cognitoSession,
       user: getSyntheticUser(cognitoSession),
       isCloudDataUnavailable: true,
+      isNotSignedIn: session.value == null,
     } satisfies UserSession
   })
   const user = computed(() => userData.value?.user ?? null)

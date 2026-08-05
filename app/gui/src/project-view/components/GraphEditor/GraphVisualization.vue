@@ -40,23 +40,14 @@ const props = defineProps<{
   typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
-// # Effective sizes:
-//
-// The visualization has two types of dimensions:
-// - The `width`/`height` props are the configured dimensions. They are only set by user action, and they are persisted.
-// - The `effectiveWidth`/`effectiveHeight` values report the dimensions at which the visualization is rendered. They
-//   may differ from the configured dimensions, e.g., if the node's widget-based size has become larger than the
-//   configured size.
 const emit = defineEmits<{
-  'update:effectiveWidth': [width: number]
-  'update:effectiveHeight': [height: number]
+  'update:effectiveSize': [size: Vec2]
   'update:id': [id: VisualizationIdentifier]
   'update:enabled': [visible: boolean]
   'update:width': [width: number]
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
   'update:hovered': [hovered: boolean]
-  'update:resizing': [resizing: boolean]
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
@@ -148,14 +139,24 @@ useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 // === Sizing and Fullscreen ===
 // =============================
 
-const vizWidth = computed<number>(() => Math.max(props.width ?? 0, props.nodeSize.x, MIN_WIDTH_PX))
-const vizHeight = computed<number>(() =>
-  Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX),
-)
-const vizSize = computed<Vec2>(() => new Vec2(vizWidth.value, vizHeight.value))
+function clampSize(x: Opt<number>, y: Opt<number>) {
+  return new Vec2(
+    Math.max(x ?? 0, MIN_WIDTH_PX),
+    Math.max(y ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX),
+  )
+}
 
-watch(vizWidth, (width) => emit('update:effectiveWidth', width), { immediate: true })
-watch(vizHeight, (height) => emit('update:effectiveHeight', height), { immediate: true })
+const vizSize = computed<Vec2>(() =>
+  clampSize(Math.max(props.width ?? 0, props.nodeSize.x), props.height),
+)
+
+watchEffect(() => emit('update:effectiveSize', vizSize.value))
+
+const requestedSize = ref<Vec2>()
+watch(requestedSize, (size, oldSize) => {
+  if (size && size.x !== oldSize?.x) emit('update:width', size.x)
+  if (size && size.y !== oldSize?.y) emit('update:height', size.y)
+})
 
 const resizeHandles = useResizeHandles({
   size: vizSize,
@@ -165,34 +166,6 @@ const resizeHandles = useResizeHandles({
 resizeHandles.onResizeWidth((value) => emit('update:width', value))
 resizeHandles.onResizeHeight((value) => emit('update:height', value))
 resizeHandles.onMove((position) => emit('update:nodePosition', position))
-
-const handlesResizing = ref(false)
-resizeHandles.onResizingChange(
-  (resizing) =>
-    (handlesResizing.value =
-      !!resizing.top || !!resizing.bottom || !!resizing.left || !!resizing.right),
-)
-
-const isClosedOrOpening = ref(false)
-watch(
-  toRef(props, 'show'),
-  (show) => {
-    if (!show) isClosedOrOpening.value = true
-  },
-  { immediate: true },
-)
-watchEffect(
-  () => {
-    if (isClosedOrOpening.value && props.show) {
-      if (vizWidth.value > 0 && vizHeight.value > 0) isClosedOrOpening.value = false
-    }
-  },
-  // Stop sending resize events *after* reporting the resize completion
-  { flush: 'post' },
-)
-
-const isResizing = computed(() => handlesResizing.value || isClosedOrOpening.value)
-watch(isResizing, (resizing) => emit('update:resizing', resizing), { immediate: true })
 
 const style = computed(() => {
   return {

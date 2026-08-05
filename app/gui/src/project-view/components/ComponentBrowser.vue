@@ -193,7 +193,9 @@ const selectedSuggestion = computed(() => {
 
 // === Input and Filtering ===
 
-const aiAvailable = toRef(useAiAvailability(), 'availability')
+const ai = useAiAvailability()
+const aiAvailable = toRef(ai, 'availability')
+const aiModeEnabled = toRef(ai, 'enabled')
 const input = useComponentBrowserInput(aiAvailable)
 
 onUnmounted(() => {
@@ -457,6 +459,7 @@ const listsHandler = listBindings.handler({
       :interpretation="input.interpretation"
       :selectedMode="input.selectedMode"
       :modeLocked="input.modeLocked"
+      :showAiMode="aiModeEnabled"
       :aiAvailable="aiAvailable"
       :nodeColor="nodeColor"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"

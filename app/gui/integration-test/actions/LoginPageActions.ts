@@ -53,11 +53,23 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
     }).into(DrivePageActions<Context>)
   }
 
-  /** Perform a successful login. */
-  login(email = VALID_EMAIL, password = VALID_PASSWORD) {
+  /**
+   * Perform a successful login.
+   *
+   * The agreements dialog is part of the expected flow unless `expectAgreements: false` —
+   * the dialog is skipped e.g. when the session lands in the degraded cloud-unavailable mode,
+   * where there is no Cloud access to gate.
+   */
+  login(
+    email = VALID_EMAIL,
+    password = VALID_PASSWORD,
+    { expectAgreements = true }: { expectAgreements?: boolean } = {},
+  ) {
     return this.step('Login', async () => {
       await this.loginInternal(email, password)
-      await this.passAgreementsDialog()
+      if (expectAgreements) {
+        await this.passAgreementsDialog()
+      }
     }).into(DrivePageActions<Context>)
   }
 

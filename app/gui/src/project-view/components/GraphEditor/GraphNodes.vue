@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
 import AiPendingNode from '@/components/GraphEditor/AiPendingNode.vue'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
-import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import { useArrows, useEvent } from '@/composables/events'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -22,8 +22,9 @@ const emit = defineEmits<{
   toggleDocPanel: []
 }>()
 
-const { graph, store } = useCurrentProject()
+const projectStore = useProjectStore()
 const selection = useGraphSelection()
+const graphStore = useGraphStore()
 const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
 const aiPrompts = useOngoingAiPrompts()
@@ -48,9 +49,9 @@ const { globalEventRegistry } = useGlobalEventRegistry()
 useEvent(globalEventRegistry, 'keydown', displacingWithArrows.events.keydown)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
-  const uploads = [...store.value.awareness.allUploads()]
-  if (uploads.length == 0 || !graph.value.currentMethod.ast.ok) return []
-  const currentMethod = graph.value.currentMethod.ast.value.externalId
+  const uploads = [...projectStore.awareness.allUploads()]
+  if (uploads.length == 0 || !graphStore.currentMethod.ast.ok) return []
+  const currentMethod = graphStore.currentMethod.ast.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
 
@@ -63,26 +64,26 @@ const layerStyle = computed(() => ({
 <template>
   <div class="layer" :style="layerStyle">
     <GraphNode
-      v-for="[id, node] in graph.db.nodeIdToNode.entries()"
+      v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
       :key="id"
       :node="node"
-      :edited="id === graph.editedNodeInfo?.id || aiPrompts.hiddenNodeIds.has(id)"
+      :edited="id === graphStore.editedNodeInfo?.id || aiPrompts.hiddenNodeIds.has(id)"
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
-      @setNodeColor="graph.overrideNodeColor(id, $event)"
-      @update:edited="graph.setEditedNode(id, $event)"
-      @update:rect="graph.updateNodeRect(id, $event)"
-      @update:height="graph.setNodeHeight(id, $event)"
+      @setNodeColor="graphStore.overrideNodeColor(id, $event)"
+      @update:edited="graphStore.setEditedNode(id, $event)"
+      @update:rect="graphStore.updateNodeRect(id, $event)"
+      @update:height="graphStore.setNodeHeight(id, $event)"
       @update:visualizationId="
-        graph.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
+        graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
       "
-      @update:visualizationEnabled="graph.setNodeVisualization(id, { visible: $event })"
-      @update:visualizationWidth="graph.setNodeVisualization(id, { width: $event })"
-      @update:visualizationHeight="graph.setNodeVisualization(id, { height: $event })"
+      @update:visualizationEnabled="graphStore.setNodeVisualization(id, { visible: $event })"
+      @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
+      @update:visualizationHeight="graphStore.setNodeVisualization(id, { height: $event })"
     />
     <UploadingFile
       v-for="(nameAndFile, index) in uploadingFiles"

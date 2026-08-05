@@ -22,6 +22,8 @@ use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::SETUP_BAZEL_ACTION;
+use ide_ci::actions::workflow::definition::SETUP_BAZEL_BAZELRC_INPUT;
 use ide_ci::actions::workflow::definition::Schedule;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
@@ -40,6 +42,7 @@ use ide_ci::actions::workflow::definition::setup_bazel_env;
 use ide_ci::actions::workflow::definition::setup_corepack;
 use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::cache::goodie::graalvm;
 
@@ -64,6 +67,47 @@ pub struct BenchmarkRunner;
 pub const PRIMARY_TARGET: Target = (OS::Linux, Arch::X86_64);
 
 const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
+
+/// The runner type building release artifacts (the `promote` and `release` workflows).
+///
+/// Normally releases are built on the self-hosted fleet. Switch to [`RunnerType::GitHubHosted`]
+/// when the fleet is unavailable. Note that GitHub-hosted runners are slower, have little disk
+/// space, and lack state pre-installed on the fleet (e.g. the Windows code signing certificate
+/// pointed to by the `MICROSOFT_CODE_SIGNING_CERT` secret).
+pub const RELEASE_RUNNER_TYPE: RunnerType = RunnerType::GitHubHosted;
+
+/// Whether a release should deploy the runtime image to ECR and dispatch the Cloud build-image
+/// workflow.
+///
+/// Disable while the Enso Cloud is turned off. Publishing then no longer waits for these jobs.
+/// Both jobs authenticate with the `CI_PRIVATE_TOKEN` secret, which must be valid to re-enable
+/// them.
+pub const RELEASE_DEPLOYS_RUNTIME_TO_CLOUD: bool = false;
+
+/// Whether the macOS IDE build should sign and notarize its artifacts.
+///
+/// Requires a working Apple notarization setup (valid Apple Developer agreement and credentials).
+/// When disabled, the produced app is not notarized, so Gatekeeper requires manual approval to
+/// run it. Linux and Windows IDE builds are unaffected by this switch.
+pub const MACOS_SIGN_ARTIFACTS: bool = false;
+
+/// Whether the Windows IDE build should sign its artifacts.
+///
+/// Requires a valid code signing certificate in the `MICROSOFT_CODE_SIGNING_CERT` secret. When
+/// disabled, the certificate secrets are not exposed to the build, so the produced IDE and
+/// installer binaries are unsigned and Windows SmartScreen warns on their first launch. Linux and
+/// macOS IDE builds are unaffected by this switch.
+pub const WINDOWS_SIGN_ARTIFACTS: bool = false;
+
+/// Published release providing the engine bundle for the macOS IDE build when the macOS backend
+/// cannot be built.
+///
+/// GitHub-hosted macOS runners have too little memory for the engine's native-image build. When
+/// this is set, the macOS backend job is omitted and the macOS IDE embeds the engine bundle of
+/// this (older) release, pairing a fresh GUI with that engine. Currently pinned to
+/// `2026.1.1-nightly.2026.5.11`, the last release built on the self-hosted fleet. Set to `None`
+/// once macOS backends can be built again.
+pub const MACOS_BACKEND_FALLBACK_RELEASE: Option<u64> = Some(320244025);
 
 pub const RELEASE_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
@@ -202,6 +246,12 @@ impl RunsOn for BenchmarkRunner {
     }
 }
 
+/// Name of the step cleaning the runner before the main job command.
+const CLEAN_BEFORE_STEP_NAME: &str = "Clean before";
+
+/// Name of the step cleaning the runner after the main job command.
+const CLEAN_AFTER_STEP_NAME: &str = "Clean after";
+
 /// Condition under which the runner should be cleaned.
 #[derive(Clone, Copy, Debug, Default, PartialOrd, Ord, PartialEq, Eq)]
 pub enum CleaningCondition {
@@ -306,8 +356,9 @@ impl RunStepsBuilder {
 
     /// Build the steps.
     pub fn build(self) -> Vec<Step> {
-        let clean_before = cleaning_step("Clean before", [self.cleaning]);
-        let clean_after = cleaning_step("Clean after", [CleaningCondition::Always, self.cleaning]);
+        let clean_before = cleaning_step(CLEAN_BEFORE_STEP_NAME, [self.cleaning]);
+        let clean_after =
+            cleaning_step(CLEAN_AFTER_STEP_NAME, [CleaningCondition::Always, self.cleaning]);
         let run_step = run(self.run_command);
         let run_steps = match self.customize {
             Some(customize) => customize(run_step),
@@ -377,6 +428,71 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
         (OS::MacOS, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::MacOS],
         (OS::MacOS, RunnerType::GitHubHosted) => vec![RunnerLabel::MacOSLatest],
+    }
+}
+
+/// The GitHub-hosted runner labels equivalent to the given self-hosted ones, if any.
+///
+/// GitHub-hosted `macos-latest` runners are AArch64 machines, so they match the architecture of
+/// the self-hosted `[macOS, ARM64]` pool.
+fn github_hosted_equivalent(labels: &[RunnerLabel]) -> Option<Vec<RunnerLabel>> {
+    match labels {
+        [RunnerLabel::SelfHosted, RunnerLabel::Linux] => Some(vec![RunnerLabel::LinuxLatest]),
+        [RunnerLabel::SelfHosted, RunnerLabel::Windows] => Some(vec![RunnerLabel::WindowsLatest]),
+        [RunnerLabel::SelfHosted, RunnerLabel::MacOS, RunnerLabel::Arm64] => {
+            Some(vec![RunnerLabel::MacOSLatest])
+        }
+        _ => None,
+    }
+}
+
+/// Remove the runner-cleaning steps from the job.
+///
+/// Ephemeral GitHub-hosted runners need no cleanup between jobs, and the cleanup can spuriously
+/// fail there, e.g. on files exceeding the Windows path length limit.
+fn drop_cleaning_steps(job: &mut Job) {
+    job.steps.retain(|step| {
+        !matches!(step.name.as_deref(), Some(CLEAN_BEFORE_STEP_NAME | CLEAN_AFTER_STEP_NAME))
+    });
+}
+
+/// Remove the bazel remote cache configuration from the job's `setup-bazel` step.
+///
+/// The cache lives on the self-hosted infrastructure and is not reachable from GitHub-hosted
+/// runners; bazel fails the build outright when the configured cache cannot be queried.
+fn drop_bazel_remote_cache(job: &mut Job) {
+    let setup_bazel_steps =
+        job.steps.iter_mut().filter(|step| step.uses.as_deref() == Some(SETUP_BAZEL_ACTION));
+    for step in setup_bazel_steps {
+        if let Some(Argument::Other(args)) = &mut step.with {
+            args.remove(SETUP_BAZEL_BAZELRC_INPUT);
+        }
+    }
+}
+
+/// Move all jobs of the workflow to the runner type chosen by [`RELEASE_RUNNER_TYPE`].
+///
+/// Jobs on runners that have no GitHub-hosted equivalent (e.g. nested workflow calls, which have
+/// no runner at all) keep their runners. On GitHub-hosted runners the bazel remote cache
+/// configuration is dropped as well, as the cache is unreachable from outside the self-hosted
+/// infrastructure.
+fn apply_release_runner_type(workflow: &mut Workflow) {
+    match RELEASE_RUNNER_TYPE {
+        RunnerType::SelfHosted => {}
+        RunnerType::GitHubHosted => {
+            for job in workflow.jobs.values_mut() {
+                if let Some(labels) = github_hosted_equivalent(&job.runs_on) {
+                    job.runs_on = labels;
+                }
+                drop_bazel_remote_cache(job);
+                drop_cleaning_steps(job);
+            }
+            // On GitHub-hosted Windows the corepack bundled with `setup-node`'s toolcache wins the
+            // `PATH` race against the pinned one (the image presets `NPM_CONFIG_PREFIX` elsewhere)
+            // and is too old to verify current pnpm registry signatures. Disabling the signature
+            // check is safe: `packageManager` in `package.json` still pins the pnpm tarball hash.
+            workflow.env("COREPACK_INTEGRITY_KEYS", "0");
+        }
     }
 }
 
@@ -465,13 +581,23 @@ impl JobArchetype for PublishRelease {
 
 /// Build new IDE and upload it as a release asset.
 #[derive(Clone, Copy, Debug)]
-pub struct UploadIde;
+pub struct UploadIde {
+    /// Release providing the engine bundle; `None` means the release currently being built.
+    pub backend_release_override: Option<u64>,
+    /// Whether the build script should sign and notarize the artifacts.
+    pub sign_artifacts: bool,
+}
 
 impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new(
-            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts",
-        )
+        let backend_release = match self.backend_release_override {
+            Some(id) => id.to_string(),
+            None => "${{env.ENSO_RELEASE_ID}}".into(),
+        };
+        let sign = if self.sign_artifacts { " --sign-artifacts" } else { "" };
+        RunStepsBuilder::new(format!(
+            "ide upload --backend-source release --backend-release {backend_release}{sign}"
+        ))
         .cleaning(RELEASE_CLEANING_POLICY)
         .customize(move |step| {
             let mut steps = prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
@@ -479,8 +605,8 @@ impl JobArchetype for UploadIde {
             let upload_ide = step::upload_artifact("Upload ide")
                 .with_custom_argument("name", format!("ide-{}-{}", target.0, target.1))
                 .with_custom_argument(
-                "path",
-                format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    "path",
+                    format!("dist/ide/enso-*.{}", target.0.package_extension()),
                 );
             steps.push(upload_ide);
 
@@ -572,23 +698,47 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     let prepare_job_id = workflow.add(PRIMARY_TARGET, DraftRelease);
     let mut packaging_job_ids = vec![];
 
-    // Assumed, because Linux is necessary to deploy ECR runtime image.
-    assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
+    if RELEASE_DEPLOYS_RUNTIME_TO_CLOUD {
+        // Assumed, because Linux is necessary to deploy ECR runtime image.
+        assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
+    }
     for target in RELEASE_TARGETS {
-        let backend_job_id = workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
+        let fallback_backend =
+            if target.0 == OS::MacOS { MACOS_BACKEND_FALLBACK_RELEASE } else { None };
+        let sign_artifacts = match target.0 {
+            OS::MacOS => MACOS_SIGN_ARTIFACTS,
+            OS::Windows => WINDOWS_SIGN_ARTIFACTS,
+            _ => true,
+        };
+        match fallback_backend {
+            Some(backend_release) => {
+                let upload_ide =
+                    UploadIde { backend_release_override: Some(backend_release), sign_artifacts };
+                let build_ide_job_id =
+                    workflow.add_dependent(target, upload_ide, [&prepare_job_id]);
+                packaging_job_ids.push(build_ide_job_id);
+            }
+            None => {
+                let backend_job_id =
+                    workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
+                let upload_ide = UploadIde { backend_release_override: None, sign_artifacts };
+                let build_ide_job_id =
+                    workflow.add_dependent(target, upload_ide, [&prepare_job_id, &backend_job_id]);
+                packaging_job_ids.push(build_ide_job_id);
 
-        let build_ide_job_id =
-            workflow.add_dependent(target, UploadIde, [&prepare_job_id, &backend_job_id]);
-        packaging_job_ids.push(build_ide_job_id.clone());
-
-        // The backend image is deployed to ECR only on Linux.
-        if target.0 == OS::Linux {
-            let runtime_requirements = [&prepare_job_id, &backend_job_id];
-            let upload_runtime_job_id =
-                workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
-            let dispatch_build_image_job_id =
-                workflow.add_dependent(target, job::DispatchBuildImage, [&upload_runtime_job_id]);
-            packaging_job_ids.push(dispatch_build_image_job_id);
+                // The backend image is deployed to ECR only on Linux.
+                if target.0 == OS::Linux && RELEASE_DEPLOYS_RUNTIME_TO_CLOUD {
+                    let runtime_requirements = [&prepare_job_id, &backend_job_id];
+                    let upload_runtime_job_id =
+                        workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
+                    let dispatch_build_image_job_id = workflow.add_dependent(
+                        target,
+                        job::DispatchBuildImage,
+                        [&upload_runtime_job_id],
+                    );
+                    packaging_job_ids.push(dispatch_build_image_job_id);
+                }
+            }
         }
     }
 
@@ -695,6 +845,7 @@ pub fn release() -> Result<Workflow> {
     };
 
     add_release_steps(&mut workflow)?;
+    apply_release_runner_type(&mut workflow);
     let version_input_expression = get_input_expression("version");
     workflow.env(ENSO_EDITION.name, &version_input_expression);
     workflow.env(ENSO_VERSION.name, &version_input_expression);
@@ -717,6 +868,7 @@ pub fn promote() -> Result<Workflow> {
         .with_with("version", wrap_expression(version_input));
     release_job.needs(&promote_job_id);
     workflow.add_job(release_job);
+    apply_release_runner_type(&mut workflow);
 
     Ok(workflow)
 }

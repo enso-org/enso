@@ -1,3 +1,4 @@
+import { isCloudUnreachableError } from '$/utils/cloudReachability'
 import { proxyRefs } from '$/utils/reactivity'
 import { waitForData } from '@/util/tanstack'
 import * as sentry from '@sentry/vue'
@@ -29,11 +30,15 @@ export type RemoteConfig = z.infer<typeof REMOTE_CONFIG_SCHEMA>
 
 export type ConfigStore = ReturnType<typeof createConfigStore>
 
-function createConfigStore() {
+/** Create a store exposing the startup configuration, both local and fetched from the Cloud. */
+export function createConfigStore() {
   const remoteConfigUrl = $config.API_URL ?? 'https://api.cloud.enso.org'
 
   const remoteConfig = useQuery<RemoteConfig>({
     queryKey: ['config', remoteConfigUrl],
+    // Retrying an unresolvable host only delays startup — every attempt fails the same way,
+    // and the whole app waits behind this query (see `waitForRemoteConfig`).
+    retry: (failureCount, error) => !isCloudUnreachableError(error) && failureCount < 3,
     queryFn: async ({ queryKey: [_, url] }) => {
       const response = await fetch(`${url}/${CONFIGURATION_PATH}`)
       if (!response.ok) {
@@ -42,6 +47,13 @@ function createConfigStore() {
       return REMOTE_CONFIG_SCHEMA.parse(await response.json())
     },
   })
+
+  /**
+   * `true` when the configuration endpoint could not be reached at all. As the endpoint is the
+   * first Cloud request the app makes, this doubles as the verdict on Cloud reachability as a
+   * whole: without it neither Cognito nor the Cloud API can even be addressed.
+   */
+  const isCloudUnreachable = computed(() => isCloudUnreachableError(remoteConfig.error.value))
 
   watchEffect(() => {
     if (remoteConfig.error.value != null)
@@ -91,7 +103,12 @@ function createConfigStore() {
     remoteConfig: remoteConfig.data,
     isFetching: remoteConfig.isFetching,
     isError: remoteConfig.isError,
-    waitForRemoteConfig: () => waitForData(remoteConfig),
+    isCloudUnreachable,
+    // Never rejects. This is awaited by a global navigation guard, and a guard that rejects
+    // aborts the navigation for good — leaving the app on its loading screen with no route
+    // component and nothing to retry it. A missing remote config is reflected in `isError` and
+    // `isCloudUnreachable` instead, so the app can degrade to local projects.
+    waitForRemoteConfig: () => waitForData(remoteConfig).catch(() => undefined),
   })
 }
 

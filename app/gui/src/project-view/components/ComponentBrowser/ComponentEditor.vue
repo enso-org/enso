@@ -22,6 +22,8 @@ const props = defineProps<{
   interpretation: ComponentBrowserInterpretation
   selectedMode: ComponentBrowserMode
   modeLocked: boolean
+  /** Whether the AI mode is present in the mode menu at all (feature-flag gated). */
+  showAiMode: boolean
   aiAvailable: boolean
   nodeColor: string
 }>()
@@ -81,6 +83,7 @@ const rootStyle = computed(() => {
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
     <ModeMenu
       :selectedMode="props.selectedMode"
+      :showAiMode="props.showAiMode"
       :aiAvailable="props.aiAvailable"
       :modeLocked="props.modeLocked"
       :codeEditIcon="codeEditIcon"

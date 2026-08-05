@@ -15,8 +15,10 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
-const { selectedMode, aiAvailable, modeLocked, codeEditIcon, asPort } = defineProps<{
+const { selectedMode, showAiMode, aiAvailable, modeLocked, codeEditIcon, asPort } = defineProps<{
   selectedMode: ComponentBrowserMode
+  /** Whether the AI mode option is present in the menu at all (feature-flag gated). */
+  showAiMode: boolean
   aiAvailable: boolean
   modeLocked: boolean
   /** The icon to display for the "code editing" mode (varies by suggestion / node type). */
@@ -38,16 +40,20 @@ interface ModeOption {
 }
 
 const options = computed<readonly ModeOption[]>(() => [
-  {
-    mode: 'aiPrompt',
-    icon: 'robot',
-    label: 'AI prompt',
-    disabled: !aiAvailable,
-    title:
-      aiAvailable ?
-        'Generate a User Defined Component from a natural-language prompt'
-      : 'Claude CLI not found on PATH. Install Claude Code to enable AI mode.',
-  },
+  ...(showAiMode ?
+    [
+      {
+        mode: 'aiPrompt' as const,
+        icon: 'robot' as const,
+        label: 'AI prompt',
+        disabled: !aiAvailable,
+        title:
+          aiAvailable ?
+            'Generate a User Defined Component from a natural-language prompt'
+          : 'Claude CLI not found on PATH. Install Claude Code to enable AI mode.',
+      },
+    ]
+  : []),
   {
     mode: 'componentBrowsing',
     icon: 'find',

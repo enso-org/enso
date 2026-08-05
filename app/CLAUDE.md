@@ -65,6 +65,16 @@ compiled in dependency order. Root `pnpm compile` (`pnpm run -r compile`)
 handles this; don't run individual package `tsc` calls before their deps have
 emitted `dist/`.
 
+After switching between branches of different vintage, clean stale incremental
+state before trusting any typecheck: gitignored `dist/` outputs and
+`*.tsbuildinfo` files survive the switch, so packages typecheck against the
+other branch's emitted types while `tsc` insists everything is up to date.
+Recovery:
+
+    find app -maxdepth 2 -name "*.tsbuildinfo" -delete
+    rm -rf app/*/dist
+    corepack pnpm install && corepack pnpm run compile
+
 ## Testing
 
 - Unit tests: `vitest` (each package has its own config).

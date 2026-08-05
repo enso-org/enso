@@ -13,7 +13,17 @@
   the Component Browser input. The mode defaults to AI when the local `claude`
   CLI is found, and to component search otherwise. Existing AI nodes can be
   edited by reopening the Component Browser on them — the prior prompt is sent
-  back to the agent so the function definition is rewritten in place.
+  back to the agent so the function definition is rewritten in place. The whole
+  AI mode is hidden behind the `enableAiComponentBrowserMode` feature flag (off
+  by default) — enabling the flag reveals the mode and makes it the default when
+  the `claude` CLI is available.
+- Fix the IDE hanging on the loading screen forever when Enso Cloud cannot be
+  reached. If a Cloud hostname fails to resolve, startup no longer stalls: the
+  app now starts in local-projects mode with Cloud features disabled, instead of
+  waiting on a configuration request that can never succeed. Unreachable hosts
+  are also no longer retried, and are never mistaken for an expired session, so
+  there is no sign-out loop. Deployments without a local backend keep
+  redirecting to the login page as before.
 
 #### Enso Language & Runtime
 
@@ -40,7 +50,6 @@
 - [Add right click menu for multiple components][14640].
 - [Execution can be scheduled for the specific version tag][14883]
 - [Add component spacing options][14888]
-- [When resizing component, other components are moved to make room][14904]
 - [A comment can be attached to the asset version][14923]
 - [New tabular view of session log with filtering][14953]
 - [Input ports no longer highlight on hover unless being connected to][14968]
@@ -65,7 +74,6 @@
 [14640]: https://github.com/enso-org/enso/pull/14640
 [14883]: https://github.com/enso-org/enso/pull/14883
 [14888]: https://github.com/enso-org/enso/pull/14888
-[14904]: https://github.com/enso-org/enso/pull/14904
 [14823]: https://github.com/enso-org/enso/pull/14823
 [14953]: https://github.com/enso-org/enso/pull/14953
 [14968]: https://github.com/enso-org/enso/pull/14968
