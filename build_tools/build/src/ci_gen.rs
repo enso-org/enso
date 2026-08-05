@@ -33,8 +33,6 @@ use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
-use ide_ci::actions::workflow::definition::SETUP_BAZEL_ACTION;
-use ide_ci::actions::workflow::definition::SETUP_BAZEL_BAZELRC_INPUT;
 use ide_ci::actions::workflow::definition::Schedule;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
@@ -44,6 +42,8 @@ use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
+use ide_ci::actions::workflow::definition::SETUP_BAZEL_ACTION;
+use ide_ci::actions::workflow::definition::SETUP_BAZEL_BAZELRC_INPUT;
 use ide_ci::cache::goodie::graalvm;
 
 // ==============
@@ -97,9 +97,10 @@ pub const MACOS_SIGN_ARTIFACTS: bool = false;
 /// GitHub-hosted macOS runners have too little memory for the engine's native-image build. When
 /// this is set, the macOS backend job is omitted and the macOS IDE embeds the engine bundle of
 /// this (older) release, pairing a fresh GUI with that engine. Currently pinned to
-/// `2026.1.1-nightly.2026.5.11`, the last release built on the self-hosted fleet. Set to `None`
+/// `2025.3.4`, the latest release of the 2025.3 line (the engine is unchanged by the 2025.3.5
+/// bugfixes, so the pinned bundle matches). Set to `None`
 /// once macOS backends can be built again.
-pub const MACOS_BACKEND_FALLBACK_RELEASE: Option<u64> = Some(320244025);
+pub const MACOS_BACKEND_FALLBACK_RELEASE: Option<u64> = Some(302283323);
 
 pub const RELEASE_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
