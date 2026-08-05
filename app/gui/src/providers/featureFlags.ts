@@ -32,6 +32,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   unsafeDarkTheme: z.boolean(),
   apiKeyLimit: z.number().int().min(0),
   debugHoverAreas: z.boolean(),
+  enableAiComponentBrowserMode: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -69,6 +70,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         unsafeDarkTheme: false,
         apiKeyLimit: 5,
         debugHoverAreas: false,
+        enableAiComponentBrowserMode: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

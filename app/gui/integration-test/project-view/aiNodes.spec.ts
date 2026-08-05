@@ -68,3 +68,22 @@ test('AI prompt without a source node still renders the category icon', async ({
   // any category icon, because `WidgetAiPrompt` won the priority tie at the root input.
   await expect(locate.graphNodeIcon(aiNode)).toBeVisible()
 })
+
+test.describe('with the feature flag off', () => {
+  test.use({ aiAvailable: true, featureFlags: { enableAiComponentBrowserMode: false } })
+
+  test('AI mode is hidden even when the claude CLI is available', async ({ editorPage, page }) => {
+    await editorPage
+
+    await locate.addNewNodeButton(page).click()
+    await expect(locate.componentBrowser(page)).toBeVisible()
+
+    // The CB defaults to component search, not to the AI prompt.
+    await expect(page.locator('.ComponentList')).toBeVisible()
+
+    // The mode menu offers no AI entry.
+    await page.locator('.ModeMenu').click()
+    await expect(page.locator('.modeOption')).toHaveCount(2)
+    await expect(page.locator('.modeOption', { hasText: 'AI prompt' })).toHaveCount(0)
+  })
+})

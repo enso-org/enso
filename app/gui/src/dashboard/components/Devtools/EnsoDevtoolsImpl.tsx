@@ -77,6 +77,7 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
     enableAdvancedProjectExecutionOptions,
+    enableAiComponentBrowserMode,
     listDirectoryPageSize,
     getLogEventsPageSize,
     fileChunkUploadPoolSize,
@@ -198,6 +199,15 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('advancedProjectExecutionOptionsEnabled')}
+          </DeveloperOverrideEntry>
+        )}
+        {enableAiComponentBrowserMode && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('enableAiComponentBrowserMode', false)
+            }}
+          >
+            {getText('aiComponentBrowserModeEnabled')}
           </DeveloperOverrideEntry>
         )}
         {listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE && (

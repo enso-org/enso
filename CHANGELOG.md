@@ -13,7 +13,10 @@
   the Component Browser input. The mode defaults to AI when the local `claude`
   CLI is found, and to component search otherwise. Existing AI nodes can be
   edited by reopening the Component Browser on them — the prior prompt is sent
-  back to the agent so the function definition is rewritten in place.
+  back to the agent so the function definition is rewritten in place. The whole
+  AI mode is hidden behind the `enableAiComponentBrowserMode` feature flag (off
+  by default) — enabling the flag reveals the mode and makes it the default when
+  the `claude` CLI is available.
 - Fix the IDE hanging on the loading screen forever when Enso Cloud cannot be
   reached. If a Cloud hostname fails to resolve, startup no longer stalls: the
   app now starts in local-projects mode with Cloud features disabled, instead of

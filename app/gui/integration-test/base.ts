@@ -15,7 +15,9 @@ export const test = base.extend<{
   featureFlags: Partial<FeatureFlags>
   /**
    * Whether the mocked Electron API should report the local Claude agent as available. Most
-   * specs assume `false`. AI specs opt in with `test.use({ aiAvailable: true })`.
+   * specs assume `false`. AI specs opt in with `test.use({ aiAvailable: true })`, which also
+   * turns on the `enableAiComponentBrowserMode` feature flag — an explicit value in
+   * `featureFlags` still wins.
    */
   aiAvailable: boolean
   setupApi: {
@@ -56,7 +58,11 @@ export const test = base.extend<{
   loginPage: async ({ page, cloudApi, localApi, featureFlags, aiAvailable }, use) => {
     // Only make sure that API mocks are registered, do not actually use the values
     const _ = { cloudApi, localApi }
-    await registerMocks(page, featureFlags, { aiAvailable })
+    await registerMocks(
+      page,
+      { enableAiComponentBrowserMode: aiAvailable, ...featureFlags },
+      { aiAvailable },
+    )
 
     const loginPage = new LoginPageActions(page, {}).do(async () => {
       await page.goto('/')

@@ -1213,6 +1213,7 @@
   "overridingProfilePicture": "Overriding profile picture",
   "multiplyingUserList": "Multiplying user list",
   "multitabsEnabled": "Multiple open projects allowed",
+  "aiComponentBrowserModeEnabled": "AI mode in the Component Browser enabled",
   "advancedProjectExecutionOptionsEnabled": "Advanced Scheduler options enabled",
   "willFetchUpToXAssetsPerPage": "Will fetch up to $0 assets per page",
   "willFetchUpToXLogEntriesPerPage": "Will fetch up to $0 log entries per page",

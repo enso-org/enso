@@ -16,9 +16,12 @@ test('cloud 500 lands in degraded mode and switching to local works', async ({
   cloudApi.setUsersMeFailureStatus(HTTP_INTERNAL_SERVER_ERROR)
 
   await loginPage
-    .login()
+    .login(undefined, undefined, { expectAgreements: false })
     .do(async (page) => {
       await expect(page.getByTestId('cloud-unavailable-stub')).toBeVisible({ timeout: 15_000 })
+      // While the Cloud is unavailable there is nothing for the agreements to gate, so the
+      // prompt is skipped rather than blocking the (still working) local projects.
+      await expect(page.locator('#agreements-modal')).toHaveCount(0)
       await expect(page.getByRole('button', { name: TEXT.retry, exact: true })).toBeVisible()
       await expect(
         page.getByRole('button', { name: TEXT.switchToLocal, exact: true }),
@@ -35,11 +38,22 @@ test('cloud 500 lands in degraded mode and switching to local works', async ({
 test('retry exits degraded mode once the backend recovers', async ({ loginPage, cloudApi }) => {
   cloudApi.setUsersMeFailureStatus(HTTP_INTERNAL_SERVER_ERROR)
 
-  await loginPage.login().do(async (page) => {
+  await loginPage.login(undefined, undefined, { expectAgreements: false }).do(async (page) => {
     await expect(page.getByTestId('cloud-unavailable-stub')).toBeVisible({ timeout: 15_000 })
     cloudApi.setUsersMeFailureStatus(null)
     await page.getByRole('button', { name: TEXT.retry, exact: true }).click()
     await expect(page.getByTestId('cloud-unavailable-stub')).toBeHidden({ timeout: 15_000 })
+    // Recovery re-engages the agreements gate that was skipped while the Cloud was unavailable.
+    await expect(page.locator('#agreements-modal')).toBeVisible()
+    await page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox)
+      .click()
+    await page
+      .getByRole('group', { name: TEXT.privacyPolicyCheckbox })
+      .getByText(TEXT.privacyPolicyCheckbox)
+      .click()
+    await page.getByRole('button', { name: TEXT.accept }).click()
     await expect(page.getByTestId('drive-view')).toBeVisible()
   })
 })
