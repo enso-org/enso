@@ -7,11 +7,26 @@
   Table.input components.
 - [Text widgets have a fixed maximum size in collapsed mode][14775]
 - [Fixed uploading corrupted projects to the cloud storage][14805]
+- [Local projects remain usable when the `users/me` Cloud endpoint
+  fails][15024]. The dashboard shows an "Enso Cloud is unavailable" notice with
+  Retry and Switch to Local actions instead of breaking.
+- The app now starts in local-projects mode when Enso Cloud cannot be reached at
+  all, instead of stranding the user on a login screen that cannot work.
+  Unreachable hosts are never mistaken for an expired session, so there is no
+  sign-out loop; deployments without a local backend keep redirecting to the
+  login page as before.
+- Local projects open without a user session, and the user menu says "Not signed
+  in" — hiding Sign out and plan actions that cannot work — whenever nobody is
+  signed in or the Cloud cannot supply the user's profile.
+- Unreachable Terms of Service or Privacy Policy documents no longer block the
+  app; the Cloud stays gated until the current documents can be read and
+  accepted.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
 [14678]: https://github.com/enso-org/enso/pull/14678
 [14775]: https://github.com/enso-org/enso/pull/14775
 [14805]: https://github.com/enso-org/enso/pull/14805
+[15024]: https://github.com/enso-org/enso/pull/15024
 
 #### Enso Standard Library
 
