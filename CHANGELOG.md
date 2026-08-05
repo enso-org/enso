@@ -50,7 +50,6 @@
 - [Add right click menu for multiple components][14640].
 - [Execution can be scheduled for the specific version tag][14883]
 - [Add component spacing options][14888]
-- [When resizing component, other components are moved to make room][14904]
 - [A comment can be attached to the asset version][14923]
 - [New tabular view of session log with filtering][14953]
 - [Input ports no longer highlight on hover unless being connected to][14968]
@@ -75,7 +74,6 @@
 [14640]: https://github.com/enso-org/enso/pull/14640
 [14883]: https://github.com/enso-org/enso/pull/14883
 [14888]: https://github.com/enso-org/enso/pull/14888
-[14904]: https://github.com/enso-org/enso/pull/14904
 [14823]: https://github.com/enso-org/enso/pull/14823
 [14953]: https://github.com/enso-org/enso/pull/14953
 [14968]: https://github.com/enso-org/enso/pull/14968
