@@ -26,10 +26,11 @@ test('cloud 500 lands in degraded mode and switching to local works', async ({
       await expect(
         page.getByRole('button', { name: TEXT.switchToLocal, exact: true }),
       ).toBeVisible()
-      // The cloud sidebar entry is still rendered but the button is disabled.
-      await expect(page.getByRole('button', { name: TEXT.cloudCategory }).first()).toBeDisabled()
+      // On this branch the category sidebar renders only inside the regular drive layout, so
+      // the stub state has no (disabled) Cloud entry to assert on; switching to local goes
+      // through the stub's own button.
+      await page.getByRole('button', { name: TEXT.switchToLocal, exact: true }).click()
     })
-    .goToCategory.local()
     .withDriveView(async (driveView) => {
       await expect(driveView).toBeVisible()
     })

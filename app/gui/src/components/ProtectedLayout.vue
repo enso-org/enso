@@ -25,7 +25,7 @@ import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
-import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
+import { computed, effectScope, EffectScope, shallowRef, watch, watchPostEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 
 declare module 'vue-router' {
@@ -171,9 +171,38 @@ watchPostEffect(() => {
 const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
 const displayDevTools = computed(() => auth.session != null)
 
+// The agreements gate is skipped while the Cloud is unavailable (see `agreementsRequired`), and
+// the route guards alone cannot restore it: recovering via the "Retry" button changes no route.
+// Watch for the gate becoming required again on the current route and load the agreements then.
+const reengagedAgreementsProps = shallowRef<AgreementsModalProps>()
+let reengageScope: EffectScope | undefined
+watch(
+  () => props.agreementsModalProps == null && agreementsRequired(route, auth),
+  (required) => {
+    if (required) {
+      reengageScope?.stop()
+      reengageScope = effectScope()
+      void reengageScope
+        .run(() => useUserAgreements(queryClient))
+        ?.then((agreements) => {
+          reengagedAgreementsProps.value = agreements
+        })
+    } else {
+      reengageScope?.stop()
+      reengagedAgreementsProps.value = undefined
+    }
+  },
+)
+
+const effectiveAgreementsProps = computed(
+  () => props.agreementsModalProps ?? reengagedAgreementsProps.value,
+)
 const shouldDisplayAgreementsModal = computed(
   () =>
-    !(props.agreementsModalProps?.agreedToTos && props.agreementsModalProps?.agreedToPrivacyPolicy),
+    !(
+      effectiveAgreementsProps.value?.agreedToTos &&
+      effectiveAgreementsProps.value?.agreedToPrivacyPolicy
+    ),
 )
 </script>
 
@@ -197,8 +226,8 @@ const shouldDisplayAgreementsModal = computed(
   </Dialog>
 
   <AgreementsModal
-    v-if="allowed && agreementsModalProps && shouldDisplayAgreementsModal"
-    v-bind="agreementsModalProps"
+    v-if="allowed && effectiveAgreementsProps && shouldDisplayAgreementsModal"
+    v-bind="effectiveAgreementsProps"
   />
   <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
   <div v-else data-testid="content-not-allowed"></div>
