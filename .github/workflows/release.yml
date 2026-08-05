@@ -374,7 +374,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
@@ -398,8 +398,6 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:

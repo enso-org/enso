@@ -32,6 +32,20 @@ Each module handles one artifact family or one integration:
 - `postgres.rs` — Local Postgres for tests.
 - `httpbin.rs` — Spawns `tools/http-test-helper/` for Base_Tests.
 
+## CI workflow generation knobs
+
+`ci_gen.rs` opens with ops consts that shape the generated workflows:
+`RELEASE_RUNNER_TYPE` (self-hosted vs GitHub-hosted release jobs),
+`RELEASE_DEPLOYS_RUNTIME_TO_CLOUD`, `MACOS_SIGN_ARTIFACTS` (false = skip
+notarization; the Apple cert still signs), `WINDOWS_SIGN_ARTIFACTS` (false =
+don't expose the `MICROSOFT_CODE_SIGNING_CERT` secrets at all —
+electron-builder signs whenever `WIN_CSC_LINK` is set, so hiding the env is
+what disables signing), and `MACOS_BACKEND_FALLBACK_RELEASE` (embed a
+published engine bundle when macOS runners can't build the backend). After
+editing anything under `ci_gen*`, run `cargo run -p enso-build-ci-gen` — it
+rewrites `.github/workflows/` and prettier-formats them; CI fails if the YAML
+doesn't match the generator.
+
 ## Dependency choices
 
 - `octocrab` (forked in `[workspace.dependencies]`) for GitHub API.

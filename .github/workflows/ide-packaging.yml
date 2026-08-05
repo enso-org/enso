@@ -459,8 +459,6 @@ jobs:
           ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:

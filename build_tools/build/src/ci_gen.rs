@@ -91,6 +91,14 @@ pub const RELEASE_DEPLOYS_RUNTIME_TO_CLOUD: bool = false;
 /// run it. Linux and Windows IDE builds are unaffected by this switch.
 pub const MACOS_SIGN_ARTIFACTS: bool = false;
 
+/// Whether the Windows IDE build should sign its artifacts.
+///
+/// Requires a valid code signing certificate in the `MICROSOFT_CODE_SIGNING_CERT` secret. When
+/// disabled, the certificate secrets are not exposed to the build, so the produced IDE and
+/// installer binaries are unsigned and Windows SmartScreen warns on their first launch. Linux and
+/// macOS IDE builds are unaffected by this switch.
+pub const WINDOWS_SIGN_ARTIFACTS: bool = false;
+
 /// Published release providing the engine bundle for the macOS IDE build when the macOS backend
 /// cannot be built.
 ///
@@ -697,7 +705,11 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     for target in RELEASE_TARGETS {
         let fallback_backend =
             if target.0 == OS::MacOS { MACOS_BACKEND_FALLBACK_RELEASE } else { None };
-        let sign_artifacts = target.0 != OS::MacOS || MACOS_SIGN_ARTIFACTS;
+        let sign_artifacts = match target.0 {
+            OS::MacOS => MACOS_SIGN_ARTIFACTS,
+            OS::Windows => WINDOWS_SIGN_ARTIFACTS,
+            _ => true,
+        };
         match fallback_backend {
             Some(backend_release) => {
                 let upload_ide =
