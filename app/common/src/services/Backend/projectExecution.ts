@@ -1,10 +1,55 @@
 import { ZonedDateTime, parseAbsolute } from '@internationalized/date'
 import { DAYS_PER_WEEK, MONTHS_PER_YEAR, getDay } from '../../utilities/data/dateTime.js'
-import type { ProjectExecutionInfo } from '../Backend.js'
+import type {
+  ProjectExecutionInfo,
+  ProjectExecutionMonthlyDateRepeatInfo,
+  ProjectExecutionMonthlyWeekdayRepeatInfo,
+} from '../Backend.js'
 
 /** Positive modulo of the number with respect to the base. */
 function remainder(n: number, mod: number) {
   return ((n % mod) + mod) % mod
+}
+
+/** Repeat info for the repeat types that are restricted to a set of months. */
+type MonthlyRepeatInfo =
+  | ProjectExecutionMonthlyDateRepeatInfo
+  | ProjectExecutionMonthlyWeekdayRepeatInfo
+
+/** The execution date of a monthly repeat within the month of the given date. */
+function monthlyExecutionInMonth(repeat: MonthlyRepeatInfo, dateInMonth: ZonedDateTime) {
+  switch (repeat.type) {
+    case 'monthlyDate': {
+      return dateInMonth.set({ day: repeat.date })
+    }
+    case 'monthlyWeekday': {
+      const weekStart = dateInMonth.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
+      const dayOffset = remainder(repeat.dayOfWeek - getDay(weekStart), DAYS_PER_WEEK)
+      return weekStart.add({ days: dayOffset })
+    }
+  }
+}
+
+/**
+ * The first execution date of a monthly repeat on or after the given date, looking no earlier
+ * than `minMonthOffset` months after the month of the given date.
+ * Months in `repeat.months` are zero-based (January is `0`).
+ */
+function firstMonthlyExecutionOnOrAfter(
+  repeat: MonthlyRepeatInfo,
+  date: ZonedDateTime,
+  minMonthOffset: number,
+) {
+  const months = repeat.months.length > 0 ? repeat.months : [0]
+  const monthStart = date.set({ day: 1 })
+  // One full year past the first candidate month always contains an execution.
+  for (let offset = minMonthOffset; offset <= minMonthOffset + MONTHS_PER_YEAR; offset += 1) {
+    const dateInMonth = monthStart.add({ months: offset })
+    if (!months.includes(dateInMonth.month - 1)) continue
+    const execution = monthlyExecutionInMonth(repeat, dateInMonth)
+    if (execution.compare(date) >= 0) return execution
+  }
+  return null
 }
 
 /** The first execution date of the given {@link ProjectExecution} on or after the given date. */
@@ -30,15 +75,6 @@ export function firstProjectExecutionOnOrAfter(
     nextDate = nextDate.add({ days: 1 })
   }
   switch (repeat.type) {
-    case 'monthlyDate':
-    case 'monthlyWeekday': {
-      const currentMonth = nextDate.month - 1
-      const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
-      const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
-      nextDate = nextDate.add({ months: monthOffset })
-    }
-  }
-  switch (repeat.type) {
     case 'none': {
       return parseAbsolute(projectExecution.startDate, startDate.timeZone)
     }
@@ -52,33 +88,9 @@ export function firstProjectExecutionOnOrAfter(
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'monthlyWeekday': {
-      const currentDate = nextDate.day
-      nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
-      const currentDay = getDay(nextDate)
-      const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
-      nextDate = nextDate.add({ days: dayOffset })
-      if (nextDate.day < currentDate) {
-        nextDate = nextDate.set({ day: 1 })
-        nextDate = nextDate.add({ months: 1 })
-        nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
-        const currentDay = getDay(nextDate)
-        const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
-        nextDate = nextDate.add({ days: dayOffset })
-      }
-      break
-    }
+    case 'monthlyWeekday':
     case 'monthlyDate': {
-      const currentDate = nextDate.day
-      const date = repeat.date
-      const goToNextMonth = repeat.date < currentDate
-      if (goToNextMonth) {
-        const startMonth = nextDate.month
-        const month = repeat.months.find((month) => month > startMonth) ?? repeat.months[0] ?? 0
-        const monthOffset = remainder(month - startMonth, MONTHS_PER_YEAR)
-        nextDate = nextDate.add({ months: monthOffset })
-      }
-      nextDate = nextDate.set({ day: date })
+      nextDate = firstMonthlyExecutionOnOrAfter(repeat, nextDate, 0) ?? nextDate
       break
     }
   }
@@ -92,15 +104,6 @@ export function nextProjectExecutionDate(
 ): ZonedDateTime | null {
   let nextDate = date
   const { repeat } = projectExecution
-  switch (repeat.type) {
-    case 'monthlyDate':
-    case 'monthlyWeekday': {
-      const currentMonth = nextDate.month - 1
-      const month = repeat.months.find((month) => month > currentMonth) ?? repeat.months[0] ?? 0
-      const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
-      nextDate = nextDate.add({ months: monthOffset })
-    }
-  }
   switch (repeat.type) {
     case 'none':
     default: {
@@ -117,16 +120,10 @@ export function nextProjectExecutionDate(
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'monthlyWeekday': {
-      nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
-      const currentDay = getDay(nextDate)
-      const dayOffset = remainder(repeat.dayOfWeek - currentDay - 1, DAYS_PER_WEEK) + 1
-      nextDate = nextDate.add({ days: dayOffset })
-      break
-    }
+    case 'monthlyWeekday':
     case 'monthlyDate': {
-      nextDate = nextDate.set({ day: repeat.date })
-      break
+      // Each month has at most one execution, so the next one is in a later month.
+      return firstMonthlyExecutionOnOrAfter(repeat, nextDate, 1)
     }
   }
   return nextDate
